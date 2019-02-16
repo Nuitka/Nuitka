@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -37,47 +37,32 @@ def demoteCompiledModuleToBytecode(module):
     full_name = module.getFullName()
     filename = module.getCompileTimeFilename()
 
-    debug(
-        "Demoting module '%s' to bytecode from '%s'.",
-        full_name,
-        filename
-    )
-
+    debug("Demoting module '%s' to bytecode from '%s'.", full_name, filename)
 
     source_code = readSourceCodeFromFilename(full_name, filename)
 
     source_code = Plugins.onFrozenModuleSourceCode(
-        module_name = full_name,
-        is_package  = False,
-        source_code = source_code
+        module_name=full_name, is_package=False, source_code=source_code
     )
 
-    bytecode = compile(source_code, filename, "exec", dont_inherit = True)
+    bytecode = compile(source_code, filename, "exec", dont_inherit=True)
 
     bytecode = Plugins.onFrozenModuleBytecode(
-        module_name = full_name,
-        is_package  = False,
-        bytecode    = bytecode
+        module_name=full_name, is_package=False, bytecode=bytecode
     )
 
     uncompiled_module = makeUncompiledPythonModule(
-        module_name   = full_name,
-        filename      = filename,
-        bytecode      = marshal.dumps(bytecode),
-        is_package    = module.isCompiledPythonPackage(),
-        user_provided = True,
-        technical     = False
+        module_name=full_name,
+        filename=filename,
+        bytecode=marshal.dumps(bytecode),
+        is_package=module.isCompiledPythonPackage(),
+        user_provided=True,
+        technical=False,
     )
 
-    replaceImportedModule(
-        old = module,
-        new = uncompiled_module
-    )
+    replaceImportedModule(old=module, new=uncompiled_module)
 
-    replaceRootModule(
-        old = module,
-        new = uncompiled_module
-    )
+    replaceRootModule(old=module, new=uncompiled_module)
 
     assert module.trace_collection is not None
     uncompiled_module.setUsedModules(module.trace_collection.getUsedModules())

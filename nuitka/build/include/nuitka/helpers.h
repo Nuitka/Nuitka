@@ -1,4 +1,4 @@
-//     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -292,6 +292,14 @@ extern PyObject *BUILTIN_CLASSMETHOD(PyObject *function);
 
 // For built-in divmod() functionality.
 extern PyObject *BUILTIN_DIVMOD(PyObject *operand1, PyObject *operand2);
+
+// For built-in "int()" functionality with 2 arguments.
+extern PyObject *BUILTIN_INT2(PyObject *value, PyObject *base);
+
+#if PYTHON_VERSION < 300
+// For built-in "long()" functionality with 2 arguments.
+extern PyObject *BUILTIN_LONG2(PyObject *value, PyObject *base);
+#endif
 
 #include "nuitka/importing.h"
 

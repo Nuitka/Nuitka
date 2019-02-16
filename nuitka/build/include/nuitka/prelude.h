@@ -1,4 +1,4 @@
-//     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -238,7 +238,7 @@ typedef long Py_hash_t;
  *
  * TODO: Make it work for 3.7 too.
  */
-#if defined(_WIN32) || PYTHON_VERSION >= 370
+#if defined(_WIN32) || defined(__MSYS__) || PYTHON_VERSION >= 370
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #else
@@ -265,6 +265,9 @@ extern PyThreadState *_PyThreadState_Current;
 
 /* Sentinel PyObject to be used for all our call iterator endings. */
 extern PyObject *_sentinel_value;
+
+/* Value to use for __compiled__ value of all modules. */
+extern PyObject *Nuitka_dunder_compiled_value;
 
 #include "nuitka/compiled_generator.h"
 

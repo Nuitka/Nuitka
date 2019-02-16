@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -15,7 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 """ Templates for calling functions with positional args only very quickly.
 
 """
@@ -711,5 +710,6 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
 }
 """
 
-from . import TemplateDebugWrapper # isort:skip
+from . import TemplateDebugWrapper  # isort:skip
+
 TemplateDebugWrapper.checkDebug(globals())

@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,6 +31,7 @@ _missing_operations = OrderedSet()
 
 # _error_for_missing = True
 _error_for_missing = False
+
 
 def doMissingOptimizationReport():
     level = error if _error_for_missing else info

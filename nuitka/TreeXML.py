@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,10 +27,10 @@ from nuitka.PythonVersions import python_version
 from . import Tracing
 
 
-def indent(elem, level = 0, more_sibs = False):
-    i = '\n'
+def indent(elem, level=0, more_sibs=False):
+    i = "\n"
     if level:
-        i += (level-1) * "  "
+        i += (level - 1) * "  "
     num_kids = len(elem)
     if num_kids:
         if not elem.text or not elem.text.strip():
@@ -39,7 +39,7 @@ def indent(elem, level = 0, more_sibs = False):
                 elem.text += "  "
         count = 0
         for kid in elem:
-            indent(kid, level+1, count < num_kids - 1)
+            indent(kid, level + 1, count < num_kids - 1)
             count += 1
         if not elem.tail or not elem.tail.strip():
             elem.tail = i
@@ -53,15 +53,18 @@ def indent(elem, level = 0, more_sibs = False):
 
     return elem
 
+
 try:
-    import lxml.etree # pylint: disable=I0021,import-error
+    import lxml.etree  # pylint: disable=I0021,import-error
+
     xml_module = lxml.etree
 
     Element = xml_module.Element
-    xml_tostring = lambda tree: lxml.etree.tostring(tree, pretty_print = True)
+    xml_tostring = lambda tree: lxml.etree.tostring(tree, pretty_print=True)
 except ImportError:
     try:
         import xml.etree.ElementTree
+
         xml_module = xml.etree.ElementTree
 
         Element = xml.etree.ElementTree.Element
@@ -74,7 +77,7 @@ except ImportError:
 # TODO: Use the writer to create the XML we output. That should be more
 # scalable and/or faster.
 try:
-    import lxml.xmlfile # pylint: disable=I0021,import-error
+    import lxml.xmlfile  # pylint: disable=I0021,import-error
 
     xml_writer = lxml.xmlfile
 except ImportError:

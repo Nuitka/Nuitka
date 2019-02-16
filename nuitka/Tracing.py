@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -35,8 +35,8 @@ def printIndented(level, *what):
     print("    " * level, *what)
 
 
-def printSeparator(level = 0):
-    print("    " * level, '*' * 10)
+def printSeparator(level=0):
+    print("    " * level, "*" * 10)
 
 
 def printLine(*what):
@@ -44,10 +44,7 @@ def printLine(*what):
 
 
 def printError(message):
-    print(
-        message,
-        file = sys.stderr
-    )
+    print(message, file=sys.stderr)
 
 
 def flushStdout():

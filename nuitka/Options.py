@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,6 +29,7 @@ positional_args = None
 extra_args = []
 is_nuitka_run = None
 
+
 def parseArgs():
     # singleton with many cases, pylint: disable=global-statement,too-many-branches
     global is_nuitka_run, options, positional_args, extra_args
@@ -37,6 +38,7 @@ def parseArgs():
 
     if shallListPlugins():
         from nuitka.plugins.Plugins import listPlugins
+
         listPlugins()
 
     if options.verbose:
@@ -49,20 +51,24 @@ def parseArgs():
     # standard library.
     if options.is_standalone:
         if not options.executable:
-            sys.exit("""\
-Error, conflicting options, cannot make standalone module, only executable.""")
+            sys.exit(
+                """\
+Error, conflicting options, cannot make standalone module, only executable."""
+            )
 
         options.recurse_all = True
 
         if Utils.getOS() == "NetBSD":
-            logging.warning("Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported.")
+            logging.warning(
+                "Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported."
+            )
 
     for any_case_module in getShallFollowModules():
-        if any_case_module.startswith('.'):
+        if any_case_module.startswith("."):
             bad = True
         else:
             for char in "/\\:":
-                if  char in any_case_module:
+                if char in any_case_module:
                     bad = True
                     break
             else:
@@ -71,16 +77,16 @@ Error, conflicting options, cannot make standalone module, only executable.""")
         if bad:
             sys.exit(
                 """\
-Error, '--follow-import-to' takes only module names, not directory path '%s'.""" % \
-                any_case_module
+Error, '--follow-import-to' takes only module names, not directory path '%s'."""
+                % any_case_module
             )
 
     for no_case_module in getShallFollowInNoCase():
-        if no_case_module.startswith('.'):
+        if no_case_module.startswith("."):
             bad = True
         else:
             for char in "/\\:":
-                if  char in no_case_module:
+                if char in no_case_module:
                     bad = True
                     break
             else:
@@ -89,8 +95,8 @@ Error, '--follow-import-to' takes only module names, not directory path '%s'."""
         if bad:
             sys.exit(
                 """\
-Error, '--nofollow-import-to' takes only module names, not directory path '%s'.""" % \
-                no_case_module
+Error, '--nofollow-import-to' takes only module names, not directory path '%s'."""
+                % no_case_module
             )
 
     scons_python = getPythonPathForScons()
@@ -98,8 +104,9 @@ Error, '--nofollow-import-to' takes only module names, not directory path '%s'."
     if scons_python is not None and not os.path.exists(scons_python):
         sys.exit("Error, no such Python binary '%s'." % scons_python)
 
-    if options.output_filename is not None and \
-       (isStandaloneMode() or shallMakeModule()):
+    if options.output_filename is not None and (
+        isStandaloneMode() or shallMakeModule()
+    ):
         sys.exit(
             """\
 Error, can only specify output filename for acceleration mode, not for module
@@ -138,9 +145,7 @@ def shallNotDoExecCCompilerCall():
 
 def getFileReferenceMode():
     if options.file_reference_mode is None:
-        value = ("runtime"
-                   if shallMakeModule() or isStandaloneMode() else
-                 "original")
+        value = "runtime" if shallMakeModule() or isStandaloneMode() else "original"
     else:
         value = options.file_reference_mode
 
@@ -172,49 +177,39 @@ def shallFollowAllImports():
 
 
 def _splitShellPattern(value):
-    return value.split(',') if '{' not in value else [value]
+    return value.split(",") if "{" not in value else [value]
 
 
 def getShallFollowInNoCase():
-    return sum(
-        [_splitShellPattern(x) for x in options.recurse_not_modules ],
-        []
-    )
+    return sum([_splitShellPattern(x) for x in options.recurse_not_modules], [])
 
 
 def getShallFollowModules():
     return sum(
-        [_splitShellPattern(x) for x in options.recurse_modules + options.include_modules + options.include_packages],
-        []
+        [
+            _splitShellPattern(x)
+            for x in options.recurse_modules
+            + options.include_modules
+            + options.include_packages
+        ],
+        [],
     )
 
 
 def getShallFollowExtra():
-    return sum(
-        [_splitShellPattern(x) for x in options.recurse_extra],
-        []
-    )
+    return sum([_splitShellPattern(x) for x in options.recurse_extra], [])
 
 
 def getShallFollowExtraFilePatterns():
-    return sum(
-        [_splitShellPattern(x) for x in options.recurse_extra_files],
-        []
-    )
+    return sum([_splitShellPattern(x) for x in options.recurse_extra_files], [])
 
 
 def getMustIncludeModules():
-    return sum(
-        [_splitShellPattern(x) for x in options.include_modules],
-        []
-    )
+    return sum([_splitShellPattern(x) for x in options.include_modules], [])
 
 
 def getMustIncludePackages():
-    return sum(
-        [_splitShellPattern(x) for x in options.include_packages ],
-        []
-    )
+    return sum([_splitShellPattern(x) for x in options.include_packages], [])
 
 
 def shallWarnImplicitRaises():
@@ -261,7 +256,7 @@ def getOutputPath(path):
 
 
 def getOutputDir():
-    return options.output_dir if options.output_dir else '.'
+    return options.output_dir if options.output_dir else "."
 
 
 def getPositionalArgs():
@@ -356,7 +351,9 @@ def isStandaloneMode():
 def getIconPath():
     return options.icon_path
 
+
 _python_flags = None
+
 
 def getPythonFlags():
     # singleton, pylint: disable=global-statement
@@ -366,11 +363,10 @@ def getPythonFlags():
         _python_flags = set()
 
         for parts in options.python_flags:
-            for part in parts.split(','):
+            for part in parts.split(","):
                 if part in ("-S", "nosite", "no_site"):
                     _python_flags.add("no_site")
-                elif part in ("static_hashes", "norandomization",
-                              "no_randomization"):
+                elif part in ("static_hashes", "norandomization", "no_randomization"):
                     _python_flags.add("no_randomization")
                 elif part in ("-v", "trace_imports", "trace_import"):
                     _python_flags.add("trace_imports")
@@ -413,7 +409,7 @@ def getPluginsEnabled():
 
     if options:
         for plugin_enabled in options.plugins_enabled:
-            result.add(plugin_enabled.split('=',1)[0])
+            result.add(plugin_enabled.split("=", 1)[0])
 
     return tuple(result)
 
@@ -426,13 +422,13 @@ def getPluginOptions(plugin_name):
 
     if options:
         for plugin_enabled in options.plugins_enabled:
-            if '=' not in plugin_enabled:
+            if "=" not in plugin_enabled:
                 continue
 
-            name, args = plugin_enabled.split('=',1)
+            name, args = plugin_enabled.split("=", 1)
 
             if name == plugin_name:
-                result.extend(args.split(','))
+                result.extend(args.split(","))
 
     return result
 

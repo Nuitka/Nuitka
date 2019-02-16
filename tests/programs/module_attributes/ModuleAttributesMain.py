@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -29,6 +29,9 @@ def displayDict(d):
 
     if "__file__" in d:
         d["__file__"] = "<__file__ removed>"
+
+    if "__compiled__" in d:
+        del d["__compiled__"]
 
     import pprint
     return pprint.pformat(d)

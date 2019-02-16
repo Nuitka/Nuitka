@@ -10,7 +10,7 @@ https://github.com/kayhayen/Nuitka/blob/master/CONTRIBUTING.md
 ### Why was it initiated? Any relevant Issues?
 
 ### PR Checklist
-- [ ] Correct base branch selected? `develop` for new fetures and bug fixes too. If it's
+- [ ] Correct base branch selected? `develop` for new features and bug fixes too. If it's
       part of a hotfix, it will be moved to ``master`` during it.
 - [ ] All tests still pass. Check the developer manual about ``Running the Tests``. There
       are Travis tests that cover the most important things however, and you are

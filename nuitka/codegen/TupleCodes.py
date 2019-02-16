@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,7 +22,7 @@
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateExpressionCode,
-    withObjectCodeTemporaryAssignment
+    withObjectCodeTemporaryAssignment,
 )
 from .ConstantCodes import getConstantAccess
 from .PythonAPICodes import generateCAPIObjectCode
@@ -40,47 +40,36 @@ def _areConstants(expressions):
 
 
 def generateTupleCreationCode(to_name, expression, emit, context):
-    with withObjectCodeTemporaryAssignment(to_name, "tuple_value", expression, emit, context) \
-      as value_name:
+    with withObjectCodeTemporaryAssignment(
+        to_name, "tuple_value", expression, emit, context
+    ) as value_name:
 
         getTupleCreationCode(
-            to_name  = value_name,
-            elements = expression.getElements(),
-            emit     = emit,
-            context  = context
+            to_name=value_name,
+            elements=expression.getElements(),
+            emit=emit,
+            context=context,
         )
 
 
 def getTupleCreationCode(to_name, elements, emit, context):
     if _areConstants(elements):
         getConstantAccess(
-            to_name  = to_name,
-            constant = tuple(
-                element.getConstant()
-                for element in
-                elements
-            ),
-            emit     = emit,
-            context  = context
+            to_name=to_name,
+            constant=tuple(element.getConstant() for element in elements),
+            emit=emit,
+            context=context,
         )
     else:
         element_name = context.allocateTempName("tuple_element")
 
         for count, element in enumerate(elements):
             generateExpressionCode(
-                to_name    = element_name,
-                expression = element,
-                emit       = emit,
-                context    = context
+                to_name=element_name, expression=element, emit=emit, context=context
             )
 
             if count == 0:
-                emit(
-                    "%s = PyTuple_New( %d );" % (
-                        to_name,
-                        len(elements)
-                    )
-                )
+                emit("%s = PyTuple_New( %d );" % (to_name, len(elements)))
 
                 context.addCleanupTempName(to_name)
 
@@ -89,25 +78,17 @@ def getTupleCreationCode(to_name, elements, emit, context):
             else:
                 context.removeCleanupTempName(element_name)
 
-            emit(
-                "PyTuple_SET_ITEM( %s, %d, %s );" % (
-                    to_name,
-                    count,
-                    element_name
-                )
-            )
+            emit("PyTuple_SET_ITEM( %s, %d, %s );" % (to_name, count, element_name))
 
 
 def generateBuiltinTupleCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name          = to_name,
-        capi             = "PySequence_Tuple",
-        arg_desc         = (
-            ("tuple_arg", expression.getValue()),
-        ),
-        may_raise        = expression.mayRaiseException(BaseException),
-        conversion_check = decideConversionCheckNeeded(to_name, expression),
-        source_ref       = expression.getCompatibleSourceReference(),
-        emit             = emit,
-        context          = context
+        to_name=to_name,
+        capi="PySequence_Tuple",
+        arg_desc=(("tuple_arg", expression.getValue()),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )

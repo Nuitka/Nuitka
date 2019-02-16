@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,21 +31,13 @@ from .NodeBases import StatementChildrenHavingBase
 class StatementAssignmentSubscript(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_SUBSCRIPT"
 
-    named_children = (
-        "source",
-        "expression",
-        "subscript"
-    )
+    named_children = ("source", "expression", "subscript")
 
     def __init__(self, expression, subscript, source, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
-            values     = {
-                "source"     : source,
-                "expression" : expression,
-                "subscript"  : subscript
-            },
-            source_ref = source_ref
+            values={"source": source, "expression": expression, "subscript": subscript},
+            source_ref=source_ref,
         )
 
     getSubscribed = StatementChildrenHavingBase.childGetter("expression")
@@ -54,17 +46,17 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection = trace_collection
+            trace_collection=trace_collection
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
         return self.getSubscribed().computeExpressionSetSubscript(
-            set_node         = self,
-            subscript        = self.getSubscript(),
-            value_node       = self.getAssignSource(),
-            trace_collection = trace_collection
+            set_node=self,
+            subscript=self.getSubscript(),
+            value_node=self.getAssignSource(),
+            trace_collection=trace_collection,
         )
 
     def getStatementNiceName(self):
@@ -74,19 +66,13 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
 class StatementDelSubscript(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_SUBSCRIPT"
 
-    named_children = (
-        "expression",
-        "subscript"
-    )
+    named_children = ("expression", "subscript")
 
     def __init__(self, expression, subscript, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
-            values     = {
-                "expression" : expression,
-                "subscript"  : subscript
-            },
-            source_ref = source_ref
+            values={"expression": expression, "subscript": subscript},
+            source_ref=source_ref,
         )
 
     getSubscribed = StatementChildrenHavingBase.childGetter("expression")
@@ -94,16 +80,16 @@ class StatementDelSubscript(StatementChildrenHavingBase):
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection = trace_collection
+            trace_collection=trace_collection
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
         return self.getSubscribed().computeExpressionDelSubscript(
-            del_node         = self,
-            subscript        = self.getSubscript(),
-            trace_collection = trace_collection
+            del_node=self,
+            subscript=self.getSubscript(),
+            trace_collection=trace_collection,
         )
 
     def getStatementNiceName(self):
@@ -113,19 +99,13 @@ class StatementDelSubscript(StatementChildrenHavingBase):
 class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SUBSCRIPT_LOOKUP"
 
-    named_children = (
-        "subscribed",
-        "subscript"
-    )
+    named_children = ("subscribed", "subscript")
 
     def __init__(self, subscribed, subscript, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "subscribed" : subscribed,
-                "subscript"  : subscript
-            },
-            source_ref = source_ref
+            values={"subscribed": subscribed, "subscript": subscript},
+            source_ref=source_ref,
         )
 
     getLookupSource = ExpressionChildrenHavingBase.childGetter("subscribed")
@@ -133,9 +113,9 @@ class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):
 
     def computeExpression(self, trace_collection):
         return self.getLookupSource().computeExpressionSubscript(
-            lookup_node      = self,
-            subscript        = self.getSubscript(),
-            trace_collection = trace_collection
+            lookup_node=self,
+            subscript=self.getSubscript(),
+            trace_collection=trace_collection,
         )
 
     def isKnownToBeIterable(self, count):

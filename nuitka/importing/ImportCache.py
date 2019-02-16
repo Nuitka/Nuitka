@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -33,16 +33,14 @@ from nuitka.utils.FileOperations import relpath
 imported_modules = {}
 imported_by_name = {}
 
+
 def addImportedModule(imported_module):
     module_filename = relpath(imported_module.getFilename())
 
     if os.path.basename(module_filename) == "__init__.py":
         module_filename = os.path.dirname(module_filename)
 
-    key = (
-        module_filename,
-        imported_module.getFullName()
-    )
+    key = (module_filename, imported_module.getFullName())
 
     if key in imported_modules:
         assert imported_module is imported_modules[key], key
@@ -88,8 +86,10 @@ def getImportedModuleByPath(module_relpath, module_package):
         if key[0] == module_relpath:
             module = imported_modules[key]
 
-            if module.getCompileTimeFilename().endswith("__init__.py") and \
-               module.getPackage() != module_package:
+            if (
+                module.getCompileTimeFilename().endswith("__init__.py")
+                and module.getPackage() != module_package
+            ):
                 continue
 
             return imported_modules[key]

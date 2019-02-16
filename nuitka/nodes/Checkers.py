@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,10 +22,12 @@ types only.
 
 """
 
+
 def checkStatementsSequenceOrNone(value):
     assert value is None or value.kind == "STATEMENTS_SEQUENCE", value
 
     return value
+
 
 def checkStatementsSequence(value):
     assert value is not None and value.kind == "STATEMENTS_SEQUENCE", value

@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,6 +29,7 @@ it being used.
 """
 
 import os
+
 # This is heavily WIP.
 import sys
 from logging import info, warning
@@ -42,6 +43,7 @@ pre_modules = {}
 post_modules = {}
 
 warned_unused_plugins = set()
+
 
 class NuitkaPluginBase(object):
     """ Nuitka base class for all plug-ins.
@@ -87,23 +89,21 @@ class NuitkaPluginBase(object):
             about. Most prominently "getImplicitImports()".
         """
         for full_name, required in self.getImplicitImports(module):
-            module_name = full_name.split('.')[-1]
-            module_package = '.'.join(full_name.split('.')[:-1]) or None
+            module_name = full_name.split(".")[-1]
+            module_package = ".".join(full_name.split(".")[:-1]) or None
 
             module_filename = self.locateModule(
-                importing      = module,
-                module_name    = module_name,
-                module_package = module_package,
-                warn           = required
+                importing=module,
+                module_name=module_name,
+                module_package=module_package,
+                warn=required,
             )
 
             if module_filename is None:
                 if required:
                     sys.exit(
-                        "Error, implicit module '%s' expected by '%s' not found." % (
-                            full_name,
-                            module.getFullName()
-                        )
+                        "Error, implicit module '%s' expected by '%s' not found."
+                        % (full_name, module.getFullName())
                     )
                 else:
                     continue
@@ -111,8 +111,7 @@ class NuitkaPluginBase(object):
                 module_kind = "py"
             elif module_filename.endswith(".py"):
                 module_kind = "py"
-            elif module_filename.endswith(".so") or \
-                 module_filename.endswith(".pyd"):
+            elif module_filename.endswith(".so") or module_filename.endswith(".pyd"):
                 module_kind = "shlib"
             else:
                 assert False, module_filename
@@ -120,19 +119,19 @@ class NuitkaPluginBase(object):
             # TODO: This should get back to plug-ins, they should be allowed to
             # preempt or override the decision.
             decision, reason = self.decideRecursion(
-                module_filename = module_filename,
-                module_name     = module_name,
-                module_package  = module_package,
-                module_kind     = module_kind
+                module_filename=module_filename,
+                module_name=module_name,
+                module_package=module_package,
+                module_kind=module_kind,
             )
 
             if decision:
                 self.recurseTo(
-                    module_package  = module_package,
-                    module_filename = module_filename,
-                    module_kind     = module_kind,
-                    reason          = reason,
-                    signal_change   = signal_change
+                    module_package=module_package,
+                    module_filename=module_filename,
+                    module_kind=module_kind,
+                    reason=reason,
+                    signal_change=signal_change,
                 )
 
     def isRequiredImplicitImport(self, module, full_name):
@@ -178,19 +177,19 @@ class NuitkaPluginBase(object):
         mode = Plugins.decideCompilation(module_name, source_ref)
 
         trigger_module = CompiledPythonModule(
-            name         = module_name,
-            package_name = module.getPackage(),
-            is_top       = False,
-            mode         = mode,
-            future_spec  = None,
-            source_ref   = source_ref
+            name=module_name,
+            package_name=module.getPackage(),
+            is_top=False,
+            mode=mode,
+            future_spec=None,
+            source_ref=source_ref,
         )
 
         createModuleTree(
-            module      = trigger_module,
-            source_ref  = module.getSourceReference(),
-            source_code = code,
-            is_main     = False
+            module=trigger_module,
+            source_ref=module.getSourceReference(),
+            source_code=code,
+            is_main=False,
         )
 
         return trigger_module
@@ -214,17 +213,12 @@ class NuitkaPluginBase(object):
             if full_name is pre_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)
 
-            info(
-                "Injecting plug-in based pre load code for module '%s':" % \
-                    full_name
-            )
-            for line in reason.split('\n'):
+            info("Injecting plug-in based pre load code for module '%s':" % full_name)
+            for line in reason.split("\n"):
                 info("    " + line)
 
             pre_modules[full_name] = self._createTriggerLoadedModule(
-                module       = module,
-                trigger_name = "-preLoad",
-                code         = pre_code
+                module=module, trigger_name="-preLoad", code=pre_code
             )
 
         post_code, reason = self.createPostModuleLoadCode(module)
@@ -233,21 +227,17 @@ class NuitkaPluginBase(object):
             if full_name is post_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)
 
-            info(
-                "Injecting plug-in based post load code for module '%s':" % \
-                    full_name
-            )
-            for line in reason.split('\n'):
+            info("Injecting plug-in based post load code for module '%s':" % full_name)
+            for line in reason.split("\n"):
                 info("    " + line)
 
             post_modules[full_name] = self._createTriggerLoadedModule(
-                module       = module,
-                trigger_name = "-postLoad",
-                code         = post_code
+                module=module, trigger_name="-postLoad", code=post_code
             )
 
-    def onModuleEncounter(self, module_filename, module_name, module_package,
-                          module_kind):
+    def onModuleEncounter(
+        self, module_filename, module_name, module_package, module_kind
+    ):
         pass
 
     @staticmethod
@@ -255,51 +245,46 @@ class NuitkaPluginBase(object):
         from nuitka.importing import Importing
 
         _module_package, module_filename, _finding = Importing.findModule(
-            importing      = importing,
-            module_name    = module_name,
-            parent_package = module_package,
-            level          = -1,
-            warn           = warn
+            importing=importing,
+            module_name=module_name,
+            parent_package=module_package,
+            level=-1,
+            warn=warn,
         )
 
         return module_filename
 
     @staticmethod
-    def decideRecursion(module_filename, module_name, module_package,
-                        module_kind):
+    def decideRecursion(module_filename, module_name, module_package, module_kind):
         from nuitka.importing import Recursion
 
         decision, reason = Recursion.decideRecursion(
-            module_filename = module_filename,
-            module_name     = module_name,
-            module_package  = module_package,
-            module_kind     = module_kind
+            module_filename=module_filename,
+            module_name=module_name,
+            module_package=module_package,
+            module_kind=module_kind,
         )
 
         return decision, reason
 
     @staticmethod
-    def recurseTo(module_package, module_filename, module_kind, reason,
-                  signal_change):
+    def recurseTo(module_package, module_filename, module_kind, reason, signal_change):
         from nuitka.importing import Recursion
 
         imported_module, added_flag = Recursion.recurseTo(
-            module_package  = module_package,
-            module_filename = module_filename,
-            module_relpath  = relpath(module_filename),
-            module_kind     = module_kind,
-            reason          = reason
+            module_package=module_package,
+            module_filename=module_filename,
+            module_relpath=relpath(module_filename),
+            module_kind=module_kind,
+            reason=reason,
         )
 
         addUsedModule(imported_module)
 
         if added_flag:
             signal_change(
-                "new_code",
-                imported_module.getSourceReference(),
-                "Recursed to module."
+                "new_code", imported_module.getSourceReference(), "Recursed to module."
             )
-
 
     def considerExtraDlls(self, dist_dir, module):
         # Virtual method, pylint: disable=no-self-use,unused-argument
@@ -329,12 +314,7 @@ class NuitkaPluginBase(object):
         if self.plugin_name not in warned_unused_plugins:
             warned_unused_plugins.add(self.plugin_name)
 
-            warning(
-                "Use '--plugin-enable=%s' for: %s" % (
-                    self.plugin_name,
-                    message
-                )
-            )
+            warning("Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message))
 
 
 class UserPluginBase(NuitkaPluginBase):

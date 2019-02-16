@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,23 +36,21 @@ from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .templates.CodeTemplatesExceptions import (
     template_error_catch_exception,
     template_error_catch_quick_exception,
-    template_error_format_string_exception
+    template_error_format_string_exception,
 )
 
 
 def getErrorExitReleaseCode(context):
-    temp_release = '\n'.join(
-        "Py_DECREF( %s );" % tmp_name
-        for tmp_name in
-        context.getCleanupTempnames()
+    temp_release = "\n".join(
+        "Py_DECREF( %s );" % tmp_name for tmp_name in context.getCleanupTempnames()
     )
 
     keeper_variables = context.getExceptionKeeperVariables()
 
     if keeper_variables[0] is not None:
         temp_release += "\nPy_DECREF( %s );" % keeper_variables[0]
-        temp_release += "\nPy_XDECREF( %s );"  % keeper_variables[1]
-        temp_release += "\nPy_XDECREF( %s );"  % keeper_variables[2]
+        temp_release += "\nPy_XDECREF( %s );" % keeper_variables[1]
+        temp_release += "\nPy_XDECREF( %s );" % keeper_variables[2]
 
     return temp_release
 
@@ -70,10 +68,16 @@ def getFrameVariableTypeDescriptionCode(context):
         return ""
 
 
-def getErrorExitBoolCode(condition, emit, context, release_names = (),
-                         release_name = None,
-                         needs_check = True, quick_exception = None):
-    assert not condition.endswith(';')
+def getErrorExitBoolCode(
+    condition,
+    emit,
+    context,
+    release_names=(),
+    release_name=None,
+    needs_check=True,
+    quick_exception=None,
+):
+    assert not condition.endswith(";")
 
     if release_names:
         getReleaseCodes(release_names, emit, context)
@@ -87,147 +91,125 @@ def getErrorExitBoolCode(condition, emit, context, release_names = (),
         getAssertionCode("!(%s)" % condition, emit)
         return
 
-    exception_type, exception_value, exception_tb, _exception_lineno = \
-      context.variable_storage.getExceptionVariableDescriptions()
+    exception_type, exception_value, exception_tb, _exception_lineno = (
+        context.variable_storage.getExceptionVariableDescriptions()
+    )
 
     if quick_exception:
         emit(
             indented(
-                template_error_catch_quick_exception % {
-                    "condition"            : condition,
-                    "exception_type"      : exception_type,
-                    "exception_value"     : exception_value,
-                    "exception_tb"        : exception_tb,
-                    "exception_exit"       : context.getExceptionEscape(),
-                    "quick_exception"      : getExceptionIdentifier(quick_exception),
-                    "release_temps"        : indented(
-                        getErrorExitReleaseCode(context)
+                template_error_catch_quick_exception
+                % {
+                    "condition": condition,
+                    "exception_type": exception_type,
+                    "exception_value": exception_value,
+                    "exception_tb": exception_tb,
+                    "exception_exit": context.getExceptionEscape(),
+                    "quick_exception": getExceptionIdentifier(quick_exception),
+                    "release_temps": indented(getErrorExitReleaseCode(context)),
+                    "var_description_code": indented(
+                        getFrameVariableTypeDescriptionCode(context)
                     ),
-                    "var_description_code" : indented(
-                        getFrameVariableTypeDescriptionCode(context),
-                    ),
-                    "line_number_code"     : indented(
-                        getErrorLineNumberUpdateCode(context)
-                    )
+                    "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
                 },
-                0
+                0,
             )
         )
     else:
         emit(
             indented(
-                template_error_catch_exception % {
-                    "condition"           : condition,
-                    "exception_type"      : exception_type,
-                    "exception_value"     : exception_value,
-                    "exception_tb"        : exception_tb,
-                    "exception_exit"      : context.getExceptionEscape(),
-                    "release_temps"       : indented(
-                        getErrorExitReleaseCode(context)
-                    ),
+                template_error_catch_exception
+                % {
+                    "condition": condition,
+                    "exception_type": exception_type,
+                    "exception_value": exception_value,
+                    "exception_tb": exception_tb,
+                    "exception_exit": context.getExceptionEscape(),
+                    "release_temps": indented(getErrorExitReleaseCode(context)),
                     "var_description_code": indented(
-                        getFrameVariableTypeDescriptionCode(context),
+                        getFrameVariableTypeDescriptionCode(context)
                     ),
-                    "line_number_code" : indented(
-                        getErrorLineNumberUpdateCode(context)
-                    )
+                    "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
                 },
-                0
+                0,
             )
         )
 
 
-def getErrorExitCode(check_name, emit, context, release_names = (),
-                     release_name = None, quick_exception = None,
-                     needs_check = True):
+def getErrorExitCode(
+    check_name,
+    emit,
+    context,
+    release_names=(),
+    release_name=None,
+    quick_exception=None,
+    needs_check=True,
+):
     getErrorExitBoolCode(
-        condition       = "%s == NULL" % check_name,
-        release_names   = release_names,
-        release_name    = release_name,
-        needs_check     = needs_check,
-        quick_exception = quick_exception,
-        emit            = emit,
-        context         = context
+        condition="%s == NULL" % check_name,
+        release_names=release_names,
+        release_name=release_name,
+        needs_check=needs_check,
+        quick_exception=quick_exception,
+        emit=emit,
+        context=context,
     )
 
 
 def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
-    assert not condition.endswith(';')
+    assert not condition.endswith(";")
 
-    exception_type, exception_value, exception_tb, _exception_lineno = \
-      context.variable_storage.getExceptionVariableDescriptions()
+    exception_type, exception_value, exception_tb, _exception_lineno = (
+        context.variable_storage.getExceptionVariableDescriptions()
+    )
 
     if len(args) == 1 and type(args[0]) is str:
         from .ConstantCodes import getModuleConstantCode
 
         set_exception = [
-            "%s = %s;" % (
-                exception_type,
-                exception
-            ),
+            "%s = %s;" % (exception_type, exception),
             "Py_INCREF( %s );" % exception_type,
-            "%s = %s;" % (
-                exception_value,
-                getModuleConstantCode(constant = args[0]),
-            ),
+            "%s = %s;" % (exception_value, getModuleConstantCode(constant=args[0])),
             "%s = NULL;" % exception_tb,
         ]
     else:
         set_exception = [
-            "%s = %s;" % (
-                exception_type,
-                exception
-            ),
+            "%s = %s;" % (exception_type, exception),
             "Py_INCREF( %s );" % exception_type,
-            "%s = Py%s_FromFormat( %s );" % (
+            "%s = Py%s_FromFormat( %s );"
+            % (
                 exception_value,
                 "String" if python_version < 300 else "Unicode",
-                ", ".join(
-                    '"%s"' % arg
-                    for arg in
-                    args
-                )
+                ", ".join('"%s"' % arg for arg in args),
             ),
             "%s = NULL;" % exception_tb,
         ]
-
 
     if python_version >= 300:
         keeper_vars = context.getExceptionKeeperVariables()
 
         if keeper_vars[0] is not None:
             set_exception.append(
-                "ADD_EXCEPTION_CONTEXT( &%s, &%s );" % (
-                    keeper_vars[0],
-                    keeper_vars[1]
-                )
+                "ADD_EXCEPTION_CONTEXT( &%s, &%s );" % (keeper_vars[0], keeper_vars[1])
             )
         else:
             set_exception.append(
-                "NORMALIZE_EXCEPTION( &%s, &%s, &%s );" % (
-                    exception_type,
-                    exception_value,
-                    exception_tb
-                )
+                "NORMALIZE_EXCEPTION( &%s, &%s, &%s );"
+                % (exception_type, exception_value, exception_tb)
             )
-            set_exception.append(
-                "CHAIN_EXCEPTION( %s );" % exception_value
-            )
+            set_exception.append("CHAIN_EXCEPTION( %s );" % exception_value)
 
     emit(
-        template_error_format_string_exception % {
-            "condition"        : condition,
-            "exception_exit"   : context.getExceptionEscape(),
-            "set_exception"    : indented(set_exception),
-            "release_temps"    : indented(
-                getErrorExitReleaseCode(context)
+        template_error_format_string_exception
+        % {
+            "condition": condition,
+            "exception_exit": context.getExceptionEscape(),
+            "set_exception": indented(set_exception),
+            "release_temps": indented(getErrorExitReleaseCode(context)),
+            "var_description_code": indented(
+                getFrameVariableTypeDescriptionCode(context)
             ),
-            "var_description_code" : indented(
-                getFrameVariableTypeDescriptionCode(context),
-            ),
-            "line_number_code" : indented(
-                getErrorLineNumberUpdateCode(context)
-            )
+            "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
         }
     )
 
@@ -240,11 +222,7 @@ def getReleaseCode(release_name, emit, context):
 
 def getReleaseCodes(release_names, emit, context):
     for release_name in release_names:
-        getReleaseCode(
-            release_name = release_name,
-            emit         = emit,
-            context      = context
-        )
+        getReleaseCode(release_name=release_name, emit=emit, context=context)
 
 
 def getMustNotGetHereCode(reason, context, emit):
@@ -253,9 +231,8 @@ def getMustNotGetHereCode(reason, context, emit):
     provider = context.getEntryPoint()
 
     emit(
-        "NUITKA_CANNOT_GET_HERE( %(function_identifier)s );" % {
-            "function_identifier" :  provider.getCodeName()
-        }
+        "NUITKA_CANNOT_GET_HERE( %(function_identifier)s );"
+        % {"function_identifier": provider.getCodeName()}
     )
 
     if provider.isCompiledPythonModule():
@@ -275,27 +252,27 @@ def getCheckObjectCode(check_name, emit):
 def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
     if variable.getOwner() is not context.getOwner():
         getErrorFormatExitBoolCode(
-            condition = condition,
-            exception = "PyExc_NameError",
-            args      = (
+            condition=condition,
+            exception="PyExc_NameError",
+            args=(
                 """\
 free variable '%s' referenced before assignment in enclosing scope""",
-                variable.getName()
+                variable.getName(),
             ),
-            emit      = emit,
-            context   = context
+            emit=emit,
+            context=context,
         )
     else:
         getErrorFormatExitBoolCode(
-            condition = condition,
-            exception = "PyExc_UnboundLocalError",
-            args      = (
+            condition=condition,
+            exception="PyExc_UnboundLocalError",
+            args=(
                 """\
 local variable '%s' referenced before assignment""",
-                variable.getName()
+                variable.getName(),
             ),
-            emit      = emit,
-            context   = context
+            emit=emit,
+            context=context,
         )
 
 
@@ -303,8 +280,7 @@ def getNameReferenceErrorCode(variable_name, condition, emit, context):
     if python_version < 340:
         owner = context.getOwner()
 
-        if not owner.isCompiledPythonModule() and \
-           not owner.isExpressionClassBody():
+        if not owner.isCompiledPythonModule() and not owner.isExpressionClassBody():
             error_message = "global name '%s' is not defined"
         else:
             error_message = "name '%s' is not defined"
@@ -312,12 +288,9 @@ def getNameReferenceErrorCode(variable_name, condition, emit, context):
         error_message = "name '%s' is not defined"
 
     getErrorFormatExitBoolCode(
-        condition = condition,
-        exception = "PyExc_NameError",
-        args      = (
-            error_message,
-            variable_name
-        ),
-        emit      = emit,
-        context   = context
+        condition=condition,
+        exception="PyExc_NameError",
+        args=(error_message, variable_name),
+        emit=emit,
+        context=context,
     )

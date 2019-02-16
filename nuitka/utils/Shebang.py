@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,7 +27,7 @@ def getShebangFromSource(source_code):
         shebang = re.match(r"^#!\s*(.*?)\n", source_code)
 
         if shebang is not None:
-            shebang = shebang.group(0).rstrip('\n')
+            shebang = shebang.group(0).rstrip("\n")
     else:
         shebang = None
 
@@ -45,10 +45,10 @@ def parseShebang(shebang):
         # This attempts to handle env with arguments and options.
         del parts[0]
 
-        while parts[0].startswith('-'):
+        while parts[0].startswith("-"):
             del parts[0]
 
-        while '=' in parts[0]:
+        while "=" in parts[0]:
             del parts[0]
 
     return parts[0][2:].lstrip(), parts[1:]

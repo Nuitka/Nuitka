@@ -1,4 +1,4 @@
-//     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -1711,7 +1711,7 @@ char *getBinaryDirectoryUTF8Encoded() {
         abort();
     }
 
-    // On MacOS, the "dirname" call creates a separate internal string, we can
+    // On macOS, the "dirname" call creates a separate internal string, we can
     // safely copy back.
     strncpy(binary_directory, dirname(binary_directory), MAXPATHLEN);
 

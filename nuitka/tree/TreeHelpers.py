@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,28 +29,22 @@ from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
     ExpressionMakeList,
     ExpressionMakeSetLiteral,
-    ExpressionMakeTuple
+    ExpressionMakeTuple,
 )
-from nuitka.nodes.DictionaryNodes import (
-    ExpressionKeyValuePair,
-    ExpressionMakeDict
-)
+from nuitka.nodes.DictionaryNodes import ExpressionKeyValuePair, ExpressionMakeDict
 from nuitka.nodes.ExceptionNodes import StatementReraiseException
 from nuitka.nodes.FrameNodes import (
     StatementsFrameAsyncgen,
     StatementsFrameCoroutine,
     StatementsFrameFunction,
     StatementsFrameGenerator,
-    StatementsFrameModule
+    StatementsFrameModule,
 )
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.PythonVersions import (
-    needsSetLiteralReverseInsertion,
-    python_version
-)
+from nuitka.PythonVersions import needsSetLiteralReverseInsertion, python_version
 
 
 def dump(node):
@@ -58,7 +52,7 @@ def dump(node):
 
 
 def getKind(node):
-    return node.__class__.__name__.split('.')[-1]
+    return node.__class__.__name__.split(".")[-1]
 
 
 def extractDocFromBody(node):
@@ -66,9 +60,11 @@ def extractDocFromBody(node):
     doc = None
 
     # Work around ast.get_docstring breakage.
-    if node.body and \
-       getKind(node.body[0]) == "Expr" and \
-       getKind(node.body[0].value) == "Str":
+    if (
+        node.body
+        and getKind(node.body[0]) == "Expr"
+        and getKind(node.body[0].value) == "Str"
+    ):
 
         if "no_docstrings" not in Options.getPythonFlags():
             doc = body[0].value.s
@@ -81,8 +77,8 @@ def extractDocFromBody(node):
 def parseSourceCodeToAst(source_code, filename, line_offset):
     # Workaround: ast.parse cannot cope with some situations where a file is not
     # terminated by a new line.
-    if not source_code.endswith('\n'):
-        source_code = source_code + '\n'
+    if not source_code.endswith("\n"):
+        source_code = source_code + "\n"
 
     body = ast.parse(source_code, filename)
     assert getKind(body) == "Module"
@@ -93,7 +89,7 @@ def parseSourceCodeToAst(source_code, filename, line_offset):
     return body
 
 
-def detectFunctionBodyKind(nodes, start_value = None):
+def detectFunctionBodyKind(nodes, start_value=None):
     # This is a complex mess, following the scope means a lot of checks need
     # to be done. pylint: disable=too-many-branches,too-many-statements
 
@@ -127,9 +123,14 @@ def detectFunctionBodyKind(nodes, start_value = None):
 
         if node_class is ast.Yield:
             indications.add("Generator")
-        elif python_version >= 300 and node_class is ast.YieldFrom:  # @UndefinedVariable
+        elif (
+            python_version >= 300 and node_class is ast.YieldFrom
+        ):  # @UndefinedVariable
             indications.add("Generator")
-        elif python_version >= 350 and node_class in (ast.Await, ast.AsyncWith):  # @UndefinedVariable
+        elif python_version >= 350 and node_class in (
+            ast.Await,
+            ast.AsyncWith,
+        ):  # @UndefinedVariable
             indications.add("Coroutine")
 
         # Recurse to children, but do not cross scope boundary doing so.
@@ -148,8 +149,9 @@ def detectFunctionBodyKind(nodes, start_value = None):
                         _check(field)
                 else:
                     assert False, (name, field, ast.dump(node))
-        elif node_class in (ast.FunctionDef, ast.Lambda) or \
-             (python_version >= 350 and node_class is ast.AsyncFunctionDef):  # @UndefinedVariable
+        elif node_class in (ast.FunctionDef, ast.Lambda) or (
+            python_version >= 350 and node_class is ast.AsyncFunctionDef
+        ):  # @UndefinedVariable
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body"):
                     pass
@@ -202,7 +204,7 @@ def detectFunctionBodyKind(nodes, start_value = None):
                     pass
                 elif name == "generators":
                     _check(field[0].iter)
-                elif name in("body", "elt"):
+                elif name in ("body", "elt"):
                     _check(field)
                 else:
                     assert False, (name, field, ast.dump(node))
@@ -235,7 +237,7 @@ def detectFunctionBodyKind(nodes, start_value = None):
                 _check(child)
         elif python_version < 300 and node_class is ast.ImportFrom:
             for import_desc in node.names:
-                if import_desc.name[0] == '*':
+                if import_desc.name[0] == "*":
                     flags.add("has_exec")
             for child in ast.iter_child_nodes(node):
                 _check(child)
@@ -263,6 +265,7 @@ build_nodes_args3 = None
 build_nodes_args2 = None
 build_nodes_args1 = None
 
+
 def setBuildingDispatchers(path_args3, path_args2, path_args1):
     # Using global here, as this is really a singleton, in the form of a module,
     # and this is to break the cyclic dependency it has, pylint: disable=global-statement
@@ -274,7 +277,7 @@ def setBuildingDispatchers(path_args3, path_args2, path_args1):
     build_nodes_args1 = path_args1
 
 
-def buildNode(provider, node, source_ref, allow_none = False):
+def buildNode(provider, node, source_ref, allow_none=False):
     if node is None and allow_none:
         return None
 
@@ -288,19 +291,12 @@ def buildNode(provider, node, source_ref, allow_none = False):
 
         if kind in build_nodes_args3:
             result = build_nodes_args3[kind](
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
+                provider=provider, node=node, source_ref=source_ref
             )
         elif kind in build_nodes_args2:
-            result = build_nodes_args2[kind](
-                node       = node,
-                source_ref = source_ref
-            )
+            result = build_nodes_args2[kind](node=node, source_ref=source_ref)
         elif kind in build_nodes_args1:
-            result = build_nodes_args1[kind](
-                source_ref = source_ref
-            )
+            result = build_nodes_args1[kind](source_ref=source_ref)
         elif kind == "Pass":
             result = None
         else:
@@ -323,7 +319,7 @@ def buildNode(provider, node, source_ref, allow_none = False):
         raise
 
 
-def buildNodeList(provider, nodes, source_ref, allow_none = False):
+def buildNodeList(provider, nodes, source_ref, allow_none=False):
     if nodes is not None:
         result = []
 
@@ -345,9 +341,12 @@ def buildNodeList(provider, nodes, source_ref, allow_none = False):
 
 _host_node = None
 
+
 def buildAnnotationNode(provider, node, source_ref):
-    if python_version >= 370 and \
-       provider.getParentModule().getFutureSpec().isFutureAnnotations():
+    if (
+        python_version >= 370
+        and provider.getParentModule().getFutureSpec().isFutureAnnotations()
+    ):
 
         # Using global value for cache, to avoid creating it over and over,
         # avoiding the pylint: disable=global-statement
@@ -358,7 +357,7 @@ def buildAnnotationNode(provider, node, source_ref):
 
         _host_node.body[0].annotation = node
 
-        r = compile(_host_node, "<annotations>", "exec", 1048576, dont_inherit = True)
+        r = compile(_host_node, "<annotations>", "exec", 1048576, dont_inherit=True)
 
         # Using exec here, to compile the ast node tree back to string,
         # there is no accessible "ast.unparse", and this works as a hack
@@ -367,8 +366,7 @@ def buildAnnotationNode(provider, node, source_ref):
         exec(r, m)  # @UndefinedVariable
 
         return makeConstantRefNode(
-            constant   = m["__annotations__"]['x'],
-            source_ref = source_ref
+            constant=m["__annotations__"]["x"], source_ref=source_ref
         )
 
     return buildNode(provider, node, source_ref)
@@ -386,20 +384,20 @@ def makeModuleFrame(module, statements, source_ref):
             code_name = "<module %s>" % module.getFullName()
 
     return StatementsFrameModule(
-        statements  = statements,
-        code_object = CodeObjectSpec(
-            co_name           = code_name,
-            co_kind           = "Module",
-            co_varnames       = (),
-            co_argcount       = 0,
-            co_kwonlyargcount = 0,
-            co_has_starlist   = False,
-            co_has_stardict   = False,
-            co_filename       = module.getRunTimeFilename(),
-            co_lineno         = source_ref.getLineNumber(),
-            future_spec       = module.getFutureSpec()
+        statements=statements,
+        code_object=CodeObjectSpec(
+            co_name=code_name,
+            co_kind="Module",
+            co_varnames=(),
+            co_argcount=0,
+            co_kwonlyargcount=0,
+            co_has_starlist=False,
+            co_has_stardict=False,
+            co_filename=module.getRunTimeFilename(),
+            co_lineno=source_ref.getLineNumber(),
+            future_spec=module.getFutureSpec(),
         ),
-        source_ref  = source_ref
+        source_ref=source_ref,
     )
 
 
@@ -410,7 +408,7 @@ def buildStatementsNode(provider, nodes, source_ref):
 
     # Build as list of statements, throw away empty ones, and remove useless
     # nesting.
-    statements = buildNodeList(provider, nodes, source_ref, allow_none = True)
+    statements = buildNodeList(provider, nodes, source_ref, allow_none=True)
     statements = mergeStatements(statements)
 
     # We are not creating empty statement sequences. Might be empty, because
@@ -418,10 +416,7 @@ def buildStatementsNode(provider, nodes, source_ref):
     if not statements:
         return None
     else:
-        return StatementsSequence(
-            statements = statements,
-            source_ref = source_ref
-        )
+        return StatementsSequence(statements=statements, source_ref=source_ref)
 
 
 def buildFrameNode(provider, nodes, code_object, source_ref):
@@ -431,7 +426,7 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
 
     # Build as list of statements, throw away empty ones, and remove useless
     # nesting.
-    statements = buildNodeList(provider, nodes, source_ref, allow_none = True)
+    statements = buildNodeList(provider, nodes, source_ref, allow_none=True)
     statements = mergeStatements(statements)
 
     # We are not creating empty statement sequences. Might be empty, because
@@ -442,30 +437,21 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
     if provider.isExpressionOutlineFunction():
         provider = provider.getParentVariableProvider()
 
-    if provider.isExpressionFunctionBody() or \
-       provider.isExpressionClassBody():
+    if provider.isExpressionFunctionBody() or provider.isExpressionClassBody():
         result = StatementsFrameFunction(
-            statements  = statements,
-            code_object = code_object,
-            source_ref  = source_ref
+            statements=statements, code_object=code_object, source_ref=source_ref
         )
     elif provider.isExpressionGeneratorObjectBody():
         result = StatementsFrameGenerator(
-            statements  = statements,
-            code_object = code_object,
-            source_ref  = source_ref
+            statements=statements, code_object=code_object, source_ref=source_ref
         )
     elif provider.isExpressionCoroutineObjectBody():
         result = StatementsFrameCoroutine(
-            statements  = statements,
-            code_object = code_object,
-            source_ref  = source_ref
+            statements=statements, code_object=code_object, source_ref=source_ref
         )
     elif provider.isExpressionAsyncgenObjectBody():
         result = StatementsFrameAsyncgen(
-            statements  = statements,
-            code_object = code_object,
-            source_ref  = source_ref
+            statements=statements, code_object=code_object, source_ref=source_ref
         )
     else:
         assert False, provider
@@ -483,8 +469,7 @@ def makeStatementsSequenceOrStatement(statements, source_ref):
 
     if len(statements) > 1:
         return StatementsSequence(
-            statements = mergeStatements(statements),
-            source_ref = source_ref
+            statements=mergeStatements(statements), source_ref=source_ref
         )
     else:
         return statements[0]
@@ -493,16 +478,12 @@ def makeStatementsSequenceOrStatement(statements, source_ref):
 def makeStatementsSequence(statements, allow_none, source_ref):
     if allow_none:
         statements = tuple(
-            statement
-            for statement in
-            statements
-            if statement is not None
+            statement for statement in statements if statement is not None
         )
 
     if statements:
         return StatementsSequence(
-            statements = mergeStatements(statements),
-            source_ref = source_ref
+            statements=mergeStatements(statements), source_ref=source_ref
         )
     else:
         return None
@@ -510,10 +491,8 @@ def makeStatementsSequence(statements, allow_none, source_ref):
 
 def makeStatementsSequenceFromStatement(statement):
     return StatementsSequence(
-        statements = mergeStatements(
-            (statement,)
-        ),
-        source_ref = statement.getSourceReference()
+        statements=mergeStatements((statement,)),
+        source_ref=statement.getSourceReference(),
     )
 
 
@@ -521,11 +500,10 @@ def makeStatementsSequenceFromStatements(*statements):
     assert statements
     assert None not in statements
 
-    statements = mergeStatements(statements, allow_none = False)
+    statements = mergeStatements(statements, allow_none=False)
 
     return StatementsSequence(
-        statements = statements,
-        source_ref = statements[0].getSourceReference()
+        statements=statements, source_ref=statements[0].getSourceReference()
     )
 
 
@@ -562,36 +540,23 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
             assert False, sequence_kind
 
         result = makeConstantRefNode(
-            constant      = const_type(
-                element.getConstant()
-                for element in
-                elements
-            ),
-            source_ref    = source_ref,
-            user_provided = True
+            constant=const_type(element.getConstant() for element in elements),
+            source_ref=source_ref,
+            user_provided=True,
         )
     else:
         if sequence_kind == "tuple":
-            result = ExpressionMakeTuple(
-                elements   = elements,
-                source_ref = source_ref
-            )
+            result = ExpressionMakeTuple(elements=elements, source_ref=source_ref)
         elif sequence_kind == "list":
-            result = ExpressionMakeList(
-                elements   = elements,
-                source_ref = source_ref
-            )
+            result = ExpressionMakeList(elements=elements, source_ref=source_ref)
         elif sequence_kind == "set":
-            result = ExpressionMakeSetLiteral(
-                elements   = elements,
-                source_ref = source_ref
-            )
+            result = ExpressionMakeSetLiteral(elements=elements, source_ref=source_ref)
         else:
             assert False, sequence_kind
 
     if elements:
         result.setCompatibleSourceReference(
-            source_ref = elements[-1].getCompatibleSourceReference()
+            source_ref=elements[-1].getCompatibleSourceReference()
         )
 
     return result
@@ -620,38 +585,27 @@ def makeDictCreationOrConstant(keys, values, source_ref):
         # that no growing occurs and the constant becomes as similar as possible
         # before being marshaled.
         result = makeConstantRefNode(
-            constant      = Constants.createConstantDict(
-                keys   = [
-                    key.getConstant()
-                    for key in
-                    keys
-                ],
-                values = [
-                    value.getConstant()
-                    for value in
-                    values
-                ]
+            constant=Constants.createConstantDict(
+                keys=[key.getConstant() for key in keys],
+                values=[value.getConstant() for value in values],
             ),
-            user_provided = True,
-            source_ref    = source_ref
+            user_provided=True,
+            source_ref=source_ref,
         )
     else:
         result = ExpressionMakeDict(
-            pairs      = [
+            pairs=[
                 ExpressionKeyValuePair(
-                    key        = key,
-                    value      = value,
-                    source_ref = key.getSourceReference()
+                    key=key, value=value, source_ref=key.getSourceReference()
                 )
-                for key, value in
-                zip(keys, values)
+                for key, value in zip(keys, values)
             ],
-            source_ref = source_ref
+            source_ref=source_ref,
         )
 
     if values:
         result.setCompatibleSourceReference(
-            source_ref = values[-1].getCompatibleSourceReference()
+            source_ref=values[-1].getCompatibleSourceReference()
         )
 
     return result
@@ -676,38 +630,32 @@ def makeDictCreationOrConstant2(keys, values, source_ref):
         # that no growing occurs and the constant becomes as similar as possible
         # before being marshaled.
         result = makeConstantRefNode(
-            constant      = Constants.createConstantDict(
-                keys   = keys,
-                values = [
-                    value.getConstant()
-                    for value in
-                    values
-                ]
+            constant=Constants.createConstantDict(
+                keys=keys, values=[value.getConstant() for value in values]
             ),
-            user_provided = True,
-            source_ref    = source_ref
+            user_provided=True,
+            source_ref=source_ref,
         )
     else:
         result = ExpressionMakeDict(
-            pairs      = [
+            pairs=[
                 ExpressionKeyValuePair(
-                    key        = makeConstantRefNode(
-                        constant      = key,
-                        source_ref    = value.getSourceReference(),
-                        user_provided = True
+                    key=makeConstantRefNode(
+                        constant=key,
+                        source_ref=value.getSourceReference(),
+                        user_provided=True,
                     ),
-                    value      = value,
-                    source_ref = value.getSourceReference()
+                    value=value,
+                    source_ref=value.getSourceReference(),
                 )
-                for key, value in
-                zip(keys, values)
+                for key, value in zip(keys, values)
             ],
-            source_ref = source_ref
+            source_ref=source_ref,
         )
 
     if values:
         result.setCompatibleSourceReference(
-            source_ref = values[-1].getCompatibleSourceReference()
+            source_ref=values[-1].getCompatibleSourceReference()
         )
 
     return result
@@ -715,17 +663,17 @@ def makeDictCreationOrConstant2(keys, values, source_ref):
 
 def getStatementsAppended(statement_sequence, statements):
     return makeStatementsSequence(
-        statements = (statement_sequence, statements),
-        allow_none = False,
-        source_ref = statement_sequence.getSourceReference()
+        statements=(statement_sequence, statements),
+        allow_none=False,
+        source_ref=statement_sequence.getSourceReference(),
     )
 
 
 def getStatementsPrepended(statement_sequence, statements):
     return makeStatementsSequence(
-        statements = (statements, statement_sequence),
-        allow_none = False,
-        source_ref = statement_sequence.getSourceReference()
+        statements=(statements, statement_sequence),
+        allow_none=False,
+        source_ref=statement_sequence.getSourceReference(),
     )
 
 
@@ -734,23 +682,19 @@ def makeReraiseExceptionStatement(source_ref):
     # in factory functions instead.
 
     return StatementsSequence(
-        statements = (
-            StatementReraiseException(
-                source_ref = source_ref
-            ),
-        ),
-        source_ref = source_ref
+        statements=(StatementReraiseException(source_ref=source_ref),),
+        source_ref=source_ref,
     )
 
 
 def makeAbsoluteImportNode(module_name, source_ref):
     return ExpressionBuiltinImport(
-        name        = makeConstantRefNode(module_name, source_ref, True),
-        globals_arg = None,
-        locals_arg  = None,
-        fromlist    = None,
-        level       = makeConstantRefNode(0, source_ref, True),
-        source_ref  = source_ref
+        name=makeConstantRefNode(module_name, source_ref, True),
+        globals_arg=None,
+        locals_arg=None,
+        fromlist=None,
+        level=makeConstantRefNode(0, source_ref, True),
+        source_ref=source_ref,
     )
 
 
@@ -765,10 +709,7 @@ def mangleName(variable_name, owner):
         if class_container is None:
             return variable_name
         else:
-            return "_%s%s" % (
-                class_container.getName().lstrip('_'),
-                variable_name
-            )
+            return "_%s%s" % (class_container.getName().lstrip("_"), variable_name)
 
 
 def makeCallNode(called, *args, **kwargs):
@@ -776,37 +717,35 @@ def makeCallNode(called, *args, **kwargs):
 
     if len(args) > 1:
         args = makeSequenceCreationOrConstant(
-            sequence_kind = "tuple",
-            elements      = args[:-1],
-            source_ref    = source_ref
+            sequence_kind="tuple", elements=args[:-1], source_ref=source_ref
         )
     else:
         args = None
 
     if kwargs:
         kwargs = makeDictCreationOrConstant2(
-            keys       = tuple(kwargs.keys()),
-            values     = tuple(kwargs.values()),
-            source_ref = source_ref
+            keys=tuple(kwargs.keys()),
+            values=tuple(kwargs.values()),
+            source_ref=source_ref,
         )
     else:
         kwargs = None
 
     return makeExpressionCall(
-        called     = called,
-        args       = args,
-        kw         = kwargs,
-        source_ref = source_ref
+        called=called, args=args, kw=kwargs, source_ref=source_ref
     )
 
 
 build_contexts = [None]
 
+
 def pushBuildContext(value):
     build_contexts.append(value)
 
+
 def popBuildContext():
     del build_contexts[-1]
+
 
 def getBuildContext():
     return build_contexts[-1]

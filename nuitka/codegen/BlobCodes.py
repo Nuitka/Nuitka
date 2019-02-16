@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,20 +22,18 @@ efficiently. The "StreamData" class is used in two places, for constants
 and for freezing of bytecode.
 """
 
+
 class StreamData(object):
     def __init__(self):
         self.stream_data = bytes()
 
-    def getStreamDataCode(self, value, fixed_size = False):
+    def getStreamDataCode(self, value, fixed_size=False):
         offset = self.getStreamDataOffset(value)
 
         if fixed_size:
             return "&constant_bin[ %d ]" % offset
         else:
-            return "&constant_bin[ %d ], %d" % (
-                offset,
-                len(value)
-            )
+            return "&constant_bin[ %d ], %d" % (offset, len(value))
 
     def getStreamDataOffset(self, value):
         offset = self.stream_data.find(value)

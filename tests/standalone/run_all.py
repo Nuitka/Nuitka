@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -22,12 +22,13 @@
 import os
 import sys
 
-# Find nuitka package relative to us.
+# Find nuitka package relative to us. The replacement is for POSIX python
+# and Windows paths on command line.
 sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
+            os.path.dirname(os.path.abspath(__file__.replace("\\", os.sep))),
             "..",
             ".."
         )
@@ -183,6 +184,8 @@ for filename in sorted(os.listdir('.')):
             # For the warnings.
             extra_flags.append("ignore_stderr")
 
+        if os.name == "nt":
+            extra_flags.append("plugin_enable:tk-inter")
 
     if filename == "FlaskUsing.py":
         if not hasModule("flask"):
@@ -323,6 +326,15 @@ for filename in sorted(os.listdir('.')):
         if "gtk" in loaded_filename and "/engines/" in loaded_filename:
             continue
 
+        if loaded_filename in ("/usr", "/usr/local", "/usr/local/lib", "/usr/share", "/usr/local/share"):
+            continue
+
+        # TCL/tk for tkinter
+        if loaded_filename.startswith(("/usr/lib/tcltk/", "/usr/share/tcltk/")):
+            continue
+        if loaded_filename in ("/usr/lib/tcltk", "/usr/share/tcltk"):
+            continue
+
         # Taking these from system is harmless and desirable
         if loaded_basename.startswith((
             "libz.so",
@@ -385,7 +397,7 @@ for filename in sorted(os.listdir('.')):
         )):
             continue
 
-        # Loaded by dtruss on MacOS X.
+        # Loaded by dtruss on macOS X.
         if loaded_filename.startswith("/usr/lib/dtrace/"):
             continue
 

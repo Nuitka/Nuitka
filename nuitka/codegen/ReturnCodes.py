@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -43,23 +43,18 @@ def generateReturnCode(statement, emit, context):
             emit("Py_DECREF( %s );" % return_value_name)
 
         generateExpressionCode(
-            to_name    = return_value_name,
-            expression = return_value,
-            emit       = emit,
-            context    = context
+            to_name=return_value_name,
+            expression=return_value,
+            emit=emit,
+            context=context,
         )
 
         if context.needsCleanup(return_value_name):
             context.removeCleanupTempName(return_value_name)
         else:
-            emit(
-                "Py_INCREF( %s );" % return_value_name
-            )
+            emit("Py_INCREF( %s );" % return_value_name)
 
-    getGotoCode(
-        label = context.getReturnTarget(),
-        emit  = emit
-    )
+    getGotoCode(label=context.getReturnTarget(), emit=emit)
 
 
 def generateReturnConstantCode(statement, emit, context):
@@ -71,23 +66,18 @@ def generateReturnConstantCode(statement, emit, context):
         emit("Py_DECREF( %s );" % return_value_name)
 
     getConstantAccess(
-        to_name  = return_value_name,
-        constant = statement.getConstant(),
-        emit     = emit,
-        context  = context
+        to_name=return_value_name,
+        constant=statement.getConstant(),
+        emit=emit,
+        context=context,
     )
 
     if context.needsCleanup(return_value_name):
         context.removeCleanupTempName(return_value_name)
     else:
-        emit(
-            "Py_INCREF( %s );" % return_value_name
-        )
+        emit("Py_INCREF( %s );" % return_value_name)
 
-    getGotoCode(
-        label = context.getReturnTarget(),
-        emit  = emit
-    )
+    getGotoCode(label=context.getReturnTarget(), emit=emit)
 
 
 def generateReturnedValueRefCode(to_name, expression, emit, context):
@@ -96,12 +86,7 @@ def generateReturnedValueRefCode(to_name, expression, emit, context):
     # TODO: Support other C types than object.
     return_value_name = context.getReturnValueName()
 
-    emit(
-        "%s = %s;" % (
-            to_name,
-            return_value_name
-        )
-    )
+    emit("%s = %s;" % (to_name, return_value_name))
 
 
 def generateGeneratorReturnValueCode(statement, emit, context):
@@ -116,25 +101,18 @@ def generateGeneratorReturnValueCode(statement, emit, context):
             emit("Py_DECREF( %s );" % return_value_name)
 
         generateExpressionCode(
-            to_name    = return_value_name,
-            expression = expression,
-            emit       = emit,
-            context    = context
+            to_name=return_value_name, expression=expression, emit=emit, context=context
         )
 
         if context.needsCleanup(return_value_name):
             context.removeCleanupTempName(return_value_name)
         else:
-            emit(
-                "Py_INCREF( %s );" % return_value_name
-            )
+            emit("Py_INCREF( %s );" % return_value_name)
     elif statement.getParentVariableProvider().needsGeneratorReturnHandling():
         return_value_name = context.getGeneratorReturnValueName()
 
         generator_return_name = context.allocateTempName(
-            "generator_return",
-            "bool",
-            unique = True
+            "generator_return", "bool", unique=True
         )
 
         emit("%s = true;" % generator_return_name)
@@ -152,25 +130,18 @@ def generateGeneratorReturnNoneCode(statement, emit, context):
             emit("Py_DECREF( %s );" % return_value_name)
 
         getConstantAccess(
-            to_name  = return_value_name,
-            constant = None,
-            emit     = emit,
-            context  = context
+            to_name=return_value_name, constant=None, emit=emit, context=context
         )
 
         if context.needsCleanup(return_value_name):
             context.removeCleanupTempName(return_value_name)
         else:
-            emit(
-                "Py_INCREF( %s );" % return_value_name
-            )
+            emit("Py_INCREF( %s );" % return_value_name)
     elif statement.getParentVariableProvider().needsGeneratorReturnHandling():
         return_value_name = context.getGeneratorReturnValueName()
 
         generator_return_name = context.allocateTempName(
-            "generator_return",
-            "bool",
-            unique = True
+            "generator_return", "bool", unique=True
         )
 
         emit("%s = true;" % generator_return_name)

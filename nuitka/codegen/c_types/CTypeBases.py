@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,11 +22,13 @@ types then have to overload the class methods.
 """
 
 type_indicators = {
-    "PyObject *" : 'o',
-    "PyObject **" : 'O',
-    "struct Nuitka_CellObject *" : 'c',
-    "nuitka_bool" : 'b'
+    "PyObject *": "o",
+    "PyObject **": "O",
+    "struct Nuitka_CellObject *": "c",
+    "nuitka_bool": "b",
+    "nuitka_ilong": "L",
 }
+
 
 class CTypeBase(object):
     # For overload.
@@ -35,7 +37,6 @@ class CTypeBase(object):
     @classmethod
     def getTypeIndicator(cls):
         return type_indicators[cls.c_type]
-
 
     @classmethod
     def getInitValue(cls, init_from):
@@ -50,9 +51,9 @@ class CTypeBase(object):
 
         return "%s%s%s = %s;" % (
             cls.c_type,
-            ' ' if cls.c_type[-1] not in '*' else "",
+            " " if cls.c_type[-1] not in "*" else "",
             variable_code_name,
-            init_value
+            init_value,
         )
 
     @classmethod
@@ -64,10 +65,10 @@ class CTypeBase(object):
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
 
-
     @classmethod
-    def emitVariableAssignCode(cls, value_name, needs_release, tmp_name,
-                                    ref_count, in_place, emit, context):
+    def emitVariableAssignCode(
+        cls, value_name, needs_release, tmp_name, ref_count, in_place, emit, context
+    ):
         """ Get code to assign local variable.
 
         """
@@ -76,8 +77,9 @@ class CTypeBase(object):
         assert False, cls.c_type
 
     @classmethod
-    def getDeleteObjectCode(cls, to_name, value_name, needs_check, tolerant,
-                            emit, context):
+    def getDeleteObjectCode(
+        cls, to_name, value_name, needs_check, tolerant, emit, context
+    ):
         """ Get code to delete (del) local variable.
 
         """
@@ -112,7 +114,6 @@ class CTypeBase(object):
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
 
-
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
         """ Get the assignment code from C boolean condition.
@@ -120,7 +121,6 @@ class CTypeBase(object):
         """
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
-
 
     @classmethod
     def getReleaseCode(cls, variable_code_name, needs_check, emit):

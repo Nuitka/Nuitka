@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -112,11 +112,12 @@ static struct PyModuleDef mdef_%(module_identifier)s =
   };
 #endif
 
+extern PyObject *const_str_plain___compiled__;
+
 extern PyObject *const_str_plain___package__;
 
 #if PYTHON_VERSION >= 300
 extern PyObject *const_str_dot;
-
 extern PyObject *const_str_plain___loader__;
 #endif
 
@@ -240,6 +241,13 @@ MOD_INIT_DECL( %(module_identifier)s )
 #endif
 
     moduledict_%(module_identifier)s = MODULE_DICT( module_%(module_identifier)s );
+
+    // Set __compiled__ to what it we know.
+    UPDATE_STRING_DICT1(
+        moduledict_%(module_identifier)s,
+        (Nuitka_StringObject *)const_str_plain___compiled__,
+        Nuitka_dunder_compiled_value
+    );
 
     // Update "__package__" value to what it ought to be.
     {
@@ -413,5 +421,6 @@ template_header_guard = """\
 #endif
 """
 
-from . import TemplateDebugWrapper # isort:skip
+from . import TemplateDebugWrapper  # isort:skip
+
 TemplateDebugWrapper.checkDebug(globals())

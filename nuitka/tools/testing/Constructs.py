@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,6 +18,7 @@
 """ Tools for construct tests.
 
 """
+
 
 def generateConstructCases(construct_source_code):
     inside = False
@@ -47,4 +48,4 @@ def generateConstructCases(construct_source_code):
             inside = True
             case = 1
 
-    return '\n'.join(case_1), '\n'.join(case_2)
+    return "\n".join(case_1), "\n".join(case_2)

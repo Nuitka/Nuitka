@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -34,10 +34,7 @@ class ExpressionBuiltinGlobals(ExpressionBase):
     kind = "EXPRESSION_BUILTIN_GLOBALS"
 
     def __init__(self, source_ref):
-        ExpressionBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
     def finalize(self):
         del self.parent
@@ -58,10 +55,7 @@ class ExpressionBuiltinLocalsBase(ExpressionBase):
     __slots__ = ("variable_traces", "locals_scope")
 
     def __init__(self, locals_scope, source_ref):
-        ExpressionBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         self.variable_traces = None
         self.locals_scope = locals_scope
@@ -85,9 +79,7 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
 
     def __init__(self, locals_scope, source_ref):
         ExpressionBuiltinLocalsBase.__init__(
-            self,
-            locals_scope = locals_scope,
-            source_ref   = source_ref
+            self, locals_scope=locals_scope, source_ref=source_ref
         )
 
         assert locals_scope is not None
@@ -97,7 +89,9 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
 
     def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped.
-        self.variable_traces = trace_collection.onLocalsUsage(self.getParentVariableProvider())
+        self.variable_traces = trace_collection.onLocalsUsage(
+            self.getParentVariableProvider()
+        )
 
         trace_collection.onLocalsDictEscaped(self.locals_scope)
 
@@ -109,9 +103,7 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
 
     def __init__(self, locals_scope, source_ref):
         ExpressionBuiltinLocalsBase.__init__(
-            self,
-            locals_scope = locals_scope,
-            source_ref   = source_ref
+            self, locals_scope=locals_scope, source_ref=source_ref
         )
 
     def getLocalsScope(self):
@@ -120,22 +112,19 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
     def computeExpressionRaw(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
             result = ExpressionMakeDict(
-                pairs      = (
+                pairs=(
                     ExpressionKeyValuePair(
-                        key        = makeConstantRefNode(
-                            constant   = variable_name,
-                            source_ref = self.source_ref
+                        key=makeConstantRefNode(
+                            constant=variable_name, source_ref=self.source_ref
                         ),
-                        value      = ExpressionTempVariableRef(
-                            variable   = variable,
-                            source_ref = self.source_ref
+                        value=ExpressionTempVariableRef(
+                            variable=variable, source_ref=self.source_ref
                         ),
-                        source_ref = self.source_ref
+                        source_ref=self.source_ref,
                     )
-                    for variable_name, variable in
-                    self.locals_scope.getPropagationVariables().items()
+                    for variable_name, variable in self.locals_scope.getPropagationVariables().items()
                 ),
-                source_ref = self.source_ref
+                source_ref=self.source_ref,
             )
 
             new_result = result.computeExpressionRaw(trace_collection)
@@ -145,7 +134,6 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
             self.finalize()
 
             return result, "new_expression", "Propagated locals dictionary reference."
-
 
         # Just inform the collection that all escaped unless it is abortative.
         if not self.getParent().isStatementReturn():
@@ -160,10 +148,15 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
     def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped.
 
-        self.variable_traces = trace_collection.onLocalsUsage(self.getParentVariableProvider())
+        self.variable_traces = trace_collection.onLocalsUsage(
+            self.getParentVariableProvider()
+        )
 
         for variable, variable_trace in self.variable_traces:
-            if not variable_trace.mustHaveValue() and not variable_trace.mustNotHaveValue():
+            if (
+                not variable_trace.mustHaveValue()
+                and not variable_trace.mustNotHaveValue()
+            ):
                 return self, None, None
 
             # Other locals elsewhere.
@@ -175,16 +168,15 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
             if variable_trace.mustHaveValue():
                 pairs.append(
                     ExpressionKeyValuePair(
-                        key        = makeConstantRefNode(
-                            constant      = variable.getName(),
-                            user_provided = True,
-                            source_ref    = self.source_ref
+                        key=makeConstantRefNode(
+                            constant=variable.getName(),
+                            user_provided=True,
+                            source_ref=self.source_ref,
                         ),
-                        value      = ExpressionVariableRef(
-                            variable   = variable,
-                            source_ref = self.source_ref
+                        value=ExpressionVariableRef(
+                            variable=variable, source_ref=self.source_ref
                         ),
-                        source_ref = self.source_ref
+                        source_ref=self.source_ref,
                     )
                 )
 
@@ -194,15 +186,10 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
 
             return sorted(
                 pairs,
-                key = lambda pair: names.index(
-                    pair.getKey().getCompileTimeConstant()
-                ),
+                key=lambda pair: names.index(pair.getKey().getCompileTimeConstant()),
             )
 
-        result = ExpressionMakeDict(
-            pairs      = _sorted(pairs),
-            source_ref = self.source_ref
-        )
+        result = ExpressionMakeDict(pairs=_sorted(pairs), source_ref=self.source_ref)
 
         return result, "new_expression", "Statically predicted locals dictionary."
 

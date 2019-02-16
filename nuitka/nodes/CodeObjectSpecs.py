@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,18 +29,38 @@ class CodeObjectSpec(object):
     # One attribute for each code object aspect, and even flags,
     # pylint: disable=too-many-arguments,too-many-instance-attributes
     __slots__ = (
-        "co_name", "co_kind", "co_varnames", "co_argcount",
-        "co_kwonlyargcount", "co_has_starlist", "co_has_stardict",
-        "filename", "line_number", "future_spec", "new_locals",
-        "has_closure", "is_optimized"
+        "co_name",
+        "co_kind",
+        "co_varnames",
+        "co_argcount",
+        "co_kwonlyargcount",
+        "co_has_starlist",
+        "co_has_stardict",
+        "filename",
+        "line_number",
+        "future_spec",
+        "new_locals",
+        "has_closure",
+        "is_optimized",
     )
 
     @counted_init
-    def __init__(self,
-                 co_name, co_kind, co_varnames, co_argcount,
-                 co_kwonlyargcount, co_has_starlist, co_has_stardict,
-                 co_filename, co_lineno, future_spec, co_new_locals = None,
-                 co_has_closure = None, co_is_optimized = None):
+    def __init__(
+        self,
+        co_name,
+        co_kind,
+        co_varnames,
+        co_argcount,
+        co_kwonlyargcount,
+        co_has_starlist,
+        co_has_stardict,
+        co_filename,
+        co_lineno,
+        future_spec,
+        co_new_locals=None,
+        co_has_closure=None,
+        co_is_optimized=None,
+    ):
 
         self.co_name = co_name
         self.co_kind = co_kind
@@ -53,7 +73,7 @@ class CodeObjectSpec(object):
             if co_varnames == "":
                 co_varnames = ()
             else:
-                co_varnames = co_varnames.split(',')
+                co_varnames = co_varnames.split(",")
 
         if type(co_has_starlist) is not bool:
             co_has_starlist = co_has_starlist != "False"
@@ -85,24 +105,27 @@ class CodeObjectSpec(object):
     __del__ = counted_del()
 
     def __repr__(self):
-        return """\
-<CodeObjectSpec %(co_kind)s '%(co_name)s' with %(co_varnames)r>""" % self.getDetails()
+        return (
+            """\
+<CodeObjectSpec %(co_kind)s '%(co_name)s' with %(co_varnames)r>"""
+            % self.getDetails()
+        )
 
     def getDetails(self):
         return {
-            "co_name"           : self.co_name,
-            "co_kind"           : self.co_kind,
-            "co_varnames"       : ','.join(self.co_varnames),
-            "co_argcount"       : self.co_argcount,
-            "co_kwonlyargcount" : self.co_kwonlyargcount,
-            "co_has_starlist"   : self.co_has_starlist,
-            "co_has_stardict"   : self.co_has_stardict,
-            "co_filename"       : self.filename,
-            "co_lineno"         : self.line_number,
-            "co_new_locals"     : self.new_locals,
-            "co_has_closure"    : self.has_closure,
-            "co_is_optimized"   : self.is_optimized,
-            "code_flags"        : ','.join(self.future_spec.asFlags())
+            "co_name": self.co_name,
+            "co_kind": self.co_kind,
+            "co_varnames": ",".join(self.co_varnames),
+            "co_argcount": self.co_argcount,
+            "co_kwonlyargcount": self.co_kwonlyargcount,
+            "co_has_starlist": self.co_has_starlist,
+            "co_has_stardict": self.co_has_stardict,
+            "co_filename": self.filename,
+            "co_lineno": self.line_number,
+            "co_new_locals": self.new_locals,
+            "co_has_closure": self.has_closure,
+            "co_is_optimized": self.is_optimized,
+            "code_flags": ",".join(self.future_spec.asFlags()),
         }
 
     def getCodeObjectKind(self):
@@ -114,8 +137,7 @@ class CodeObjectSpec(object):
         """
         self.co_varnames += tuple(
             local_name
-            for local_name in
-            local_names
+            for local_name in local_names
             if local_name not in self.co_varnames
         )
 

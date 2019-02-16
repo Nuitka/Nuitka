@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,15 +23,12 @@ statements.
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 
-from .CodeHelpers import (
-    generateExpressionCode,
-    withObjectCodeTemporaryAssignment
-)
+from .CodeHelpers import generateExpressionCode, withObjectCodeTemporaryAssignment
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
-    getNameReferenceErrorCode
+    getNameReferenceErrorCode,
 )
 from .Indentation import indented
 from .PythonAPICodes import getReferenceExportCode
@@ -39,7 +36,7 @@ from .templates.CodeTemplatesVariables import (
     template_read_locals_dict_with_fallback,
     template_read_locals_dict_without_fallback,
     template_read_locals_mapping_with_fallback,
-    template_read_locals_mapping_without_fallback
+    template_read_locals_mapping_without_fallback,
 )
 
 
@@ -47,22 +44,21 @@ def generateSetLocalsDictCode(statement, emit, context):
     new_locals_name = context.allocateTempName("set_locals")
 
     generateExpressionCode(
-        to_name    = new_locals_name,
-        expression = statement.getNewLocals(),
-        emit       = emit,
-        context    = context
+        to_name=new_locals_name,
+        expression=statement.getNewLocals(),
+        emit=emit,
+        context=context,
     )
 
-    locals_declaration = context.addLocalsDictName(statement.getLocalsScope().getCodeName())
+    locals_declaration = context.addLocalsDictName(
+        statement.getLocalsScope().getCodeName()
+    )
 
     emit(
         """\
-%(locals_dict)s = %(locals_value)s;""" % {
-            "locals_dict"  : locals_declaration,
-            "locals_value" : new_locals_name
-        }
+%(locals_dict)s = %(locals_value)s;"""
+        % {"locals_dict": locals_declaration, "locals_value": new_locals_name}
     )
-
 
     getReferenceExportCode(new_locals_name, emit, context)
 
@@ -71,24 +67,25 @@ def generateSetLocalsDictCode(statement, emit, context):
 
 
 def generateReleaseLocalsDictCode(statement, emit, context):
-    locals_declaration = context.addLocalsDictName(statement.getLocalsScope().getCodeName())
+    locals_declaration = context.addLocalsDictName(
+        statement.getLocalsScope().getCodeName()
+    )
 
     emit(
         """\
 Py_DECREF( %(locals_dict)s );
-%(locals_dict)s = NULL;""" % {
-            "locals_dict"  : locals_declaration,
-        }
+%(locals_dict)s = NULL;"""
+        % {"locals_dict": locals_declaration}
     )
 
 
 def generateLocalsDictSetCode(statement, emit, context):
-    value_arg_name = context.allocateTempName("dictset_value", unique = True)
+    value_arg_name = context.allocateTempName("dictset_value", unique=True)
     generateExpressionCode(
-        to_name    = value_arg_name,
-        expression = statement.subnode_value,
-        emit       = emit,
-        context    = context
+        to_name=value_arg_name,
+        expression=statement.subnode_value,
+        emit=emit,
+        context=context,
     )
 
     context.setCurrentSourceCodeReference(statement.getSourceReference())
@@ -103,29 +100,31 @@ def generateLocalsDictSetCode(statement, emit, context):
 
     if is_dict:
         emit(
-            "%s = PyDict_SetItem( %s, %s, %s );" % (
+            "%s = PyDict_SetItem( %s, %s, %s );"
+            % (
                 res_name,
                 locals_declaration,
                 context.getConstantCode(statement.getVariableName()),
-                value_arg_name
+                value_arg_name,
             )
         )
     else:
         emit(
-            "%s = PyObject_SetItem( %s, %s, %s );" % (
+            "%s = PyObject_SetItem( %s, %s, %s );"
+            % (
                 res_name,
                 locals_declaration,
                 context.getConstantCode(statement.getVariableName()),
-                value_arg_name
+                value_arg_name,
             )
         )
 
     getErrorExitBoolCode(
-        condition    = "%s != 0" % res_name,
-        release_name = value_arg_name,
-        needs_check  = statement.mayRaiseException(BaseException),
-        emit         = emit,
-        context      = context
+        condition="%s != 0" % res_name,
+        release_name=value_arg_name,
+        needs_check=statement.mayRaiseException(BaseException),
+        emit=emit,
+        context=context,
     )
 
 
@@ -142,35 +141,37 @@ def generateLocalsDictDelCode(statement, emit, context):
         res_name = context.getBoolResName()
 
         emit(
-            "%s = DICT_REMOVE_ITEM( %s, %s );" % (
+            "%s = DICT_REMOVE_ITEM( %s, %s );"
+            % (
                 res_name,
                 dict_arg_name,
-                context.getConstantCode(statement.getVariableName())
+                context.getConstantCode(statement.getVariableName()),
             )
         )
 
         getErrorExitBoolCode(
-            condition   = "%s == false" % res_name,
-            needs_check = statement.mayRaiseException(BaseException),
-            emit        = emit,
-            context     = context
+            condition="%s == false" % res_name,
+            needs_check=statement.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
         )
     else:
         res_name = context.getIntResName()
 
         emit(
-            "%s = PyObject_DelItem( %s, %s );" % (
+            "%s = PyObject_DelItem( %s, %s );"
+            % (
                 res_name,
                 dict_arg_name,
-                context.getConstantCode(statement.getVariableName())
+                context.getConstantCode(statement.getVariableName()),
             )
         )
 
         getErrorExitBoolCode(
-            condition   = "%s == -1" % res_name,
-            needs_check = statement.mayRaiseException(BaseException),
-            emit        = emit,
-            context     = context
+            condition="%s == -1" % res_name,
+            needs_check=statement.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
         )
 
 
@@ -179,14 +180,15 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
 
     fallback_emit = SourceCodeCollector()
 
-    with withObjectCodeTemporaryAssignment(to_name, "locals_lookup_value", expression, emit, context) \
-      as value_name:
+    with withObjectCodeTemporaryAssignment(
+        to_name, "locals_lookup_value", expression, emit, context
+    ) as value_name:
 
         generateExpressionCode(
-            to_name    = value_name,
-            expression = expression.subnode_fallback,
-            emit       = fallback_emit,
-            context    = context
+            to_name=value_name,
+            expression=expression.subnode_fallback,
+            emit=fallback_emit,
+            context=context,
         )
 
         locals_scope = expression.getLocalsDictScope()
@@ -205,13 +207,12 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
             context.addCleanupTempName(value_name)
 
         emit(
-            template % {
-                "to_name"      : value_name,
-                "locals_dict"  : locals_declaration,
-                "fallback"     : indented(fallback_emit.codes),
-                "var_name"     : context.getConstantCode(
-                    constant = variable_name
-                )
+            template
+            % {
+                "to_name": value_name,
+                "locals_dict": locals_declaration,
+                "fallback": indented(fallback_emit.codes),
+                "var_name": context.getConstantCode(constant=variable_name),
             }
         )
 
@@ -229,31 +230,27 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
     else:
         template = template_read_locals_mapping_without_fallback
 
-    with withObjectCodeTemporaryAssignment(to_name, "locals_lookup_value", expression, emit, context) \
-      as value_name:
+    with withObjectCodeTemporaryAssignment(
+        to_name, "locals_lookup_value", expression, emit, context
+    ) as value_name:
 
         emit(
-            template % {
-                "to_name"     : value_name,
-                "locals_dict" : locals_declaration,
-                "var_name"    : context.getConstantCode(
-                    constant = variable_name
-                )
+            template
+            % {
+                "to_name": value_name,
+                "locals_dict": locals_declaration,
+                "var_name": context.getConstantCode(constant=variable_name),
             }
         )
 
         getNameReferenceErrorCode(
-            variable_name = variable_name,
-            condition     = "%s == NULL && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED()" % value_name,
-            emit          = emit,
-            context       = context
+            variable_name=variable_name,
+            condition="%s == NULL && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED()" % value_name,
+            emit=emit,
+            context=context,
         )
 
-        getErrorExitCode(
-            check_name = value_name,
-            emit       = emit,
-            context    = context
-        )
+        getErrorExitCode(check_name=value_name, emit=emit, context=context)
 
         if not is_dict:
             context.addCleanupTempName(value_name)
@@ -270,14 +267,13 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
 
     if is_dict:
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name   = to_name,
-            condition = "PyDict_GetItem( %(locals_dict)s, %(var_name)s )" % {
-                "locals_dict" : locals_declaration,
-                "var_name"    : context.getConstantCode(
-                    constant = variable_name
-                )
+            to_name=to_name,
+            condition="PyDict_GetItem( %(locals_dict)s, %(var_name)s )"
+            % {
+                "locals_dict": locals_declaration,
+                "var_name": context.getConstantCode(constant=variable_name),
             },
-            emit      = emit
+            emit=emit,
         )
     else:
         tmp_name = context.getIntResName()
@@ -287,24 +283,21 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
 """
 
         emit(
-            template % {
-                "locals_dict" : locals_declaration,
-                "var_name"    : context.getConstantCode(
-                    constant = variable_name
-                ),
-                "tmp_name"    : tmp_name
+            template
+            % {
+                "locals_dict": locals_declaration,
+                "var_name": context.getConstantCode(constant=variable_name),
+                "tmp_name": tmp_name,
             }
         )
 
         getErrorExitBoolCode(
-            condition   = "%s == -1" % tmp_name,
-            needs_check = expression.mayRaiseException(BaseException),
-            emit        = emit,
-            context     = context
+            condition="%s == -1" % tmp_name,
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
         )
 
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name   = to_name,
-            condition = "%s == 1" % tmp_name,
-            emit      = emit
+            to_name=to_name, condition="%s == 1" % tmp_name, emit=emit
         )

@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -45,7 +45,7 @@ def matchesModuleNameToPatterns(module_name, patterns):
     for pattern in patterns:
         if module_name == pattern:
             return True, "is exact match of %r" % pattern
-        elif module_name.startswith(pattern + '.'):
+        elif module_name.startswith(pattern + "."):
             return True, "is package content of %r" % pattern
         elif fnmatch.fnmatch(module_name, pattern):
             return True, "matches pattern %r" % pattern
@@ -55,38 +55,36 @@ def matchesModuleNameToPatterns(module_name, patterns):
     return False, None
 
 
-def _recurseTo(module_package, module_filename, module_relpath, module_kind,
-              reason):
+def _recurseTo(module_package, module_filename, module_relpath, module_kind, reason):
     from nuitka.tree import Building
     from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 
     module, source_ref, source_filename = Building.decideModuleTree(
-        filename = module_filename,
-        package  = module_package,
-        is_top   = False,
-        is_main  = False,
-        is_shlib = module_kind == "shlib"
+        filename=module_filename,
+        package=module_package,
+        is_top=False,
+        is_main=False,
+        is_shlib=module_kind == "shlib",
     )
 
     logRecursion(
         "Recurse to import '%s' from '%s'. (%s)",
         module.getFullName(),
         module_relpath,
-        reason
+        reason,
     )
 
     if module_kind == "py" and source_filename is not None:
         try:
             source_code = readSourceCodeFromFilename(
-                module_name     = module.getFullName(),
-                source_filename = source_filename
+                module_name=module.getFullName(), source_filename=source_filename
             )
 
             Building.createModuleTree(
-                module      = module,
-                source_ref  = source_ref,
-                source_code = source_code,
-                is_main     = False
+                module=module,
+                source_ref=source_ref,
+                source_code=source_code,
+                is_main=False,
             )
         except (SyntaxError, IndentationError) as e:
             if module_filename not in Importing.warned_about:
@@ -97,7 +95,7 @@ def _recurseTo(module_package, module_filename, module_relpath, module_kind,
 Cannot recurse to import module '%s' (%s) because of '%s'""",
                     module_relpath,
                     module_filename,
-                    e.__class__.__name__
+                    e.__class__.__name__,
                 )
 
             return None, False
@@ -114,19 +112,16 @@ Cannot recurse to import module '%s' (%s) because code is too complex.""",
 
                 if Options.isStandaloneMode():
                     module = makeUncompiledPythonModule(
-                        module_name   = module.getFullName(),
-                        filename      = module_filename,
-                        bytecode      = marshal.dumps(
+                        module_name=module.getFullName(),
+                        filename=module_filename,
+                        bytecode=marshal.dumps(
                             compile(
-                                source_code,
-                                module_filename,
-                                "exec",
-                                dont_inherit = True
+                                source_code, module_filename, "exec", dont_inherit=True
                             )
                         ),
-                        is_package    = module.isCompiledPythonPackage(),
-                        user_provided = True,
-                        technical     = False
+                        is_package=module.isCompiledPythonPackage(),
+                        user_provided=True,
+                        technical=False,
                     )
 
                     ModuleRegistry.addUncompiledModule(module)
@@ -138,8 +133,7 @@ Cannot recurse to import module '%s' (%s) because code is too complex.""",
     return module, True
 
 
-def recurseTo(module_package, module_filename, module_relpath, module_kind,
-              reason):
+def recurseTo(module_package, module_filename, module_relpath, module_kind, reason):
     if ImportCache.isImportedModuleByPath(module_relpath):
         try:
             module = ImportCache.getImportedModuleByPath(module_relpath, module_package)
@@ -150,28 +144,26 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind,
 
     if module is None:
         return _recurseTo(
-            module_package  = module_package,
-            module_filename = module_filename,
-            module_relpath  = module_relpath,
-            module_kind     = module_kind,
-            reason          = reason
+            module_package=module_package,
+            module_filename=module_filename,
+            module_relpath=module_relpath,
+            module_kind=module_kind,
+            reason=reason,
         )
     else:
         return module, False
 
 
-def decideRecursion(module_filename, module_name, module_package, module_kind,
-                    extra_recursion = False):
+def decideRecursion(
+    module_filename, module_name, module_package, module_kind, extra_recursion=False
+):
     # Many branches, which make decisions immediately, by returning
     # pylint: disable=too-many-branches,too-many-return-statements
     if module_name == "__main__":
         return False, "Main program is not recursed to again."
 
     plugin_decision = Plugins.onModuleEncounter(
-        module_filename,
-        module_name,
-        module_package,
-        module_kind
+        module_filename, module_name, module_package, module_kind
     )
 
     if plugin_decision:
@@ -186,67 +178,43 @@ def decideRecursion(module_filename, module_name, module_package, module_kind,
     if module_package is None:
         full_name = module_name
     else:
-        full_name = module_package + '.' + module_name
+        full_name = module_package + "." + module_name
 
     no_case, reason = matchesModuleNameToPatterns(
-        module_name = full_name,
-        patterns    = Options.getShallFollowInNoCase()
+        module_name=full_name, patterns=Options.getShallFollowInNoCase()
     )
 
     if no_case:
-        return (
-            False,
-            "Module %s instructed by user to not recurse to." % reason
-        )
+        return (False, "Module %s instructed by user to not recurse to." % reason)
 
     any_case, reason = matchesModuleNameToPatterns(
-        module_name = full_name,
-        patterns    = Options.getShallFollowModules()
+        module_name=full_name, patterns=Options.getShallFollowModules()
     )
 
     if any_case:
-        return (
-            True,
-            "Module %s instructed by user to recurse to." % reason
-        )
+        return (True, "Module %s instructed by user to recurse to." % reason)
 
     if Options.shallFollowNoImports():
-        return (
-            False,
-            "Requested to not recurse at all."
-        )
+        return (False, "Requested to not recurse at all.")
 
     if StandardLibrary.isStandardLibraryPath(module_filename):
         return (
             Options.shallFollowStandardLibrary(),
-            "Requested to %srecurse to standard library." % (
-                "" if Options.shallFollowStandardLibrary() else "not "
-            )
+            "Requested to %srecurse to standard library."
+            % ("" if Options.shallFollowStandardLibrary() else "not "),
         )
 
     if Options.shallFollowAllImports():
-        return (
-            True,
-            "Requested to recurse to all non-standard library modules."
-        )
+        return (True, "Requested to recurse to all non-standard library modules.")
 
     # Means, we were not given instructions how to handle things.
     if extra_recursion:
-        return (
-            True,
-            "Lives in plug-in directory."
-        )
+        return (True, "Lives in plug-in directory.")
 
     if Options.shallMakeModule():
-        return (
-            False,
-            "Making a module, not following any imports by default."
-        )
+        return (False, "Making a module, not following any imports by default.")
 
-    return (
-        None,
-        "Default behavior, not recursing without request."
-    )
+    return (None, "Default behavior, not recursing without request.")
 
 
 def considerFilename(module_filename):
@@ -285,32 +253,30 @@ def isSameModulePath(path1, path2):
 def checkPluginSinglePath(plugin_filename, module_package):
     # Many branches, for the decision is very complex, pylint: disable=too-many-branches
 
-    debug(
-        "Checking detail plug-in path '%s' '%s':",
-        plugin_filename,
-        module_package
-    )
+    debug("Checking detail plug-in path '%s' '%s':", plugin_filename, module_package)
 
-    module_name, module_kind = Importing.getModuleNameAndKindFromFilename(plugin_filename)
+    module_name, module_kind = Importing.getModuleNameAndKindFromFilename(
+        plugin_filename
+    )
 
     if module_kind is not None:
         decision, reason = decideRecursion(
-            module_filename = plugin_filename,
-            module_name     = module_name,
-            module_package  = module_package,
-            module_kind     = module_kind,
-            extra_recursion = True
+            module_filename=plugin_filename,
+            module_name=module_name,
+            module_package=module_package,
+            module_kind=module_kind,
+            extra_recursion=True,
         )
 
         if decision:
             module_relpath = relpath(plugin_filename)
 
             module, is_added = recurseTo(
-                module_filename = plugin_filename,
-                module_relpath  = module_relpath,
-                module_package  = module_package,
-                module_kind     = "py",
-                reason          = reason
+                module_filename=plugin_filename,
+                module_relpath=module_relpath,
+                module_package=module_package,
+                module_kind="py",
+                reason=reason,
             )
 
             if module:
@@ -319,14 +285,14 @@ def checkPluginSinglePath(plugin_filename, module_package):
                         "Recursed to %s '%s' at '%s' twice.",
                         "package" if module.isCompiledPythonPackage() else "module",
                         module.getName(),
-                        plugin_filename
+                        plugin_filename,
                     )
 
                     if not isSameModulePath(module.getFilename(), plugin_filename):
                         warning(
                             "Duplicate '%s' of '%s' ignored .",
                             plugin_filename,
-                            module.getFilename()
+                            module.getFilename(),
                         )
 
                         return
@@ -335,7 +301,7 @@ def checkPluginSinglePath(plugin_filename, module_package):
                     "Recursed to %s %s %s",
                     module.getName(),
                     module.getPackage(),
-                    module
+                    module,
                 )
 
                 ImportCache.addImportedModule(module)
@@ -357,10 +323,7 @@ def checkPluginSinglePath(plugin_filename, module_package):
                         # Real packages will always be included.
                         ModuleRegistry.addRootModule(module)
 
-                    debug(
-                        "Package directory %s",
-                        package_dir
-                    )
+                    debug("Package directory %s", package_dir)
 
                     for sub_path, sub_filename in listDir(package_dir):
                         if sub_filename in ("__init__.py", "__pycache__"):
@@ -368,8 +331,7 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
                         assert sub_path != plugin_filename
 
-                        if Importing.isPackageDir(sub_path) or \
-                           sub_path.endswith(".py"):
+                        if Importing.isPackageDir(sub_path) or sub_path.endswith(".py"):
                             checkPluginSinglePath(sub_path, module.getFullName())
 
                 elif module.isCompiledPythonModule():
@@ -382,27 +344,19 @@ def checkPluginSinglePath(plugin_filename, module_package):
 def checkPluginPath(plugin_filename, module_package):
     plugin_filename = os.path.normpath(plugin_filename)
 
-    debug(
-        "Checking top level plug-in path %s %s",
-        plugin_filename,
-        module_package
-    )
+    debug("Checking top level plug-in path %s %s", plugin_filename, module_package)
 
-    plugin_info = considerFilename(
-        module_filename = plugin_filename
-    )
+    plugin_info = considerFilename(module_filename=plugin_filename)
 
     if plugin_info is not None:
         # File or package makes a difference, handle that
-        if os.path.isfile(plugin_info[0]) or \
-           Importing.isPackageDir(plugin_info[0]):
+        if os.path.isfile(plugin_info[0]) or Importing.isPackageDir(plugin_info[0]):
             checkPluginSinglePath(plugin_filename, module_package)
         elif os.path.isdir(plugin_info[0]):
             for sub_path, sub_filename in listDir(plugin_info[0]):
                 assert sub_filename != "__init__.py"
 
-                if Importing.isPackageDir(sub_path) or \
-                   sub_path.endswith(".py"):
+                if Importing.isPackageDir(sub_path) or sub_path.endswith(".py"):
                     checkPluginSinglePath(sub_path, None)
         else:
             warning("Failed to include module from '%s'.", plugin_info[0])
@@ -411,10 +365,7 @@ def checkPluginPath(plugin_filename, module_package):
 
 
 def checkPluginFilenamePattern(pattern):
-    debug(
-        "Checking plug-in pattern '%s':",
-        pattern,
-    )
+    debug("Checking plug-in pattern '%s':", pattern)
 
     if os.path.isdir(pattern):
         sys.exit("Error, pattern cannot be a directory name.")

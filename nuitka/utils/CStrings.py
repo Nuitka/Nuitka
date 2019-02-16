@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -41,22 +41,22 @@ def _encodePythonStringToC(value):
             cv = c
 
         if c in b'\\\t\r\n"?':
-            result += r'\%o' % cv
+            result += r"\%o" % cv
 
             octal = True
         elif 32 <= cv <= 127:
-            if octal and c in b'0123456789':
+            if octal and c in b"0123456789":
                 result += '" "'
 
             result += chr(cv)
 
             octal = False
         else:
-            result += r'\%o' % cv
+            result += r"\%o" % cv
 
             octal = True
 
-    result = result.replace('" "\\', '\\')
+    result = result.replace('" "\\', "\\")
 
     return '"%s"' % result
 
@@ -71,12 +71,12 @@ def encodePythonStringToC(value):
     # parser. Currently only MSVC is known to have this issue, but the
     # workaround can be used universally.
 
-    result = _encodePythonStringToC(value[:16000 ])
+    result = _encodePythonStringToC(value[:16000])
     value = value[16000:]
 
     while value:
-        result += ' '
-        result += _encodePythonStringToC(value[:16000 ])
+        result += " "
+        result += _encodePythonStringToC(value[:16000])
         value = value[16000:]
 
     return result
@@ -94,13 +94,9 @@ def encodePythonIdentifierToC(value):
     def r(match):
         c = match.group()
 
-        if c == '.':
-            return '$'
+        if c == ".":
+            return "$"
         else:
             return "$$%d$" % ord(c)
 
-    return "".join(
-        re.sub("[^a-zA-Z0-9_]", r ,c)
-        for c in
-        value
-    )
+    return "".join(re.sub("[^a-zA-Z0-9_]", r, c) for c in value)

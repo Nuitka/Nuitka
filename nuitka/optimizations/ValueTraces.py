@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,7 +36,7 @@ from logging import debug
 from nuitka.nodes.shapes.StandardShapes import (
     ShapeLoopCompleteAlternative,
     ShapeLoopInitialAlternative,
-    ShapeUnknown
+    ShapeUnknown,
 )
 from nuitka.utils import InstanceCounters
 
@@ -45,8 +45,14 @@ class ValueTraceBase(object):
     # We are going to have many instance attributes, pylint: disable=too-many-instance-attributes
 
     __slots__ = (
-        "owner", "usage_count", "has_potential_usages",
-        "name_usages", "loop_usages", "closure_usages", "is_escaped", "previous"
+        "owner",
+        "usage_count",
+        "has_potential_usages",
+        "name_usages",
+        "loop_usages",
+        "closure_usages",
+        "is_escaped",
+        "previous",
     )
 
     @InstanceCounters.counted_init
@@ -162,16 +168,10 @@ class ValueTraceUninit(ValueTraceBase):
     __slots__ = ()
 
     def __init__(self, owner, previous):
-        ValueTraceBase.__init__(
-            self,
-            owner    = owner,
-            previous = previous
-        )
+        ValueTraceBase.__init__(self, owner=owner, previous=previous)
 
     def __repr__(self):
-        return "<ValueTraceUninit of {owner}>".format(
-            owner = self.owner
-        )
+        return "<ValueTraceUninit of {owner}>".format(owner=self.owner)
 
     @staticmethod
     def getTypeShape():
@@ -198,16 +198,10 @@ class ValueTraceInit(ValueTraceBase):
     __slots__ = ()
 
     def __init__(self, owner):
-        ValueTraceBase.__init__(
-            self,
-            owner    = owner,
-            previous = None
-        )
+        ValueTraceBase.__init__(self, owner=owner, previous=None)
 
     def __repr__(self):
-        return "<ValueTraceInit of {owner}>".format(
-            owner = self.owner
-        )
+        return "<ValueTraceInit of {owner}>".format(owner=self.owner)
 
     @staticmethod
     def getTypeShape():
@@ -231,16 +225,10 @@ class ValueTraceUnknown(ValueTraceBase):
     __slots__ = ()
 
     def __init__(self, owner, previous):
-        ValueTraceBase.__init__(
-            self,
-            owner    = owner,
-            previous = previous
-        )
+        ValueTraceBase.__init__(self, owner=owner, previous=previous)
 
     def __repr__(self):
-        return "<ValueTraceUnknown of {owner}>".format(
-            owner = self.owner
-        )
+        return "<ValueTraceUnknown of {owner}>".format(owner=self.owner)
 
     @staticmethod
     def getTypeShape():
@@ -297,11 +285,7 @@ class ValueTraceLoopInitial(ValueTraceBase):
     def __init__(self, previous, type_shapes):
         assert type_shapes
 
-        ValueTraceBase.__init__(
-            self,
-            owner    = previous.owner,
-            previous = (previous,)
-        )
+        ValueTraceBase.__init__(self, owner=previous.owner, previous=(previous,))
 
         self.type_shapes = type_shapes
         self.type_shape = None
@@ -312,9 +296,7 @@ class ValueTraceLoopInitial(ValueTraceBase):
         previous.addLoopUsage()
 
     def __repr__(self):
-        return "<ValueTraceLoopInitial of {owner}>".format(
-            owner = self.owner
-        )
+        return "<ValueTraceLoopInitial of {owner}>".format(owner=self.owner)
 
     @staticmethod
     def isLoopTrace():
@@ -392,9 +374,7 @@ class ValueTraceLoopComplete(ValueTraceLoopInitial):
     __slots__ = ()
 
     def __repr__(self):
-        return "<ValueTraceLoopComplete of {owner}>".format(
-            owner = self.owner
-        )
+        return "<ValueTraceLoopComplete of {owner}>".format(owner=self.owner)
 
     def getTypeShape(self):
         if self.type_shape is None:
@@ -406,24 +386,19 @@ class ValueTraceLoopComplete(ValueTraceLoopInitial):
         return self.type_shape
 
 
-
 class ValueTraceAssign(ValueTraceBase):
     __slots__ = ("assign_node", "replace_it")
 
     def __init__(self, owner, assign_node, previous):
-        ValueTraceBase.__init__(
-            self,
-            owner    = owner,
-            previous = previous
-        )
+        ValueTraceBase.__init__(self, owner=owner, previous=previous)
 
         self.assign_node = assign_node
         self.replace_it = None
 
     def __repr__(self):
         return "<ValueTraceAssign at {source_ref} of {value}>".format(
-            source_ref = self.assign_node.getSourceReference().getAsString(),
-            value      = self.assign_node.getAssignSource()
+            source_ref=self.assign_node.getSourceReference().getAsString(),
+            value=self.assign_node.getAssignSource(),
         )
 
     @staticmethod
@@ -469,16 +444,12 @@ class ValueTraceMerge(ValueTraceBase):
     __slots__ = ()
 
     def __init__(self, traces):
-        ValueTraceBase.__init__(
-            self,
-            owner    = traces[0].owner,
-            previous = tuple(traces)
-        )
+        ValueTraceBase.__init__(self, owner=traces[0].owner, previous=tuple(traces))
 
     def __repr__(self):
         return """\
 <ValueTraceMerge of {previous}>""".format(
-            previous = self.previous
+            previous=self.previous
         )
 
     def getTypeShape(self):
@@ -503,10 +474,7 @@ class ValueTraceMerge(ValueTraceBase):
         return True
 
     def dump(self):
-        debug(
-            "  Merge of %s",
-            " <-> ".join(self.previous),
-        )
+        debug("  Merge of %s", " <-> ".join(self.previous))
 
     def mustHaveValue(self):
         for previous in self.previous:

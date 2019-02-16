@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -62,6 +62,7 @@ warned_about = set()
 # Directory where the main script lives. Should attempt to import from there.
 main_path = None
 
+
 def setMainScriptDirectory(main_dir):
     """ Initialize the main script directory.
 
@@ -81,18 +82,20 @@ def isPackageDir(dirname):
         extra packages provided via "*.pth" file tricks by "site.py" loading.
     """
 
-    return '.' not in os.path.basename(dirname) and \
-           os.path.isdir(dirname) and \
-           (
-               python_version >= 300 or
-               os.path.isfile(os.path.join(dirname, "__init__.py")) or
-               isPreloadedPackagePath(dirname)
-           )
+    return (
+        "." not in os.path.basename(dirname)
+        and os.path.isdir(dirname)
+        and (
+            python_version >= 300
+            or os.path.isfile(os.path.join(dirname, "__init__.py"))
+            or isPreloadedPackagePath(dirname)
+        )
+    )
 
 
 def getPackageNameFromFullName(full_name):
-    if '.' in full_name:
-        return full_name[:full_name.rfind('.')]
+    if "." in full_name:
+        return full_name[: full_name.rfind(".")]
     else:
         return None
 
@@ -101,7 +104,7 @@ def getModuleFullNameFromPackageAndName(package, name):
     if not package:
         return name
     else:
-        return package + '.' + name
+        return package + "." + name
 
 
 def getExtensionModuleSuffixes():
@@ -123,7 +126,7 @@ def getModuleNameAndKindFromFilename(module_filename):
                 continue
 
             if module_filename.endswith(suffix):
-                module_name = os.path.basename(module_filename)[:-len(suffix)]
+                module_name = os.path.basename(module_filename)[: -len(suffix)]
                 module_kind = "shlib"
 
                 break
@@ -145,8 +148,9 @@ def warnAbout(importing, module_name, parent_package, level, tried_names):
     if module_name == "":
         return
 
-    if not isWhiteListedImport(importing) and \
-       not isWhiteListedNotExistingModule(module_name):
+    if not isWhiteListedImport(importing) and not isWhiteListedNotExistingModule(
+        module_name
+    ):
         key = module_name, parent_package, level
 
         if key not in warned_about:
@@ -177,14 +181,14 @@ def warnAbout(importing, module_name, parent_package, level, tried_names):
                         module_name,
                         parent_package,
                         level_desc,
-                        ','.join(tried_names)
+                        ",".join(tried_names),
                     )
                 else:
                     warning(
                         "%s: Cannot find '%s' %s.",
                         importing.getSourceReference().getAsString(),
                         module_name,
-                        level_desc
+                        level_desc,
                     )
 
 
@@ -213,16 +217,13 @@ def findModule(importing, module_name, parent_package, level, warn):
     # pylint: disable=too-many-branches
     if _debug_module_finding:
         print(
-            "findModule: Enter to search %r in package %r level %s." % (
-                module_name,
-                parent_package,
-                level
-            )
+            "findModule: Enter to search %r in package %r level %s."
+            % (module_name, parent_package, level)
         )
 
     # Do not allow star imports to get here. We just won't find modules with
     # that name, but it would be wasteful.
-    assert module_name != '*'
+    assert module_name != "*"
 
     tried_names = []
 
@@ -230,7 +231,7 @@ def findModule(importing, module_name, parent_package, level, warn):
         # TODO: Should give a warning and return not found if the levels
         # exceed the package name.
         if parent_package is not None:
-            parent_package = '.'.join(parent_package.split('.')[:-level+1])
+            parent_package = ".".join(parent_package.split(".")[: -level + 1])
 
             if parent_package == "":
                 parent_package = None
@@ -239,28 +240,23 @@ def findModule(importing, module_name, parent_package, level, warn):
 
     # Try relative imports first if we have a parent package.
     if level != 0 and parent_package is not None:
-        full_name = normalizePackageName(parent_package + '.' + module_name)
+        full_name = normalizePackageName(parent_package + "." + module_name)
 
-        if full_name.endswith('.'):
+        if full_name.endswith("."):
             full_name = full_name[:-1]
 
         tried_names.append(full_name)
 
         try:
-            module_filename = _findModule(
-                module_name = full_name,
-            )
+            module_filename = _findModule(module_name=full_name)
         except ImportError:
             # For relative import, that is OK, we will still try absolute.
             pass
         else:
             if _debug_module_finding:
                 print(
-                    "findModule: Relative imported module '%s' as '%s' in filename '%s':" % (
-                        module_name,
-                        full_name,
-                        module_filename
-                    )
+                    "findModule: Relative imported module '%s' as '%s' in filename '%s':"
+                    % (module_name, full_name, module_filename)
                 )
 
             return getPackageNameFromFullName(full_name), module_filename, "relative"
@@ -275,37 +271,32 @@ def findModule(importing, module_name, parent_package, level, warn):
         if module_name in sys.builtin_module_names:
             if _debug_module_finding:
                 print(
-                    "findModule: Absolute imported module '%s' in as built-in':" % (
-                        module_name,
-                    )
+                    "findModule: Absolute imported module '%s' in as built-in':"
+                    % (module_name,)
                 )
             return package_name, None, "built-in"
 
         try:
-            module_filename = _findModule(
-                module_name = module_name,
-            )
+            module_filename = _findModule(module_name=module_name)
         except ImportError:
             # For relative import, that is OK, we will still try absolute.
             pass
         else:
             if _debug_module_finding:
                 print(
-                    "findModule: Found absolute imported module '%s' in filename '%s':" % (
-                        module_name,
-                        module_filename
-                    )
+                    "findModule: Found absolute imported module '%s' in filename '%s':"
+                    % (module_name, module_filename)
                 )
 
             return package_name, module_filename, "absolute"
 
     if warn:
         warnAbout(
-            importing      = importing,
-            module_name    = module_name,
-            parent_package = parent_package,
-            tried_names    = tried_names,
-            level          = level
+            importing=importing,
+            module_name=module_name,
+            parent_package=parent_package,
+            tried_names=tried_names,
+            level=level,
         )
 
     return None, None, "not-found"
@@ -313,6 +304,7 @@ def findModule(importing, module_name, parent_package, level, warn):
 
 # Some platforms are case insensitive.
 case_sensitive = not sys.platform.startswith(("win", "cygwin", "darwin"))
+
 
 def _findModuleInPath2(module_name, search_path):
     """ This is out own module finding low level implementation.
@@ -351,23 +343,17 @@ def _findModuleInPath2(module_name, search_path):
                 file_path = os.path.join(package_directory, package_file_name)
 
                 if os.path.isfile(file_path):
-                    candidates.add(
-                        (entry, 1, package_directory)
-                    )
+                    candidates.add((entry, 1, package_directory))
                     break
             else:
                 if python_version >= 300:
-                    candidates.add(
-                        (entry, 2, package_directory)
-                    )
+                    candidates.add((entry, 2, package_directory))
 
         # Then, check out suffixes of all kinds.
         for suffix, _mode, _type in imp.get_suffixes():
             file_path = os.path.join(entry, module_name + suffix)
             if os.path.isfile(file_path):
-                candidates.add(
-                    (entry, 1, file_path)
-                )
+                candidates.add((entry, 1, file_path))
                 break
 
     if _debug_module_finding:
@@ -377,12 +363,7 @@ def _findModuleInPath2(module_name, search_path):
         # Ignore lower priority matches from package directories without
         # "__init__.py" file.
         min_prio = min(candidate[1] for candidate in candidates)
-        candidates = [
-            candidate
-            for candidate in
-            candidates
-            if candidate[1] == min_prio
-        ]
+        candidates = [candidate for candidate in candidates if candidate[1] == min_prio]
 
         # On case sensitive systems, no resolution needed.
         if case_sensitive:
@@ -399,23 +380,21 @@ def _findModuleInPath2(module_name, search_path):
     # Nothing found.
     raise ImportError
 
+
 _egg_files = {}
+
 
 def _unpackPathElement(path_entry):
     if not path_entry:
-        return '.' # empty means current directory
+        return "."  # empty means current directory
 
     if os.path.isfile(path_entry) and path_entry.lower().endswith(".egg"):
         if path_entry not in _egg_files:
             checksum = hashlib.md5(open(path_entry, "rb").read()).hexdigest()
 
-            target_dir = os.path.join(
-                getCacheDir(),
-                "egg-content",
-                checksum
-            )
+            target_dir = os.path.join(getCacheDir(), "egg-content", checksum)
 
-            zip_ref = zipfile.ZipFile(path_entry, 'r')
+            zip_ref = zipfile.ZipFile(path_entry, "r")
             zip_ref.extractall(target_dir)
             zip_ref.close()
 
@@ -425,24 +404,20 @@ def _unpackPathElement(path_entry):
 
     return path_entry
 
+
 def getPackageSearchPath(package_name):
     assert main_path is not None
 
     if package_name is None:
         return [os.getcwd(), main_path] + [
-            _unpackPathElement(path_element)
-            for path_element in
-            sys.path
+            _unpackPathElement(path_element) for path_element in sys.path
         ]
-    elif '.' in package_name:
-        parent_package_name, child_package_name = package_name.rsplit('.', 1)
+    elif "." in package_name:
+        parent_package_name, child_package_name = package_name.rsplit(".", 1)
 
         result = []
         for element in getPackageSearchPath(parent_package_name):
-            package_dir = os.path.join(
-                element,
-                child_package_name
-            )
+            package_dir = os.path.join(element, child_package_name)
 
             if isPackageDir(package_dir):
                 result.append(package_dir)
@@ -500,16 +475,13 @@ def _findModuleInPath(module_name, package_name):
 
     try:
         module_filename = _findModuleInPath2(
-            module_name = module_name,
-            search_path = search_path
+            module_name=module_name, search_path=search_path
         )
     except SyntaxError:
         # Warn user, as this is kind of unusual.
         warning(
             "%s: Module cannot be imported due to syntax errors.",
-            module_name
-              if package_name is None else
-            package_name + '.' + module_name,
+            module_name if package_name is None else package_name + "." + module_name,
         )
 
         return None
@@ -519,17 +491,15 @@ def _findModuleInPath(module_name, package_name):
 
     return module_filename
 
+
 module_search_cache = {}
+
 
 def _findModule(module_name):
     if _debug_module_finding:
-        print(
-            "_findModule: Enter to search '%s'." % (
-                module_name,
-            )
-        )
+        print("_findModule: Enter to search '%s'." % (module_name,))
 
-    assert not module_name.endswith('.'), module_name
+    assert not module_name.endswith("."), module_name
 
     key = module_name
 
@@ -567,13 +537,10 @@ def _findModule2(module_name):
     if preloaded_path is not None:
         return preloaded_path[0]
 
-    if '.' in module_name:
-        package_part = module_name[ : module_name.rfind('.') ]
-        module_name = module_name[ module_name.rfind('.') + 1 : ]
+    if "." in module_name:
+        package_part = module_name[: module_name.rfind(".")]
+        module_name = module_name[module_name.rfind(".") + 1 :]
     else:
         package_part = None
 
-    return _findModuleInPath(
-        module_name  = module_name,
-        package_name = package_part
-    )
+    return _findModuleInPath(module_name=module_name, package_name=package_part)

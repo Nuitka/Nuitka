@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -40,6 +40,7 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
         So by default, this module is on and works around the behavior of the
         "multiprocessing.forking/multiprocessing.spawn" expectations.
     """
+
     plugin_name = "multiprocessing"
 
     def __init__(self):
@@ -55,9 +56,11 @@ import sys
 sys.frozen = 1
 sys.executable = sys.argv[0]
 """
-            return code, """\
-Monkey patching "multiprocessing" load environment."""
-
+            return (
+                code,
+                """\
+Monkey patching "multiprocessing" load environment.""",
+            )
 
         return None, None
 
@@ -87,17 +90,25 @@ if str is bytes:
     ForkingPickler.register(type(C.f), _reduce_compiled_method)
 """
 
-            return code, """\
-Monkey patching "multiprocessing" for compiled methods."""
+            return (
+                code,
+                """\
+Monkey patching "multiprocessing" for compiled methods.""",
+            )
 
         return None, None
 
     @staticmethod
     def _addSlaveMainModule(root_module):
-        from nuitka.tree.Building import CompiledPythonModule, readSourceCodeFromFilename, createModuleTree
+        from nuitka.tree.Building import (
+            CompiledPythonModule,
+            readSourceCodeFromFilename,
+            createModuleTree,
+        )
         from nuitka.ModuleRegistry import addRootModule
         from nuitka.plugins.Plugins import Plugins
         from sys import hexversion
+
         # First, build the module node and then read again from the
         # source code.
         module_name = "__parents_main__"
@@ -106,17 +117,16 @@ Monkey patching "multiprocessing" for compiled methods."""
         mode = Plugins.decideCompilation(module_name, source_ref)
 
         slave_main_module = CompiledPythonModule(
-            name         = module_name,
-            package_name = None,
-            is_top       = False,
-            mode         = mode,
-            future_spec  = None,
-            source_ref   = root_module.getSourceReference()
+            name=module_name,
+            package_name=None,
+            is_top=False,
+            mode=mode,
+            future_spec=None,
+            source_ref=root_module.getSourceReference(),
         )
 
         source_code = readSourceCodeFromFilename(
-            "__parents_main__",
-            root_module.getFilename()
+            "__parents_main__", root_module.getFilename()
         )
 
         # For the call stack, this may look bad or different to what
@@ -133,20 +143,23 @@ __import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
 __import__("multiprocessing.forking").forking.freeze_support()"""
 
         createModuleTree(
-            module      = slave_main_module,
-            source_ref  = root_module.getSourceReference(),
-            source_code = source_code,
-            is_main     = False
+            module=slave_main_module,
+            source_ref=root_module.getSourceReference(),
+            source_code=source_code,
+            is_main=False,
         )
 
         # This is an alternative entry point of course.
         addRootModule(slave_main_module)
 
-    def onModuleEncounter(self, module_filename, module_name, module_package,
-                          module_kind):
-        if module_name == "multiprocessing" and \
-           module_package is None \
-           and not self.multiprocessing_added:
+    def onModuleEncounter(
+        self, module_filename, module_name, module_package, module_kind
+    ):
+        if (
+            module_name == "multiprocessing"
+            and module_package is None
+            and not self.multiprocessing_added
+        ):
             self.multiprocessing_added = True
 
             from nuitka.ModuleRegistry import getRootModules
@@ -158,12 +171,11 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
             else:
                 assert False
 
-        if module_package == "multiprocessing" and \
-           module_name in (
+        if module_package == "multiprocessing" and module_name in (
             "forking",
             "spawn",
-            "reduction"
-           ):
+            "reduction",
+        ):
             return True, "Multiprocessing plugin needs this to monkey patch it."
 
 
@@ -177,6 +189,8 @@ class NuitkaPluginDetectorMultiprocessingWorkarounds(NuitkaPluginBase):
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "__main__":
             if "multiprocessing" in source_code and "freeze_support" in source_code:
-                self.warnUnusedPlugin("Multiprocessing workarounds for compiled code on Windows.")
+                self.warnUnusedPlugin(
+                    "Multiprocessing workarounds for compiled code on Windows."
+                )
 
         return source_code

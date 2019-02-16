@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -77,38 +77,19 @@ def addUncompiledModule(module):
 
 
 def getUncompiledModules():
-    return sorted(
-        uncompiled_modules,
-        key = lambda module : module.getFullName()
-    )
+    return sorted(uncompiled_modules, key=lambda module: module.getFullName())
 
 
 def getUncompiledTechnicalModules():
-    result = [
-        module
-        for module in
-        uncompiled_modules
-        if module.isTechnical()
-    ]
+    result = [module for module in uncompiled_modules if module.isTechnical()]
 
-    return sorted(
-        result,
-        key = lambda module : module.getFullName()
-    )
+    return sorted(result, key=lambda module: module.getFullName())
 
 
 def getUncompiledNonTechnicalModules():
-    result = [
-        module
-        for module in
-        uncompiled_modules
-        if not module.isTechnical()
-    ]
+    result = [module for module in uncompiled_modules if not module.isTechnical()]
 
-    return sorted(
-        result,
-        key = lambda module : module.getFullName()
-    )
+    return sorted(result, key=lambda module: module.getFullName())
 
 
 def _normalizeModuleFilename(filename):
@@ -118,7 +99,7 @@ def _normalizeModuleFilename(filename):
         suffix = ".cpython-%d.pyc" % (python_version // 10)
 
         if filename.endswith(suffix):
-            filename = filename[:-len(suffix)] + ".py"
+            filename = filename[: -len(suffix)] + ".py"
     else:
         if filename.endswith(".pyc"):
             filename = filename[:-3] + ".py"
@@ -134,7 +115,7 @@ def getUncompiledModule(module_name, module_filename):
         if module_name == uncompiled_module.getFullName():
             if areSamePaths(
                 _normalizeModuleFilename(module_filename),
-                _normalizeModuleFilename(uncompiled_module.filename)
+                _normalizeModuleFilename(uncompiled_module.filename),
             ):
                 return uncompiled_module
 
@@ -179,21 +160,13 @@ def remainingCount():
 
 
 def getDoneModules():
-    return sorted(
-        done_modules,
-        key = lambda module : module.getFullName()
-    )
+    return sorted(done_modules, key=lambda module: module.getFullName())
 
 
 def getDoneUserModules():
     return sorted(
-        [
-            module
-            for module in
-            done_modules
-            if not module.isInternalModule()
-        ],
-        key = lambda module : module.getFullName()
+        [module for module in done_modules if not module.isInternalModule()],
+        key=lambda module: module.getFullName(),
     )
 
 

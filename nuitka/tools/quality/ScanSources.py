@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -63,7 +63,7 @@ def addFromDirectory(path, suffixes, blacklist):
             yield fullpath
 
 
-def scanTargets(positional_args, suffixes, blacklist = ()):
+def scanTargets(positional_args, suffixes, blacklist=()):
     for positional_arg in positional_args:
         positional_arg = os.path.normpath(positional_arg)
 

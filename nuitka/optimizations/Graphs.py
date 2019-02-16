@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,11 +31,9 @@ computation_counters = {}
 
 progressive = False
 
+
 def _addModuleGraph(module, desc):
-    module_graph = module.asGraph(
-        graph,
-        desc
-    )
+    module_graph = module.asGraph(graph, desc)
 
     return module_graph
 
@@ -55,8 +53,9 @@ def startGraph():
 
     if Options.shallCreateGraph():
         try:
-            from pygraphviz import AGraph # pylint: disable=I0021,import-error
-            graph = AGraph(name = "Optimization", directed = True)
+            from pygraphviz import AGraph  # pylint: disable=I0021,import-error
+
+            graph = AGraph(name="Optimization", directed=True)
             graph.layout()
         except ImportError:
             warning("Cannot import pygraphviz module, no graphing capability.")
@@ -67,4 +66,4 @@ def endGraph(output_filename):
         for module in getDoneModules():
             _addModuleGraph(module, "final")
 
-        graph.draw(output_filename + ".dot", prog = "dot")
+        graph.draw(output_filename + ".dot", prog="dot")

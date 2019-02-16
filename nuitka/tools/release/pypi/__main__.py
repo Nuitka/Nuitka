@@ -1,5 +1,5 @@
 #!/usr/bin/python -u
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -40,7 +40,6 @@ def main():
     assert branch_name == "master", branch_name
     assert "pre" not in nuitka_version and "rc" not in nuitka_version
 
-
     print("Uploading Nuitka '%s'" % nuitka_version)
 
     # Need to remove the contents from the Rest, or else PyPI will not render
@@ -48,7 +47,9 @@ def main():
     contents = open("README.rst", "rb").read()
     contents = contents.replace(b".. contents::\n", b"")
     contents = contents.replace(b".. image:: doc/images/Nuitka-Logo-Symbol.png\n", b"")
-    contents = contents.replace(b".. raw:: pdf\n\n   PageBreak oneColumn\n   SetPageCounter 1", b"")
+    contents = contents.replace(
+        b".. raw:: pdf\n\n   PageBreak oneColumn\n   SetPageCounter 1", b""
+    )
 
     open("README.rst", "wb").write(contents)
 
@@ -56,8 +57,8 @@ def main():
     contents = open("README.rst", "rb").read()
     assert b".. contents" not in contents
 
-    shutil.rmtree("check_nuitka", ignore_errors = True)
-    shutil.rmtree("dist", ignore_errors = True)
+    shutil.rmtree("check_nuitka", ignore_errors=True)
+    shutil.rmtree("dist", ignore_errors=True)
 
     print("Creating documentation.")
     createReleaseDocumentation()
@@ -67,14 +68,14 @@ def main():
     print("Creating a virtualenv for quick test:")
     with withVirtualenv("check_nuitka") as venv:
         print("Installing Nuitka into virtualenv:")
-        print('*' * 40)
+        print("*" * 40)
         venv.runCommand("pip install ../dist/Nuitka*.tar.gz")
-        print('*' * 40)
+        print("*" * 40)
 
         print("Compiling basic test:")
-        print('*' * 40)
+        print("*" * 40)
         venv.runCommand("nuitka-run ../tests/basics/Asserts.py")
-        print('*' * 40)
+        print("*" * 40)
 
     if "check" not in sys.argv:
         print("Uploading source dist")

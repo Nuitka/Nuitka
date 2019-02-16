@@ -1,4 +1,4 @@
-//     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -26,55 +26,23 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *operand1, PyObject *operand2
     assert(NEW_STYLE_NUMBER(operand2));
 
     if (PyInt_CheckExact(operand1)) {
-        long a, b, i;
+        long a = PyInt_AS_LONG(operand1);
+        long b = PyInt_AS_LONG(operand2);
 
-        a = PyInt_AS_LONG(operand1);
-        b = PyInt_AS_LONG(operand2);
-
-        i = a + b;
+        long i = (long)((unsigned long)a + b);
 
         // Detect overflow, in which case, a "long" object would have to be
         // created, which we won't handle here.
-        if (likely(!((i ^ a) < 0 && (i ^ b) < 0))) {
+        if ((i ^ a) >= 0 || (i ^ b) >= 0) {
             return PyInt_FromLong(i);
         }
     }
 
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
+    binaryfunc slot1 = NULL;
     if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
         slot1 = type1->tp_as_number->nb_add;
-    }
-
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL) {
-            slot2 = type2->tp_as_number->nb_add;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
 
         PyObject *x = slot1(operand1, operand2);
 
@@ -89,8 +57,19 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *operand1, PyObject *operand2
         Py_DECREF(x);
     }
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
+    // In-lined nb_add slot from Python int type.
+    if (PyInt_Check(operand1)) {
+        long a = PyInt_AS_LONG(operand1);
+        long b = PyInt_AS_LONG(operand2);
+
+        long i = (long)((unsigned long)a + b);
+
+        if ((i ^ a) >= 0 || (i ^ b) >= 0) {
+            return PyInt_FromLong(i);
+        }
+
+        // TODO: Could in-line and specialize this too.
+        PyObject *x = PyLong_Type.tp_as_number->nb_add((PyObject *)operand1, (PyObject *)operand2);
 
         if (x != Py_NotImplemented) {
             if (unlikely(x == NULL)) {
@@ -149,8 +128,7 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *operand1, PyObject *operand2
         return result;
     }
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
-
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'int'", type1->tp_name);
     return NULL;
 }
 
@@ -176,23 +154,18 @@ PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *operand1, PyObject *operand2
         }
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    binaryfunc slot1 = type1->tp_as_number->nb_add;
     binaryfunc slot2 = NULL;
+    if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
+        slot2 = type2->tp_as_number->nb_add;
 
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_add;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
+        if (slot2 == PyInt_Type.tp_as_number->nb_add) {
+            slot2 = NULL;
         }
     }
 
-    if (slot2 && PyType_IsSubtype(type2, type1)) {
+    if (slot2 && PyType_IsSubtype(type2, &PyInt_Type)) {
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
@@ -207,20 +180,33 @@ PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *operand1, PyObject *operand2
         slot2 = NULL;
     }
 
-    PyObject *x = slot1(operand1, operand2);
+    // In-lined nb_add slot from Python int type.
+    if (PyInt_Check(operand2)) {
+        long a = PyInt_AS_LONG(operand1);
+        long b = PyInt_AS_LONG(operand2);
 
-    if (x != Py_NotImplemented) {
-        if (unlikely(x == NULL)) {
-            return NULL;
+        long i = (long)((unsigned long)a + b);
+
+        if ((i ^ a) >= 0 || (i ^ b) >= 0) {
+            return PyInt_FromLong(i);
         }
 
-        return x;
+        // TODO: Could in-line and specialize this too.
+        PyObject *x = PyLong_Type.tp_as_number->nb_add((PyObject *)operand1, (PyObject *)operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
     }
 
-    Py_DECREF(x);
-
     if (slot2 != NULL) {
-        x = slot2(operand1, operand2);
+        PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
             if (unlikely(x == NULL)) {
@@ -247,7 +233,7 @@ PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *operand1, PyObject *operand2
                 binaryfunc slot = mv->nb_add;
 
                 if (slot != NULL) {
-                    x = slot(operand1, operand2);
+                    PyObject *x = slot(operand1, operand2);
 
                     Py_DECREF(operand1);
                     Py_DECREF(operand2);
@@ -266,21 +252,7 @@ PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *operand1, PyObject *operand2
         }
     }
 
-    // Special case for "+", also works as sequence concat.
-    PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
-
-    if (seq_methods && seq_methods->sq_concat) {
-        PyObject *result = (*seq_methods->sq_concat)(operand1, operand2);
-
-        if (unlikely(result == NULL)) {
-            return NULL;
-        }
-
-        return result;
-    }
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
-
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and '%s'", type2->tp_name);
     return NULL;
 }
 
@@ -291,23 +263,20 @@ PyObject *BINARY_OPERATION_ADD_INT_INT(PyObject *operand1, PyObject *operand2) {
     assert(PyInt_CheckExact(operand1));
     assert(PyInt_CheckExact(operand2));
 
-    long a, b, i;
+    long a = PyInt_AS_LONG(operand1);
+    long b = PyInt_AS_LONG(operand2);
 
-    a = PyInt_AS_LONG(operand1);
-    b = PyInt_AS_LONG(operand2);
-
-    i = a + b;
+    long i = (long)((unsigned long)a + b);
 
     // Detect overflow, in which case, a "long" object would have to be
     // created, which we won't handle here.
-    if (likely(!((i ^ a) < 0 && (i ^ b) < 0))) {
+    if ((i ^ a) >= 0 || (i ^ b) >= 0) {
         return PyInt_FromLong(i);
     }
 
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_add;
-    PyObject *x = slot1(operand1, operand2);
+    // TODO: Could in-line and specialize this too.
+    PyObject *x = PyLong_Type.tp_as_number->nb_add((PyObject *)operand1, (PyObject *)operand2);
     assert(x != Py_NotImplemented);
-
     return x;
 }
 

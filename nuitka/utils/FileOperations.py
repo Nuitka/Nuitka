@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,26 @@ import tempfile
 import time
 from contextlib import contextmanager
 
+from .ThreadedExecutor import Lock
 from .Utils import getOS
+
+# Locking seems to be only required for Windows currently, expressed that in the
+# lock name.
+file_lock = None
+
+
+@contextmanager
+def _with_file_Lock():
+    # This is a singleton, pylint: disable=global-statement
+    global file_lock
+
+    if file_lock is None:
+        file_lock = Lock()
+
+    file_lock.acquire()
+    yield
+    if file_lock is not None:
+        file_lock.release()
 
 
 def areSamePaths(path1, path2):
@@ -61,22 +80,16 @@ def relpath(path):
 def makePath(path):
     """ Create a directory if it doesn'T exist."""
 
-    if not os.path.isdir(path):
-        os.makedirs(path)
+    with _with_file_Lock():
+        if not os.path.isdir(path):
+            os.makedirs(path)
 
 
 def listDir(path):
     """ Give a sorted path, base filename pairs of a directory."""
 
     return sorted(
-        [
-            (
-                os.path.join(path, filename),
-                filename
-            )
-            for filename in
-            os.listdir(path)
-        ]
+        [(os.path.join(path, filename), filename) for filename in os.listdir(path)]
     )
 
 
@@ -95,27 +108,21 @@ def getSubDirectories(path):
 
     for root, dirnames, _filenames in os.walk(path):
         for dirname in dirnames:
-            result.append(
-                os.path.join(root, dirname)
-            )
+            result.append(os.path.join(root, dirname))
 
     result.sort()
     return result
 
 
 def deleteFile(path, must_exist):
-    if must_exist or os.path.isfile(path):
-        os.unlink(path)
+    with _with_file_Lock():
+        if must_exist or os.path.isfile(path):
+            os.unlink(path)
 
 
 def splitPath(path):
     """ Split path, skipping empty elements. """
-    return tuple(
-        element
-        for element in
-        os.path.split(path)
-        if element
-    )
+    return tuple(element for element in os.path.split(path) if element)
 
 
 def hasFilenameExtension(path, extensions):
@@ -144,21 +151,16 @@ def removeDirectory(path, ignore_errors):
 
         func(path)
 
-    if os.path.exists(path):
-        try:
-            shutil.rmtree(
-                path,
-                ignore_errors = False,
-                onerror       = onError
-            )
-        except OSError:
-            if ignore_errors:
-                shutil.rmtree(
-                    path,
-                    ignore_errors = ignore_errors
-                )
-            else:
-                raise
+    with _with_file_Lock():
+        if os.path.exists(path):
+            try:
+                shutil.rmtree(path, ignore_errors=False, onerror=onError)
+            except OSError:
+                if ignore_errors:
+                    shutil.rmtree(path, ignore_errors=ignore_errors)
+                else:
+                    raise
+
 
 @contextmanager
 def withTemporaryFilename():

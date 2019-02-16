@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,7 +22,7 @@ from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import (
     ExpressionChildrenHavingBase,
-    ExpressionSpecBasedComputationBase
+    ExpressionSpecBasedComputationBase,
 )
 from .shapes.BuiltinTypeShapes import ShapeTypeComplex
 
@@ -34,11 +34,7 @@ class ExpressionBuiltinComplex1(ExpressionChildrenHavingBase):
 
     def __init__(self, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "value" : value
-            },
-            source_ref = source_ref
+            self, values={"value": value}, source_ref=source_ref
         )
 
     def getTypeShape(self):
@@ -50,8 +46,7 @@ class ExpressionBuiltinComplex1(ExpressionChildrenHavingBase):
         value = self.getValue()
 
         return value.computeExpressionComplex(
-            complex_node     = self,
-            trace_collection = trace_collection
+            complex_node=self, trace_collection=trace_collection
         )
 
     getValue = ExpressionChildrenHavingBase.childGetter("value")
@@ -66,12 +61,7 @@ class ExpressionBuiltinComplex2(ExpressionSpecBasedComputationBase):
 
     def __init__(self, real, imag, source_ref):
         ExpressionSpecBasedComputationBase.__init__(
-            self,
-            values     = {
-                "real" : real,
-                "imag" : imag,
-            },
-            source_ref = source_ref
+            self, values={"real": real, "imag": imag}, source_ref=source_ref
         )
 
     getReal = ExpressionSpecBasedComputationBase.childGetter("real")
@@ -81,10 +71,8 @@ class ExpressionBuiltinComplex2(ExpressionSpecBasedComputationBase):
         given_values = self.subnode_real, self.subnode_imag
 
         return self.computeBuiltinSpec(
-            trace_collection = trace_collection,
-            given_values     = given_values
+            trace_collection=trace_collection, given_values=given_values
         )
-
 
     def getTypeShape(self):
         return ShapeTypeComplex

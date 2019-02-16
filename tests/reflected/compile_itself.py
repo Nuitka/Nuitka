@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -70,7 +70,6 @@ PACKAGE_LIST = (
     "nuitka/finalizations",
     "nuitka/plugins",
     "nuitka/plugins/standard",
-    "nuitka/plugins/user",
     "nuitka/containers",
     "nuitka/utils",
 )

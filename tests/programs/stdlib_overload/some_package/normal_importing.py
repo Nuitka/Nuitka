@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -19,4 +19,4 @@ import pyexpat
 
 print( "Imported pyexpat, should use our one." )
 
-print( dir(pyexpat) )
+print( [ x for x in dir(pyexpat) if x != "__compiled__" ] )

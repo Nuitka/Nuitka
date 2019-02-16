@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -37,17 +37,10 @@ from nuitka.__past__ import StringIO
 def main():
     print("Querying openSUSE build service status of Nuitka packages.")
 
-    osc_cmd = [
-        "osc",
-        "pr",
-        "-c",
-        "home:kayhayen"
-    ]
+    osc_cmd = ["osc", "pr", "-c", "home:kayhayen"]
 
     process = subprocess.Popen(
-        args   = osc_cmd,
-        stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE
+        args=osc_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
 
     stdout_osc, stderr_osc = process.communicate()
@@ -58,7 +51,7 @@ def main():
     # print(stdout_osc)
 
     csvfile = StringIO(stdout_osc)
-    osc_reader = csv.reader(csvfile, delimiter = ';')
+    osc_reader = csv.reader(csvfile, delimiter=";")
 
     osc_reader = iter(osc_reader)
 
@@ -74,7 +67,7 @@ def main():
     problems = []
 
     for count, title in enumerate(titles):
-        status = row1[count+1]
+        status = row1[count + 1]
 
         # print(row1[0], title, ":", status)
         # Ignore PowerPC builds for now, they seem to not even boot.
@@ -82,12 +75,10 @@ def main():
             continue
 
         if status in bad:
-            problems.append(
-                (row1[0], title, status)
-            )
+            problems.append((row1[0], title, status))
 
     for count, title in enumerate(titles):
-        status = row2[count+1]
+        status = row2[count + 1]
 
         # print(row2[0], title, ":", status)
         # Ignore PowerPC builds for now, they seem to not even boot.
@@ -95,18 +86,17 @@ def main():
             continue
 
         if status in bad:
-            problems.append(
-                (row2[0], title, status)
-            )
+            problems.append((row2[0], title, status))
 
     if problems:
         print("There are problems with:")
-        print('\n'.join("%s: %s (%s)" % problem for problem in problems))
+        print("\n".join("%s: %s (%s)" % problem for problem in problems))
 
         sys.exit(1)
     else:
         print("Looks good.")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

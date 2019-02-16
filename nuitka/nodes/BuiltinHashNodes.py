@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,22 +29,14 @@ from .ExpressionBases import ExpressionChildrenHavingBase
 class ExpressionBuiltinHash(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_HASH"
 
-    named_children = (
-        "value",
-    )
+    named_children = ("value",)
 
     def __init__(self, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "value" : value,
-            },
-            source_ref = source_ref
+            self, values={"value": value}, source_ref=source_ref
         )
 
-    getValue = ExpressionChildrenHavingBase.childGetter(
-        "value"
-    )
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, trace_collection):
         value = self.getValue()

@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,20 +28,15 @@ from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
     getComputationResult,
     makeStatementOnlyNodesFromExpressions,
-    wrapExpressionWithSideEffects
+    wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import (
-    ShapeTypeList,
-    ShapeTypeSet,
-    ShapeTypeTuple
-)
+from .shapes.BuiltinTypeShapes import ShapeTypeList, ShapeTypeSet, ShapeTypeTuple
 
 
-class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
-                                 ExpressionChildrenHavingBase):
-    named_children = (
-        "elements",
-    )
+class ExpressionMakeSequenceBase(
+    SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase
+):
+    named_children = ("elements",)
 
     def __init__(self, sequence_kind, elements, source_ref):
         assert sequence_kind in ("TUPLE", "LIST", "SET"), sequence_kind
@@ -52,12 +47,7 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
         self.sequence_kind = sequence_kind.lower()
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "elements" : tuple(elements),
-            },
-            source_ref = source_ref
-
+            self, values={"elements": tuple(elements)}, source_ref=source_ref
         )
 
     def isExpressionMakeSequence(self):
@@ -78,9 +68,7 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
         for count, element in enumerate(elements):
             if element.willRaiseException(BaseException):
                 result = wrapExpressionWithSideEffects(
-                    side_effects = elements[:count],
-                    new_node     = element,
-                    old_node     = self
+                    side_effects=elements[:count], new_node=element, old_node=self
                 )
 
                 return result, "new_raise", "Sequence creation raises exception"
@@ -94,13 +82,11 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
 
         # The simulator is in fact callable if not None, pylint: disable=not-callable
         return getComputationResult(
-            node        = self,
-            computation = lambda : simulator(
-                element.getCompileTimeConstant()
-                for element in
-                elements
+            node=self,
+            computation=lambda: simulator(
+                element.getCompileTimeConstant() for element in elements
             ),
-            description = "%s with constant arguments." % simulator.__name__.title()
+            description="%s with constant arguments." % simulator.__name__.title(),
         )
 
     def mayHaveSideEffectsBool(self):
@@ -136,14 +122,16 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
         return False
 
     def computeExpressionDrop(self, statement, trace_collection):
-        result = makeStatementOnlyNodesFromExpressions(
-            expressions = self.getElements()
-        )
+        result = makeStatementOnlyNodesFromExpressions(expressions=self.getElements())
 
         del self.parent
 
-        return result, "new_statements", """\
-Removed sequence creation for unused sequence."""
+        return (
+            result,
+            "new_statements",
+            """\
+Removed sequence creation for unused sequence.""",
+        )
 
 
 class ExpressionMakeTuple(ExpressionMakeSequenceBase):
@@ -151,10 +139,7 @@ class ExpressionMakeTuple(ExpressionMakeSequenceBase):
 
     def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
-            self,
-            sequence_kind = "TUPLE",
-            elements      = elements,
-            source_ref    = source_ref
+            self, sequence_kind="TUPLE", elements=elements, source_ref=source_ref
         )
 
     def getTypeShape(self):
@@ -172,10 +157,7 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
 
     def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
-            self,
-            sequence_kind = "LIST",
-            elements      = elements,
-            source_ref    = source_ref
+            self, sequence_kind="LIST", elements=elements, source_ref=source_ref
         )
 
     def getTypeShape(self):
@@ -189,15 +171,18 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         result = ExpressionMakeTuple(
-            elements   = self.getElements(),
-            source_ref = self.source_ref
+            elements=self.getElements(), source_ref=self.source_ref
         )
 
         self.parent.replaceChild(self, result)
         del self.parent
 
-        return iter_node, "new_expression", """\
-Iteration over list reduced to iteration over tuple."""
+        return (
+            iter_node,
+            "new_expression",
+            """\
+Iteration over list reduced to iteration over tuple.""",
+        )
 
 
 class ExpressionMakeSet(ExpressionMakeSequenceBase):
@@ -205,10 +190,7 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
 
     def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
-            self,
-            sequence_kind = "SET",
-            elements      = elements,
-            source_ref    = source_ref
+            self, sequence_kind="SET", elements=elements, source_ref=source_ref
         )
 
     def getTypeShape(self):
@@ -249,15 +231,18 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         result = ExpressionMakeTuple(
-            elements   = self.getElements(),
-            source_ref = self.source_ref
+            elements=self.getElements(), source_ref=self.source_ref
         )
 
         self.parent.replaceChild(self, result)
         del self.parent
 
-        return iter_node, "new_expression", """\
-Iteration over set reduced to iteration over tuple."""
+        return (
+            iter_node,
+            "new_expression",
+            """\
+Iteration over set reduced to iteration over tuple.""",
+        )
 
 
 class ExpressionMakeSetLiteral(ExpressionMakeSet):
@@ -265,6 +250,7 @@ class ExpressionMakeSetLiteral(ExpressionMakeSet):
 
     def getSimulator(self):
         if needsSetLiteralReverseInsertion():
+
             @functools.wraps(set)
             def mySet(value):
                 return set(reversed(tuple(value)))
