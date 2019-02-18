@@ -5,3 +5,4 @@ pylint == 2.2.2 ; python_version >= '3.6'
 astroid == 2.1.0 ; python_version >= '3.6'
 
 black == 18.9b0 ; python_version >= '3.6'
+isort == 4.3.4
