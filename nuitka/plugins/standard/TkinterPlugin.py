@@ -29,8 +29,8 @@ import sys
 from logging import info
 
 from nuitka import Options
-from nuitka.utils.Utils import isWin32Windows
 from nuitka.plugins.PluginBase import UserPluginBase, pre_modules
+from nuitka.utils.Utils import isWin32Windows
 
 
 class TkinterPlugin(UserPluginBase):

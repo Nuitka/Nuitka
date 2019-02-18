@@ -24,11 +24,12 @@
 import os
 import re
 import shutil
+import subprocess
 
 from nuitka.Tracing import my_print
 
 
-def cleanupWindowsNewlines(filename):
+def _cleanupWindowsNewlines(filename):
     """ Remove Windows new-lines from a file.
 
         Simple enough to not depend on external binary.
@@ -103,15 +104,13 @@ def _updateCommentNode(comment_node):
         comment_node.value = new_value
 
 
-def autoformat(filename, abort=False):
+def _cleanupPyLintComments(filename, abort):
     from baron.parser import (  # pylint: disable=I0021,import-error,no-name-in-module
         ParsingError,  # @UnresolvedImport
     )
     from redbaron import (  # pylint: disable=I0021,import-error,no-name-in-module
         RedBaron,  # @UnresolvedImport
     )
-
-    my_print("Consider", filename, end=": ")
 
     with open(filename) as f:
         old_code = f.read()
@@ -142,9 +141,6 @@ def autoformat(filename, abort=False):
         with open(new_name, "w") as source_code:
             source_code.write(red.dumps())
 
-        if os.name == "nt":
-            cleanupWindowsNewlines(new_name)
-
         # There is no way to safely replace a file on Windows, but lets try on Linux
         # at least.
         old_stat = os.stat(filename)
@@ -157,10 +153,59 @@ def autoformat(filename, abort=False):
 
         os.chmod(filename, old_stat.st_mode)
 
-        my_print("updated.")
-        changed = 1
-    else:
-        my_print("OK.")
-        changed = 0
+
+def _cleanupImportRelative(filename):
+    package_name = os.path.dirname(filename)
+
+    # Make imports local if possible.
+    if package_name.startswith("nuitka" + os.path.sep):
+        package_name = package_name.replace(os.path.sep, ".")
+
+        source_code = open(filename).read()
+        updated_code = re.sub(
+            r"from %s import" % package_name, "from . import", source_code
+        )
+        updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
+
+        if source_code != updated_code:
+            with open(filename, "w") as out_file:
+                out_file.write(updated_code)
+
+
+def autoformat(filename, abort=False):
+    my_print("Consider", filename, end=": ")
+
+    old_code = open(filename, "r").read()
+
+    _cleanupPyLintComments(filename, abort)
+
+    with open(os.devnull, "w") as devnull:
+        subprocess.check_call(
+            [
+                "isort",
+                "-q",  # quiet, but stdout is still garbage
+                "-ot",  # Order imports by type in addition to alphabetically
+                "-m3",  # "vert-hanging"
+                "-up",  # Prefer braces () over \ for line continuation.
+                "-tc",  # Trailing commas
+                "-ns",  # Do not ignore those:
+                "__init__.py",
+                filename,
+            ],
+            stdout=devnull,
+        )
+
+    if os.name == "nt":
+        _cleanupWindowsNewlines(filename)
+
+    subprocess.call(["black", "-q", filename])
+
+    changed = False
+    with open(filename, "r") as f:
+        if old_code != f.read():
+            my_print("Updated.")
+            changed = True
+        else:
+            my_print("OK.")
 
     return changed
