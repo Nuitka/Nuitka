@@ -136,30 +136,20 @@ Tool to format
 --------------
 
 There is a tool ``bin/autoformat-nuitka-source`` which is to apply automatic
-formatting to code as much as possible.
+formatting to code as much as possible. It uses ``black`` (internally) for
+consistent code formatting. The imports are sorted with ``isort`` for proper
+order.
 
-
-Line Length
------------
-
-No more than 120 characters. Screens are wider these days, but most of the code
-aims at keeping the lines below 80. Long lines are also a sign of writing
-incomprehensible code.
-
-
-Indentation
------------
-
-No tabs, 4 spaces, no trailing white space. Files end in a new line.
-
+The tool (mostly black) encodes all formatting rules, and makes the decisions
+for us. The idea being that we can focus on actual code and do not have to
+care as much about other things.
 
 Identifiers
 -----------
 
-Classes are camel case with leading upper case. Methods are with leading verb in
-lower case, but also camel case. Around braces there are no spaces, but after
-comma, there is spaces for better readability. Variables and arguments are
-lower case with ``_`` as a separator.
+Classes are camel case with leading upper case. Functions and methods are with
+leading verb in lower case, but also camel case. Variables and
+arguments are lower case with ``_`` as a separator.
 
 .. code-block:: python
 
@@ -176,14 +166,11 @@ more readable:
 
 .. code-block:: python
 
-   return Generator.getSequenceCreationCode(
-        sequence_kind       = sequence_kind,
-        element_identifiers = identifiers,
-        context             = context
+   return getSequenceCreationCode(
+        sequence_kind= sequence_kind,
+        element_identifiers=identifiers,
+        context=context
    )
-
-The ``=`` are all aligned to the longest parameter names with an extra space
-around it.
 
 When the names don't add much value, sequential calls can be done, but
 ideally with one value per line:
@@ -198,16 +185,6 @@ ideally with one value per line:
 Here, ``setLoopContinueTarget`` will be so well known that the reader is
 expected to know the argument names and their meaning, but it would be still
 better to add them.
-
-Contractions should span across multiple lines for increased readability:
-
-.. code-block:: python
-
-   result = [
-       "PyObject *decorator_%d" % (d + 1)
-       for d in
-       range(decorator_count)
-   ]
 
 
 Module/Package Names
