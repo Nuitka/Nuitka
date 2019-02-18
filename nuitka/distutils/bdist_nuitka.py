@@ -19,7 +19,6 @@
 
 """
 
-import collections
 import distutils.command.build  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 import distutils.command.install  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 import os
@@ -29,7 +28,7 @@ import sys
 
 import wheel.bdist_wheel  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
-from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import Iterable, unicode  # pylint: disable=I0021,redefined-builtin
 
 
 def setuptools_build_hook(dist, keyword, value):
@@ -127,7 +126,7 @@ class build(distutils.command.build.build):
                 _source, value = details
                 if value is None:
                     command.append(option)
-                elif isinstance(value, collections.Iterable) and not isinstance(
+                elif isinstance(value, Iterable) and not isinstance(
                     value, (unicode, bytes, str)
                 ):
                     for val in value:
