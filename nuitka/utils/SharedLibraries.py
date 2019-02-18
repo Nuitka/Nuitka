@@ -20,7 +20,6 @@
 """
 
 import array
-
 import os
 from sys import getfilesystemencoding
 
@@ -98,7 +97,11 @@ def getSxsFromDLL(filename):
     FreeLibrary = ctypes.windll.kernel32.FreeLibrary  # @UndefinedVariable
 
     EnumResourceNameCallback = ctypes.WINFUNCTYPE(
-        ctypes.wintypes.BOOL, ctypes.wintypes.HMODULE, ctypes.wintypes.LONG, ctypes.wintypes.LONG, ctypes.wintypes.LONG
+        ctypes.wintypes.BOOL,
+        ctypes.wintypes.HMODULE,
+        ctypes.wintypes.LONG,
+        ctypes.wintypes.LONG,
+        ctypes.wintypes.LONG,
     )
 
     DONT_RESOLVE_DLL_REFERENCES = 0x1
@@ -183,7 +186,6 @@ def getWindowsDLLVersion(filename):
     """
     # Get size needed for buffer (0 if no info)
     import ctypes
-
 
     if type(filename) is unicode:
         size = ctypes.windll.version.GetFileVersionInfoSizeW(filename, None)
