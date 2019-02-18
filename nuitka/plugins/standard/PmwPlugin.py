@@ -119,7 +119,8 @@ class NuitkaPluginPmw(NuitkaPluginBase):
             # Read the filename and modify it so that it can be bundled with the
             # other Pmw files.
             filename = "Pmw" + filename + ".py"
-            text = open(os.path.join(srcdir, filename)).read()
+            with open(os.path.join(srcdir, filename)) as f:
+                text = f.read()
             text = re.sub(r"import Pmw\>", "", text)
             text = re.sub("INITOPT = Pmw.INITOPT", "", text)
             text = re.sub(r"\<Pmw\.", "", text)

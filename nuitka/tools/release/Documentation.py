@@ -140,7 +140,8 @@ help2man -n 'the Python compiler' --no-discard-stderr --no-info \
         )
 
         for manpage in ("doc/nuitka%s.1" % suffix, "doc/nuitka%s-run.1" % suffix):
-            manpage_contents = open(manpage).readlines()
+            with open(manpage) as f:
+                manpage_contents = f.readlines()
             new_contents = []
             mark = False
 
@@ -157,7 +158,8 @@ help2man -n 'the Python compiler' --no-discard-stderr --no-info \
 
                 new_contents.append(line)
 
-            open(manpage, "w").writelines(new_contents)
+            with open(manpage, "w") as f:
+                f.writelines(new_contents)
 
     makeManpage("python2", "")
     makeManpage("python3", "3")

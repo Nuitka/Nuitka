@@ -92,9 +92,8 @@ def main():
 
     my_print("PYTHON='%s'" % python_version)
     my_print("PYTHON_BINARY='%s'" % os.environ["PYTHON"])
-    my_print(
-        "TEST_CASE_HASH='%s'" % hashlib.md5(open(test_case, "rb").read()).hexdigest()
-    )
+    with open(test_case, "rb") as f:
+        my_print("TEST_CASE_HASH='%s'" % hashlib.md5(f.read()).hexdigest())
 
     needs_2to3 = (
         python_version.startswith("3")
@@ -113,7 +112,8 @@ def main():
     test_case_1 = os.path.join(temp_dir, "Variant1_" + os.path.basename(test_case))
     test_case_2 = os.path.join(temp_dir, "Variant2_" + os.path.basename(test_case))
 
-    case_1_source, case_2_source = generateConstructCases(open(test_case).read())
+    with open(test_case) as f:
+        case_1_source, case_2_source = generateConstructCases(f.read())
 
     with open(test_case_1, "w") as case_1_file:
         case_1_file.write(case_1_source)
@@ -206,15 +206,18 @@ def main():
 
             import difflib
 
-            open(options.diff_filename, "w").write(
-                difflib.HtmlDiff().make_table(
-                    open(cpp_1).readlines(),
-                    open(cpp_2).readlines(),
-                    "Construct",
-                    "Baseline",
-                    True,
-                )
-            )
+            with open(options.diff_filename, "w") as f:
+                with open(cpp_1) as cpp1:
+                    with open(cpp_2) as cpp2:
+                        f.write(
+                            difflib.HtmlDiff().make_table(
+                                cpp1.readlines(),
+                                cpp2.readlines(),
+                                "Construct",
+                                "Baseline",
+                                True,
+                            )
+                        )
 
         nuitka_1 = runValgrind(
             "Nuitka construct",

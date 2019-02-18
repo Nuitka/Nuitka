@@ -36,7 +36,8 @@ def updateDebianChangelog(old_version, new_version):
         else:
             assert os.system('debchange --newversion=%s ""' % debian_version) == 0
 
-        changelog = open("Changelog.rst").read()
+        with open("Changelog.rst") as f:
+            changelog = f.read()
         if "(Draft)" not in changelog.splitlines()[0]:
             title = "Nuitka Release " + new_version[:-3] + " (Draft)"
 
@@ -48,7 +49,8 @@ def updateDebianChangelog(old_version, new_version):
     else:
         if "rc" in old_version:
             # Initial final release after pre-releases.
-            changelog_lines = open("debian/changelog").readlines()
+            with open("debian/changelog") as f:
+                changelog_lines = f.readlines()
             with open("debian/changelog", "w") as output:
                 first = True
                 for line in changelog_lines[1:]:
@@ -73,12 +75,13 @@ def checkChangeLog(message):
 
     """
 
-    for line in open("debian/changelog"):
-        if line.startswith(" --"):
-            return False
+    with open("debian/changelog") as f:
+        for line in f:
+            if line.startswith(" --"):
+                return False
 
-        if message in line:
-            return True
+            if message in line:
+                return True
 
     sys.exit("Error, didn't find in debian/changelog: '%s'" % message)
 

@@ -95,10 +95,11 @@ The mode of update, prerelease, hotfix, release, auto (default auto determines f
     # Go its own directory, to have it easy with path knowledge.
     goHome()
 
-    option_lines = [line for line in open("nuitka/Version.py")]
+    with open("nuitka/Version.py") as f:
+        option_lines = f.readlines()
 
     version_line, = [
-        line for line in open("nuitka/Version.py") if line.startswith("Nuitka V")
+        line for line in option_lines if line.startswith("Nuitka V")
     ]
 
     old_version = version_line[8:].rstrip()

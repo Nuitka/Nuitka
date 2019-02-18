@@ -104,13 +104,14 @@ def detectPthImportedPackages():
         for path, filename in listDir(prefix):
             if filename.endswith(".pth"):
                 try:
-                    for line in open(path, "rU"):
-                        if line.startswith("import "):
-                            if ";" in line:
-                                line = line[: line.find(";")]
+                    with open(path, "rU") as f:
+                        for line in f:
+                            if line.startswith("import "):
+                                if ";" in line:
+                                    line = line[: line.find(";")]
 
-                            for part in line[7:].split(","):
-                                pth_imports.add(part.strip())
+                                for part in line[7:].split(","):
+                                    pth_imports.add(part.strip())
                 except OSError:
                     warning("Python installation problem, cannot read file '%s'.")
 
