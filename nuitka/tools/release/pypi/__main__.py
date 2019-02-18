@@ -44,17 +44,20 @@ def main():
 
     # Need to remove the contents from the Rest, or else PyPI will not render
     # it. Stupid but true.
-    contents = open("README.rst", "rb").read()
+    with open("README.rst", "rb") as f:
+        contents = f.read()
     contents = contents.replace(b".. contents::\n", b"")
     contents = contents.replace(b".. image:: doc/images/Nuitka-Logo-Symbol.png\n", b"")
     contents = contents.replace(
         b".. raw:: pdf\n\n   PageBreak oneColumn\n   SetPageCounter 1", b""
     )
 
-    open("README.rst", "wb").write(contents)
+    with open("README.rst", "wb") as f:
+        f.write(contents)
 
     # Make sure it worked.
-    contents = open("README.rst", "rb").read()
+    with open("README.rst", "rb") as f:
+        contents = f.read()
     assert b".. contents" not in contents
 
     shutil.rmtree("check_nuitka", ignore_errors=True)

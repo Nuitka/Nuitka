@@ -34,7 +34,8 @@ def cleanupWindowsNewlines(filename):
         Simple enough to not depend on external binary.
     """
 
-    source_code = open(filename, "rb").read()
+    with open(filename, "rb") as f:
+        source_code = f.read()
 
     updated_code = source_code.replace(b"\r\n", b"\n")
     updated_code = updated_code.replace(b"\n\r", b"\n")
@@ -112,7 +113,8 @@ def autoformat(filename, abort=False):
 
     my_print("Consider", filename, end=": ")
 
-    old_code = open(filename, "r").read()
+    with open(filename) as f:
+        old_code = f.read()
 
     try:
         red = RedBaron(old_code)

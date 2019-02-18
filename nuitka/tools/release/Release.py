@@ -31,8 +31,6 @@ def checkAtHome():
     if os.path.isdir(".git"):
         git_dir = ".git"
     else:
-        git_dir = open(".git")
-
         with open(".git") as f:
             line = f.readline().strip()
 
@@ -42,7 +40,8 @@ def checkAtHome():
 
     git_description_filename = os.path.join(git_dir, "description")
 
-    assert open(git_description_filename).read().strip() == "Nuitka Staging"
+    with open(git_description_filename) as f:
+        assert f.read().strip() == "Nuitka Staging"
 
 
 def getBranchName():
@@ -92,7 +91,8 @@ def getBranchCategory(branch_name):
 
 
 def checkNuitkaChangelog():
-    first_line = open("Changelog.rst").readline()
+    with open("Changelog.rst") as f:
+        first_line = f.readline()
 
     if "(Draft)" in first_line:
         return "draft"

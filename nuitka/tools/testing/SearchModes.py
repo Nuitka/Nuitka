@@ -123,7 +123,8 @@ class SearchModeResume(SearchModeBase):
         self.cache_filename = cache_filename
 
         if os.path.exists(cache_filename):
-            self.resume_from = open(cache_filename, "r").read() or None
+            with open(cache_filename, "r") as f:
+                self.resume_from = f.read() or None
         else:
             self.resume_from = None
 
@@ -139,7 +140,8 @@ class SearchModeResume(SearchModeBase):
         path = os.path.join(*parts)
 
         if self.active:
-            open(self.cache_filename, "w").write(path)
+            with open(self.cache_filename, "w") as f:
+                f.write(path)
 
             return True
 

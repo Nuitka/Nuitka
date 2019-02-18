@@ -1070,7 +1070,8 @@ for candidate in (
 ):
     candidate = os.path.join(python_prefix, candidate)
     if os.path.exists(candidate):
-        python_prefix = open(candidate).read()
+        with open(candidate) as f:
+            python_prefix = f.read()
 
         # Trailing spaces in the python prefix, please not.
         assert python_prefix == python_prefix.strip()
@@ -1113,7 +1114,8 @@ def getWindowsPythonDLLPath():
 
 def makeWindowsMingGW64Lib(win_lib_path):
     python_dll_filename = getWindowsPythonDLLPath()
-    checksum = hashlib.md5(open(python_dll_filename, "rb").read()).hexdigest()
+    with open(python_dll_filename, "rb") as f:
+        checksum = hashlib.md5(f.read()).hexdigest()
 
     # Create the LIB in the build directory.
     new_win_lib_path = os.path.join(nuitka_cache, "win_libs", python_version, checksum)
@@ -1161,9 +1163,8 @@ def makeWindowsMingGW64Lib(win_lib_path):
         new_win_lib_path, "python%s.defs" % python_abi_version.replace(".", "")
     )
 
-    defs_file = open(defs_filename, "w")
-    defs_file.write(defs)
-    defs_file.close()
+    with open(defs_filename, "w") as defs_file:
+        defs_file.write(defs)
 
     shutil.copy(getWindowsPythonDLLPath(), new_win_lib_path)
 
@@ -1402,7 +1403,9 @@ else:
 
         output.write("const unsigned char constant_bin[] =\n{\n")
 
-        for count, stream_byte in enumerate(open(constants_bin_filename, "rb").read()):
+        with open(constants_bin_filename, "rb").read() as f:
+            content = f.read()
+        for count, stream_byte in enumerate(content):
             if count % 16 == 0:
                 if count > 0:
                     output.write("\n")
@@ -1623,7 +1626,8 @@ also a 64 bits version, download and use that one instead.
                 # Need to reduce to what we use, and remove the quoting of the
                 # actual manifest. We created a full "rc" file, but that we do
                 # not have use for.
-                manifest_file = open(manifest_filename, "r")
+                with open(manifest_filename) as f:
+                    manifest_file = f.readlines()
                 inside = False
                 contents = []
                 for line in manifest_file:
@@ -1639,9 +1643,8 @@ also a 64 bits version, download and use that one instead.
 
                     contents.append(line[line.find('"') + 1 : line.rfind('"')])
 
-                manifest_file = open(manifest_filename, "w")
-                manifest_file.write("".join(contents[1:-1]))
-                manifest_file.close()
+                with open(manifest_filename, 'w') as manifest_file:
+                    manifest_file.write("".join(contents[1:-1]))
 
             rc_content.append("1 RT_MANIFEST resources.manifest")
 
@@ -1658,11 +1661,9 @@ also a 64 bits version, download and use that one instead.
     if rc_content:
         rc_filename = os.path.join(source_dir, "resources.rc")
 
-        rc_file = open(rc_filename, "w")
-
-        rc_content.insert(0, '#include "winuser.h"')
-        rc_file.write("\n".join(rc_content))
-        rc_file.close()
+        with open(rc_filename, "w") as rc_file:
+            rc_content.insert(0, '#include "winuser.h"')
+            rc_file.write("\n".join(rc_content))
 
         res_target = env.RES(rc_filename)
 
@@ -1806,11 +1807,9 @@ def makeCLiteral(value):
 def createBuildDefinitionsFile():
     build_definitions_filename = os.path.join(source_dir, "build_definitions.h")
 
-    build_definitions_file = open(build_definitions_filename, "w")
-    for key, value in sorted(build_definitions.items()):
-        build_definitions_file.write("#define %s %s\n" % (key, makeCLiteral(value)))
-
-    build_definitions_file.close()
+    with open(build_definitions_filename, 'w') as f:
+        for key, value in sorted(build_definitions.items()):
+            f.write("#define %s %s\n" % (key, makeCLiteral(value)))
 
 
 createBuildDefinitionsFile()
