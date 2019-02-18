@@ -26,15 +26,8 @@ import sys
 
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought to be there.
-sys.path.insert(
-    0,
-    os.path.normpath(
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-        )
-    )
-)
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
-from nuitka.tools.testing.find_sxs_modules.__main__ import main # isort:skip
+from nuitka.tools.testing.find_sxs_modules.__main__ import main  # isort:skip
+
 main()
