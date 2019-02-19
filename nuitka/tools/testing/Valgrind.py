@@ -27,7 +27,7 @@ import sys
 
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import check_output
-from nuitka.utils.FileOperations import withTemporaryFilename
+from nuitka.utils.FileOperations import getFileContentByLine, withTemporaryFilename
 
 
 def runValgrind(descr, tool, args, include_startup, save_logfilename=None):
@@ -71,17 +71,16 @@ def runValgrind(descr, tool, args, include_startup, save_logfilename=None):
 
         max_mem = None
 
-        with open(log_filename) as f:
-            for line in f:
-                if tool == "callgrind" and line.startswith("summary:"):
-                    return int(line.split()[1])
-                elif tool == "massif" and line.startswith("mem_heap_B="):
-                    mem = int(line.split("=")[1])
+        for line in getFileContentByLine(log_filename):
+            if tool == "callgrind" and line.startswith("summary:"):
+                return int(line.split()[1])
+            elif tool == "massif" and line.startswith("mem_heap_B="):
+                mem = int(line.split("=")[1])
 
-                    if max_mem is None:
-                        max_mem = 0
+                if max_mem is None:
+                    max_mem = 0
 
-                    max_mem = max(mem, max_mem)
+                max_mem = max(mem, max_mem)
 
         if tool == "massif" and max_mem is not None:
             return max_mem

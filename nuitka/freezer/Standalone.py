@@ -51,6 +51,8 @@ from nuitka.utils.Execution import withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     deleteFile,
+    getFileContentByLine,
+    getFileContents,
     getSubDirectories,
     listDir,
     makePath,
@@ -710,8 +712,7 @@ def _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filen
         # Normalize main program name for caching as well, but need to use the
         # scons information to distinguish different Python and arches, and
         # compilers, so we use different libs there.
-        with open(os.path.join(source_dir, "scons-report.txt")) as f:
-            hashed_value = f.read()
+        hashed_value = getFileContents(os.path.join(source_dir, "scons-report.txt"))
     else:
         hashed_value = original_filename
 
@@ -755,244 +756,243 @@ def _parseDependsExeOutput(filename, result):
     inside = False
     first = False
 
-    with open(filename) as f:
-        for line in f:
-            if "| Module Dependency Tree |" in line:
-                inside = True
-                first = True
-                continue
+    for line in getFileContentByLine(filename):
+        if "| Module Dependency Tree |" in line:
+            inside = True
+            first = True
+            continue
 
-            if not inside:
-                continue
+        if not inside:
+            continue
 
-            if "| Module List |" in line:
-                break
+        if "| Module List |" in line:
+            break
 
-            if "]" not in line:
-                continue
+        if "]" not in line:
+            continue
 
-            # Skip missing DLLs, apparently not needed anyway.
-            if "?" in line[: line.find("]")]:
-                continue
+        # Skip missing DLLs, apparently not needed anyway.
+        if "?" in line[: line.find("]")]:
+            continue
 
-            # Skip DLLs that failed to load, apparently not needed anyway.
-            if "E" in line[: line.find("]")]:
-                continue
+        # Skip DLLs that failed to load, apparently not needed anyway.
+        if "E" in line[: line.find("]")]:
+            continue
 
-            dll_filename = line[line.find("]") + 2 : -1]
+        dll_filename = line[line.find("]") + 2 : -1]
 
-            # The executable itself is of course exempted. We cannot check its path
-            # because depends.exe mistreats unicode paths.
-            if first:
-                first = False
-                continue
+        # The executable itself is of course exempted. We cannot check its path
+        # because depends.exe mistreats unicode paths.
+        if first:
+            first = False
+            continue
 
-            assert os.path.isfile(dll_filename), dll_filename
+        assert os.path.isfile(dll_filename), dll_filename
 
-            dll_name = os.path.basename(dll_filename).upper()
+        dll_name = os.path.basename(dll_filename).upper()
 
-            # Win API can be assumed.
-            if dll_name.startswith("API-MS-WIN-") or dll_name.startswith("EXT-MS-WIN-"):
-                continue
+        # Win API can be assumed.
+        if dll_name.startswith("API-MS-WIN-") or dll_name.startswith("EXT-MS-WIN-"):
+            continue
 
-            if dll_name in (
-                "SHELL32.DLL",
-                "USER32.DLL",
-                "KERNEL32.DLL",
-                "NTDLL.DLL",
-                "NETUTILS.DLL",
-                "LOGONCLI.DLL",
-                "GDI32.DLL",
-                "RPCRT4.DLL",
-                "ADVAPI32.DLL",
-                "SSPICLI.DLL",
-                "SECUR32.DLL",
-                "KERNELBASE.DLL",
-                "WINBRAND.DLL",
-                "DSROLE.DLL",
-                "DNSAPI.DLL",
-                "SAMCLI.DLL",
-                "WKSCLI.DLL",
-                "SAMLIB.DLL",
-                "WLDAP32.DLL",
-                "NTDSAPI.DLL",
-                "CRYPTBASE.DLL",
-                "W32TOPL",
-                "WS2_32.DLL",
-                "SPPC.DLL",
-                "MSSIGN32.DLL",
-                "CERTCLI.DLL",
-                "WEBSERVICES.DLL",
-                "AUTHZ.DLL",
-                "CERTENROLL.DLL",
-                "VAULTCLI.DLL",
-                "REGAPI.DLL",
-                "BROWCLI.DLL",
-                "WINNSI.DLL",
-                "DHCPCSVC6.DLL",
-                "PCWUM.DLL",
-                "CLBCATQ.DLL",
-                "IMAGEHLP.DLL",
-                "MSASN1.DLL",
-                "DBGHELP.DLL",
-                "DEVOBJ.DLL",
-                "DRVSTORE.DLL",
-                "CABINET.DLL",
-                "SCECLI.DLL",
-                "SPINF.DLL",
-                "SPFILEQ.DLL",
-                "GPAPI.DLL",
-                "NETJOIN.DLL",
-                "W32TOPL.DLL",
-                "NETBIOS.DLL",
-                "DXGI.DLL",
-                "DWRITE.DLL",
-                "D3D11.DLL",
-                "WLANAPI.DLL",
-                "WLANUTIL.DLL",
-                "ONEX.DLL",
-                "EAPPPRXY.DLL",
-                "MFPLAT.DLL",
-                "AVRT.DLL",
-                "ELSCORE.DLL",
-                "INETCOMM.DLL",
-                "MSOERT2.DLL",
-                "IEUI.DLL",
-                "MSCTF.DLL",
-                "MSFEEDS.DLL",
-                "UIAUTOMATIONCORE.DLL",
-                "PSAPI.DLL",
-                "EFSADU.DLL",
-                "MFC42U.DLL",
-                "ODBC32.DLL",
-                "OLEDLG.DLL",
-                "NETAPI32.DLL",
-                "LINKINFO.DLL",
-                "DUI70.DLL",
-                "ADVPACK.DLL",
-                "NTSHRUI.DLL",
-                "WINSPOOL.DRV",
-                "EFSUTIL.DLL",
-                "WINSCARD.DLL",
-                "SHDOCVW.DLL",
-                "IEFRAME.DLL",
-                "D2D1.DLL",
-                "GDIPLUS.DLL",
-                "OCCACHE.DLL",
-                "IEADVPACK.DLL",
-                "MLANG.DLL",
-                "MSI.DLL",
-                "MSHTML.DLL",
-                "COMDLG32.DLL",
-                "PRINTUI.DLL",
-                "PUIAPI.DLL",
-                "ACLUI.DLL",
-                "WTSAPI32.DLL",
-                "FMS.DLL",
-                "DFSCLI.DLL",
-                "HLINK.DLL",
-                "MSRATING.DLL",
-                "PRNTVPT.DLL",
-                "IMGUTIL.DLL",
-                "MSLS31.DLL",
-                "VERSION.DLL",
-                "NORMALIZ.DLL",
-                "IERTUTIL.DLL",
-                "WININET.DLL",
-                "WINTRUST.DLL",
-                "XMLLITE.DLL",
-                "APPHELP.DLL",
-                "PROPSYS.DLL",
-                "RSTRTMGR.DLL",
-                "NCRYPT.DLL",
-                "BCRYPT.DLL",
-                "MMDEVAPI.DLL",
-                "MSILTCFG.DLL",
-                "DEVMGR.DLL",
-                "DEVRTL.DLL",
-                "NEWDEV.DLL",
-                "VPNIKEAPI.DLL",
-                "WINHTTP.DLL",
-                "WEBIO.DLL",
-                "NSI.DLL",
-                "DHCPCSVC.DLL",
-                "CRYPTUI.DLL",
-                "ESENT.DLL",
-                "DAVHLPR.DLL",
-                "CSCAPI.DLL",
-                "ATL.DLL",
-                "OLEAUT32.DLL",
-                "SRVCLI.DLL",
-                "RASDLG.DLL",
-                "MPRAPI.DLL",
-                "RTUTILS.DLL",
-                "RASMAN.DLL",
-                "MPRMSG.DLL",
-                "SLC.DLL",
-                "CRYPTSP.DLL",
-                "RASAPI32.DLL",
-                "TAPI32.DLL",
-                "EAPPCFG.DLL",
-                "NDFAPI.DLL",
-                "WDI.DLL",
-                "COMCTL32.DLL",
-                "UXTHEME.DLL",
-                "IMM32.DLL",
-                "OLEACC.DLL",
-                "WINMM.DLL",
-                "WINDOWSCODECS.DLL",
-                "DWMAPI.DLL",
-                "DUSER.DLL",
-                "PROFAPI.DLL",
-                "URLMON.DLL",
-                "SHLWAPI.DLL",
-                "LPK.DLL",
-                "USP10.DLL",
-                "CFGMGR32.DLL",
-                "MSIMG32.DLL",
-                "POWRPROF.DLL",
-                "SETUPAPI.DLL",
-                "WINSTA.DLL",
-                "CRYPT32.DLL",
-                "IPHLPAPI.DLL",
-                "MPR.DLL",
-                "CREDUI.DLL",
-                "NETPLWIZ.DLL",
-                "OLE32.DLL",
-                "ACTIVEDS.DLL",
-                "ADSLDPC.DLL",
-                "USERENV.DLL",
-                "APPREPAPI.DLL",
-                "BCP47LANGS.DLL",
-                "BCRYPTPRIMITIVES.DLL",
-                "CERTCA.DLL",
-                "CHARTV.DLL",
-                "COMBASE.DLL",
-                "COML2.DLL",
-                "DCOMP.DLL",
-                "DPAPI.DLL",
-                "DSPARSE.DLL",
-                "FECLIENT.DLL",
-                "FIREWALLAPI.DLL",
-                "FLTLIB.DLL",
-                "MRMCORER.DLL",
-                "NTASN1.DLL",
-                "SECHOST.DLL",
-                "SETTINGSYNCPOLICY.DLL",
-                "SHCORE.DLL",
-                "TBS.DLL",
-                "TWINAPI.APPCORE.DLL",
-                "TWINAPI.DLL",
-                "VIRTDISK.DLL",
-                "WEBSOCKET.DLL",
-                "WEVTAPI.DLL",
-                "WINMMBASE.DLL",
-                "WMICLNT.DLL",
-                "ICUUC.DLL",
-            ):
-                continue
+        if dll_name in (
+            "SHELL32.DLL",
+            "USER32.DLL",
+            "KERNEL32.DLL",
+            "NTDLL.DLL",
+            "NETUTILS.DLL",
+            "LOGONCLI.DLL",
+            "GDI32.DLL",
+            "RPCRT4.DLL",
+            "ADVAPI32.DLL",
+            "SSPICLI.DLL",
+            "SECUR32.DLL",
+            "KERNELBASE.DLL",
+            "WINBRAND.DLL",
+            "DSROLE.DLL",
+            "DNSAPI.DLL",
+            "SAMCLI.DLL",
+            "WKSCLI.DLL",
+            "SAMLIB.DLL",
+            "WLDAP32.DLL",
+            "NTDSAPI.DLL",
+            "CRYPTBASE.DLL",
+            "W32TOPL",
+            "WS2_32.DLL",
+            "SPPC.DLL",
+            "MSSIGN32.DLL",
+            "CERTCLI.DLL",
+            "WEBSERVICES.DLL",
+            "AUTHZ.DLL",
+            "CERTENROLL.DLL",
+            "VAULTCLI.DLL",
+            "REGAPI.DLL",
+            "BROWCLI.DLL",
+            "WINNSI.DLL",
+            "DHCPCSVC6.DLL",
+            "PCWUM.DLL",
+            "CLBCATQ.DLL",
+            "IMAGEHLP.DLL",
+            "MSASN1.DLL",
+            "DBGHELP.DLL",
+            "DEVOBJ.DLL",
+            "DRVSTORE.DLL",
+            "CABINET.DLL",
+            "SCECLI.DLL",
+            "SPINF.DLL",
+            "SPFILEQ.DLL",
+            "GPAPI.DLL",
+            "NETJOIN.DLL",
+            "W32TOPL.DLL",
+            "NETBIOS.DLL",
+            "DXGI.DLL",
+            "DWRITE.DLL",
+            "D3D11.DLL",
+            "WLANAPI.DLL",
+            "WLANUTIL.DLL",
+            "ONEX.DLL",
+            "EAPPPRXY.DLL",
+            "MFPLAT.DLL",
+            "AVRT.DLL",
+            "ELSCORE.DLL",
+            "INETCOMM.DLL",
+            "MSOERT2.DLL",
+            "IEUI.DLL",
+            "MSCTF.DLL",
+            "MSFEEDS.DLL",
+            "UIAUTOMATIONCORE.DLL",
+            "PSAPI.DLL",
+            "EFSADU.DLL",
+            "MFC42U.DLL",
+            "ODBC32.DLL",
+            "OLEDLG.DLL",
+            "NETAPI32.DLL",
+            "LINKINFO.DLL",
+            "DUI70.DLL",
+            "ADVPACK.DLL",
+            "NTSHRUI.DLL",
+            "WINSPOOL.DRV",
+            "EFSUTIL.DLL",
+            "WINSCARD.DLL",
+            "SHDOCVW.DLL",
+            "IEFRAME.DLL",
+            "D2D1.DLL",
+            "GDIPLUS.DLL",
+            "OCCACHE.DLL",
+            "IEADVPACK.DLL",
+            "MLANG.DLL",
+            "MSI.DLL",
+            "MSHTML.DLL",
+            "COMDLG32.DLL",
+            "PRINTUI.DLL",
+            "PUIAPI.DLL",
+            "ACLUI.DLL",
+            "WTSAPI32.DLL",
+            "FMS.DLL",
+            "DFSCLI.DLL",
+            "HLINK.DLL",
+            "MSRATING.DLL",
+            "PRNTVPT.DLL",
+            "IMGUTIL.DLL",
+            "MSLS31.DLL",
+            "VERSION.DLL",
+            "NORMALIZ.DLL",
+            "IERTUTIL.DLL",
+            "WININET.DLL",
+            "WINTRUST.DLL",
+            "XMLLITE.DLL",
+            "APPHELP.DLL",
+            "PROPSYS.DLL",
+            "RSTRTMGR.DLL",
+            "NCRYPT.DLL",
+            "BCRYPT.DLL",
+            "MMDEVAPI.DLL",
+            "MSILTCFG.DLL",
+            "DEVMGR.DLL",
+            "DEVRTL.DLL",
+            "NEWDEV.DLL",
+            "VPNIKEAPI.DLL",
+            "WINHTTP.DLL",
+            "WEBIO.DLL",
+            "NSI.DLL",
+            "DHCPCSVC.DLL",
+            "CRYPTUI.DLL",
+            "ESENT.DLL",
+            "DAVHLPR.DLL",
+            "CSCAPI.DLL",
+            "ATL.DLL",
+            "OLEAUT32.DLL",
+            "SRVCLI.DLL",
+            "RASDLG.DLL",
+            "MPRAPI.DLL",
+            "RTUTILS.DLL",
+            "RASMAN.DLL",
+            "MPRMSG.DLL",
+            "SLC.DLL",
+            "CRYPTSP.DLL",
+            "RASAPI32.DLL",
+            "TAPI32.DLL",
+            "EAPPCFG.DLL",
+            "NDFAPI.DLL",
+            "WDI.DLL",
+            "COMCTL32.DLL",
+            "UXTHEME.DLL",
+            "IMM32.DLL",
+            "OLEACC.DLL",
+            "WINMM.DLL",
+            "WINDOWSCODECS.DLL",
+            "DWMAPI.DLL",
+            "DUSER.DLL",
+            "PROFAPI.DLL",
+            "URLMON.DLL",
+            "SHLWAPI.DLL",
+            "LPK.DLL",
+            "USP10.DLL",
+            "CFGMGR32.DLL",
+            "MSIMG32.DLL",
+            "POWRPROF.DLL",
+            "SETUPAPI.DLL",
+            "WINSTA.DLL",
+            "CRYPT32.DLL",
+            "IPHLPAPI.DLL",
+            "MPR.DLL",
+            "CREDUI.DLL",
+            "NETPLWIZ.DLL",
+            "OLE32.DLL",
+            "ACTIVEDS.DLL",
+            "ADSLDPC.DLL",
+            "USERENV.DLL",
+            "APPREPAPI.DLL",
+            "BCP47LANGS.DLL",
+            "BCRYPTPRIMITIVES.DLL",
+            "CERTCA.DLL",
+            "CHARTV.DLL",
+            "COMBASE.DLL",
+            "COML2.DLL",
+            "DCOMP.DLL",
+            "DPAPI.DLL",
+            "DSPARSE.DLL",
+            "FECLIENT.DLL",
+            "FIREWALLAPI.DLL",
+            "FLTLIB.DLL",
+            "MRMCORER.DLL",
+            "NTASN1.DLL",
+            "SECHOST.DLL",
+            "SETTINGSYNCPOLICY.DLL",
+            "SHCORE.DLL",
+            "TBS.DLL",
+            "TWINAPI.APPCORE.DLL",
+            "TWINAPI.DLL",
+            "VIRTDISK.DLL",
+            "WEBSOCKET.DLL",
+            "WEVTAPI.DLL",
+            "WINMMBASE.DLL",
+            "WMICLNT.DLL",
+            "ICUUC.DLL",
+        ):
+            continue
 
-            result.add(os.path.normcase(os.path.abspath(dll_filename)))
+        result.add(os.path.normcase(os.path.abspath(dll_filename)))
 
 
 def _detectBinaryPathDLLsWindows(
@@ -1011,11 +1011,10 @@ def _detectBinaryPathDLLsWindows(
         os.path.exists(cache_filename)
         and not Options.shallNotUseDependsExeCachedResults()
     ):
-        with open(cache_filename) as f:
-            for line in f:
-                line = line.strip()
+        for line in getFileContentByLine(cache_filename):
+            line = line.strip()
 
-                result.add(line)
+            result.add(line)
 
         return result
 
@@ -1378,11 +1377,10 @@ def _detectBinaryPathDLLsWindowsPE(
         os.path.exists(cache_filename)
         and not Options.shallNotUseDependsExeCachedResults()
     ):
-        with open(cache_filename) as f:
-            for line in f:
-                line = line.strip()
+        for line in getFileContentByLine(cache_filename):
+            line = line.strip()
 
-                result.add(line)
+            result.add(line)
 
         return result
 
