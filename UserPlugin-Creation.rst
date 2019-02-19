@@ -35,25 +35,25 @@ named "trace" is active::
     import os
     import sys
     from logging import info
-    
+
     from nuitka import Options
     from nuitka.plugins.PluginBase import UserPluginBase
-    
+
     class Usr_Plugin(UserPluginBase):
-    
+
         plugin_name = __file__  # or __module__
-    
+
         def __init__(self):
             # demo only: extract and display its list of options
             self.plugin_options = self.getPluginOptions()
             info(" '%s' options: %s" % (self.plugin_name, self.plugin_options))
-            
+
             # check whether some specific option is set
             self.check = self.getPluginOptionBool("trace", False)
             info(" 'trace' is set to '%s'" % self.check)
 
             # do more init work here ...
-    
+
         def onModuleSourceCode(self, module_name, source_code):
             # if this is the main script and tracing should be done ...
             if module_name == "__main__" and self.check:
@@ -64,7 +64,7 @@ named "trace" is active::
                         info(" %i: %s" % (i+1, l))
                 info("")
             return source_code
-    
+
 Sample invocation line and output::
 
     $ python -m nuitka --standalone --user-plugin=user_plugin.py=trace script.py

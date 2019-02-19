@@ -521,7 +521,7 @@ same is true for the recently added standard plugins ``NumpyPlugin.py`` and
 
 Going forward, this will also happen for the remaining standard plugins.
 
-Please find `here <https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst>`__ 
+Please find `here <https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst>`__
 a detailed description of how to write your own plugin.
 
 To learn about plugin option specification consult

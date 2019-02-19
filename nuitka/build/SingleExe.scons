@@ -1643,7 +1643,7 @@ also a 64 bits version, download and use that one instead.
 
                     contents.append(line[line.find('"') + 1 : line.rfind('"')])
 
-                with open(manifest_filename, 'w') as manifest_file:
+                with open(manifest_filename, "w") as manifest_file:
                     manifest_file.write("".join(contents[1:-1]))
 
             rc_content.append("1 RT_MANIFEST resources.manifest")
@@ -1807,7 +1807,7 @@ def makeCLiteral(value):
 def createBuildDefinitionsFile():
     build_definitions_filename = os.path.join(source_dir, "build_definitions.h")
 
-    with open(build_definitions_filename, 'w') as f:
+    with open(build_definitions_filename, "w") as f:
         for key, value in sorted(build_definitions.items()):
             f.write("#define %s %s\n" % (key, makeCLiteral(value)))
 

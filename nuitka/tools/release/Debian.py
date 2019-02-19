@@ -23,6 +23,8 @@ import os
 import shutil
 import sys
 
+from nuitka.utils.FileOperations import getFileContentByLine
+
 
 def updateDebianChangelog(old_version, new_version):
     debian_version = new_version.replace("rc", "~rc") + "+ds-1"
@@ -75,13 +77,12 @@ def checkChangeLog(message):
 
     """
 
-    with open("debian/changelog") as f:
-        for line in f:
-            if line.startswith(" --"):
-                return False
+    for line in getFileContentByLine("debian/changelog"):
+        if line.startswith(" --"):
+            return False
 
-            if message in line:
-                return True
+        if message in line:
+            return True
 
     sys.exit("Error, didn't find in debian/changelog: '%s'" % message)
 

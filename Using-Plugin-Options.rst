@@ -8,7 +8,7 @@ Plugins are a feature to modify the way how Nuitka compiles Python programs in
 extremely flexible ways.
 Plugins automatically include data files and additional shared libraries,
 import modules not detectable by source code examination,
-modify or extend the to-be-compiled source code, gather statistics, change 
+modify or extend the to-be-compiled source code, gather statistics, change
 Nuitka's parameter defaults and much more.
 
 Any number of plugins may be used in each compilation. A whole new dimension
