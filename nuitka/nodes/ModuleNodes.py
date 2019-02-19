@@ -831,38 +831,39 @@ class PythonShlibModule(PythonModuleBase):
             if os.path.exists(pyi_filename):
                 pyi_deps = OrderedSet()
 
-                for line in open(pyi_filename):
-                    line = line.strip()
+                with open(pyi_filename) as f:
+                    for line in f:
+                        line = line.strip()
 
-                    if line.startswith("import "):
-                        imported = line[7:]
+                        if line.startswith("import "):
+                            imported = line[7:]
 
-                        pyi_deps.add(imported)
-                    elif line.startswith("from "):
-                        parts = line.split(None, 3)
-                        assert parts[0] == "from"
-                        assert parts[2] == "import"
+                            pyi_deps.add(imported)
+                        elif line.startswith("from "):
+                            parts = line.split(None, 3)
+                            assert parts[0] == "from"
+                            assert parts[2] == "import"
 
-                        if parts[1] == "typing":
-                            continue
+                            if parts[1] == "typing":
+                                continue
 
-                        pyi_deps.add(parts[1])
+                            pyi_deps.add(parts[1])
 
-                        imported = parts[3]
-                        if imported.startswith("("):
-                            # No multiline imports please
-                            assert imported.endswith(")")
-                            imported = imported[1:-1]
+                            imported = parts[3]
+                            if imported.startswith("("):
+                                # No multiline imports please
+                                assert imported.endswith(")")
+                                imported = imported[1:-1]
 
-                            assert imported
+                                assert imported
 
-                        if imported == "*":
-                            continue
+                            if imported == "*":
+                                continue
 
-                        for name in imported.split(","):
-                            name = name.strip()
+                            for name in imported.split(","):
+                                name = name.strip()
 
-                            pyi_deps.add(parts[1] + "." + name)
+                                pyi_deps.add(parts[1] + "." + name)
 
                 if "typing" in pyi_deps:
                     pyi_deps.discard("typing")

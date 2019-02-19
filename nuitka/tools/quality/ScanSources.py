@@ -53,7 +53,8 @@ def addFromDirectory(path, suffixes, blacklist):
 
             # Python files only. TODO: Provided this from the outside.
             if not filename.endswith(suffixes):
-                line = open(fullpath).readline()
+                with open(fullpath) as f:
+                    line = f.readline()
                 if not line.startswith("#!") or "python" not in line:
                     continue
 

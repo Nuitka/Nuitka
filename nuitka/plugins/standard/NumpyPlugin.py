@@ -188,7 +188,8 @@ class NumpyPluginDetector(UserPluginBase):
     def isRelevant():
         return Options.isStandaloneMode()
 
-    def onModuleDiscovered(self, module):
+    # TODO: Temporary disabled until we get the warning criterion sorted out.
+    def x_onModuleDiscovered(self, module):
         full_name = module.getFullName().split(".")
         if "numpy" in full_name:
             self.warnUnusedPlugin("numpy support.")

@@ -75,7 +75,8 @@ def main():
         if package_name.startswith("nuitka" + os.path.sep):
             package_name = package_name.replace(os.path.sep, ".")
 
-            source_code = open(filename).read()
+            with open(filename) as f:
+                source_code = f.read()
             updated_code = re.sub(
                 r"from %s import" % package_name, "from . import", source_code
             )

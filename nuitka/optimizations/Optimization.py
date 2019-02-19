@@ -504,10 +504,12 @@ def _checkXMLPersistence():
             continue
 
         text = module.asXmlText()
-        open("out.xml", "w").write(text)
+        with open("out.xml", "w") as f:
+            f.write(text)
         restored = restoreFromXML(text)
         retext = restored.asXmlText()
-        open("out2.xml", "w").write(retext)
+        with open("out2.xml", "w") as f:
+            f.write(retext)
 
         assert module.getOutputFilename() == restored.getOutputFilename(), (
             module.getOutputFilename(),
