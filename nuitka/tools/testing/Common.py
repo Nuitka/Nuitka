@@ -32,7 +32,7 @@ from contextlib import contextmanager
 from nuitka.Tracing import my_print
 from nuitka.utils.AppDirs import getAppDir, getCacheDir
 from nuitka.utils.Execution import check_output, withEnvironmentVarOverriden
-from nuitka.utils.FileOperations import makePath, removeDirectory
+from nuitka.utils.FileOperations import getFileContentByLine, makePath, removeDirectory
 
 from .SearchModes import (
     SearchModeBase,
@@ -438,7 +438,7 @@ def getRuntimeTraceOfLoadedFiles(path, trace_error=True):
     """ Returns the files loaded when executing a binary. """
 
     # This will make a crazy amount of work,
-    # pylint: disable=too-many-branches,too-many-statements,too-many-locals,I0021
+    # pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
 
     result = []
 
@@ -573,37 +573,36 @@ Error, needs 'strace' on your system to scan used libraries."""
         )
 
         inside = False
-        with open(path + ".depends") as f:
-            for line in f:
-                if "| Module Dependency Tree |" in line:
-                    inside = True
-                    continue
+        for line in getFileContentByLine(path + ".depends"):
+            if "| Module Dependency Tree |" in line:
+                inside = True
+                continue
 
-                if not inside:
-                    continue
+            if not inside:
+                continue
 
-                if "| Module List |" in line:
-                    break
+            if "| Module List |" in line:
+                break
 
-                if "]" not in line:
-                    continue
+            if "]" not in line:
+                continue
 
-                # Skip missing DLLs, apparently not needed anyway.
-                if "?" in line[: line.find("]")]:
-                    continue
+            # Skip missing DLLs, apparently not needed anyway.
+            if "?" in line[: line.find("]")]:
+                continue
 
-                dll_filename = line[line.find("]") + 2 : -1]
-                assert os.path.isfile(dll_filename), dll_filename
+            dll_filename = line[line.find("]") + 2 : -1]
+            assert os.path.isfile(dll_filename), dll_filename
 
-                # The executable itself is of course exempted.
-                if os.path.normcase(dll_filename) == os.path.normcase(
-                    os.path.abspath(path)
-                ):
-                    continue
+            # The executable itself is of course exempted.
+            if os.path.normcase(dll_filename) == os.path.normcase(
+                os.path.abspath(path)
+            ):
+                continue
 
-                dll_filename = os.path.normcase(dll_filename)
+            dll_filename = os.path.normcase(dll_filename)
 
-                result.append(dll_filename)
+            result.append(dll_filename)
 
         os.unlink(path + ".depends")
 

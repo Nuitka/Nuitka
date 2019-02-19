@@ -71,7 +71,7 @@ def main():
     ]
     goHome()
 
-    filenames = list(scanTargets(positional_args, (".py", ".scons")))
+    filenames = list(scanTargets(positional_args, (".py", ".scons", ".rst")))
     if not filenames:
         sys.exit("No files found.")
 

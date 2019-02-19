@@ -25,6 +25,8 @@ import inspect
 import re
 import sys
 
+from nuitka.utils.FileOperations import getFileContentByLine
+
 
 def main():
     quote_start_re = re.compile("[Qq]uoting the ``(.*)`` documentation")
@@ -32,48 +34,47 @@ def main():
 
     quoting = False
 
-    with open("Developer_Manual.rst") as f:
-        for line in f:
-            if not quoting:
+    for line in getFileContentByLine("Developer_Manual.rst"):
+        if not quoting:
+            print(line, end="")
+
+        if not quoting:
+            match = quote_start_re.search(line)
+
+            if match:
+                quoting = match.group(1)
+
+                if "." in quoting:
+                    import_from, import_value = quoting.rsplit(".", 1)
+
+                    # Hopefully OK for us, pylint: disable=W0122
+                    exec("from %s import %s" % (import_from, import_value))
+                    item = getattr(sys.modules[import_from], import_value)
+
+                    # Should potentially be derived from quoting line.
+                    indentation = " " * line.find("Quoting")
+
+                    # Empty line to separate
+                    print()
+
+                    for quote_line in inspect.getdoc(item).splitlines():
+                        if quote_line:
+                            print(indentation + quote_line)
+                        else:
+                            print()
+
+                    print()
+                else:
+                    assert False, quoting
+
+        if quoting:
+            match = quote_end_re.search(line)
+
+            if match:
+                assert quoting == match.group(1)
+                quoting = False
+
                 print(line, end="")
-
-            if not quoting:
-                match = quote_start_re.search(line)
-
-                if match:
-                    quoting = match.group(1)
-
-                    if "." in quoting:
-                        import_from, import_value = quoting.rsplit(".", 1)
-
-                        # Hopefully OK for us, pylint: disable=W0122
-                        exec("from %s import %s" % (import_from, import_value))
-                        item = getattr(sys.modules[import_from], import_value)
-
-                        # Should potentially be derived from quoting line.
-                        indentation = " " * line.find("Quoting")
-
-                        # Empty line to separate
-                        print()
-
-                        for quote_line in inspect.getdoc(item).splitlines():
-                            if quote_line:
-                                print(indentation + quote_line)
-                            else:
-                                print()
-
-                        print()
-                    else:
-                        assert False, quoting
-
-            if quoting:
-                match = quote_end_re.search(line)
-
-                if match:
-                    assert quoting == match.group(1)
-                    quoting = False
-
-                    print(line, end="")
 
     if quoting:
         sys.exit("Error, waiting for end of quote for %s failed" % quoting)

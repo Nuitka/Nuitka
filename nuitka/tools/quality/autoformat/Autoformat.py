@@ -27,6 +27,7 @@ import shutil
 import subprocess
 
 from nuitka.Tracing import my_print
+from nuitka.utils.FileOperations import getFileContents
 
 
 def _cleanupWindowsNewlines(filename):
@@ -46,6 +47,20 @@ def _cleanupWindowsNewlines(filename):
 
         with open(filename, "wb") as out_file:
             out_file.write(updated_code)
+
+
+def _cleanupTrailingWhitespace(filename):
+    """ Remove trailing white spaces from a file.
+
+    """
+    with open(filename, "r") as f:
+        source_lines = [line for line in f]
+
+    clean_lines = [line.rstrip() for line in source_lines]
+
+    if clean_lines != source_lines:
+        with open(filename, "w") as out_file:
+            out_file.write("\n".join(clean_lines) + "\n")
 
 
 def _updateCommentNode(comment_node):
@@ -112,8 +127,7 @@ def _cleanupPyLintComments(filename, abort):
         RedBaron,  # @UnresolvedImport
     )
 
-    with open(filename) as f:
-        old_code = f.read()
+    old_code = getFileContents(filename)
 
     try:
         red = RedBaron(old_code)
@@ -161,7 +175,7 @@ def _cleanupImportRelative(filename):
     if package_name.startswith("nuitka" + os.path.sep):
         package_name = package_name.replace(os.path.sep, ".")
 
-        source_code = open(filename).read()
+        source_code = getFileContents(filename)
         updated_code = re.sub(
             r"from %s import" % package_name, "from . import", source_code
         )
@@ -172,13 +186,7 @@ def _cleanupImportRelative(filename):
                 out_file.write(updated_code)
 
 
-def autoformat(filename, abort=False):
-    my_print("Consider", filename, end=": ")
-
-    old_code = open(filename, "r").read()
-
-    _cleanupPyLintComments(filename, abort)
-
+def _cleanupImportSortOrder(filename):
     with open(os.devnull, "w") as devnull:
         subprocess.check_call(
             [
@@ -195,17 +203,32 @@ def autoformat(filename, abort=False):
             stdout=devnull,
         )
 
+
+def autoformat(filename, abort=False):
+    my_print("Consider", filename, end=": ")
+
+    old_code = getFileContents(filename)
+
+    is_python = not filename.endswith(".rst")
+
+    if is_python:
+        _cleanupPyLintComments(filename, abort)
+
+        _cleanupImportSortOrder(filename)
+
     if os.name == "nt":
         _cleanupWindowsNewlines(filename)
 
-    subprocess.call(["black", "-q", filename])
+    _cleanupTrailingWhitespace(filename)
+
+    if is_python:
+        subprocess.call(["black", "-q", filename])
 
     changed = False
-    with open(filename, "r") as f:
-        if old_code != f.read():
-            my_print("Updated.")
-            changed = True
-        else:
-            my_print("OK.")
+    if old_code != getFileContents(filename):
+        my_print("Updated.")
+        changed = True
+    else:
+        my_print("OK.")
 
     return changed
