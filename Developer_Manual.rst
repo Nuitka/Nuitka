@@ -536,9 +536,20 @@ those with Doxygen only relatively late.
    doxygen ./doc/Doxyfile
    xdg-open html
 
-There is going to be enhancements to this API documentation in the
-next releases though, hopefully making it useable for at least the
-Nuitka plugin development.
+Improvements have already been implemented for plugins: The plugin base
+class defined in ``PluginBase.py`` (which is used as a template for all
+plugins) is almost fully documented in Doxygen now. The
+same is true for the recently added standard plugins ``NumpyPlugin.py`` and
+``TkinterPlugin.py``. These will be uploaded very soon.
+
+Going forward, this will also happen for the remaining standard plugins.
+
+Please find `here <https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst>`__ 
+a detailed description of how to write your own plugin.
+
+To learn about plugin option specification consult
+`this document <https://github.com/Nuitka/Nuitka/blob/develop/Using-Plugin-Options.rst>>`__.
+
 
 Design Descriptions
 ===================

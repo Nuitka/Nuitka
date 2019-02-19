@@ -413,7 +413,9 @@ def getPluginsEnabled():
 
     return tuple(result)
 
-
+## Return the options provided for a specific plugin.
+# @paramd plugin_name the identifyer variable of the plugin
+# @returns list of comma-separated option items
 def getPluginOptions(plugin_name):
     """ Return the options provided for a specific plugin.
 
@@ -421,7 +423,7 @@ def getPluginOptions(plugin_name):
     result = []
 
     if options:
-        for plugin_enabled in options.plugins_enabled:
+        for plugin_enabled in options.plugins_enabled + options.user_plugins:
             if "=" not in plugin_enabled:
                 continue
 
