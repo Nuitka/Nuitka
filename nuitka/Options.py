@@ -413,6 +413,7 @@ def getPluginsEnabled():
 
     return tuple(result)
 
+
 ## Return the options provided for a specific plugin.
 # @paramd plugin_name the identifyer variable of the plugin
 # @returns list of comma-separated option items

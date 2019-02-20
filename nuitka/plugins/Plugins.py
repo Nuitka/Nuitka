@@ -290,6 +290,7 @@ def importFile(filename):
     else:
         return importFilePy3NewWay(filename)
 
+
 ## Extract the filenames of user plugins and store them in list of active plugins.
 # A plugin is accepted only if it has a non-empty variable plugin_name, which
 # does not equal that of a disabled (standard) plugin.
