@@ -138,9 +138,9 @@ uninstalled_python = getBoolOption("uninstalled_python", False)
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getBoolOption("unstripped_mode", False)
 
-# Clang compiler mode, forced on macOS X and FreeBSD, optional on Linux.
+# Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
-if macosx_target or "freebsd" in sys.platform:
+if macosx_target or ("freebsd" in sys.platform and os.uname()[4] != "powerpc"):
     clang_mode = True
 
 # MinGW compiler mode, optional and interesting to Windows only.
