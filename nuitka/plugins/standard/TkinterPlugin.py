@@ -15,12 +15,20 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" User plug-in to make tkinter scripts work well in standalone mode.
+"""
+This is a plug-in to make programs work well in standalone mode which are
+using tkinter. These programs require the presence of certain libraries
+written in the TCL language. On Windows platforms, the existence of these
+libraries cannot be assumed. We therefore
 
-To run properly, scripts need copies of the TCL / TK libraries as sub-folders
-of the script's dist folder.
-The script's tkinter requests must be re-directed to these library copies.
-For this, we set the appropriate os.environ keys to the new locations.
+1. Copy the TCL libraries as sub-folders to the program's dist folder
+2. Redirect the program's tkinter requests to these library copies. This is
+   done by setting appropriate variables in the os.environ dictionary.
+   Tkinter will use these variable value to locate the library locations.
+
+Each time before the program issues an import to a tkinter module, we make
+sure, that the TCL environment variables are correctly set.
+
 """
 
 import os
@@ -29,26 +37,32 @@ import sys
 from logging import info
 
 from nuitka import Options
-from nuitka.plugins.PluginBase import UserPluginBase, pre_modules
 from nuitka.utils.Utils import isWin32Windows
+from nuitka.plugins.PluginBase import UserPluginBase, pre_modules
 
 
+## This class represents the main logic of the plugin.
+# It contains the Nuitka identifier, determines if we need to insert code
+# and copies TCL libraries.
+# @param UserPluginBase is the plugin template class we are inheriting.
+#
 class TkinterPlugin(UserPluginBase):
-    """ This is for copying tkinter's TCL/TK libraries and making sure
-    that requests are directed to these copies.
-    """
 
-    plugin_name = "tk-plugin"
+    plugin_name = "tk-plugin"  # Nuitka knows us by this name
 
+    ## We need to ensure certain actions are executed only once.
+    # The following indicator is set to true if we are done.
     def __init__(self):
-        self.files_copied = False  # ensure one-time action
+        self.files_copied = False  # ensure that file copy occurs once only
 
     @staticmethod
+    ## This method is called with a module that will be imported.
+    # If the word "tkinter" occurs in its full name, we know that the correct
+    # setting of the TCL environment must be ensured before this happens.
+    # @param module the module object
+    # @returns code to insert and None (tuple)
     def createPreModuleLoadCode(module):
-        """Pointers to our tkinter libs must be set correctly before
-        a module tries to use them.
-        """
-        if os.name != "nt":  # only relevant on Windows
+        if not isWin32Windows():  # we are only relevant on Windows
             return None, None
 
         full_name = module.getFullName()
@@ -57,6 +71,8 @@ class TkinterPlugin(UserPluginBase):
         if not "tkinter" in full_name.lower():
             return None, None
 
+        # The following code will be executed before importing the module.
+        # If required we set the respective environment values.
         code = """import os
 if not os.environ.get("TCL_LIBRARY", None):
     import sys
@@ -65,40 +81,50 @@ if not os.environ.get("TCL_LIBRARY", None):
 """
         return code, None
 
+    ## This method is called to let us check, whether a to-be imported
+    # module is relevant for us.
+    # In our case, we insert code to be executed before such an import
+    # happens.
+    # @param module the module object
     def onModuleDiscovered(self, module):
-        """Make sure our pre-module code is recorded.
-        """
-
-        if os.name != "nt":  # only relevant on Windows
+        if not isWin32Windows():  # only relevant on Windows
             return None, None
 
-        full_name = module.getFullName()
-
+        # call the previous method to make the code
         pre_code, _ = self.createPreModuleLoadCode(module)
+        
         if pre_code:
+            # We found the module relevant. We must ensure that we are the
+            # only plugin that prepends code to it (other plugins might still
+            # append code to the same module).
+            full_name = module.getFullName()
             if full_name is pre_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)
 
+            # store module and our code in a list
             pre_modules[full_name] = self._createTriggerLoadedModule(
                 module=module, trigger_name="-preLoad", code=pre_code
             )
 
+    ## This method is called to let us insert extra data.
+    # We will copy the TCL/TK directories to the program's root directory.
+    # The general intention is that we return a tuple of file names.
+    # We need however two subdirectories inserted, and therefore do the
+    # copy ourselves and return an empty tuple.
+    # @param dist_dir: the name of the program's dist folder
+    # @param module the module object (not used here)
+    #
+    # Note: we will skip this method if not running on Windows platforms.
     def considerExtraDlls(self, dist_dir, module):
-        """Copy the TCL / TK directories to binary root directory (dist_dir).
-        We do not tell the caller to copy anything: we are doing it ourselves.
-        Therefore always return an empty tuple.
-
-        Note: this code will work for Windows systems only.
-        """
-        if self.files_copied:
+        if self.files_copied:  # skip after first invocation
             return ()
 
-        if os.name != "nt":
+        if not isWin32Windows():  # if not Windows notify wrong usage once
             info("tkinter plugin supported under Windows only")
             self.files_copied = True
             return ()
 
-        self.files_copied = True
+        self.files_copied = True  # execute the following ever only once
 
         if str is bytes:  # last tk/tcl qualifyers Py 2
             tk_lq = "tk8.5"
@@ -120,10 +146,11 @@ if not os.environ.get("TCL_LIBRARY", None):
                 info(" Could not find TK / TCL libraries")
                 sys.exit("aborting standalone generation.")
 
+        # survived the above, now do the copying to following locations
         tar_tk = os.path.join(dist_dir, "tk")
         tar_tcl = os.path.join(dist_dir, "tcl")
 
-        info(" Now copying tkinter libraries.")
+        info(" Now copying tkinter libraries.")  # just to entertain
         shutil.copytree(tk, tar_tk)
         shutil.copytree(tcl, tar_tcl)
 
@@ -135,13 +162,26 @@ if not os.environ.get("TCL_LIBRARY", None):
         return ()
 
 
+## This class is used only if plugin is not activated.
+# We are given the chance to issue a warning if we think we may be required.
 class TkinterPluginDetector(UserPluginBase):
-    plugin_name = "tk-plugin"
+    plugin_name = "tk-plugin"  # this is how Nuitka knows us
 
     @staticmethod
+    ## This method is called one time only to check, whether the plugin
+    # might make sense at all.
+    # We return true if this is a standalone compilation on Windows.
     def isRelevant():
         return Options.isStandaloneMode() and isWin32Windows()
 
+    ## This method passes the source code and expects it back - potentially
+    # modified.
+    # We only use it to check whether this is the main module, and whether
+    # it contains the keyword "tkinter".
+    # We assume that the main program determines whether tkinter is used.
+    # References by dependent or imported modules are assumed irrelevant.
+    # @param module_name the name of the module
+    # @param source_code the module's source code
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "__main__":
             if "tkinter" in source_code or "Tkinter" in source_code:

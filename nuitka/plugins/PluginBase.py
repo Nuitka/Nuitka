@@ -45,22 +45,44 @@ post_modules = {}
 warned_unused_plugins = set()
 
 
+## Nuitka base class for all plug-ins. Derive from "UserPlugin" please.
+#
+# This concept allows to adapt Nuitka's behaviour in a number of ways as
+# explained below at the individual methods.
+#
+# It is used to deal with special requirements some packages may have (e.g.
+# PyQt and tkinter), data files to be included (e.g. certifi), inserting
+# hidden code, coping with otherwise undetectable needs, or issuing messages
+# in certain situations.
+#
+# A plugin in general must be activated to be used by Nuitka. This happens
+# by specifying "--enable-plugin" (standard plugins) or "--user-plugin"
+# (user plugins) in the Nuitka command line.
+# However, some plugins are always activated and invisible to the user.
+#
+# Nuitka comes with a number of "standard" plugins that can be activated when needed.
+# What they are can be displayed using "nuitka --plugin-list file.py"
+# (filename required but ignored).
+#
+# User plugins may be specified (and implicitely activated) using their
+# Python script pathname.
 class NuitkaPluginBase(object):
-    """ Nuitka base class for all plug-ins.
 
-        Derive from "UserPlugin" please.
-
-        The idea is it will allow to make differences for warnings, and traces
-        of what is being done. For instance, the code that makes sure PyQt finds
-        all his stuff, may want to do reports, but likely, you do not case about
-        that enough to be visible by default.
-
-    """
-
-    # You must provide this as a string which then can be used to enable the
-    # plug-in.
+    # Standard plugins must provide this as a unique string which Nuitka
+    # then uses to identify them.
+    #
+    # User plugins are identified by their path and implicitely activated.
+    # They however still need to specify some arbitrary non-blank string here,
+    # which does not equal the name of an inactivated standard plugin.
+    # For working with options, user plugins must set this variable to
+    # the script's path (use __file__, __module__ or __name__).
     plugin_name = None
 
+    ## Check whether an option is switched on or off.
+    # @param option_name option name (str), can be prefixed with "no" to check
+    # if option is negated.
+    # @param default_value value if option_name not present
+    # @returns option name, resp. the default_value
     def getPluginOptionBool(self, option_name, default_value):
         plugin_options = self.getPluginOptions()
 
@@ -75,19 +97,41 @@ class NuitkaPluginBase(object):
 
         return default_value
 
+    ## Return all options specified for the plugin.
+    # Relevant for standard plugins only. This method will always return a list
+    # of strings.
+    # To specify options, append a '=' to the plugin_name. Everything what follows
+    # up to and excluding the next space will be taken to form a 'raw' value.
+    # The result of raw.split(',') will be returned by this method.
+    # Apart from this procedure you are free to specify anything, e.g.
+    # filenames, etc. To include spaces use enclosing double apostrophies.
+    # Here are some examples for a plugin named "name":
+    #
+    # --enable-plugin=name=a,b,c ----> ['a', 'b', 'c']
+    #
+    # --enable-plugin=name=a=0,b=1,c=2 ----> ['a=0', 'b=1', 'c=2']
+    #
+    # --enable-plugin=name ----> []
+    #
+    # --enable-plugin=name= ----> ['']
+    #
+    # --enable-plugin="name={'a':0, 'b':1, 'c':2}"  ----> ["{'a':0", " 'b':1", " 'c':2}"]
+    # (note the spaces preceding 'b' and 'c').
+    #
+    # @returns list of strings
     def getPluginOptions(self):
         return Options.getPluginOptions(self.plugin_name)
 
+    ## You will most likely want to look at "module.getFullName()" to get
+    # the fully qualified module or package name.
+    #
+    # You do not want to overload this method, but rather the things it
+    # calls, as the "signal_change" part of this API is not to be cared
+    # about. Most prominently "getImplicitImports()".
+    # @param module the module
+    # @param signal_change to be ignored
+    # @returns None
     def considerImplicitImports(self, module, signal_change):
-        """ Consider module imports.
-
-            You will most likely want to look at "module.getFullName()" to get
-            the fully qualified module or package name.
-
-            You do not want to overload this method, but rather the things it
-            calls, as the "signal_change" part of this API is not to be cared
-            about. Most prominently "getImplicitImports()".
-        """
         for full_name, required in self.getImplicitImports(module):
             module_name = full_name.split(".")[-1]
             module_package = ".".join(full_name.split(".")[:-1]) or None
@@ -134,15 +178,20 @@ class NuitkaPluginBase(object):
                     signal_change=signal_change,
                 )
 
+    ## By default, if given as an implicit import, require it.
+    # @param module the module object
+    # @param full_name
+    # @returns bool
     def isRequiredImplicitImport(self, module, full_name):
-        """ By default, if given as an implicit import, require it.
-
-        """
-
         # Virtual method, pylint: disable=no-self-use,unused-argument
-
         return True
 
+    ## By default, if given as an implicit import, require it.
+    # Standard plugin 'ImplicitImports.py' already contains MANY
+    # of these. If you have a new candidate, consider a PR to
+    # get it included there.
+    # @param module the module
+    # @returns yielded tuple
     def getImplicitImports(self, module):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
@@ -150,22 +199,50 @@ class NuitkaPluginBase(object):
     # Provide fall-back for failed imports here.
     module_aliases = {}
 
+    ## Provide a dictionary of fallback imports for modules that failed
+    # to import.
+    # @param module_name name of module
+    # @returns dict
     def considerFailedImportReferrals(self, module_name):
         return self.module_aliases.get(module_name, None)
 
+    ## Called with a module name and its source code.
+    # Expects the potentially modified source returned.
+    # @param module_name (str) name of module
+    # @param source_code (str) source code
+    # @returns source_code (str)
     def onModuleSourceCode(self, module_name, source_code):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return source_code
 
+    ## Called with a frozen module name and its source code.
+    # Expects the potentially modified source returned.
+    # @param module_name (str) name of module
+    # @param is_package (bool) indicate a package
+    # @param source_code (str) source code
+    # @returns source_code (str)
     def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return source_code
 
+    ## Called with a frozen module name and its byte code.
+    # Expects the potentially modified source returned.
+    # @param module_name (str) name of module
+    # @param is_package (bool) indicate a package
+    # @param bytecode (bytes) byte code
+    # @returns source_code (bytes)
     def onFrozenModuleBytecode(self, module_name, is_package, bytecode):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return bytecode
 
     @staticmethod
+    ## Compute a "trigger" module for processing a to-be-imported module together
+    # with any prepended / appended code.
+    # Called by onModuleDiscovered, which stores the result appropriately.
+    # @param module the module object (serves as dict key)
+    # @param trigger_name string ("-preload"/"-postload")
+    # @param code the code string
+    # @returns trigger_module
     def _createTriggerLoadedModule(module, trigger_name, code):
         from nuitka.tree.Building import createModuleTree
         from nuitka.nodes.ModuleNodes import CompiledPythonModule
@@ -195,15 +272,29 @@ class NuitkaPluginBase(object):
         return trigger_module
 
     @staticmethod
+    ## Create code to prepend to a module.
+    # Called by onModuleDiscovered().
+    # @param module the module object
+    # @returns tuple (code, documentary string)
     def createPreModuleLoadCode(module):
         # Virtual method, pylint: disable=unused-argument
         return None, None
 
     @staticmethod
+    ## Create code to append to a module.
+    # Called by onModuleDiscovered().
+    # @param module the module object
+    # @returns tuple (code, documentary string)
     def createPostModuleLoadCode(module):
         # Virtual method, pylint: disable=unused-argument
         return None, None
 
+    ## Called with a module to be loaded. We may specify code to be prepended
+    # and/or appended to this module by storing the code in the appropriate
+    # list. For every imported module and each of these two options, only one
+    # plugin may do this - a condition we are checking here.
+    # @param module the module object
+    # @returns None
     def onModuleDiscovered(self, module):
         pre_code, reason = self.createPreModuleLoadCode(module)
 
@@ -235,12 +326,24 @@ class NuitkaPluginBase(object):
                 module=module, trigger_name="-postLoad", code=post_code
             )
 
+    ## Help decide whether to include an item.
+    # @param module_filename filename
+    # @param module_name module name
+    # @param module_package package name
+    # @param module_kind one of "py", "shlib" (shared library)
+    # @returns bool
     def onModuleEncounter(
         self, module_filename, module_name, module_package, module_kind
     ):
         pass
 
     @staticmethod
+    ## Provide a filename / -path for a to-be-imported module.
+    # @param importing module object
+    # @param module_name (str) name of module
+    # @param module_package (str) package name
+    # @param warn (bool) True if required module
+    # @ returns filename for module
     def locateModule(importing, module_name, module_package, warn):
         from nuitka.importing import Importing
 
@@ -255,6 +358,13 @@ class NuitkaPluginBase(object):
         return module_filename
 
     @staticmethod
+    ## Decide whether Nuitka should recurse down to a given module.
+    # @param module_filename filename
+    # @param module_name module name
+    # @param module_package package name
+    # @param module_kind one of "py" or "shlib"
+    # @returns (decision, reason) where decision is either a bool or None, and
+    # reason is a string message.
     def decideRecursion(module_filename, module_name, module_package, module_kind):
         from nuitka.importing import Recursion
 
@@ -286,30 +396,56 @@ class NuitkaPluginBase(object):
                 "new_code", imported_module.getSourceReference(), "Recursed to module."
             )
 
+    ## Provide a tuple of names of binaries to be included.
+    # @param dist_dir the distribution folder
+    # @param module the module object needing the binaries
+    # @returns tuple
     def considerExtraDlls(self, dist_dir, module):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    ## Yield any DLLs / shared libraries not to be included in distribution.
+    # @param dll_filename DLL name
+    # @param dll_filenames list of DLLs
+    # @returns yielded filename to be excluded
     def removeDllDependencies(self, dll_filename, dll_filenames):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    ## Iterator to yield a tuple of file names (source, target) for inclusion.
+    # @param module module object needing extra data files
+    # @returns tuple
     def considerDataFiles(self, module):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    ## Use to suppress import warnings for builtin modules.
+    # @param module the module object
+    # @param source_ref
+    # @returns bool
     def suppressBuiltinImportWarning(self, module, source_ref):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
+    ## Use to suppress import warnings for unknown modules.
+    # @param importing ?
+    # @param module_name name of module
+    # @param source_ref
+    # @returns bool
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
+    ## Decide whether to compile a module (or just use its bytecode)
+    # @param module_name name of module
+    # @param source_ref
+    # @returns None
     def decideCompilation(self, module_name, source_ref):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    ## An inactive plugin may issue a warning if it believes it might be required.
+    # @returns None
     def warnUnusedPlugin(self, message):
         if self.plugin_name not in warned_unused_plugins:
             warned_unused_plugins.add(self.plugin_name)
@@ -317,12 +453,8 @@ class NuitkaPluginBase(object):
             warning("Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message))
 
 
+## Use this class to inherit from NuitkaPluginBase.
 class UserPluginBase(NuitkaPluginBase):
-    """ For user plug-ins.
-
-       Check the base class methods for what you can do.
-    """
-
     # You must provide this as a string which then can be used to enable the
     # plug-in.
     plugin_name = None
