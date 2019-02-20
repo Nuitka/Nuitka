@@ -94,6 +94,16 @@ except ImportError:
 
         return cls
 
+if str is bytes:
+    from collections import (  # pylint: disable=I0021,import-error,no-name-in-module
+        Iterable,  # @UnresolvedImport @UnusedImport
+        MutableSet,  # @UnresolvedImport @UnusedImport
+    )
+else:
+    from collections.abc import (  # pylint: disable=I0021,import-error,no-name-in-module
+        Iterable,  # @UnresolvedImport @Reimport pylint: disable=I0021,import-error
+        MutableSet,  # @UnresolvedImport @Reimport pylint: disable=I0021,import-error
+    )
 
 if str is bytes:
     intern = intern  # @ReservedAssignment pylint: disable=I0021,undefined-variable
@@ -109,3 +119,5 @@ assert type(xrange) is type, xrange
 assert total_ordering
 assert intern
 assert builtins
+assert Iterable
+assert MutableSet
