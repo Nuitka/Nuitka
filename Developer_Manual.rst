@@ -500,7 +500,7 @@ Nuitka uses a lot of packages and imports between them.
 
    ./tests/reflected/compile_itself.py
 
-Internal/plugin API
+Internal/Plugin API
 ===================
 
 The documentation from the source code for both the Python and the
@@ -525,7 +525,7 @@ Please find `here <https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Crea
 a detailed description of how to write your own plugin.
 
 To learn about plugin option specification consult
-`this document <https://github.com/Nuitka/Nuitka/blob/develop/Using-Plugin-Options.rst>>`__.
+`this document <https://github.com/Nuitka/Nuitka/blob/develop/Using-Plugin-Options.rst>`__.
 
 
 Design Descriptions
