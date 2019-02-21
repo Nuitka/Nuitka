@@ -311,11 +311,64 @@ The "git flow" model
   those changes.
 
 
-API documentation
-=================
+API Documentation and Guidelines
+=================================
 
 There is API documentation generated with ``doxygen``, available at `this
 location <http://nuitka.net/apidoc>`__ .
+
+To ensure meaningful ``doxygen`` output, the following guidelines must be
+observed when creating or updating Python source:
+
+Use of Standard Python __doc__ Strings
+---------------------------------------
+Every class and every method must be documented via the standard Python
+delimiters (``""" ... """``) in the usual way.
+
+Special ``doxygen`` Anatomy of __doc__
+---------------------------------------
+* Immediately after the leading ``"""`` and after 1 space on the same line,
+enter a brief description or title of the class or method.
+This must be 1 line and follow by at least 1 empty line.
+* Depending on the item, choose from the following "sections" to describe what the
+  item is and does. Each section name is coded on its own line, aligned with the
+  leading ``"""`` and followed by a colon ":". Anything following the section,
+  must start on a new line and be indented by 4 spaces. Except for the first
+  section after the title, sections need not be preceeded by empty lines.
+
+    - ``Notes:`` detailed description of the item, any length, starting on a new
+        line, indented by 4 spaces. May contain line breaks, new lines start
+        aligned with previous one.
+    - ``Args:`` positional arguments. Each argument then follows, starting on a new
+        line and indented by 4 spaces. The argument name must be followed by a
+        colon ":" or double hash "--", followed by a description of arbitrary length.
+        The description can be separated by line breaks.
+    - ``Kwargs:`` keyword arguments. Same rules as for args.
+    - ``Returns:`` description of what will be returned if applicable (any length).
+    - ``Yields:`` synonymous for ``Returns:``.
+    - ``Raises:`` name any exceptions that may be raised.
+    - ``Examples:`` specify any example code.
+
+.. code-block:: python
+
+    def foo(p1, p2, kw1=None, kw2=None):
+        """ This is an example method.
+
+        Notes:
+            It does one or the other indispensable things based on some parameters
+            and proudly returns a dictionary.
+    
+        Args:
+            p1: parameter one
+            p2: parameter two
+
+        Kwargs:
+            kw1: keyword one
+            kw2: keyword two
+
+        Returns:
+            A dictionary calculated from the input.
+        """
 
 Checking the Source
 ===================
@@ -515,7 +568,7 @@ those with Doxygen only relatively late.
 
 Improvements have already been implemented for plugins: The plugin base
 class defined in ``PluginBase.py`` (which is used as a template for all
-plugins) is almost fully documented in Doxygen now. The
+plugins) is fully documented in Doxygen now. The
 same is true for the recently added standard plugins ``NumpyPlugin.py`` and
 ``TkinterPlugin.py``. These will be uploaded very soon.
 

@@ -15,13 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-"""
-Plug-in to ensure numpy scripts compile and work well in standalone mode.
-
-In addition, if the numpy+MKL (Intel's Math Kernel Library) version is
-installed, this plugin will copy its binaries to the dist/numpy/core folder,
-because these are not detectable by dependency walkers.
-"""
 
 import os
 import pkgutil
@@ -32,6 +25,7 @@ from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import UserPluginBase
+from nuitka.utils.Utils import isWin32Windows
 
 # ------------------------------------------------------------------------------
 # The following code is largely inspired by PyInstaller hook_numpy.core.py
@@ -41,10 +35,16 @@ from nuitka.plugins.PluginBase import UserPluginBase
 
 
 def remove_suffix(string, suffix):
-    """
-    This function removes the given suffix from a string, if the string
-    does indeed end with the prefix; otherwise, it returns the string
-    unmodified.
+    """ Remove the given suffix from a string.
+
+    Notes:
+        If the string does indeed end with it. Otherwise, it return the string unmodified.
+
+    Args:
+        string: the string from which to cut off a suffix
+        suffix: this should be cut off the string
+    Returns:
+        string from which the suffix was removed
     """
     # Special case: if suffix is empty, string[:0] returns ''. So, test
     # for a non-empty suffix.
@@ -55,9 +55,12 @@ def remove_suffix(string, suffix):
 
 
 def get_module_file_attribute(package):
-    """ Get the absolute path of the module with the passed name.
-    :arg str package: Fully-qualified name of this module.
-    :returns: (str) Absolute path of this module.
+    """ Get the absolute path of the module with the passed-in name.
+
+    Args:
+        package: the fully-qualified name of this module.
+    Returns:
+        absolute path of this module.
     """
     loader = pkgutil.find_loader(package)
     attr = loader.get_filename(package)
@@ -67,19 +70,25 @@ def get_module_file_attribute(package):
 
 
 def get_package_paths(package):
+    """ Return the path to package stored on this machine.
+
+    Notes:
+        Also returns the path to this particular package. For example, if
+        pkg.subpkg lives in /abs/path/to/python/libs, then this function returns
+        (/abs/path/to/python/libs, /abs/path/to/python/libs/pkg/subpkg).
+    Args:
+        package: package name
+    Returns:
+        tuple
     """
-    Given a package, return the path to packages stored on this machine
-    and also returns the path to this particular package. For example,
-    if pkg.subpkg lives in /abs/path/to/python/libs, then this function
-    returns (/abs/path/to/python/libs,
-             /abs/path/to/python/libs/pkg/subpkg).
-    """
+
     file_attr = get_module_file_attribute(package)
 
     # package.__file__ = /abs/path/to/package/subpackage/__init__.py.
     # Search for Python files in /abs/path/to/package/subpackage.
     # pkg_dir stores this path.
     pkg_dir = os.path.dirname(file_attr)
+
     # When found, remove /abs/path/to/ from the filename.
     # pkg_base stores this path to be removed.
     pkg_base = remove_suffix(pkg_dir, package.replace(".", os.sep))
@@ -88,16 +97,20 @@ def get_package_paths(package):
 
 
 def get_numpy_core_binaries():
-    """Return any binaries in numpy/core and/or numpy/.libs, whether
-    or not actually used by our script.
-    This covers the special case of MKL binaries, which cannot be detected
-    by dependency managers.
+    """ Return any binaries in numpy/core and/or numpy/.libs, whether or not actually used by our script.
+
+    Notes:
+        This covers the special cases like MKL binaries, which cannot be detected by dependency managers.
+
+    Returns:
+        tuple of abspaths of binaries
     """
+
     # covers/unifies cases, where sys.base_prefix does not deliver
     # everything we need and/or is not an abspath.
     base_prefix = getattr(sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix))
+
     base_prefix = os.path.abspath(base_prefix)
-    is_win = os.name == "nt"
 
     binaries = []
 
@@ -119,7 +132,7 @@ def get_numpy_core_binaries():
     # Anything found here will have to land in the dist folder, because there
     # just is no logical other place, and hope for the best ...
     # TODO: not supported yet!
-    if is_win:
+    if isWin32Windows():
         lib_dir = os.path.join(base_prefix, "Library", "bin")
     else:
         lib_dir = os.path.join(base_prefix, "lib")
@@ -141,24 +154,45 @@ def get_numpy_core_binaries():
 
 
 class NumpyPlugin(UserPluginBase):
-    """ This is for plugging in numpy support correctly.
+    """ This class represents the main logic of the plugin.
+
+    This is a plugin to ensure numpy scripts compile and work well in standalone mode.
+
+    While there already is a numpy-relevant entry in the "ImplicitImports.py" plugin,
+    this plugin copies any additional binary files required by many numpy installations.
+    Typically, these binaries are used for acceleration by replacing parts of numpy's
+    homegrown code with highly tuned routines.
+
+    Typical examples are MKL (Intel's Math Kernel Library), OpenBlas and others.
+
+    Many of these special libraries are not detectable by dependency walkers,
+    and this is why this plugin may be required.
+
+    Args:
+        UserPluginBase: plugin template class we are inheriting.
     """
 
-    plugin_name = "numpy-plugin"
+    plugin_name = "numpy-plugin"  # Nuitka knows us by this name
 
     def __init__(self):
         self.files_copied = False  # ensure one-time action
 
     def considerExtraDlls(self, dist_dir, module):
-        """Copy the extra numpy binaries.
+        """ Copy extra shared libraries for this numpy installation.
+
+        Args:
+            dist_dir: the name of the program's dist folder
+            module: the module object (not used here)
+        Returns:
+            () always the empty tuple
         """
-        if self.files_copied:
+        if self.files_copied:  # make sure all this happens only once
             return ()
         self.files_copied = True
 
         binaries = get_numpy_core_binaries()
         bin_total = len(binaries)  # anything there at all?
-        if bin_total == 0:
+        if bin_total == 0:  # no, seems to be vanilla numpy installation
             return ()
 
         info(" Now copying extra binaries from 'numpy' installation:")
@@ -182,14 +216,33 @@ class NumpyPlugin(UserPluginBase):
 
 
 class NumpyPluginDetector(UserPluginBase):
-    plugin_name = "numpy-plugin"
+    """ Only used if plugin is NOT activated.
+
+    Notes:
+        We are given the chance to issue a warning if we think we may be required.
+    """
+
+    plugin_name = "numpy-plugin"  # Nuitka knows us by this name
 
     @staticmethod
     def isRelevant():
+        """ This method is called one time only to check, whether the plugin might make sense at all.
+
+        Returns:
+            True if this is a standalone compilation.
+        """
         return Options.isStandaloneMode()
 
-    # TODO: Temporary disabled until we get the warning criterion sorted out.
-    def x_onModuleDiscovered(self, module):
+    def onModuleDiscovered(self, module):
+        """ This method checks whether a numpy module is imported.
+
+        Notes:
+            For this we check whether its full name contains the string "numpy".
+        Args:
+            module: the module object
+        Returns:
+            None
+        """
         full_name = module.getFullName().split(".")
         if "numpy" in full_name:
             self.warnUnusedPlugin("numpy support.")

@@ -21,15 +21,15 @@ The difference is the invocation format:
   will import the script and call its initialization method just like for a
   standard plugin. The plugin must have a non-empty string specified in its
   variable ``plugin_name``. It must also not equal one of the de-activated
-  standard plugin strings. Best practice is filling it like so:
-  ``plugin_name == __file__``. User plugins are always activated once they have
-  been successfully loaded. They therefore have no mechanism that warns about
-  not using them.
+  standard plugin strings. Best practice is filling it with the filename, e.g.
+  ``plugin_name == __file__``, because this allows providing it with options.
+  User plugins are always activated once successfully loaded. They therefore have
+  no mechanism to warn if not being used.
 
 Example User Plugin
 --------------------
-This is a very simple user plugin. It will display source code lines of the
-main program which contain calls to the buitlin ``math`` module, if an option
+This is a simple demo user plugin. It will display source code lines of the
+main program if they contain calls to the ``math`` module, if an option
 named "trace" is active::
 
     import os
@@ -39,12 +39,12 @@ named "trace" is active::
     from nuitka import Options
     from nuitka.plugins.PluginBase import UserPluginBase
 
-    class Usr_Plugin(UserPluginBase):
+    class MyPlugin(UserPluginBase):
 
-        plugin_name = __file__  # or __module__
+        plugin_name = __file__  # or __module__ or __name__
 
         def __init__(self):
-            # demo only: extract and display its list of options
+            # demo only: extract and display options list
             self.plugin_options = self.getPluginOptions()
             info(" '%s' options: %s" % (self.plugin_name, self.plugin_options))
 
