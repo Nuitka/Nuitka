@@ -227,7 +227,7 @@ Install the C compiler
  - Select destination folder to **c:\\MinGW64**
  - verify using command  **gcc.exe --version**
  - Set a environment variable pointing to **gcc.exe**
-   **CC=c:\\mingw64\bin\gcc.exe**
+   **CC=c:\\mingw64\bin\\gcc.exe**
 
 Install Python 3.7 (64 Bits)
 ++++++++++++++++++++++++++++
