@@ -363,9 +363,10 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
 def checkSucceedsWithCPython(filename):
     command = [_python_executable, filename]
 
-    result = subprocess.call(
-        command, stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT
-    )
+    with open(os.devnull, "w") as devnull:
+        result = subprocess.call(
+            command, stdout=devnull, stderr=subprocess.STDOUT
+        )
 
     return result == 0
 
@@ -733,11 +734,12 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
 
 
 def hasModule(module_name):
-    result = subprocess.call(
-        (os.environ["PYTHON"], "-c" "import %s" % module_name),
-        stdout=open(os.devnull, "w"),
-        stderr=subprocess.STDOUT,
-    )
+    with open(os.devnull, "w") as devnull:
+        result = subprocess.call(
+            (os.environ["PYTHON"], "-c" "import %s" % module_name),
+            stdout=devnull,
+            stderr=subprocess.STDOUT,
+        )
 
     return result == 0
 

@@ -40,10 +40,11 @@ def checkVersion():
         sys.exit("Error, pylint is not installed for this interpreter version.")
 
     if pylint_version is None:
-        pylint_version = Execution.check_output(
-            [os.environ["PYTHON"], "-m", "pylint", "--version"],
-            stderr=open(os.devnull, "w"),
-        )
+        with open(os.devnull, "w") as devnull:
+            pylint_version = Execution.check_output(
+                [os.environ["PYTHON"], "-m", "pylint", "--version"],
+                stderr=devnull,
+            )
 
         if str is not bytes:
             pylint_version = pylint_version.decode("utf8")
