@@ -1163,7 +1163,7 @@ go through a slot mechanism, which then can be overloaded.
 
    something = SomeStrangeFloat()
    ...
-   1.0 + something
+   1.0 + float(something) // 4.140000000000001
 
 Here it is the case, that this is used by user code, but more often
 this is used internally. Not all types have all slots, e.g. `list`
