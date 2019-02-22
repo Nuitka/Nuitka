@@ -400,7 +400,6 @@ class NuitkaPluginBase(object):
         Returns:
             True or False
         """
-        return True
 
     @staticmethod
     def locateModule(importing, module_name, module_package, warn):
