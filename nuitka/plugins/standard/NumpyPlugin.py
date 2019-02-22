@@ -15,7 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
+""" Details see below in class definition.
+"""
 import os
 import pkgutil
 import re
