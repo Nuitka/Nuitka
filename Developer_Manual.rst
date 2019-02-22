@@ -328,8 +328,9 @@ delimiters (``""" ... """``) in the usual way.
 Special ``doxygen`` Anatomy of ``"__doc__"``
 -------------------------------------------------
 * Immediately after the leading ``"""``, and after 1 space on the same line,
-enter a brief description or title of the class or method.
-**This must be 1 line and be followed by at least 1 empty line.**
+  enter a brief description or title of the class or method. This must be 1
+  line and be followed by at least 1 empty line.
+
 * Depending on the item, choose from the following "sections" to describe what the
   item is and does. Each section name is coded on its own line, aligned with the
   leading ``"""`` and followed by a colon ":". Anything following the section,
