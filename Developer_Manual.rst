@@ -377,6 +377,13 @@ Special ``doxygen`` Anatomy of ``"__doc__"``
 
         Returns:
             A dictionary calculated from the input.
+            
+        Raises:
+            ValueError, IndexError
+            
+        Examples:
+            >>> foo(1, 2, kw1=3, kw2=4)
+            {'a': 4, 'b': 6} 
         """
 
 Checking the Source
