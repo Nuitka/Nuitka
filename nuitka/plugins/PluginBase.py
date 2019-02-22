@@ -50,11 +50,16 @@ class NuitkaPluginBase(object):
 
     This concept allows to adapt Nuitka's behaviour in a number of ways as explained below at the individual methods.
 
-    It is used to deal with special requirements some packages may have (e.g. PyQt and tkinter), data files to be included (e.g. certifi), inserting hidden code, coping with otherwise undetectable needs, or issuing messages in certain situations.
+    It is used to deal with special requirements some packages may have (e.g. PyQt and tkinter),
+    data files to be included (e.g. certifi), inserting hidden code, coping with otherwise undetectable needs,
+    or issuing messages in certain situations.
 
-    A plugin in general must be activated to be used by Nuitka. This happens by specifying "--enable-plugin" (standard plugins) or "--user-plugin" (user plugins) in the Nuitka command line. However, some plugins are always activated and invisible to the user.
+    A plugin in general must be activated to be used by Nuitka. This happens by specifying "--enable-plugin"
+    (standard plugins) or "--user-plugin" (user plugins) in the Nuitka command line. However, some plugins
+    are always activated and invisible to the user.
 
-    Nuitka comes with a number of "standard" plugins that can be activated when needed. What they are can be displayed using "nuitka --plugin-list file.py" (filename required but ignored).
+    Nuitka comes with a number of "standard" plugins that can be activated when needed. What they are can be
+    displayed using "nuitka --plugin-list file.py" (filename required but ignored).
 
     User plugins may be specified (and implicitely activated) using their Python script pathname.
     """
@@ -396,7 +401,7 @@ class NuitkaPluginBase(object):
         Returns:
             True or False
         """
-        pass
+        return True
 
     @staticmethod
     def locateModule(importing, module_name, module_package, warn):
