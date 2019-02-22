@@ -338,11 +338,14 @@ enter a brief description or title of the class or method.
   be preceeded by empty lines -- but it is good practice to still do that.
 
     - ``Notes:`` detailed description of the item, any length.
-      May contain line breaks, each new lines starting aligned with previous one.
-      If you describe details for a class, you can do that **without** using this
-      section header. If you omit the ``Notes:`` for methods, then the text will
+      May contain line breaks with each new line starting aligned with previous one.
+      The text will automatically be joined across line breaks and be reformatted
+      in the browser.
+      If you describe details for a class, you can do so **without** using this
+      section header and all formatting will still work fine.
+      If you however omit the ``Notes:`` for methods, then the text will
       be interpreted **as code,** be shown in an ugly monospaced font, and no
-      automatic line breaks will happen.
+      automatic line breaks will occur in the browser.
     - ``Args:`` positional arguments.
       Each argument then follows, starting on a new
       line and indented by 4 spaces. The argument name must be followed by a
