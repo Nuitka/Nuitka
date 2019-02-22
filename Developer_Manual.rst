@@ -333,21 +333,21 @@ enter a brief description or title of the class or method.
 * Depending on the item, choose from the following "sections" to describe what the
   item is and does. Each section name is coded on its own line, aligned with the
   leading ``"""`` and followed by a colon ":". Anything following the section,
-  must start on a new line and be indented by 4 spaces relative to its section.
+  must start on a new line and be indented by 4 spaces relative to the section.
   Except for the first section (``Notes:``) after the title, sections need not
   be preceeded by empty lines -- but it is good practice to still do that.
 
-    - ``Notes:`` detailed description of the item, any length, starting on a new
-        line, indented by 4 spaces. May contain line breaks, new lines start
-        aligned with previous one. If you describe details for a class, you can
-        do that without using this section header. If you omit the ``Notes:``
-        section header for detail descriptions of methods, then the text will
-        be interpreted **as code,** be shown in an ugly monospaced font, and no
-        automatic line breaks will happen.
-    - ``Args:`` positional arguments. Each argument then follows, starting on a new
-        line and indented by 4 spaces. The argument name must be followed by a
-        colon ":" or double hash "--", followed by a description of arbitrary length.
-        The description can be separated by line breaks.
+    - ``Notes:`` detailed description of the item, any length.
+      May contain line breaks, each new lines starting aligned with previous one.
+      If you describe details for a class, you can do that **without** using this
+      section header. If you omit the ``Notes:`` for methods, then the text will
+      be interpreted **as code,** be shown in an ugly monospaced font, and no
+      automatic line breaks will happen.
+    - ``Args:`` positional arguments.
+      Each argument then follows, starting on a new
+      line and indented by 4 spaces. The argument name must be followed by a
+      colon ":" or double hash "--", followed by a description of arbitrary length.
+      The description can be separated by line breaks.
     - ``Kwargs:`` keyword arguments. Same rules as for args.
     - ``Returns:`` description of what will be returned if applicable (any length).
     - ``Yields:`` synonymous for ``Returns:``.
