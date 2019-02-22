@@ -320,25 +320,30 @@ location <http://nuitka.net/apidoc>`__ .
 To ensure meaningful ``doxygen`` output, the following guidelines must be
 observed when creating or updating Python source:
 
-Use of Standard Python __doc__ Strings
----------------------------------------
-Every class and every method must be documented via the standard Python
+Use of Standard Python ``"__doc__"`` Strings
+----------------------------------------------
+Every class and every method **must be documented** via the standard Python
 delimiters (``""" ... """``) in the usual way.
 
-Special ``doxygen`` Anatomy of __doc__
----------------------------------------
-* Immediately after the leading ``"""`` and after 1 space on the same line,
+Special ``doxygen`` Anatomy of ``"__doc__"``
+-------------------------------------------------
+* Immediately after the leading ``"""``, and after 1 space on the same line,
 enter a brief description or title of the class or method.
-This must be 1 line and follow by at least 1 empty line.
+**This must be 1 line and be followed by at least 1 empty line.**
 * Depending on the item, choose from the following "sections" to describe what the
   item is and does. Each section name is coded on its own line, aligned with the
   leading ``"""`` and followed by a colon ":". Anything following the section,
-  must start on a new line and be indented by 4 spaces. Except for the first
-  section after the title, sections need not be preceeded by empty lines.
+  must start on a new line and be indented by 4 spaces relative to its section.
+  Except for the first section (``Notes:``) after the title, sections need not
+  be preceeded by empty lines -- but it is good practice to still do that.
 
     - ``Notes:`` detailed description of the item, any length, starting on a new
         line, indented by 4 spaces. May contain line breaks, new lines start
-        aligned with previous one.
+        aligned with previous one. If you describe details for a class, you can
+        do that without using this section header. If you omit the ``Notes:``
+        section header for detail descriptions of methods, then the text will
+        be interpreted **as code,** be shown in an ugly monospaced font, and no
+        automatic line breaks will happen.
     - ``Args:`` positional arguments. Each argument then follows, starting on a new
         line and indented by 4 spaces. The argument name must be followed by a
         colon ":" or double hash "--", followed by a description of arbitrary length.
