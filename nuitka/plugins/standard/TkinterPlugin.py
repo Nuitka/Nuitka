@@ -114,7 +114,7 @@ if not os.environ.get("TCL_LIBRARY", None):
             if full_name in pre_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)
 
-            # store module and our code in a list
+            # store trigger module for our code in a dictionary
             pre_modules[full_name] = self._createTriggerLoadedModule(
                 module=module, trigger_name="-preLoad", code=pre_code
             )
@@ -200,7 +200,7 @@ class TkinterPluginDetector(UserPluginBase):
         return Options.isStandaloneMode() and isWin32Windows()
 
     def __init__(self):
-        pass
+        return None
 
     def onModuleSourceCode(self, module_name, source_code):
         """ This method passes the source code and expects it back - potentially modified.
