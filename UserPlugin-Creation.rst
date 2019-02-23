@@ -44,7 +44,7 @@ named "trace" is active::
         plugin_name = __file__  # or __module__ or __name__
 
         def __init__(self):
-            # demo only: extract and display options list
+            # demo only: extract and display my options list
             self.plugin_options = self.getPluginOptions()
             info(" '%s' options: %s" % (self.plugin_name, self.plugin_options))
 
