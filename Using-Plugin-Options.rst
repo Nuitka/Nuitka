@@ -65,3 +65,5 @@ check single option items via convenience method ``self.getPluginOptionBool("val
 
 * exception if both, "value" and "novalue" are in the options list
 
+
+To see a working example for a user plugin with ptions, consult [this](https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst) document.
