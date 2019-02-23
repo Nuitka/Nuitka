@@ -403,6 +403,7 @@ class NuitkaPluginBase(object):
         Returns:
             True or False
         """
+        assert self.plugin_name
         return None
 
     @staticmethod
