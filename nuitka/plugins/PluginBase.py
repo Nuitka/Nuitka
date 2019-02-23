@@ -48,20 +48,25 @@ class NuitkaPluginBase(object):
 
     Derive your plugin from "UserPlugin" please.
 
-    This concept allows to adapt Nuitka's behaviour in a number of ways as explained below at the individual methods.
+    Plugins allow to adapt Nuitka's behaviour in a number of ways as explained
+    below at the individual methods.
 
-    It is used to deal with special requirements some packages may have (e.g. PyQt and tkinter),
-    data files to be included (e.g. certifi), inserting hidden code, coping with otherwise undetectable needs,
-    or issuing messages in certain situations.
+    It is used to deal with special requirements some packages may have (e.g. PyQt
+    and tkinter), data files to be included (e.g. certifi), inserting hidden
+    code, coping with otherwise undetectable needs, or issuing messages in
+    certain situations.
 
-    A plugin in general must be activated to be used by Nuitka. This happens by specifying "--enable-plugin"
-    (standard plugins) or "--user-plugin" (user plugins) in the Nuitka command line. However, some plugins
-    are always activated and invisible to the user.
+    A plugin in general must be enabled to be used by Nuitka. This happens by
+    specifying "--enable-plugin" (standard plugins) or by "--user-plugin" (user
+    plugins) in the Nuitka command line. However, some plugins are always enabled
+    and invisible to the user.
 
-    Nuitka comes with a number of "standard" plugins that can be activated when needed. What they are can be
-    displayed using "nuitka --plugin-list file.py" (filename required but ignored).
+    Nuitka comes with a number of "standard" plugins to be enabled as needed.
+    What they are can be displayed using "nuitka --plugin-list file.py" (filename
+    required but ignored).
 
-    User plugins may be specified (and implicitely activated) using their Python script pathname.
+    User plugins may be specified (and implicitely enabled) using their Python
+    script pathname.
     """
 
     # Standard plugins must provide this as a unique string which Nuitka
@@ -208,7 +213,7 @@ class NuitkaPluginBase(object):
             True or False
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
-        return None
+        return True
 
     def getImplicitImports(self, module):
         """ Return the implicit imports for a given module (iterator).
@@ -388,8 +393,6 @@ class NuitkaPluginBase(object):
                 module=module, trigger_name="-postLoad", code=post_code
             )
 
-        return None
-
     def onModuleEncounter(
         self, module_filename, module_name, module_package, module_kind
     ):
@@ -403,7 +406,6 @@ class NuitkaPluginBase(object):
         Returns:
             True or False
         """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
     @staticmethod
@@ -507,6 +509,24 @@ class NuitkaPluginBase(object):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    def onStandaloneDistributionFinished(self, dist_dir):
+        """ Called after successfully finishing a standalone compile.
+
+        Note:
+            It is up to the plugin to take subsequent action. Examples are:
+            insert additional information (license, copyright, company or
+            application description), create installation material, further
+            folder clean-up, start downstream applications etc.
+
+        Args:
+            dist_dir: the created distribution folder
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def suppressBuiltinImportWarning(self, module, source_ref):
         """ Suppress import warnings for builtin modules.
 
@@ -535,11 +555,17 @@ class NuitkaPluginBase(object):
     def decideCompilation(self, module_name, source_ref):
         """ Decide whether to compile a module (or just use its bytecode).
 
+        Notes:
+            The first plugin not returning None makes the decision. Thereafter,
+            no other plugins will be checked. If all plugins return None, the
+            module will be compiled.
+
         Args:
             module_name: name of module
             source_ref: ???
+
         Returns:
-            None
+            "compiled" or "bytecode" or None (default)
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
