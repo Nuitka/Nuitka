@@ -388,6 +388,8 @@ class NuitkaPluginBase(object):
                 module=module, trigger_name="-postLoad", code=post_code
             )
 
+        return None
+
     def onModuleEncounter(
         self, module_filename, module_name, module_package, module_kind
     ):
