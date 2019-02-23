@@ -35,15 +35,14 @@ Plugin options can be added by
 * specifying any string after the "="
 
 The raw option string should normally not contain any white space. However,
-depending on your platform, wrapping such a string with double quotes may lift
-this restriction.
+depending on your platform, wrapping such a string in double quotes may also work.
 
 Nuitka always passes a **Python list** to the plugin, determined as follows:
 
 Assuming the command line parameter for a plugin called ``name`` contains
-``--enable-plugin=name=raw``, or ``--user-plugin=name=raw``, then method
+``--enable-plugin=name=raw`` (``--user-plugin=name=raw``), then method
 ``self.getPluginOptions()`` will deliver ``raw.split(',')``.
-The following hopefully makes this clearer.
+The following table aims to clarify this.
 
 ================== ==============================================
 **Specification**  **Result**
@@ -63,7 +62,7 @@ check single option items via convenience method ``self.getPluginOptionBool("val
 
 * *default* else
 
-* exception if both, "value" and "novalue" are in the options list
+* *exception* (exiting the compilation) if both, "value" and "novalue" are in the options list
 
 Remark
 --------
