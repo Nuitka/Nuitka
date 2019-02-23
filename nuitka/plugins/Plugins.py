@@ -291,11 +291,16 @@ def importFile(filename):
         return importFilePy3NewWay(filename)
 
 
-## Extract the filenames of user plugins and store them in list of active plugins.
-# A plugin is accepted only if it has a non-empty variable plugin_name, which
-# does not equal that of a disabled (standard) plugin.
-# Supports plugin option specifications.
 def importUserPlugins():
+    """ Extract the filenames of user plugins and store them in list of active plugins.
+
+    Notes:
+        A plugin is accepted only if it has a non-empty variable plugin_name, which
+        does not equal that of a disabled (standard) plugin.
+        Supports plugin option specifications.
+    Returns:
+        None
+    """
     for plugin_filename in Options.getUserPlugins():
         plugin_filename = plugin_filename.split("=", 1)[0]
         if not os.path.exists(plugin_filename):
