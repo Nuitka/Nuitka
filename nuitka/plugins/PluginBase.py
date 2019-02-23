@@ -403,7 +403,7 @@ class NuitkaPluginBase(object):
         Returns:
             True or False
         """
-        x = self.plugin_name
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
     @staticmethod
