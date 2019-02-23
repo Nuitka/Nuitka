@@ -237,6 +237,7 @@ class NuitkaPluginBase(object):
         Returns:
             dict
         """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return self.module_aliases.get(module_name, None)
 
     def onModuleSourceCode(self, module_name, source_code):
@@ -406,6 +407,7 @@ class NuitkaPluginBase(object):
         Returns:
             True or False
         """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
     @staticmethod
