@@ -65,5 +65,12 @@ check single option items via convenience method ``self.getPluginOptionBool("val
 
 * exception if both, "value" and "novalue" are in the options list
 
+Remark
+--------
+Obviously, you can recover the original "raw" string by ``raw = "".join(self.getPluginOptions())``, and
+then apply your own interpretation logic, for example ``option_dict = json.loads(raw)``, or
+``my_list = raw.split(";")``.
 
-To see a working example for a user plugin with ptions, consult [this](https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst) document.
+Example
+----------
+To see a working example for a user plugin with ptions, consult `this <https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst>`__ document.
