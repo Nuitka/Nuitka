@@ -208,6 +208,7 @@ class NuitkaPluginBase(object):
             True or False
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
 
     def getImplicitImports(self, module):
         """ Return the implicit imports for a given module (iterator).
@@ -400,6 +401,7 @@ class NuitkaPluginBase(object):
         Returns:
             True or False
         """
+        return None
 
     @staticmethod
     def locateModule(importing, module_name, module_package, warn):
