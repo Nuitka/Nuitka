@@ -67,9 +67,9 @@ check single option items via convenience method ``self.getPluginOptionBool("val
 
 Remark
 --------
-Obviously, you can recover the original "raw" string by ``raw = "".join(self.getPluginOptions())``, and
-then apply your own interpretation logic, for example ``option_dict = json.loads(raw)``, or
-``my_list = raw.split(";")``.
+Obviously, you can recover the original "raw" string by ``raw = "".join(self.getPluginOptions())``.
+If your plugin knows which format to expect, it could do something like this ``option_dict = json.loads(raw)``, or
+this: ``my_list = raw.split(";")``.
 
 Example
 ----------
