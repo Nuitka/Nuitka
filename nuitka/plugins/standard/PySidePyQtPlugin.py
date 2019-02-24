@@ -223,22 +223,17 @@ if os.path.exists(guess_path):
                 # Also copy required OpenGL DLLs on Windows
                 if os.name == "nt":
                     qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
-                    opengl_dlls = (
-                        "libegl.dll",
-                        "libglesv2.dll",
-                        "opengl32sw.dll",
-                    )
+                    opengl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
 
                     info("Copying OpenGL DLLs to %r" % (dist_dir,))
 
                     for filename in getFileList(qt_bin_dir):
                         basename = os.path.basename(filename).lower()
 
-                        if basename in opengl_dlls or basename.startswith("d3dcompiler_"):
-                            shutil.copy(
-                                filename,
-                                os.path.join(dist_dir, basename)
-                            )
+                        if basename in opengl_dlls or basename.startswith(
+                            "d3dcompiler_"
+                        ):
+                            shutil.copy(filename, os.path.join(dist_dir, basename))
 
             return result
 

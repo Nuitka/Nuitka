@@ -799,6 +799,8 @@ def main():
 
                 shutil.copy2(source_filename, target_filename)
 
+            Plugins.onStandaloneDistributionFinished(dist_dir)
+
         # Remove the source directory (now build directory too) if asked to.
         if Options.isRemoveBuildDir():
             removeDirectory(
