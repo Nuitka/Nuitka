@@ -94,6 +94,7 @@ except ImportError:
 
         return cls
 
+
 if str is bytes:
     from collections import (  # pylint: disable=I0021,import-error,no-name-in-module
         Iterable,  # @UnresolvedImport @UnusedImport

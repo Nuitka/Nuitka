@@ -104,7 +104,8 @@ def getStandardLibraryPaths():
             stdlib_paths.add(os.path.dirname(_ctypes.__file__))
 
         getStandardLibraryPaths.result = [
-            os.path.normcase(os.path.normpath(stdlib_path)) for stdlib_path in stdlib_paths
+            os.path.normcase(os.path.normpath(stdlib_path))
+            for stdlib_path in stdlib_paths
         ]
 
     return getStandardLibraryPaths.result

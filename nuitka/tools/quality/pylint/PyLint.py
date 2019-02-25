@@ -42,8 +42,7 @@ def checkVersion():
     if pylint_version is None:
         with open(os.devnull, "w") as devnull:
             pylint_version = Execution.check_output(
-                [os.environ["PYTHON"], "-m", "pylint", "--version"],
-                stderr=devnull,
+                [os.environ["PYTHON"], "-m", "pylint", "--version"], stderr=devnull
             )
 
         if str is not bytes:

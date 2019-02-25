@@ -364,9 +364,7 @@ def checkSucceedsWithCPython(filename):
     command = [_python_executable, filename]
 
     with open(os.devnull, "w") as devnull:
-        result = subprocess.call(
-            command, stdout=devnull, stderr=subprocess.STDOUT
-        )
+        result = subprocess.call(command, stdout=devnull, stderr=subprocess.STDOUT)
 
     return result == 0
 
