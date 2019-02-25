@@ -133,19 +133,19 @@ Bug Fixes
 - macOS: Use standard include of C bool type instead of rolling our own, which
   was not compatible with newest Clang. Fixed in 0.6.0.3 already.
 
-- Python3: Fix, the `bytes` built-in type actually does have a `__float__` slot.
-  Fixed in 0.6.0.4 already.
+- Python3: Fix, the ``bytes`` built-in type actually does have a ``__float__``
+  slot. Fixed in 0.6.0.4 already.
 
 - Python3.7: Types that are also sequences still need to call the method
-  `__class_getitem__` for consideration. Fixed in 0.6.0.4 already.
+  ``__class_getitem__`` for consideration. Fixed in 0.6.0.4 already.
 
 - Python3.7: Error exits from program exit could get lost on Windows due to
-  `__spec__` handling not preserving errors. Fixed in 0.6.0.4 already.
+  ``__spec__`` handling not preserving errors. Fixed in 0.6.0.4 already.
 
 - Windows: Negative exit codes from Nuitka, e.g. due to a triggered assertion
   in debug mode were not working. Fixed in 0.6.0.4 already.
 
-- Fix, conditional `and` expressions were mis-optimized when not used to not
+- Fix, conditional ``and`` expressions were mis-optimized when not used to not
   execute the right hand side still. Fixed in 0.6.0.4 already.
 
 - Python3.6: Fix, generators, coroutines, and asyncgen were not properly
@@ -169,13 +169,13 @@ Bug Fixes
   on Windows.
 
 - Python3.4: Fix, packages didn't indicate that they are packages in their
-  `__spec__` value, causing issues with `importlib_resources` module.
+  ``__spec__`` value, causing issues with ``importlib_resources`` module.
 
-- Python3.4: The `__spec__` values of compiled modules didn't have compatible
-  `origin` and `has_location` values preventing `importlib_resources` module
-  from working to load data files.
+- Python3.4: The ``__spec__`` values of compiled modules didn't have compatible
+  ``origin`` and ``has_location`` values preventing ``importlib_resources``
+  module from working to load data files.
 
-- Fix, packages created from `.pth` files were also considered when checking
+- Fix, packages created from ``.pth`` files were also considered when checking
   for sub-packages of a module.
 
 - Standalone: Handle cases of conflicting DLLs better. On Windows pick the
@@ -185,19 +185,19 @@ Bug Fixes
 - Standalone: Warn about collisions of DLLs on non-Windows only as this can
   happen with wheels apparently.
 
-- Standalone: For Windows Python extension modules `.pyd` files, remove the
+- Standalone: For Windows Python extension modules ``.pyd`` files, remove the
   SxS configuration for cases where it causes problems, not needed.
 
-- Fix: The `exec` statement on file handles was not using the proper filename
-  when compiling, therefore breaking e.g. `inspect.getsource` on functions
+- Fix: The ``exec`` statement on file handles was not using the proper filename
+  when compiling, therefore breaking e.g. ``inspect.getsource`` on functions
   defined there.
 
 - Standalone: Added support for OpenGL platform plugins to be included
   automatically.
 
-- Standalone: Added missing implicit dependency for `zmq` module.
+- Standalone: Added missing implicit dependency for ``zmq`` module.
 
-- Python3.7: Fix, the `-X utf8` flag, aka utf8_mode was not preserved in
+- Python3.7: Fix, the ``-X utf8`` flag, aka ``utf8_mode`` was not preserved in
   the compiled binary in all cases.
 
 New Optimization
@@ -231,7 +231,7 @@ Organizational
 
 - Added repository for Fedora 29 for download.
 
-- Describe the exact format used for `clang-format` in the Developer Manual.
+- Describe the exact format used for ``clang-format`` in the Developer Manual.
 
 - Added description how to use CondaCC on Windows to the User Manual.
 
@@ -272,8 +272,8 @@ limits the impact of optimization to only taking shortcuts for the supported
 types. These are useful and faster of course, but only building blocks for
 what is to come.
 
-Most of the effort went into specialized helpers that e.g. add a `float` and
-and `int` value in a dedicated fashion, as well as comparison operations, so
+Most of the effort went into specialized helpers that e.g. add a ``float`` and
+and ``int`` value in a dedicated fashion, as well as comparison operations, so
 we can fully operate some minimal examples with specialized code. This is too
 limited still, and must be applied to ever more operations.
 
@@ -3650,10 +3650,10 @@ Optimization
   ``return`` in the tried code. The SSA analysis for after the statement is now
   the result of merging these different cases, should they not abort.
 
-- The code generation for `del` statements is now taking advantage should there
-  be definite knowledge of previous value. This speed them up slightly.
+- The code generation for ``del`` statements is now taking advantage should
+  there be definite knowledge of previous value. This speed them up slightly.
 
-- The SSA analysis of `del` statements now properly decided if the statement
+- The SSA analysis of ``del`` statements now properly decided if the statement
   can raise or not, allowing for more optimization.
 
 - For list contractions, the re-formulation was enhanced using the new outline
