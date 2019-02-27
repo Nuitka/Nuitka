@@ -27,14 +27,16 @@ import sys
 
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import check_output
-from nuitka.utils.FileOperations import getFileContentByLine, withTemporaryFilename
+from nuitka.utils.FileOperations import getFileContentByLine, withTemporaryFile
 
 
 def runValgrind(descr, tool, args, include_startup, save_logfilename=None):
     if descr:
         my_print(descr, tool, file=sys.stderr, end="... ")
 
-    with withTemporaryFilename() as log_filename:
+    with withTemporaryFile() as log_file:
+        log_filename = log_file.name
+
         command = ["valgrind", "-q"]
 
         if tool == "callgrind":

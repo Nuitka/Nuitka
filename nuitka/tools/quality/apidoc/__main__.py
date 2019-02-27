@@ -30,6 +30,7 @@ import sys
 from optparse import OptionParser
 
 from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
+from nuitka.utils.FileOperations import getFileContents, withTemporaryFile
 from nuitka.utils.Utils import getOS
 
 # Unchanged, running from checkout, use the parent directory, the nuitka
@@ -78,8 +79,40 @@ Default is %default.""",
     if not doxygen_path:
         sys.exit("Error, need to install Doxygen and add it to PATH for this to work.")
 
+    try:
+        import doxypypy  # @UnusedImport pylint: disable=I0021,unused-import,unused-variable
+    except ImportError:
+        sys.exit("Error, needs to install doxypypy into this Python.")
+
+    with withTemporaryFile(suffix=".doxyfile", delete=False) as doxy_file:
+        doxy_config = getFileContents("doc/Doxyfile.template")
+
+        with withTemporaryFile(
+            suffix=".bat" if getOS() == "Windows" else ".sh", delete=False
+        ) as doxy_batch_file:
+            if getOS() == "Windows":
+                doxy_batch_file.write(
+                    "%s -m doxypypy.doxypypy -a -c %%1" % sys.executable
+                )
+            else:
+                doxy_batch_file.write(
+                    "#!/bin/sh\nexec '%s' -m doxypypy.doxypypy -a -c $1"
+                    % sys.executable
+                )
+
+        doxy_batch_filename = doxy_batch_file.name
+
+        doxy_config = doxy_config.replace("%DOXYPYPY%", doxy_batch_filename)
+        doxy_file.write(doxy_config)
+
+        doxy_filename = doxy_file.name
+
     print("Running doxygen:")
-    subprocess.check_call([doxygen_path, "doc/Doxyfile"])
+    try:
+        subprocess.check_call([doxygen_path, doxy_filename])
+    finally:
+        os.unlink(doxy_filename)
+        os.unlink(doxy_batch_filename)
 
     # Update the repository on the web site.
     if options.upload:
