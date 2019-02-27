@@ -237,7 +237,7 @@ def autoformat(filename, abort=False):
 
     old_code = getFileContents(filename)
 
-    is_python = not filename.endswith(".rst")
+    is_python = not filename.endswith((".rst", ".txt"))
 
     if is_python:
         _cleanupPyLintComments(filename, abort)
