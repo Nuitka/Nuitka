@@ -5616,7 +5616,7 @@ New Features
 ------------
 
 - Windows: The "standalone" mode now properly detects used DLLs using
-  `Dependency Walker <http://http://www.dependencywalker.com/>`__ which it
+  `Dependency Walker <http://www.dependencywalker.com/>`__ which it
   offers to download and extra for you.
 
   It is used as a replacement to ``ldd`` on Linux when building the binary, and
