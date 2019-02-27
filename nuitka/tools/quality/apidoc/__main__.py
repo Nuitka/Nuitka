@@ -29,6 +29,9 @@ import subprocess
 import sys
 from optparse import OptionParser
 
+from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
+from nuitka.utils.Utils import getOS
+
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
 sys.path.insert(
@@ -49,29 +52,43 @@ def main():
     parser = OptionParser()
 
     parser.add_option(
-        "--verbose",
+        "--upload",
         action="store_true",
-        dest="verbose",
+        dest="upload",
         default=False,
         help="""\
-        Default is %default.""",
+Upload to http://nuitka.net/apidoc requires access rights and is done by the
+official servers automatically only. Without this, create the local html folder
+only.
+
+Default is %default.""",
     )
 
-    # TODO: No actual options yet.
-    _options, _positional_args = parser.parse_args()
+    options, _positional_args = parser.parse_args()
 
     shutil.rmtree("html", ignore_errors=True)
 
+    doxygen_path = getExecutablePath("doxygen")
+
+    # Extra ball on Windows, check default installation PATH too.
+    if not doxygen_path and getOS() == "Windows":
+        with withEnvironmentPathAdded("PATH", r"C:\Program Files\Doxygen\bin"):
+            doxygen_path = getExecutablePath("doxygen")
+
+    if not doxygen_path:
+        sys.exit("Error, need to install Doxygen and add it to PATH for this to work.")
+
     print("Running doxygen:")
-    subprocess.check_call(["doxygen", "doc/Doxyfile"])
+    subprocess.check_call([doxygen_path, "doc/Doxyfile"])
 
     # Update the repository on the web site.
-    assert (
-        os.system(
-            "rsync -avz --delete html/ --chown www-data root@nuitka.net:/var/www/apidoc/"
+    if options.upload:
+        assert (
+            os.system(
+                "rsync -avz --delete html/ --chown www-data root@nuitka.net:/var/www/apidoc/"
+            )
+            == 0
         )
-        == 0
-    )
 
     print("Finished.")
 
