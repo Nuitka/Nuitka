@@ -25,9 +25,12 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 
 from nuitka.Tracing import my_print
+from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import getFileContents
+from nuitka.utils.Utils import getOS
 
 
 def _cleanupWindowsNewlines(filename):
@@ -43,8 +46,6 @@ def _cleanupWindowsNewlines(filename):
     updated_code = updated_code.replace(b"\n\r", b"\n")
 
     if updated_code != source_code:
-        my_print("Fixing Windows new lines for", filename)
-
         with open(filename, "wb") as out_file:
             out_file.write(updated_code)
 
@@ -186,11 +187,38 @@ def _cleanupImportRelative(filename):
                 out_file.write(updated_code)
 
 
+_binary_calls = {}
+
+
+def _getPythonBinaryCall(binary_name):
+    if binary_name not in _binary_calls:
+        # Try running Python installation.
+        try:
+            __import__(binary_name)
+            _binary_calls[binary_name] = [sys.executable, "-m", binary_name]
+
+            return _binary_calls[binary_name]
+        except ImportError:
+            pass
+
+        binary_path = getExecutablePath(binary_name)
+
+        if binary_path:
+            _binary_calls[binary_name] = [binary_path]
+            return _binary_calls[binary_name]
+
+        sys.exit("Error, cannot find %s, not installed for this Python?" % binary_name)
+
+    return _binary_calls[binary_name]
+
+
 def _cleanupImportSortOrder(filename):
+    isort_call = _getPythonBinaryCall("isort")
+
     with open(os.devnull, "w") as devnull:
         subprocess.check_call(
-            [
-                "isort",
+            isort_call
+            + [
                 "-q",  # quiet, but stdout is still garbage
                 "-ot",  # Order imports by type in addition to alphabetically
                 "-m3",  # "vert-hanging"
@@ -216,13 +244,15 @@ def autoformat(filename, abort=False):
 
         _cleanupImportSortOrder(filename)
 
-    if os.name == "nt":
-        _cleanupWindowsNewlines(filename)
-
     _cleanupTrailingWhitespace(filename)
 
     if is_python:
-        subprocess.call(["black", "-q", filename])
+        black_call = _getPythonBinaryCall("black")
+
+        subprocess.call(black_call + ["-q", filename])
+
+    if getOS() == "Windows":
+        _cleanupWindowsNewlines(filename)
 
     changed = False
     if old_code != getFileContents(filename):
