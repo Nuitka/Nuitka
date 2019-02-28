@@ -140,7 +140,7 @@ unstripped_mode = getBoolOption("unstripped_mode", False)
 
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
-if macosx_target or ("freebsd" in sys.platform and os.uname()[4] != "powerpc"):
+if macosx_target or ("freebsd" in sys.platform and os.uname()[4] != "powerpc"):  # @UndefinedVariable
     clang_mode = True
 
 # MinGW compiler mode, optional and interesting to Windows only.
@@ -566,6 +566,8 @@ def setupSpawn(env):
                     "C:\\msys64\\usr\\bin\\ccache.exe"
                 ):
                     cmdline = cmdline[29:]
+
+                    print("Using", getExecutablePath(cmdline.split()[0], True))
                 continue
             else:
                 break

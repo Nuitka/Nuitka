@@ -304,7 +304,7 @@ def shallDisableConsoleWindow():
 
 
 def isFullCompat():
-    return not options.improved
+    return options is not None and not options.improved
 
 
 def isShowProgress():
