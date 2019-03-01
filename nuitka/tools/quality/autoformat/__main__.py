@@ -21,21 +21,20 @@
 
 """
 
+import glob
 import os
 import sys
 from optparse import OptionParser
 
+from nuitka.tools.Basics import goHome
+from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print
 
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought be there.
-sys.path.insert(
-    0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-)
+from .Autoformat import autoformat
 
-from nuitka.tools.Basics import goHome  # isort:skip
-from nuitka.tools.quality.ScanSources import scanTargets  # isort:skip
-from .Autoformat import autoformat  # isort:skip
+
+def resolveShellPatternToFilenames(pattern):
+    return glob.glob(pattern)
 
 
 def main():
@@ -62,9 +61,21 @@ def main():
     options, positional_args = parser.parse_args()
 
     if not positional_args:
-        positional_args = ["bin", "nuitka"]
+        positional_args = [
+            "bin",
+            "nuitka",
+            # "tests/*/run_all.py"
+        ]
 
     my_print("Working on:", positional_args)
+
+    positional_args = sum(
+        (
+            resolveShellPatternToFilenames(positional_arg)
+            for positional_arg in positional_args
+        ),
+        [],
+    )
 
     positional_args = [
         os.path.abspath(positional_arg) for positional_arg in positional_args
