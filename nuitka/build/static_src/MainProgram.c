@@ -239,13 +239,16 @@ int main(int argc, char **argv) {
 #if defined(PYTHON_HOME_PATH)
     NUITKA_PRINT_TRACE("main(): Prepare run environment PYTHONHOME.");
     {
-        char buffer[MAXPATHLEN + 10];
-
-        strcpy(buffer, "PYTHONHOME=");
-        strcat(buffer, PYTHON_HOME_PATH);
-
-        int res = putenv(buffer);
+#if !defined(_WIN32) || PYTHON_VERSION < 360
+        int res = putenv("PYTHONHOME=" PYTHON_HOME_PATH);
         assert(res == 0);
+#else
+        wchar_t *v= Py_DecodeLocale(PYTHON_HOME_PATH "\\lib", NULL);
+        assert( v != NULL);
+
+        Py_SetPath(v);
+        PyMem_RawFree(v);
+#endif
     }
 #endif
 

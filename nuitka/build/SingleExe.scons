@@ -1795,8 +1795,8 @@ build_definitions = {}
 if uninstalled_python:
     if win_target:
         build_definitions["DLL_EXTRA_PATH"] = os.path.dirname(getWindowsPythonDLLPath())
-    else:
-        build_definitions["PYTHON_HOME_PATH"] = python_prefix
+
+    build_definitions["PYTHON_HOME_PATH"] = python_prefix
 
 
 def makeCLiteral(value):
