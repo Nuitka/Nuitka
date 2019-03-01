@@ -412,7 +412,7 @@ Fastest C Compilers
 -------------------
 
 The fastest binaries of ``pystone.exe`` on Windows with 64 bits Python proved
-to be signicantly faster with MinGW64, roughly 20% better score. So it is
+to be significantly faster with MinGW64, roughly 20% better score. So it is
 recommended for use over MSVC. Using ``clang-cl.exe`` of Clang7 was faster
 than MSVC, but still significantly slower than MinGW64, and it will be harder
 to use, so it is not recommended.
@@ -435,7 +435,7 @@ all contained in one binary.
 So if feasible, aim at static linking, which is currently only possible with
 AnaConda Python on non-Windows.
 
-Windows Standalone executables and dependecies
+Windows Standalone executables and dependencies
 ----------------------------------------------
 
 The process of making Standalone executables for Windows traditionnaly involves
