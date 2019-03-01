@@ -28,11 +28,9 @@ sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
-            os.path.dirname(os.path.abspath(__file__.replace("\\", os.sep))),
-            "..",
-            ".."
+            os.path.dirname(os.path.abspath(__file__.replace("\\", os.sep))), "..", ".."
         )
-    )
+    ),
 )
 from nuitka.tools.testing.Common import (
     my_print,
@@ -42,11 +40,11 @@ from nuitka.tools.testing.Common import (
     decideFilenameVersionSkip,
     getRuntimeTraceOfLoadedFiles,
     createSearchMode,
-    reportSkip
+    reportSkip,
 )
 from nuitka.utils.FileOperations import removeDirectory
 
-python_version = setup(needs_io_encoding = True)
+python_version = setup(needs_io_encoding=True)
 
 search_mode = createSearchMode()
 
@@ -58,62 +56,212 @@ search_mode.mayFailFor(
 
 
 _win_dll_whitelist = (
-    "SHELL32.DLL","USER32.DLL","KERNEL32.DLL",
-    "NTDLL.DLL", "NETUTILS.DLL", "LOGONCLI.DLL", "GDI32.DLL",
-    "RPCRT4.DLL", "ADVAPI32.DLL", "SSPICLI.DLL", "SECUR32.DLL",
-    "KERNELBASE.DLL", "WINBRAND.DLL", "DSROLE.DLL", "DNSAPI.DLL",
-    "SAMCLI.DLL", "WKSCLI.DLL", "SAMLIB.DLL", "WLDAP32.DLL",
-    "NTDSAPI.DLL", "CRYPTBASE.DLL", "W32TOPL", "WS2_32.DLL",
-    "SPPC.DLL", "MSSIGN32.DLL", "CERTCLI.DLL", "WEBSERVICES.DLL",
-    "AUTHZ.DLL", "CERTENROLL.DLL", "VAULTCLI.DLL", "REGAPI.DLL",
-    "BROWCLI.DLL", "WINNSI.DLL", "DHCPCSVC6.DLL", "PCWUM.DLL",
-    "CLBCATQ.DLL", "IMAGEHLP.DLL", "MSASN1.DLL", "DBGHELP.DLL",
-    "DEVOBJ.DLL", "DRVSTORE.DLL", "CABINET.DLL", "SCECLI.DLL",
-    "SPINF.DLL", "SPFILEQ.DLL", "GPAPI.DLL", "NETJOIN.DLL",
-    "W32TOPL.DLL", "NETBIOS.DLL", "DXGI.DLL", "DWRITE.DLL",
-    "D3D11.DLL", "WLANAPI.DLL", "WLANUTIL.DLL", "ONEX.DLL",
-    "EAPPPRXY.DLL", "MFPLAT.DLL", "AVRT.DLL", "ELSCORE.DLL",
-    "INETCOMM.DLL", "MSOERT2.DLL", "IEUI.DLL", "MSCTF.DLL",
-    "MSFEEDS.DLL", "UIAUTOMATIONCORE.DLL", "PSAPI.DLL",
-    "EFSADU.DLL", "MFC42U.DLL", "ODBC32.DLL", "OLEDLG.DLL",
-    "NETAPI32.DLL", "LINKINFO.DLL", "DUI70.DLL", "ADVPACK.DLL",
-    "NTSHRUI.DLL", "WINSPOOL.DRV", "EFSUTIL.DLL", "WINSCARD.DLL",
-    "SHDOCVW.DLL", "IEFRAME.DLL", "D2D1.DLL", "GDIPLUS.DLL",
-    "OCCACHE.DLL", "IEADVPACK.DLL", "MLANG.DLL", "MSI.DLL",
-    "MSHTML.DLL", "COMDLG32.DLL", "PRINTUI.DLL", "PUIAPI.DLL",
-    "ACLUI.DLL", "WTSAPI32.DLL", "FMS.DLL", "DFSCLI.DLL",
-    "HLINK.DLL", "MSRATING.DLL", "PRNTVPT.DLL", "IMGUTIL.DLL",
-    "MSLS31.DLL", "VERSION.DLL", "NORMALIZ.DLL", "IERTUTIL.DLL",
-    "WININET.DLL", "WINTRUST.DLL", "XMLLITE.DLL", "APPHELP.DLL",
-    "PROPSYS.DLL", "RSTRTMGR.DLL", "NCRYPT.DLL", "BCRYPT.DLL",
-    "MMDEVAPI.DLL", "MSILTCFG.DLL", "DEVMGR.DLL", "DEVRTL.DLL",
-    "NEWDEV.DLL", "VPNIKEAPI.DLL", "WINHTTP.DLL", "WEBIO.DLL",
-    "NSI.DLL", "DHCPCSVC.DLL", "CRYPTUI.DLL", "ESENT.DLL",
-    "DAVHLPR.DLL", "CSCAPI.DLL", "ATL.DLL", "OLEAUT32.DLL",
-    "SRVCLI.DLL", "RASDLG.DLL", "MPRAPI.DLL", "RTUTILS.DLL",
-    "RASMAN.DLL", "MPRMSG.DLL", "SLC.DLL", "CRYPTSP.DLL",
-    "RASAPI32.DLL", "TAPI32.DLL", "EAPPCFG.DLL", "NDFAPI.DLL",
-    "WDI.DLL", "COMCTL32.DLL", "UXTHEME.DLL", "IMM32.DLL",
-    "OLEACC.DLL", "WINMM.DLL", "WINDOWSCODECS.DLL", "DWMAPI.DLL",
-    "DUSER.DLL", "PROFAPI.DLL", "URLMON.DLL", "SHLWAPI.DLL",
-    "LPK.DLL", "USP10.DLL", "CFGMGR32.DLL", "MSIMG32.DLL",
-    "POWRPROF.DLL", "SETUPAPI.DLL", "WINSTA.DLL", "CRYPT32.DLL",
-    "IPHLPAPI.DLL", "MPR.DLL", "CREDUI.DLL", "NETPLWIZ.DLL",
-    "OLE32.DLL", "ACTIVEDS.DLL", "ADSLDPC.DLL", "USERENV.DLL",
-    "APPREPAPI.DLL", "BCP47LANGS.DLL", "BCRYPTPRIMITIVES.DLL",
-    "CERTCA.DLL", "CHARTV.DLL", "COMBASE.DLL", "COML2.DLL",
-    "DCOMP.DLL", "DPAPI.DLL", "DSPARSE.DLL", "FECLIENT.DLL",
-    "FIREWALLAPI.DLL", "FLTLIB.DLL", "MRMCORER.DLL", "NTASN1.DLL",
-    "SECHOST.DLL", "SETTINGSYNCPOLICY.DLL", "SHCORE.DLL", "TBS.DLL",
-    "TWINAPI.APPCORE.DLL", "TWINAPI.DLL", "VIRTDISK.DLL",
-    "WEBSOCKET.DLL", "WEVTAPI.DLL", "WINMMBASE.DLL", "WMICLNT.DLL",
-    "UCRTBASE.DLL", "TOKENBINDING.DLL", "ICUUC.DLL", "DRVSETUP.DLL",
-    "HTTPAPI.DLL", "WDSCORE.DLL", "ICUIN.DLL", "WFDSCONMGR.DLL",
+    "SHELL32.DLL",
+    "USER32.DLL",
+    "KERNEL32.DLL",
+    "NTDLL.DLL",
+    "NETUTILS.DLL",
+    "LOGONCLI.DLL",
+    "GDI32.DLL",
+    "RPCRT4.DLL",
+    "ADVAPI32.DLL",
+    "SSPICLI.DLL",
+    "SECUR32.DLL",
+    "KERNELBASE.DLL",
+    "WINBRAND.DLL",
+    "DSROLE.DLL",
+    "DNSAPI.DLL",
+    "SAMCLI.DLL",
+    "WKSCLI.DLL",
+    "SAMLIB.DLL",
+    "WLDAP32.DLL",
+    "NTDSAPI.DLL",
+    "CRYPTBASE.DLL",
+    "W32TOPL",
+    "WS2_32.DLL",
+    "SPPC.DLL",
+    "MSSIGN32.DLL",
+    "CERTCLI.DLL",
+    "WEBSERVICES.DLL",
+    "AUTHZ.DLL",
+    "CERTENROLL.DLL",
+    "VAULTCLI.DLL",
+    "REGAPI.DLL",
+    "BROWCLI.DLL",
+    "WINNSI.DLL",
+    "DHCPCSVC6.DLL",
+    "PCWUM.DLL",
+    "CLBCATQ.DLL",
+    "IMAGEHLP.DLL",
+    "MSASN1.DLL",
+    "DBGHELP.DLL",
+    "DEVOBJ.DLL",
+    "DRVSTORE.DLL",
+    "CABINET.DLL",
+    "SCECLI.DLL",
+    "SPINF.DLL",
+    "SPFILEQ.DLL",
+    "GPAPI.DLL",
+    "NETJOIN.DLL",
+    "W32TOPL.DLL",
+    "NETBIOS.DLL",
+    "DXGI.DLL",
+    "DWRITE.DLL",
+    "D3D11.DLL",
+    "D3D11ON12.DLL",
+    "WLANAPI.DLL",
+    "WLANUTIL.DLL",
+    "ONEX.DLL",
+    "EAPPPRXY.DLL",
+    "MFPLAT.DLL",
+    "AVRT.DLL",
+    "ELSCORE.DLL",
+    "INETCOMM.DLL",
+    "MSOERT2.DLL",
+    "IEUI.DLL",
+    "MSCTF.DLL",
+    "MSFEEDS.DLL",
+    "UIAUTOMATIONCORE.DLL",
+    "PSAPI.DLL",
+    "EFSADU.DLL",
+    "MFC42U.DLL",
+    "ODBC32.DLL",
+    "OLEDLG.DLL",
+    "NETAPI32.DLL",
+    "LINKINFO.DLL",
+    "DUI70.DLL",
+    "ADVPACK.DLL",
+    "NTSHRUI.DLL",
+    "WINSPOOL.DRV",
+    "EFSUTIL.DLL",
+    "WINSCARD.DLL",
+    "SHDOCVW.DLL",
+    "IEFRAME.DLL",
+    "D2D1.DLL",
+    "GDIPLUS.DLL",
+    "OCCACHE.DLL",
+    "IEADVPACK.DLL",
+    "MLANG.DLL",
+    "MSI.DLL",
+    "MSHTML.DLL",
+    "COMDLG32.DLL",
+    "PRINTUI.DLL",
+    "PUIAPI.DLL",
+    "ACLUI.DLL",
+    "WTSAPI32.DLL",
+    "FMS.DLL",
+    "DFSCLI.DLL",
+    "HLINK.DLL",
+    "MSRATING.DLL",
+    "PRNTVPT.DLL",
+    "IMGUTIL.DLL",
+    "MSLS31.DLL",
+    "VERSION.DLL",
+    "NORMALIZ.DLL",
+    "IERTUTIL.DLL",
+    "WININET.DLL",
+    "WINTRUST.DLL",
+    "XMLLITE.DLL",
+    "APPHELP.DLL",
+    "PROPSYS.DLL",
+    "RSTRTMGR.DLL",
+    "NCRYPT.DLL",
+    "BCRYPT.DLL",
+    "MMDEVAPI.DLL",
+    "MSILTCFG.DLL",
+    "DEVMGR.DLL",
+    "DEVRTL.DLL",
+    "NEWDEV.DLL",
+    "VPNIKEAPI.DLL",
+    "WINHTTP.DLL",
+    "WEBIO.DLL",
+    "NSI.DLL",
+    "DHCPCSVC.DLL",
+    "CRYPTUI.DLL",
+    "ESENT.DLL",
+    "DAVHLPR.DLL",
+    "CSCAPI.DLL",
+    "ATL.DLL",
+    "OLEAUT32.DLL",
+    "SRVCLI.DLL",
+    "RASDLG.DLL",
+    "MPRAPI.DLL",
+    "RTUTILS.DLL",
+    "RASMAN.DLL",
+    "MPRMSG.DLL",
+    "SLC.DLL",
+    "CRYPTSP.DLL",
+    "RASAPI32.DLL",
+    "TAPI32.DLL",
+    "EAPPCFG.DLL",
+    "NDFAPI.DLL",
+    "WDI.DLL",
+    "COMCTL32.DLL",
+    "UXTHEME.DLL",
+    "IMM32.DLL",
+    "OLEACC.DLL",
+    "WINMM.DLL",
+    "WINDOWSCODECS.DLL",
+    "DWMAPI.DLL",
+    "DUSER.DLL",
+    "PROFAPI.DLL",
+    "URLMON.DLL",
+    "SHLWAPI.DLL",
+    "LPK.DLL",
+    "USP10.DLL",
+    "CFGMGR32.DLL",
+    "MSIMG32.DLL",
+    "POWRPROF.DLL",
+    "SETUPAPI.DLL",
+    "WINSTA.DLL",
+    "CRYPT32.DLL",
+    "IPHLPAPI.DLL",
+    "MPR.DLL",
+    "CREDUI.DLL",
+    "NETPLWIZ.DLL",
+    "OLE32.DLL",
+    "ACTIVEDS.DLL",
+    "ADSLDPC.DLL",
+    "USERENV.DLL",
+    "APPREPAPI.DLL",
+    "BCP47LANGS.DLL",
+    "BCRYPTPRIMITIVES.DLL",
+    "CERTCA.DLL",
+    "CHARTV.DLL",
+    "COMBASE.DLL",
+    "COML2.DLL",
+    "DCOMP.DLL",
+    "DPAPI.DLL",
+    "DSPARSE.DLL",
+    "FECLIENT.DLL",
+    "FIREWALLAPI.DLL",
+    "FLTLIB.DLL",
+    "MRMCORER.DLL",
+    "NTASN1.DLL",
+    "SECHOST.DLL",
+    "SETTINGSYNCPOLICY.DLL",
+    "SHCORE.DLL",
+    "TBS.DLL",
+    "TWINAPI.APPCORE.DLL",
+    "TWINAPI.DLL",
+    "VIRTDISK.DLL",
+    "WEBSOCKET.DLL",
+    "WEVTAPI.DLL",
+    "WINMMBASE.DLL",
+    "WMICLNT.DLL",
+    "UCRTBASE.DLL",
+    "TOKENBINDING.DLL",
+    "ICUUC.DLL",
+    "DRVSETUP.DLL",
+    "HTTPAPI.DLL",
+    "WDSCORE.DLL",
+    "ICUIN.DLL",
+    "WFDSCONMGR.DLL",
     "MFC140U.DLL",
     "MFCM140U.DLL",
 )
 
-for filename in sorted(os.listdir('.')):
+for filename in sorted(os.listdir(".")):
     if not filename.endswith(".py"):
         continue
 
@@ -122,28 +270,27 @@ for filename in sorted(os.listdir('.')):
 
     path = os.path.relpath(filename)
 
-    active = search_mode.consider(dirname = None, filename = filename)
+    active = search_mode.consider(dirname=None, filename=filename)
 
     if not active:
         my_print("Skipping", filename)
         continue
 
-    extra_flags = [
-        "expect_success",
-        "standalone",
-        "remove_output"
-    ]
+    extra_flags = ["expect_success", "standalone", "remove_output"]
 
     if filename == "PySideUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
-        if python_version.startswith("2.6") or \
-           python_version.startswith("3.2"):
+        if python_version.startswith("2.6") or python_version.startswith("3.2"):
             reportSkip("irrelevant Python version", ".", filename)
             continue
 
         if not hasModule("PySide.QtCore"):
-            reportSkip("PySide not installed for this Python version, but test needs it", ".", filename )
+            reportSkip(
+                "PySide not installed for this Python version, but test needs it",
+                ".",
+                filename,
+            )
             continue
 
         # For the warnings.
@@ -152,13 +299,16 @@ for filename in sorted(os.listdir('.')):
     if "PyQt4" in filename:
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
-        if python_version.startswith("2.6") or \
-           python_version.startswith("3.2"):
+        if python_version.startswith("2.6") or python_version.startswith("3.2"):
             reportSkip("irrelevant Python version", ".", filename)
             continue
 
         if not hasModule("PyQt4.QtGui"):
-            reportSkip("PyQt4 not installed for this Python version, but test needs it", ".", filename)
+            reportSkip(
+                "PyQt4 not installed for this Python version, but test needs it",
+                ".",
+                filename,
+            )
             continue
 
         # For the plug-in information.
@@ -166,7 +316,11 @@ for filename in sorted(os.listdir('.')):
 
     if "Idna" in filename:
         if not hasModule("idna.core"):
-            reportSkip("idna not installed for this Python version, but test needs it", ".", filename)
+            reportSkip(
+                "idna not installed for this Python version, but test needs it",
+                ".",
+                filename,
+            )
             continue
 
         # For the warnings of Python2.
@@ -176,13 +330,16 @@ for filename in sorted(os.listdir('.')):
     if "PyQt5" in filename:
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
-        if python_version.startswith("2.6") or \
-           python_version.startswith("3.2"):
+        if python_version.startswith("2.6") or python_version.startswith("3.2"):
             reportSkip("irrelevant Python version", ".", filename)
             continue
 
         if not hasModule("PyQt5.QtGui"):
-            reportSkip("PyQt5 not installed for this Python version, but test needs it", ".", filename)
+            reportSkip(
+                "PyQt5 not installed for this Python version, but test needs it",
+                ".",
+                filename,
+            )
             continue
 
         # For the plug-in information.
@@ -201,13 +358,16 @@ for filename in sorted(os.listdir('.')):
     if filename == "GtkUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
-        if python_version.startswith("2.6") or \
-           python_version.startswith("3.2"):
+        if python_version.startswith("2.6") or python_version.startswith("3.2"):
             reportSkip("irrelevant Python version", ".", filename)
             continue
 
         if not hasModule("pygtk"):
-            reportSkip("pygtk not installed for this Python version, but test needs it", ".", filename)
+            reportSkip(
+                "pygtk not installed for this Python version, but test needs it",
+                ".",
+                filename,
+            )
             continue
 
         # For the warnings.
@@ -220,22 +380,38 @@ for filename in sorted(os.listdir('.')):
 
     if filename == "Win32ComUsing.py":
         if not hasModule("win32com"):
-            reportSkip("win32com not installed for this Python version, but test needs it", ".", filename)
+            reportSkip(
+                "win32com not installed for this Python version, but test needs it",
+                ".",
+                filename,
+            )
             continue
 
     if filename == "LxmlUsing.py":
         if not hasModule("lxml.etree"):
-            reportSkip("lxml.etree not installed for this Python version, but test needs it", ".", filename)
+            reportSkip(
+                "lxml.etree not installed for this Python version, but test needs it",
+                ".",
+                filename,
+            )
             continue
 
     if filename == "TkInterUsing.py":
         if python_version.startswith("2"):
             if not hasModule("Tkinter"):
-                reportSkip("Tkinter not installed for this Python version, but test needs it", ".", filename)
+                reportSkip(
+                    "Tkinter not installed for this Python version, but test needs it",
+                    ".",
+                    filename,
+                )
                 continue
         else:
             if not hasModule("tkinter"):
-                reportSkip("tkinter not installed for this Python version, but test needs it", ".", filename)
+                reportSkip(
+                    "tkinter not installed for this Python version, but test needs it",
+                    ".",
+                    filename,
+                )
                 continue
 
             # For the warnings.
@@ -246,7 +422,11 @@ for filename in sorted(os.listdir('.')):
 
     if filename == "FlaskUsing.py":
         if not hasModule("flask"):
-            reportSkip( "flask not installed for this Python version, but test needs it", ".", filename)
+            reportSkip(
+                "flask not installed for this Python version, but test needs it",
+                ".",
+                filename,
+            )
             continue
 
         # For the warnings.
@@ -258,21 +438,33 @@ for filename in sorted(os.listdir('.')):
         continue
 
         if not hasModule("numpy"):
-            reportSkip("numpy not installed for this Python version, but test needs it", ".", filename)
+            reportSkip(
+                "numpy not installed for this Python version, but test needs it",
+                ".",
+                filename,
+            )
             continue
 
         extra_flags.append("plugin_enable:data-files")
 
     if filename == "PmwUsing.py":
         if not hasModule("Pwm"):
-            reportSkip("Pwm not installed for this Python version, but test needs it", ".", filename)
+            reportSkip(
+                "Pwm not installed for this Python version, but test needs it",
+                ".",
+                filename,
+            )
             continue
 
         extra_flags.append("plugin_enable:pmw-freeze")
 
     if filename == "OpenGLUsing.py":
         if not hasModule("OpenGL"):
-            reportSkip("OpenGL not installed for this Python version, but test needs it", ".", filename)
+            reportSkip(
+                "OpenGL not installed for this Python version, but test needs it",
+                ".",
+                filename,
+            )
             continue
 
         # For the warnings.
@@ -282,11 +474,11 @@ for filename in sorted(os.listdir('.')):
 
     # First compare so we know the program behaves identical.
     compareWithCPython(
-        dirname     = None,
-        filename    = filename,
-        extra_flags = extra_flags,
-        search_mode = search_mode,
-        needs_2to3  = False
+        dirname=None,
+        filename=filename,
+        extra_flags=extra_flags,
+        search_mode=search_mode,
+        needs_2to3=False,
     )
 
     # Second check if glibc libraries haven't been accidentaly
@@ -320,18 +512,20 @@ for filename in sorted(os.listdir('.')):
                 "librt.so.",
                 "libthread_db-1.0.so",
                 "libthread_db.so.",
-                "libutil.so."
+                "libutil.so.",
             )
         ):
             found_glibc_libs.append(dist_filename)
 
     if len(found_glibc_libs):
-        my_print("Should not ship glibc libraries with the standalone executable (found %s)" % found_glibc_libs)
+        my_print(
+            "Should not ship glibc libraries with the standalone executable (found %s)"
+            % found_glibc_libs
+        )
         sys.exit(1)
 
     binary_filename = path = os.path.join(
-        filename[:-3] + ".dist",
-        filename[:-3] + (".exe" if os.name == "nt" else "")
+        filename[:-3] + ".dist", filename[:-3] + (".exe" if os.name == "nt" else "")
     )
 
     # Then use "strace" on the result.
@@ -383,7 +577,13 @@ for filename in sorted(os.listdir('.')):
         if "gtk" in loaded_filename and "/engines/" in loaded_filename:
             continue
 
-        if loaded_filename in ("/usr", "/usr/local", "/usr/local/lib", "/usr/share", "/usr/local/share"):
+        if loaded_filename in (
+            "/usr",
+            "/usr/local",
+            "/usr/local/lib",
+            "/usr/share",
+            "/usr/local/share",
+        ):
             continue
 
         # TCL/tk for tkinter
@@ -393,65 +593,63 @@ for filename in sorted(os.listdir('.')):
             continue
 
         # Taking these from system is harmless and desirable
-        if loaded_basename.startswith((
-            "libz.so",
-            "libgcc_s.so",
-        )):
+        if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
             continue
 
         # System C libraries are to be expected.
-        if loaded_basename.startswith((
-            "ld-linux-x86-64.so",
-            "libc.so.",
-            "libpthread.so.",
-            "libm.so.",
-            "libdl.so.",
-            "libBrokenLocale.so.",
-            "libSegFault.so",
-            "libanl.so.",
-            "libcidn.so.",
-            "libcrypt.so.",
-            "libmemusage.so",
-            "libmvec.so.",
-            "libnsl.so.",
-            "libnss_compat.so.",
-            "libnss_db.so.",
-            "libnss_dns.so.",
-            "libnss_files.so.",
-            "libnss_hesiod.so.",
-            "libnss_nis.so.",
-            "libnss_nisplus.so.",
-            "libpcprofile.so",
-            "libresolv.so.",
-            "librt.so.",
-            "libthread_db-1.0.so",
-            "libthread_db.so.",
-            "libutil.so."
-        )):
+        if loaded_basename.startswith(
+            (
+                "ld-linux-x86-64.so",
+                "libc.so.",
+                "libpthread.so.",
+                "libm.so.",
+                "libdl.so.",
+                "libBrokenLocale.so.",
+                "libSegFault.so",
+                "libanl.so.",
+                "libcidn.so.",
+                "libcrypt.so.",
+                "libmemusage.so",
+                "libmvec.so.",
+                "libnsl.so.",
+                "libnss_compat.so.",
+                "libnss_db.so.",
+                "libnss_dns.so.",
+                "libnss_files.so.",
+                "libnss_hesiod.so.",
+                "libnss_nis.so.",
+                "libnss_nisplus.so.",
+                "libpcprofile.so",
+                "libresolv.so.",
+                "librt.so.",
+                "libthread_db-1.0.so",
+                "libthread_db.so.",
+                "libutil.so.",
+            )
+        ):
             continue
 
         # Loaded by C library potentially for DNS lookups.
-        if loaded_basename.startswith((
-            "libnss_",
-            "libnsl",
-
-            # Some systems load a lot more, this is CentOS 7 on OBS
-            'libattr.so.',
-            'libbz2.so.',
-            'libcap.so.',
-            'libdw.so.',
-            'libelf.so.',
-            'liblzma.so.',
-
-            # Some systems load a lot more, this is Fedora 26 on OBS
-            "libselinux.so.",
-            "libpcre.so.",
-
-            # And this is Fedora 29 on OBS
-            "libblkid.so.",
-            "libmount.so.",
-            "libpcre2-8.so.",
-        )):
+        if loaded_basename.startswith(
+            (
+                "libnss_",
+                "libnsl",
+                # Some systems load a lot more, this is CentOS 7 on OBS
+                "libattr.so.",
+                "libbz2.so.",
+                "libcap.so.",
+                "libdw.so.",
+                "libelf.so.",
+                "liblzma.so.",
+                # Some systems load a lot more, this is Fedora 26 on OBS
+                "libselinux.so.",
+                "libpcre.so.",
+                # And this is Fedora 29 on OBS
+                "libblkid.so.",
+                "libmount.so.",
+                "libpcre2-8.so.",
+            )
+        ):
             continue
 
         # Loaded by dtruss on macOS X.
@@ -467,15 +665,16 @@ for filename in sorted(os.listdir('.')):
             continue
 
         # Loading from home directories is OK too.
-        if loaded_filename.startswith("/home/") or \
-           loaded_filename.startswith("/data/") or \
-           loaded_filename.startswith("/root/") or \
-           loaded_filename in ("/home", "/data", "/root"):
+        if (
+            loaded_filename.startswith("/home/")
+            or loaded_filename.startswith("/data/")
+            or loaded_filename.startswith("/root/")
+            or loaded_filename in ("/home", "/data", "/root")
+        ):
             continue
 
         # For Debian builders, /build is OK too.
-        if loaded_filename.startswith("/build/") or \
-           loaded_filename == "/build":
+        if loaded_filename.startswith("/build/") or loaded_filename == "/build":
             continue
 
         # TODO: Unclear, loading gconv from filesystem of installed system
@@ -492,27 +691,32 @@ for filename in sorted(os.listdir('.')):
             continue
 
         # PySide accesses its directory.
-        if loaded_filename == "/usr/lib/python" + \
-           python_version[:3] + \
-              "/dist-packages/PySide":
+        if (
+            loaded_filename
+            == "/usr/lib/python" + python_version[:3] + "/dist-packages/PySide"
+        ):
             continue
 
         # GTK accesses package directories only.
-        if loaded_filename == "/usr/lib/python" + \
-           python_version[:3] + \
-              "/dist-packages/gtk-2.0/gtk":
+        if (
+            loaded_filename
+            == "/usr/lib/python" + python_version[:3] + "/dist-packages/gtk-2.0/gtk"
+        ):
             continue
-        if loaded_filename == "/usr/lib/python" + \
-           python_version[:3] + \
-              "/dist-packages/glib":
+        if (
+            loaded_filename
+            == "/usr/lib/python" + python_version[:3] + "/dist-packages/glib"
+        ):
             continue
-        if loaded_filename == "/usr/lib/python" + \
-           python_version[:3] + \
-              "/dist-packages/gtk-2.0/gio":
+        if (
+            loaded_filename
+            == "/usr/lib/python" + python_version[:3] + "/dist-packages/gtk-2.0/gio"
+        ):
             continue
-        if loaded_filename == "/usr/lib/python" + \
-           python_version[:3] + \
-              "/dist-packages/gobject":
+        if (
+            loaded_filename
+            == "/usr/lib/python" + python_version[:3] + "/dist-packages/gobject"
+        ):
             continue
 
         # PyQt5 seems to do this, but won't use contents then.
@@ -520,7 +724,7 @@ for filename in sorted(os.listdir('.')):
             "/usr/lib/x86_64-linux-gnu/qt5/plugins",
             "/usr/lib/x86_64-linux-gnu/qt5",
             "/usr/lib/x86_64-linux-gnu",
-            "/usr/lib"
+            "/usr/lib",
         ):
             continue
 
@@ -582,6 +786,6 @@ for filename in sorted(os.listdir('.')):
 
         sys.exit(1)
 
-    removeDirectory(filename[:-3] + ".dist", ignore_errors = True)
+    removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
 
 search_mode.finish()
