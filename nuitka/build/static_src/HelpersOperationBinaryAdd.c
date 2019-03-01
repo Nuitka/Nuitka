@@ -19,6 +19,19 @@
 
 #if PYTHON_VERSION < 300
 // This is Python2 int, for Python3 the LONG variant is to be used.
+PyObject *long_var(PyObject *operand1, PyObject *operand2) {
+    long a = PyInt_AS_LONG(operand1);
+    long b = PyInt_AS_LONG(operand2);
+
+    long i = (long)((unsigned long)a + b);
+
+    // Detect overflow, in which case, a "long" object would have to be
+    // created, which we won't handle here.
+    if ((i ^ a) >= 0 || (i ^ b) >= 0) {
+        return PyInt_FromLong(i);
+    }
+}
+
 PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -26,16 +39,7 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *operand1, PyObject *operand2
     assert(NEW_STYLE_NUMBER(operand2));
 
     if (PyInt_CheckExact(operand1)) {
-        long a = PyInt_AS_LONG(operand1);
-        long b = PyInt_AS_LONG(operand2);
-
-        long i = (long)((unsigned long)a + b);
-
-        // Detect overflow, in which case, a "long" object would have to be
-        // created, which we won't handle here.
-        if ((i ^ a) >= 0 || (i ^ b) >= 0) {
-            return PyInt_FromLong(i);
-        }
+        long_var(PyObject *operand1, PyObject *operand2);
     }
 
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -46,8 +50,7 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *operand1, PyObject *operand2
 
         PyObject *x = slot1(operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
+        if (x != Py_NotImplemented && (unlikely(x == NULL)) {
                 return NULL;
             }
 
@@ -59,14 +62,7 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *operand1, PyObject *operand2
 
     // In-lined nb_add slot from Python int type.
     if (PyInt_Check(operand1)) {
-        long a = PyInt_AS_LONG(operand1);
-        long b = PyInt_AS_LONG(operand2);
-
-        long i = (long)((unsigned long)a + b);
-
-        if ((i ^ a) >= 0 || (i ^ b) >= 0) {
-            return PyInt_FromLong(i);
-        }
+        long_var(PyObject *operand1, PyObject *operand2);
 
         // TODO: Could in-line and specialize this too.
         PyObject *x = PyLong_Type.tp_as_number->nb_add((PyObject *)operand1, (PyObject *)operand2);
