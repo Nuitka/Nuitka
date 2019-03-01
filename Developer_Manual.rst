@@ -907,7 +907,7 @@ Hooking for module ``import`` process
 -------------------------------------
 
 Currently, in generated code, for every ``import`` a normal ``__import__()``
-built-in call is executed. The ``nuitka/build/static_src/ModuleUnfreezer.c``
+built-in call is executed. The ``nuitka/build/static_src/MetaPathBasedLoader.c``
 file provides the implementation of a ``sys.meta_path`` hook.
 
 This meta path based importer allows us to have the Nuitka provided module
