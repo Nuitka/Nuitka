@@ -25,9 +25,9 @@ def someUnpackingFunction():
     return i1+i2+i3
 
 
-print someFunction()
+print someUnpackingFunction()
 
 def someShortUnpackingFunction():
-    a, b = 1,
-
-someShortUnpackingFunction()
+    a, b = 1,2
+    return a*b                  #return a,b
+print someShortUnpackingFunction()
