@@ -30,6 +30,7 @@ import sys
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import getFileContents
+from nuitka.utils.Shebang import getShebangFromFile
 from nuitka.utils.Utils import getOS
 
 
@@ -237,7 +238,14 @@ def autoformat(filename, abort=False):
 
     old_code = getFileContents(filename)
 
-    is_python = not filename.endswith((".rst", ".txt"))
+    is_python = False
+    if filename.endswith((".py", ".pyw")):
+        is_python = True
+    else:
+        shebang = getShebangFromFile(filename)
+
+        if shebang is not None and shebang.startswith("python"):
+            shebang = True
 
     if is_python:
         _cleanupPyLintComments(filename, abort)
