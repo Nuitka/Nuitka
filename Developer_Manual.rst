@@ -125,6 +125,85 @@ Regarding Types, the state is:
 
 The limitation to only do ``PyObject *`` will soon go away.
 
+Setting up the Development Environment for Nuitka
+=================================================
+
+Currently there are 3 kinds of files that we need support for. This is best
+addressed with an IDE. We cover here how to setup the common ones.
+
+Eclipse
+-------
+
+At this time, this is the recommended IDE for Linux and Windows. This is going
+to cover that plugins to install. If you are not familiar with Eclipse, this is
+a Java IDE, but designed to be universally extended, and it truly is. There are
+plugins available for nearly everything.
+
+Download Eclipse from here: https://www.eclipse.org/downloads/packages/
+
+Pick "Eclipse IDE for C/C++ Developers" as that comes with everything useful
+for C development included. Install it.
+
+After launching, you see a welcome screen. But Eclipse will need more setup
+to become a useful IDE. Go to menu point ``Help``/``Eclipse Marketplace`` as
+that is the easiest way to install your plugins. Install these ones:
+
+- PyDev (Python IDE for Eclipse)
+
+  This is for the majority of code in Nuitka, the Python code, to easily
+  navigate and search it, as well as autocompletion.
+
+- AnyEdit Tools
+
+  Proper whitespace handling for Eclipse, this strips trailing whitespace, which
+  Eclipse doesn't handle outside of Java.
+
+- ReST Editor
+
+  This is good for editing the User Manual, Developer Manual, and generally all
+  documentation of Nuitka.
+
+
+PyCharm
+-------
+
+TODO.
+
+VSCode
+------
+
+TODO
+
+Commit and Code Hygiene
+=======================
+
+In Nuitka we have tools to autoformat code, you can execute them
+manually, but it's probably best to execute them at commit time,
+to make sure when we share code, it's already well format, and
+to avoid noise doing cleanups.
+
+The kinds of changes also often cause unnecessary merge
+conflicts, while the autoformat is designed to format code also
+in a way that it avoids merge conflicts in the normal case, e.g. by
+doing imports one item per line.
+
+In order to set up hooks, you need to execute these commands on
+Linux and alikes:
+
+.. code-block:: sh
+
+   git config core.hooksPath .githooks
+   find .git/hooks -type l -exec rm {} \; && find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
+
+For Windows do this:
+
+.. code-block:: sh
+
+   TODO
+
+These commands will make sure that the `autoformat-nuitka-source`
+is run on every changed file at the time you do the commit.
+
 Coding Rules Python
 ===================
 
@@ -312,7 +391,7 @@ The "git flow" model
 
 
 API Documentation and Guidelines
-=================================
+================================
 
 There is API documentation generated with ``doxygen``, available at `this
 location <http://nuitka.net/apidoc>`__ .
@@ -321,12 +400,12 @@ To ensure meaningful ``doxygen`` output, the following guidelines must be
 observed when creating or updating Python source:
 
 Use of Standard Python ``"__doc__"`` Strings
-----------------------------------------------
+--------------------------------------------
 Every class and every method **must be documented** via the standard Python
 delimiters (``""" ... """``) in the usual way.
 
 Special ``doxygen`` Anatomy of ``"__doc__"``
--------------------------------------------------
+--------------------------------------------
 * Immediately after the leading ``"""``, and after 1 space on the same line,
   enter a brief description or title of the class or method. This must be 1
   line and be followed by at least 1 empty line.
@@ -366,7 +445,7 @@ Special ``doxygen`` Anatomy of ``"__doc__"``
         Notes:
             It does one or the other indispensable things based on some parameters
             and proudly returns a dictionary.
-    
+
         Args:
             p1: parameter one
             p2: parameter two
@@ -377,13 +456,13 @@ Special ``doxygen`` Anatomy of ``"__doc__"``
 
         Returns:
             A dictionary calculated from the input.
-            
+
         Raises:
             ValueError, IndexError
-            
+
         Examples:
             >>> foo(1, 2, kw1=3, kw2=4)
-            {'a': 4, 'b': 6} 
+            {'a': 4, 'b': 6}
         """
 
 Checking the Source
@@ -3771,12 +3850,6 @@ The mix-ins prevent slots usage, so lets try and get rid of those. The "children
 having" should become more simple and faster code. I am even thinking of even
 generating code in the meta class, so it's both optimal and doesn't need that
 mix-in any more. This is going to be ugly then.
-
-Plugins API and Options
------------------------
-
-Plugins need options and should be documented API. So should the doxygen be
-generated automatically and published.
 
 Coverage Testing
 ----------------
