@@ -192,17 +192,19 @@ Linux and alikes:
 
 .. code-block:: sh
 
-   git config core.hooksPath .githooks
-   find .git/hooks -type l -exec rm {} \; && find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
+   ./misc/install-git-hooks.py
 
 For Windows do this:
 
 .. code-block:: sh
 
-   TODO
+   # Where python is the one which has the development requirements, can
+   # be a full PATH.
+   python -m pip install requirements-devel.txt
+   python .\misc\install-git-hooks.py
 
-These commands will make sure that the `autoformat-nuitka-source`
-is run on every changed file at the time you do the commit.
+These commands will make sure that the `autoformat-nuitka-source` is run on
+every changed file at the time you do the commit.
 
 Coding Rules Python
 ===================

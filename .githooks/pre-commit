@@ -26,18 +26,26 @@
 
 if git rev-parse --verify HEAD >/dev/null 2>&1
 then
-	against=HEAD
+    against=HEAD
 else
-	# Initial commit: diff against an empty tree object
-	against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+    # Initial commit: diff against an empty tree object
+    against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
 fi
 
 # Redirect output to stderr.
 exec 1>&2
 
-git diff --cached --name-only --diff-filter=A -z $against
+# Determine changed files
 
-x=$(git diff --cached --name-only --diff-filter=A -z $against)
-echo $x
+files=$(git diff --cached --name-only $against)
+
+if [ -z $files ]
+then
+    exit 0
+fi
+
+# Autoformat the files.
+./bin/autoformat-nuitka-source $files
+git add $files
 
 exit 0
