@@ -436,7 +436,7 @@ So if feasible, aim at static linking, which is currently only possible with
 AnaConda Python on non-Windows.
 
 Windows Standalone executables and dependencies
-----------------------------------------------
+-----------------------------------------------
 
 The process of making Standalone executables for Windows traditionnaly involves
 using an external dependency walker in order to copy necessary libraries along

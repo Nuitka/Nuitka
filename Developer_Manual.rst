@@ -3628,6 +3628,77 @@ Limitations for now
    PageBreak
 
 
+Adding dependencies to Nuitka
+=============================
+
+First of all, there is an important distinction to make, runtime or development
+time. The first kind of dependency is used when Nuitka is executing.
+
+Adding a Runtime Dependency
+---------------------------
+
+This is the kind of dependency that is the most scrutinized. As we want Nuitka
+to run on latest greatest Python as well as relatively old ones, we have to be
+very careful with these ones.
+
+There is also a distinction of optional dependencies. Right now e.g. the
+``lxml`` package is relatively optional, and Nuitka can work without it being
+installed, because e.g. on some platforms it will not be easy to do so. That
+bar has lifted somewhat, but it means e.g. that XML based optimization tests
+are not run with all Python versions.
+
+The list of runtime dependencies is in ``requirements.txt`` and it is for
+those the case, that they are not really required to be installed by the
+user, consider this snippet:
+
+.. code-block:: python
+
+   # Folders to use for cache files.
+   appdirs == 1.4.3
+
+   # Scons is the backend building tool to turn C files to binaries.
+   scons == 3.0.4
+
+For both these dependencies, there is either an inline copy (Scons) that we
+handle to use in case, Scons is not available (in fact we have a version that
+works with Python 2.6 and 2.7 still), and also for appdirs. But since inline
+copies are against the rules on some platforms that still do not contain the
+package, we even have our own wrapper which provides a minimal fallback.
+
+.. note::
+
+   Therefore, please if you consider adding one of these, get in touch with
+   @Nuitka-pushers first and get a green light.
+
+Adding a Development Dependency
+-------------------------------
+
+A typical example of a development dependency is ``black`` which is used by
+our autoformat, and then in turn by the git pre-commit hook. It is used to
+format source code, and doesn't have a role at run time of the actual compiler
+code of Nuitka.
+
+Much less strict rules apply to these in comparison to runtime dependencies.
+Generally please take care that the tool must be well maitained an available
+on newer Pythons. Then we can use it, no problem normally. But if it's really
+big, say all of SciPy, we might want to justify it a bit better.
+
+The list of development dependencies is in ``requirements-devel.txt`` and it
+is for example like this:
+
+.. code-block:: python
+
+   # API doc, doxygen helper for Python
+   doxypypy == 0.8.8.6 ; python_version >= '2.7'
+
+So the ``doxypypy`` likely practically anything requires 2.7 or higher, but
+since we still run tests on Python 2.6, the installation would fail with that
+version, so we need to make a version requirement. Sometimes we use older
+versions for Python2 than for Python3, ``pylint`` being a notable candidate,
+but generally we ought to avoid that. For many tools only being available
+for currently 3.6 or higher is good enough, esp. if they are run as standalone
+tools, like ``autoformat-nuitka-source`` is.
+
 Idea Bin
 ========
 
