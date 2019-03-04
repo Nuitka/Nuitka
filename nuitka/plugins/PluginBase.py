@@ -16,7 +16,6 @@
 #     limitations under the License.
 #
 """
-
 Plugins: Welcome to Nuitka! This is your shortest way to become part of it.
 
 This is to provide the base class for all plug-ins. Some of which are part of
@@ -25,7 +24,6 @@ inclusion by you.
 
 The base class will serve as documentation. And it will point to examples of
 it being used.
-
 """
 
 import os
@@ -48,20 +46,53 @@ warned_unused_plugins = set()
 class NuitkaPluginBase(object):
     """ Nuitka base class for all plug-ins.
 
-        Derive from "UserPlugin" please.
+    Derive your plugin from "UserPlugin" please.
 
-        The idea is it will allow to make differences for warnings, and traces
-        of what is being done. For instance, the code that makes sure PyQt finds
-        all his stuff, may want to do reports, but likely, you do not case about
-        that enough to be visible by default.
+    Plugins allow to adapt Nuitka's behaviour in a number of ways as explained
+    below at the individual methods.
 
+    It is used to deal with special requirements some packages may have (e.g. PyQt
+    and tkinter), data files to be included (e.g. certifi), inserting hidden
+    code, coping with otherwise undetectable needs, or issuing messages in
+    certain situations.
+
+    A plugin in general must be enabled to be used by Nuitka. This happens by
+    specifying "--enable-plugin" (standard plugins) or by "--user-plugin" (user
+    plugins) in the Nuitka command line. However, some plugins are always enabled
+    and invisible to the user.
+
+    Nuitka comes with a number of "standard" plugins to be enabled as needed.
+    What they are can be displayed using "nuitka --plugin-list file.py" (filename
+    required but ignored).
+
+    User plugins may be specified (and implicitely enabled) using their Python
+    script pathname.
     """
 
-    # You must provide this as a string which then can be used to enable the
-    # plug-in.
+    # Standard plugins must provide this as a unique string which Nuitka
+    # then uses to identify them.
+    #
+    # User plugins are identified by their path and implicitely activated.
+    # They however still need to specify some arbitrary non-blank string here,
+    # which does not equal the name of an inactivated standard plugin.
+    # For working with options, user plugins must set this variable to
+    # the script's path (use __file__, __module__ or __name__).
     plugin_name = None
 
     def getPluginOptionBool(self, option_name, default_value):
+        """ Check whether an option is switched on or off.
+
+        Notes:
+            Convenience method for checking single option items. If option_name is present
+            in the options list, return "True". If '"no" + option_name' is present,
+            return "False". Else return the default value.
+
+        Args:
+            option_name: option name
+            default_value: value if neither option_name nor its negation present.
+        Returns:
+            True or False or default_value
+        """
         plugin_options = self.getPluginOptions()
 
         if option_name in plugin_options and "no" + option_name in plugin_options:
@@ -76,17 +107,51 @@ class NuitkaPluginBase(object):
         return default_value
 
     def getPluginOptions(self):
+        """ Return all options for the plugin.
+
+        Notes:
+            This method will always return a list of strings.
+            To specify options, code '=' immediately after the plugin name / script name.
+            The following string (excluding next space) will be returned after applying split(",").
+            You are free to specify anything. Use quotes to include spaces. See below for examples.
+
+        Returns:
+            list of strings
+
+        Examples:
+            For a plugin called "name"
+
+            '...plugin=name' (no options string)
+                []
+
+            '...plugin=name=' (empty options string)
+                ['']
+
+            '...plugin=name=a,b,c' (normal options string)
+                ['a', 'b', 'c']
+
+            '...plugin=name=a=0,b=1,c=2' (normal options string)
+                ['a=0', 'b=1', 'c=2']
+
+            '...plugin=name="a=0, b=1, c=2"' (options string with spaces)
+                ["[a=0", " b=1", " c=2]"]
+
+        """
         return Options.getPluginOptions(self.plugin_name)
 
     def considerImplicitImports(self, module, signal_change):
-        """ Consider module imports.
+        """ Provide additional modules to import implicitely when encountering the module.
 
-            You will most likely want to look at "module.getFullName()" to get
-            the fully qualified module or package name.
+        Notes:
+            Better do not overload this method.
+            The standard plugin 'ImplicitImports.py' already contains MANY of these.
+            If you do have a new candidate, consider a PR to get it included there.
 
-            You do not want to overload this method, but rather the things it
-            calls, as the "signal_change" part of this API is not to be cared
-            about. Most prominently "getImplicitImports()".
+        Args:
+            module: the module object
+            signal_change: bool
+        Returns:
+            None
         """
         for full_name, required in self.getImplicitImports(module):
             module_name = full_name.split(".")[-1]
@@ -135,15 +200,29 @@ class NuitkaPluginBase(object):
                 )
 
     def isRequiredImplicitImport(self, module, full_name):
-        """ By default, if given as an implicit import, require it.
+        """ Indicate whether an implicitely imported module should be accepted.
 
+        Notes:
+            You may negate importing a module specified as "implcit import",
+            although this is an unexpected event.
+
+        Args:
+            module: the module object
+            full_name: of the implicitly import module
+        Returns:
+            True or False
         """
-
         # Virtual method, pylint: disable=no-self-use,unused-argument
-
         return True
 
     def getImplicitImports(self, module):
+        """ Return the implicit imports for a given module (iterator).
+
+        Args:
+            module: the module object
+        Yields:
+            implicit imports for the module
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
@@ -151,22 +230,68 @@ class NuitkaPluginBase(object):
     module_aliases = {}
 
     def considerFailedImportReferrals(self, module_name):
+        """ Provide a dictionary of fallback imports for modules that failed to import.
+
+        Args:
+            module_name: name of module
+        Returns:
+            dict
+        """
         return self.module_aliases.get(module_name, None)
 
     def onModuleSourceCode(self, module_name, source_code):
+        """ Inspect or modify source code.
+
+        Args:
+            module_name: (str) name of module
+            source_code: (str) its source code
+        Returns:
+            source_code (str)
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return source_code
 
     def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
+        """ Inspect or modify frozen module source code.
+
+        Args:
+            module_name: (str) name of module
+            is_package: (bool) True indicates a package
+            source_code: (str) its source code
+        Returns:
+            source_code (str)
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return source_code
 
     def onFrozenModuleBytecode(self, module_name, is_package, bytecode):
+        """ Inspect or modify frozen module byte code.
+
+        Args:
+            module_name: (str) name of module
+            is_package: (bool) True indicates a package
+            bytecode: (bytes) byte code
+        Returns:
+            bytecode (bytes)
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return bytecode
 
     @staticmethod
     def _createTriggerLoadedModule(module, trigger_name, code):
+        """ Create a "trigger" for a module to be imported.
+
+        Notes:
+            The trigger will incorpaorate the code to be prepended / appended.
+            Called by @onModuleDiscovered.
+
+        Args:
+            module: the module object (serves as dict key)
+            trigger_name: string ("-preload"/"-postload")
+            code: the code string
+        Returns
+            trigger_module
+        """
         from nuitka.tree.Building import createModuleTree
         from nuitka.nodes.ModuleNodes import CompiledPythonModule
         from .Plugins import Plugins
@@ -196,21 +321,54 @@ class NuitkaPluginBase(object):
 
     @staticmethod
     def createPreModuleLoadCode(module):
+        """ Create code to prepend to a module.
+
+        Notes:
+            Called by @onModuleDiscovered.
+
+        Args:
+            module: the module object
+        Returns:
+            tuple (code, documentary string)
+        """
         # Virtual method, pylint: disable=unused-argument
         return None, None
 
     @staticmethod
     def createPostModuleLoadCode(module):
+        """ Create code to append to a module.
+
+        Notes:
+            Called by @onModuleDiscovered.
+
+        Args:
+            module: the module object
+        Returns:
+            tuple (code, documentary string)
+        """
         # Virtual method, pylint: disable=unused-argument
         return None, None
 
     def onModuleDiscovered(self, module):
+        """ Called with a module to be loaded.
+
+        Notes:
+            We may specify code to be prepended and/or appended to this module.
+            This code is stored in the appropriate dict.
+            For every imported module and each of these two options, only one plugin may do this.
+            We check this condition here.
+
+        Args:
+            module: the module object
+        Returns:
+            None
+        """
         pre_code, reason = self.createPreModuleLoadCode(module)
 
         full_name = module.getFullName()
 
         if pre_code:
-            if full_name is pre_modules:
+            if full_name in pre_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)
 
             info("Injecting plug-in based pre load code for module '%s':" % full_name)
@@ -238,10 +396,31 @@ class NuitkaPluginBase(object):
     def onModuleEncounter(
         self, module_filename, module_name, module_package, module_kind
     ):
-        pass
+        """ Help decide whether to include a module.
+
+        Args:
+            module_filename: filename
+            module_name: module name
+            module_package: package name
+            module_kind: one of "py", "shlib" (shared library)
+        Returns:
+            True or False
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
 
     @staticmethod
     def locateModule(importing, module_name, module_package, warn):
+        """ Provide a filename / -path for a to-be-imported module.
+
+        Args:
+            importing: module object
+            module_name: (str) name of module
+            module_package: (str) package name
+            warn: (bool) True if required module
+        Returns:
+            filename for module
+        """
         from nuitka.importing import Importing
 
         _module_package, module_filename, _finding = Importing.findModule(
@@ -256,6 +435,16 @@ class NuitkaPluginBase(object):
 
     @staticmethod
     def decideRecursion(module_filename, module_name, module_package, module_kind):
+        """ Decide whether Nuitka should recurse down to a given module.
+
+        Args:
+            module_filename: filename
+            module_name: module name
+            module_package: package name
+            module_kind: one of "py" or "shlib" (shared library)
+        Returns:
+            (decision, reason) where decision is either a bool or None, and reason is a string message.
+        """
         from nuitka.importing import Recursion
 
         decision, reason = Recursion.decideRecursion(
@@ -287,30 +476,107 @@ class NuitkaPluginBase(object):
             )
 
     def considerExtraDlls(self, dist_dir, module):
+        """ Provide a tuple of names of binaries to be included.
+
+        Args:
+            dist_dir: the distribution folder
+            module: the module object needing the binaries
+        Returns:
+            tuple
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
     def removeDllDependencies(self, dll_filename, dll_filenames):
+        """ Yield any DLLs / shared libraries not to be included in distribution.
+
+        Args:
+            dll_filename: DLL name
+            dll_filenames: list of DLLs
+        Yields:
+            yielded filenames to exclude
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
     def considerDataFiles(self, module):
+        """ Yield data file names (source, target) for inclusion (iterator).
+
+        Args:
+            module: module object that may need extra data files
+        Yields:
+            tuple
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    def onStandaloneDistributionFinished(self, dist_dir):
+        """ Called after successfully finishing a standalone compile.
+
+        Note:
+            It is up to the plugin to take subsequent action. Examples are:
+            insert additional information (license, copyright, company or
+            application description), create installation material, further
+            folder clean-up, start downstream applications etc.
+
+        Args:
+            dist_dir: the created distribution folder
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def suppressBuiltinImportWarning(self, module, source_ref):
+        """ Suppress import warnings for builtin modules.
+
+        Args:
+            module: the module object
+            source_ref: ???
+        Returns:
+            True or False
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
+        """ Suppress import warnings for unknown modules.
+
+        Args:
+            importing: the module object
+            module_name: name of module
+            source_ref: ???
+        Returns:
+            True or False
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
     def decideCompilation(self, module_name, source_ref):
+        """ Decide whether to compile a module (or just use its bytecode).
+
+        Notes:
+            The first plugin not returning None makes the decision. Thereafter,
+            no other plugins will be checked. If all plugins return None, the
+            module will be compiled.
+
+        Args:
+            module_name: name of module
+            source_ref: ???
+
+        Returns:
+            "compiled" or "bytecode" or None (default)
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
     def warnUnusedPlugin(self, message):
+        """ An inactive plugin may issue a warning if it believes this may be wrong.
+
+        Returns:
+            None
+        """
         if self.plugin_name not in warned_unused_plugins:
             warned_unused_plugins.add(self.plugin_name)
 
@@ -318,11 +584,12 @@ class NuitkaPluginBase(object):
 
 
 class UserPluginBase(NuitkaPluginBase):
-    """ For user plug-ins.
+    """ Use this class to inherit from NuitkaPluginBase.
 
-       Check the base class methods for what you can do.
+    Args:
+        NuitkaPluginBase: the base class we inherit from
     """
 
-    # You must provide this as a string which then can be used to enable the
-    # plug-in.
+    # You must provide this as a string which identifies your plugin.
+    # Arbitrary for standard plugins, filename for user plugins.
     plugin_name = None

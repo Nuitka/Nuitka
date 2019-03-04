@@ -526,7 +526,8 @@ def main():
         sys.stdout.flush()
 
         if hide_output:
-            result = subprocess.call(parts, stdout=open(os.devnull, "w"))
+            with open(os.devnull, "w") as devnull:
+                result = subprocess.call(parts, stdout=devnull)
         else:
             result = subprocess.call(parts)
 

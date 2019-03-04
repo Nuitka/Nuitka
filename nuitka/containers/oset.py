@@ -30,11 +30,10 @@ It was originally downloaded from http://code.activestate.com/recipes/576694/
 """
 
 # pylint: disable=W0221,redefined-builtin
+from nuitka.__past__ import MutableSet
 
-import collections
 
-
-class OrderedSet(collections.MutableSet):
+class OrderedSet(MutableSet):
     def __init__(self, iterable=None):
         self.end = end = []
         end += [None, end, end]  # sentinel node for doubly linked list

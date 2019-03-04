@@ -77,11 +77,8 @@ def getStandardLibraryPaths():
 
             assert search and lib_part
 
-            stdlib_paths.add(
-                os.path.normcase(
-                    os.path.join(open(orig_prefix_filename).read(), lib_part)
-                )
-            )
+            with open(orig_prefix_filename) as f:
+                stdlib_paths.add(os.path.normcase(os.path.join(f.read(), lib_part)))
 
         # And yet another possibility, for macOS Homebrew created virtualenv
         # at least is a link ".Python", which points to the original install.
@@ -107,7 +104,8 @@ def getStandardLibraryPaths():
             stdlib_paths.add(os.path.dirname(_ctypes.__file__))
 
         getStandardLibraryPaths.result = [
-            os.path.normcase(stdlib_path) for stdlib_path in stdlib_paths
+            os.path.normcase(os.path.normpath(stdlib_path))
+            for stdlib_path in stdlib_paths
         ]
 
     return getStandardLibraryPaths.result
@@ -118,7 +116,7 @@ def isStandardLibraryPath(path):
 
     """
 
-    path = os.path.normcase(path)
+    path = os.path.normcase(os.path.normpath(path))
 
     # In virtualenv, the "site.py" lives in a place that suggests it is not in
     # standard library, although it is.

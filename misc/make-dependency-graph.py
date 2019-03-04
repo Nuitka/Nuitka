@@ -82,9 +82,8 @@ temp_out.close()
 dot_graph = subprocess.check_output(["sfood-graph"], stdin = open(tempfile1))
 os.unlink(tempfile1)
 
-temp_out = open(tempfile1, "wb")
-temp_out.write(dot_graph)
-temp_out.close()
+with open(tempfile1, "wb") as temp_out:
+    temp_out.write(dot_graph)
 
 dot_graph = subprocess.call(["dot", "-Tsvg"], stdin = open(tempfile1), stdout = open("nuitka-dependencies.svg", "wb"))
 

@@ -136,30 +136,20 @@ Tool to format
 --------------
 
 There is a tool ``bin/autoformat-nuitka-source`` which is to apply automatic
-formatting to code as much as possible.
+formatting to code as much as possible. It uses ``black`` (internally) for
+consistent code formatting. The imports are sorted with ``isort`` for proper
+order.
 
-
-Line Length
------------
-
-No more than 120 characters. Screens are wider these days, but most of the code
-aims at keeping the lines below 80. Long lines are also a sign of writing
-incomprehensible code.
-
-
-Indentation
------------
-
-No tabs, 4 spaces, no trailing white space. Files end in a new line.
-
+The tool (mostly black) encodes all formatting rules, and makes the decisions
+for us. The idea being that we can focus on actual code and do not have to
+care as much about other things.
 
 Identifiers
 -----------
 
-Classes are camel case with leading upper case. Methods are with leading verb in
-lower case, but also camel case. Around braces there are no spaces, but after
-comma, there is spaces for better readability. Variables and arguments are
-lower case with ``_`` as a separator.
+Classes are camel case with leading upper case. Functions and methods are with
+leading verb in lower case, but also camel case. Variables and
+arguments are lower case with ``_`` as a separator.
 
 .. code-block:: python
 
@@ -176,14 +166,11 @@ more readable:
 
 .. code-block:: python
 
-   return Generator.getSequenceCreationCode(
-        sequence_kind       = sequence_kind,
-        element_identifiers = identifiers,
-        context             = context
+   return getSequenceCreationCode(
+        sequence_kind= sequence_kind,
+        element_identifiers=identifiers,
+        context=context
    )
-
-The ``=`` are all aligned to the longest parameter names with an extra space
-around it.
 
 When the names don't add much value, sequential calls can be done, but
 ideally with one value per line:
@@ -198,16 +185,6 @@ ideally with one value per line:
 Here, ``setLoopContinueTarget`` will be so well known that the reader is
 expected to know the argument names and their meaning, but it would be still
 better to add them.
-
-Contractions should span across multiple lines for increased readability:
-
-.. code-block:: python
-
-   result = [
-       "PyObject *decorator_%d" % (d + 1)
-       for d in
-       range(decorator_count)
-   ]
 
 
 Module/Package Names
@@ -334,11 +311,80 @@ The "git flow" model
   those changes.
 
 
-API documentation
-=================
+API Documentation and Guidelines
+=================================
 
 There is API documentation generated with ``doxygen``, available at `this
 location <http://nuitka.net/apidoc>`__ .
+
+To ensure meaningful ``doxygen`` output, the following guidelines must be
+observed when creating or updating Python source:
+
+Use of Standard Python ``"__doc__"`` Strings
+----------------------------------------------
+Every class and every method **must be documented** via the standard Python
+delimiters (``""" ... """``) in the usual way.
+
+Special ``doxygen`` Anatomy of ``"__doc__"``
+-------------------------------------------------
+* Immediately after the leading ``"""``, and after 1 space on the same line,
+  enter a brief description or title of the class or method. This must be 1
+  line and be followed by at least 1 empty line.
+
+* Depending on the item, choose from the following "sections" to describe what the
+  item is and does. Each section name is coded on its own line, aligned with the
+  leading ``"""`` and followed by a colon ":". Anything following the section,
+  must start on a new line and be indented by 4 spaces relative to the section.
+  Except for the first section (``Notes:``) after the title, sections need not
+  be preceeded by empty lines -- but it is good practice to still do that.
+
+    - ``Notes:`` detailed description of the item, any length.
+      May contain line breaks with each new line starting aligned with previous one.
+      The text will automatically be joined across line breaks and be reformatted
+      in the browser.
+      If you describe details for a class, you can do so **without** using this
+      section header and all formatting will still work fine.
+      If you however omit the ``Notes:`` for methods, then the text will
+      be interpreted **as code,** be shown in an ugly monospaced font, and no
+      automatic line breaks will occur in the browser.
+    - ``Args:`` positional arguments.
+      Each argument then follows, starting on a new
+      line and indented by 4 spaces. The argument name must be followed by a
+      colon ":" or double hash "--", followed by a description of arbitrary length.
+      The description can be separated by line breaks.
+    - ``Kwargs:`` keyword arguments. Same rules as for args.
+    - ``Returns:`` description of what will be returned if applicable (any length).
+    - ``Yields:`` synonymous for ``Returns:``.
+    - ``Raises:`` name any exceptions that may be raised.
+    - ``Examples:`` specify any example code.
+
+.. code-block:: python
+
+    def foo(p1, p2, kw1=None, kw2=None):
+        """ This is an example method.
+
+        Notes:
+            It does one or the other indispensable things based on some parameters
+            and proudly returns a dictionary.
+    
+        Args:
+            p1: parameter one
+            p2: parameter two
+
+        Kwargs:
+            kw1: keyword one
+            kw2: keyword two
+
+        Returns:
+            A dictionary calculated from the input.
+            
+        Raises:
+            ValueError, IndexError
+            
+        Examples:
+            >>> foo(1, 2, kw1=3, kw2=4)
+            {'a': 4, 'b': 6} 
+        """
 
 Checking the Source
 ===================
@@ -523,7 +569,7 @@ Nuitka uses a lot of packages and imports between them.
 
    ./tests/reflected/compile_itself.py
 
-Internal/plugin API
+Internal/Plugin API
 ===================
 
 The documentation from the source code for both the Python and the
@@ -536,9 +582,20 @@ those with Doxygen only relatively late.
    doxygen ./doc/Doxyfile
    xdg-open html
 
-There is going to be enhancements to this API documentation in the
-next releases though, hopefully making it useable for at least the
-Nuitka plugin development.
+Improvements have already been implemented for plugins: The plugin base
+class defined in ``PluginBase.py`` (which is used as a template for all
+plugins) is fully documented in Doxygen now. The
+same is true for the recently added standard plugins ``NumpyPlugin.py`` and
+``TkinterPlugin.py``. These will be uploaded very soon.
+
+Going forward, this will also happen for the remaining standard plugins.
+
+Please find `here <https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst>`__
+a detailed description of how to write your own plugin.
+
+To learn about plugin option specification consult
+`this document <https://github.com/Nuitka/Nuitka/blob/develop/Using-Plugin-Options.rst>`__.
+
 
 Design Descriptions
 ===================
@@ -850,7 +907,7 @@ Hooking for module ``import`` process
 -------------------------------------
 
 Currently, in generated code, for every ``import`` a normal ``__import__()``
-built-in call is executed. The ``nuitka/build/static_src/ModuleUnfreezer.c``
+built-in call is executed. The ``nuitka/build/static_src/MetaPathBasedLoader.c``
 file provides the implementation of a ``sys.meta_path`` hook.
 
 This meta path based importer allows us to have the Nuitka provided module
@@ -1175,7 +1232,7 @@ go through a slot mechanism, which then can be overloaded.
 
    something = SomeStrangeFloat()
    ...
-   1.0 + something
+   1.0 + float(something) // 4.140000000000001
 
 Here it is the case, that this is used by user code, but more often
 this is used internally. Not all types have all slots, e.g. `list`

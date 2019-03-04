@@ -24,26 +24,44 @@
 import os
 import re
 import shutil
+import subprocess
+import sys
 
 from nuitka.Tracing import my_print
+from nuitka.utils.Execution import getExecutablePath
+from nuitka.utils.FileOperations import getFileContents
+from nuitka.utils.Utils import getOS
 
 
-def cleanupWindowsNewlines(filename):
+def _cleanupWindowsNewlines(filename):
     """ Remove Windows new-lines from a file.
 
         Simple enough to not depend on external binary.
     """
 
-    source_code = open(filename, "rb").read()
+    with open(filename, "rb") as f:
+        source_code = f.read()
 
     updated_code = source_code.replace(b"\r\n", b"\n")
     updated_code = updated_code.replace(b"\n\r", b"\n")
 
     if updated_code != source_code:
-        my_print("Fixing Windows new lines for", filename)
-
         with open(filename, "wb") as out_file:
             out_file.write(updated_code)
+
+
+def _cleanupTrailingWhitespace(filename):
+    """ Remove trailing white spaces from a file.
+
+    """
+    with open(filename, "r") as f:
+        source_lines = [line for line in f]
+
+    clean_lines = [line.rstrip() for line in source_lines]
+
+    if clean_lines != source_lines:
+        with open(filename, "w") as out_file:
+            out_file.write("\n".join(clean_lines) + "\n")
 
 
 def _updateCommentNode(comment_node):
@@ -102,7 +120,7 @@ def _updateCommentNode(comment_node):
         comment_node.value = new_value
 
 
-def autoformat(filename, abort=False):
+def _cleanupPyLintComments(filename, abort):
     from baron.parser import (  # pylint: disable=I0021,import-error,no-name-in-module
         ParsingError,  # @UnresolvedImport
     )
@@ -110,9 +128,7 @@ def autoformat(filename, abort=False):
         RedBaron,  # @UnresolvedImport
     )
 
-    my_print("Consider", filename, end=": ")
-
-    old_code = open(filename, "r").read()
+    old_code = getFileContents(filename)
 
     try:
         red = RedBaron(old_code)
@@ -140,9 +156,6 @@ def autoformat(filename, abort=False):
         with open(new_name, "w") as source_code:
             source_code.write(red.dumps())
 
-        if os.name == "nt":
-            cleanupWindowsNewlines(new_name)
-
         # There is no way to safely replace a file on Windows, but lets try on Linux
         # at least.
         old_stat = os.stat(filename)
@@ -155,10 +168,97 @@ def autoformat(filename, abort=False):
 
         os.chmod(filename, old_stat.st_mode)
 
-        my_print("updated.")
-        changed = 1
+
+def _cleanupImportRelative(filename):
+    package_name = os.path.dirname(filename)
+
+    # Make imports local if possible.
+    if package_name.startswith("nuitka" + os.path.sep):
+        package_name = package_name.replace(os.path.sep, ".")
+
+        source_code = getFileContents(filename)
+        updated_code = re.sub(
+            r"from %s import" % package_name, "from . import", source_code
+        )
+        updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
+
+        if source_code != updated_code:
+            with open(filename, "w") as out_file:
+                out_file.write(updated_code)
+
+
+_binary_calls = {}
+
+
+def _getPythonBinaryCall(binary_name):
+    if binary_name not in _binary_calls:
+        # Try running Python installation.
+        try:
+            __import__(binary_name)
+            _binary_calls[binary_name] = [sys.executable, "-m", binary_name]
+
+            return _binary_calls[binary_name]
+        except ImportError:
+            pass
+
+        binary_path = getExecutablePath(binary_name)
+
+        if binary_path:
+            _binary_calls[binary_name] = [binary_path]
+            return _binary_calls[binary_name]
+
+        sys.exit("Error, cannot find %s, not installed for this Python?" % binary_name)
+
+    return _binary_calls[binary_name]
+
+
+def _cleanupImportSortOrder(filename):
+    isort_call = _getPythonBinaryCall("isort")
+
+    with open(os.devnull, "w") as devnull:
+        subprocess.check_call(
+            isort_call
+            + [
+                "-q",  # quiet, but stdout is still garbage
+                "-ot",  # Order imports by type in addition to alphabetically
+                "-m3",  # "vert-hanging"
+                "-up",  # Prefer braces () over \ for line continuation.
+                "-tc",  # Trailing commas
+                "-ns",  # Do not ignore those:
+                "__init__.py",
+                filename,
+            ],
+            stdout=devnull,
+        )
+
+
+def autoformat(filename, abort=False):
+    my_print("Consider", filename, end=": ")
+
+    old_code = getFileContents(filename)
+
+    is_python = not filename.endswith((".rst", ".txt"))
+
+    if is_python:
+        _cleanupPyLintComments(filename, abort)
+
+        _cleanupImportSortOrder(filename)
+
+    _cleanupTrailingWhitespace(filename)
+
+    if is_python:
+        black_call = _getPythonBinaryCall("black")
+
+        subprocess.call(black_call + ["-q", filename])
+
+    if getOS() == "Windows":
+        _cleanupWindowsNewlines(filename)
+
+    changed = False
+    if old_code != getFileContents(filename):
+        my_print("Updated.")
+        changed = True
     else:
         my_print("OK.")
-        changed = 0
 
     return changed

@@ -23,6 +23,8 @@ import os
 import shutil
 import sys
 
+from nuitka.utils.FileOperations import getFileContentByLine
+
 
 def updateDebianChangelog(old_version, new_version):
     debian_version = new_version.replace("rc", "~rc") + "+ds-1"
@@ -36,7 +38,8 @@ def updateDebianChangelog(old_version, new_version):
         else:
             assert os.system('debchange --newversion=%s ""' % debian_version) == 0
 
-        changelog = open("Changelog.rst").read()
+        with open("Changelog.rst") as f:
+            changelog = f.read()
         if "(Draft)" not in changelog.splitlines()[0]:
             title = "Nuitka Release " + new_version[:-3] + " (Draft)"
 
@@ -48,7 +51,8 @@ def updateDebianChangelog(old_version, new_version):
     else:
         if "rc" in old_version:
             # Initial final release after pre-releases.
-            changelog_lines = open("debian/changelog").readlines()
+            with open("debian/changelog") as f:
+                changelog_lines = f.readlines()
             with open("debian/changelog", "w") as output:
                 first = True
                 for line in changelog_lines[1:]:
@@ -73,7 +77,7 @@ def checkChangeLog(message):
 
     """
 
-    for line in open("debian/changelog"):
+    for line in getFileContentByLine("debian/changelog"):
         if line.startswith(" --"):
             return False
 

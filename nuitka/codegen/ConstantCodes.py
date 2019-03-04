@@ -43,12 +43,12 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
 )
 from nuitka.Builtins import builtin_named_values, builtin_named_values_list
 from nuitka.Constants import NoneType, compareConstants, getConstantWeight, isMutable
+from nuitka.Version import getNuitkaVersion
 
 from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
 from .Indentation import indented
 from .templates.CodeTemplatesConstants import template_constants_reading
-from nuitka.Version import getNuitkaVersion
 
 
 def generateConstantReferenceCode(to_name, expression, emit, context):

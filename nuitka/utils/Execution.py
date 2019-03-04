@@ -159,7 +159,7 @@ def withEnvironmentPathAdded(env_var_name, path):
         path = os.pathsep.join(path)
 
     if path:
-        if str is not bytes:
+        if str is not bytes and type(path) is bytes:
             path = path.decode("utf-8")
 
         if env_var_name in os.environ:

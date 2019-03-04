@@ -32,7 +32,7 @@ from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
-from nuitka.utils.FileOperations import relpath
+from nuitka.utils.FileOperations import getFileContentByLine, relpath
 
 from .Checkers import checkStatementsSequenceOrNone
 from .FutureSpecs import FutureSpec, fromFlags
@@ -831,7 +831,7 @@ class PythonShlibModule(PythonModuleBase):
             if os.path.exists(pyi_filename):
                 pyi_deps = OrderedSet()
 
-                for line in open(pyi_filename):
+                for line in getFileContentByLine(pyi_filename):
                     line = line.strip()
 
                     if line.startswith("import "):

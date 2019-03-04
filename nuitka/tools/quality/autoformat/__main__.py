@@ -71,13 +71,12 @@ def main():
     ]
     goHome()
 
-    found = False
-    for filename in scanTargets(positional_args, (".py", ".scons")):
-        autoformat(filename, abort=options.abort)
-        found = True
-
-    if not found:
+    filenames = list(scanTargets(positional_args, (".py", ".scons", ".rst", ".txt")))
+    if not filenames:
         sys.exit("No files found.")
+
+    for filename in filenames:
+        autoformat(filename, abort=options.abort)
 
 
 if __name__ == "__main__":

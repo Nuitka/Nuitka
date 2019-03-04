@@ -163,6 +163,18 @@ def removeDirectory(path, ignore_errors):
 
 
 @contextmanager
-def withTemporaryFilename():
-    with tempfile.NamedTemporaryFile() as temp_file:
-        yield temp_file.name
+def withTemporaryFile(suffix="", mode="w", delete=True):
+    with tempfile.NamedTemporaryFile(
+        suffix=suffix, mode=mode, delete=delete
+    ) as temp_file:
+        yield temp_file
+
+
+def getFileContentByLine(filename, mode="r"):
+    with open(filename, mode) as f:
+        return f.readlines()
+
+
+def getFileContents(filename):
+    with open(filename, "r") as f:
+        return f.read()

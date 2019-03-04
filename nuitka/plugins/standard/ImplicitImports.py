@@ -27,6 +27,7 @@ import shutil
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
+from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import getOS
 
@@ -262,7 +263,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "PIL._tkinter_finder", True
         elif full_name == "pkg_resources.extern":
             if self.pkg_utils_externals is None:
-                for line in open(module.getCompileTimeFilename()):
+                for line in getFileContentByLine(module.getCompileTimeFilename()):
                     if line.startswith("names"):
                         line = line.split("=")[-1].strip()
                         parts = line.split(",")
@@ -294,7 +295,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             if self.opengl_plugins is None:
                 self.opengl_plugins = []
 
-                for line in open(module.getCompileTimeFilename()):
+                for line in getFileContentByLine(module.getCompileTimeFilename()):
                     if line.startswith("PlatformPlugin("):
                         os_part, plugin_name_part = line[15:-1].split(",")
                         os_part = os_part.strip("' ")

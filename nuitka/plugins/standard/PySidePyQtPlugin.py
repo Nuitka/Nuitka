@@ -98,6 +98,8 @@ if os.path.exists(guess_path):
         return False
 
     def considerExtraDlls(self, dist_dir, module):
+        # pylint: disable=too-many-branches,too-many-locals
+
         full_name = module.getFullName()
 
         if full_name in ("PyQt4", "PyQt5"):
@@ -217,6 +219,21 @@ if os.path.exists(guess_path):
                     if not os.path.isdir(filename)
                     if not os.path.basename(filename) == "qmldir"
                 ]
+
+                # Also copy required OpenGL DLLs on Windows
+                if os.name == "nt":
+                    qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
+                    opengl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
+
+                    info("Copying OpenGL DLLs to %r" % (dist_dir,))
+
+                    for filename in getFileList(qt_bin_dir):
+                        basename = os.path.basename(filename).lower()
+
+                        if basename in opengl_dlls or basename.startswith(
+                            "d3dcompiler_"
+                        ):
+                            shutil.copy(filename, os.path.join(dist_dir, basename))
 
             return result
 

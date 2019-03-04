@@ -209,6 +209,82 @@ under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 CONDITIONS OF ANY KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations under the License.
 
+
+Tutorial Setup and build on Windows
+===================================
+
+This is basic steps if you have nothing installed, of course
+if you have any of the parts, just skip it.
+
+Setup
+-----
+
+Install the C compiler
+++++++++++++++++++++++
+
+ - Download and install mingw64 from
+   `https://sourceforge.net/projects/mingw-w64/ <https://sourceforge.net/projects/mingw-w64/>`_
+ - Select destination folder to **c:\\MinGW64**
+ - verify using command  **gcc.exe --version**
+ - Set a environment variable pointing to **gcc.exe**
+   **CC=c:\\mingw64\bin\\gcc.exe**
+
+Install Python 3.7 (64 Bits)
+++++++++++++++++++++++++++++
+
+ - Download and install from
+   `https://www.python.org/downloads/windows <https://www.python.org/downloads/windows>`_
+ - Select Windows x86-64 web-based installer **or**
+ - Select Windows x86-64 executable installer
+ - verify using command **python --version**
+
+Install Nuitka
+++++++++++++++
+
+ - **pip install nuitka**
+ - verify using command **nuitka --version**
+
+Write some code and testa
+-------------------------
+
+Create a folder for the Python code
++++++++++++++++++++++++++++++++++++
+
+ - mkdir HelloWorld
+ - make a python file named **hello.py**
+
+ .. code-block:: python
+
+      def talk(message):
+          return "Talk " + message
+
+      def main():
+          print( talk("Hello World"))
+
+      if __name__ == "__main__":
+          main()
+
+Test it using **python hello.py**
++++++++++++++++++++++++++++++++++
+
+Build it using
+++++++++++++++
+
+  **python -m nuitka --standalone --mingw64 hello.py**
+
+If you like to have full output add **--show-progress** **--show-scons**
+
+Run it
+++++++
+
+Execute the **hello.exe** in the folder **hello.dist**
+
+Distribute
+++++++++++
+
+To distribute copy the **hello.dist** folder
+
+
 Use Cases
 =========
 
@@ -336,7 +412,7 @@ Fastest C Compilers
 -------------------
 
 The fastest binaries of ``pystone.exe`` on Windows with 64 bits Python proved
-to be signicantly faster with MinGW64, roughly 20% better score. So it is
+to be significantly faster with MinGW64, roughly 20% better score. So it is
 recommended for use over MSVC. Using ``clang-cl.exe`` of Clang7 was faster
 than MSVC, but still significantly slower than MinGW64, and it will be harder
 to use, so it is not recommended.
@@ -359,7 +435,7 @@ all contained in one binary.
 So if feasible, aim at static linking, which is currently only possible with
 AnaConda Python on non-Windows.
 
-Windows Standalone executables and dependecies
+Windows Standalone executables and dependencies
 ----------------------------------------------
 
 The process of making Standalone executables for Windows traditionnaly involves
@@ -1005,6 +1081,13 @@ The order is sorted by time.
   distribution, saving size and improving robustness considering the
   various distributions.
 
+- Orsiris de Jong: Submitted github pull request to implement the dependency
+  walking with `pefile` under Windows.
+
+- Jorj X. McKie: Submitted github pull requests with NumPy plugin to retain
+  its accelerating libraries, and Tkinter to include the TCL distribution
+  on Windows.
+
 Projects used by Nuitka
 -----------------------
 
@@ -1053,17 +1136,15 @@ Projects used by Nuitka
   that also runs on Windows and is written and configured in Python code. This
   allows to run the Nuitka tests long before release time.
 
-* The `Redbaron project <https://github.com/PyCQA/redbaron>`__
-
-  Thanks for creating a white space preserving and easy to use toolwork for
-  refactoring Python. This has allows us to automatically format my Python
-  code according to preferences and make global changes easily.
-
 * The `isort project <http://timothycrosley.github.io/isort/>`__
 
   Thanks for making nice import ordering so easy. This makes it so easy to let
   your IDE do it and clean up afterwards.
 
+* The `black project <https://github.com/ambv/black>`__
+
+  Thanks for making a fast and reliable way for automatically formatting
+  the Nuitka source code.
 
 Updates for this Manual
 =======================
