@@ -27,21 +27,75 @@ print(type(Ellipsis))
 print("a" in "abba")
 print("a" not in "abba")
 
-# TODO: Add support for functions
-# def testInplaceOperations():
+# Added support for functions
+
+x=100
+
 #     x = 2
+def assignment(x):
+  x = 2
+  return x
+print(assignment(x))
+
 #     x += 1
+def selfIncrement(x):
+  x += 1
+  return x
+print(selfIncrement(x))
+
 #     x *= 2
+def selfProduct(x):
+  x *= 2
+  return x
+print(selfProduct(x))
+
 #     x **= 2
+def selfExponentiate(x):
+  x **= 2
+  return x
+print(selfExponentiate(x))
+
 #     x -= 8
+def selfDecrement(x):
+  x -= 8
+  return x
+print(selfDecrement(x))
+
 #     x //= 5
+def selfFloorDivison(x):
+  x //= 5
+  return x
+print(selfFloorDivison(x))
+
 #     x %= 3
+def selfModulus(x):
+  x %= 3
+  return x
+print(selfModulus(x))
+
 #     x &= 2
+def selfAnd(x):
+  x &= 2
+  return x
+print(selfAnd(x))
+
 #     x |= 5
+def selfOr(x):
+  x |= 5
+  return x
+print(selfOr(x))
+
 #     x ^= 1
+def selfXor(x):
+  x ^= 1
+  return x
+print(selfXor(x))
+
 #     x /= 2
-#
-#     print(x)
+def selfDivison(x):
+  x /= 2
+  return x
+print(selfDivison(x))
 
 print(len("a"*10000))
 print(len(10000*"a"))
