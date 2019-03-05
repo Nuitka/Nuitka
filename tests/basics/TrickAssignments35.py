@@ -40,7 +40,7 @@ else:
 
 def someFunctionThatReturnsDeletedValueViaInplaceMaxtrixMult():
     class C:
-        def __matmul__(self, other):
+        def __imatmul__(self, other):
             nonlocal a
             del a
     c = C()
