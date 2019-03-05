@@ -768,29 +768,6 @@ else:
     print("Ouch.!")
 
 
-def someFunctionThatReturnsDeletedValueViaInplaceMatmul():
-    class C:
-        def __imatmul__(self, other):
-            nonlocal a
-            del a
-
-            return 7
-    c = C()
-
-
-    a = 1
-    c @= 1
-    return a
-
-
-try:
-    someFunctionThatReturnsDeletedValueViaInplaceMatmul()
-except UnboundLocalError:
-    print("OK, object inplace matmul correctly deleted an item.")
-else:
-    print("Ouch.!")
-
-
 def someFunctionThatReturnsDeletedValueViaInplaceOr():
     class C:
         def __ior__(self, other):
@@ -901,29 +878,6 @@ try:
     someFunctionThatReturnsDeletedValueViaLen()
 except UnboundLocalError:
     print("OK, object len correctly deleted an item.")
-else:
-    print("Ouch.!")
-
-
-def someFunctionThatReturnsDeletedValueViaMatmul():
-    class C:
-        def __matmul__(self, other):
-            nonlocal a
-            del a
-
-            return 7
-    c = C()
-
-
-    a = 1
-    c @ 1
-    return a
-
-
-try:
-    someFunctionThatReturnsDeletedValueViaMatmul()
-except UnboundLocalError:
-    print("OK, object matmul correctly deleted an item.")
 else:
     print("Ouch.!")
 
