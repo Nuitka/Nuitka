@@ -905,7 +905,27 @@ else:
     print("Ouch.!")
 
 
-# TODO: The matrix multiply needs a dedicated test too.
+def someFunctionThatReturnsDeletedValueViaMatmul():
+    class C:
+        def __matmul__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    c @ 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaMatmul()
+except UnboundLocalError:
+    print("OK, object matmul correctly deleted an item.")
+else:
+    print("Ouch.!")
 
 
 # TODO: There is a whole lot more operations to cover.
