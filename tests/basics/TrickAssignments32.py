@@ -653,7 +653,210 @@ else:
     print("Ouch.!")
 
 
-# TODO: More in-place operations are missing here.
+def someFunctionThatReturnsDeletedValueViaInplacePower():
+    class C:
+        def __ipow__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    c **= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInplacePower()
+except UnboundLocalError:
+    print("OK, object inplace power correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaInplaceAnd():
+    class C:
+        def __iand__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    c &= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInplaceAnd()
+except UnboundLocalError:
+    print("OK, object inplace and correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaInplaceFloordiv():
+    class C:
+        def __ifloordiv__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    c //= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInplaceFloordiv()
+except UnboundLocalError:
+    print("OK, object inplace floordiv correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaInplaceLshift():
+    class C:
+        def __ilshift__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    c <<= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInplaceLshift()
+except UnboundLocalError:
+    print("OK, object inplace lshift correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaInplaceRshift():
+    class C:
+        def __irshift__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    c >>= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInplaceRshift()
+except UnboundLocalError:
+    print("OK, object inplace rshift correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaInplaceMatmul():
+    class C:
+        def __imatmul__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    c @= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInplaceMatmul()
+except UnboundLocalError:
+    print("OK, object inplace matmul correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaInplaceOr():
+    class C:
+        def __ior__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    c |= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInplaceOr()
+except UnboundLocalError:
+    print("OK, object inplace or correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+def someFunctionThatReturnsDeletedValueViaInplaceTrueDiv():
+    class C:
+        def __itruediv__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    c /= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInplaceTrueDiv()
+except UnboundLocalError:
+    print("OK, object inplace truediv correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaInplaceXor():
+    class C:
+        def __ixor__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    c ^= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInplaceXor()
+except UnboundLocalError:
+    print("OK, object inplace xor correctly deleted an item.")
+else:
+    print("Ouch.!")
 
 
 def someFunctionThatReturnsDeletedValueViaIndex():
