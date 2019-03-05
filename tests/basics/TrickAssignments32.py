@@ -882,9 +882,6 @@ else:
     print("Ouch.!")
 
 
-# TODO: There is a whole lot more operations to cover.
-
-
 def someFunctionThatReturnsDeletedValueViaRepr():
     class C:
         def __repr__(self):
