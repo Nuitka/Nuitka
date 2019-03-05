@@ -682,7 +682,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceAnd():
             nonlocal a
             del a
 
-            return 7
+            return False
     c = C()
 
 
@@ -728,7 +728,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceLshift():
             nonlocal a
             del a
 
-            return 7
+            return False
     c = C()
 
 
@@ -751,7 +751,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceRshift():
             nonlocal a
             del a
 
-            return 7
+            return False
     c = C()
 
 
@@ -797,7 +797,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceOr():
             nonlocal a
             del a
 
-            return 7
+            return False
     c = C()
 
 
@@ -842,7 +842,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceXor():
             nonlocal a
             del a
 
-            return 7
+            return False
     c = C()
 
 
