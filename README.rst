@@ -497,7 +497,7 @@ Report issues or bugs
 ---------------------
 
 Should you encounter any issues, bugs, or ideas, please visit the `Nuitka bug
-tracker <https://github.com/kayhayen/Nuitka/issues>`__ or `here <http://bugs.nuitka.net/>`_ and report them.
+tracker <https://github.com/kayhayen/Nuitka/issues>`__ and report them.
 
 Best practices for reporting bugs:
 
