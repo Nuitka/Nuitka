@@ -567,6 +567,7 @@ PyObject *BUILTIN_ANY(PyObject *value) {
             Py_DECREF(it);
             Py_RETURN_TRUE;
         }
+    }
         Py_DECREF(it);
         if (PyErr_Occurred()) {
             if (PyErr_ExceptionMatches(PyExc_StopIteration))
