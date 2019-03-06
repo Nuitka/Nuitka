@@ -544,13 +544,37 @@ PyObject *BUILTIN_LEN(PyObject *value) {
 PyObject *BUILTIN_ANY(PyObject *value) {
     CHECK_OBJECT(value);
 
-    Py_ssize_t res = PyObject_Size(value);
+    PyObject *it, *item;
+    PyObject *(*iternext)(PyObject *);
+    int cmp;
 
-    if (unlikely(res < 0 && ERROR_OCCURRED())) {
+    it = PyObject_GetIter(value);
+    if (it == NULL)
         return NULL;
-    }
+    iternext = *Py_TYPE(it)->tp_iternext;
 
-    return PyInt_FromSsize_t(res);
+    for (;;) {
+        item = iternext(it);
+        if (item == NULL)
+            break;
+        cmp = PyObject_IsTrue(item);
+        Py_DECREF(item);
+        if (cmp < 0) {
+            Py_DECREF(it);
+            return NULL;
+        }
+        if (cmp > 0) {
+            Py_DECREF(it);
+            Py_RETURN_TRUE;
+        }
+        Py_DECREF(it);
+        if (PyErr_Occurred()) {
+            if (PyErr_ExceptionMatches(PyExc_StopIteration))
+                PyErr_Clear();
+            else
+                return NULL;
+        }
+        Py_RETURN_FALSE;
 }
 
 NUITKA_DEFINE_BUILTIN(format);
