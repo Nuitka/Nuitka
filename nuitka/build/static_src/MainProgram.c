@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
         int res = putenv("PYTHONHOME=" PYTHON_HOME_PATH);
         assert(res == 0);
 #else
-        wchar_t *v= Py_DecodeLocale(PYTHON_HOME_PATH "\\lib", NULL);
+        wchar_t *v= Py_DecodeLocale(PYTHON_HOME_PATH "\\lib;" PYTHON_HOME_PATH "\\DLLs", NULL);
         assert( v != NULL);
 
         Py_SetPath(v);
