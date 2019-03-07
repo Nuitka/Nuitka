@@ -46,7 +46,7 @@ class TkinterPlugin(UserPluginBase):
         UserPluginBase: the plugin template class we are inheriting.
     """
 
-    plugin_name = "tk-plugin"  # Nuitka knows us by this name
+    plugin_name = "tk-inter"  # Nuitka knows us by this name
 
     @staticmethod
     def createPreModuleLoadCode(module):
@@ -188,7 +188,7 @@ class TkinterPluginDetector(UserPluginBase):
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    plugin_name = "tk-plugin"  # this is how Nuitka knows us
+    plugin_name = "tk-inter"  # this is how Nuitka knows us
 
     @staticmethod
     def isRelevant():
