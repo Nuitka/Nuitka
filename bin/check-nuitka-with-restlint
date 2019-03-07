@@ -28,6 +28,7 @@ import sys
 # package ought to be there.
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
-from nuitka.tools.quality.restlint.__main__ import main  # isort:skip
+# isort:start
+from nuitka.tools.quality.restlint.__main__ import main
 
 main()

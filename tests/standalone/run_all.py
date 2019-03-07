@@ -32,15 +32,18 @@ sys.path.insert(
         )
     ),
 )
+
+# isort:start
+
 from nuitka.tools.testing.Common import (
-    my_print,
-    setup,
-    hasModule,
     compareWithCPython,
+    createSearchMode,
     decideFilenameVersionSkip,
     getRuntimeTraceOfLoadedFiles,
-    createSearchMode,
+    hasModule,
+    my_print,
     reportSkip,
+    setup,
 )
 from nuitka.utils.FileOperations import removeDirectory
 
@@ -416,6 +419,8 @@ for filename in sorted(os.listdir(".")):
 
             # For the warnings.
             extra_flags.append("ignore_stderr")
+            # For the plug-in information.
+            extra_flags.append("ignore_infos")
 
         if os.name == "nt":
             extra_flags.append("plugin_enable:tk-inter")

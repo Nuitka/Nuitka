@@ -27,6 +27,7 @@ import subprocess
 import sys
 
 import wheel.bdist_wheel  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+
 from nuitka.__past__ import Iterable, unicode  # pylint: disable=I0021,redefined-builtin
 
 

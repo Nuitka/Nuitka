@@ -751,6 +751,7 @@ def _withLock():
     yield
     windows_lock.release()
 
+
 _win_dll_whitelist = (
     "SHELL32.DLL",
     "USER32.DLL",
@@ -955,7 +956,8 @@ _win_dll_whitelist = (
     # is installed on target machine anyway, even if pythonwin distributes it's own copies of those DLLs
     "MFC140U.DLL",
     "MFCM140U.DLL",
-    )
+)
+
 
 def _parseDependsExeOutput(filename, result):
     inside = False

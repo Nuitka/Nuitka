@@ -30,6 +30,7 @@ import sys
 # package ought to be there.
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
-import nuitka.__main__  # isort:skip
+# isort:start
+import nuitka.__main__
 
 nuitka.__main__.main()
