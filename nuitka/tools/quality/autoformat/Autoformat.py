@@ -30,7 +30,7 @@ from logging import warning
 
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
-from nuitka.utils.FileOperations import getFileContents
+from nuitka.utils.FileOperations import getFileContents, renameFile
 from nuitka.utils.Shebang import getShebangFromFile
 from nuitka.utils.Utils import getOS
 
@@ -243,16 +243,48 @@ def _cleanupImportSortOrder(filename):
 warned_clang_format = False
 
 
-def autoformat(filename, abort=False):
-    filename = os.path.normpath(filename)
+def _cleanupClangFormat(filename):
+    # Using global here, as this is really a singleton, in
+    # the form of a module, pylint: disable=global-statement
+    global warned_clang_format
 
-    my_print("Consider", filename, end=": ")
+    clang_format_path = getExecutablePath("clang-format")
 
-    old_code = getFileContents(filename)
+    # Extra ball on Windows, check default installation PATH too.
+    if not clang_format_path and getOS() == "Windows":
+        with withEnvironmentPathAdded("PATH", r"C:\Program Files\LLVM\bin"):
+            clang_format_path = getExecutablePath("clang-format")
 
-    is_python = False
+    if clang_format_path:
+        subprocess.call(
+            [
+                clang_format_path,
+                "-i",
+                "-style={BasedOnStyle: llvm, IndentWidth: 4, ColumnLimit: 120}",
+                filename,
+            ]
+        )
+    else:
+        if not warned_clang_format:
+
+            warning("Need to install LLVM for C files format.")
+            warned_clang_format = True
+
+
+def _shouldNotFormatCode(filename):
+    parts = os.path.abspath(filename).split(os.path.sep)
+
+    if "inline_copy" in parts:
+        return True
+    elif "tests" in parts and "run_all.py" not in parts:
+        return True
+    else:
+        return False
+
+
+def _isPythonFile(filename):
     if filename.endswith((".py", ".pyw")):
-        is_python = True
+        return True
     else:
         shebang = getShebangFromFile(filename)
 
@@ -262,17 +294,25 @@ def autoformat(filename, abort=False):
                 shebang = shebang[12:].lstrip()
 
             if shebang.startswith("python"):
-                is_python = True
+                return True
+
+    return False
+
+
+def autoformat(filename, abort=False):
+    filename = os.path.normpath(filename)
+
+    my_print("Consider", filename, end=": ")
+
+    old_code = getFileContents(filename)
+
+    is_python = _isPythonFile(filename)
 
     is_c = filename.endswith((".c", ".h"))
 
-    parts = os.path.abspath(filename).split(os.path.sep)
-
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
-    if "inline_copy" in parts:
-        is_python = is_c = False
-    if "tests" in parts and "run_all.py" not in parts:
+    if _shouldNotFormatCode(filename):
         is_python = is_c = False
 
     # Work on a temporary copy
@@ -282,41 +322,16 @@ def autoformat(filename, abort=False):
     try:
         if is_python:
             _cleanupPyLintComments(tmp_filename, abort)
-
             _cleanupImportSortOrder(tmp_filename)
-
-        _cleanupTrailingWhitespace(tmp_filename)
 
         if is_python:
             black_call = _getPythonBinaryCall("black")
 
             subprocess.call(black_call + ["-q", tmp_filename])
         elif is_c:
-            clang_format_path = getExecutablePath("clang-format")
-
-            # Extra ball on Windows, check default installation PATH too.
-            if not clang_format_path and getOS() == "Windows":
-                with withEnvironmentPathAdded("PATH", r"C:\Program Files\LLVM\bin"):
-                    clang_format_path = getExecutablePath("clang-format")
-
-            if clang_format_path:
-                subprocess.call(
-                    [
-                        clang_format_path,
-                        "-i",
-                        "-style={BasedOnStyle: llvm, IndentWidth: 4, ColumnLimit: 120}",
-                        tmp_filename,
-                    ]
-                )
-            else:
-                # Using global here, as this is really a singleton, in
-                # the form of a module, pylint: disable=global-statement
-                global warned_clang_format
-
-                if not warned_clang_format:
-
-                    warning("Need to install LLVM for C files format.")
-                    warned_clang_format = True
+            _cleanupClangFormat(filename)
+        else:
+            _cleanupTrailingWhitespace(tmp_filename)
 
         if getOS() == "Windows":
             _cleanupWindowsNewlines(tmp_filename)
@@ -325,17 +340,7 @@ def autoformat(filename, abort=False):
         if old_code != getFileContents(tmp_filename):
             my_print("Updated.")
 
-            # There is no way to safely replace a file on Windows, but lets try on Linux
-            # at least.
-            old_stat = os.stat(filename)
-
-            try:
-                os.rename(tmp_filename, filename)
-            except OSError:
-                shutil.copyfile(tmp_filename, filename)
-                os.unlink(tmp_filename)
-
-            os.chmod(filename, old_stat.st_mode)
+            renameFile(tmp_filename, filename)
 
             changed = True
         else:

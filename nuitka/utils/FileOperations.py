@@ -178,3 +178,17 @@ def getFileContentByLine(filename, mode="r"):
 def getFileContents(filename):
     with open(filename, "r") as f:
         return f.read()
+
+
+def renameFile(source_filename, dest_filename):
+    # There is no way to safely uodatea file on Windows, but lets
+    # try on Linux at least.
+    old_stat = os.stat(source_filename)
+
+    try:
+        os.rename(source_filename, dest_filename)
+    except OSError:
+        shutil.copyfile(source_filename, dest_filename)
+        os.unlink(source_filename)
+
+    os.chmod(dest_filename, old_stat.st_mode)
