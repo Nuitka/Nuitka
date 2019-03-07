@@ -199,6 +199,26 @@ class CollectionStartpointMixin(object):
             )
 
     def onExceptionRaiseExit(self, raisable_exceptions, collection=None):
+        """ Indicate to the trace collection what exceptions may have occured.
+
+        Args:
+            raisable_exception: Currently ignored, one or more exceptions that
+            could occur, e.g. "BaseException".
+            collection: To pass the collection that will be the parent
+        Notes:
+            Currently this is unused. Passing "collection" as an argument, so
+            we know the original collection to attach the branch to, is maybe
+            not the most clever way to do this
+
+            We also might want to specialize functions for specific exceptions,
+            there is little point in providing BaseException as an argument in
+            so many places.
+
+            The actual storage of the exceptions that can occur is currently
+            missing entirely. We just use this to detect "any exception" by
+            not being empty.
+        """
+
         # TODO: We might want to track per exception, pylint: disable=unused-argument
 
         if collection is None:
