@@ -39,7 +39,7 @@ exec 1>&2
 
 files=$(git diff --cached --name-only $against)
 
-if [ -z $files ]
+if [ -z "$files" ]
 then
     exit 0
 fi
