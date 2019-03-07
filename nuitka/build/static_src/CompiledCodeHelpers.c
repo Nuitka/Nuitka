@@ -560,7 +560,7 @@ PyObject *BUILTIN_ANY(PyObject *value) {
             break;
         cmp = PyObject_IsTrue(item);
         Py_DECREF(item);
-        if (cmp < 0) {
+        if (unlikely(cmp < 0)) {
             Py_DECREF(it);
             return NULL;
         }
@@ -571,7 +571,7 @@ PyObject *BUILTIN_ANY(PyObject *value) {
         }
     }
     Py_DECREF(it);
-    if (CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED) {
+    if (CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED()) {
       if (PyErr_ExceptionMatches(PyExc_StopIteration))
         PyErr_Clear();
       else
