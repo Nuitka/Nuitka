@@ -544,18 +544,19 @@ PyObject *BUILTIN_LEN(PyObject *value) {
 PyObject *BUILTIN_ANY(PyObject *value) {
     CHECK_OBJECT(value);
 
-    PyObject *it, *item;
+    PyObject *it = PyObject_GetIter(value);
     PyObject *(*iternext)(PyObject *);
-    int cmp;
+    PyObject *item;
 
-    it = PyObject_GetIter(value);
-    if (it == NULL)
+    if (unlikely((it == NULL)))
         return NULL;
     iternext = *Py_TYPE(it)->tp_iternext;
 
+    int cmp;
+
     for (;;) {
         item = iternext(it);
-        if (item == NULL)
+        if (unlikely((item == NULL)))
             break;
         cmp = PyObject_IsTrue(item);
         Py_DECREF(item);
@@ -565,17 +566,19 @@ PyObject *BUILTIN_ANY(PyObject *value) {
         }
         if (cmp > 0) {
             Py_DECREF(it);
-            Py_RETURN_TRUE;
+            Py_INCREF(Py_True);
+            return Py_True;
         }
     }
-        Py_DECREF(it);
-        if (PyErr_Occurred()) {
-            if (PyErr_ExceptionMatches(PyExc_StopIteration))
-                PyErr_Clear();
-            else
-                return NULL;
-        }
-        Py_RETURN_FALSE;
+    Py_DECREF(it);
+    if (CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED) {
+      if (PyErr_ExceptionMatches(PyExc_StopIteration))
+        PyErr_Clear();
+      else
+        return NULL;
+    }
+    Py_INCREF(Py_False);
+    return Py_False;
 }
 
 NUITKA_DEFINE_BUILTIN(format);
