@@ -18,6 +18,10 @@
 #     limitations under the License.
 #
 
+# This test is SPECIAL. Everything in here, MUST be statically optimized,
+# and be a print of a constant, or a function that becomes a return value
+# that is constant.
+
 print(not bool)
 print(not {})
 print(not 7)
@@ -26,77 +30,6 @@ print(False or dict)
 print(type(Ellipsis))
 print("a" in "abba")
 print("a" not in "abba")
-
-# Added support for functions
-
-x=100
-
-#     x = 2
-def assignment(x):
-  x = 2
-  return x
-print(assignment(x))
-
-#     x += 1
-def selfIncrement(x):
-  x += 1
-  return x
-print(selfIncrement(x))
-
-#     x *= 2
-def selfProduct(x):
-  x *= 2
-  return x
-print(selfProduct(x))
-
-#     x **= 2
-def selfExponentiate(x):
-  x **= 2
-  return x
-print(selfExponentiate(x))
-
-#     x -= 8
-def selfDecrement(x):
-  x -= 8
-  return x
-print(selfDecrement(x))
-
-#     x //= 5
-def selfFloorDivison(x):
-  x //= 5
-  return x
-print(selfFloorDivison(x))
-
-#     x %= 3
-def selfModulus(x):
-  x %= 3
-  return x
-print(selfModulus(x))
-
-#     x &= 2
-def selfAnd(x):
-  x &= 2
-  return x
-print(selfAnd(x))
-
-#     x |= 5
-def selfOr(x):
-  x |= 5
-  return x
-print(selfOr(x))
-
-#     x ^= 1
-def selfXor(x):
-  x ^= 1
-  return x
-print(selfXor(x))
-
-#     x /= 2
-def selfDivison(x):
-  x /= 2
-  return x
-print(selfDivison(x))
-
 print(len("a"*10000))
 print(len(10000*"a"))
 print(len((1,) *20000))
@@ -105,3 +38,62 @@ print(len([1]*30000))
 print(len(30000*[1]))
 print(len(unicode("a")*40000))
 print(len(40000*unicode("a")))
+
+
+# For operations, we use function return values of local variables that will
+# have to become constant.
+def simpleAssignment():
+    x = 2
+    return x
+
+def selfIncrement():
+    x = 2
+    x += 1
+    return x
+
+def selfProduct():
+    x = 2
+    x *= 2
+    return x
+
+def selfExponentiate():
+    x = 2
+    x **= 2
+    return x
+
+def selfDecrement():
+    x = 2
+    x -= 8
+    return x
+
+#     x //= 5
+def selfFloorDivison():
+    x = 2
+    x //= 5
+    return x
+
+def selfModulus():
+    x = 2
+    x %= 3
+    return x
+
+def selfAnd():
+    x = 2
+    x &= 2
+    return x
+
+def selfOr():
+    x = 2
+    x |= 5
+    return x
+
+def selfXor():
+    x = 2
+    x ^= 1
+    return x
+
+def selfDivison():
+    x = 2
+    x /= 2
+    return x
+
