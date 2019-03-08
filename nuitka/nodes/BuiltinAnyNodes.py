@@ -39,7 +39,7 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
 
             return length < 256
         else:
-            return None;
+            return None
 
     def computeExpression(self, trace_collection):
         return self.getValue().computeExpressionAny(
