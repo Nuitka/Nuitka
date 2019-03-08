@@ -31,6 +31,16 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_any_spec
 
+    def getIterationValue(self):
+        value = self.getValue()
+
+        if value.canPredictIterationValues() and value.hasShapeSlotLen():
+            length = self.getIterationLength()
+
+            return length < 256
+        else:
+            return None;
+
     def computeExpression(self, trace_collection):
         return self.getValue().computeExpressionAny(
             any_node         = self,
@@ -46,4 +56,4 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
         if value.mayRaiseException(exception_type):
             return True
 
-        return not value.getTypeShape().hasShapeSlotAny()
+        return not value.getTypeShape().hasShapeSlotIter()

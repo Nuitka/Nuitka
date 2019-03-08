@@ -376,7 +376,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionAny(self, any_node, trace_collection):
         shape = self.getTypeShape()
 
-        has_any = shape.hasShapeSlotAny()
+        has_any = shape.hasShapeSlotIter()
 
         if has_any is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
