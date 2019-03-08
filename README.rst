@@ -28,8 +28,12 @@ compatible manner.
 You can use all Python library modules and all extension modules freely.
 
 It translates the Python into a C level program that then uses ``libpython`` and
-a few C files of its own to execute in the same way as CPython does. All optimization is aimed at avoiding overhead, where it's unnecessary. None is aimed at removing compatibility, although slight improvements will occasionally
-be done, where not every bug of standard Python is emulated, e.g. more complete error messages are given, but there is a full compatibility mode to disable even that.
+a few C files of its own to execute in the same way as CPython does. All 
+optimization is aimed at avoiding overhead, where it's unnecessary. None is 
+aimed at removing compatibility, although slight improvements will occasionally
+be done, where not every bug of standard Python is emulated, e.g. more complete 
+error messages are given, but there is a full compatibility mode to disable even 
+that.
 
 Usage
 =====
@@ -51,8 +55,10 @@ Requirements
     6 or higher. The Anaconda compilers [#]_ are suitable too, even if you
     use CPython, they are the easiest installation method.
 
-  * Visual Studio 2017 or higher on Windows [#]_, older versions may work but are not officially supported. Configure to use the English language
-    pack for best results (Nuitka filters away garbage outputs, but only for that language).
+  * Visual Studio 2017 or higher on Windows [#]_, older versions may work 
+    but are not officially supported. Configure to use the English language
+    pack for best results (Nuitka filters away garbage outputs, but only 
+    for that language).
 
   * On Windows the ``clang-cl`` compiler on Windows can be used if provided if
     you use the ``CC`` environment variable to point to it, *and* you also have
@@ -67,7 +73,8 @@ Requirements
      Nuitka itself is fully compatible with all mentioned versions, Scons as
      as an internally used tool is not.
 
-     For these versions, you *need* a Python2 or Python 3.5 or higher installed as well, but only during the compile time only. That is for use with Scons
+     For these versions, you *need* a Python2 or Python 3.5 or higher installed 
+     as well, but only during the compile time only. That is for use with Scons
      (which orchestrates the C compilation), which does not support the same
      Python versions as Nuitka.
 
@@ -101,21 +108,26 @@ Requirements
 
 - Operating System: Linux, FreeBSD, NetBSD, macOS X, and Windows (32/64 bits).
 
-  Others may work as well. The portability is expected to be generally good, but the e.g. Scons usage may have to be adapted. Make sure to match Windows Python
+  Others may work as well. The portability is expected to be generally good, but 
+  the e.g. Scons usage may have to be adapted. Make sure to match Windows Python
   and C compiler architecture, or else you will get cryptic error messages.
 
 - Architectures: x86, x86_64 (amd64), and arm, likely many more
 
-  Other architectures are expected to also work, out of the box, as Nuitka is generally not using any hardware specifics. These are just the ones tested and known to be good. Feedback is welcome. Generally, the architectures that
+  Other architectures are expected to also work, out of the box, as Nuitka is 
+  generally not using any hardware specifics. These are just the ones tested 
+  and known to be good. Feedback is welcome. Generally, the architectures that
   Debian supports can be considered good and tested too.
 
 .. [#] Support for this C11 is a given with gcc 5 or higher or any clang
        version. The MSVC compiler doesn't do it yet. But as a workaround,
-       as the C++03 language standard is very overlapping with C11, it is then used instead where the C compiler is too old. Nuitka used to require a
+       as the C++03 language standard is very overlapping with C11, it is then 
+       used instead where the C compiler is too old. Nuitka used to require a
        C++ compiler in the past, but it changed.
 
 .. [#] Download MinGW64 from here http://mingw-w64.org/ and choose 64 or 32
-       bits matching your Python. Use both MinGW64 and 64 bits Python if you have the choice of which Python to use. Install it to ``C:\MinGW64`` or
+       bits matching your Python. Use both MinGW64 and 64 bits Python if you 
+       have the choice of which Python to use. Install it to ``C:\MinGW64`` or
        ``\MinGW64`` (same disk root as Nuitka running) to find it automatically.
        Also, when prompted, use ``posix`` for threads and ```dwarf`` for
        exception model, although these currently do not matter at all.
@@ -130,7 +142,9 @@ Requirements
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
-       (the Express editions work just fine). The latest version is recommended if not required. There is no need to use older versions, they might in fact not work.
+       (the Express editions work just fine). The latest version is recommended 
+       if not required. There is no need to use older versions, they might in fact
+       not work.
 
 
 Command Line
@@ -304,7 +318,8 @@ included in the executable:
    compilation time will be sufficient for all your needs normally.
 
    Use ``--include-plugin-directory`` only if you make ``__import__()`` calls
-   that Nuitka cannot predict, because they e.g. depend on command line parameters. Nuitka also warns about these, and point to the option.
+   that Nuitka cannot predict, because they e.g. depend on command line 
+   parameters. Nuitka also warns about these, and point to the option.
 
 .. note::
 
@@ -356,7 +371,8 @@ feasible, use Nuitka like this:
 .. note::
 
    The recursion into the package directory needs to be provided manually,
-   otherwise, the package is empty. Data files located inside the package will not be embedded yet.
+   otherwise, the package is empty. Data files located inside the package will 
+   not be embedded yet.
 
 Tips
 ====
@@ -515,7 +531,8 @@ Best practices for reporting bugs:
   with different results when that programs runs compiled or native.
 
 - If the problem occurs spuriously (i.e. not each time), try to set the
-  environment variable ``PYTHONHASHSEED`` to ``0``, disabling hash randomization. If that makes the problem go away, try increasing in
+  environment variable ``PYTHONHASHSEED`` to ``0``, disabling hash 
+  randomization. If that makes the problem go away, try increasing in
   steps of 1 to a hash seed value that makes it happen every time, include
   it in your report.
 
@@ -530,30 +547,38 @@ Word of Warning
 ---------------
 
 Consider using this software with caution. Even though many tests are applied
-before releases, things are potentially breaking. Your feedback and patches to Nuitka are very welcome.
+before releases, things are potentially breaking. Your feedback and patches to 
+Nuitka are very welcome.
 
 
 Join Nuitka
 ===========
 
-You are more than welcome to join Nuitka development and help to complete the project in all minor and major ways.
+You are more than welcome to join Nuitka development and help to complete the 
+project in all minor and major ways.
 
 The development of Nuitka occurs in git. We currently have these 3 branches:
 
 - `master
   <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/master>`__:
 
-  This branch contains the stable release to which only hotfixes for bugs will be done. It is supposed to work at all times and is supported.
+  This branch contains the stable release to which only hotfixes for bugs will 
+  be done. It is supposed to work at all times and is supported.
 
 - `develop
   <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/develop>`__:
 
-  This branch contains the ongoing development. It may at times contain little regressions, but also new features. On this branch, the integration work is done, whereas new features might be developed on feature branches.
+  This branch contains the ongoing development. It may at times contain little 
+  regressions, but also new features. On this branch, the integration work is 
+  done, whereas new features might be developed on feature branches.
 
 - `factory
   <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/factory>`__:
 
-  This branch contains unfinished and incomplete work. It is very frequently subject to ``git rebase`` and the public staging ground, where my work for develop branch lives first. It is intended for testing only and recommended to base any of your own development on. When updating it,
+  This branch contains unfinished and incomplete work. It is very frequently 
+  subject to ``git rebase`` and the public staging ground, where my work 
+  for develop branch lives first. It is intended for testing only and 
+  recommended to base any of your own development on. When updating it,
   you very often will get merge conflicts. Simply resolve those by doing
   ``git reset --hard origin/factory`` and switch to the latest version.
 
@@ -565,7 +590,9 @@ The development of Nuitka occurs in git. We currently have these 3 branches:
 .. note::
 
    The `Developer Manual <http://nuitka.net/doc/developer-manual.html>`__
-   explains the coding rules, branching model used, with feature branches and hotfix releases, the Nuitka design and much more. Consider reading it to become a contributor. This document is intended for Nuitka users.
+   explains the coding rules, branching model used, with feature branches and 
+   hotfix releases, the Nuitka design and much more. Consider reading it to 
+   become a contributor. This document is intended for Nuitka users.
 
 Donations
 =========
@@ -595,7 +622,8 @@ Optimization
 Constant Folding
 ----------------
 
-The most important form of optimization is the constant folding. This is when an operation can be fully predicted at compile time. Currently, Nuitka does these
+The most important form of optimization is the constant folding. This is when an 
+operation can be fully predicted at compile time. Currently, Nuitka does these
 for some built-ins (but not all yet, somebody to look at this more closely will
 be very welcome!), and it does it e.g. for binary/unary operations and
 comparisons.
@@ -617,8 +645,10 @@ quality a lot.
 
 .. admonition:: Status
 
-   The folding of constants is considered implemented, but it might be incomplete in that not all possible cases are caught. Please report it as a
-   bug when you find an operation in Nuitka that has only constants as input and is not folded.
+   The folding of constants is considered implemented, but it might be incomplete 
+   in that not all possible cases are caught. Please report it as a
+   bug when you find an operation in Nuitka that has only constants as input and 
+   is not folded.
 
 Constant Propagation
 --------------------
@@ -682,7 +712,8 @@ more constant folding or code path reduction.
 
 .. admonition:: Status
 
-   The built-in call prediction is considered implemented. We can simply during compile time emulate the call and use its result or raised exception. But we
+   The built-in call prediction is considered implemented. We can simply during
+   compile time emulate the call and use its result or raised exception. But we
    may not cover all the built-ins there are yet.
 
 Sometimes the result of a built-in should not be predicted when the result is
@@ -766,7 +797,10 @@ as an expression having a value.
 
 .. admonition:: Status
 
-   The propagation of exceptions is mostly implemented but needs handling in every kind of operations, and not all of them might do it already. As work progresses or examples arise, the coverage will be extended. Feel free to generate bug reports with non-working examples.
+   The propagation of exceptions is mostly implemented but needs handling in 
+   every kind of operations, and not all of them might do it already. As work 
+   progresses or examples arise, the coverage will be extended. Feel free to 
+   generate bug reports with non-working examples.
 
 Exception Scope Reduction
 -------------------------
@@ -797,7 +831,8 @@ without any risk.
 
 .. admonition:: Status
 
-   This is considered done. For every kind of operation, we trace if it may raise an exception. We do however *not* track properly yet, what can do
+   This is considered done. For every kind of operation, we trace if it may 
+   raise an exception. We do however *not* track properly yet, what can do
    a ``ValueError`` and what cannot.
 
 
@@ -851,7 +886,8 @@ variable ``i`` to ``999`` and no more.
 
 .. admonition:: Status
 
-   This is not implemented yet, as it requires us to track iterators, and their side effects, as well as loop values, and exit conditions. Too much yet, but
+   This is not implemented yet, as it requires us to track iterators, and their 
+   side effects, as well as loop values, and exit conditions. Too much yet, but
    we will get there.
 
 Another example:
@@ -895,7 +931,9 @@ predict if an expression can raise an exception or not.
 
 .. admonition:: Status
 
-   Not implemented yet. Will need us to see through the unpacking of what is an iteration over a tuple, we created ourselves. We are not there yet, but we will get there.
+   Not implemented yet. Will need us to see through the unpacking of what is 
+   an iteration over a tuple, we created ourselves. We are not there yet, but we 
+   will get there.
 
 Built-in Type Inference
 -----------------------
@@ -972,7 +1010,9 @@ check to assert that. This is also possible for sets.
 
 .. admonition:: Status
 
-   Implemented, even works for non-constants. Needs other optimization to become generally useful, and will itself help other optimization to become possible. This allows us to e.g. only treat iteration over tuples, and not
+   Implemented, even works for non-constants. Needs other optimization to 
+   become generally useful, and will itself help other optimization to become 
+   possible. This allows us to e.g. only treat iteration over tuples, and not 
    care about sets.
 
 In theory, something similar is also possible for ``dict``. For the later, it will
@@ -1001,7 +1041,8 @@ The order is sorted by time.
   building cleanups, core stuff.
 
 - Khalid Abu Bakr: Submitted patches for his work to support MinGW and Windows,
-  debugged the issues, and helped me to get cross compile with MinGW from Linux to Windows. This was quite difficult stuff.
+  debugged the issues, and helped me to get cross compile with MinGW from Linux 
+  to Windows. This was quite difficult stuff.
 
 - Liu Zhenhai: Submitted patches for Windows support, making the inline Scons
   copy actually work on Windows as well. Also reported import related bugs, and
@@ -1057,16 +1098,21 @@ Projects used by Nuitka
 
 * The `GCC project <http://gcc.gnu.org>`__
 
-  Thanks for not only the best compiler suite but also thanks for making it easy supporting to get Nuitka off the ground. Your compiler was the first
+  Thanks for not only the best compiler suite but also thanks for making it 
+  easy supporting to get Nuitka off the ground. Your compiler was the first
   usable for Nuitka and with very little effort.
 
 * The `Scons project <http://www.scons.org>`__
 
-  Thanks for tackling the difficult points and providing a Python environment to make the build results. This is such a perfect fit to Nuitka and a dependency that will likely remain.
+  Thanks for tackling the difficult points and providing a Python environment to 
+  make the build results. This is such a perfect fit to Nuitka and a dependency 
+  that will likely remain.
 
 * The `valgrind project <http://valgrind.org>`__
 
-  Luckily we can use Valgrind to determine if something is an actual improvement without the noise. And it's also helpful to determine what's actually happening when comparing.
+  Luckily we can use Valgrind to determine if something is an actual improvement 
+  without the noise. And it's also helpful to determine what's actually 
+  happening when comparing.
 
 * The `NeuroDebian project <http://neuro.debian.net>`__
 
@@ -1075,7 +1121,9 @@ Projects used by Nuitka
 
 * The `openSUSE Buildservice <http://openbuildservice.org>`__
 
-  Thanks for hosting this excellent service that allows us to provide RPMs for a large variety of platforms and make them available immediately nearly at release time.
+  Thanks for hosting this excellent service that allows us to provide RPMs for a 
+  large variety of platforms and make them available immediately nearly at 
+  release time.
 
 * The `MinGW64 project <http://mingw-w64.org>`__
 
@@ -1084,11 +1132,14 @@ Projects used by Nuitka
 
 * The `Buildbot project <http://buildbot.net>`__
 
-  Thanks for creating an easy to deploy and use continuous integration framework that also runs on Windows and is written and configured in Python code. This allows running the Nuitka tests long before release time.
+  Thanks for creating an easy to deploy and use continuous integration framework 
+  that also runs on Windows and is written and configured in Python code. This 
+  allows running the Nuitka tests long before release time.
 
 * The `isort project <http://timothycrosley.github.io/isort/>`__
 
-  Thanks for making nice import ordering so easy. This makes it so easy to let your IDE do it and clean up afterward.
+  Thanks for making nice import ordering so easy. This makes it so easy to let 
+  your IDE do it and clean up afterward.
 
 * The `black project <https://github.com/ambv/black>`__
 
