@@ -554,7 +554,7 @@ Nuitka are very welcome.
 Join Nuitka
 ===========
 
-You are more than welcome to join Nuitka development and help to complete the 
+You are more than welcome to join Nuitka development and help to complete the
 project in all minor and major ways.
 
 The development of Nuitka occurs in git. We currently have these 3 branches:
