@@ -27,6 +27,7 @@ import subprocess
 import sys
 
 import wheel.bdist_wheel  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+
 from nuitka.__past__ import Iterable, unicode  # pylint: disable=I0021,redefined-builtin
 
 
@@ -120,10 +121,12 @@ class build(distutils.command.build.build):
 
         # Process any extra options from setuptools
         if "nuitka" in self.distribution.command_options:
-            for option, details in self.distribution.command_options["nuitka"].items():
+            for option, value in self.distribution.command_options["nuitka"].items():
                 option = "--" + option.lstrip("-")
-                _source, value = details
                 if value is None:
+                    command.append(option)
+                elif isinstance(value, bool):
+                    option = "--" + ("no" if not value else "") + option.lstrip("-")
                     command.append(option)
                 elif isinstance(value, Iterable) and not isinstance(
                     value, (unicode, bytes, str)

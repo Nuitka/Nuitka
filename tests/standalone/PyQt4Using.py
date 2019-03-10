@@ -17,31 +17,36 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 # This test is using signals and will only work if PySide properly accepts
 # compiled functions as callables.
 
 from __future__ import print_function
 
-from PyQt4.QtCore import pyqtSlot, pyqtSignal, QObject, QMetaObject
+from PyQt4.QtCore import QMetaObject, QObject, pyqtSignal, pyqtSlot
+
+# nuitka-skip-unless-imports: PyQt4.QtGui
+
 
 class Communicate(QObject):
     speak = pyqtSignal(int)
-    def __init__(self,name = "",parent = None):
-        QObject.__init__(self,parent)
+
+    def __init__(self, name="", parent=None):
+        QObject.__init__(self, parent)
         self.setObjectName(name)
+
 
 class Speaker(QObject):
     @pyqtSlot(int)
     def on_communicator_speak(self, stuff):
         print(stuff)
 
+
 speaker = Speaker()
-someone = Communicate(name = "communicator",parent = speaker)
+someone = Communicate(name="communicator", parent=speaker)
 
 QMetaObject.connectSlotsByName(speaker)
 
-print("The answer is:",end = "")
+print("The answer is:", end="")
 # emit  'speak' signal
 someone.speak.emit(42)
 print("Slot should have made output by now.")

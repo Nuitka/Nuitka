@@ -52,12 +52,35 @@ static void _createGlobalConstants( void )
         %(sys_executable)s
     );
 
-    /* Set the "sys.executable" path to the original CPython executable. */
+#ifndef _NUITKA_STANDALONE
+    /* Set the "sys.prefix" path to the original one. */
     PySys_SetObject(
         (char *)"prefix",
         %(sys_prefix)s
     );
 
+    /* Set the "sys.prefix" path to the original one. */
+    PySys_SetObject(
+        (char *)"exec_prefix",
+        %(sys_exec_prefix)s
+    );
+
+
+#if PYTHON_VERSION >= 300
+    /* Set the "sys.base_prefix" path to the original one. */
+    PySys_SetObject(
+        (char *)"base_prefix",
+        %(sys_base_prefix)s
+    );
+
+    /* Set the "sys.exec_base_prefix" path to the original one. */
+    PySys_SetObject(
+        (char *)"base_exec_prefix",
+        %(sys_base_exec_prefix)s
+    );
+
+#endif
+#endif
 #endif
 
     static PyTypeObject Nuitka_VersionInfoType;

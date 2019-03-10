@@ -96,6 +96,7 @@ def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
 
         return readSourceLine(source_ref)
 
+    # Special case being asked to display.
     if display_file and display_line:
         source_line = readSource()
 
@@ -108,21 +109,22 @@ def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
                 source_line,
             ),
         )
-    else:
-        if source_ref is not None:
-            if display_line:
-                source_line = readSource()
-            else:
-                source_line = None
 
-            raise SyntaxError(
-                reason,
-                (
-                    source_ref.getFilename(),
-                    source_ref.getLineNumber(),
-                    col_offset,
-                    source_line,
-                ),
-            )
+    # Special case given source reference.
+    if source_ref is not None:
+        if display_line:
+            source_line = readSource()
         else:
-            raise SyntaxError(reason, (None, None, None, None))
+            source_line = None
+
+        raise SyntaxError(
+            reason,
+            (
+                source_ref.getFilename(),
+                source_ref.getLineNumber(),
+                col_offset,
+                source_line,
+            ),
+        )
+
+    raise SyntaxError(reason, (None, None, None, None))

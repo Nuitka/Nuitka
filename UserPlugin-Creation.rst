@@ -78,3 +78,80 @@ Sample invocation line and output::
 
     $
 
+Nuitka Options Overview
+------------------------
+About 60 methods are available to access option information for the
+current Nuitka execution. Import the ``Options`` module
+(``"from nuitka import Options"``) and use one of the following.
+
+Please note that ``str`` results in general may return ``None``.
+Except very few, the methods have no argument.
+
+===================================== ======================================================================================
+**Method**                            **Description**
+===================================== ======================================================================================
+assumeYesForDownloads                 *bool* = ``--assume-yes-for-downloads``
+getExperimentalIndications            *tuple*, items of ``--experimental=``
+getFileReferenceMode                  *str*, one of ``"runtime"``, ``"original"`` or ``--file-reference-mode``
+getIconPath                           *str*, value of ``--windows-icon``
+getIntendedPythonArch                 *str*, one of ``"x86"``, ``"x86_64"`` or ``None``
+getJobLimit                           *int*, value of ``--jobs`` / ``-j`` or number of CPU kernels
+getMainArgs                           *tuple*, arguments following the optional arguments
+getMsvcVersion                        *str*, value of ``--msvc``
+getMustIncludeModules                 *list*, items of ``--include-module=``
+getMustIncludePackages                *list*, items of ``--include-package=``
+getOutputDir                          *str*, value of ``--output-dir`` or ``"."``
+getOutputFilename                     *str*, value of ``-o``
+getOutputPath(path)                   *str*, os.path.join(getOutputDir(), path)
+getPluginsDisabled                    *tuple*, items of ``--disable-plugin=``
+getPluginsEnabled                     *tuple*, enabled plugins (including user plugins)
+getPluginOptions(plugin_name)         *list*, options for specified plugin
+getPositionalArgs                     *tuple*, command line positional arguments
+getPythonFlags                        *list*, value of ``--python-flag``
+getPythonPathForScons                 *str*, value of ``--python-for-scons``
+getShallFollowExtra                   *list*, items of ``--include-plugin-directory=``
+getShallFollowExtraFilePatterns       *list*, items of ``--include-plugin-files=``
+getShallFollowInNoCase                *list*, items of ``--nofollow-import-to=`` / ``--recurse-not-to=``
+getShallFollowModules                 *list*, items of ``--follow-import-to=`` / ``--recurse-to=``
+getUserPlugins                        *tuple*, items of ``--user-plugin=``
+isAllowedToReexecute                  *bool* = **not** ``--must-not-re-execute``
+isClang                               *bool* = ``--clang``
+isDebug                               *bool* = ``--debug`` or ``--debugger``
+isExperimental("feature")             *bool* = ``--experimental=feature``
+isFullCompat                          *bool* = ``--full-compat``
+isLto                                 *bool* = ``--lto``
+isMingw64                             *bool* = ``--mingw64``
+isProfile                             *bool* = ``--profile``
+isPythonDebug                         *bool* = ``--python-debug`` or ``sys.flags.debug``
+isRemoveBuildDir                      *bool* = ``--remove-output``
+isShowInclusion                       *bool* = ``--show-modules``
+isShowMemory                          *bool* = ``--show-memory``
+isShowProgress                        *bool* = ``--show-progress``
+isShowScons                           *bool* = ``--show-scons``
+isStandaloneMode                      *bool* = ``--standalone``
+isUnstripped                          *bool* = ``--unstripped`` or ``--profile``
+isVerbose                             *bool* = ``--verbose``
+shallClearPythonPathEnvironment       *bool* = **not** ``--execute-with-pythonpath``
+shallCreateGraph                      *bool* = ``--graph``
+shallCreatePyiFile                    *bool* = **not** ``--no-pyi-file``
+shallDetectMissingPlugins             *bool* = **not** ``--plugin-no-detection``
+shallDisableConsoleWindow             *bool* = ``--win-disable-console``
+shallDumpBuiltTreeXML                 *bool* = ``--xml``
+shallExecuteImmediately               *bool* = ``--run``
+shallExplainImports                   *bool* = ``--explain-imports``
+shallFollowAllImports                 *bool* = ``--follow-imports`` / ``--recurse-all``
+shallFollowNoImports                  *bool* = ``--nofollow-imports`` / ``--recurse-none``
+shallFollowStandardLibrary            *bool* = ``--follow-stdlib`` / ``--recurse-stdlib``
+shallFreezeAllStdlib                  *bool* = **not** shallFollowStandardLibrary
+shallListPlugins                      *bool* = ``--plugin-list``
+shallMakeModule                       *bool* = ``--module``
+shallNotDoExecCCompilerCall           *bool* = ``--generate-c-only``
+shallNotStoreDependsExeCachedResults  *bool* = ``--disable-dll-dependency-cache``
+shallNotUseDependsExeCachedResults    *bool* = ``--disable-dll-dependency-cache`` or ``--force-dll-dependency-cache-update``
+shallOnlyExecCCompilerCall            *bool* = ``--recompile-c-only``
+shallRunInDebugger                    *bool* = ``--debug``
+shallTraceExecution                   *bool* = ``--trace-execution``
+shallWarnImplicitRaises               *bool* = ``--warn-implicit-exceptions``
+shallWarnUnusualCode                  *bool* = ``--warn-unusual-code``
+===================================== ======================================================================================
+

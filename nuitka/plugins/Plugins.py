@@ -35,6 +35,10 @@ from logging import info
 
 from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
+from nuitka.plugins.standard.EnumPlugin import (
+    NuitkaPluginDetectorEnumWorkarounds,
+    NuitkaPluginEnumWorkarounds,
+)
 from nuitka.PythonVersions import python_version
 
 from .PluginBase import UserPluginBase, post_modules, pre_modules
@@ -80,6 +84,7 @@ optional_plugin_classes = (
     (NuitkaPluginPmw, NuitkaPluginDetectorPmw),
     (TkinterPlugin, TkinterPluginDetector),
     (NumpyPlugin, NumpyPluginDetector),
+    (NuitkaPluginEnumWorkarounds, NuitkaPluginDetectorEnumWorkarounds),
 )
 
 plugin_name2plugin_classes = dict(
@@ -96,11 +101,11 @@ class Plugins(object):
         # Post load code may have been created, if so indicate it's used.
         full_name = module.getFullName()
 
-        if full_name in post_modules:
-            addUsedModule(post_modules[full_name])
-
         if full_name in pre_modules:
             addUsedModule(pre_modules[full_name])
+
+        if full_name in post_modules:
+            addUsedModule(post_modules[full_name])
 
     @staticmethod
     def onStandaloneDistributionFinished(dist_dir):
@@ -162,7 +167,8 @@ class Plugins(object):
         Args:
             module: module object
         Yields:
-            data file names
+            Data file description pairs, either (source, dest) or (func, dest)
+            where the func will be called to create the content dynamically.
         """
         for plugin in active_plugin_list:
             for value in plugin.considerDataFiles(module):

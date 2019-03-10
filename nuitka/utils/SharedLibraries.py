@@ -19,12 +19,16 @@
 
 """
 
-import array
 import os
 from sys import getfilesystemencoding
 
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import python_version
+from nuitka.utils.WindowsResources import (
+    RT_MANIFEST,
+    deleteWindowsResources,
+    getResourcesFromDLL,
+)
 
 from .Utils import isAlpineLinux
 
@@ -40,6 +44,9 @@ def locateDLL(dll_name):
     import ctypes.util
 
     dll_name = ctypes.util.find_library(dll_name)
+
+    if dll_name is None:
+        return None
 
     if os.path.sep in dll_name:
         # Use this from ctypes instead of rolling our own.
@@ -85,61 +92,23 @@ def locateDLL(dll_name):
 def getSxsFromDLL(filename):
     """ List the SxS manifests of a Windows DLL.
 
+    Args:
+        filename: Filename of DLL to investigate
+
+    Returns:
+        List of resource names that are manifests.
+
     """
-    import ctypes.wintypes
 
-    if type(filename) is unicode:
-        LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExW  # @UndefinedVariable
-    else:
-        LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExA  # @UndefinedVariable
-
-    EnumResourceNames = ctypes.windll.kernel32.EnumResourceNamesA  # @UndefinedVariable
-    FreeLibrary = ctypes.windll.kernel32.FreeLibrary  # @UndefinedVariable
-
-    EnumResourceNameCallback = ctypes.WINFUNCTYPE(
-        ctypes.wintypes.BOOL,
-        ctypes.wintypes.HMODULE,
-        ctypes.wintypes.LONG,
-        ctypes.wintypes.LONG,
-        ctypes.wintypes.LONG,
-    )
-
-    DONT_RESOLVE_DLL_REFERENCES = 0x1
-    LOAD_LIBRARY_AS_DATAFILE = 0x2
-    LOAD_LIBRARY_AS_IMAGE_RESOURCE = 0x20
-
-    RT_MANIFEST = 24
-
-    hmodule = LoadLibraryEx(
-        filename,
-        0,
-        DONT_RESOLVE_DLL_REFERENCES
-        | LOAD_LIBRARY_AS_DATAFILE
-        | LOAD_LIBRARY_AS_IMAGE_RESOURCE,
-    )
-
-    if hmodule == 0:
-        raise ctypes.WinError()
-
-    manifests = []
-
-    def callback(_hModule, _lpType, lpName, _lParam):
-        manifests.append(lpName)
-
-        return True
-
-    EnumResourceNames(hmodule, RT_MANIFEST, EnumResourceNameCallback(callback), None)
-
-    FreeLibrary(hmodule)
-    return manifests
+    return getResourcesFromDLL(filename, RT_MANIFEST)
 
 
 def removeSxsFromDLL(filename):
     """ Remove the Windows DLL SxS manifest.
 
+    Args:
+        filename: Filename to remove SxS manifests from
     """
-    import ctypes
-
     # There may be more files that need this treatment, these are from scans
     # with the "find_sxs_modules" tool.
     if os.path.normcase(os.path.basename(filename)) not in (
@@ -152,30 +121,7 @@ def removeSxsFromDLL(filename):
     res_names = getSxsFromDLL(filename)
 
     if res_names:
-        BeginUpdateResource = (
-            ctypes.windll.kernel32.BeginUpdateResourceA  # @UndefinedVariable
-        )  # @UndefinedVariable
-        EndUpdateResource = (
-            ctypes.windll.kernel32.EndUpdateResourceA  # @UndefinedVariable
-        )  # @UndefinedVariable
-        UpdateResource = ctypes.windll.kernel32.UpdateResourceA  # @UndefinedVariable
-        RT_MANIFEST = 24
-
-        update_handle = BeginUpdateResource(filename, False)
-
-        if not update_handle:
-            raise ctypes.WinError()
-
-        for res_name in res_names:
-            ret = UpdateResource(update_handle, RT_MANIFEST, res_name, 1033, None, 0)
-
-            if not ret:
-                raise ctypes.WinError()
-
-        ret = EndUpdateResource(update_handle, False)
-
-        if not ret:
-            raise ctypes.WinError()
+        deleteWindowsResources(filename, RT_MANIFEST, res_names)
 
 
 def getWindowsDLLVersion(filename):
@@ -185,10 +131,16 @@ def getWindowsDLLVersion(filename):
         a tuple of 4 numbers.
     """
     # Get size needed for buffer (0 if no info)
-    import ctypes
+    import ctypes.wintypes
 
     if type(filename) is unicode:
-        size = ctypes.windll.version.GetFileVersionInfoSizeW(filename, None)
+        GetFileVersionInfoSizeW = ctypes.windll.version.GetFileVersionInfoSizeW
+        GetFileVersionInfoSizeW.argtypes = [
+            ctypes.wintypes.LPCWSTR,
+            ctypes.wintypes.LPDWORD,  # @UndefinedVariable
+        ]
+        GetFileVersionInfoSizeW.restype = ctypes.wintypes.HANDLE
+        size = GetFileVersionInfoSizeW(filename, None)
     else:
         size = ctypes.windll.version.GetFileVersionInfoSizeA(filename, None)
 
@@ -200,36 +152,62 @@ def getWindowsDLLVersion(filename):
     # Load file informations into buffer res
 
     if type(filename) is unicode:
-        ctypes.windll.version.GetFileVersionInfoW(filename, None, size, res)
-    else:
-        ctypes.windll.version.GetFileVersionInfoA(filename, None, size, res)
+        # Python3 needs our help here.
+        GetFileVersionInfo = ctypes.windll.version.GetFileVersionInfoW
+        GetFileVersionInfo.argtypes = [
+            ctypes.wintypes.LPCWSTR,
+            ctypes.wintypes.DWORD,
+            ctypes.wintypes.DWORD,
+            ctypes.wintypes.LPVOID,
+        ]
+        GetFileVersionInfo.restype = ctypes.wintypes.BOOL
 
-    r = ctypes.c_uint()
-    l = ctypes.c_uint()
+    else:
+        # Python2 just works.
+        GetFileVersionInfo = ctypes.windll.version.GetFileVersionInfoA
+
+    success = GetFileVersionInfo(filename, 0, size, res)
+    # This cannot really fail anymore.
+    assert success
 
     # Look for codepages
-    ctypes.windll.version.VerQueryValueA(
-        res, br"\VarFileInfo\Translation", ctypes.byref(r), ctypes.byref(l)
-    )
+    VerQueryValueA = ctypes.windll.version.VerQueryValueA
+    VerQueryValueA.argtypes = [
+        ctypes.wintypes.LPCVOID,
+        ctypes.wintypes.LPCSTR,
+        ctypes.wintypes.LPVOID,
+        ctypes.POINTER(ctypes.c_uint32),
+    ]
+    VerQueryValueA.restype = ctypes.wintypes.BOOL
 
-    if not l.value:
+    class VsFixedFileInfoStructure(ctypes.Structure):
+        _fields_ = [
+            ("dwSignature", ctypes.c_uint32),  # 0xFEEF04BD
+            ("dwStructVersion", ctypes.c_uint32),
+            ("dwFileVersionMS", ctypes.c_uint32),
+            ("dwFileVersionLS", ctypes.c_uint32),
+            ("dwProductVersionMS", ctypes.c_uint32),
+            ("dwProductVersionLS", ctypes.c_uint32),
+            ("dwFileFlagsMask", ctypes.c_uint32),
+            ("dwFileFlags", ctypes.c_uint32),
+            ("dwFileOS", ctypes.c_uint32),
+            ("dwFileType", ctypes.c_uint32),
+            ("dwFileSubtype", ctypes.c_uint32),
+            ("dwFileDateMS", ctypes.c_uint32),
+            ("dwFileDateLS", ctypes.c_uint32),
+        ]
+
+    file_info = ctypes.POINTER(VsFixedFileInfoStructure)()
+    uLen = ctypes.c_uint32(ctypes.sizeof(file_info))
+
+    b = VerQueryValueA(res, br"\\", ctypes.byref(file_info), ctypes.byref(uLen))
+    if not b:
         return (0, 0, 0, 0)
 
-    codepages = array.array("H", ctypes.string_at(r.value, l.value))
-    codepage = tuple(codepages[:2].tolist())
+    if not file_info.contents.dwSignature == 0xFEEF04BD:
+        return (0, 0, 0, 0)
 
-    # Extract information
-    ctypes.windll.version.VerQueryValueA(
-        res,
-        r"\StringFileInfo\%04x%04x\FileVersion" % codepage,
-        ctypes.byref(r),
-        ctypes.byref(l),
-    )
+    ms = file_info.contents.dwFileVersionMS
+    ls = file_info.contents.dwFileVersionLS
 
-    data = ctypes.string_at(r.value, l.value)[4 * 2 :]
-
-    import struct
-
-    data = struct.unpack("HHHH", data[: 4 * 2])
-
-    return data[1], data[0], data[3], data[2]
+    return (ms >> 16) & 0xFFFF, ms & 0xFFFF, (ls >> 16) & 0xFFFF, ls & 0xFFFF

@@ -33,6 +33,7 @@ from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.importing.Importing import findModule, getModuleNameAndKindFromFilename
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
+from nuitka.ModuleRegistry import getUncompiledModule
 from nuitka.utils.FileOperations import relpath
 
 from .ExpressionBases import (
@@ -186,6 +187,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
 
         if module_kind is not None:
+            if module_package is None:
+                module_fullpath = module_name
+            else:
+                module_fullpath = module_package + "." + module_name
+
             decision, reason = decideRecursion(
                 module_filename=module_filename,
                 module_name=module_name,
@@ -212,12 +218,14 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                     )
 
                 return imported_module
-            elif decision is None and module_kind == "py":
-                if module_package is None:
-                    module_fullpath = module_name
-                else:
-                    module_fullpath = module_package + "." + module_name
+            elif decision is False and module_kind == "py":
+                uncompiled_module = getUncompiledModule(
+                    module_fullpath, module_filename
+                )
 
+                if uncompiled_module is not None:
+                    return uncompiled_module
+            elif decision is None and module_kind == "py":
                 if (
                     module_filename not in self._warned_about
                     and module_fullpath not in getModuleWhiteList()

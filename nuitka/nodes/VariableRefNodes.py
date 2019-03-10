@@ -466,6 +466,13 @@ local variable '%s' referenced before assignment"""
     def mayRaiseException(self, exception_type):
         return self.variable_trace is None or not self.variable_trace.mustHaveValue()
 
+    def mayRaiseExceptionBool(self, exception_type):
+        return (
+            self.variable_trace is None
+            or not self.variable_trace.mustHaveValue()
+            or not self.variable_trace.getTypeShape().hasShapeSlotBool()
+        )
+
 
 class ExpressionTempVariableRef(ExpressionVariableRefBase):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"

@@ -65,6 +65,9 @@ for filename in sorted(os.listdir('.')):
             search_mode = search_mode,
             needs_2to3  = False
         )
+        
+    if search_mode.abortIfExecuted():
+        break
     else:
         my_print("Skipping", filename)
 

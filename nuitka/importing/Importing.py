@@ -114,6 +114,20 @@ def getExtensionModuleSuffixes():
 
 
 def getModuleNameAndKindFromFilename(module_filename):
+    """ Given a filename, decide the module name and kind.
+
+    Args:
+        module_name - file path of the module
+    Returns:
+        Tuple with the name of the module basename, and the kind of the
+        module derived from the file suffix. Can be None, None if is is not a
+        known file suffix.
+    Notes:
+        This doesn't concern itself with packages, that needs to be tracked
+        by the using code. It cannot be decided from the filename at all.
+    """
+
+    # TODO: This does not handle ".pyw" files it seems.
     if os.path.isdir(module_filename):
         module_name = os.path.basename(module_filename)
         module_kind = "py"
@@ -512,8 +526,8 @@ def _findModule(module_name):
 
         if result is ImportError:
             raise ImportError
-        else:
-            return result
+
+        return result
 
     try:
         module_search_cache[key] = _findModule2(module_name)
@@ -523,8 +537,8 @@ def _findModule(module_name):
         if new_module_name is None:
             module_search_cache[key] = ImportError
             raise
-        else:
-            module_search_cache[key] = _findModule(new_module_name)
+
+        module_search_cache[key] = _findModule(new_module_name)
 
     return module_search_cache[key]
 

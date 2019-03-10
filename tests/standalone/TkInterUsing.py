@@ -17,6 +17,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
 # Python3 changed module name.
 try:
@@ -24,7 +25,12 @@ try:
 except ImportError:
     import tkinter
 
+# nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")
+
 try:
     root = tkinter.Tk()  # this will fail in absence of TCL
 except tkinter.TclError as e:
+    print("TCLError exception happened.")
     assert "connect to display" in str(e) or "no display" in str(e), str(e)
+else:
+    print("OK")

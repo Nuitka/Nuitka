@@ -83,6 +83,34 @@ static char *copyModulenameAsPath(char *buffer, char const *module_name) {
     return buffer;
 }
 
+#ifdef _WIN32
+static void wcscat_char(wchar_t *target, char c) {
+    target += wcslen(target);
+    char buffer_c[2] = {c};
+    size_t res = mbstowcs(target, buffer_c, 2);
+    assert(res == 1);
+}
+
+static void wcscat_cstr(wchar_t *target, char const *source) {
+    while (*source) {
+        wcscat_char(target, *source);
+        source++;
+    }
+}
+
+static void concatModulenameAsPathW(wchar_t *buffer, char const *module_name) {
+    while (*module_name) {
+        char c = *module_name++;
+
+        if (c == '.') {
+            c = SEP;
+        }
+
+        wcscat_char(buffer, c);
+    }
+}
+#endif
+
 extern PyObject *const_str_plain___path__;
 extern PyObject *const_str_plain___file__;
 extern PyObject *const_str_plain___loader__;
@@ -324,7 +352,11 @@ typedef PyObject *(*entrypoint_t)(void);
 static PyObject *createModuleSpec(PyObject *module_name);
 #endif
 
+#ifdef _WIN32
+PyObject *callIntoShlibModule(const char *full_name, const wchar_t *filename) {
+#else
 PyObject *callIntoShlibModule(const char *full_name, const char *filename) {
+#endif
     // Determine the package name and basename of the module to load.
     char const *dot = strrchr(full_name, '.');
     char const *name;
@@ -349,11 +381,12 @@ PyObject *callIntoShlibModule(const char *full_name, const char *filename) {
 
 #ifdef _WIN32
     if (isVerbose()) {
-        PySys_WriteStderr("import %s # LoadLibraryEx(\"%s\");\n", full_name, filename);
+        PySys_WriteStderr("import %s # LoadLibraryExW(\"%S\");\n", full_name, filename);
     }
 
     unsigned int old_mode = SetErrorMode(SEM_FAILCRITICALERRORS);
-    HINSTANCE hDLL = LoadLibraryEx(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+
+    HINSTANCE hDLL = LoadLibraryExW(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
     SetErrorMode(old_mode);
 
     if (unlikely(hDLL == NULL)) {
@@ -370,22 +403,17 @@ PyObject *callIntoShlibModule(const char *full_name, const char *filename) {
 
         // Report either way even if failed to get error message.
         if (size == 0) {
-            PyOS_snprintf(buffer, sizeof(buffer), "DLL load failed with error code %d", error_code);
+            PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryEx '%S' failed with error code %d", filename, error_code);
         } else {
-            size_t len;
             // Strip trailing newline.
             if (size >= 2 && error_message[size - 2] == '\r' && error_message[size - 1] == '\n') {
                 size -= 2;
                 error_message[size] = '\0';
             }
-            strcpy(buffer, "DLL load failed: ");
-            len = strlen(buffer);
-            strncpy(buffer + len, error_message, sizeof(buffer) - len);
-            buffer[sizeof(buffer) - 1] = '\0';
+            PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryEx '%S' failed: %s", filename, error_message);
         }
-        PyErr_SetString(PyExc_ImportError, buffer);
 
-        // PyErr_Format(PyExc_ImportError, "LoadLibraryEx '%s' failed", filename);
+        PyErr_SetString(PyExc_ImportError, buffer);
         return NULL;
     }
 
@@ -494,7 +522,11 @@ PyObject *callIntoShlibModule(const char *full_name, const char *filename) {
 #endif
 
     // Set filename attribute
-    int res = PyModule_AddStringConstant(module, "__file__", filename);
+#ifdef _WIN32
+    int res = PyModule_AddObject(module, "__file__", PyUnicode_FromWideChar(filename, -1));
+#else
+    int res = PyModule_AddObject(module, "__file__", PyUnicode_FromString(filename));
+#endif
     if (unlikely(res < 0)) {
         // Might be refuted, which wouldn't be harmful.
         CLEAR_ERROR_OCCURRED();
@@ -508,21 +540,14 @@ PyObject *callIntoShlibModule(const char *full_name, const char *filename) {
     if (unlikely(res2 == NULL)) {
         return NULL;
     }
-#elif PYTHON_VERSION < 300
-    PyObject *filename_obj = PyUnicode_DecodeFSDefault(filename);
-    CHECK_OBJECT(filename_obj);
-
-    res = _PyImport_FixupExtensionUnicode(module, (char *)full_name, filename_obj);
-
-    Py_DECREF(filename_obj);
-
-    if (unlikely(res == -1)) {
-        return NULL;
-    }
 #else
     PyObject *full_name_obj = PyUnicode_FromString(full_name);
     CHECK_OBJECT(full_name_obj);
-    PyObject *filename_obj = PyUnicode_DecodeFSDefault(filename);
+#ifdef _WIN32
+    PyObject *filename_obj = PyUnicode_FromWideChar(filename, -1);
+#else
+    PyObject *filename_obj = PyUnicode_FromString(filename);
+#endif
     CHECK_OBJECT(filename_obj);
 
     res = _PyImport_FixupExtensionObject(module, full_name_obj, filename_obj
@@ -578,24 +603,22 @@ static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLo
     if ((entry->flags & NUITKA_SHLIB_FLAG) != 0) {
         // Append the the entry name from full path module name with dots,
         // and translate these into directory separators.
+#ifdef _WIN32
+        wchar_t filename[MAXPATHLEN + 1];
+
+        wcscpy(filename, getBinaryDirectoryWideChars());
+        wcscat_char(filename, SEP);
+        concatModulenameAsPathW(filename, entry->name);
+        wcscat_cstr(filename, ".pyd");
+#else
         char filename[MAXPATHLEN + 1];
 
         strcpy(filename, getBinaryDirectoryHostEncoded());
+        filename[strlen(filename)] = SEP;
+        copyModulenameAsPath(filename + strlen(filename), entry->name);
+        strcat(filename, ".so");
 
-        char *d = filename;
-        d += strlen(filename);
-        assert(*d == 0);
-
-        *d++ = SEP;
-
-        d = copyModulenameAsPath(d, entry->name);
-
-#ifdef _WIN32
-        strcat(d, ".pyd");
-#else
-        strcat(d, ".so");
 #endif
-
         callIntoShlibModule(entry->name, filename);
     } else
 #endif
@@ -628,7 +651,7 @@ static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLo
 #if PYTHON_VERSION >= 340
         PyObject *spec_value = LOOKUP_ATTRIBUTE(result, const_str_plain___spec__);
 
-        if (spec_value != Py_None) {
+        if (spec_value && spec_value != Py_None) {
             if (PyObject_HasAttr(spec_value, const_str_plain__initializing)) {
                 SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_False);
             }
@@ -960,7 +983,8 @@ static PyMethodDef Nuitka_Loader_methods[] = {
     {"module_repr", (PyCFunction)_path_unfreezer_repr_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"find_spec", (PyCFunction)_path_unfreezer_find_spec, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #endif
-    {NULL, NULL}};
+    {NULL, NULL}
+};
 
 static PyObject *Nuitka_Loader_tp_repr(struct Nuitka_LoaderObject *loader) {
 #if PYTHON_VERSION < 300

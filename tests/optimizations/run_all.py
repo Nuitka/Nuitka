@@ -285,6 +285,9 @@ for filename in sorted(os.listdir('.')):
             raise
 
         my_print("OK.")
+        
+        if search_mode.abortIfExecuted():
+            break
     else:
         my_print("Skipping", filename)
 

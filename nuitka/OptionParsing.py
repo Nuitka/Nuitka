@@ -752,6 +752,12 @@ def parseOptions():
 
     options, positional_args = parser.parse_args()
 
+    if options.list_plugins:
+        from nuitka.plugins.Plugins import listPlugins
+
+        listPlugins()
+        sys.exit(0)
+
     if not positional_args:
         parser.print_help()
 

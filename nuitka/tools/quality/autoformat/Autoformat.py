@@ -23,13 +23,20 @@
 
 import os
 import re
-import shutil
 import subprocess
 import sys
+from logging import warning
 
+from nuitka.tools.quality.Git import (
+    getFileHashContent,
+    putFileHashContent,
+    updateFileIndex,
+    updateWorkingFile,
+)
 from nuitka.Tracing import my_print
-from nuitka.utils.Execution import getExecutablePath
-from nuitka.utils.FileOperations import getFileContents
+from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
+from nuitka.utils.FileOperations import getFileContents, renameFile
+from nuitka.utils.Shebang import getShebangFromFile
 from nuitka.utils.Utils import getOS
 
 
@@ -151,22 +158,8 @@ def _cleanupPyLintComments(filename, abort):
     new_code = red.dumps()
 
     if new_code != old_code:
-        new_name = filename + ".new"
-
-        with open(new_name, "w") as source_code:
+        with open(filename, "w") as source_code:
             source_code.write(red.dumps())
-
-        # There is no way to safely replace a file on Windows, but lets try on Linux
-        # at least.
-        old_stat = os.stat(filename)
-
-        try:
-            os.rename(new_name, filename)
-        except OSError:
-            shutil.copyfile(new_name, filename)
-            os.unlink(new_name)
-
-        os.chmod(filename, old_stat.st_mode)
 
 
 def _cleanupImportRelative(filename):
@@ -215,6 +208,18 @@ def _getPythonBinaryCall(binary_name):
 def _cleanupImportSortOrder(filename):
     isort_call = _getPythonBinaryCall("isort")
 
+    contents = getFileContents(filename)
+
+    start_index = None
+    if "\n# isort:start" in contents:
+        parts = contents.splitlines()
+
+        start_index = parts.index("# isort:start")
+        contents = "\n".join(parts[start_index + 1 :])
+
+        with open(filename, "w") as out_file:
+            out_file.write(contents)
+
     with open(os.devnull, "w") as devnull:
         subprocess.check_call(
             isort_call
@@ -231,34 +236,152 @@ def _cleanupImportSortOrder(filename):
             stdout=devnull,
         )
 
+    if start_index is not None:
+        contents = getFileContents(filename)
 
-def autoformat(filename, abort=False):
+        contents = "\n".join(parts[: start_index + 1]) + "\n" + contents
+
+        with open(filename, "w") as out_file:
+            out_file.write(contents)
+
+
+warned_clang_format = False
+
+
+def cleanupClangFormat(filename):
+    """ Call clang-format on a given filename to format C code.
+
+    Args:
+        filename: What file to re-format.
+    """
+
+    # Using global here, as this is really a singleton, in
+    # the form of a module, pylint: disable=global-statement
+    global warned_clang_format
+
+    clang_format_path = getExecutablePath("clang-format-6.0")
+
+    # Extra ball on Windows, check default installation PATH too.
+    if not clang_format_path and getOS() == "Windows":
+        with withEnvironmentPathAdded("PATH", r"C:\Program Files\LLVM\bin"):
+            clang_format_path = getExecutablePath("clang-format")
+
+    if clang_format_path:
+        subprocess.call(
+            [
+                clang_format_path,
+                "-i",
+                "-style={BasedOnStyle: llvm, IndentWidth: 4, ColumnLimit: 120}",
+                filename,
+            ]
+        )
+    else:
+        if not warned_clang_format:
+
+            warning("Need to install LLVM for C files format.")
+            warned_clang_format = True
+
+
+def _shouldNotFormatCode(filename):
+    parts = os.path.abspath(filename).split(os.path.sep)
+
+    if "inline_copy" in parts:
+        return True
+    elif "tests" in parts:
+        return "run_all.py" not in parts and "compile_itself.py" not in parts
+    else:
+        return False
+
+
+def _isPythonFile(filename):
+    if filename.endswith((".py", ".pyw", ".scons")):
+        return True
+    else:
+        shebang = getShebangFromFile(filename)
+
+        if shebang is not None:
+            shebang = shebang[2:].lstrip()
+            if shebang.startswith("/usr/bin/env"):
+                shebang = shebang[12:].lstrip()
+
+            if shebang.startswith("python"):
+                return True
+
+    return False
+
+
+def autoformat(filename, git_stage, abort):
+    # This does a lot of distinctions, pylint:disable=too-many-branches
+
+    if os.path.isdir(filename):
+        return
+
+    filename = os.path.normpath(filename)
+
     my_print("Consider", filename, end=": ")
 
-    old_code = getFileContents(filename)
+    is_python = _isPythonFile(filename)
 
-    is_python = not filename.endswith((".rst", ".txt"))
+    is_c = filename.endswith((".c", ".h"))
 
-    if is_python:
-        _cleanupPyLintComments(filename, abort)
+    is_txt = filename.endswith(
+        (".txt", ".rst", ".sh", ".in", ".md", ".stylesheet", ".j2")
+    )
 
-        _cleanupImportSortOrder(filename)
+    # Some parts of Nuitka must not be re-formatted with black or clang-format
+    # as they have different intentions.
+    if not (is_python or is_c or is_txt):
+        my_print("Ignored file type")
+        return
 
-    _cleanupTrailingWhitespace(filename)
+    # Work on a temporary copy
+    tmp_filename = filename + ".tmp"
 
-    if is_python:
-        black_call = _getPythonBinaryCall("black")
-
-        subprocess.call(black_call + ["-q", filename])
-
-    if getOS() == "Windows":
-        _cleanupWindowsNewlines(filename)
-
-    changed = False
-    if old_code != getFileContents(filename):
-        my_print("Updated.")
-        changed = True
+    if git_stage:
+        old_code = getFileHashContent(git_stage["dst_hash"])
     else:
-        my_print("OK.")
+        old_code = getFileContents(filename, "rb")
 
-    return changed
+    with open(tmp_filename, "wb") as output_file:
+        output_file.write(old_code)
+
+    try:
+        if is_python:
+            _cleanupWindowsNewlines(tmp_filename)
+
+            if not _shouldNotFormatCode(filename):
+                _cleanupPyLintComments(tmp_filename, abort)
+                _cleanupImportSortOrder(tmp_filename)
+
+                black_call = _getPythonBinaryCall("black")
+
+                subprocess.call(black_call + ["-q", tmp_filename])
+                _cleanupWindowsNewlines(tmp_filename)
+
+        elif is_c:
+            _cleanupWindowsNewlines(tmp_filename)
+            cleanupClangFormat(filename)
+            _cleanupWindowsNewlines(tmp_filename)
+        elif is_txt:
+            _cleanupWindowsNewlines(tmp_filename)
+            _cleanupTrailingWhitespace(tmp_filename)
+
+        changed = False
+        if old_code != getFileContents(tmp_filename, "rb"):
+            my_print("Updated.")
+
+            if git_stage:
+                new_hash_value = putFileHashContent(tmp_filename)
+                updateFileIndex(git_stage, new_hash_value)
+                updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
+            else:
+                renameFile(tmp_filename, filename)
+
+            changed = True
+        else:
+            my_print("OK.")
+
+        return changed
+    finally:
+        if os.path.exists(tmp_filename):
+            os.unlink(tmp_filename)

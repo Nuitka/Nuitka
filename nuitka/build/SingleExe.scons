@@ -138,9 +138,13 @@ uninstalled_python = getBoolOption("uninstalled_python", False)
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getBoolOption("unstripped_mode", False)
 
+# Target arch, uses for compiler choice and quick linking of constants binary
+# data.
+target_arch = ARGUMENTS["target_arch"]
+
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
-if macosx_target or ("freebsd" in sys.platform and os.uname()[4] != "powerpc"):  # @UndefinedVariable
+if macosx_target or ("freebsd" in sys.platform and target_arch != "powerpc"):
     clang_mode = True
 
 # MinGW compiler mode, optional and interesting to Windows only.
@@ -163,10 +167,6 @@ show_scons_mode = getBoolOption("show_scons", False)
 # Home of Python to be compiled against, used to find include files and
 # libraries to link against.
 python_prefix = ARGUMENTS["python_prefix"]
-
-# Target arch, uses for compiler choice and quick linking of constants binary
-# data.
-target_arch = ARGUMENTS["target_arch"]
 
 # Icon for executable (windows-only)
 icon_path = ARGUMENTS.get("icon_path", None)
@@ -339,7 +339,9 @@ def detectVersion(env, cc):
     if show_scons_mode:
         print("Scons CC %r version check:" % cc)
 
-    if clvar[0] in ("gcc", "g++", "clang"):
+    clvar0 = os.path.basename(clvar[0])
+
+    if "gcc" in clvar0 or "g++" in clvar0 or "gnu-cc" in clvar0 or "clang" in clvar0:
         command = list(clvar) + ["-dumpversion"]
     else:
         command = list(clvar) + ["--version"]
@@ -541,36 +543,17 @@ def setupSpawn(env):
         if cmd == "windres":
             cmdline = re.sub('--include-dir ".*?"', "", cmdline)
 
-        for retry in range(5):
-            if retry:
-                os.environ["CCACHE_RECACHE"] = "1"
+        proc = subprocess.Popen(
+            cmdline,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+            env=env,
+        )
 
-            proc = subprocess.Popen(
-                cmdline,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                shell=False,
-                env=env,
-            )
-
-            if retry:
-                del os.environ["CCACHE_RECACHE"]
-
-            data, err = proc.communicate()
-            rv = proc.wait()
-
-            if rv != 0 and b"collect2.exe: error: ld returned 5 exit status" in err:
-                print("Scons: retry", retry, ":", cmdline)
-                if retry == 2 and cmdline.startswith(
-                    "C:\\msys64\\usr\\bin\\ccache.exe"
-                ):
-                    cmdline = cmdline[29:]
-
-                    print("Using", getExecutablePath(cmdline.split()[0], True))
-                continue
-            else:
-                break
+        data, err = proc.communicate()
+        rv = proc.wait()
 
         if cmd == "rc":
             data = data[data.find(b"reserved.\r") + 13 :]
@@ -621,10 +604,10 @@ def setupSpawn(env):
 
 
 the_compiler = env["CC"] or env["CXX"]
-printCompilerVersionOutput("Picked compiler=", the_compiler)
+printCompilerVersionOutput("Picked compiler:", the_compiler)
 
 the_cc_name = os.path.normcase(os.path.basename(the_compiler))
-printCompilerVersionOutput("Picked name=", the_cc_name)
+printCompilerVersionOutput("Picked name:", the_cc_name)
 
 # Requested or user provided, detect if it's clang even from environment
 if "clang" in the_cc_name and "-cl" not in the_cc_name:
@@ -633,7 +616,12 @@ if "clang" in the_cc_name and "-cl" not in the_cc_name:
 
 # We consider clang to be a form of gcc for the most things, they strive to
 # be compatible.
-gcc_mode = "gcc" in the_cc_name or "g++" in the_cc_name or clang_mode
+gcc_mode = (
+    "gcc" in the_cc_name
+    or "g++" in the_cc_name
+    or "gnu-cc" in the_cc_name
+    or clang_mode
+)
 
 msvc_mode = win_target and not gcc_mode
 mingw_mode = win_target and gcc_mode
@@ -867,7 +855,7 @@ if mingw_mode:
     env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])
 
 # At least older MinGW64 has issues with this, so disable it.
-if mingw_mode and gcc_version < "6":
+if mingw_mode and gcc_version < "6" and not clang_mode:
     env.Append(LINKFLAGS=["-Wl,--no-gc-sections"])
 
 if debug_mode:
@@ -982,7 +970,8 @@ if win_target:
     # For MinGW and cross compilation, we need to tell the subsystem
     # to target as well as to automatically import everything used.
     if gcc_mode:
-        env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
+        if not clang_mode:
+            env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
 
         if win_disable_console:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
@@ -1277,7 +1266,7 @@ else:
     if gcc_mode:
         if macosx_target:
             env.Append(LINKFLAGS=["-Wno-deprecated-declarations"])
-        else:
+        elif not clang_mode:
             env.Append(LINKFLAGS=["-s"])
 
 # When debugging, optimize less than when optimizing, when not remove
@@ -1318,15 +1307,14 @@ if gcc_mode and not macosx_target and not win_target and not module_mode:
         env.Append(LINKFLAGS=["-Wl,--disable-new-dtags"])
 
 
-def _getLinkerArch():
-    if "linux" in sys.platform:
-        python_exe = os.environ["NUITKA_PYTHON_EXE_PATH"]
-        assert os.path.exists(python_exe), python_exe
+def _getBinaryArch(binary):
+    if "linux" in sys.platform or mingw_mode:
+        assert os.path.exists(binary), binary
 
-        command = ["objdump", "-f", python_exe]
+        command = ["objdump", "-f", binary]
 
         if show_scons_mode:
-            print("Scons: Detecting Linux target arch with :", command)
+            print("Scons: Detecting arch with :", command)
 
         try:
             proc = subprocess.Popen(
@@ -1364,21 +1352,59 @@ def getLinkerArch():
     global _linker_arch_determined, _linker_arch
 
     if not _linker_arch_determined:
-        _linker_arch = _getLinkerArch()
+        _linker_arch = _getBinaryArch(os.environ["NUITKA_PYTHON_EXE_PATH"])
         _linker_arch_determined = True
 
     return _linker_arch
 
 
+_compiler_arch_determined = False
+_compiler_arch = None
+
+
+def getCompilerArch():
+    global _compiler_arch_determined, _compiler_arch
+
+    if not _compiler_arch_determined:
+        _compiler_arch = _getBinaryArch(getExecutablePath(the_compiler, initial=False))
+        _compiler_arch_determined = True
+
+    return _compiler_arch
+
+
+if win_target and mingw_mode:
+    # Check most common user error related to MinGW64. People install 32 and
+    # 64 variants and do not consider that MinGW64 could be 32 bits too.
+
+    if getLinkerArch() != getCompilerArch():
+        sys.exit(
+            "Error, mismatch between Python %s and MinGW64 ('%s') arches."
+            % (
+                "%s" % (getLinkerArch() or "unknown, but likely 'pei-x86-64'"),
+                getCompilerArch(),
+            )
+        )
+
+
 constants_bin_filename = os.path.join(source_dir, "__constants.bin")
 
-if win_target and not module_mode:
+if win_target:
+    resource_mode = "win_resource"
+elif gcc_mode and getLinkerArch() is not None:
+    resource_mode = "linker"
+else:
+    resource_mode = "code"
+
+if show_scons_mode:
+    print("Scons: Using resource mode:", resource_mode)
+
+if resource_mode == "win_resource":
     # On Windows constants are accesses as a resource, except in shared
     # libraries, where that option is not available.
     constants_generated_filename = None
 
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
-elif gcc_mode and getLinkerArch() is not None:
+elif resource_mode == "linker":
     env.Append(
         LINKFLAGS=[
             "-Wl,-b",
@@ -1556,102 +1582,6 @@ if win_target:
     rc_file_dependencies = []
 
     if not module_mode:
-        rc_content.append('3 RCDATA "%s"' % constants_bin_filename.replace("\\", "/"))
-
-        rc_file_dependencies.append(constants_bin_filename)
-
-        if python_version < "3.3":
-            manifest_filename = os.path.join(source_dir, "resources.manifest")
-
-            python_exe = os.environ["NUITKA_PYTHON_EXE_PATH"]
-            assert os.path.exists(python_exe), python_exe
-
-            if msvc_mode:
-                try:
-                    result = subprocess.call(
-                        (
-                            env["MT"],
-                            "-inputresource:%s;#1" % python_exe,
-                            "-out:%s" % manifest_filename,
-                        ),
-                        stdout=subprocess.PIPE,
-                    )
-                except OSError:
-                    result = -1
-
-                if result != 0:
-                    sys.exit(
-                        """\
-Error, call to 'mt.exe' (%s) to extract manifest failed (error code %d.)"""
-                        % (env["MT"], result)
-                    )
-            else:
-                command = (
-                    "windres.exe",
-                    "--input",
-                    python_exe,
-                    "--output",
-                    manifest_filename,
-                    "--output-format",
-                    "rc",
-                )
-
-                try:
-                    proc = subprocess.Popen(
-                        command,
-                        stdin=subprocess.PIPE,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        shell=False,
-                    )
-                except WindowsError:  # @UndefinedVariable
-                    sys.exit("Error, cannot find 'windres.exe' but it is required.")
-
-                _stdout, stderr = proc.communicate()
-                result = proc.wait()
-
-                if result != 0:
-                    sys.exit(
-                        """\
-Error, call to 'windres.exe' to extract manifest failed with the following
-error:
-
-%s
-
-In case of "File format not recognized" you are most likely using the
-64 bits version of Python and the 32 bits version of MinGW64. There is
-also a 64 bits version, download and use that one instead.
-"""
-                        % stderr
-                    )
-
-                # Need to reduce to what we use, and remove the quoting of the
-                # actual manifest. We created a full "rc" file, but that we do
-                # not have use for.
-                with open(manifest_filename) as f:
-                    manifest_file = f.readlines()
-                inside = False
-                contents = []
-                for line in manifest_file:
-                    if "RT_MANIFEST" in line:
-                        inside = True
-                        continue
-
-                    if not inside:
-                        continue
-
-                    line = line.replace(r"\r\n", "\r\n")
-                    line = line.replace('""', '"')
-
-                    contents.append(line[line.find('"') + 1 : line.rfind('"')])
-
-                with open(manifest_filename, "w") as manifest_file:
-                    manifest_file.write("".join(contents[1:-1]))
-
-            rc_content.append("1 RT_MANIFEST resources.manifest")
-
-            rc_file_dependencies.append(manifest_filename)
-
         if icon_path:
             rc_content.append(
                 '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"'
@@ -1702,9 +1632,8 @@ else:
     target = env.Program(result_exe, source_files + source_targets)
 
 # Avoid dependency on MinGW libraries.
-if win_target and gcc_mode:
-    env.Append(LINKFLAGS=["-static-libgcc", "-static-libstdc++"])
-
+if win_target and gcc_mode and not clang_mode:
+    env.Append(LINKFLAGS=["-static-libgcc"])
 
 # Avoid IO for compilation as much as possible, this should make the
 # compilation more memory hungry, but also faster.
@@ -1776,9 +1705,9 @@ if cache_mode:
     if show_scons_mode:
         print("scons: Using scons cache inside build directory.")
 
-    CacheDir(
+    CacheDir(  # @UndefinedVariable
         os.path.join(source_dir, "cache-" + target_arch + "-" + python_abi_version)
-    )  # @UndefinedVariable
+    )
     Decider("MD5-timestamp")  # @UndefinedVariable
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit.
@@ -1795,8 +1724,8 @@ build_definitions = {}
 if uninstalled_python:
     if win_target:
         build_definitions["DLL_EXTRA_PATH"] = os.path.dirname(getWindowsPythonDLLPath())
-    else:
-        build_definitions["PYTHON_HOME_PATH"] = python_prefix
+
+    build_definitions["PYTHON_HOME_PATH"] = python_prefix
 
 
 def makeCLiteral(value):
@@ -1819,7 +1748,27 @@ createBuildDefinitionsFile()
 if show_scons_mode:
     print("Scons: Launching target:", target)
 
+# Hack to make Scons use tempfile for gcc linking.
+if gcc_mode:
+    tmp_linker_filename = os.path.join(source_dir, "@sources.tmp")
+
+    env["LINKCOM"] = env["LINKCOM"].replace(
+        "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
+    )
+
+    with open(tmp_linker_filename, "w") as tmpfile:
+        for filename in source_files:
+            filename = ".".join(filename.split(".")[:-1]) + ".o"
+
+            if os.name == "nt":
+                filename = filename.replace(os.path.sep, "/")
+
+            tmpfile.write('"%s"\n' % filename)
+
+        tmpfile.write(env.subst("$SOURCES"))
+
 Default(target)  # @UndefinedVariable
+
 
 # Copy the Python DLL to the target directory, so the executable can be run.
 if uninstalled_python:

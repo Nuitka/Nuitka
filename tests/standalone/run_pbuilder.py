@@ -19,14 +19,16 @@
 #     limitations under the License.
 #
 
+import getpass
+import os
+import shutil
 import subprocess
 import sys
-import os
 import tempfile
-import shutil
-import getpass
 
-nuitka_dir = os.path.normcase(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+nuitka_dir = os.path.normcase(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+)
 
 code_name = sys.argv[1]
 verbose = int(sys.argv[2])
@@ -35,17 +37,19 @@ if not verbose:
     sys.stdout = open("/dev/null")
     sys.stderr = open("/dev/null")
 
-shutil.rmtree("Asserts-%s.build" % code_name, ignore_errors = True)
-shutil.rmtree("Asserts-%s.dist" % code_name, ignore_errors = True)
+shutil.rmtree("Asserts-%s.build" % code_name, ignore_errors=True)
+shutil.rmtree("Asserts-%s.dist" % code_name, ignore_errors=True)
 
-with tempfile.NamedTemporaryFile("w", delete = False) as script_file:
+with tempfile.NamedTemporaryFile("w", delete=False) as script_file:
     script_file.write("apt-get install -y lsb-release python python-dev\n")
     script_file.write("CODE_NAME=`lsb_release -c -s`\n")
     script_file.write('echo Hello pbuilder for "$CODE_NAME".\n')
     script_file.write("cd %s\n" % nuitka_dir)
-    script_file.write("python bin/nuitka --python-flag=-S --standalone tests/basics/Asserts.py\n")
+    script_file.write(
+        "python bin/nuitka --python-flag=-S --standalone tests/basics/Asserts.py\n"
+    )
 
-#    script_file.write("python3 bin/nuitka --standalone tests/basics/Asserts.py\n")
+    #    script_file.write("python3 bin/nuitka --standalone tests/basics/Asserts.py\n")
 
     tmp_script = script_file.name
 
@@ -57,19 +61,14 @@ try:
             "--execute",
             "--basetgz",
             "/var/cache/pbuilder/" + code_name + ".tgz",
-            "--bindmounts", nuitka_dir,
-            tmp_script
+            "--bindmounts",
+            nuitka_dir,
+            tmp_script,
         ]
     )
 
-    shutil.move(
-        "Asserts.build",
-        "Asserts-%s.build" % code_name
-    )
-    shutil.move(
-        "Asserts.dist",
-        "Asserts-%s.dist" % code_name
-    )
+    shutil.move("Asserts.build", "Asserts-%s.build" % code_name)
+    shutil.move("Asserts.dist", "Asserts-%s.dist" % code_name)
 
     subprocess.check_call(
         [
@@ -78,7 +77,7 @@ try:
             "-R",
             getpass.getuser() + ":",
             "Asserts-%s.build" % code_name,
-            "Asserts-%s.dist" % code_name
+            "Asserts-%s.dist" % code_name,
         ]
     )
 

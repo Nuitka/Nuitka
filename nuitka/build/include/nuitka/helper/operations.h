@@ -32,38 +32,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNICODE_CONCAT(PyObject *left, PyObject *r
 // will have to be considered or not.
 #if PYTHON_VERSION < 300
 #define NEW_STYLE_NUMBER(o) PyType_HasFeature(Py_TYPE(o), Py_TPFLAGS_CHECKTYPES)
+#define NEW_STYLE_NUMBER_TYPE(t) PyType_HasFeature(t, Py_TPFLAGS_CHECKTYPES)
 #else
 #define NEW_STYLE_NUMBER(o) (true)
-#endif
-
-#if PYTHON_VERSION < 300
-// Coerce for known non-match types, where only first arg needs the check.
-NUITKA_MAY_BE_UNUSED static int PYNUMBER_COERCE1(PyObject **pv, PyObject **pw) {
-    assert(Py_TYPE(*pv) != Py_TYPE(pw));
-    assert((*pw)->ob_type->tp_as_number == NULL || (*pw)->ob_type->tp_as_number->nb_coerce == NULL);
-
-    PyObject *v = *pw;
-
-    if (v->ob_type->tp_as_number && v->ob_type->tp_as_number->nb_coerce) {
-        return (*v->ob_type->tp_as_number->nb_coerce)(pw, pv);
-    } else {
-        return 1;
-    }
-}
-
-// Coerce for known non-match types, where only second arg needs the check.
-NUITKA_MAY_BE_UNUSED static int PYNUMBER_COERCE2(PyObject **pv, PyObject **pw) {
-    assert(Py_TYPE(*pv) != Py_TYPE(pw));
-    assert((*pv)->ob_type->tp_as_number == NULL || (*pv)->ob_type->tp_as_number->nb_coerce == NULL);
-
-    PyObject *w = *pw;
-
-    if (w->ob_type->tp_as_number && w->ob_type->tp_as_number->nb_coerce) {
-        return (*w->ob_type->tp_as_number->nb_coerce)(pw, pv);
-    } else {
-        return 1;
-    }
-}
+#define NEW_STYLE_NUMBER_TYPE(t) (true)
 #endif
 
 typedef PyObject *(unary_api)(PyObject *);
@@ -96,35 +68,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION(binary_api api, PyObject 
     return result;
 }
 
-// Helpers to execute "+" on fully or partially known types.
-extern PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_INT_INT(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_OBJECT_STR(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_STR_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_STR_STR(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_OBJECT_LIST(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_LIST_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_LIST_LIST(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_OBJECT_BYTES(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_BYTES_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_BYTES_BYTES(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_LONG_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_OBJECT_LONG(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_LONG_LONG(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-
-extern PyObject *BINARY_OPERATION_ADD_FLOAT_LONG(PyObject *operand1, PyObject *operand2);
-extern PyObject *BINARY_OPERATION_ADD_LONG_FLOAT(PyObject *operand1, PyObject *operand2);
+// Generated helpers to execute "+" on fully or partially known types.
+#include "nuitka/helper/operations_binary_add.h"
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_INPLACE(binary_api api, PyObject **operand1, PyObject *operand2) {
     assert(operand1);
