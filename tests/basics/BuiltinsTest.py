@@ -530,7 +530,7 @@ print(any([None, None, None]))
 print(any([None, 4, None]))
 print(any([]))
 print(any(range(20)))
-#print(any([0] * 20000))
+print(any([0] * 20000))
 
 S = [40, 60, 30]
 print(any(x > 42 for x in S))
@@ -544,11 +544,6 @@ try:
     print(any(1.0))
 except Exception as e:
     print("Object not iterable")
-
-try:
-    print(any(1,2))
-except Exception as e:
-    print("More than one argument given")
 
 try:
     print(any(float))
