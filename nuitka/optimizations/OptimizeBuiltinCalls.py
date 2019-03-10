@@ -32,6 +32,7 @@ from nuitka.nodes.AttributeNodes import (
     ExpressionBuiltinHasattr,
     ExpressionBuiltinSetattr,
 )
+from nuitka.nodes.BuiltinAnyNodes import ExpressionBuiltinAny
 from nuitka.nodes.BuiltinComplexNodes import (
     ExpressionBuiltinComplex1,
     ExpressionBuiltinComplex2,
@@ -60,7 +61,6 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter2,
 )
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
-from nuitka.nodes.BuiltinAnyNodes import ExpressionBuiltinAny
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1, ExpressionBuiltinNext2
 from nuitka.nodes.BuiltinOpenNodes import ExpressionBuiltinOpen
 from nuitka.nodes.BuiltinRangeNodes import (
@@ -460,9 +460,9 @@ def len_extractor(node):
 
 def any_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinAny,
-        builtin_spec  = BuiltinParameterSpecs.builtin_any_spec
+        node=node,
+        builtin_class=ExpressionBuiltinAny,
+        builtin_spec=BuiltinParameterSpecs.builtin_any_spec,
     )
 
 

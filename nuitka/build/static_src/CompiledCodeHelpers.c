@@ -571,12 +571,10 @@ PyObject *BUILTIN_ANY(PyObject *value) {
         }
     }
     Py_DECREF(it);
-    if (CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED()) {
-      if (PyErr_ExceptionMatches(PyExc_StopIteration))
+    if (CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED())
         PyErr_Clear();
-      else
+    else
         return NULL;
-    }
     Py_INCREF(Py_False);
     return Py_False;
 }

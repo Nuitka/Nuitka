@@ -687,6 +687,7 @@ class ShapeTypeTupleIterator(ShapeIterator):
     def hasShapeSlotLen():
         return False
 
+
 class ShapeTypeList(ShapeBase):
     @staticmethod
     def getTypeName():
@@ -828,6 +829,7 @@ class ShapeTypeSetIterator(ShapeIterator):
     @staticmethod
     def hasShapeSlotLen():
         return False
+
 
 class ShapeTypeFrozenset(ShapeBase):
     @staticmethod
@@ -1038,6 +1040,7 @@ class ShapeTypeStrIterator(ShapeIterator):
     def hasShapeSlotLen():
         return False
 
+
 if python_version < 300:
 
     class ShapeTypeUnicode(ShapeBase):
@@ -1120,6 +1123,7 @@ if python_version < 300:
         @staticmethod
         def hasShapeSlotLen():
             return False
+
 
 else:
     ShapeTypeUnicode = ShapeTypeStr
@@ -1346,6 +1350,7 @@ class ShapeTypeBytearrayIterator(ShapeIterator):
     @staticmethod
     def hasShapeSlotLen():
         return False
+
 
 class ShapeTypeEllipsisType(ShapeBase):
     @staticmethod

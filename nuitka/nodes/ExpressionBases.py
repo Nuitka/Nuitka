@@ -380,10 +380,10 @@ class ExpressionBase(NodeBase):
 
         if has_any is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                template      = "object of type '%s' has no any()",
-                operation     = "any",
-                original_node = any_node,
-                value_node    = self
+                template="object of type '%s' has no any()",
+                operation="any",
+                original_node=any_node,
+                value_node=self,
             )
         elif has_any is True:
             iter_any = self.getTruthValue()
@@ -392,16 +392,19 @@ class ExpressionBase(NodeBase):
                 from .ConstantRefNodes import makeConstantRefNode
 
                 result = makeConstantRefNode(
-                    constant   = bool(iter_any), # make sure to downcast long
-                    source_ref = any_node.getSourceReference()
+                    constant=bool(iter_any),  # make sure to downcast long
+                    source_ref=any_node.getSourceReference(),
                 )
 
                 result = wrapExpressionWithNodeSideEffects(
-                    new_node = result,
-                    old_node = self
+                    new_node=result, old_node=self
                 )
 
-                return result, "new_constant", "Predicted 'any' result from value shape."
+                return (
+                    result,
+                    "new_constant",
+                    "Predicted 'any' result from value shape.",
+                )
 
         self.onContentEscapes(trace_collection)
 
@@ -842,10 +845,10 @@ Compile time constant len value pre-computed.""",
 
     def computeExpressionAny(self, any_node, trace_collection):
         return trace_collection.getCompileTimeComputationResult(
-            node        = any_node,
-            computation = lambda : any(self.getCompileTimeConstant()),
-            description = """\
-Compile time constant any value pre-computed."""
+            node=any_node,
+            computation=lambda: any(self.getCompileTimeConstant()),
+            description="""\
+Compile time constant any value pre-computed.""",
         )
 
     def computeExpressionInt(self, int_node, trace_collection):

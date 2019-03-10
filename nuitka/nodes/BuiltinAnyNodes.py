@@ -23,9 +23,13 @@
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionBuiltinSingleArgBase
+from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
+    wrapExpressionWithNodeSideEffects,
+)
 from .shapes.BuiltinTypeShapes import ShapeTypeBool
-from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects, makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue
-from .NodeMakingHelpers import makeConstantReplacementNode
+
 
 class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_ANY"
@@ -47,16 +51,18 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
 
         iteration_length = value.getIterationLength()
 
-        if iteration_length is not None and iteration_length < 256 and value.canPredictIterationValues():
+        if (
+            iteration_length is not None
+            and iteration_length < 256
+            and value.canPredictIterationValues()
+        ):
             all_false = True
             for i in range(value.getIterationLength()):
                 truth_value = value.getIterationValue(i).getTruthValue()
 
                 if truth_value is True:
                     result = wrapExpressionWithNodeSideEffects(
-                        new_node=makeConstantReplacementNode(
-                            constant=True, node=self
-                        ),
+                        new_node=makeConstantReplacementNode(constant=True, node=self),
                         old_node=value,
                     )
 
@@ -69,9 +75,7 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
                     all_false = False
             if all_false is True:
                 result = wrapExpressionWithNodeSideEffects(
-                    new_node=makeConstantReplacementNode(
-                        constant=False, node=self
-                    ),
+                    new_node=makeConstantReplacementNode(constant=False, node=self),
                     old_node=value,
                 )
 
@@ -86,10 +90,8 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
         else:
             return self, None, None
 
-
         return self.getValue().computeExpressionAny(
-            any_node         = self,
-            trace_collection = trace_collection
+            any_node=self, trace_collection=trace_collection
         )
 
     def getTypeShape(self):

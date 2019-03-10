@@ -156,11 +156,11 @@ from .IntegerCodes import (
     generateBuiltinLong2Code,
 )
 from .IteratorCodes import (
+    generateBuiltinAnyCode,
     generateBuiltinIter1Code,
     generateBuiltinIter2Code,
     generateBuiltinIterForUnpackCode,
     generateBuiltinLenCode,
-    generateBuiltinAnyCode,
     generateBuiltinNext1Code,
     generateBuiltinNext2Code,
     generateSpecialUnpackCode,

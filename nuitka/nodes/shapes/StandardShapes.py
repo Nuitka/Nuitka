@@ -138,6 +138,7 @@ class ValueShapeBase(object):
     def hasShapeSlotAny(self):
         return self.getTypeShape().hasShapeSlotAny()
 
+
 class ValueShapeUnknown(ValueShapeBase):
     __slots__ = ()
 
@@ -169,6 +170,7 @@ class ShapeLargeConstantValue(object):
 
     def hasShapeSlotAny(self):
         return self.shape.hasShapeSlotAny()
+
 
 class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
     __slots__ = ("predictor",)
