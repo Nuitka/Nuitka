@@ -45,7 +45,7 @@ then
 fi
 
 # Autoformat the files.
-./bin/autoformat-nuitka-source $files
+./bin/autoformat-nuitka-source --from-commit $files
 git add $files
 
 exit 0

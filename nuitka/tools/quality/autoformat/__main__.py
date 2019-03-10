@@ -45,8 +45,15 @@ def main():
         action="store_true",
         dest="verbose",
         default=False,
-        help="""\
-        Default is %default.""",
+        help="""Default is %default.""",
+    )
+
+    parser.add_option(
+        "--from-commit",
+        action="store_true",
+        dest="from_commit",
+        default=False,
+        help="""From commit hook, do not descend into directories. Default is %default.""",
     )
 
     parser.add_option(
@@ -54,8 +61,7 @@ def main():
         action="store_true",
         dest="abort",
         default=False,
-        help="""\
-        Default is %default.""",
+        help="""Stop if an error occurs, or continue. Default is %default.""",
     )
 
     options, positional_args = parser.parse_args()
@@ -67,15 +73,23 @@ def main():
             # "tests/*/run_all.py"
         ]
 
+    if options.from_commit:
+        positional_args = [
+            positional_arg
+            for positional_arg in positional_args
+            if not os.path.isdir(positional_arg)
+        ]
+
     my_print("Working on:", positional_args)
 
-    positional_args = sum(
-        (
-            resolveShellPatternToFilenames(positional_arg)
-            for positional_arg in positional_args
-        ),
-        [],
-    )
+    if not options.from_commit:
+        positional_args = sum(
+            (
+                resolveShellPatternToFilenames(positional_arg)
+                for positional_arg in positional_args
+            ),
+            [],
+        )
 
     positional_args = [
         os.path.abspath(positional_arg) for positional_arg in positional_args
