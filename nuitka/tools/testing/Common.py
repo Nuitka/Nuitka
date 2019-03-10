@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import ast
 import atexit
+import hashlib
 import os
 import re
 import shutil
@@ -1243,6 +1244,21 @@ def withDirectoryChange(path, allow_none=False):
 
     if path is not None or not allow_none:
         os.chdir(old_cwd)
+
+
+def setupCacheHashSalt(test_code_path):
+    assert os.path.exists(test_code_path)
+
+    git_cmd = ["git", "ls-files", test_code_path]
+
+    process = subprocess.Popen(
+        args=git_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+
+    stdout_git, stderr_git = process.communicate()
+    assert process.returncode == 0, stderr_git
+
+    os.environ["NUITKA_HASH_SALT"] = hashlib.md5(stdout_git).hexdigest()
 
 
 def someGenerator():
