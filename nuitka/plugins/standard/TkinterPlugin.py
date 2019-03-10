@@ -24,6 +24,7 @@ from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import UserPluginBase, pre_modules
+from nuitka.PythonVersions import python_version
 from nuitka.utils.Utils import isWin32Windows
 
 
@@ -145,7 +146,7 @@ if not os.environ.get("TCL_LIBRARY", None):
 
         self.files_copied = True  # execute the following ever only once
 
-        if str is bytes:  # last tk/tcl qualifyers Py 2
+        if python_version < 340:  # last tk/tcl qualifyers Py 2
             tk_lq = "tk8.5"
             tcl_lq = "tcl8.5"
         else:  # last tk/tcl qualifyers Py 3+
