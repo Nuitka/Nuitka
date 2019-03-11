@@ -59,10 +59,6 @@ class ShapeBase(object):
         return None
 
     @staticmethod
-    def hasShapeSlotAny():
-        return None
-
-    @staticmethod
     def hasShapeSlotInt():
         return None
 
@@ -139,9 +135,6 @@ class ValueShapeBase(object):
     def hasShapeSlotLen(self):
         return self.getTypeShape().hasShapeSlotLen()
 
-    def hasShapeSlotAny(self):
-        return self.getTypeShape().hasShapeSlotAny()
-
 
 class ValueShapeUnknown(ValueShapeBase):
     __slots__ = ()
@@ -172,9 +165,6 @@ class ShapeLargeConstantValue(object):
     def hasShapeSlotLen(self):
         return self.shape.hasShapeSlotLen()
 
-    def hasShapeSlotAny(self):
-        return self.shape.hasShapeSlotAny()
-
 
 class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
     __slots__ = ("predictor",)
@@ -192,10 +182,6 @@ class ShapeIterator(ShapeBase):
 
     @staticmethod
     def hasShapeSlotLen():
-        return None
-
-    @staticmethod
-    def hasShapeSlotAny():
         return None
 
     @staticmethod
@@ -445,9 +431,6 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
     def hasShapeSlotLen(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotLen())
-
-    def hasShapeSlotAny(self):
-        return self._delegatedCheck(lambda x: x.hasShapeSlotAny())
 
     def hasShapeSlotIter(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotIter())
