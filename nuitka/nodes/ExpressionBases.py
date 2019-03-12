@@ -843,14 +843,6 @@ Compile time constant negation truth value pre-computed.""",
 Compile time constant len value pre-computed.""",
         )
 
-    def computeExpressionAny(self, any_node, trace_collection):
-        return trace_collection.getCompileTimeComputationResult(
-            node=any_node,
-            computation=lambda: any(self.getCompileTimeConstant()),
-            description="""\
-Compile time constant any value pre-computed.""",
-        )
-
     def computeExpressionInt(self, int_node, trace_collection):
         return trace_collection.getCompileTimeComputationResult(
             node=int_node,
