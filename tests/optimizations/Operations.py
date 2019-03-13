@@ -46,53 +46,53 @@ def simpleAssignment():
     x = 2
     return x
 
-def selfIncrement():
+def inplaceOperationIncrement():
     x = 2
     x += 1
     return x
 
-def selfProduct():
+def inplaceOperationProduct():
     x = 2
     x *= 2
     return x
 
-def selfExponentiate():
+def inplaceOperationExponentiate():
     x = 2
     x **= 2
     return x
 
-def selfDecrement():
+def inplaceOperationDecrement():
     x = 2
     x -= 8
     return x
 
 #     x //= 5
-def selfFloorDivison():
+def inplaceOperationFloorDivison():
     x = 2
     x //= 5
     return x
 
-def selfModulus():
+def inplaceOperationModulus():
     x = 2
     x %= 3
     return x
 
-def selfAnd():
+def inplaceOperationAnd():
     x = 2
     x &= 2
     return x
 
-def selfOr():
+def inplaceOperationOr():
     x = 2
     x |= 5
     return x
 
-def selfXor():
+def inplaceOperationXor():
     x = 2
     x ^= 1
     return x
 
-def selfDivison():
+def inplaceOperationDivison():
     x = 2
     x /= 2
     return x
