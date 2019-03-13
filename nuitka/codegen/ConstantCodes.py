@@ -43,6 +43,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
 )
 from nuitka.Builtins import builtin_named_values, builtin_named_values_list
 from nuitka.Constants import NoneType, compareConstants, getConstantWeight, isMutable
+from nuitka.PythonVersions import python_version
 from nuitka.Version import getNuitkaVersion
 
 from .BlobCodes import StreamData
@@ -1095,12 +1096,16 @@ def getConstantsDefinitionCode(context):
 
     constant_declarations = getConstantsDeclCode(context=context)
 
-    if Options.shallMakeModule():
-        sys_executable = None
-        sys_prefix = None
-    else:
+    sys_executable = None
+    sys_prefix = None
+    sys_base_prefix = None
+
+    if not Options.shallMakeModule():
         sys_executable = context.getConstantCode(sys.executable)
         sys_prefix = context.getConstantCode(sys.prefix)
+
+        if python_version >= 300:
+            sys_base_prefix = context.getConstantCode(sys.base_prefix)
 
     major, minor, micro = getNuitkaVersion().split(".")
 
@@ -1116,6 +1121,7 @@ def getConstantsDefinitionCode(context):
         "constant_checks": indented(constant_checks),
         "sys_executable": sys_executable,
         "sys_prefix": sys_prefix,
+        "sys_base_prefix": sys_base_prefix,
         "nuitka_version_major": major,
         "nuitka_version_minor": minor,
         "nuitka_version_micro": micro,
