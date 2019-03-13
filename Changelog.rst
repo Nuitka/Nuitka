@@ -13,8 +13,8 @@ terms of contributors and supported platforms.
 Bug Fixes
 ---------
 
-- Fix, the python flag ``-O`` was removing doc strings, but that should only
-  be done with ``-OO`` which was added too.
+- Fix, the Python flag ``--python-flag=-O`` was removing doc strings, but that
+  should only be done with ``--python-flag=-OO`` which was added too.
 
 - Fix, accelerated binaries failed to load packages from the ``virtualenv``
   (not ``venv``) that they were created and ran with, due to not propagating
@@ -33,7 +33,8 @@ New Features
 
 - Added support for MSYS2 based Python on Windows.
 
-- Added support for Python flag ``-OO``, which allows to remove doc strings.
+- Added support for Python flag ``--python flag=-OO``, which allows to remove
+  doc strings.
 
 - Added experimental support for ``pefile`` based dependency scans on Windows,
   thanks to Orsiris for this contribution.
@@ -197,8 +198,9 @@ Bug Fixes
 
 - Standalone: Added missing implicit dependency for ``zmq`` module.
 
-- Python3.7: Fix, the ``-X utf8`` flag, aka ``utf8_mode`` was not preserved in
-  the compiled binary in all cases.
+- Python3.7: Fix, using the ``-X utf8`` flag on the calling interpreter, aka
+  ``--python-flag=utf8_mode`` was not  preserved in the compiled binary in all
+  cases.
 
 New Optimization
 ----------------
@@ -2220,8 +2222,8 @@ New Features
   will check of the ``#!`` portion indicates a different Python version and ask
   the user to clarify with ``--python-version`` in case of a mismatch.
 
-- Added support for Python flag ``-O``, which allows to disable assertions and
-  remove doc strings.
+- Added support for Python flag ``--python-flag=-O``, which allows to disable
+  assertions and remove doc strings.
 
 Optimization
 ------------
