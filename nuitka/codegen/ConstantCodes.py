@@ -1099,13 +1099,21 @@ def getConstantsDefinitionCode(context):
     sys_executable = None
     sys_prefix = None
     sys_base_prefix = None
+    sys_exec_prefix = None
+    sys_base_exec_prefix = None
 
     if not Options.shallMakeModule():
         sys_executable = context.getConstantCode(sys.executable)
         sys_prefix = context.getConstantCode(sys.prefix)
+        sys_exec_prefix = context.getConstantCode(sys.exec_prefix)
 
         if python_version >= 300:
-            sys_base_prefix = context.getConstantCode(sys.base_prefix)
+            sys_base_prefix = context.getConstantCode(
+                sys.base_prefix  # @UndefinedVariable
+            )
+            sys_base_exec_prefix = context.getConstantCode(
+                sys.base_exec_prefix  # @UndefinedVariable
+            )
 
     major, minor, micro = getNuitkaVersion().split(".")
 
@@ -1122,6 +1130,8 @@ def getConstantsDefinitionCode(context):
         "sys_executable": sys_executable,
         "sys_prefix": sys_prefix,
         "sys_base_prefix": sys_base_prefix,
+        "sys_exec_prefix": sys_exec_prefix,
+        "sys_base_exec_prefix": sys_base_exec_prefix,
         "nuitka_version_major": major,
         "nuitka_version_minor": minor,
         "nuitka_version_micro": micro,

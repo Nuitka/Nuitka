@@ -59,12 +59,26 @@ static void _createGlobalConstants( void )
         %(sys_prefix)s
     );
 
+    /* Set the "sys.prefix" path to the original one. */
+    PySys_SetObject(
+        (char *)"exec_prefix",
+        %(sys_exec_prefix)s
+    );
+
+
 #if PYTHON_VERSION >= 300
     /* Set the "sys.base_prefix" path to the original one. */
     PySys_SetObject(
         (char *)"base_prefix",
         %(sys_base_prefix)s
     );
+
+    /* Set the "sys.exec_base_prefix" path to the original one. */
+    PySys_SetObject(
+        (char *)"base_exec_prefix",
+        %(sys_base_exec_prefix)s
+    );
+
 #endif
 #endif
 #endif
