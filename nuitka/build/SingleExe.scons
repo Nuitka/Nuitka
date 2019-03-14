@@ -562,12 +562,14 @@ def setupSpawn(env):
 
             if rv != 0 and b"collect2.exe: error: ld returned 5 exit status" in err:
                 print("Scons: retry", retry, ":", cmdline)
-                if retry == 2 and cmdline.startswith(
-                    "C:\\msys64\\usr\\bin\\ccache.exe"
-                ):
-                    cmdline = cmdline[29:]
 
-                    print("Using", getExecutablePath(cmdline.split()[0], True))
+                if retry >= 2:
+                    if os.path.exists(result_exe):
+                        try:
+                            os.unlink(result_exe)
+                        except OSError:
+                            pass
+
                 continue
             else:
                 break
@@ -1776,9 +1778,9 @@ if cache_mode:
     if show_scons_mode:
         print("scons: Using scons cache inside build directory.")
 
-    CacheDir(
+    CacheDir( # @UndefinedVariable
         os.path.join(source_dir, "cache-" + target_arch + "-" + python_abi_version)
-    )  # @UndefinedVariable
+    )
     Decider("MD5-timestamp")  # @UndefinedVariable
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit.

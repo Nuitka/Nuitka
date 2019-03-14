@@ -96,11 +96,11 @@ class Plugins(object):
         # Post load code may have been created, if so indicate it's used.
         full_name = module.getFullName()
 
-        if full_name in post_modules:
-            addUsedModule(post_modules[full_name])
-
         if full_name in pre_modules:
             addUsedModule(pre_modules[full_name])
+
+        if full_name in post_modules:
+            addUsedModule(post_modules[full_name])
 
     @staticmethod
     def onStandaloneDistributionFinished(dist_dir):

@@ -732,6 +732,7 @@ def main():
         for module in detectEarlyImports():
             ModuleRegistry.addUncompiledModule(module)
 
+            # TODO: Move this to data files plugin.
             if module.getName() == "site":
                 origin_prefix_filename = os.path.join(
                     os.path.dirname(module.getCompileTimeFilename()), "orig-prefix.txt"

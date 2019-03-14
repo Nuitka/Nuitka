@@ -363,11 +363,12 @@ class NuitkaPluginBase(object):
         Returns:
             None
         """
-        pre_code, reason = self.createPreModuleLoadCode(module)
-
         full_name = module.getFullName()
 
+        pre_code, reason = self.createPreModuleLoadCode(module)
+
         if pre_code:
+            # TODO: We could find a way to handle this.
             if full_name in pre_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)
 
@@ -382,6 +383,7 @@ class NuitkaPluginBase(object):
         post_code, reason = self.createPostModuleLoadCode(module)
 
         if post_code:
+            # TODO: We could find a way to handle this.
             if full_name is post_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)
 

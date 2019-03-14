@@ -17,6 +17,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
 # Python3 changed module name.
 try:
@@ -28,3 +29,5 @@ try:
     root = tkinter.Tk()  # this will fail in absence of TCL
 except tkinter.TclError as e:
     assert "connect to display" in str(e) or "no display" in str(e), str(e)
+
+print("OK")
