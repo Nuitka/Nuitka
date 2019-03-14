@@ -23,7 +23,7 @@ import sys
 from logging import info
 
 from nuitka import Options
-from nuitka.plugins.PluginBase import UserPluginBase, pre_modules
+from nuitka.plugins.PluginBase import UserPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Utils import isWin32Windows
 
@@ -68,8 +68,12 @@ class TkinterPlugin(UserPluginBase):
         full_name = module.getFullName()
 
         # only insert code for tkinter related modules
-        if not "tkinter" in full_name.lower():
-            return None, None
+        if python_version < 300:
+            if full_name != "Tkinter":
+                return None, None
+        else:
+            if full_name != "tkinter":
+                return None, None
 
         # The following code will be executed before importing the module.
         # If required we set the respective environment values.
@@ -79,7 +83,7 @@ if not os.environ.get("TCL_LIBRARY", None):
     os.environ["TCL_LIBRARY"] = os.path.join(sys.path[0], "tcl")
     os.environ["TK_LIBRARY"] = os.path.join(sys.path[0], "tk")
         """
-        return code, None
+        return code, "Need to make sure we set environment variables for TCL."
 
     def __init__(self):
         """ We need to ensure certain actions are executed only once.
@@ -91,34 +95,6 @@ if not os.environ.get("TCL_LIBRARY", None):
             None
         """
         self.files_copied = False  # ensure that file copy occurs once only
-
-    def onModuleDiscovered(self, module):
-        """ Insert code before any imports of tkinter modules.
-
-        Args:
-            module: the module object
-        Returns:
-            None
-        """
-
-        if not isWin32Windows():  # only relevant on Windows
-            return None, None
-
-        # call the previous method to make the code
-        pre_code, _ = self.createPreModuleLoadCode(module)
-
-        if pre_code:
-            # We found the module relevant. We must ensure that we are the
-            # only plugin that prepends code to it (other plugins might still
-            # APPEND code to the same module however).
-            full_name = module.getFullName()
-            if full_name in pre_modules:
-                sys.exit("Error, conflicting plug-ins for %s" % full_name)
-
-            # store trigger module for our code in a dictionary
-            pre_modules[full_name] = self._createTriggerLoadedModule(
-                module=module, trigger_name="-preLoad", code=pre_code
-            )
 
     def considerExtraDlls(self, dist_dir, module):
         """ Copy TCL libraries to the dist folder.
@@ -170,15 +146,15 @@ if not os.environ.get("TCL_LIBRARY", None):
         tar_tk = os.path.join(dist_dir, "tk")
         tar_tcl = os.path.join(dist_dir, "tcl")
 
-        info(" Now copying tkinter libraries.")  # just to entertain
+        info(" Now copying tk libraries from %r." % tk)  # just to entertain
         shutil.copytree(tk, tar_tk)
+        info(" Now copying tkinter libraries from %r." % tcl)  # just to entertain
         shutil.copytree(tcl, tar_tcl)
 
         # Definitely don't need the demos, so remove them again.
         # TODO: Anything else?
         shutil.rmtree(os.path.join(tar_tk, "demos"), ignore_errors=True)
 
-        info(" Finished copying tkinter libraries.")
         return ()
 
 
@@ -199,9 +175,6 @@ class TkinterPluginDetector(UserPluginBase):
             True if this is a standalone compilation on Windows, else False.
         """
         return Options.isStandaloneMode() and isWin32Windows()
-
-    def __init__(self):
-        return None
 
     def onModuleSourceCode(self, module_name, source_code):
         """ This method passes the source code and expects it back - potentially modified.
