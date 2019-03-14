@@ -1705,8 +1705,7 @@ else:
 
 # Avoid dependency on MinGW libraries.
 if win_target and gcc_mode:
-    env.Append(LINKFLAGS=["-static-libgcc", "-static-libstdc++"])
-
+    env.Append(LINKFLAGS=["-static-libgcc"])
 
 # Avoid IO for compilation as much as possible, this should make the
 # compilation more memory hungry, but also faster.
