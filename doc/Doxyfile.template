@@ -27,7 +27,7 @@
 # The format is:
 # TAG = value [value, ...]
 # For lists, items can also be appended using:
-# TAG += value [value, ...]
+# 		TAG += value [value, ...]
 # Values that contain spaces should be placed between quotes (\" \").
 
 #---------------------------------------------------------------------------
@@ -47,51 +47,51 @@ DOXYFILE_ENCODING      = UTF-8
 # double-quotes, unless you are using Doxywizard) that should identify the
 # project for which the documentation is generated. This name is used in the
 # title of most generated pages and in a few other places.
-# The default value is: My Project.
+# The default value is: My Project 
 
 PROJECT_NAME           = "Nuitka"
 
-# The PROJECT_NUMBER tag can be used to enter a project or revision number. This
+# The PROJECT_NUMBER tag can be used to enter a project or a revision number. This
 # could be handy for archiving the generated documentation or if some version
-# control system is used.
+# control system is being used.
 
 PROJECT_NUMBER         =
 
-# Using the PROJECT_BRIEF tag one can provide an optional one line description
-# for a project that appears at the top of each page and should give viewer a
-# quick idea about the purpose of the project. Keep the description short.
+# Using the PROJECT_BRIEF tag, one can provide an optional one line description
+# for a project that appears at the top of each page and gives viewer a
+# quick idea about the purpose of the project. ---- Keep the description short ----
 
 PROJECT_BRIEF          = "The Python compiler"
 
-# With the PROJECT_LOGO tag one can specify a logo or an icon that is included
+# With the PROJECT_LOGO tag, one can specify a logo or an icon that is included
 # in the documentation. The maximum height of the logo should not exceed 55
-# pixels and the maximum width should not exceed 200 pixels. Doxygen will copy
+# pixels and the maximum width should not exceed 200 pixels. Doxygen itself will copy
 # the logo to the output directory.
 
 PROJECT_LOGO           = doc/images/Nuitka-Logo-Symbol.png
 
-# The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) path
+# The OUTPUT_DIRECTORY tag is used to specify the path (relative or absolute) 
 # into which the generated documentation will be written. If a relative path is
 # entered, it will be relative to the location where doxygen was started. If
 # left blank the current directory will be used.
 
 OUTPUT_DIRECTORY       =
 
-# If the CREATE_SUBDIRS tag is set to YES then doxygen will create 4096 sub-
+# If the CREATE_SUBDIRS tag is set to YES, then doxygen will create 4096 sub-
 # directories (in 2 levels) under the output directory of each output format and
 # will distribute the generated files over these directories. Enabling this
 # option can be useful when feeding doxygen a huge amount of source files, where
 # putting all generated files in the same directory would otherwise causes
 # performance problems for the file system.
-# The default value is: NO.
+# The default value is : NO
 
 CREATE_SUBDIRS         = NO
 
 # If the ALLOW_UNICODE_NAMES tag is set to YES, doxygen will allow non-ASCII
-# characters to appear in the names of generated files. If set to NO, non-ASCII
+# characters to appear in the names of the generated files. If set to NO, non-ASCII
 # characters will be escaped, for example _xE3_x81_x84 will be used for Unicode
 # U+3044.
-# The default value is: NO.
+# The default value is : NO
 
 ALLOW_UNICODE_NAMES    = NO
 
@@ -106,31 +106,31 @@ ALLOW_UNICODE_NAMES    = NO
 # Macedonian, Norwegian, Persian (Farsi), Polish, Portuguese, Romanian, Russian,
 # Serbian, Serbian-Cyrillic, Slovak, Slovene, Spanish, Swedish, Turkish,
 # Ukrainian and Vietnamese.
-# The default value is: English.
+# The default value is: English
 
 OUTPUT_LANGUAGE        = English
 
 # If the BRIEF_MEMBER_DESC tag is set to YES, doxygen will include brief member
 # descriptions after the members that are listed in the file and class
-# documentation (similar to Javadoc). Set to NO to disable this.
-# The default value is: YES.
+# documentation (similar to Javadoc). ---- Set to NO to disable this ----
+# The default value is: YES
 
 BRIEF_MEMBER_DESC      = YES
 
-# If the REPEAT_BRIEF tag is set to YES, doxygen will prepend the brief
-# description of a member or function before the detailed description
+# If the REPEAT_BRIEF tag is set to YES, doxygen will add the brief
+# description of a member or a function before the detailed description
 #
 # Note: If both HIDE_UNDOC_MEMBERS and BRIEF_MEMBER_DESC are set to NO, the
 # brief descriptions will be completely suppressed.
-# The default value is: YES.
+# The default value is: YES
 
 REPEAT_BRIEF           = YES
 
 # This tag implements a quasi-intelligent brief description abbreviator that is
-# used to form the text in various listings. Each string in this list, if found
+# used to form text in various listings. Each string in this list, if found
 # as the leading text of the brief description, will be stripped from the text
 # and the result, after processing the whole list, is used as the annotated
-# text. Otherwise, the brief description is used as-is. If left blank, the
+# text. Otherwise, the brief description is used as it is. If left blank, the
 # following values are used ($name is automatically replaced with the name of
 # the entity):The $name class, The $name widget, The $name file, is, provides,
 # specifies, contains, represents, a, an and the.
@@ -147,10 +147,10 @@ ABBREVIATE_BRIEF       = "The $name class" \
                          an \
                          the
 
-# If the ALWAYS_DETAILED_SEC and REPEAT_BRIEF tags are both set to YES then
+# If the ALWAYS_DETAILED_SEC and REPEAT_BRIEF tags are both set to YES, then
 # doxygen will generate a detailed section even if there is only a brief
 # description.
-# The default value is: NO.
+# The default value is: NO
 
 ALWAYS_DETAILED_SEC    = NO
 
@@ -1048,13 +1048,13 @@ INLINE_SOURCES         = NO
 
 STRIP_CODE_COMMENTS    = YES
 
-# If the REFERENCED_BY_RELATION tag is set to YES then for each documented
-# function all documented functions referencing it will be listed.
+# If the REFERENCED_BY_RELATION tag is set to YES, then for each documented
+# function, all documented functions referencing it will be listed.
 # The default value is: NO.
 
 REFERENCED_BY_RELATION = NO
 
-# If the REFERENCES_RELATION tag is set to YES then for each documented function
+# If the REFERENCES_RELATION tag is set to YES, then for each documented function
 # all documented entities called/used by that function will be listed.
 # The default value is: NO.
 
@@ -1085,7 +1085,7 @@ SOURCE_TOOLTIPS        = YES
 # 4.8.6 or higher.
 #
 # To use it do the following:
-# - Install the latest version of global
+# - Install the latest version of GLOBAL
 # - Enable SOURCE_BROWSER and USE_HTAGS in the config file
 # - Make sure the INPUT points to the root of the source tree
 # - Run doxygen as normal
@@ -1563,10 +1563,10 @@ FORMULA_FONTSIZE       = 10
 FORMULA_TRANSPARENT    = YES
 
 # Enable the USE_MATHJAX option to render LaTeX formulas using MathJax (see
-# http://www.mathjax.org) which uses client side Javascript for the rendering
+# http://www.mathjax.org) which uses client side Javascript for the rendering,
 # instead of using pre-rendered bitmaps. Use this if you do not have LaTeX
-# installed or if you want to formulas look prettier in the HTML output. When
-# enabled you may also need to install MathJax separately and configure the path
+# installed or if you want that formulas should look prettier in the HTML output. When
+# enabled, you may also need to install MathJax separately and configure the path
 # to it using the MATHJAX_RELPATH option.
 # The default value is: NO.
 # This tag requires that the tag GENERATE_HTML is set to YES.
@@ -2255,7 +2255,7 @@ HIDE_UNDOC_RELATIONS   = YES
 HAVE_DOT               = YES
 
 # The DOT_NUM_THREADS specifies the number of dot invocations doxygen is allowed
-# to run in parallel. When set to 0 doxygen will base this on the number of
+# to run in parallel. When set to 0, doxygen will base this on the number of
 # processors available in the system. You can set it explicitly to a value
 # larger than 0 to get control over the balance between CPU load and processing
 # speed.
@@ -2333,7 +2333,7 @@ UML_LOOK               = NO
 
 UML_LIMIT_NUM_FIELDS   = 10
 
-# If the TEMPLATE_RELATIONS tag is set to YES then the inheritance and
+# If the TEMPLATE_RELATIONS tag is set to YES, then the inheritance and
 # collaboration graphs will show the relations between templates and their
 # instances.
 # The default value is: NO.
@@ -2511,7 +2511,7 @@ DOT_TRANSPARENT        = NO
 
 DOT_MULTI_TARGETS      = YES
 
-# If the GENERATE_LEGEND tag is set to YES doxygen will generate a legend page
+# If the GENERATE_LEGEND tag is set to YES, doxygen will generate a legend page
 # explaining the meaning of the various boxes and arrows in the dot generated
 # graphs.
 # The default value is: YES.
