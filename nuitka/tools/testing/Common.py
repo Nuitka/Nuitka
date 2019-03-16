@@ -1249,7 +1249,7 @@ def withDirectoryChange(path, allow_none=False):
 def setupCacheHashSalt(test_code_path):
     assert os.path.exists(test_code_path)
 
-    git_cmd = ["git", "ls-files", test_code_path]
+    git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
 
     process = subprocess.Popen(
         args=git_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
