@@ -268,7 +268,7 @@ def getFileContents(filename):
 
 
 def renameFile(source_filename, dest_filename):
-    # There is no way to safely uodatea file on Windows, but lets
+    # There is no way to safely update a file on Windows, but lets
     # try on Linux at least.
     old_stat = os.stat(source_filename)
 

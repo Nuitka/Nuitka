@@ -26,7 +26,6 @@ a distribution folder.
 
 import os
 import shutil
-import subprocess
 import sys
 from logging import info, warning
 
@@ -34,6 +33,7 @@ from nuitka.finalizations.FinalizeMarkups import getImportedNames
 from nuitka.importing import Importing, Recursion
 from nuitka.Options import getPythonFlags
 from nuitka.plugins.Plugins import Plugins
+from nuitka.PostProcessing import executePostProcessing
 from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
@@ -765,6 +765,8 @@ def main():
 
             sys.exit(0)
 
+        executePostProcessing(getResultFullpath(main_module))
+
         if Options.isStandaloneMode():
             binary_filename = options["result_exe"]
 
@@ -802,11 +804,6 @@ def main():
             removeDirectory(
                 path=getSourceDirectoryPath(main_module), ignore_errors=False
             )
-
-        # Modules should not be executable, but Scons creates them like it, fix
-        # it up here. TODO: Move inside scons file and avoid subprocess call.
-        if Utils.getOS() != "Windows" and Options.shallMakeModule():
-            subprocess.call(("chmod", "-x", getResultFullpath(main_module)))
 
         if Options.shallMakeModule() and Options.shallCreatePyiFile():
             pyi_filename = getResultBasepath(main_module) + ".pyi"
