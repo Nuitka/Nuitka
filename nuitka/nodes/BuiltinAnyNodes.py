@@ -32,12 +32,27 @@ from .shapes.BuiltinTypeShapes import ShapeTypeBool
 
 
 class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
+    """ Builtin Any Node class.
+
+    Parameter
+    ---------
+    iterable: list, string, dictionary etc.
+
+    Returns
+    -------
+    Bool: True if at least one element of an iterable is true
+          else return False
+
+    """
     kind = "EXPRESSION_BUILTIN_ANY"
 
     builtin_spec = BuiltinParameterSpecs.builtin_any_spec
 
     def computeExpression(self, trace_collection):
+        """ Compute and return the new result if optimized else return
+            Unknown shape
 
+        """
         value = self.getValue()
         shape = value.getTypeShape()
 
@@ -95,9 +110,15 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
         )
 
     def getTypeShape(self):
+        """ return the node output object type
+
+        """
         return ShapeTypeBool
 
     def mayRaiseException(self, exception_type):
+        """ return exception if any
+
+        """
         value = self.getValue()
 
         if value.mayRaiseException(exception_type):
