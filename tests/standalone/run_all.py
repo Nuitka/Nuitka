@@ -417,10 +417,8 @@ for filename in sorted(os.listdir(".")):
                 )
                 continue
 
-            # For the warnings.
-            extra_flags.append("ignore_stderr")
-            # For the plug-in information.
-            extra_flags.append("ignore_infos")
+        # For the plug-in information.
+        extra_flags.append("ignore_infos")
 
         if os.name == "nt":
             extra_flags.append("plugin_enable:tk-inter")
