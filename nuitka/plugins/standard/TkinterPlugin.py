@@ -28,6 +28,15 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.Utils import isWin32Windows
 
 
+def _isTkInterModule(module):
+    full_name = module.getFullName()
+
+    if python_version < 300:
+        return full_name == "Tkinter"
+    else:
+        return full_name == "tkinter"
+
+
 class TkinterPlugin(UserPluginBase):
     """ This class represents the main logic of the plugin.
 
@@ -65,36 +74,17 @@ class TkinterPlugin(UserPluginBase):
         if not isWin32Windows():  # we are only relevant on Windows
             return None, None
 
-        full_name = module.getFullName()
-
         # only insert code for tkinter related modules
-        if python_version < 300:
-            if full_name != "Tkinter":
-                return None, None
-        else:
-            if full_name != "tkinter":
-                return None, None
+        if not _isTkInterModule(module):
+            return None, None
 
         # The following code will be executed before importing the module.
         # If required we set the respective environment values.
         code = """import os
 if not os.environ.get("TCL_LIBRARY", None):
-    import sys
-    os.environ["TCL_LIBRARY"] = os.path.join(sys.path[0], "tcl")
-    os.environ["TK_LIBRARY"] = os.path.join(sys.path[0], "tk")
-        """
+    os.environ["TCL_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tcl")
+    os.environ["TK_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tk")"""
         return code, "Need to make sure we set environment variables for TCL."
-
-    def __init__(self):
-        """ We need to ensure certain actions are executed only once.
-
-        Notes:
-            Set indicator to true if we are done.
-
-        Returns:
-            None
-        """
-        self.files_copied = False  # ensure that file copy occurs once only
 
     def considerExtraDlls(self, dist_dir, module):
         """ Copy TCL libraries to the dist folder.
@@ -112,15 +102,12 @@ if not os.environ.get("TCL_LIBRARY", None):
         Returns:
             None
         """
-        if self.files_copied:  # skip after first invocation
+        if not _isTkInterModule(module):
             return ()
 
         if not isWin32Windows():  # if not Windows notify wrong usage once
             info("tkinter plugin supported on Windows only")
-            self.files_copied = True
             return ()
-
-        self.files_copied = True  # execute the following ever only once
 
         if python_version < 340:  # last tk/tcl qualifyers Py 2
             tk_lq = "tk8.5"
