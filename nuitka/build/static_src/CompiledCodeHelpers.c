@@ -34,6 +34,18 @@
 #include "HelpersPathTools.c"
 #include "HelpersStrings.c"
 
+void copyStringSafe(char *buffer, char *source, size_t buffer_size) {
+    if (strlen(source) >= buffer_size)
+        abort();
+    strcpy(buffer, source);
+}
+
+void appendStringSafe(char *buffer, char *source, size_t buffer_size) {
+    if (strlen(source) + strlen(buffer) >= buffer_size)
+        abort();
+    strcat(buffer, source);
+}
+
 #if PYTHON_VERSION < 300
 
 static Py_ssize_t ESTIMATE_RANGE(long low, long high, long step) {

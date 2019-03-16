@@ -235,23 +235,6 @@ int main(int argc, char **argv) {
     prepareStandaloneEnvironment();
 #else
 
-    /* For Python installations that need the PYTHONHOME set, we inject it back here. */
-#if defined(PYTHON_HOME_PATH)
-    NUITKA_PRINT_TRACE("main(): Prepare run environment PYTHONHOME.");
-    {
-#if !defined(_WIN32) || PYTHON_VERSION < 360
-        int res = putenv("PYTHONHOME=" PYTHON_HOME_PATH);
-        assert(res == 0);
-#else
-        wchar_t *v= Py_DecodeLocale(PYTHON_HOME_PATH "\\lib;" PYTHON_HOME_PATH "\\DLLs", NULL);
-        assert( v != NULL);
-
-        Py_SetPath(v);
-        PyMem_RawFree(v);
-#endif
-    }
-#endif
-
 #if PYTHON_VERSION >= 350 && defined(DLL_EXTRA_PATH)
     NUITKA_PRINT_TRACE("main(): Prepare DLL extra path.");
     SetDllDirectory(DLL_EXTRA_PATH);
@@ -306,9 +289,43 @@ int main(int argc, char **argv) {
     bool is_multiprocess_forking = setCommandLineParameters(argc, argv_unicode, true);
 #endif
 
+    /* For Python installations that need the PYTHONHOME set, we inject it back here. */
+#if defined(PYTHON_HOME_PATH)
+    NUITKA_PRINT_TRACE("main(): Prepare run environment PYTHONHOME.");
+    {
+#if !defined(_WIN32) || PYTHON_VERSION < 360
+        int res = putenv("PYTHONHOME=" PYTHON_HOME_PATH);
+        assert(res == 0);
+#else
+        char buffer[MAXPATHLEN * 4 + 1];
+
+        copyStringSafe(buffer, PYTHON_HOME_PATH "\\lib;" PYTHON_HOME_PATH "\\DLLs;", sizeof(buffer));
+        appendStringSafe(buffer, getBinaryDirectoryHostEncoded(), sizeof(buffer));
+
+        char *python_path = getenv("PYTHONPATH");
+        if (python_path != NULL) {
+            appendStringSafe(buffer, ";", sizeof(buffer));
+            appendStringSafe(buffer, python_path, sizeof(buffer));
+        }
+
+        wchar_t *v = Py_DecodeLocale(buffer, NULL);
+        if (v == NULL)
+            abort();
+
+        Py_SetPath(v);
+        PyMem_RawFree(v);
+#endif
+    }
+#endif
+
     /* Initialize the embedded CPython interpreter. */
     NUITKA_PRINT_TRACE("main(): Calling Py_Initialize to initialize interpreter.");
     Py_Initialize();
+
+#ifdef _NUITKA_STANDALONE
+    NUITKA_PRINT_TRACE("main(): Restore standalone environment.");
+    restoreStandaloneEnvironment();
+#endif
 
     /* Lie about it, believe it or not, there are "site" files, that check
      * against later imports, see below.
@@ -322,11 +339,6 @@ int main(int argc, char **argv) {
     setCommandLineParameters(argc, argv, false);
 #else
     setCommandLineParameters(argc, argv_unicode, false);
-#endif
-
-#ifdef _NUITKA_STANDALONE
-    NUITKA_PRINT_TRACE("main(): Restore standalone environment.");
-    restoreStandaloneEnvironment();
 #endif
 
     /* Initialize the built-in module tricks used. */

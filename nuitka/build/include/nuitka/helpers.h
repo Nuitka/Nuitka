@@ -379,12 +379,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME(PyObject *module) {
     return PyDict_GetItem(module_dict, const_str_plain___name__);
 }
 
-#if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
 // Get the binary directory, translated to UTF8 or usable as a native path,
 // e.g. ANSI on Windows.
-extern char *getBinaryDirectoryUTF8Encoded();
 extern char *getBinaryDirectoryHostEncoded();
-#endif
 
 #if _NUITKA_STANDALONE
 extern void setEarlyFrozenModulesFileAttribute(void);
