@@ -36,7 +36,7 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
 
     Parameter
     ---------
-    iterable: list, string, dictionary etc.
+    ExpressionBase: 'any' expression
 
     Returns
     -------
@@ -49,10 +49,6 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
     builtin_spec = BuiltinParameterSpecs.builtin_any_spec
 
     def computeExpression(self, trace_collection):
-        """ Compute and return the new result if optimized else return
-            Unknown shape
-
-        """
         value = self.getValue()
         shape = value.getTypeShape()
 
@@ -110,13 +106,13 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
         )
 
     def getTypeShape(self):
-        """ return the node output object type
+        """ returns type shape of the 'any' node
 
         """
         return ShapeTypeBool
 
     def mayRaiseException(self, exception_type):
-        """ return exception if any
+        """ returns boolean True if try/except/finally is needed else False
 
         """
         value = self.getValue()

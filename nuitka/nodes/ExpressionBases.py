@@ -166,7 +166,8 @@ class ExpressionBase(NodeBase):
 
     @abstractmethod
     def computeExpressionRaw(self, trace_collection):
-        """ Replace this node with computation result. """
+        """ Returns a tuple(node, tags, description).
+        Replace this node with computation result. """
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # By default, an attribute lookup may change everything about the lookup
