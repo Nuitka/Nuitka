@@ -36,11 +36,6 @@ def parseArgs():
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions()
 
-    if shallListPlugins():
-        from nuitka.plugins.Plugins import listPlugins
-
-        listPlugins()
-
     if options.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
     else:
@@ -512,12 +507,6 @@ def shallNotStoreDependsExeCachedResults():
     """ *bool* = "--disable-dll-dependency-cache"
     """
     return options.no_dependency_cache
-
-
-def shallListPlugins():
-    """ *bool* = "--plugin-list"
-    """
-    return options is not None and options.list_plugins
 
 
 def getPluginsEnabled():
