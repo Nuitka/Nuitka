@@ -374,7 +374,9 @@ def matchCall(
         else:
             assign(star_list_arg, ())
     elif 0 < num_args < num_total:
+        # Special case for no default values.
         if num_defaults == 0:
+            # Special cases text for one argument.
             if num_args == 1:
                 raise TooManyArguments(
                     TypeError(
@@ -382,26 +384,25 @@ def matchCall(
                         % (func_name, num_total)
                     )
                 )
-            else:
-                raise TooManyArguments(
-                    TypeError(
-                        "%s expected %d arguments, got %d"
-                        % (func_name, num_args, num_total)
-                    )
-                )
 
-        else:
             raise TooManyArguments(
                 TypeError(
-                    "%s() takes at most %d %s (%d given)"
-                    % (
-                        func_name,
-                        num_args,
-                        "argument" if num_args == 1 else "arguments",
-                        num_total,
-                    )
+                    "%s expected %d arguments, got %d"
+                    % (func_name, num_args, num_total)
                 )
             )
+
+        raise TooManyArguments(
+            TypeError(
+                "%s() takes at most %d %s (%d given)"
+                % (
+                    func_name,
+                    num_args,
+                    "argument" if num_args == 1 else "arguments",
+                    num_total,
+                )
+            )
+        )
     elif num_args == 0 and num_total:
         if star_dict_arg:
             if num_pos:
@@ -428,18 +429,18 @@ def matchCall(
                         % (func_name, arg)
                     )
                 )
-            else:
-                new_pairs = []
 
-                for pair in pairs:
-                    if arg == pair[0]:
-                        assign(arg, pair[1])
-                    else:
-                        new_pairs.append(pair)
+            new_pairs = []
 
-                assert len(new_pairs) == len(pairs) - 1
+            for pair in pairs:
+                if arg == pair[0]:
+                    assign(arg, pair[1])
+                else:
+                    new_pairs.append(pair)
 
-                pairs = new_pairs
+            assert len(new_pairs) == len(pairs) - 1
+
+            pairs = new_pairs
 
     # Fill in any missing values with the None to indicate "default".
     if num_defaults > 0:
@@ -469,6 +470,7 @@ def matchCall(
     if unassigned:
         num_required = num_args - num_defaults
 
+        # Special case required arguments.
         if num_required > 0 or improved:
             if num_defaults == 0 and num_args != 1:
                 raise TooManyArguments(
@@ -494,19 +496,19 @@ def matchCall(
                     )
                 )
             )
-        else:
-            raise TooManyArguments(
-                TypeError(
-                    "%s expected %s%s, got %d"
-                    % (
-                        func_name,
-                        ("at least " if python_version < 300 else "")
-                        if num_defaults > 0
-                        else "exactly ",
-                        "%d arguments" % num_required,
-                        num_total,
-                    )
+
+        raise TooManyArguments(
+            TypeError(
+                "%s expected %s%s, got %d"
+                % (
+                    func_name,
+                    ("at least " if python_version < 300 else "")
+                    if num_defaults > 0
+                    else "exactly ",
+                    "%d arguments" % num_required,
+                    num_total,
                 )
             )
+        )
 
     return result

@@ -512,8 +512,8 @@ def _findModule(module_name):
 
         if result is ImportError:
             raise ImportError
-        else:
-            return result
+
+        return result
 
     try:
         module_search_cache[key] = _findModule2(module_name)
@@ -523,8 +523,8 @@ def _findModule(module_name):
         if new_module_name is None:
             module_search_cache[key] = ImportError
             raise
-        else:
-            module_search_cache[key] = _findModule(new_module_name)
+
+        module_search_cache[key] = _findModule(new_module_name)
 
     return module_search_cache[key]
 
