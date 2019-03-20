@@ -589,10 +589,22 @@ for filename in sorted(os.listdir(".")):
         ):
             continue
 
-        # TCL/tk for tkinter
+        # TCL/tk for tkinter for non-Windows is OK.
         if loaded_filename.startswith(("/usr/lib/tcltk/", "/usr/share/tcltk/")):
             continue
         if loaded_filename in ("/usr/lib/tcltk", "/usr/share/tcltk"):
+            continue
+        if loaded_filename in ("/usr/share/tcl8.6", "/usr/share/tcl8.5"):
+            continue
+        if loaded_filename in (
+            "/usr/share/tcl8.6/init.tcl",
+            "/usr/share/tcl8.5/init.tcl",
+        ):
+            continue
+        if loaded_filename in (
+            "/usr/share/tcl8.6/encoding",
+            "/usr/share/tcl8.5/encoding",
+        ):
             continue
 
         # Taking these from system is harmless and desirable

@@ -28,6 +28,7 @@ except ImportError:
 try:
     root = tkinter.Tk()  # this will fail in absence of TCL
 except tkinter.TclError as e:
+    print("TCLError exception happened.")
     assert "connect to display" in str(e) or "no display" in str(e), str(e)
-
-print("OK")
+else:
+    print("OK")
