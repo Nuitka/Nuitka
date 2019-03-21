@@ -275,7 +275,7 @@ def checkPluginSinglePath(plugin_filename, module_package):
                 module_filename=plugin_filename,
                 module_relpath=module_relpath,
                 module_package=module_package,
-                module_kind="py",
+                module_kind=module_kind,
                 reason=reason,
             )
 

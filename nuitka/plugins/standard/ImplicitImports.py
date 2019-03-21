@@ -259,6 +259,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "apt_pkg", True
         elif full_name == "numpy.core":
             yield "numpy.core._dtype_ctypes", False
+        elif full_name == "scipy.special":
+            yield "scipy.special._ufuncs_cxx", False
+        elif full_name == "scipy.linalg":
+            yield "scipy.linalg.cython_blas", False
+            yield "scipy.linalg.cython_lapack", False
         elif full_name == "PIL._imagingtk":
             yield "PIL._tkinter_finder", True
         elif full_name == "pkg_resources.extern":
