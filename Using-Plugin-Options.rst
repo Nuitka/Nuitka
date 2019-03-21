@@ -24,7 +24,7 @@ Option Specification
 the plugin's variable with the same name, so that Nuitka can identify it.
 
 **User plugins** are activated by the command line parameter ``--user-plugin=<script.py>``,
-where the parameter is a filename (-path) of a Python script that implements
+where the parameter is a filename (-path) of a Python script implementing
 the plugin protocol, i.e. it must be a class that inherits ``nuitka.plugins.PluginBase.UserPluginBase``
 -- just like every Nuitka plugin.
 
@@ -50,7 +50,7 @@ The following table aims to clarify this.
 ``name``           ``[]`` (no option)
 ``name=``          ``['']`` (empty option)
 ``name=a,b,c``     ``['a', 'b', 'c']`` (3 options)
-``name="a, b, c"`` ``['a', ' b', ' c']`` (options with spaces)
+``name="a, b, c"`` ``['a', ' b', ' c']`` (3 options, some spaces)
 ================== ==============================================
 
 While ``self.getPluginOptions()`` delivers the complete options list, you may also
@@ -67,6 +67,7 @@ check single option items via convenience method ``self.getPluginOptionBool("val
 Remark
 --------
 Obviously, you can recover the original "raw" string by ``raw = ",".join(self.getPluginOptions())``.
+
 If your plugin knows which format to expect, it could do something like this: ``my_option_dict = json.loads(raw)``, or
 this: ``my_option_list = raw.split(";")``.
 
