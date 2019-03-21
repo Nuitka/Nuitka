@@ -125,6 +125,7 @@ if os.path.exists(guess_path):
                             "iconengines",
                             "mediaservice",
                             "printsupport",
+                            "platforms",
                         )
                         if self.hasPluginFamily(plugin_dir, family)
                     )
@@ -135,10 +136,6 @@ if os.path.exists(guess_path):
                 # Make sure the above didn't detect nothing, which would be
                 # indicating the check to be bad.
                 assert plugin_options
-
-                # Seems platforms is required on Windows.
-                if os.name == "nt":
-                    plugin_options.add("platforms")
 
             info(
                 "Copying Qt plug-ins '%s' to '%s'."
