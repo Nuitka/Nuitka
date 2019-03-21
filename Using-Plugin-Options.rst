@@ -37,10 +37,10 @@ Plugin options can be added by
 The raw option string should normally not contain any white space. However,
 depending on your platform, wrapping such a string in double quotes may also work.
 
-Nuitka always passes a **Python list** to the plugin, determined as follows:
+Nuitka always passes a **Python list** to the plugin, which is determined as follows:
 
 Assuming the command line parameter for a plugin called ``name`` contains
-``--enable-plugin=name=raw`` (``--user-plugin=name=raw``), then method
+``--enable-plugin=name=raw`` (resp. ``--user-plugin=name=raw``), then method
 ``self.getPluginOptions()`` will deliver ``raw.split(',')``.
 The following table aims to clarify this.
 
@@ -54,7 +54,8 @@ The following table aims to clarify this.
 ================== ==============================================
 
 While ``self.getPluginOptions()`` delivers the complete options list, you may also
-check single option items via convenience method ``self.getPluginOptionBool("value", default)``. Results:
+check single option items via convenience method ``self.getPluginOptionBool("value", default)``.
+Results:
 
 * ``True`` if "value" is in the options list
 
@@ -64,12 +65,18 @@ check single option items via convenience method ``self.getPluginOptionBool("val
 
 * *exception* (exiting the compilation) if both, "value" and "novalue" are in the options list
 
+Please note: there is no check for duplicate item values.
+
 Remark
 --------
-Obviously, you can recover the original "raw" string by ``raw = ",".join(self.getPluginOptions())``.
+Obviously, you can recover the original "raw" string by ``raw = ",".join(self.getPluginOptions())``
+and then apply your own logic to it.
 
-If your plugin knows which format to expect, it could do something like this: ``my_option_dict = json.loads(raw)``, or
-this: ``my_option_list = raw.split(";")``.
+For example, if your plugin knows which format to expect, it could do things like
+
+* ``my_option_dict = json.loads(raw)``, or
+
+* ``my_option_list = raw.split(";")``.
 
 Example
 ----------
