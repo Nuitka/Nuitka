@@ -26,6 +26,7 @@ from __future__ import print_function
 
 import contextlib
 import hashlib
+import inspect
 import marshal
 import os
 import shutil
@@ -1601,3 +1602,32 @@ different from
 
             for _original_path, dll_filename in dll_map:
                 removeSxsFromDLL(os.path.join(dist_dir, dll_filename))
+
+
+def copyDataFiles(dist_dir, data_files):
+    """ Copy the data files needed for standalone distribution.
+
+    Args:
+        dist_dir: The distribution folder under creation
+        data_files:
+            Tuple of pairs describing (source, dest) or (func, dest) that
+            should be copied.
+    Notes:
+        This is for data files only, not DLLs or even extension modules,
+        those must be registered as entry points, and would not go through
+        necessary handling if provided like this.
+    """
+    for source_desc, target_filename in data_files:
+        target_filename = os.path.join(dist_dir, target_filename)
+
+        makePath(os.path.dirname(target_filename))
+
+        if inspect.isfunction(source_desc):
+            content = source_desc(target_filename)
+
+            with open(
+                target_filename, "wb" if type(content) is bytes else "w"
+            ) as output:
+                output.write(content)
+        else:
+            shutil.copy2(source_desc, target_filename)
