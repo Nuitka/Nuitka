@@ -1,36 +1,36 @@
-#include <stdio.h>
-#include <stdlib.h>
-int main(int argc, char *argv[])
-{
-  int *array;
-  int size;
-  int i;
-  int sum = 0;
-  printf("enter the array size\n");
-  scanf("%d", &size);
+#include <Python.h>
 
-  array = malloc(size * sizeof(int));
-  for(i=0; i < size; i++){
-    	scanf("%d",&array[i]);
-    	sum+=array[i];
-  	}
-  printf("If you want to enter more type 1:- ");
-  int more;
-  scanf("%d",&more);
-  while (more == 1){
-  	more = 0;
-  	int *newarray;
-  	newarray = malloc(size * sizeof(int));
-  	for(i=0; i < size; i++){
-    	scanf("%d",&newarray[i]);
-    	sum+=newarray[i];
-  	}
-	printf("If you want to enter more type 1:- ");
-  	scanf("%d",&more);
-  	free(newarray);
+static PyObject* GetList(PyObject* self, PyObject* args)
+{
+    srand(time(NULL));
+    int const n = 10;
+    int element = 10;
+    PyObject* python_val = PyList_New(n);
+    for (int i = 0; i < n; ++i)
+    {
+        int r = rand() % 10;
+        PyObject* python_int = Py_BuildValue("i", r);
+        PyList_SetItem(python_val, i, python_int);
+    }
+    PyList_Append(python_val, PyFloat_FromDouble(element)); 
+    PyList_Append(python_val, PyFloat_FromDouble(element)); 
+    PyList_Append(python_val, PyFloat_FromDouble(element)); 
+    return python_val;
 }
 
-  free(array);
-  printf("%d\n", sum);
-  return 0;
+static PyMethodDef myMethods[] = {
+    { "GetList", GetList, METH_NOARGS, "Return List" },
+    { NULL, NULL, 0, NULL }
+};
+
+static struct PyModuleDef myModule = {
+    PyModuleDef_HEAD_INIT,
+    "myModule",
+    "Test Module",
+    -1,
+    myMethods
+};
+PyMODINIT_FUNC PyInit_myModule(void)
+{
+    return PyModule_Create(&myModule);
 }
