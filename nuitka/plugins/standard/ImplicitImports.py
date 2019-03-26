@@ -359,6 +359,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "Cryptodome.Protocol._scrypt", True
         elif full_name == "Cryptodome.Cipher._mode_gcm":
             yield "Cryptodome.Hash._ghash_portable", True
+        elif full_name == "pycparser.c_parser":
+            yield "pycparser.yacctab", True
+            yield "pycparser.lextab", True
 
     # We don't care about line length here, pylint: disable=line-too-long
 
@@ -527,6 +530,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "distutils",  # Not performance relevant.
         "wheel",  # Not performance relevant.
         "pkg_resources",  # Not performance relevant.
+        "pycparser",  # Not performance relevant.
+        #        "cffi",  # Not performance relevant.
         "numpy.distutils",  # Largely unused, and a lot of modules.
         "numpy.f2py",  # Mostly unused, only numpy.distutils import it.
         "numpy.testing",  # Useless.
