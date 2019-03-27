@@ -180,6 +180,19 @@ if os.path.exists(guess_path):
                 )
             ]
 
+            if os.name == "nt":
+                # Those 2 vars will be used later, just saving some resources
+                # by caching the files list
+                qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
+                qt_bin_files = getFileList(qt_bin_dir)
+
+                info("Copying OpenSSL DLLs to %r" % (dist_dir,))
+
+                for filename in qt_bin_files:
+                    basename = os.path.basename(filename).lower()
+                    if basename in ("libeay32.dll", "ssleay32.dll"):
+                        shutil.copy(filename, os.path.join(dist_dir, basename))
+
             if "qml" in plugin_options or "all" in plugin_options:
                 qml_plugin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "qml"))
 
@@ -219,12 +232,11 @@ if os.path.exists(guess_path):
 
                 # Also copy required OpenGL DLLs on Windows
                 if os.name == "nt":
-                    qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
                     opengl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
 
                     info("Copying OpenGL DLLs to %r" % (dist_dir,))
 
-                    for filename in getFileList(qt_bin_dir):
+                    for filename in qt_bin_files:
                         basename = os.path.basename(filename).lower()
 
                         if basename in opengl_dlls or basename.startswith(
