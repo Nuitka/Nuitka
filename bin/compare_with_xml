@@ -1,0 +1,117 @@
+#!/usr/bin/env python
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+#
+
+""" Tool to compare XML outputs of two Nuitka versions.
+
+"""
+
+from __future__ import print_function
+
+import difflib
+import os
+import subprocess
+import sys
+
+nuitka1 = sys.argv[1]
+nuitka2 = sys.argv[2]
+filename = sys.argv[3]
+
+print(
+    """\
+Comparing output of '{filename}' using '{nuitka1}' <-> '{nuitka2}' ...""".format(
+        filename=filename, nuitka1=nuitka1, nuitka2=nuitka2
+    )
+)
+
+extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
+
+nuitka1_cmd = "{nuitka1} --xml {filename}".format(nuitka1=nuitka1, filename=filename)
+
+process = subprocess.Popen(
+    args=nuitka1_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True
+)
+
+stdout_nuitka1, stderr_nuitka1 = process.communicate()
+exit_nuitka1 = process.returncode
+
+nuitka2_cmd = "{nuitka2} --xml {filename}".format(nuitka2=nuitka2, filename=filename)
+
+process = subprocess.Popen(
+    args=nuitka2_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True
+)
+
+stdout_nuitka2, stderr_nuitka2 = process.communicate()
+exit_nuitka2 = process.returncode
+
+
+def makeDiffable(output):
+    result = []
+
+    for line in output.split(b"\n"):
+        line = str(line)
+        result.append(line)
+
+    return result
+
+
+fromdate = None
+todate = None
+
+
+def compareOutput(kind, out1, out2):
+    diff = difflib.unified_diff(
+        makeDiffable(out1),
+        makeDiffable(out2),
+        "{program} ({detail})".format(program="nuitka1 " + filename, detail=kind),
+        "{program} ({detail})".format(program="nuitka2 " + filename, detail=kind),
+        fromdate,
+        todate,
+        n=3,
+    )
+
+    result = list(diff)
+
+    if result:
+        for line in result:
+            print(line, end="\n" if not line.startswith("---") else "")
+        return 1
+    else:
+        return 0
+
+
+exit_code_stdout = compareOutput("stdout", stdout_nuitka1, stdout_nuitka2)
+exit_code_return = exit_nuitka1 != exit_nuitka2
+
+if exit_code_return:
+    print(
+        """\
+Exit codes {exit_nuitka1:d} ({nuitka1}) != {exit_nuitka2:d} ({nuitka2})""".format(
+            exit_nuitka1=exit_nuitka1,
+            nuitka1=nuitka1,
+            exit_nuitka2=exit_nuitka2,
+            nuitka2=nuitka2,
+        )
+    )
+
+exit_code = exit_code_stdout or exit_code_return
+
+if exit_code:
+    sys.exit("Error, outputs differed.")
+
+print("OK, same outputs.")

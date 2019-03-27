@@ -1,0 +1,936 @@
+nuitka (0.6.3~rc4+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream pre-release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 23 Mar 2019 12:22:31 +0100
+
+nuitka (0.6.2+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 16 Feb 2019 08:48:51 +0100
+
+nuitka (0.6.1.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 24 Jan 2019 09:13:53 +0100
+
+nuitka (0.6.1+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+  * Depend on python-pil over python-imaging (Closes: 917694).
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 05 Jan 2019 12:41:57 +0100
+
+nuitka (0.6.0.6+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 31 Oct 2018 09:03:57 +0100
+
+nuitka (0.6.0.5+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 18 Oct 2018 23:11:34 +0200
+
+nuitka (0.6.0.4+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 14 Oct 2018 08:26:48 +0200
+
+nuitka (0.6.0.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 06 Oct 2018 10:43:33 +0200
+
+nuitka (0.6.0.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 03 Oct 2018 10:41:52 +0200
+
+nuitka (0.6.0.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 27 Sep 2018 09:57:05 +0200
+
+nuitka (0.6.0+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 26 Sep 2018 07:00:04 +0200
+
+nuitka (0.5.33+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 13 Sep 2018 19:01:48 +0200
+
+nuitka (0.5.32.8+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 04 Sep 2018 14:58:47 +0200
+
+nuitka (0.5.32.7+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 23 Aug 2018 22:06:00 +0200
+
+nuitka (0.5.32.6+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 23 Aug 2018 20:05:18 +0200
+
+nuitka (0.5.32.5+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 15 Aug 2018 19:06:01 +0200
+
+nuitka (0.5.32.4+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 10 Aug 2018 12:06:44 +0200
+
+nuitka (0.5.32.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 04 Aug 2018 10:40:31 +0200
+
+nuitka (0.5.32.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 01 Aug 2018 17:38:43 +0200
+
+nuitka (0.5.32.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 28 Jul 2018 20:16:29 +0200
+
+nuitka (0.5.32+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 28 Jul 2018 15:07:21 +0200
+
+nuitka (0.5.31+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 09 Jul 2018 08:23:02 +0200
+
+nuitka (0.5.30+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 30 Apr 2018 09:50:54 +0200
+
+nuitka (0.5.29.5+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 25 Apr 2018 09:33:55 +0200
+
+nuitka (0.5.29.4+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 09 Apr 2018 20:22:37 +0200
+
+nuitka (0.5.29.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 31 Mar 2018 16:12:25 +0200
+
+nuitka (0.5.29.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 29 Mar 2018 10:19:24 +0200
+
+nuitka (0.5.29.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 27 Mar 2018 18:22:54 +0200
+
+nuitka (0.5.29+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 26 Mar 2018 20:13:44 +0200
+
+nuitka (0.5.28.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 29 Nov 2017 15:09:28 +0100
+
+nuitka (0.5.28.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+  * Also ignore sbuild non-existant directory (Closes: #871125).
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 22 Oct 2017 10:44:31 +0200
+
+nuitka (0.5.28+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 17 Oct 2017 10:03:56 +0200
+
+nuitka (0.5.27+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 22 Jul 2017 16:21:37 +0200
+
+nuitka (0.5.26.4+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+  * Recommend actual PyQT package (Closes: #866540).
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 03 Jul 2017 08:59:37 +0200
+
+nuitka (0.5.26.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 22 Jun 2017 08:08:53 +0200
+
+nuitka (0.5.26.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 17 Jun 2017 11:37:12 +0200
+
+nuitka (0.5.26.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 10 Jun 2017 13:09:51 +0200
+
+nuitka (0.5.26+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 07 Jun 2017 08:15:19 +0200
+
+nuitka (0.5.25+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 24 Jan 2017 06:13:46 +0100
+
+nuitka (0.5.24.4+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+  * Better detection of acceptable shared library loads from
+    system paths for standalone tests (Closes: #844902).
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 10 Dec 2016 12:25:35 +0100
+
+nuitka (0.5.24.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 09 Dec 2016 06:50:55 +0100
+
+nuitka (0.5.24.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 30 Nov 2016 09:32:03 +0100
+
+nuitka (0.5.24.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 16 Nov 2016 08:16:53 +0100
+
+nuitka (0.5.24+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 14 Nov 2016 09:41:31 +0100
+
+nuitka (0.5.23.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 07 Nov 2016 07:55:11 +0100
+
+nuitka (0.5.23.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+  * Use of C11 compiler instead of C++ compiler, so we drop the
+    versioned dependencies. (Closes: #835954)
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 16 Oct 2016 10:40:59 +0200
+
+nuitka (0.5.23+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 02 Oct 2016 18:14:41 +0200
+
+nuitka (0.5.22+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 16 Aug 2016 11:22:16 +0200
+
+nuitka (0.5.21.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 26 May 2016 14:51:39 +0200
+
+nuitka (0.5.21.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 14 May 2016 14:43:28 +0200
+
+nuitka (0.5.21.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+  * Depends on g++-5 now.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 30 Apr 2016 07:59:57 +0200
+
+nuitka (0.5.21+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 24 Apr 2016 14:06:29 +0200
+
+nuitka (0.5.20+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 20 Mar 2016 08:11:16 +0100
+
+nuitka (0.5.19.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 15 Mar 2016 09:11:57 +0100
+
+nuitka (0.5.19+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 01 Feb 2016 07:53:08 +0100
+
+nuitka (0.5.18.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 24 Jan 2016 07:52:03 +0100
+
+nuitka (0.5.18+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 15 Jan 2016 07:48:41 +0100
+
+nuitka (0.5.17.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 14 Jan 2016 23:21:51 +0100
+
+nuitka (0.5.17+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 27 Dec 2015 15:18:39 +0100
+
+nuitka (0.5.16.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 03 Dec 2015 07:04:12 +0100
+
+nuitka (0.5.16+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 09 Nov 2015 18:30:07 +0100
+
+nuitka (0.5.15+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 12 Oct 2015 08:57:03 +0200
+
+nuitka (0.5.14.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 13 Sep 2015 12:26:59 +0200
+
+nuitka (0.5.14.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 07 Sep 2015 00:30:11 +0200
+
+nuitka (0.5.14.1+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 06 Sep 2015 22:37:22 +0200
+
+nuitka (0.5.14+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 27 Aug 2015 06:24:11 +0200
+
+nuitka (0.5.13.8+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 20 Aug 2015 11:55:53 +0200
+
+nuitka (0.5.13.7+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 18 Aug 2015 21:55:08 +0200
+
+nuitka (0.5.13.6+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 16 Aug 2015 14:38:46 +0200
+
+nuitka (0.5.13.5+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 16 Aug 2015 13:42:02 +0200
+
+nuitka (0.5.13.4+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 31 Jul 2015 17:24:40 +0200
+
+nuitka (0.5.13.3+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 29 Jul 2015 10:54:05 +0200
+
+nuitka (0.5.13.2+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 16 Jun 2015 10:29:12 +0200
+
+nuitka (0.5.13.1+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 04 May 2015 09:27:19 +0200
+
+nuitka (0.5.13+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 01 May 2015 10:44:27 +0200
+
+nuitka (0.5.12.2+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 26 Apr 2015 08:51:37 +0200
+
+nuitka (0.5.12.1+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 18 Apr 2015 09:35:06 +0200
+
+nuitka (0.5.12+ds-1) experimental; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 06 Apr 2015 17:20:44 +0200
+
+nuitka (0.5.11.2+ds-1) experimental; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 26 Mar 2015 20:09:06 +0100
+
+nuitka (0.5.11.1+ds-1) experimental; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 23 Mar 2015 10:34:17 +0100
+
+nuitka (0.5.11+ds-1) experimental; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 18 Mar 2015 08:38:39 +0100
+
+nuitka (0.5.10.2+ds-1) experimental; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 10 Mar 2015 07:46:24 +0100
+
+nuitka (0.5.10.1+ds-1) experimental; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 08 Mar 2015 11:56:55 +0100
+
+nuitka (0.5.10+ds-1) experimental; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 05 Mar 2015 07:43:43 +0100
+
+nuitka (0.5.9+ds-1) experimental; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 29 Jan 2015 08:18:06 +0100
+
+nuitka (0.5.8+ds-1) experimental; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 15 Jan 2015 04:11:03 +0100
+
+nuitka (0.5.7.1+ds-1) experimental; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 09 Jan 2015 13:52:15 +0100
+
+nuitka (0.5.7+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 01 Jan 2015 10:52:03 +0100
+
+nuitka (0.5.6.1+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 21 Dec 2014 08:32:58 +0100
+
+nuitka (0.5.6+ds-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+  * Added support for hardening-wrapper to be installed.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 19 Dec 2014 08:39:17 +0100
+
+nuitka (0.5.5.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+  * Added support for armhf architecture.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 24 Oct 2014 17:33:59 +0200
+
+nuitka (0.5.5.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+  * Bump to Standards Version 3.9.6, no changes needed.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 17 Oct 2014 07:56:05 +0200
+
+nuitka (0.5.5+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 05 Oct 2014 19:28:20 +0200
+
+nuitka (0.5.4.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 21 Aug 2014 09:41:37 +0200
+
+nuitka (0.5.3.5+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 18 Jul 2014 07:28:17 +0200
+
+nuitka (0.5.3.3+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Original version didn't build for all versions due to error message
+    changes, this release adapts to.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 12 Jul 2014 20:50:01 +0200
+
+nuitka (0.5.2+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Permit building using cowbuilder, eatmydata (Closes: #749518)
+  * Do not require gcc in build-depends
+    (Closes: #747984) (Closes: #748005) (Closes: #751325)
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 23 Jun 2014 08:17:57 +0200
+
+nuitka (0.5.1.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 06 Mar 2014 10:44:28 +0100
+
+nuitka (0.5.1+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 06 Mar 2014 09:33:51 +0100
+
+nuitka (0.5.0.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 13 Jan 2014 23:37:37 +0100
+
+nuitka (0.5.0+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Added missing build dependency to process PNG images.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 03 Jan 2014 19:18:18 +0100
+
+nuitka (0.4.7.1+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 03 Dec 2013 08:44:31 +0100
+
+nuitka (0.4.7+ds-1) UNRELEASED; urgency=low
+
+  * New upstream release.
+  * Handle unknown encoding error message change of CPython 2.7.6
+    that was backported to CPython 2.7.5+ as well.
+    (Closes: #730956)
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 02 Dec 2013 09:15:12 +0100
+
+nuitka (0.4.6.2+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Fri, 01 Nov 2013 19:07:42 +0100
+
+nuitka (0.4.6+ds-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 27 Oct 2013 21:29:26 +0100
+
+nuitka (0.4.5.1+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+  * Corrects upstream Issue#106.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Wed, 25 Sep 2013 14:29:55 +0200
+
+nuitka (0.4.5+ds-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 18 Aug 2013 09:06:29 +0200
+
+nuitka (0.4.4.2+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+  * Corrects upstream Issue#98.
+  * Corrects upstream Issue#100.
+  * Corrects upstream Issue#101.
+  * Corrects upstream Issue#102.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 20 Jul 2013 09:08:29 +0200
+
+nuitka (0.4.4.1+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+  * Corrects upstream Issue#95.
+  * Corrects upstream Issue#96.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 13 Jul 2013 11:56:21 +0200
+
+nuitka (0.4.4+ds-1) unstable; urgency=low
+
+  * New upstream release.
+  * Upstream now supports Python3.3 and threads.
+  * Bump to Standards Version 3.9.4, no changes needed.
+  * Fix support for modules and Python3 was broken (Closes: #711459)
+  * Fix encoding error changes  Python 2.7.5 (Closes: #713531)
+
+ -- Kay Hayen <kayhayen@gmx.de>  Tue, 25 Jun 2013 10:46:40 +0200
+
+nuitka (0.4.3+ds-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 18 May 2013 10:16:25 +0200
+
+nuitka (0.4.2+ds-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Fri, 29 Mar 2013 11:05:08 +0100
+
+nuitka (0.4.1+ds-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Tue, 05 Mar 2013 08:15:41 +0100
+
+nuitka (0.4.0+ds-1) UNRELEASED; urgency=low
+
+  * New upstream release.
+  * Changes so the Debian package can be backported to Squeeze as well.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 09 Feb 2013 10:08:15 +0100
+
+nuitka (0.3.25+ds-1) unstable; urgency=low
+
+  * New upstream release.
+  * Register the User Manual with "doc-base".
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 11 Nov 2012 13:57:32 +0100
+
+nuitka (0.3.24.1+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+  * Corrects upstream Issue#46.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 08 Sep 2012 22:30:11 +0000
+
+nuitka (0.3.24+ds-1) unstable; urgency=low
+
+  * New upstream release.
+  * Detect the absence of "g++" and gracefully fallback to the
+    compiler depended on. (Closes: #682146)
+  * Changed usage of "temp" files in developer scripts to be
+    secure. (Closes: #682145)
+  * Added support for "DEB_BUILD_OPTIONS=nocheck" to skip the
+    test runs. (Closes: #683090)
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 18 Aug 2012 21:19:17 +0200
+
+nuitka (0.3.23.1+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+  * Corrects upstream Issue#40, Issue#41, and Issue#42.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Mon, 16 Jul 2012 07:25:41 +0200
+
+nuitka (0.3.23+ds-1) unstable; urgency=low
+
+  * New upstream release.
+  * License for Nuitka is now Apache License 2.0, no more GPLv3.
+  * Corrects upstream Issue#37 and Issue#38.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 01 Jul 2012 00:00:57 +0200
+
+nuitka (0.3.22.1+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+  * Corrected copyright file syntax error found by new lintian
+    version.
+  * Corrects upstream Issue#19.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 16 Jun 2012 08:58:30 +0200
+
+nuitka (0.3.22+ds-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 13 May 2012 12:51:16 +0200
+
+nuitka (0.3.21+ds-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Thu, 12 Apr 2012 20:24:01 +0200
+
+nuitka (0.3.20.2+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+  * Corrects upstream Issue#35.
+  * Bump to Standards Version 3.9.3, no changes needed.
+  * In the alternative build dependencies, designed to make the
+    Python3 build dependency optional, put option that is going
+    to work on "unstable" first. (Closes: #665021)
+
+ -- Kay Hayen <kayhayen@gmx.de>  Tue, 03 Apr 2012 22:31:36 +0200
+
+nuitka (0.3.20.1+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+  * Corrects upstream Issue#34.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 03 Mar 2012 10:18:30 +0100
+
+nuitka (0.3.20+ds-1) unstable; urgency=low
+
+  * New upstream release.
+  * Added upstream "Changelog.rst" as "changelog"
+
+ -- Kay Hayen <kayhayen@gmx.de>  Mon, 27 Feb 2012 09:32:10 +0100
+
+nuitka (0.3.19.2+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+  * Corrects upstream Issue#32.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 12 Feb 2012 20:33:30 +0100
+
+nuitka (0.3.19.1+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+  * Corrects upstream Issue#30 and Issue#31.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 28 Jan 2012 07:27:38 +0100
+
+nuitka (0.3.19+ds-1) unstable; urgency=low
+
+  * New upstream release.
+  * Improvements to option groups layout in manpages, and broken
+    whitespace for "--recurse-to" option. (Closes: #655910)
+  * Documented new option "--recurse-directory" in man page with
+    example.
+  * Made the "debian/watch" file ignore upstream pre-releases,
+    these shall not be considered for this package.
+  * Aligned depended version with build depended versions.
+  * Depend on "python-dev" as well, needed to compile against
+    "libpython".
+  * Build depend on "python-dev-all" and "python-dbg-all" to
+    execute tests with both all supported Python versions.
+  * Build depend on "python3.2-dev-all" and "python3-dbg-all"
+    to execute tests with Python3 as well. It is currently not
+    supported by upstream, this is only preparatory.
+  * Added suggestion of "ccache", can speed up the compilation
+    process.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Tue, 17 Jan 2012 10:29:45 +0100
+
+nuitka (0.3.18+ds-1) unstable; urgency=low
+
+  * New upstream release.
+  * Lowered dependencies so that a backport to Ubuntu Natty and
+    higher is now feasible. A "scons >=2.0.0" is good enough,
+    and so is "g++-4.5" as well.
+  * Don't require the PDF generation to be successful on older
+    Ubuntu versions as it crashes due to old "rst2pdf" bugs.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Thu, 12 Jan 2012 19:55:43 +0100
+
+nuitka (0.3.18~pre2+ds-1) unstable; urgency=low
+
+  * New upstream pre-release.
+  * First upload to unstable, many thanks to my reviewer and
+    sponsor Yaroslav Halchenko <debian@onerussian.com>
+  * New maintainer (Closes: #648489)
+  * Added Developer Manual to the generated PDF documentation.
+  * Added python-dbg to Build-Depends to also execcute reference
+    count tests.
+  * Changed copyright file to reference Apache license via its
+    standard Debian location as well.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Tue, 10 Jan 2012 22:21:56 +0100
+
+nuitka (0.3.17+ds-1) UNRELEASED; urgency=low
+
+  * New upstream release.
+  * Updated man page to use new "--recurse-*" options in examples
+    over removed "--deep*" options.
+  * Completed copyright file according to "licensecheck" findings
+    and updated files accordingly. Put the included tests owned
+    by upstream into public domain.
+  * Use a "+ds" file as orig source with inline copy of Scons
+    already removed instead of doing it as a patch.
+  * Also removed the benchmark tests from "+ds" file, not useful
+    to be provided with Nuitka.
+  * Added syntax tests, these were omitted by mistake previously.
+  * Run the test suite at package build time, it checks the basic
+    tests, syntax error tests, program tests, and the compile
+    itself test.
+  * Added run time dependencies also as build time dependencies
+    to be able to execute the tests.
+  * Corrected handling of upstream pre-release names in the watch
+    file.
+  * Changed contributor notice to only require "Apache License 2.0"
+    for the new parts.
+  * Put Debian packaging and owned tests under "Apache License 2.0"
+    as well.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Mon, 09 Jan 2012 09:02:19 +0100
+
+nuitka (0.3.16-1) UNRELEASED; urgency=low
+
+  * New upstream release.
+  * Updated debian/copyright URI to match the latest one.
+  * Updated debian/copyright to DEP5 changes.
+  * Added Nuitka homepage to debian/control.
+  * Added watch file, so uscan works.
+  * Added git pointers to git repository and gitweb to the
+    package control file.
+  * Corrected examples section in man page to correctly escape "-".
+  * Added meaningful "what is" to manpages.
+  * Bump to Standards Version 3.9.2, no changes needed.
+  * Added extended description to address lintian warning.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 18 Dec 2011 13:01:10 +0100
+
+nuitka (0.3.15-1) UNRELEASED; urgency=low
+
+  * New upstream release.
+  * Renamed "/usr/bin/Python" to "/usr/bin/nuitka-python".
+  * Added man pages for "nuitka" and "nuitka-python", the first
+    with an examples section that shows the most important uses
+    of the "nuitka" binary.
+  * Removed foreign code for Windows generators, removed from
+    debian/copyright.
+  * Lowered dependency for Scons to what Ubuntu Oneiric has and
+    what we have as an inline copy, (scons >=2.0.1) should be
+    sufficient.
+  * Recommend python-lxml, as it's used by Nuitka to dump XML
+    representation.
+  * Recommend python-qt4, as it may be used to display the node
+    tree in a window.
+  * Removed inline copy of Scons from the binary package.
+  * Added patch to remove the setting nuitka package in sys.path,
+    not needed in Debian.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Thu, 01 Dec 2011 22:43:33 +0100
+
+nuitka (0.3.15pre2-1) UNRELEASED; urgency=low
+
+  * Initial Debian package.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Fri, 11 Nov 2011 20:58:55 +0100

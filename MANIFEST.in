@@ -1,0 +1,40 @@
+include LICENSE.txt
+include MANIFEST.in
+include README.rst README.pdf
+include Changelog.rst Changelog.pdf
+include Developer_Manual.rst Developer_Manual.pdf
+include doc/*.1
+
+include bin/compare_with_cpython
+include bin/compare_with_xml
+include bin/check-nuitka-with-pylint
+include bin/autoformat-nuitka-source
+include bin/measure-construct-performance
+
+# Runners, mainly for source distribution.
+include bin/nuitka
+include bin/nuitka-run
+
+include misc/*.sh
+include misc/*.bat
+include tests/run-tests
+
+# Logo with source
+include doc/Logo/Nuitka-Logo-Symbol.svg
+include doc/Logo/Nuitka-Logo-Vertical.svg
+include doc/Logo/Nuitka-Logo-Horizontal.svg
+include doc/images/Nuitka-Logo-Symbol.png
+include doc/images/Nuitka-Logo-Vertical.png
+include doc/images/Nuitka-Logo-Horizontal.png
+
+recursive-include lib *.py
+
+# Core tests are included along with Nuitka itself.
+recursive-include tests/basics *.py
+recursive-include tests/syntax *.py
+recursive-include tests/packages *.py
+recursive-include tests/programs *.py
+include tests/programs/pkgutil_usage/package/DATA_FILE.txt
+recursive-include tests/optimizations *.py
+recursive-include tests/standalone *.py
+recursive-include tests/reflected *.py
