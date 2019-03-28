@@ -22,5 +22,5 @@
 import urllib3
 import builtins
 http = urllib3.PoolManager()
-r = http.request('GET', 'http://www.github.com')
+r = http.request('GET', 'http://httpbin.org/robots.txt')
 print(r.status)
