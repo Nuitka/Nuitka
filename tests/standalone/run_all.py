@@ -470,6 +470,16 @@ for filename in sorted(os.listdir(".")):
             )
             continue
 
+    # skip testing Urllib3Using.py unless urllib3 is installed
+    if filename == "Urllib3Using.py":
+        if not hasModule("urllib3"):
+            reportSkip(
+                "Urllib3 not installed for this Python version, but test needs it",
+                ".",
+                filename,
+            )
+            continue
+
         # For the warnings.
         extra_flags.append("ignore_stderr")
 
