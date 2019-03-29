@@ -95,15 +95,19 @@ static void prepareStandaloneEnvironment() {
      * the provided binary directory as the place to look for DLLs and for
      * extension modules.
      */
-    char *binary_directory = getBinaryDirectoryHostEncoded();
-
 #if defined(_WIN32) && defined(_MSC_VER)
-    SetDllDirectory(binary_directory);
+    SetDllDirectoryW(getBinaryDirectoryWideChars());
 #endif
+#if PYTHON_VERSION >= 300
+    Py_SetPath(getBinaryDirectoryWideChars());
+#endif
+
 
     /* get original environment variable values */
     original_home = getenv("PYTHONHOME");
     original_path = getenv("PYTHONPATH");
+
+    char *binary_directory = getBinaryDirectoryHostEncoded();
 
     assert(binary_directory != NULL);
     assert(strlen(binary_directory) > 0);
@@ -117,13 +121,6 @@ static void prepareStandaloneEnvironment() {
     assert(strcmp(binary_directory, getenv("PYTHONHOME")) == 0);
 
     unsetenv("PYTHONPATH");
-
-#if PYTHON_VERSION >= 300
-    wchar_t binary_directory2[MAXPATHLEN + 1];
-    mbstowcs(binary_directory2, binary_directory, MAXPATHLEN);
-
-    Py_SetPath(binary_directory2);
-#endif
 }
 
 #if PYTHON_VERSION < 300
@@ -153,7 +150,15 @@ static void restoreStandaloneEnvironment() {
     // produced for Python3. We do not want to have outside locations in the
     // "sys.path", this removes them reliably. For Python2 it's relatively late
     // but ought to be good enough still.
+#ifdef _WIN32
+#if PYTHON_VERSION < 300
+    PySys_SetPath(getBinaryDirectoryHostEncoded());
+#else
+    PySys_SetPath(getBinaryDirectoryWideChars());
+#endif
+#else
     char *binary_directory = getBinaryDirectoryHostEncoded();
+
 #if PYTHON_VERSION < 300
     PySys_SetPath(binary_directory);
 #else
@@ -161,6 +166,8 @@ static void restoreStandaloneEnvironment() {
     mbstowcs(binary_directory2, binary_directory, MAXPATHLEN);
 
     PySys_SetPath(binary_directory2);
+#endif
+
 #endif
 
     NUITKA_PRINTF_TRACE("Path is '" PY_FORMAT_GETPATH_RESULT "'.\n", Py_GetPath());

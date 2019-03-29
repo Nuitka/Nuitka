@@ -379,8 +379,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME(PyObject *module) {
     return PyDict_GetItem(module_dict, const_str_plain___name__);
 }
 
-// Get the binary directory, translated to UTF8 or usable as a native path,
-// e.g. ANSI on Windows.
+// Get the binary directory was wide characters.
+extern wchar_t *getBinaryDirectoryWideChars();
+// Get the binary directory, translated to native path
 extern char *getBinaryDirectoryHostEncoded();
 
 #if _NUITKA_STANDALONE

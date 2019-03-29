@@ -1691,7 +1691,8 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
 
 #if defined(_NUITKA_EXE)
 
-char *getBinaryDirectoryUTF8Encoded() {
+#ifndef _WIN32
+char *getBinaryDirectoryHostEncoded() {
     static char binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
 
@@ -1699,23 +1700,7 @@ char *getBinaryDirectoryUTF8Encoded() {
         return binary_directory;
     }
 
-#if defined(_WIN32)
-
-#if PYTHON_VERSION >= 300
-    WCHAR binary_directory2[MAXPATHLEN + 1];
-    binary_directory2[0] = 0;
-
-    DWORD res = GetModuleFileNameW(NULL, binary_directory2, MAXPATHLEN);
-    assert(res != 0);
-
-    int res2 = WideCharToMultiByte(CP_UTF8, 0, binary_directory2, -1, binary_directory, MAXPATHLEN, NULL, NULL);
-    assert(res2 != 0);
-#else
-    DWORD res = GetModuleFileName(NULL, binary_directory, MAXPATHLEN);
-    assert(res != 0);
-#endif
-    PathRemoveFileSpec(binary_directory);
-#elif defined(__APPLE__)
+#if defined(__APPLE__)
     uint32_t bufsize = MAXPATHLEN;
     int res = _NSGetExecutablePath(binary_directory, &bufsize);
 
@@ -1725,7 +1710,7 @@ char *getBinaryDirectoryUTF8Encoded() {
 
     // On macOS, the "dirname" call creates a separate internal string, we can
     // safely copy back.
-    strncpy(binary_directory, dirname(binary_directory), MAXPATHLEN);
+    copyStringSafe(binary_directory, dirname(binary_directory), MAXPATHLEN);
 
 #elif defined(__FreeBSD__)
     /* Not all of FreeBSD has /proc file system, so use the appropriate
@@ -1737,10 +1722,15 @@ char *getBinaryDirectoryUTF8Encoded() {
     mib[2] = KERN_PROC_PATHNAME;
     mib[3] = -1;
     size_t cb = sizeof(binary_directory);
-    sysctl(mib, 4, binary_directory, &cb, NULL, 0);
+    int res = sysctl(mib, 4, binary_directory, &cb, NULL, 0);
 
-    /* We want the directory name, the above gives the full executable name. */
-    strcpy(binary_directory, dirname(binary_directory));
+    if (unlikely(res != 0)) {
+        {
+            abort();
+        }
+
+        /* We want the directory name, the above gives the full executable name. */
+        copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
 #else
     /* The remaining platforms, mostly Linux or compatible. */
 
@@ -1753,42 +1743,72 @@ char *getBinaryDirectoryUTF8Encoded() {
         abort();
     }
 
-    strncpy(binary_directory, dirname(binary_directory), MAXPATHLEN);
+    copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
 #endif
     init_done = true;
     return binary_directory;
 }
+#endif
 
-char *getBinaryDirectoryHostEncoded() {
-#if defined(_WIN32)
-    static char binary_directory[MAXPATHLEN + 1];
+wchar_t *getBinaryDirectoryWideChars() {
+    static wchar_t binary_directory[2 * MAXPATHLEN + 1];
     static bool init_done = false;
 
     if (init_done) {
         return binary_directory;
     }
 
-#if PYTHON_VERSION >= 300
-    WCHAR binary_directory2[MAXPATHLEN + 1];
-    binary_directory2[0] = 0;
-
-    DWORD res = GetModuleFileNameW(NULL, binary_directory2, MAXPATHLEN);
+#ifdef _WIN32
+    binary_directory[0] = 0;
+    DWORD res = GetModuleFileNameW(NULL, binary_directory, MAXPATHLEN);
     assert(res != 0);
 
-    int res2 = WideCharToMultiByte(CP_ACP, 0, binary_directory2, -1, binary_directory, MAXPATHLEN, NULL, NULL);
-    assert(res2 != 0);
+    PathRemoveFileSpecW(binary_directory);
 #else
-    DWORD res = GetModuleFileName(NULL, binary_directory, MAXPATHLEN);
-    assert(res != 0);
+    // TODO: Error checking.
+    mbstowcs(binary_directory, getBinaryDirectoryHostEncoded(), MAXPATHLEN);
 #endif
-    PathRemoveFileSpec(binary_directory);
 
     init_done = true;
     return binary_directory;
-#else
-    return getBinaryDirectoryUTF8Encoded();
-#endif
 }
+
+#ifdef _WIN32
+char *getBinaryDirectoryHostEncoded() {
+    static char *binary_directory = NULL;
+
+    if (binary_directory != NULL) {
+        return binary_directory;
+    }
+    wchar_t *w = getBinaryDirectoryWideChars();
+
+    // Query length of result first.
+    long length = GetShortPathNameW(w, NULL, 0);
+    assert(length != 0);
+
+    // TODO: Maybe not do this short path usage on Python3, which seems to cope
+    // better with unicode paths, but lets be safe for now.
+    wchar_t *short_binary_directory = (wchar_t *)malloc((length + 1) * sizeof(wchar_t));
+    long res = GetShortPathNameW(w, short_binary_directory, length);
+    assert(res != 0);
+
+    int bufsize = WideCharToMultiByte(CP_ACP, 0, short_binary_directory, -1, NULL, 0, NULL, NULL);
+    assert(bufsize != 0);
+
+    binary_directory = (char *)malloc(bufsize + 1);
+    assert(binary_directory);
+
+    int res2 = WideCharToMultiByte(CP_ACP, 0, short_binary_directory, -1, binary_directory, bufsize, NULL, NULL);
+    assert(res2 != 0);
+
+    if (unlikely(res2 > bufsize)) {
+        abort();
+    }
+
+    free(short_binary_directory);
+    return binary_directory;
+}
+#endif
 
 static PyObject *getBinaryDirectoryObject() {
     static PyObject *binary_directory = NULL;
@@ -1797,10 +1817,16 @@ static PyObject *getBinaryDirectoryObject() {
         return binary_directory;
     }
 
+    // On Python3, this must be a unicode object, it cannot be on Python2,
+    // there e.g. code objects expect Python2 strings.
 #if PYTHON_VERSION >= 300
-    binary_directory = PyUnicode_FromString(getBinaryDirectoryUTF8Encoded());
+#if defined(_WIN32)
+    binary_directory = PyUnicode_FromWideChar(getBinaryDirectoryWideChars(), -1);
 #else
-    binary_directory = PyString_FromString(getBinaryDirectoryUTF8Encoded());
+        binary_directory = PyUnicode_DecodeFSDefault(getBinaryDirectoryHostEncoded());
+#endif
+#else
+    binary_directory = PyString_FromString(getBinaryDirectoryHostEncoded());
 #endif
 
     if (unlikely(binary_directory == NULL)) {

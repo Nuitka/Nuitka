@@ -55,6 +55,7 @@ from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
     getSubDirectories,
+    isPathBelow,
     listDir,
     makePath,
 )
@@ -1619,6 +1620,7 @@ def copyDataFiles(dist_dir, data_files):
     """
     for source_desc, target_filename in data_files:
         target_filename = os.path.join(dist_dir, target_filename)
+        assert isPathBelow(dist_dir, target_filename)
 
         makePath(os.path.dirname(target_filename))
 
