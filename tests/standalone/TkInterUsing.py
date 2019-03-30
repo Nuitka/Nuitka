@@ -25,6 +25,8 @@ try:
 except ImportError:
     import tkinter
 
+# nuitka-skip-test-unless: Tkinter,tkinter
+
 try:
     root = tkinter.Tk()  # this will fail in absence of TCL
 except tkinter.TclError as e:

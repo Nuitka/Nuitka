@@ -19,4 +19,6 @@
 #
 from PyQt4 import QtGui
 
+# nuitka-skip-test-unless: PyQt4.QtGui
+
 print(QtGui.QImageReader.supportedImageFormats())

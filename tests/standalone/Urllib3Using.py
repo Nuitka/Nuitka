@@ -1,5 +1,7 @@
 import urllib3
 
+# nuitka-skip-test-unless: urllib3
+
 # testing request
 http = urllib3.PoolManager()
 r = http.request('GET', 'http://httpbin.org/robots.txt')

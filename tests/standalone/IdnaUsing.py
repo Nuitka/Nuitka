@@ -22,4 +22,6 @@ from __future__ import print_function
 import idna.core
 import sys
 
+# nuitka-skip-test-unless: idna.core
+
 print(idna.core, "idna.idnadata" in sys.modules)

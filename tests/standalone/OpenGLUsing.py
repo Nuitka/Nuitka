@@ -18,3 +18,5 @@
 #     limitations under the License.
 #
 import OpenGL
+
+# nuitka-skip-test-unless: OpenGL
