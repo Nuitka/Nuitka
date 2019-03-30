@@ -97,6 +97,28 @@ def get_package_paths(package):
     return pkg_base, pkg_dir
 
 
+def get_scipy_core_binaries():
+    """ Return binaries from the extra-dlls folder (Windows only).
+    """
+    binaries = []
+    if not isWin32Windows():
+        return binaries
+    extra_dll = os.path.join(
+        os.path.dirname(get_module_file_attribute("scipy")), "extra-dll"
+    )
+    if not os.path.isdir(extra_dll):
+        return binaries
+
+    netto_bins = os.listdir(extra_dll)
+
+    for f in netto_bins:
+        if not f.endswith(".dll"):
+            continue
+        binaries.append((os.path.join(extra_dll, f), "."))
+
+    return binaries
+
+
 def get_numpy_core_binaries():
     """ Return any binaries in numpy/core and/or numpy/.libs, whether or not actually used by our script.
 
@@ -157,14 +179,15 @@ def get_numpy_core_binaries():
 class NumpyPlugin(UserPluginBase):
     """ This class represents the main logic of the plugin.
 
-    This is a plugin to ensure numpy scripts compile and work well in standalone mode.
+    This is a plugin to ensure numpy and scipy scripts compile and work well in standalone mode.
 
-    While there already is a numpy-relevant entry in the "ImplicitImports.py" plugin,
-    this plugin copies any additional binary files required by many numpy installations.
-    Typically, these binaries are used for acceleration by replacing parts of numpy's
+    While there already are relevant entries in the "ImplicitImports.py" plugin,
+    this plugin copies any additional binary files required by many installations.
+    Typically, these binaries are used for acceleration by replacing parts of the packages'
     homegrown code with highly tuned routines.
 
-    Typical examples are MKL (Intel's Math Kernel Library), OpenBlas and others.
+    Typical examples are MKL (Intel's Math Kernel Library), OpenBlas, scipy
+    extra-dll and others.
 
     Many of these special libraries are not detectable by dependency walkers,
     and this is why this plugin may be required.
@@ -173,47 +196,72 @@ class NumpyPlugin(UserPluginBase):
         UserPluginBase: plugin template class we are inheriting.
     """
 
-    plugin_name = "numpy-plugin"  # Nuitka knows us by this name
+    plugin_name = "numpy"  # Nuitka knows us by this name
 
     def __init__(self):
         self.files_copied = False  # ensure one-time action
+        self.scipy = self.getPluginOptionBool("scipy", False)
 
-    def considerExtraDlls(self, dist_dir, module):
-        """ Copy extra shared libraries for this numpy installation.
+    def onStandaloneDistributionFinished(self, dist_dir):
+        """ Copy extra shared libraries for this numpy / scipy installation.
 
         Args:
             dist_dir: the name of the program's dist folder
-            module: the module object (not used here)
         Returns:
-            () always the empty tuple
+            None
         """
-        if self.files_copied:  # make sure all this happens only once
-            return ()
-        self.files_copied = True
 
         binaries = get_numpy_core_binaries()
         bin_total = len(binaries)  # anything there at all?
-        if bin_total == 0:  # no, seems to be vanilla numpy installation
-            return ()
 
-        info(" Now copying extra binaries from 'numpy' installation:")
-        for f in binaries:
-            bin_file = f[0].lower()  # full binary file name
-            idx = bin_file.find("numpy")  # this will always work (idx > 0)
-            back_end = bin_file[idx:]  # => like 'numpy/core/file.so'
-            tar_file = os.path.join(dist_dir, back_end)
-            info(" " + bin_file)
+        if bin_total > 0:
+            info("")
+            info(" Copying extra binaries from 'numpy' installation:")
+            for f in binaries:
+                bin_file = f[0].lower()  # full binary file name
+                idx = bin_file.find("numpy")  # this will always work (idx > 0)
+                back_end = bin_file[idx:]  # => like 'numpy/core/file.so'
+                tar_file = os.path.join(dist_dir, back_end)
+                # info(" " + bin_file)
 
-            # create any missing intermediate folders
-            if not os.path.exists(os.path.dirname(tar_file)):
-                os.makedirs(os.path.dirname(tar_file))
+                # create any missing intermediate folders
+                if not os.path.exists(os.path.dirname(tar_file)):
+                    os.makedirs(os.path.dirname(tar_file))
 
-            shutil.copy(bin_file, tar_file)
+                shutil.copy(bin_file, tar_file)
 
-        msg = " Copied %i %s."
-        msg = msg % (bin_total, "binary" if bin_total < 2 else "binaries")
-        info(msg)
-        return ()
+            msg = " Copied %i %s."
+            msg = msg % (bin_total, "binary" if bin_total < 2 else "binaries")
+            info(msg)
+
+        if self.scipy:
+            binaries = get_scipy_core_binaries()
+            bin_total = len(binaries)
+        else:
+            bin_total = 0
+            binaries = []
+
+        if bin_total > 0:
+            info("")
+            info(" Copying extra binaries from 'scipy' installation:")
+            for f in binaries:
+                bin_file = f[0].lower()  # full binary file name
+                idx = bin_file.find("scipy")  # this will always work (idx > 0)
+                back_end = bin_file[idx:]
+                tar_file = os.path.join(dist_dir, back_end)
+                # info(" " + bin_file)
+
+                # create any missing intermediate folders
+                if not os.path.exists(os.path.dirname(tar_file)):
+                    os.makedirs(os.path.dirname(tar_file))
+
+                shutil.copy(bin_file, tar_file)
+
+            msg = " Copied %i %s."
+            msg = msg % (bin_total, "binary" if bin_total < 2 else "binaries")
+            info(msg)
+
+        return
 
 
 class NumpyPluginDetector(UserPluginBase):
@@ -223,7 +271,7 @@ class NumpyPluginDetector(UserPluginBase):
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    plugin_name = "numpy-plugin"  # Nuitka knows us by this name
+    plugin_name = "numpy"  # Nuitka knows us by this name
 
     @staticmethod
     def isRelevant():
