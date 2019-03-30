@@ -267,12 +267,11 @@ _win_dll_whitelist = (
 # finds the special comment in each test module and returns the import module needed for each test
 # special comments are the the following format:
 # "# nuitka-skip-test-unless: module"
-def find_required_module(filename: str) -> str:
+def find_required_module(filename):
     with open(filename,'r') as f:
         for line in f:
             if '# nuitka-skip-test-unless: ' in line:
                 return line[27:].rstrip()
-
 
 for filename in sorted(os.listdir(".")):
     if not filename.endswith(".py"):
@@ -297,7 +296,7 @@ for filename in sorted(os.listdir(".")):
     required_m = find_required_module(filename)
     if required_m and not filename in specials and not hasModule(required_m):
         reportSkip(
-                f"{required_m} not installed for this Python version, but test needs it",
+                required_m + " not installed for this Python version, but test needs it",
                 ".",
                 filename,
         )
