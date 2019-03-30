@@ -198,23 +198,24 @@ class NumpyPlugin(UserPluginBase):
 
     plugin_name = "numpy"  # Nuitka knows us by this name
 
-    def __init__(self):
-        self.files_copied = False  # ensure one-time action
-        self.scipy = self.getPluginOptionBool("scipy", False)
-
-    def onStandaloneDistributionFinished(self, dist_dir):
+    def considerExtraDlls(self, dist_dir, module):
         """ Copy extra shared libraries for this numpy / scipy installation.
 
         Args:
             dist_dir: the name of the program's dist folder
+            module: module object (not used here)
         Returns:
-            None
+            empty tuple
         """
+        full_name = module.getFullName()
+        if full_name not in ("numpy", "scipy"):
+            return ()
 
-        binaries = get_numpy_core_binaries()
-        bin_total = len(binaries)  # anything there at all?
-
-        if bin_total > 0:
+        if full_name == "numpy":
+            binaries = get_numpy_core_binaries()
+            bin_total = len(binaries)  # anything there at all?
+            if bin_total == 0:
+                return ()
             info("")
             info(" Copying extra binaries from 'numpy' installation:")
             for f in binaries:
@@ -222,7 +223,6 @@ class NumpyPlugin(UserPluginBase):
                 idx = bin_file.find("numpy")  # this will always work (idx > 0)
                 back_end = bin_file[idx:]  # => like 'numpy/core/file.so'
                 tar_file = os.path.join(dist_dir, back_end)
-                # info(" " + bin_file)
 
                 # create any missing intermediate folders
                 if not os.path.exists(os.path.dirname(tar_file)):
@@ -233,15 +233,15 @@ class NumpyPlugin(UserPluginBase):
             msg = " Copied %i %s."
             msg = msg % (bin_total, "binary" if bin_total < 2 else "binaries")
             info(msg)
+            return ()
 
-        if self.scipy:
+        if full_name == "scipy":
+            if not self.getPluginOptionBool("scipy", False):
+                return ()
             binaries = get_scipy_core_binaries()
             bin_total = len(binaries)
-        else:
-            bin_total = 0
-            binaries = []
-
-        if bin_total > 0:
+            if bin_total == 0:
+                return ()
             info("")
             info(" Copying extra binaries from 'scipy' installation:")
             for f in binaries:
@@ -249,7 +249,6 @@ class NumpyPlugin(UserPluginBase):
                 idx = bin_file.find("scipy")  # this will always work (idx > 0)
                 back_end = bin_file[idx:]
                 tar_file = os.path.join(dist_dir, back_end)
-                # info(" " + bin_file)
 
                 # create any missing intermediate folders
                 if not os.path.exists(os.path.dirname(tar_file)):
@@ -260,8 +259,7 @@ class NumpyPlugin(UserPluginBase):
             msg = " Copied %i %s."
             msg = msg % (bin_total, "binary" if bin_total < 2 else "binaries")
             info(msg)
-
-        return
+            return ()
 
 
 class NumpyPluginDetector(UserPluginBase):
