@@ -291,7 +291,7 @@ for filename in sorted(os.listdir(".")):
     extra_flags = ["expect_success", "standalone", "remove_output"]
 
     # specials: these modules need custom checks(implemented below), skip automated checking
-    specials = {'TkInterUsing.py'}
+    specials = ['TkInterUsing.py']
     # skip each test if their respective required import is not present
     required_m = find_required_module(filename)
     if required_m and not filename in specials and not hasModule(required_m):
