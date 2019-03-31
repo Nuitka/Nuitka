@@ -124,6 +124,12 @@ def getCPythonResults(cpython_cmd, cpython_cached):
                 with open(element, "rb") as element_file:
                     command_hash.update(element_file.read())
 
+        hash_salt = os.environ.get("NUITKA_HASH_SALT", "")
+
+        if str is not bytes:
+            hash_salt = hash_salt.encode("utf8")
+        command_hash.update(hash_salt)
+
         cache_filename = os.path.join(
             getTestingCPythonOutputsCacheDir(), command_hash.hexdigest()
         )

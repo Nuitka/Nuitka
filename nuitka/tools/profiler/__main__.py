@@ -78,9 +78,9 @@ def main():
 
             #            sys.argv = [args.program] + args.args
             runpy.run_path(program, run_name="__main__")
-        except BaseException as e:
-            if not isinstance(e, (KeyboardInterrupt, SystemExit)):
-                raise
+        except (KeyboardInterrupt, SystemExit):
+            pass
+
         vmprof.disable()
 
         stats = vmprof.read_profile(prof_file.name, virtual_only=True)

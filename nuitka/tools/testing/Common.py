@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import ast
 import atexit
+import hashlib
 import os
 import re
 import shutil
@@ -32,7 +33,7 @@ from contextlib import contextmanager
 from nuitka.Tracing import my_print
 from nuitka.utils.AppDirs import getAppDir, getCacheDir
 from nuitka.utils.Execution import check_output, withEnvironmentVarOverriden
-from nuitka.utils.FileOperations import makePath, removeDirectory
+from nuitka.utils.FileOperations import getFileContentByLine, makePath, removeDirectory
 
 from .SearchModes import (
     SearchModeBase,
@@ -363,9 +364,8 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
 def checkSucceedsWithCPython(filename):
     command = [_python_executable, filename]
 
-    result = subprocess.call(
-        command, stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT
-    )
+    with open(os.devnull, "w") as devnull:
+        result = subprocess.call(command, stdout=devnull, stderr=subprocess.STDOUT)
 
     return result == 0
 
@@ -437,7 +437,8 @@ def isExecutableCommand(command):
 def getRuntimeTraceOfLoadedFiles(path, trace_error=True):
     """ Returns the files loaded when executing a binary. """
 
-    # This will make a crazy amount of work, pylint: disable=too-many-branches,too-many-statements
+    # This will make a crazy amount of work,
+    # pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
 
     result = []
 
@@ -488,7 +489,8 @@ Error, needs 'strace' on your system to scan used libraries."""
                 my_print(stderr_strace, file=sys.stderr)
                 sys.exit("Failed to run strace.")
 
-            open(path + ".strace", "wb").write(stderr_strace)
+            with open(path + ".strace", "wb") as f:
+                f.write(stderr_strace)
 
             for line in stderr_strace.split(b"\n"):
                 if process.returncode != 0 and trace_error:
@@ -571,7 +573,7 @@ Error, needs 'strace' on your system to scan used libraries."""
         )
 
         inside = False
-        for line in open(path + ".depends"):
+        for line in getFileContentByLine(path + ".depends"):
             if "| Module Dependency Tree |" in line:
                 inside = True
                 continue
@@ -731,11 +733,12 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
 
 
 def hasModule(module_name):
-    result = subprocess.call(
-        (os.environ["PYTHON"], "-c" "import %s" % module_name),
-        stdout=open(os.devnull, "w"),
-        stderr=subprocess.STDOUT,
-    )
+    with open(os.devnull, "w") as devnull:
+        result = subprocess.call(
+            (os.environ["PYTHON"], "-c" "import %s" % module_name),
+            stdout=devnull,
+            stderr=subprocess.STDOUT,
+        )
 
     return result == 0
 
@@ -1241,6 +1244,21 @@ def withDirectoryChange(path, allow_none=False):
 
     if path is not None or not allow_none:
         os.chdir(old_cwd)
+
+
+def setupCacheHashSalt(test_code_path):
+    assert os.path.exists(test_code_path)
+
+    git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
+
+    process = subprocess.Popen(
+        args=git_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+
+    stdout_git, stderr_git = process.communicate()
+    assert process.returncode == 0, stderr_git
+
+    os.environ["NUITKA_HASH_SALT"] = hashlib.md5(stdout_git).hexdigest()
 
 
 def someGenerator():

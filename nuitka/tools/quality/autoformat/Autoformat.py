@@ -24,26 +24,46 @@
 import os
 import re
 import shutil
+import subprocess
+import sys
+from logging import warning
 
 from nuitka.Tracing import my_print
+from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
+from nuitka.utils.FileOperations import getFileContents, renameFile
+from nuitka.utils.Shebang import getShebangFromFile
+from nuitka.utils.Utils import getOS
 
 
-def cleanupWindowsNewlines(filename):
+def _cleanupWindowsNewlines(filename):
     """ Remove Windows new-lines from a file.
 
         Simple enough to not depend on external binary.
     """
 
-    source_code = open(filename, "rb").read()
+    with open(filename, "rb") as f:
+        source_code = f.read()
 
     updated_code = source_code.replace(b"\r\n", b"\n")
     updated_code = updated_code.replace(b"\n\r", b"\n")
 
     if updated_code != source_code:
-        my_print("Fixing Windows new lines for", filename)
-
         with open(filename, "wb") as out_file:
             out_file.write(updated_code)
+
+
+def _cleanupTrailingWhitespace(filename):
+    """ Remove trailing white spaces from a file.
+
+    """
+    with open(filename, "r") as f:
+        source_lines = [line for line in f]
+
+    clean_lines = [line.rstrip() for line in source_lines]
+
+    if clean_lines != source_lines:
+        with open(filename, "w") as out_file:
+            out_file.write("\n".join(clean_lines) + "\n")
 
 
 def _updateCommentNode(comment_node):
@@ -102,7 +122,7 @@ def _updateCommentNode(comment_node):
         comment_node.value = new_value
 
 
-def autoformat(filename, abort=False):
+def _cleanupPyLintComments(filename, abort):
     from baron.parser import (  # pylint: disable=I0021,import-error,no-name-in-module
         ParsingError,  # @UnresolvedImport
     )
@@ -110,9 +130,7 @@ def autoformat(filename, abort=False):
         RedBaron,  # @UnresolvedImport
     )
 
-    my_print("Consider", filename, end=": ")
-
-    old_code = open(filename, "r").read()
+    old_code = getFileContents(filename)
 
     try:
         red = RedBaron(old_code)
@@ -135,30 +153,200 @@ def autoformat(filename, abort=False):
     new_code = red.dumps()
 
     if new_code != old_code:
-        new_name = filename + ".new"
-
-        with open(new_name, "w") as source_code:
+        with open(filename, "w") as source_code:
             source_code.write(red.dumps())
 
-        if os.name == "nt":
-            cleanupWindowsNewlines(new_name)
 
-        # There is no way to safely replace a file on Windows, but lets try on Linux
-        # at least.
-        old_stat = os.stat(filename)
+def _cleanupImportRelative(filename):
+    package_name = os.path.dirname(filename)
 
+    # Make imports local if possible.
+    if package_name.startswith("nuitka" + os.path.sep):
+        package_name = package_name.replace(os.path.sep, ".")
+
+        source_code = getFileContents(filename)
+        updated_code = re.sub(
+            r"from %s import" % package_name, "from . import", source_code
+        )
+        updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
+
+        if source_code != updated_code:
+            with open(filename, "w") as out_file:
+                out_file.write(updated_code)
+
+
+_binary_calls = {}
+
+
+def _getPythonBinaryCall(binary_name):
+    if binary_name not in _binary_calls:
+        # Try running Python installation.
         try:
-            os.rename(new_name, filename)
-        except OSError:
-            shutil.copyfile(new_name, filename)
-            os.unlink(new_name)
+            __import__(binary_name)
+            _binary_calls[binary_name] = [sys.executable, "-m", binary_name]
 
-        os.chmod(filename, old_stat.st_mode)
+            return _binary_calls[binary_name]
+        except ImportError:
+            pass
 
-        my_print("updated.")
-        changed = 1
+        binary_path = getExecutablePath(binary_name)
+
+        if binary_path:
+            _binary_calls[binary_name] = [binary_path]
+            return _binary_calls[binary_name]
+
+        sys.exit("Error, cannot find %s, not installed for this Python?" % binary_name)
+
+    return _binary_calls[binary_name]
+
+
+def _cleanupImportSortOrder(filename):
+    isort_call = _getPythonBinaryCall("isort")
+
+    contents = getFileContents(filename)
+
+    start_index = None
+    if "\n# isort:start" in contents:
+        parts = contents.splitlines()
+
+        start_index = parts.index("# isort:start")
+        contents = "\n".join(parts[start_index + 1 :])
+
+        with open(filename, "w") as out_file:
+            out_file.write(contents)
+
+    with open(os.devnull, "w") as devnull:
+        subprocess.check_call(
+            isort_call
+            + [
+                "-q",  # quiet, but stdout is still garbage
+                "-ot",  # Order imports by type in addition to alphabetically
+                "-m3",  # "vert-hanging"
+                "-up",  # Prefer braces () over \ for line continuation.
+                "-tc",  # Trailing commas
+                "-ns",  # Do not ignore those:
+                "__init__.py",
+                filename,
+            ],
+            stdout=devnull,
+        )
+
+    if start_index is not None:
+        contents = getFileContents(filename)
+
+        contents = "\n".join(parts[: start_index + 1]) + "\n" + contents
+
+        with open(filename, "w") as out_file:
+            out_file.write(contents)
+
+
+warned_clang_format = False
+
+
+def _cleanupClangFormat(filename):
+    # Using global here, as this is really a singleton, in
+    # the form of a module, pylint: disable=global-statement
+    global warned_clang_format
+
+    clang_format_path = getExecutablePath("clang-format")
+
+    # Extra ball on Windows, check default installation PATH too.
+    if not clang_format_path and getOS() == "Windows":
+        with withEnvironmentPathAdded("PATH", r"C:\Program Files\LLVM\bin"):
+            clang_format_path = getExecutablePath("clang-format")
+
+    if clang_format_path:
+        subprocess.call(
+            [
+                clang_format_path,
+                "-i",
+                "-style={BasedOnStyle: llvm, IndentWidth: 4, ColumnLimit: 120}",
+                filename,
+            ]
+        )
     else:
-        my_print("OK.")
-        changed = 0
+        if not warned_clang_format:
 
-    return changed
+            warning("Need to install LLVM for C files format.")
+            warned_clang_format = True
+
+
+def _shouldNotFormatCode(filename):
+    parts = os.path.abspath(filename).split(os.path.sep)
+
+    if "inline_copy" in parts:
+        return True
+    elif "tests" in parts and "run_all.py" not in parts:
+        return True
+    else:
+        return False
+
+
+def _isPythonFile(filename):
+    if filename.endswith((".py", ".pyw")):
+        return True
+    else:
+        shebang = getShebangFromFile(filename)
+
+        if shebang is not None:
+            shebang = shebang[2:].lstrip()
+            if shebang.startswith("/usr/bin/env"):
+                shebang = shebang[12:].lstrip()
+
+            if shebang.startswith("python"):
+                return True
+
+    return False
+
+
+def autoformat(filename, abort=False):
+    filename = os.path.normpath(filename)
+
+    my_print("Consider", filename, end=": ")
+
+    old_code = getFileContents(filename)
+
+    is_python = _isPythonFile(filename)
+
+    is_c = filename.endswith((".c", ".h"))
+
+    # Some parts of Nuitka must not be re-formatted with black or clang-format
+    # as they have different intentions.
+    if _shouldNotFormatCode(filename):
+        is_python = is_c = False
+
+    # Work on a temporary copy
+    tmp_filename = filename + ".tmp"
+    shutil.copy(filename, tmp_filename)
+
+    try:
+        if is_python:
+            _cleanupPyLintComments(tmp_filename, abort)
+            _cleanupImportSortOrder(tmp_filename)
+
+        if is_python:
+            black_call = _getPythonBinaryCall("black")
+
+            subprocess.call(black_call + ["-q", tmp_filename])
+        elif is_c:
+            _cleanupClangFormat(filename)
+        else:
+            _cleanupTrailingWhitespace(tmp_filename)
+
+        if getOS() == "Windows":
+            _cleanupWindowsNewlines(tmp_filename)
+
+        changed = False
+        if old_code != getFileContents(tmp_filename):
+            my_print("Updated.")
+
+            renameFile(tmp_filename, filename)
+
+            changed = True
+        else:
+            my_print("OK.")
+
+        return changed
+    finally:
+        if os.path.exists(tmp_filename):
+            os.unlink(tmp_filename)

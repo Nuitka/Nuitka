@@ -125,6 +125,87 @@ Regarding Types, the state is:
 
 The limitation to only do ``PyObject *`` will soon go away.
 
+Setting up the Development Environment for Nuitka
+=================================================
+
+Currently there are 3 kinds of files that we need support for. This is best
+addressed with an IDE. We cover here how to setup the common ones.
+
+Eclipse
+-------
+
+At this time, this is the recommended IDE for Linux and Windows. This is going
+to cover that plugins to install. If you are not familiar with Eclipse, this is
+a Java IDE, but designed to be universally extended, and it truly is. There are
+plugins available for nearly everything.
+
+Download Eclipse from here: https://www.eclipse.org/downloads/packages/
+
+Pick "Eclipse IDE for C/C++ Developers" as that comes with everything useful
+for C development included. Install it.
+
+After launching, you see a welcome screen. But Eclipse will need more setup
+to become a useful IDE. Go to menu point ``Help``/``Eclipse Marketplace`` as
+that is the easiest way to install your plugins. Install these ones:
+
+- PyDev (Python IDE for Eclipse)
+
+  This is for the majority of code in Nuitka, the Python code, to easily
+  navigate and search it, as well as autocompletion.
+
+- AnyEdit Tools
+
+  Proper whitespace handling for Eclipse, this strips trailing whitespace, which
+  Eclipse doesn't handle outside of Java.
+
+- ReST Editor
+
+  This is good for editing the User Manual, Developer Manual, and generally all
+  documentation of Nuitka.
+
+
+PyCharm
+-------
+
+TODO.
+
+VSCode
+------
+
+TODO
+
+Commit and Code Hygiene
+=======================
+
+In Nuitka we have tools to autoformat code, you can execute them
+manually, but it's probably best to execute them at commit time,
+to make sure when we share code, it's already well format, and
+to avoid noise doing cleanups.
+
+The kinds of changes also often cause unnecessary merge
+conflicts, while the autoformat is designed to format code also
+in a way that it avoids merge conflicts in the normal case, e.g. by
+doing imports one item per line.
+
+In order to set up hooks, you need to execute these commands on
+Linux and alikes:
+
+.. code-block:: sh
+
+   ./misc/install-git-hooks.py
+
+For Windows do this:
+
+.. code-block:: sh
+
+   # Where python is the one which has the development requirements, can
+   # be a full PATH.
+   python -m pip install requirements-devel.txt
+   python .\misc\install-git-hooks.py
+
+These commands will make sure that the `autoformat-nuitka-source` is run on
+every changed file at the time you do the commit.
+
 Coding Rules Python
 ===================
 
@@ -136,30 +217,20 @@ Tool to format
 --------------
 
 There is a tool ``bin/autoformat-nuitka-source`` which is to apply automatic
-formatting to code as much as possible.
+formatting to code as much as possible. It uses ``black`` (internally) for
+consistent code formatting. The imports are sorted with ``isort`` for proper
+order.
 
-
-Line Length
------------
-
-No more than 120 characters. Screens are wider these days, but most of the code
-aims at keeping the lines below 80. Long lines are also a sign of writing
-incomprehensible code.
-
-
-Indentation
------------
-
-No tabs, 4 spaces, no trailing white space. Files end in a new line.
-
+The tool (mostly black) encodes all formatting rules, and makes the decisions
+for us. The idea being that we can focus on actual code and do not have to
+care as much about other things.
 
 Identifiers
 -----------
 
-Classes are camel case with leading upper case. Methods are with leading verb in
-lower case, but also camel case. Around braces there are no spaces, but after
-comma, there is spaces for better readability. Variables and arguments are
-lower case with ``_`` as a separator.
+Classes are camel case with leading upper case. Functions and methods are with
+leading verb in lower case, but also camel case. Variables and
+arguments are lower case with ``_`` as a separator.
 
 .. code-block:: python
 
@@ -176,14 +247,11 @@ more readable:
 
 .. code-block:: python
 
-   return Generator.getSequenceCreationCode(
-        sequence_kind       = sequence_kind,
-        element_identifiers = identifiers,
-        context             = context
+   return getSequenceCreationCode(
+        sequence_kind= sequence_kind,
+        element_identifiers=identifiers,
+        context=context
    )
-
-The ``=`` are all aligned to the longest parameter names with an extra space
-around it.
 
 When the names don't add much value, sequential calls can be done, but
 ideally with one value per line:
@@ -198,16 +266,6 @@ ideally with one value per line:
 Here, ``setLoopContinueTarget`` will be so well known that the reader is
 expected to know the argument names and their meaning, but it would be still
 better to add them.
-
-Contractions should span across multiple lines for increased readability:
-
-.. code-block:: python
-
-   result = [
-       "PyObject *decorator_%d" % (d + 1)
-       for d in
-       range(decorator_count)
-   ]
 
 
 Module/Package Names
@@ -334,11 +392,80 @@ The "git flow" model
   those changes.
 
 
-API documentation
-=================
+API Documentation and Guidelines
+================================
 
 There is API documentation generated with ``doxygen``, available at `this
 location <http://nuitka.net/apidoc>`__ .
+
+To ensure meaningful ``doxygen`` output, the following guidelines must be
+observed when creating or updating Python source:
+
+Use of Standard Python ``"__doc__"`` Strings
+--------------------------------------------
+Every class and every method **must be documented** via the standard Python
+delimiters (``""" ... """``) in the usual way.
+
+Special ``doxygen`` Anatomy of ``"__doc__"``
+--------------------------------------------
+* Immediately after the leading ``"""``, and after 1 space on the same line,
+  enter a brief description or title of the class or method. This must be 1
+  line and be followed by at least 1 empty line.
+
+* Depending on the item, choose from the following "sections" to describe what the
+  item is and does. Each section name is coded on its own line, aligned with the
+  leading ``"""`` and followed by a colon ":". Anything following the section,
+  must start on a new line and be indented by 4 spaces relative to the section.
+  Except for the first section (``Notes:``) after the title, sections need not
+  be preceeded by empty lines -- but it is good practice to still do that.
+
+    - ``Notes:`` detailed description of the item, any length.
+      May contain line breaks with each new line starting aligned with previous one.
+      The text will automatically be joined across line breaks and be reformatted
+      in the browser.
+      If you describe details for a class, you can do so **without** using this
+      section header and all formatting will still work fine.
+      If you however omit the ``Notes:`` for methods, then the text will
+      be interpreted **as code,** be shown in an ugly monospaced font, and no
+      automatic line breaks will occur in the browser.
+    - ``Args:`` positional arguments.
+      Each argument then follows, starting on a new
+      line and indented by 4 spaces. The argument name must be followed by a
+      colon ":" or double hash "--", followed by a description of arbitrary length.
+      The description can be separated by line breaks.
+    - ``Kwargs:`` keyword arguments. Same rules as for args.
+    - ``Returns:`` description of what will be returned if applicable (any length).
+    - ``Yields:`` synonymous for ``Returns:``.
+    - ``Raises:`` name any exceptions that may be raised.
+    - ``Examples:`` specify any example code.
+
+.. code-block:: python
+
+    def foo(p1, p2, kw1=None, kw2=None):
+        """ This is an example method.
+
+        Notes:
+            It does one or the other indispensable things based on some parameters
+            and proudly returns a dictionary.
+
+        Args:
+            p1: parameter one
+            p2: parameter two
+
+        Kwargs:
+            kw1: keyword one
+            kw2: keyword two
+
+        Returns:
+            A dictionary calculated from the input.
+
+        Raises:
+            ValueError, IndexError
+
+        Examples:
+            >>> foo(1, 2, kw1=3, kw2=4)
+            {'a': 4, 'b': 6}
+        """
 
 Checking the Source
 ===================
@@ -523,7 +650,7 @@ Nuitka uses a lot of packages and imports between them.
 
    ./tests/reflected/compile_itself.py
 
-Internal/plugin API
+Internal/Plugin API
 ===================
 
 The documentation from the source code for both the Python and the
@@ -536,9 +663,20 @@ those with Doxygen only relatively late.
    doxygen ./doc/Doxyfile
    xdg-open html
 
-There is going to be enhancements to this API documentation in the
-next releases though, hopefully making it useable for at least the
-Nuitka plugin development.
+Improvements have already been implemented for plugins: The plugin base
+class defined in ``PluginBase.py`` (which is used as a template for all
+plugins) is fully documented in Doxygen now. The
+same is true for the recently added standard plugins ``NumpyPlugin.py`` and
+``TkinterPlugin.py``. These will be uploaded very soon.
+
+Going forward, this will also happen for the remaining standard plugins.
+
+Please find `here <https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst>`__
+a detailed description of how to write your own plugin.
+
+To learn about plugin option specification consult
+`this document <https://github.com/Nuitka/Nuitka/blob/develop/Using-Plugin-Options.rst>`__.
+
 
 Design Descriptions
 ===================
@@ -850,7 +988,7 @@ Hooking for module ``import`` process
 -------------------------------------
 
 Currently, in generated code, for every ``import`` a normal ``__import__()``
-built-in call is executed. The ``nuitka/build/static_src/ModuleUnfreezer.c``
+built-in call is executed. The ``nuitka/build/static_src/MetaPathBasedLoader.c``
 file provides the implementation of a ``sys.meta_path`` hook.
 
 This meta path based importer allows us to have the Nuitka provided module
@@ -1175,7 +1313,7 @@ go through a slot mechanism, which then can be overloaded.
 
    something = SomeStrangeFloat()
    ...
-   1.0 + something
+   1.0 + float(something) // 4.140000000000001
 
 Here it is the case, that this is used by user code, but more often
 this is used internally. Not all types have all slots, e.g. `list`
@@ -3490,6 +3628,77 @@ Limitations for now
    PageBreak
 
 
+Adding dependencies to Nuitka
+=============================
+
+First of all, there is an important distinction to make, runtime or development
+time. The first kind of dependency is used when Nuitka is executing.
+
+Adding a Runtime Dependency
+---------------------------
+
+This is the kind of dependency that is the most scrutinized. As we want Nuitka
+to run on latest greatest Python as well as relatively old ones, we have to be
+very careful with these ones.
+
+There is also a distinction of optional dependencies. Right now e.g. the
+``lxml`` package is relatively optional, and Nuitka can work without it being
+installed, because e.g. on some platforms it will not be easy to do so. That
+bar has lifted somewhat, but it means e.g. that XML based optimization tests
+are not run with all Python versions.
+
+The list of runtime dependencies is in ``requirements.txt`` and it is for
+those the case, that they are not really required to be installed by the
+user, consider this snippet:
+
+.. code-block:: python
+
+   # Folders to use for cache files.
+   appdirs == 1.4.3
+
+   # Scons is the backend building tool to turn C files to binaries.
+   scons == 3.0.4
+
+For both these dependencies, there is either an inline copy (Scons) that we
+handle to use in case, Scons is not available (in fact we have a version that
+works with Python 2.6 and 2.7 still), and also for appdirs. But since inline
+copies are against the rules on some platforms that still do not contain the
+package, we even have our own wrapper which provides a minimal fallback.
+
+.. note::
+
+   Therefore, please if you consider adding one of these, get in touch with
+   @Nuitka-pushers first and get a green light.
+
+Adding a Development Dependency
+-------------------------------
+
+A typical example of a development dependency is ``black`` which is used by
+our autoformat, and then in turn by the git pre-commit hook. It is used to
+format source code, and doesn't have a role at run time of the actual compiler
+code of Nuitka.
+
+Much less strict rules apply to these in comparison to runtime dependencies.
+Generally please take care that the tool must be well maitained an available
+on newer Pythons. Then we can use it, no problem normally. But if it's really
+big, say all of SciPy, we might want to justify it a bit better.
+
+The list of development dependencies is in ``requirements-devel.txt`` and it
+is for example like this:
+
+.. code-block:: python
+
+   # API doc, doxygen helper for Python
+   doxypypy == 0.8.8.6 ; python_version >= '2.7'
+
+So the ``doxypypy`` likely practically anything requires 2.7 or higher, but
+since we still run tests on Python 2.6, the installation would fail with that
+version, so we need to make a version requirement. Sometimes we use older
+versions for Python2 than for Python3, ``pylint`` being a notable candidate,
+but generally we ought to avoid that. For many tools only being available
+for currently 3.6 or higher is good enough, esp. if they are run as standalone
+tools, like ``autoformat-nuitka-source`` is.
+
 Idea Bin
 ========
 
@@ -3714,12 +3923,6 @@ The mix-ins prevent slots usage, so lets try and get rid of those. The "children
 having" should become more simple and faster code. I am even thinking of even
 generating code in the meta class, so it's both optimal and doesn't need that
 mix-in any more. This is going to be ugly then.
-
-Plugins API and Options
------------------------
-
-Plugins need options and should be documented API. So should the doxygen be
-generated automatically and published.
 
 Coverage Testing
 ----------------

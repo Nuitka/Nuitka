@@ -26,7 +26,6 @@ a distribution folder.
 
 import os
 import shutil
-import subprocess
 import sys
 from logging import info, warning
 
@@ -34,6 +33,7 @@ from nuitka.finalizations.FinalizeMarkups import getImportedNames
 from nuitka.importing import Importing, Recursion
 from nuitka.Options import getPythonFlags
 from nuitka.plugins.Plugins import Plugins
+from nuitka.PostProcessing import executePostProcessing
 from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
@@ -732,6 +732,7 @@ def main():
         for module in detectEarlyImports():
             ModuleRegistry.addUncompiledModule(module)
 
+            # TODO: Move this to data files plugin.
             if module.getName() == "site":
                 origin_prefix_filename = os.path.join(
                     os.path.dirname(module.getCompileTimeFilename()), "orig-prefix.txt"
@@ -764,6 +765,8 @@ def main():
 
             sys.exit(0)
 
+        executePostProcessing(getResultFullpath(main_module))
+
         if Options.isStandaloneMode():
             binary_filename = options["result_exe"]
 
@@ -772,11 +775,6 @@ def main():
             dist_dir = getStandaloneDirectoryPath(main_module)
 
             for module in ModuleRegistry.getDoneUserModules():
-                standalone_entry_points.extend(
-                    Plugins.considerExtraDlls(dist_dir, module)
-                )
-
-            for module in ModuleRegistry.getUncompiledModules():
                 standalone_entry_points.extend(
                     Plugins.considerExtraDlls(dist_dir, module)
                 )
@@ -799,16 +797,13 @@ def main():
 
                 shutil.copy2(source_filename, target_filename)
 
+            Plugins.onStandaloneDistributionFinished(dist_dir)
+
         # Remove the source directory (now build directory too) if asked to.
         if Options.isRemoveBuildDir():
             removeDirectory(
                 path=getSourceDirectoryPath(main_module), ignore_errors=False
             )
-
-        # Modules should not be executable, but Scons creates them like it, fix
-        # it up here. TODO: Move inside scons file and avoid subprocess call.
-        if Utils.getOS() != "Windows" and Options.shallMakeModule():
-            subprocess.call(("chmod", "-x", getResultFullpath(main_module)))
 
         if Options.shallMakeModule() and Options.shallCreatePyiFile():
             pyi_filename = getResultBasepath(main_module) + ".pyi"

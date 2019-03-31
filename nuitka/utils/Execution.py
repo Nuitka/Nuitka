@@ -101,27 +101,38 @@ def getPythonExePathWindows(search, arch):
 
     if arch is None:
         if getArchitecture() == "x86":
-            arches = (winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY)
+            arches = (
+                winreg.KEY_WOW64_32KEY,  # @UndefinedVariable
+                winreg.KEY_WOW64_64KEY,  # @UndefinedVariable
+            )
         else:
-            arches = (winreg.KEY_WOW64_64KEY, winreg.KEY_WOW64_32KEY)
+            arches = (
+                winreg.KEY_WOW64_64KEY,  # @UndefinedVariable
+                winreg.KEY_WOW64_32KEY,  # @UndefinedVariable
+            )
     elif arch == "x86":
-        arches = (winreg.KEY_WOW64_32KEY,)
+        arches = (winreg.KEY_WOW64_32KEY,)  # @UndefinedVariable
     elif arch == "x86_64":
-        arches = (winreg.KEY_WOW64_64KEY,)
+        arches = (winreg.KEY_WOW64_64KEY,)  # @UndefinedVariable
     else:
         assert False, arch
 
-    for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+    for hkey_branch in (
+        winreg.HKEY_LOCAL_MACHINE,  # @UndefinedVariable
+        winreg.HKEY_CURRENT_USER,  # @UndefinedVariable
+    ):
         for arch_key in arches:
             try:
-                key = winreg.OpenKey(
+                key = winreg.OpenKey(  # @UndefinedVariable
                     hkey_branch,
                     r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
                     0,
-                    winreg.KEY_READ | arch_key,
+                    winreg.KEY_READ | arch_key,  # @UndefinedVariable
                 )
 
-                candidate = os.path.join(winreg.QueryValue(key, ""), "python.exe")
+                candidate = os.path.join(
+                    winreg.QueryValue(key, ""), "python.exe"  # @UndefinedVariable
+                )
             except WindowsError:  # @UndefinedVariable
                 continue
 
@@ -159,7 +170,7 @@ def withEnvironmentPathAdded(env_var_name, path):
         path = os.pathsep.join(path)
 
     if path:
-        if str is not bytes:
+        if str is not bytes and type(path) is bytes:
             path = path.decode("utf-8")
 
         if env_var_name in os.environ:

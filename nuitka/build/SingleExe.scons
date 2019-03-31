@@ -138,9 +138,9 @@ uninstalled_python = getBoolOption("uninstalled_python", False)
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getBoolOption("unstripped_mode", False)
 
-# Clang compiler mode, forced on macOS X and FreeBSD, optional on Linux.
+# Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
-if macosx_target or "freebsd" in sys.platform:
+if macosx_target or ("freebsd" in sys.platform and os.uname()[4] != "powerpc"):  # @UndefinedVariable
     clang_mode = True
 
 # MinGW compiler mode, optional and interesting to Windows only.
@@ -562,10 +562,14 @@ def setupSpawn(env):
 
             if rv != 0 and b"collect2.exe: error: ld returned 5 exit status" in err:
                 print("Scons: retry", retry, ":", cmdline)
-                if retry == 2 and cmdline.startswith(
-                    "C:\\msys64\\usr\\bin\\ccache.exe"
-                ):
-                    cmdline = cmdline[29:]
+
+                if retry >= 2:
+                    if os.path.exists(result_exe):
+                        try:
+                            os.unlink(result_exe)
+                        except OSError:
+                            pass
+
                 continue
             else:
                 break
@@ -1070,7 +1074,8 @@ for candidate in (
 ):
     candidate = os.path.join(python_prefix, candidate)
     if os.path.exists(candidate):
-        python_prefix = open(candidate).read()
+        with open(candidate) as f:
+            python_prefix = f.read()
 
         # Trailing spaces in the python prefix, please not.
         assert python_prefix == python_prefix.strip()
@@ -1113,7 +1118,8 @@ def getWindowsPythonDLLPath():
 
 def makeWindowsMingGW64Lib(win_lib_path):
     python_dll_filename = getWindowsPythonDLLPath()
-    checksum = hashlib.md5(open(python_dll_filename, "rb").read()).hexdigest()
+    with open(python_dll_filename, "rb") as f:
+        checksum = hashlib.md5(f.read()).hexdigest()
 
     # Create the LIB in the build directory.
     new_win_lib_path = os.path.join(nuitka_cache, "win_libs", python_version, checksum)
@@ -1161,9 +1167,8 @@ def makeWindowsMingGW64Lib(win_lib_path):
         new_win_lib_path, "python%s.defs" % python_abi_version.replace(".", "")
     )
 
-    defs_file = open(defs_filename, "w")
-    defs_file.write(defs)
-    defs_file.close()
+    with open(defs_filename, "w") as defs_file:
+        defs_file.write(defs)
 
     shutil.copy(getWindowsPythonDLLPath(), new_win_lib_path)
 
@@ -1402,7 +1407,9 @@ else:
 
         output.write("const unsigned char constant_bin[] =\n{\n")
 
-        for count, stream_byte in enumerate(open(constants_bin_filename, "rb").read()):
+        with open(constants_bin_filename, "rb") as f:
+            content = f.read()
+        for count, stream_byte in enumerate(content):
             if count % 16 == 0:
                 if count > 0:
                     output.write("\n")
@@ -1555,98 +1562,6 @@ if win_target:
 
         rc_file_dependencies.append(constants_bin_filename)
 
-        if python_version < "3.3":
-            manifest_filename = os.path.join(source_dir, "resources.manifest")
-
-            python_exe = os.environ["NUITKA_PYTHON_EXE_PATH"]
-            assert os.path.exists(python_exe), python_exe
-
-            if msvc_mode:
-                try:
-                    result = subprocess.call(
-                        (
-                            env["MT"],
-                            "-inputresource:%s;#1" % python_exe,
-                            "-out:%s" % manifest_filename,
-                        ),
-                        stdout=subprocess.PIPE,
-                    )
-                except OSError:
-                    result = -1
-
-                if result != 0:
-                    sys.exit(
-                        """\
-Error, call to 'mt.exe' (%s) to extract manifest failed (error code %d.)"""
-                        % (env["MT"], result)
-                    )
-            else:
-                command = (
-                    "windres.exe",
-                    "--input",
-                    python_exe,
-                    "--output",
-                    manifest_filename,
-                    "--output-format",
-                    "rc",
-                )
-
-                try:
-                    proc = subprocess.Popen(
-                        command,
-                        stdin=subprocess.PIPE,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        shell=False,
-                    )
-                except WindowsError:  # @UndefinedVariable
-                    sys.exit("Error, cannot find 'windres.exe' but it is required.")
-
-                _stdout, stderr = proc.communicate()
-                result = proc.wait()
-
-                if result != 0:
-                    sys.exit(
-                        """\
-Error, call to 'windres.exe' to extract manifest failed with the following
-error:
-
-%s
-
-In case of "File format not recognized" you are most likely using the
-64 bits version of Python and the 32 bits version of MinGW64. There is
-also a 64 bits version, download and use that one instead.
-"""
-                        % stderr
-                    )
-
-                # Need to reduce to what we use, and remove the quoting of the
-                # actual manifest. We created a full "rc" file, but that we do
-                # not have use for.
-                manifest_file = open(manifest_filename, "r")
-                inside = False
-                contents = []
-                for line in manifest_file:
-                    if "RT_MANIFEST" in line:
-                        inside = True
-                        continue
-
-                    if not inside:
-                        continue
-
-                    line = line.replace(r"\r\n", "\r\n")
-                    line = line.replace('""', '"')
-
-                    contents.append(line[line.find('"') + 1 : line.rfind('"')])
-
-                manifest_file = open(manifest_filename, "w")
-                manifest_file.write("".join(contents[1:-1]))
-                manifest_file.close()
-
-            rc_content.append("1 RT_MANIFEST resources.manifest")
-
-            rc_file_dependencies.append(manifest_filename)
-
         if icon_path:
             rc_content.append(
                 '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"'
@@ -1658,11 +1573,9 @@ also a 64 bits version, download and use that one instead.
     if rc_content:
         rc_filename = os.path.join(source_dir, "resources.rc")
 
-        rc_file = open(rc_filename, "w")
-
-        rc_content.insert(0, '#include "winuser.h"')
-        rc_file.write("\n".join(rc_content))
-        rc_file.close()
+        with open(rc_filename, "w") as rc_file:
+            rc_content.insert(0, '#include "winuser.h"')
+            rc_file.write("\n".join(rc_content))
 
         res_target = env.RES(rc_filename)
 
@@ -1700,8 +1613,7 @@ else:
 
 # Avoid dependency on MinGW libraries.
 if win_target and gcc_mode:
-    env.Append(LINKFLAGS=["-static-libgcc", "-static-libstdc++"])
-
+    env.Append(LINKFLAGS=["-static-libgcc"])
 
 # Avoid IO for compilation as much as possible, this should make the
 # compilation more memory hungry, but also faster.
@@ -1773,9 +1685,9 @@ if cache_mode:
     if show_scons_mode:
         print("scons: Using scons cache inside build directory.")
 
-    CacheDir(
+    CacheDir( # @UndefinedVariable
         os.path.join(source_dir, "cache-" + target_arch + "-" + python_abi_version)
-    )  # @UndefinedVariable
+    )
     Decider("MD5-timestamp")  # @UndefinedVariable
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit.
@@ -1792,8 +1704,8 @@ build_definitions = {}
 if uninstalled_python:
     if win_target:
         build_definitions["DLL_EXTRA_PATH"] = os.path.dirname(getWindowsPythonDLLPath())
-    else:
-        build_definitions["PYTHON_HOME_PATH"] = python_prefix
+
+    build_definitions["PYTHON_HOME_PATH"] = python_prefix
 
 
 def makeCLiteral(value):
@@ -1806,11 +1718,9 @@ def makeCLiteral(value):
 def createBuildDefinitionsFile():
     build_definitions_filename = os.path.join(source_dir, "build_definitions.h")
 
-    build_definitions_file = open(build_definitions_filename, "w")
-    for key, value in sorted(build_definitions.items()):
-        build_definitions_file.write("#define %s %s\n" % (key, makeCLiteral(value)))
-
-    build_definitions_file.close()
+    with open(build_definitions_filename, "w") as f:
+        for key, value in sorted(build_definitions.items()):
+            f.write("#define %s %s\n" % (key, makeCLiteral(value)))
 
 
 createBuildDefinitionsFile()

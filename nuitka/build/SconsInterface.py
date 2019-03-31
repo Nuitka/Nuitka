@@ -45,10 +45,7 @@ def getSconsDataPath():
 def _getSconsInlinePath():
     """ Return path to inline copy of scons. """
 
-    return os.path.join(
-        getSconsDataPath(),
-        "inline_copy"
-    )
+    return os.path.join(getSconsDataPath(), "inline_copy")
 
 
 def _getSconsBinaryCall():
@@ -61,18 +58,13 @@ def _getSconsBinaryCall():
         scons_path = Execution.getExecutablePath("scons")
 
         if scons_path is not None:
-            return [
-                scons_path
-            ]
+            return [scons_path]
 
     return [
         _getPythonForSconsExePath(),
-        "-W", "ignore", # Disable Python warnings in case of debug Python.
-        os.path.join(
-            _getSconsInlinePath(),
-            "bin",
-            "scons.py"
-        )
+        "-W",
+        "ignore",  # Disable Python warnings in case of debug Python.
+        os.path.join(_getSconsInlinePath(), "bin", "scons.py"),
     ]
 
 
@@ -91,31 +83,37 @@ def _getPythonSconsExePathWindows():
     # registry at all unless necessary. Any Python2 will do for Scons, so it
     # might be avoided entirely.
     for search in scons_supported:
-        candidate = r"c:\Python%s\python.exe" % search.replace('.', "")
+        candidate = r"c:\Python%s\python.exe" % search.replace(".", "")
 
         if os.path.isfile(candidate):
             return candidate
 
     # Windows only code, pylint: disable=I0021,import-error,undefined-variable
     if python_version < 300:
-        import _winreg as winreg # @UnresolvedImport @UnusedImport pylint: disable=I0021,import-error,no-name-in-module
+        import _winreg as winreg  # @UnresolvedImport @UnusedImport pylint: disable=I0021,import-error,no-name-in-module
     else:
         import winreg  # @Reimport @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
     for search in scons_supported:
-        for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):  # @UndefinedVariable
-            for arch_key in 0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY:  # @UndefinedVariable
+        for hkey_branch in (
+            winreg.HKEY_LOCAL_MACHINE,  # @UndefinedVariable
+            winreg.HKEY_CURRENT_USER,  # @UndefinedVariable
+        ):
+            for arch_key in (
+                0,
+                winreg.KEY_WOW64_32KEY,  # @UndefinedVariable
+                winreg.KEY_WOW64_64KEY,  # @UndefinedVariable
+            ):  # @UndefinedVariable
                 try:
                     key = winreg.OpenKey(  # @UndefinedVariable
                         hkey_branch,
                         r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
                         0,
-                        winreg.KEY_READ | arch_key  # @UndefinedVariable
+                        winreg.KEY_READ | arch_key,  # @UndefinedVariable
                     )
 
                     return os.path.join(
-                        winreg.QueryValue(key, ""),  # @UndefinedVariable
-                        "python.exe"
+                        winreg.QueryValue(key, ""), "python.exe"  # @UndefinedVariable
                     )
                 except WindowsError:  # @UndefinedVariable
                     pass
@@ -139,7 +137,8 @@ def _getPythonForSconsExePath():
         if python_exe is not None:
             return python_exe
         else:
-            sys.exit("""\
+            sys.exit(
+                """\
 Error, while Nuitka works with Python 3.2 to 3.4, scons does not, and Nuitka
 needs to find a Python executable 2.6/2.7 or 3.5 or higher. Simply under the
 C:\\PythonXY, e.g. C:\\Python27 to execute the scons utility which is used
@@ -148,7 +147,8 @@ to build the C files to binary.
 You may provide it using option "--python-for-scons=path_to_python.exe"
 in case it is not visible in registry, e.g. due to using uninstalled
 AnaConda Python.
-""")
+"""
+            )
 
     for version_candidate in ("2.7", "2.6", "3.5", "3.6", "3.7"):
         candidate = Execution.getExecutablePath("python" + version_candidate)
@@ -225,18 +225,12 @@ def _buildSconsCommand(quiet, options):
     scons_command += [
         # The scons file
         "-f",
-        os.path.join(
-            getSconsDataPath(),
-            "SingleExe.scons"
-        ),
-
+        os.path.join(getSconsDataPath(), "SingleExe.scons"),
         # Parallel compilation.
         "--jobs",
         str(Options.getJobLimit()),
-
         # Do not warn about deprecation from Scons
         "--warn=no-deprecated",
-
         # Don't load "site_scons" at all.
         "--no-site-dir",
     ]
@@ -253,15 +247,11 @@ def _buildSconsCommand(quiet, options):
 
     # Option values to provide to scons. Find these in the caller.
     for key, value in options.items():
-        scons_command.append(
-            key + '=' + encode(value)
-        )
+        scons_command.append(key + "=" + encode(value))
 
     # Python2, make argument encoding recognizable.
     if str is bytes:
-        scons_command.append(
-            "arg_encoding=utf8"
-        )
+        scons_command.append("arg_encoding=utf8")
 
     return scons_command
 
@@ -271,7 +261,7 @@ def runScons(options, quiet):
         scons_command = _buildSconsCommand(quiet, options)
 
         if Options.isShowScons():
-            Tracing.printLine("Scons command:", ' '.join(scons_command))
+            Tracing.printLine("Scons command:", " ".join(scons_command))
 
         Tracing.flushStdout()
-        return subprocess.call(scons_command, shell = False) == 0
+        return subprocess.call(scons_command, shell=False) == 0

@@ -21,21 +21,20 @@
 
 """
 
+import glob
 import os
 import sys
 from optparse import OptionParser
 
+from nuitka.tools.Basics import goHome
+from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print
 
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought be there.
-sys.path.insert(
-    0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-)
+from .Autoformat import autoformat
 
-from nuitka.tools.Basics import goHome  # isort:skip
-from nuitka.tools.quality.ScanSources import scanTargets  # isort:skip
-from .Autoformat import autoformat  # isort:skip
+
+def resolveShellPatternToFilenames(pattern):
+    return glob.glob(pattern)
 
 
 def main():
@@ -46,8 +45,15 @@ def main():
         action="store_true",
         dest="verbose",
         default=False,
-        help="""\
-        Default is %default.""",
+        help="""Default is %default.""",
+    )
+
+    parser.add_option(
+        "--from-commit",
+        action="store_true",
+        dest="from_commit",
+        default=False,
+        help="""From commit hook, do not descend into directories. Default is %default.""",
     )
 
     parser.add_option(
@@ -55,29 +61,47 @@ def main():
         action="store_true",
         dest="abort",
         default=False,
-        help="""\
-        Default is %default.""",
+        help="""Stop if an error occurs, or continue. Default is %default.""",
     )
 
     options, positional_args = parser.parse_args()
 
     if not positional_args:
-        positional_args = ["bin", "nuitka"]
+        positional_args = [
+            "bin",
+            "nuitka",
+            # "tests/*/run_all.py"
+        ]
+
+    if options.from_commit:
+        positional_args = [
+            positional_arg
+            for positional_arg in positional_args
+            if not os.path.isdir(positional_arg)
+        ]
 
     my_print("Working on:", positional_args)
+
+    if not options.from_commit:
+        positional_args = sum(
+            (
+                resolveShellPatternToFilenames(positional_arg)
+                for positional_arg in positional_args
+            ),
+            [],
+        )
 
     positional_args = [
         os.path.abspath(positional_arg) for positional_arg in positional_args
     ]
     goHome()
 
-    found = False
-    for filename in scanTargets(positional_args, (".py", ".scons")):
-        autoformat(filename, abort=options.abort)
-        found = True
-
-    if not found:
+    filenames = list(scanTargets(positional_args, (".py", ".scons", ".rst", ".txt")))
+    if not filenames:
         sys.exit("No files found.")
+
+    for filename in filenames:
+        autoformat(filename, abort=options.abort)
 
 
 if __name__ == "__main__":

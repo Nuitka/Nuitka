@@ -24,12 +24,8 @@ import sys
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
 
 
@@ -42,23 +38,19 @@ from nuitka.tools.testing.Common import (
     createSearchMode
 )
 
-python_version = setup(suite = "basics", needs_io_encoding = True)
+python_version = setup(suite="basics", needs_io_encoding=True)
 
 search_mode = createSearchMode()
 
 # Create large constants test on the fly, if it's not there, not going to
 # add it to release archives for no good reason.
 if not os.path.exists("BigConstants.py"):
-    with open("BigConstants.py", 'w') as output:
-        output.write(
-            "# Automatically generated test, not part of releases or git.\n\n"
-        )
-        output.write(
-            "print('%s')\n" % ("1234" * 17000)
-        )
+    with open("BigConstants.py", "w") as output:
+        output.write("# Automatically generated test, not part of releases or git.\n\n")
+        output.write("print('%s')\n" % ("1234" * 17000))
 
 # Now run all the tests in this directory.
-for filename in sorted(os.listdir('.')):
+for filename in sorted(os.listdir(".")):
     if not filename.endswith(".py"):
         continue
 
@@ -107,30 +99,27 @@ for filename in sorted(os.listdir('.')):
     if filename == "BuiltinOverload.py":
         extra_flags.append("ignore_warnings")
 
-    active = search_mode.consider(
-        dirname  = None,
-        filename = filename
-    )
+    active = search_mode.consider(dirname=None, filename=filename)
 
     if active:
         if filename.startswith("Referencing") and not hasDebugPython():
             my_print("Skipped (no debug Python)")
             continue
 
-        needs_2to3 = python_version.startswith('3') and \
-                     not filename.endswith("32.py") and \
-                     not filename.endswith("33.py") and \
-                     not filename.endswith("35.py") and \
-                     not filename.endswith("36.py")
-
-
+        needs_2to3 = (
+            python_version.startswith("3")
+            and not filename.endswith("32.py")
+            and not filename.endswith("33.py")
+            and not filename.endswith("35.py")
+            and not filename.endswith("36.py")
+        )
 
         compareWithCPython(
-            dirname     = None,
-            filename    = filename,
-            extra_flags = extra_flags,
-            search_mode = search_mode,
-            needs_2to3  = needs_2to3
+            dirname=None,
+            filename=filename,
+            extra_flags=extra_flags,
+            search_mode=search_mode,
+            needs_2to3=needs_2to3,
         )
     else:
         my_print("Skipping", filename)

@@ -21,6 +21,8 @@
 
 import os
 
+from nuitka.utils.Shebang import getShebangFromFile
+
 
 def addFromDirectory(path, suffixes, blacklist):
     for dirpath, dirnames, filenames in os.walk(path):
@@ -35,6 +37,9 @@ def addFromDirectory(path, suffixes, blacklist):
         filenames.sort()
 
         for filename in filenames:
+            if filename in blacklist:
+                continue
+
             fullpath = os.path.join(dirpath, filename)
 
             # Ignore links
@@ -51,14 +56,12 @@ def addFromDirectory(path, suffixes, blacklist):
             if filename.endswith((".pyc", ".pyo")):
                 continue
 
-            # Python files only. TODO: Provided this from the outside.
-            if not filename.endswith(suffixes):
-                line = open(fullpath).readline()
-                if not line.startswith("#!") or "python" not in line:
-                    continue
+            # Python files only.
+            if ".py" in suffixes and not filename.endswith(suffixes):
+                shebang = getShebangFromFile(fullpath)
 
-            if filename in blacklist:
-                continue
+                if shebang is None or "python" not in shebang:
+                    continue
 
             yield fullpath
 

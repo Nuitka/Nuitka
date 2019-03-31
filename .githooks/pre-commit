@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/bin/sh
 #     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -16,25 +16,36 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+#
+# An example hook script to verify what is about to be committed.
+# Called by "git commit" with no arguments.  The hook should
+# exit with non-zero status after issuing an appropriate message if
+# it wants to stop the commit.
+#
+# To enable this hook, rename this file to "pre-commit".
 
-""" Launcher for isort tool to format imports.
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+    against=HEAD
+else
+    # Initial commit: diff against an empty tree object
+    against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+fi
 
-"""
+# Redirect output to stderr.
+exec 1>&2
 
-import os
-import sys
+# Determine changed files
 
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought to be there.
-sys.path.insert(
-    0,
-    os.path.normpath(
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-        )
-    )
-)
+files=$(git diff --cached --name-only $against)
 
-from nuitka.tools.quality.isort.__main__ import main # isort:skip
-main()
+if [ -z "$files" ]
+then
+    exit 0
+fi
+
+# Autoformat the files.
+./bin/autoformat-nuitka-source --from-commit $files
+git add $files
+
+exit 0
