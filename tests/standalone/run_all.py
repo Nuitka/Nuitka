@@ -21,6 +21,7 @@
 
 import os
 import sys
+import subprocess
 
 # Find nuitka package relative to us. The replacement is for POSIX python
 # and Windows paths on command line.
@@ -264,14 +265,34 @@ _win_dll_whitelist = (
     "MFCM140U.DLL",
 )
 
-# finds the special comment in each test module and returns the import module needed for each test
-# special comments are the the following format:
-# "# nuitka-skip-test-unless: module"
-def find_required_module(filename):
+# checks requirements needed to run each test module, according to the specified special comment
+# special comments are in the following formats:
+#     "# nuitka-skip-unless-expression: expression to be evaluated"
+#       OR
+#     "# nuitka-skip-unless-imports: module1,module2,..."
+def checkRequirements(filename):
     with open(filename,'r') as f:
         for line in f:
-            if '# nuitka-skip-test-unless: ' in line:
-                return line[27:].rstrip()
+            if line.startswith('# nuitka-skip-unless-'):
+                if line[21:33] == 'expression: ':
+                    expression = line[33:]
+                    with open(os.devnull, "w") as devnull:
+                        result = subprocess.call(
+                            (sys.executable, "-c" "import sys, os; %s" % expression),
+                            stdout=devnull,
+                            stderr=subprocess.STDOUT,
+                        )
+                    if not result == 0:
+                        return (False,eval_str+"evaluated to false")
+
+                elif line[21:30] == 'imports: ':
+                    imports_needed = line[30:].rstrip().split(',')
+                    for i in imports_needed:
+                        if not hasModule(i):
+                            return(False,i+" not installed for this Python version, but test needs it")
+    # default return value
+    return(True,"")
+
 
 for filename in sorted(os.listdir(".")):
     if not filename.endswith(".py"):
@@ -290,13 +311,11 @@ for filename in sorted(os.listdir(".")):
 
     extra_flags = ["expect_success", "standalone", "remove_output"]
 
-    # specials: these modules need custom checks(implemented below), skip automated checking
-    specials = ['TkInterUsing.py']
-    # skip each test if their respective required import is not present
-    required_m = find_required_module(filename)
-    if required_m and not filename in specials and not hasModule(required_m):
+    # skip each test if their respective requirements are not met
+    requirementsMet, errorMessage = checkRequirements(filename)
+    if not requirementsMet:
         reportSkip(
-                required_m + " not installed for this Python version, but test needs it",
+                errorMessage,
                 ".",
                 filename,
         )
@@ -363,23 +382,6 @@ for filename in sorted(os.listdir(".")):
             continue
 
     elif filename == "TkInterUsing.py":
-        if python_version.startswith("2"):
-            if not hasModule("Tkinter"):
-                reportSkip(
-                    "Tkinter not installed for this Python version, but test needs it",
-                    ".",
-                    filename,
-                )
-                continue
-        else:
-            if not hasModule("tkinter"):
-                reportSkip(
-                    "tkinter not installed for this Python version, but test needs it",
-                    ".",
-                    filename,
-                )
-                continue
-
         # For the plug-in information.
         extra_flags.append("ignore_infos")
 

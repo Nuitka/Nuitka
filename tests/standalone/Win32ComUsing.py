@@ -22,6 +22,6 @@
 from win32com import storagecon
 from win32com.shell import shell, shellcon
 
-# nuitka-skip-test-unless: win32com
+# nuitka-skip-unless-imports: win32com
 
 print("OK.")

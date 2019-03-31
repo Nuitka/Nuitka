@@ -19,4 +19,4 @@
 #
 import OpenGL
 
-# nuitka-skip-test-unless: OpenGL
+# nuitka-skip-unless-imports: OpenGL

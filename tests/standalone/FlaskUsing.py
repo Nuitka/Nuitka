@@ -19,7 +19,7 @@
 #
 from flask import Flask
 
-# nuitka-skip-test-unless: flask
+# nuitka-skip-unless-imports: flask
 
 app = Flask(__name__)
 

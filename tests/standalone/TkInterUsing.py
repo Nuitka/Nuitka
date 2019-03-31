@@ -25,7 +25,7 @@ try:
 except ImportError:
     import tkinter
 
-# nuitka-skip-test-unless: Tkinter,tkinter
+# nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")
 
 try:
     root = tkinter.Tk()  # this will fail in absence of TCL

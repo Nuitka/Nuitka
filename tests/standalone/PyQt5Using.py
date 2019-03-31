@@ -26,7 +26,7 @@ from PyQt5.QtCore import QCoreApplication  # @UnresolvedImport
 
 import sys
 
-# nuitka-skip-test-unless: PyQt5.QtGui
+# nuitka-skip-unless-imports: PyQt5.QtGui
 
 app = QCoreApplication([])
 app.setOrganizationName("BOGUS_NAME")

@@ -19,6 +19,6 @@
 #
 import numpy
 
-# nuitka-skip-test-unless: numpy
+# nuitka-skip-unless-imports: numpy
 
 numpy.test()

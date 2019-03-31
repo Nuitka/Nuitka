@@ -25,7 +25,7 @@ import gtk
 
 import pygtk
 
-# nuitka-skip-test-unless: pygtk
+# nuitka-skip-unless-imports: pygtk
 
 pygtk.require("2.0")
 

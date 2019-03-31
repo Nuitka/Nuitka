@@ -25,7 +25,7 @@ from __future__ import print_function
 
 from PyQt4.QtCore import pyqtSlot, pyqtSignal, QObject, QMetaObject
 
-# nuitka-skip-test-unless: PyQt4.QtGui
+# nuitka-skip-unless-imports: PyQt4.QtGui
 
 class Communicate(QObject):
     speak = pyqtSignal(int)
