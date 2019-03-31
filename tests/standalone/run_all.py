@@ -603,6 +603,7 @@ for filename in sorted(os.listdir(".")):
 
         # TCL/tk for tkinter for non-Windows is OK.
         if loaded_filename in ("/usr", "/usr/local", "/usr/local/lib", "/usr/share", "/usr/local/share"):
+        	continue
         if loaded_filename in (
             "/usr",
             "/usr/local",
@@ -688,6 +689,7 @@ for filename in sorted(os.listdir(".")):
                 "libpcre2-8.so.",
             )
         ):
+        	continue
         if loaded_basename.startswith((
             "libnss_",
             "libnsl",
