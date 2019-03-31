@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,19 +30,16 @@ import tempfile
 from .FileOperations import makePath
 
 try:
-    import appdirs # pylint: disable=I0021,import-error
+    import appdirs  # pylint: disable=I0021,import-error
 except ImportError:
     # Temporarily add the inline copy of appdir to the import path.
     sys.path.append(
-        os.path.join(
-            os.path.dirname(__file__),
-            "..", "build", "inline_copy", "appdirs"
-        )
+        os.path.join(os.path.dirname(__file__), "..", "build", "inline_copy", "appdirs")
     )
 
     # Handle case without inline copy too.
     try:
-        import appdirs # pylint: disable=I0021,import-error
+        import appdirs  # pylint: disable=I0021,import-error
     except ImportError:
         appdirs = None
 
@@ -54,7 +51,7 @@ def getCacheDir():
     if appdirs is not None:
         result = appdirs.user_cache_dir("Nuitka", None)
     else:
-        result = os.path.join(os.path.expanduser('~'), ".cache", "Nuitka")
+        result = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
 
     # For people that build with HOME set this, e.g. Debian.
     if result.startswith(("/nonexistent/", "/sbuild-nonexistent/")):
@@ -68,7 +65,7 @@ def getAppDir():
     if appdirs is not None:
         result = appdirs.user_data_dir("Nuitka", None)
     else:
-        result = os.path.join(os.path.expanduser('~'), ".config", "Nuitka")
+        result = os.path.join(os.path.expanduser("~"), ".config", "Nuitka")
 
     # For people that build with HOME set this, e.g. Debian.
     if result.startswith(("/nonexistent/", "/sbuild-nonexistent/")):

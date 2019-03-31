@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,9 +31,45 @@ def getOS():
     if os.name == "nt":
         return "Windows"
     elif os.name == "posix":
-        return os.uname()[0]  # @UndefinedVariable
+        result = os.uname()[0]  # @UndefinedVariable
+
+        # Handle msys2 posix nature still meaning it's Windows.
+        if result.startswith("MSYS_NT-"):
+            result = "Windows"
+
+        return result
     else:
         assert False, os.name
+
+
+def isWin32Windows():
+    """ The Win32 variants of Python does have win32 only, not posix.
+
+    """
+    return os.name == "nt"
+
+
+def isPosixWindows():
+    """ The MSYS2 variant of Python does have posix only, not Win32.
+
+    """
+    return os.name == "posix" and getOS() == "Windows"
+
+
+_is_alpine = None
+
+
+def isAlpineLinux():
+    if os.name == "posix":
+
+        # Avoid repeated file system lookup, pylint: disable=global-statement
+        global _is_alpine
+        if _is_alpine is None:
+            _is_alpine = os.path.isfile("/etc/alpine-release")
+
+        return _is_alpine
+    else:
+        return False
 
 
 def getArchitecture():
@@ -85,6 +121,7 @@ def getCoreCount():
 
     if not cpu_count:
         import multiprocessing
+
         cpu_count = multiprocessing.cpu_count()
 
     return cpu_count
@@ -106,7 +143,7 @@ def encodeNonAscii(var_name):
         var_name = var_name.encode("ascii", "xmlcharrefreplace")
         var_name = var_name.decode("ascii")
 
-        return var_name.replace("&#", "$$").replace(';', "")
+        return var_name.replace("&#", "$$").replace(";", "")
 
 
 def isExecutableCommand(command):

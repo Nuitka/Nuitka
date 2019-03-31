@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,27 +30,22 @@ def generateConditionCode(condition, emit, context):
     compare_name = context.allocateTempName("condition_result", "nuitka_bool")
 
     generateExpressionCode(
-        to_name    = compare_name,
-        expression = condition,
-        emit       = emit,
-        context    = context
+        to_name=compare_name, expression=condition, emit=emit, context=context
     )
 
     getBranchingCode(
-        condition = "%s == NUITKA_BOOL_TRUE" % compare_name,
-        emit      = emit,
-        context   = context
+        condition="%s == NUITKA_BOOL_TRUE" % compare_name, emit=emit, context=context
     )
 
 
 # TODO: Inline this once "enable_bool_ctype" is completed
 def getConditionCheckTrueCode(to_name, value_name, needs_check, emit, context):
     value_name.getCType().emitTruthCheckCode(
-        to_name     = to_name,
-        value_name  = value_name,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
+        to_name=to_name,
+        value_name=value_name,
+        needs_check=needs_check,
+        emit=emit,
+        context=context,
     )
 
 
@@ -78,10 +73,7 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     left_value = expression.getLeft()
 
     generateExpressionCode(
-        to_name    = left_name,
-        expression = left_value,
-        emit       = emit,
-        context    = context
+        to_name=left_name, expression=left_value, emit=emit, context=context
     )
 
     # We need to treat this mostly manually here. We remember to release
@@ -96,37 +88,26 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
         context.setFalseBranchTarget(true_target)
 
     left_name.getCType().emitTruthCheckCode(
-        to_name     = truth_name,
-        value_name  = left_name,
-        needs_check = left_value.mayRaiseExceptionBool(BaseException),
-        emit        = emit,
-        context     = context
+        to_name=truth_name,
+        value_name=left_name,
+        needs_check=left_value.mayRaiseExceptionBool(BaseException),
+        emit=emit,
+        context=context,
     )
 
-    getBranchingCode(
-        condition = "%s == 1" % truth_name,
-        emit      = emit,
-        context   = context
-    )
+    getBranchingCode(condition="%s == 1" % truth_name, emit=emit, context=context)
 
     getLabelCode(false_target, emit)
 
     # So it's not the left value, then lets release that one right away, it
     # is not needed, but we remember if it should be added above.
-    getReleaseCode(
-       release_name = left_name,
-       emit         = emit,
-       context      = context
-    )
+    getReleaseCode(release_name=left_name, emit=emit, context=context)
 
     right_value = expression.getRight()
 
     # Evaluate the "right" value then.
     generateExpressionCode(
-        to_name    = right_name,
-        expression = right_value,
-        emit       = emit,
-        context    = context
+        to_name=right_name, expression=right_value, emit=emit, context=context
     )
 
     # Again, remember the reference count to manage it manually.
@@ -139,11 +120,11 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
         emit("Py_INCREF( %s );" % right_name)
 
     to_name.getCType().emitAssignConversionCode(
-        to_name     = to_name,
-        value_name  = right_name,
-        needs_check = decideConversionCheckNeeded(to_name, right_value),
-        emit        = emit,
-        context     = context
+        to_name=to_name,
+        value_name=right_name,
+        needs_check=decideConversionCheckNeeded(to_name, right_value),
+        emit=emit,
+        context=context,
     )
 
     getGotoCode(end_target, emit)
@@ -154,11 +135,11 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
         emit("Py_INCREF( %s );" % left_name)
 
     to_name.getCType().emitAssignConversionCode(
-        to_name     = to_name,
-        value_name  = left_name,
-        needs_check = decideConversionCheckNeeded(to_name, left_value),
-        emit        = emit,
-        context     = context
+        to_name=to_name,
+        value_name=left_name,
+        needs_check=decideConversionCheckNeeded(to_name, left_value),
+        emit=emit,
+        context=context,
     )
 
     getLabelCode(end_target, emit)
@@ -182,17 +163,15 @@ def generateConditionalCode(to_name, expression, emit, context):
     context.setFalseBranchTarget(false_target)
 
     generateConditionCode(
-        condition = expression.getCondition(),
-        emit      = emit,
-        context   = context
+        condition=expression.getCondition(), emit=emit, context=context
     )
 
-    getLabelCode(true_target,emit)
+    getLabelCode(true_target, emit)
     generateExpressionCode(
-        to_name    = to_name,
-        expression = expression.getExpressionYes(),
-        emit       = emit,
-        context    = context
+        to_name=to_name,
+        expression=expression.getExpressionYes(),
+        emit=emit,
+        context=context,
     )
     needs_ref1 = context.needsCleanup(to_name)
 
@@ -204,10 +183,10 @@ def generateConditionalCode(to_name, expression, emit, context):
     emit = SourceCodeCollector()
 
     generateExpressionCode(
-        to_name    = to_name,
-        expression = expression.getExpressionNo(),
-        emit       = emit,
-        context    = context
+        to_name=to_name,
+        expression=expression.getExpressionNo(),
+        emit=emit,
+        context=context,
     )
 
     needs_ref2 = context.needsCleanup(to_name)
@@ -240,7 +219,7 @@ def generateConditionalCode(to_name, expression, emit, context):
             real_emit(line)
         emit = real_emit
 
-    getLabelCode(end_target,emit)
+    getLabelCode(end_target, emit)
 
     context.setTrueBranchTarget(old_true_target)
     context.setFalseBranchTarget(old_false_target)

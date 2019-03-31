@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,17 +28,13 @@ from nuitka.utils.CStrings import encodePythonStringToC
 def getGotoCode(label, emit):
     assert label is not None
 
-    emit(
-        "goto %s;" % label
-    )
+    emit("goto %s;" % label)
 
 
 def getLabelCode(label, emit):
     assert label is not None
 
-    emit(
-        "%s:;" % label
-    )
+    emit("%s:;" % label)
 
 
 def getBranchingCode(condition, emit, context):
@@ -46,19 +42,9 @@ def getBranchingCode(condition, emit, context):
     false_target = context.getFalseBranchTarget()
 
     if true_target is not None and false_target is None:
-        emit(
-            "if ( %s ) goto %s;" % (
-                condition,
-                true_target
-            )
-        )
+        emit("if ( %s ) goto %s;" % (condition, true_target))
     elif true_target is None and false_target is not None:
-        emit(
-            "if (!( %s )) goto %s;" % (
-                condition,
-                false_target
-            )
-        )
+        emit("if (!( %s )) goto %s;" % (condition, false_target))
     else:
         assert true_target is not None and false_target is not None
 
@@ -71,11 +57,8 @@ if ( %s )
 else
 {
     goto %s;
-}""" % (
-                condition,
-                true_target,
-                false_target
-            )
+}"""
+            % (condition, true_target, false_target)
         )
 
 

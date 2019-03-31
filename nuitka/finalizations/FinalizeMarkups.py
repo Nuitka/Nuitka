@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -43,6 +43,7 @@ from .FinalizeBase import FinalizationVisitorBase
 
 imported_names = set()
 
+
 def getImportedNames():
     return imported_names
 
@@ -53,10 +54,8 @@ class FinalizeMarkups(FinalizationVisitorBase):
             self._onEnterNode(node)
         except Exception:
             Tracing.printError(
-                "Problem with %r at %s" % (
-                    node,
-                    node.getSourceReference().getAsString()
-                )
+                "Problem with %r at %s"
+                % (node, node.getSourceReference().getAsString())
             )
             raise
 
@@ -75,29 +74,34 @@ class FinalizeMarkups(FinalizationVisitorBase):
             # containing the "return" statement.
             search = search.getParentReturnConsumer()
 
-            if search.isExpressionGeneratorObjectBody() or \
-               search.isExpressionCoroutineObjectBody() or \
-               search.isExpressionAsyncgenObjectBody():
+            if (
+                search.isExpressionGeneratorObjectBody()
+                or search.isExpressionCoroutineObjectBody()
+                or search.isExpressionAsyncgenObjectBody()
+            ):
                 if in_tried_block:
                     search.markAsNeedsGeneratorReturnHandling(2)
                 else:
                     search.markAsNeedsGeneratorReturnHandling(1)
 
-        if node.isExpressionBuiltinImport() and \
-           not Options.getShallFollowExtra() and \
-           not Options.getShallFollowExtraFilePatterns() and \
-           not Options.shallFollowNoImports() and \
-           not isWhiteListedImport(node) and \
-           not node.recurse_attempted and \
-           not Plugins.suppressBuiltinImportWarning(node.getParentModule(), node.getSourceReference()):
-            warning("""Unresolved '__import__' call at '%s' may require use \
-of '--include-plugin-directory' or '--include-plugin-files'.""" % (
-                    node.getSourceReference().getAsString()
-                )
+        if (
+            node.isExpressionBuiltinImport()
+            and not Options.getShallFollowExtra()
+            and not Options.getShallFollowExtraFilePatterns()
+            and not Options.shallFollowNoImports()
+            and not isWhiteListedImport(node)
+            and not node.recurse_attempted
+            and not Plugins.suppressBuiltinImportWarning(
+                node.getParentModule(), node.getSourceReference()
+            )
+        ):
+            warning(
+                """Unresolved '__import__' call at '%s' may require use \
+of '--include-plugin-directory' or '--include-plugin-files'."""
+                % (node.getSourceReference().getAsString())
             )
 
-        if node.isExpressionBuiltinImport() and \
-           node.recurse_attempted:
+        if node.isExpressionBuiltinImport() and node.recurse_attempted:
             module_name = node.getImportName()
 
             if module_name.isCompileTimeConstant():
@@ -108,13 +112,14 @@ of '--include-plugin-directory' or '--include-plugin-files'.""" % (
                         imported_names.add(imported_module_name)
 
         if node.isExpressionFunctionCreation():
-            if not node.getParent().isExpressionFunctionCall() or \
-               node.getParent().getFunction() is not node:
+            if (
+                not node.getParent().isExpressionFunctionCall()
+                or node.getParent().getFunction() is not node
+            ):
                 node.getFunctionRef().getFunctionBody().markAsNeedsCreation()
 
         if node.isExpressionFunctionCall():
-            node.getFunction().getFunctionRef().getFunctionBody().\
-              markAsDirectlyCalled()
+            node.getFunction().getFunctionRef().getFunctionBody().markAsDirectlyCalled()
 
         if node.isExpressionFunctionRef():
             function_body = node.getFunctionBody()
@@ -150,20 +155,25 @@ of '--include-plugin-directory' or '--include-plugin-files'.""" % (
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()
 
         if python_version >= 300:
-            if node.isExpressionYield() or \
-               node.isExpressionYieldFrom() or \
-               node.isExpressionYieldFromWaitable():
+            if (
+                node.isExpressionYield()
+                or node.isExpressionYieldFrom()
+                or node.isExpressionYieldFromWaitable()
+            ):
                 search = node.getParent()
 
-                while not search.isExpressionGeneratorObjectBody() and \
-                      not search.isExpressionCoroutineObjectBody() and \
-                      not search.isExpressionAsyncgenObjectBody():
-
+                while (
+                    not search.isExpressionGeneratorObjectBody()
+                    and not search.isExpressionCoroutineObjectBody()
+                    and not search.isExpressionAsyncgenObjectBody()
+                ):
 
                     last_search = search
                     search = search.getParent()
 
-                    if search.isStatementTry() and \
-                       last_search == search.getBlockExceptHandler():
+                    if (
+                        search.isStatementTry()
+                        and last_search == search.getBlockExceptHandler()
+                    ):
                         node.markAsExceptionPreserving()
                         break

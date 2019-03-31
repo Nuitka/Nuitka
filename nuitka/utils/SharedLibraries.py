@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,15 +20,26 @@
 """
 
 import array
-import ctypes.util
+
 import os
 from sys import getfilesystemencoding
 
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import python_version
 
+from .Utils import isAlpineLinux
+
+
+def localDLLFromFilesystem(name, paths):
+    for path in paths:
+        for root, _dirs, files in os.walk(path):
+            if name in files:
+                return os.path.join(root, name)
+
 
 def locateDLL(dll_name):
+    import ctypes.util
+
     dll_name = ctypes.util.find_library(dll_name)
 
     if os.path.sep in dll_name:
@@ -38,18 +49,19 @@ def locateDLL(dll_name):
         so_name = ctypes.util._get_soname(dll_name)
 
         if so_name is not None:
-            return os.path.join(
-                os.path.dirname(dll_name),
-                so_name
-            )
+            return os.path.join(os.path.dirname(dll_name), so_name)
         else:
             return dll_name
 
+    if isAlpineLinux():
+        return localDLLFromFilesystem(
+            name=dll_name, paths=["/lib", "/usr/lib", "/usr/local/lib"]
+        )
+
     import subprocess
+
     process = subprocess.Popen(
-        args   = ["/sbin/ldconfig", "-p"],
-        stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE,
+        args=["/sbin/ldconfig", "-p"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     stdout, _stderr = process.communicate()
 
@@ -59,7 +71,7 @@ def locateDLL(dll_name):
         assert line.count(b"=>") == 1, line
         left, right = line.strip().split(b" => ")
         assert b" (" in left, line
-        left = left[:left.rfind(b" (")]
+        left = left[: left.rfind(b" (")]
 
         if python_version >= 300:
             left = left.decode(getfilesystemencoding())
@@ -75,6 +87,8 @@ def getSxsFromDLL(filename):
     """ List the SxS manifests of a Windows DLL.
 
     """
+    import ctypes.wintypes
+
     if type(filename) is unicode:
         LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExW  # @UndefinedVariable
     else:
@@ -83,11 +97,8 @@ def getSxsFromDLL(filename):
     EnumResourceNames = ctypes.windll.kernel32.EnumResourceNamesA  # @UndefinedVariable
     FreeLibrary = ctypes.windll.kernel32.FreeLibrary  # @UndefinedVariable
 
-    import ctypes.wintypes as wintypes
     EnumResourceNameCallback = ctypes.WINFUNCTYPE(
-        wintypes.BOOL,
-        wintypes.HMODULE, wintypes.LONG,
-        wintypes.LONG, wintypes.LONG
+        ctypes.wintypes.BOOL, ctypes.wintypes.HMODULE, ctypes.wintypes.LONG, ctypes.wintypes.LONG, ctypes.wintypes.LONG
     )
 
     DONT_RESOLVE_DLL_REFERENCES = 0x1
@@ -99,7 +110,9 @@ def getSxsFromDLL(filename):
     hmodule = LoadLibraryEx(
         filename,
         0,
-        DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE
+        DONT_RESOLVE_DLL_REFERENCES
+        | LOAD_LIBRARY_AS_DATAFILE
+        | LOAD_LIBRARY_AS_IMAGE_RESOURCE,
     )
 
     if hmodule == 0:
@@ -122,20 +135,26 @@ def removeSxsFromDLL(filename):
     """ Remove the Windows DLL SxS manifest.
 
     """
+    import ctypes
 
     # There may be more files that need this treatment, these are from scans
     # with the "find_sxs_modules" tool.
     if os.path.normcase(os.path.basename(filename)) not in (
         "sip.pyd",
         "win32ui.pyd",
-        "winxpgui.pyd"):
+        "winxpgui.pyd",
+    ):
         return
 
     res_names = getSxsFromDLL(filename)
 
     if res_names:
-        BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceA  # @UndefinedVariable
-        EndUpdateResource = ctypes.windll.kernel32.EndUpdateResourceA  # @UndefinedVariable
+        BeginUpdateResource = (
+            ctypes.windll.kernel32.BeginUpdateResourceA  # @UndefinedVariable
+        )  # @UndefinedVariable
+        EndUpdateResource = (
+            ctypes.windll.kernel32.EndUpdateResourceA  # @UndefinedVariable
+        )  # @UndefinedVariable
         UpdateResource = ctypes.windll.kernel32.UpdateResourceA  # @UndefinedVariable
         RT_MANIFEST = 24
 
@@ -163,6 +182,8 @@ def getWindowsDLLVersion(filename):
         a tuple of 4 numbers.
     """
     # Get size needed for buffer (0 if no info)
+    import ctypes
+
 
     if type(filename) is unicode:
         size = ctypes.windll.version.GetFileVersionInfoSizeW(filename, None)
@@ -186,16 +207,13 @@ def getWindowsDLLVersion(filename):
 
     # Look for codepages
     ctypes.windll.version.VerQueryValueA(
-        res,
-        br'\VarFileInfo\Translation',
-        ctypes.byref(r),
-        ctypes.byref(l)
+        res, br"\VarFileInfo\Translation", ctypes.byref(r), ctypes.byref(l)
     )
 
     if not l.value:
         return (0, 0, 0, 0)
 
-    codepages = array.array('H', ctypes.string_at(r.value, l.value))
+    codepages = array.array("H", ctypes.string_at(r.value, l.value))
     codepage = tuple(codepages[:2].tolist())
 
     # Extract information
@@ -203,12 +221,13 @@ def getWindowsDLLVersion(filename):
         res,
         r"\StringFileInfo\%04x%04x\FileVersion" % codepage,
         ctypes.byref(r),
-        ctypes.byref(l)
+        ctypes.byref(l),
     )
 
-    data = ctypes.string_at(r.value, l.value)[4*2:]
+    data = ctypes.string_at(r.value, l.value)[4 * 2 :]
 
     import struct
-    data = struct.unpack("HHHH", data[:4*2])
+
+    data = struct.unpack("HHHH", data[: 4 * 2])
 
     return data[1], data[0], data[3], data[2]

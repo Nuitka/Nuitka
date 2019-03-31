@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,13 +36,9 @@ from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithNodeSideEffects,
-    wrapExpressionWithSideEffects
+    wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import (
-    ShapeTypeDict,
-    ShapeTypeStr,
-    ShapeTypeUnicode
-)
+from .shapes.BuiltinTypeShapes import ShapeTypeDict, ShapeTypeStr, ShapeTypeUnicode
 from .shapes.StandardShapes import ShapeUnknown
 
 
@@ -133,10 +129,7 @@ class ExpressionBase(NodeBase):
         string_value = self.getStringValue()
 
         if string_value is not None:
-            return makeConstantReplacementNode(
-                node     = self,
-                constant = string_value
-            )
+            return makeConstantReplacementNode(node=self, constant=string_value)
 
         return None
 
@@ -148,8 +141,7 @@ class ExpressionBase(NodeBase):
         from .TypeNodes import ExpressionBuiltinType1
 
         return ExpressionBuiltinType1(
-            value      = self.makeClone(),
-            source_ref = self.getSourceReference()
+            value=self.makeClone(), source_ref=self.getSourceReference()
         )
 
     def isKnownToBeHashable(self):
@@ -176,8 +168,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionRaw(self, trace_collection):
         """ Replace this node with computation result. """
 
-    def computeExpressionAttribute(self, lookup_node, attribute_name,
-                                   trace_collection):
+    def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # By default, an attribute lookup may change everything about the lookup
         # source.
         trace_collection.removeKnowledge(self)
@@ -190,8 +181,9 @@ class ExpressionBase(NodeBase):
 
         return lookup_node, None, None
 
-    def computeExpressionAttributeSpecial(self, lookup_node, attribute_name,
-                                          trace_collection):
+    def computeExpressionAttributeSpecial(
+        self, lookup_node, attribute_name, trace_collection
+    ):
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
         trace_collection.removeKnowledge(lookup_node)
@@ -203,8 +195,7 @@ class ExpressionBase(NodeBase):
 
         return lookup_node, None, None
 
-    def computeExpressionImportName(self, import_node, import_name,
-                                    trace_collection):
+    def computeExpressionImportName(self, import_node, import_name, trace_collection):
         if self.mayRaiseExceptionImportName(BaseException, import_name):
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -213,8 +204,9 @@ class ExpressionBase(NodeBase):
 
         return import_node, None, None
 
-    def computeExpressionSetAttribute(self, set_node, attribute_name,
-                                      value_node, trace_collection):
+    def computeExpressionSetAttribute(
+        self, set_node, attribute_name, value_node, trace_collection
+    ):
 
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
@@ -229,8 +221,7 @@ class ExpressionBase(NodeBase):
         # Better mechanics?
         return set_node, None, None
 
-    def computeExpressionDelAttribute(self, set_node, attribute_name,
-                                      trace_collection):
+    def computeExpressionDelAttribute(self, set_node, attribute_name, trace_collection):
 
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
@@ -244,8 +235,7 @@ class ExpressionBase(NodeBase):
         # Better mechanics?
         return set_node, None, None
 
-    def computeExpressionSubscript(self, lookup_node, subscript,
-                                   trace_collection):
+    def computeExpressionSubscript(self, lookup_node, subscript, trace_collection):
         # By default, an subscript can execute any code and change all values
         # that escaped. This is a virtual method that may consider the subscript
         # but generally we don't know what to do. pylint: disable=unused-argument
@@ -256,8 +246,9 @@ class ExpressionBase(NodeBase):
 
         return lookup_node, None, None
 
-    def computeExpressionSetSubscript(self, set_node, subscript, value_node,
-                                      trace_collection):
+    def computeExpressionSetSubscript(
+        self, set_node, subscript, value_node, trace_collection
+    ):
         # By default, an subscript can execute any code and change all values
         # that escaped. This is a virtual method that may consider the subscript
         # but generally we don't know what to do. pylint: disable=unused-argument
@@ -268,8 +259,7 @@ class ExpressionBase(NodeBase):
 
         return set_node, None, None
 
-    def computeExpressionDelSubscript(self, del_node, subscript,
-                                      trace_collection):
+    def computeExpressionDelSubscript(self, del_node, subscript, trace_collection):
         # By default, an subscript can execute any code and change all values
         # that escaped. This is a virtual method that may consider the subscript
         # but generally we don't know what to do. pylint: disable=unused-argument
@@ -280,8 +270,7 @@ class ExpressionBase(NodeBase):
 
         return del_node, None, None
 
-    def computeExpressionSlice(self, lookup_node, lower, upper,
-                               trace_collection):
+    def computeExpressionSlice(self, lookup_node, lower, upper, trace_collection):
         # By default, a slicing may change everything about the lookup source.
         trace_collection.removeKnowledge(self)
         trace_collection.removeKnowledge(lower)
@@ -292,8 +281,9 @@ class ExpressionBase(NodeBase):
 
         return lookup_node, None, None
 
-    def computeExpressionSetSlice(self, set_node, lower, upper, value_node,
-                                      trace_collection):
+    def computeExpressionSetSlice(
+        self, set_node, lower, upper, value_node, trace_collection
+    ):
         # By default, an subscript may change everything about the lookup
         # source.
         trace_collection.removeKnowledge(self)
@@ -309,8 +299,7 @@ class ExpressionBase(NodeBase):
 
         return set_node, None, None
 
-    def computeExpressionDelSlice(self, set_node, lower, upper,
-                                  trace_collection):
+    def computeExpressionDelSlice(self, set_node, lower, upper, trace_collection):
         # By default, an subscript may change everything about the lookup
         # source.
         trace_collection.removeKnowledge(self)
@@ -325,8 +314,7 @@ class ExpressionBase(NodeBase):
 
         return set_node, None, None
 
-    def computeExpressionCall(self, call_node, call_args, call_kw,
-                              trace_collection):
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         # The called and the arguments escape for good.
         self.onContentEscapes(trace_collection)
         if call_args is not None:
@@ -349,10 +337,10 @@ class ExpressionBase(NodeBase):
 
         if has_len is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                template      = "object of type '%s' has no len()",
-                operation     = "len",
-                original_node = len_node,
-                value_node    = self
+                template="object of type '%s' has no len()",
+                operation="len",
+                original_node=len_node,
+                value_node=self,
             )
         elif has_len is True:
             iter_length = self.getIterationLength()
@@ -361,16 +349,19 @@ class ExpressionBase(NodeBase):
                 from .ConstantRefNodes import makeConstantRefNode
 
                 result = makeConstantRefNode(
-                    constant   = int(iter_length), # make sure to downcast long
-                    source_ref = len_node.getSourceReference()
+                    constant=int(iter_length),  # make sure to downcast long
+                    source_ref=len_node.getSourceReference(),
                 )
 
                 result = wrapExpressionWithNodeSideEffects(
-                    new_node = result,
-                    old_node = self
+                    new_node=result, old_node=self
                 )
 
-                return result, "new_constant", "Predicted 'len' result from value shape."
+                return (
+                    result,
+                    "new_constant",
+                    "Predicted 'len' result from value shape.",
+                )
 
         self.onContentEscapes(trace_collection)
 
@@ -387,13 +378,12 @@ class ExpressionBase(NodeBase):
 
         if shape.hasShapeSlotInt() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                template      =
-                    "int() argument must be a string or a number, not '%s'"
-                      if python_version < 300 else
-                    "int() argument must be a string, a bytes-like object or a number, not '%s'",
-                operation     = "int",
-                original_node = int_node,
-                value_node    = self
+                template="int() argument must be a string or a number, not '%s'"
+                if python_version < 300
+                else "int() argument must be a string, a bytes-like object or a number, not '%s'",
+                operation="int",
+                original_node=int_node,
+                value_node=self,
             )
 
         self.onContentEscapes(trace_collection)
@@ -411,10 +401,10 @@ class ExpressionBase(NodeBase):
 
         if shape.hasShapeSlotLong() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                template      = "long() argument must be a string or a number, not '%s'",
-                operation     = "long",
-                original_node = long_node,
-                value_node    = self
+                template="long() argument must be a string or a number, not '%s'",
+                operation="long",
+                original_node=long_node,
+                value_node=self,
             )
 
         self.onContentEscapes(trace_collection)
@@ -432,12 +422,12 @@ class ExpressionBase(NodeBase):
 
         if shape.hasShapeSlotFloat() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                    "float() argument must be a string or a number"
-                      if isFullCompat() and python_version < 300 else
-                    "float() argument must be a string or a number, not '%s'",
-                operation     = "long",
-                original_node = float_node,
-                value_node    = self
+                "float() argument must be a string or a number"
+                if isFullCompat() and python_version < 300
+                else "float() argument must be a string or a number, not '%s'",
+                operation="long",
+                original_node=float_node,
+                value_node=self,
             )
 
         self.onContentEscapes(trace_collection)
@@ -453,14 +443,16 @@ class ExpressionBase(NodeBase):
     def computeExpressionBytes(self, bytes_node, trace_collection):
         shape = self.getTypeShape()
 
-        if shape.hasShapeSlotBytes() is False and \
-           shape.hasShapeSlotInt() is False and \
-           shape.hasShapeSlotIter() is False:
+        if (
+            shape.hasShapeSlotBytes() is False
+            and shape.hasShapeSlotInt() is False
+            and shape.hasShapeSlotIter() is False
+        ):
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "'%s' object is not iterable",
-                operation     = "bytes",
-                original_node = bytes_node,
-                value_node    = self
+                operation="bytes",
+                original_node=bytes_node,
+                value_node=self,
             )
 
         self.onContentEscapes(trace_collection)
@@ -478,12 +470,12 @@ class ExpressionBase(NodeBase):
 
         if shape.hasShapeSlotComplex() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                    "complex() argument must be a string or a number"
-                      if isFullCompat() and python_version < 300 else
-                    "complex() argument must be a string or a number, not '%s'",
-                operation     = "complex",
-                original_node = complex_node,
-                value_node    = self
+                "complex() argument must be a string or a number"
+                if isFullCompat() and python_version < 300
+                else "complex() argument must be a string or a number, not '%s'",
+                operation="complex",
+                original_node=complex_node,
+                value_node=self,
             )
 
         self.onContentEscapes(trace_collection)
@@ -501,10 +493,10 @@ class ExpressionBase(NodeBase):
 
         if shape.hasShapeSlotIter() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                template      = "'%s' object is not iterable",
-                operation     = "iter",
-                original_node = iter_node,
-                value_node    = self
+                template="'%s' object is not iterable",
+                operation="iter",
+                original_node=iter_node,
+                value_node=self,
             )
 
         self.onContentEscapes(trace_collection)
@@ -562,10 +554,10 @@ class ExpressionBase(NodeBase):
 
         if shape.hasShapeSlotContains() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                template      = "argument of type '%s' object is not iterable",
-                operation     = "in",
-                original_node = in_node,
-                value_node    = self
+                template="argument of type '%s' object is not iterable",
+                operation="in",
+                original_node=in_node,
+                value_node=self,
             )
 
         # Any code could be run, note that.
@@ -578,16 +570,19 @@ class ExpressionBase(NodeBase):
 
     def computeExpressionDrop(self, statement, trace_collection):
         if not self.mayHaveSideEffects():
-            return None, "new_statements", lambda : "Removed %s without effect." % self.getDescription()
+            return (
+                None,
+                "new_statements",
+                lambda: "Removed %s without effect." % self.getDescription(),
+            )
 
         return statement, None, None
 
     def computeExpressionBool(self, trace_collection):
-        if not self.mayRaiseException(BaseException) and \
-           self.mayRaiseExceptionBool(BaseException):
-            trace_collection.onExceptionRaiseExit(
-                BaseException
-            )
+        if not self.mayRaiseException(BaseException) and self.mayRaiseExceptionBool(
+            BaseException
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
 
     def onContentEscapes(self, trace_collection):
         pass
@@ -687,7 +682,6 @@ class ExpressionBase(NodeBase):
         """
         return self.getTypeShape().hasShapeSlotNext()
 
-
     # TODO: Maybe this is a shape slot thing.
     def isIndexable(self):
         """ Unless we are told otherwise, it's not indexable. """
@@ -731,9 +725,6 @@ class ExpressionBase(NodeBase):
         return self.getTypeShape() is ShapeTypeUnicode
 
 
-
-
-
 class CompileTimeConstantExpressionBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
@@ -742,10 +733,7 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
     __slots__ = ("computed_attribute",)
 
     def __init__(self, source_ref):
-        ExpressionBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         self.computed_attribute = None
 
@@ -798,42 +786,42 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
 
     def computeExpressionOperationNot(self, not_node, trace_collection):
         return trace_collection.getCompileTimeComputationResult(
-            node        = not_node,
-            computation = lambda : not self.getCompileTimeConstant(),
-            description = """\
-Compile time constant negation truth value pre-computed."""
+            node=not_node,
+            computation=lambda: not self.getCompileTimeConstant(),
+            description="""\
+Compile time constant negation truth value pre-computed.""",
         )
 
     def computeExpressionLen(self, len_node, trace_collection):
         return trace_collection.getCompileTimeComputationResult(
-            node        = len_node,
-            computation = lambda : len(self.getCompileTimeConstant()),
-            description = """\
-Compile time constant len value pre-computed."""
+            node=len_node,
+            computation=lambda: len(self.getCompileTimeConstant()),
+            description="""\
+Compile time constant len value pre-computed.""",
         )
 
     def computeExpressionInt(self, int_node, trace_collection):
         return trace_collection.getCompileTimeComputationResult(
-            node        = int_node,
-            computation = lambda : int(self.getCompileTimeConstant()),
-            description = """\
-Compile time constant int value pre-computed."""
+            node=int_node,
+            computation=lambda: int(self.getCompileTimeConstant()),
+            description="""\
+Compile time constant int value pre-computed.""",
         )
 
     def computeExpressionLong(self, long_node, trace_collection):
         return trace_collection.getCompileTimeComputationResult(
-            node        = long_node,
-            computation = lambda : long(self.getCompileTimeConstant()),
-            description = """\
-Compile time constant long value pre-computed."""
+            node=long_node,
+            computation=lambda: long(self.getCompileTimeConstant()),
+            description="""\
+Compile time constant long value pre-computed.""",
         )
 
     def computeExpressionFloat(self, float_node, trace_collection):
         return trace_collection.getCompileTimeComputationResult(
-            node        = float_node,
-            computation = lambda : float(self.getCompileTimeConstant()),
-            description = """\
-Compile time constant float value pre-computed."""
+            node=float_node,
+            computation=lambda: float(self.getCompileTimeConstant()),
+            description="""\
+Compile time constant float value pre-computed.""",
         )
 
     def computeExpressionBytes(self, bytes_node, trace_collection):
@@ -844,15 +832,17 @@ Compile time constant float value pre-computed."""
                 return bytes_node, None, None
 
         return trace_collection.getCompileTimeComputationResult(
-            node        = bytes_node,
-            computation = lambda : bytes(constant_value),
-            description = """\
-Compile time constant bytes value pre-computed."""
+            node=bytes_node,
+            computation=lambda: bytes(constant_value),
+            description="""\
+Compile time constant bytes value pre-computed.""",
         )
 
     def isKnownToHaveAttribute(self, attribute_name):
         if self.computed_attribute is None:
-            self.computed_attribute = hasattr(self.getCompileTimeConstant(), attribute_name)
+            self.computed_attribute = hasattr(
+                self.getCompileTimeConstant(), attribute_name
+            )
 
         return self.computed_attribute
 
@@ -864,15 +854,14 @@ Compile time constant bytes value pre-computed."""
 
         # If it raises, or the attribute itself is a compile time constant,
         # then do execute it.
-        if not self.computed_attribute or \
-           isCompileTimeConstantValue(getattr(value, attribute_name)):
+        if not self.computed_attribute or isCompileTimeConstantValue(
+            getattr(value, attribute_name)
+        ):
 
             return trace_collection.getCompileTimeComputationResult(
-                node        = lookup_node,
-                computation = lambda : getattr(value, attribute_name),
-                description = "Attribute '%s' pre-computed." % (
-                    attribute_name
-                )
+                node=lookup_node,
+                computation=lambda: getattr(value, attribute_name),
+                description="Attribute '%s' pre-computed." % (attribute_name),
             )
 
         return lookup_node, None, None
@@ -880,11 +869,11 @@ Compile time constant bytes value pre-computed."""
     def computeExpressionSubscript(self, lookup_node, subscript, trace_collection):
         if subscript.isCompileTimeConstant():
             return trace_collection.getCompileTimeComputationResult(
-                node        = lookup_node,
-                computation = lambda : self.getCompileTimeConstant()[
+                node=lookup_node,
+                computation=lambda: self.getCompileTimeConstant()[
                     subscript.getCompileTimeConstant()
                 ],
-                description = "Subscript of constant with constant value."
+                description="Subscript of constant with constant value.",
             )
 
         # TODO: Look-up of subscript to index may happen.
@@ -903,39 +892,39 @@ Compile time constant bytes value pre-computed."""
                 if lower.isCompileTimeConstant() and upper.isCompileTimeConstant():
 
                     return getComputationResult(
-                        node        = lookup_node,
-                        computation = lambda : self.getCompileTimeConstant()[
+                        node=lookup_node,
+                        computation=lambda: self.getCompileTimeConstant()[
                             lower.getCompileTimeConstant() : upper.getCompileTimeConstant()
                         ],
-                        description = """\
-Slicing of constant with constant indexes."""
+                        description="""\
+Slicing of constant with constant indexes.""",
                     )
             else:
                 if lower.isCompileTimeConstant():
                     return getComputationResult(
-                        node        = lookup_node,
-                        computation = lambda : self.getCompileTimeConstant()[
+                        node=lookup_node,
+                        computation=lambda: self.getCompileTimeConstant()[
                             lower.getCompileTimeConstant() :
                         ],
-                        description = """\
-Slicing of constant with constant lower index only."""
+                        description="""\
+Slicing of constant with constant lower index only.""",
                     )
         else:
             if upper is not None:
                 if upper.isCompileTimeConstant():
                     return getComputationResult(
-                        node        = lookup_node,
-                        computation = lambda : self.getCompileTimeConstant()[
+                        node=lookup_node,
+                        computation=lambda: self.getCompileTimeConstant()[
                             : upper.getCompileTimeConstant()
                         ],
-                        description = """\
-Slicing of constant with constant upper index only."""
+                        description="""\
+Slicing of constant with constant upper index only.""",
                     )
             else:
                 return getComputationResult(
-                    node        = lookup_node,
-                    computation = lambda : self.getCompileTimeConstant()[ : ],
-                    description = "Slicing of constant with no indexes."
+                    node=lookup_node,
+                    computation=lambda: self.getCompileTimeConstant()[:],
+                    description="Slicing of constant with no indexes.",
                 )
 
         return lookup_node, None, None
@@ -943,13 +932,13 @@ Slicing of constant with constant upper index only."""
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
         if value_node.isCompileTimeConstant():
             return getComputationResult(
-                node        = in_node,
-                computation = lambda : in_node.getSimulator()(
-                    value_node.getCompileTimeConstant(),
-                    self.getCompileTimeConstant()
+                node=in_node,
+                computation=lambda: in_node.getSimulator()(
+                    value_node.getCompileTimeConstant(), self.getCompileTimeConstant()
                 ),
-                description = """\
-Predicted '%s' on compiled time constant values.""" % in_node.comparator
+                description="""\
+Predicted '%s' on compiled time constant values."""
+                % in_node.comparator,
             )
 
         # Look-up of __contains__ on compile time constants does mostly nothing.
@@ -962,28 +951,21 @@ Predicted '%s' on compiled time constant values.""" % in_node.comparator
 
         if type(constant) is not bool:
             self.parent.replaceChild(
-                self,
-                makeConstantReplacementNode(bool(constant), self)
+                self, makeConstantReplacementNode(bool(constant), self)
             )
 
             trace_collection.signalChange(
-                tags       = "new_constant",
-                source_ref = self.source_ref,
-                message    = "Predicted compile time constant true value."
+                tags="new_constant",
+                source_ref=self.source_ref,
+                message="Predicted compile time constant true value.",
             )
 
 
 class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
     def __init__(self, values, source_ref):
-        ExpressionBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
-        ChildrenHavingMixin.__init__(
-            self,
-            values = values
-        )
+        ChildrenHavingMixin.__init__(self, values=values)
 
     def computeExpressionRaw(self, trace_collection):
         """ Compute an expression.
@@ -1001,39 +983,32 @@ class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
                 sub_expressions = self.getVisitableNodes()
 
                 wrapped_expression = wrapExpressionWithSideEffects(
-                    side_effects = sub_expressions[:count],
-                    old_node     = sub_expression,
-                    new_node     = expression
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
                 )
 
                 return (
                     wrapped_expression,
                     "new_raise",
-                    lambda : "For '%s' the child expression '%s' will raise." % (
-                        self.getChildNameNice(),
-                        expression.getChildNameNice()
-                    )
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
                 )
 
         # Then ask ourselves to work on it.
-        return self.computeExpression(
-            trace_collection = trace_collection
-        )
+        return self.computeExpression(trace_collection=trace_collection)
 
 
 class ExpressionChildHavingBase(ExpressionBase):
     checker = None
 
     def __init__(self, value, source_ref):
-        ExpressionBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         assert type(self.named_child) is str and self.named_child
 
         if self.checker is not None:
-            value = self.checker(value) # False alarm, pylint: disable=not-callable
+            value = self.checker(value)  # False alarm, pylint: disable=not-callable
 
         assert type(value) is not list, self.named_child
 
@@ -1072,30 +1047,24 @@ class ExpressionChildHavingBase(ExpressionBase):
         for count, sub_expression in enumerate(sub_expressions):
             assert sub_expression.isExpression(), (self, sub_expression)
 
-            expression = trace_collection.onExpression(
-                expression = sub_expression
-            )
+            expression = trace_collection.onExpression(expression=sub_expression)
 
             if expression.willRaiseException(BaseException):
                 wrapped_expression = wrapExpressionWithSideEffects(
-                    side_effects = sub_expressions[:count],
-                    old_node     = sub_expression,
-                    new_node     = expression
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
                 )
 
                 return (
                     wrapped_expression,
                     "new_raise",
-                    lambda : "For '%s' the child expression '%s' will raise." % (
-                        self.getChildNameNice(),
-                        expression.getChildNameNice()
-                    )
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
                 )
 
         # Then ask ourselves to work on it.
-        return self.computeExpression(
-            trace_collection = trace_collection
-        )
+        return self.computeExpression(trace_collection=trace_collection)
 
     def setChild(self, name, value):
         """ Set a child value.
@@ -1103,14 +1072,14 @@ class ExpressionChildHavingBase(ExpressionBase):
             Do not overload, provider self.checkers instead.
         """
         # Only accept legal child names
-        assert name  == self.named_child, name
+        assert name == self.named_child, name
 
         # Lists as inputs are OK, but turn them into tuples.
         if type(value) is list:
             value = tuple(value)
 
         if self.checker is not None:
-            value = self.checker(value) # False alarm, pylint: disable=not-callable
+            value = self.checker(value)  # False alarm, pylint: disable=not-callable
         # Re-parent value to us.
         if type(value) is tuple:
             for val in value:
@@ -1160,10 +1129,7 @@ class ExpressionChildHavingBase(ExpressionBase):
         elif isinstance(value, NodeBase):
             return (value,)
         else:
-            raise AssertionError(
-                self,
-                "has illegal child", value, value.__class__
-            )
+            raise AssertionError(self, "has illegal child", value, value.__class__)
 
     def getVisitableNodesNamed(self):
         """ Named children dictionary.
@@ -1195,20 +1161,12 @@ class ExpressionChildHavingBase(ExpressionBase):
                     self.setChild(
                         key,
                         tuple(
-                            (val if val is not old_node else new_node)
-                            for val in
-                            value
-                        )
+                            (val if val is not old_node else new_node) for val in value
+                        ),
                     )
                 else:
                     self.setChild(
-                        key,
-                        tuple(
-                            val
-                            for val in
-                            value
-                            if val is not old_node
-                        )
+                        key, tuple(val for val in value if val is not old_node)
                     )
 
                 return key
@@ -1220,12 +1178,7 @@ class ExpressionChildHavingBase(ExpressionBase):
         else:
             assert False, (key, value, value.__class__)
 
-        raise AssertionError(
-            "Didn't find child",
-            old_node,
-            "in",
-            self
-        )
+        raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
         # Make clones of child nodes too.
@@ -1239,20 +1192,13 @@ class ExpressionChildHavingBase(ExpressionBase):
         if value is None:
             values[key] = None
         elif type(value) is tuple:
-            values[key] = tuple(
-                v.makeClone()
-                for v in
-                value
-            )
+            values[key] = tuple(v.makeClone() for v in value)
         else:
             values[key] = value.makeClone()
 
-        values.update(
-            self.getDetails()
-        )
+        values.update(self.getDetails())
 
         return values
-
 
 
 class ExpressionSpecBasedComputationBase(ExpressionChildrenHavingBase):
@@ -1273,42 +1219,31 @@ class ExpressionSpecBasedComputationBase(ExpressionChildrenHavingBase):
             return self, None, None
 
         return trace_collection.getCompileTimeComputationResult(
-            node        = self,
-            computation = lambda : self.builtin_spec.simulateCall(given_values),
-            description = "Built-in call to '%s' pre-computed." % (
-                self.builtin_spec.getName()
-            )
+            node=self,
+            computation=lambda: self.builtin_spec.simulateCall(given_values),
+            description="Built-in call to '%s' pre-computed."
+            % (self.builtin_spec.getName()),
         )
 
 
 class ExpressionBuiltinSingleArgBase(ExpressionSpecBasedComputationBase):
-    named_children = (
-        "value",
-    )
+    named_children = ("value",)
 
     def __init__(self, value, source_ref):
         ExpressionSpecBasedComputationBase.__init__(
-            self,
-            values     = {
-                "value" : value,
-            },
-            source_ref = source_ref
+            self, values={"value": value}, source_ref=source_ref
         )
 
-    getValue = ExpressionChildrenHavingBase.childGetter(
-        "value"
-    )
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, trace_collection):
         value = self.getValue()
 
         if value is None:
             return self.computeBuiltinSpec(
-                trace_collection = trace_collection,
-                given_values     = ()
+                trace_collection=trace_collection, given_values=()
             )
         else:
             return self.computeBuiltinSpec(
-                trace_collection = trace_collection,
-                given_values     = (value,)
+                trace_collection=trace_collection, given_values=(value,)
             )

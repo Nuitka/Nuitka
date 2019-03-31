@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -37,16 +37,12 @@ def makeMsiCompatibleFilename(filename):
     for supported_version in getSupportedPythonVersions():
         filename = filename.replace("-py" + supported_version, "")
 
-    filename = filename.replace("Nuitka32","Nuitka")
-    filename = filename.replace("Nuitka64","Nuitka")
+    filename = filename.replace("Nuitka32", "Nuitka")
+    filename = filename.replace("Nuitka64", "Nuitka")
 
-    parts = [
-        filename,
-        "py" + sys.version[:3].replace('.',""),
-        "msi"
-    ]
+    parts = [filename, "py" + sys.version[:3].replace(".", ""), "msi"]
 
-    return '.'.join(parts)
+    return ".".join(parts)
 
 
 def createMSIPackage():
@@ -57,22 +53,21 @@ def createMSIPackage():
 
     print("Building for branch '%s'." % branch_name)
 
-    assert branch_name in (
-        "master",
-        "develop",
-        "factory",
-    ), branch_name
+    assert branch_name in ("master", "develop", "factory"), branch_name
 
-    assert subprocess.call(
-        (
-            sys.executable,
-            "setup.py",
-            "bdist_msi",
-            "--target-version=" + sys.version[:3]
+    assert (
+        subprocess.call(
+            (
+                sys.executable,
+                "setup.py",
+                "bdist_msi",
+                "--target-version=" + sys.version[:3],
+            )
         )
-    ) == 0
+        == 0
+    )
 
-    filename = None # pylint happiness.
+    filename = None  # pylint happiness.
     for filename in os.listdir("dist"):
         if filename.endswith(".msi"):
             break
@@ -82,11 +77,11 @@ def createMSIPackage():
     new_filename = makeMsiCompatibleFilename(filename)
 
     if branch_name == b"factory":
-        new_filename = "Nuitka-factory." + new_filename[new_filename.find("win"):]
+        new_filename = "Nuitka-factory." + new_filename[new_filename.find("win") :]
 
-    result = os.path.join("dist",new_filename)
+    result = os.path.join("dist", new_filename)
 
-    os.rename(os.path.join("dist",filename), result)
+    os.rename(os.path.join("dist", filename), result)
 
     print("OK, created as dist/" + new_filename)
 

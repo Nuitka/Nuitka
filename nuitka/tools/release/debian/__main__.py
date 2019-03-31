@@ -19,15 +19,18 @@ from nuitka.Version import getNuitkaVersion
 def main():
     # Complex stuff, pylint: disable=too-many-branches,too-many-statements
 
+    # Make sure error messages are in English.
+    os.environ["LANG"] = "C"
+
     parser = OptionParser()
 
     parser.add_option(
         "--no-pbuilder-update",
-        action  = "store_false",
-        dest    = "update_pbuilder",
-        default = True,
-        help    = """\
-Update the pbuilder chroot before building. Default %default."""
+        action="store_false",
+        dest="update_pbuilder",
+        default=True,
+        help="""\
+Update the pbuilder chroot before building. Default %default.""",
     )
 
     options, positional_args = parser.parse_args()
@@ -42,15 +45,15 @@ Update the pbuilder chroot before building. Default %default."""
     category = getBranchCategory(branch_name)
 
     if category == "stable":
-        if nuitka_version.count('.') == 2:
+        if nuitka_version.count(".") == 2:
             assert checkChangeLog("New upstream release.")
         else:
             assert checkChangeLog("New upstream hotfix release.")
     else:
         assert checkChangeLog("New upstream pre-release.")
 
-    shutil.rmtree("dist", ignore_errors = True)
-    shutil.rmtree("build", ignore_errors = True)
+    shutil.rmtree("dist", ignore_errors=True)
+    shutil.rmtree("build", ignore_errors=True)
 
     createReleaseDocumentation()
     assert os.system("python setup.py sdist --formats=gztar") == 0
@@ -59,7 +62,7 @@ Update the pbuilder chroot before building. Default %default."""
 
     # Clean the stage for the debian package. The name "deb_dist" is what "py2dsc"
     # uses for its output later on.
-    shutil.rmtree("deb_dist", ignore_errors = True)
+    shutil.rmtree("deb_dist", ignore_errors=True)
 
     # Provide a re-packed tar.gz for the Debian package as input.
 
@@ -70,30 +73,28 @@ Update the pbuilder chroot before building. Default %default."""
 
     # Then run "py2dsc" on it.
 
-    for filename in os.listdir('.'):
+    for filename in os.listdir("."):
         if filename.endswith(".tar.gz"):
             new_name = filename[:-7] + "+ds.tar.gz"
 
             cleanupTarfileForDebian(filename, new_name)
 
-            assert os.system(
-                "py2dsc " + new_name
-            ) == 0
+            assert os.system("py2dsc " + new_name) == 0
 
             # Fixup for py2dsc not taking our custom suffix into account, so we need
             # to rename it ourselves.
-            before_deb_name = filename[:-7].lower().replace('-', '_')
+            before_deb_name = filename[:-7].lower().replace("-", "_")
             after_deb_name = before_deb_name.replace("rc", "~rc")
 
-            assert os.system(
-                "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'" % (
-                    before_deb_name, after_deb_name
+            assert (
+                os.system(
+                    "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'"
+                    % (before_deb_name, after_deb_name)
                 )
-            ) == 0
+                == 0
+            )
 
-            assert os.system(
-                "rm -f deb_dist/*_source*"
-            ) == 0
+            assert os.system("rm -f deb_dist/*_source*") == 0
 
             # Remove the now useless input, py2dsc has copied it, and we don't
             # publish it.
@@ -106,10 +107,12 @@ Update the pbuilder chroot before building. Default %default."""
     os.chdir("deb_dist")
 
     # Assert that the unpacked directory is there. Otherwise fail badly.
-    for entry in os.listdir('.'):
-        if os.path.isdir(entry) and \
-           entry.startswith("nuitka") and \
-           not entry.endswith(".orig"):
+    for entry in os.listdir("."):
+        if (
+            os.path.isdir(entry)
+            and entry.startswith("nuitka")
+            and not entry.endswith(".orig")
+        ):
             break
     else:
         assert False
@@ -118,21 +121,20 @@ Update the pbuilder chroot before building. Default %default."""
 
     # Import the "debian" directory from above. It's not in the original tar and
     # overrides or extends what py2dsc does.
-    assert os.system(
-        "rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry
-    ) == 0
+    assert (
+        os.system(
+            "rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry
+        )
+        == 0
+    )
 
     # Remove now unnecessary files.
-    assert os.system(
-        "rm *.dsc *.debian.tar.[gx]z"
-    ) == 0
+    assert os.system("rm *.dsc *.debian.tar.[gx]z") == 0
     os.chdir(entry)
 
     # Build the debian package, but disable the running of tests, will be done later
     # in the pbuilder test steps.
-    assert os.system(
-        "debuild --set-envvar=DEB_BUILD_OPTIONS=nocheck"
-    ) == 0
+    assert os.system("debuild --set-envvar=DEB_BUILD_OPTIONS=nocheck") == 0
 
     os.chdir("../../..")
     assert os.path.exists("dist/deb_dist")
@@ -143,15 +145,18 @@ Update the pbuilder chroot before building. Default %default."""
     if category == "stable":
         print("Skipped lintian checks for stable releases.")
     else:
-        assert os.system(
-            "lintian --pedantic --fail-on-warnings --allow-root dist/deb_dist/*.changes"
-        ) == 0
+        assert (
+            os.system(
+                "lintian --pedantic --fail-on-warnings --allow-root dist/deb_dist/*.changes"
+            )
+            == 0
+        )
 
     # Move the created debian package files out.
     os.system("cp dist/deb_dist/*.deb dist/")
 
     # Build inside the pbuilder chroot, and output to dedicated directory.
-    shutil.rmtree("package", ignore_errors = True)
+    shutil.rmtree("package", ignore_errors=True)
     os.makedirs("package")
 
     # Now update the pbuilder.
@@ -164,15 +169,18 @@ sudo /usr/sbin/pbuilder --update --basetgz  /var/cache/pbuilder/%s.tgz""" % (
         assert os.system(command) == 0, codename
 
     # Execute the package build in the pbuilder with tests.
-    command = """\
+    command = (
+        """\
 sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s.tgz \
 --hookdir debian/pbuilder-hookdir --debemail "Kay Hayen <kay.hayen@gmail.com>" \
---buildresult package dist/deb_dist/*.dsc""" % codename
+--buildresult package dist/deb_dist/*.dsc"""
+        % codename
+    )
 
     assert os.system(command) == 0, codename
 
     # Cleanup the build directory, not needed anymore.
-    shutil.rmtree("build", ignore_errors = True)
+    shutil.rmtree("build", ignore_errors=True)
 
     # Now build the repository.
     os.chdir("package")
@@ -182,7 +190,7 @@ sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s.tgz \
 
     os.makedirs("conf")
 
-    with open("conf/distributions",'w') as output:
+    with open("conf/distributions", "w") as output:
         output.write(
             """\
 Origin: Nuitka
@@ -192,32 +200,30 @@ Architectures: i386 amd64 armel armhf powerpc
 Components: main
 Description: Apt repository for project Nuitka %(codename)s
 SignWith: 2912B99C
-""" % {
-            "codename" : codename
-        }
-    )
+"""
+            % {"codename": codename}
+        )
 
-    assert os.system(
-        "reprepro includedeb %s ../*.deb" % codename
-    ) == 0
+    assert os.system("reprepro includedeb %s ../*.deb" % codename) == 0
 
     print("Uploading...")
 
     # Create repo folder unless already done. This is needed for the first
     # build only.
-    assert os.system(
-        "ssh root@nuitka.net mkdir -p /var/www/deb/%s/%s/" % (
-            category,
-            codename
+    assert (
+        os.system(
+            "ssh root@nuitka.net mkdir -p /var/www/deb/%s/%s/" % (category, codename)
         )
-    ) == 0
+        == 0
+    )
 
     # Update the repository on the web site.
-    assert os.system(
-        "rsync -avz --delete dists pool --chown www-data root@nuitka.net:/var/www/deb/%s/%s/" % (
-            category,
-            codename
+    assert (
+        os.system(
+            "rsync -avz --delete dists pool --chown www-data root@nuitka.net:/var/www/deb/%s/%s/"
+            % (category, codename)
         )
-    ) == 0
+        == 0
+    )
 
     print("Finished.")

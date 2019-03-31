@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -56,7 +56,7 @@ loops.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementReleaseVariable
+    StatementReleaseVariable,
 )
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
@@ -73,7 +73,7 @@ from .TreeHelpers import (
     makeStatementsSequence,
     mergeStatements,
     popBuildContext,
-    pushBuildContext
+    pushBuildContext,
 )
 
 
@@ -84,118 +84,93 @@ def buildWhileLoopNode(provider, node, source_ref):
     # true. We do this by introducing an indicator variable.
 
     else_block = buildStatementsNode(
-        provider   = provider,
-        nodes      = node.orelse if node.orelse else None,
-        source_ref = source_ref
+        provider=provider,
+        nodes=node.orelse if node.orelse else None,
+        source_ref=source_ref,
     )
 
     if else_block is not None:
         temp_scope = provider.allocateTempScope("while_loop")
 
         tmp_break_indicator = provider.allocateTempVariable(
-            temp_scope = temp_scope,
-            name       = "break_indicator"
+            temp_scope=temp_scope, name="break_indicator"
         )
 
         statements = (
             StatementAssignmentVariable(
-                variable   = tmp_break_indicator,
-                source     = makeConstantRefNode(
-                    constant   = True,
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
+                variable=tmp_break_indicator,
+                source=makeConstantRefNode(constant=True, source_ref=source_ref),
+                source_ref=source_ref,
             ),
-            StatementLoopBreak(
-                source_ref = source_ref
-            )
+            StatementLoopBreak(source_ref=source_ref),
         )
     else:
-        statements = (
-            StatementLoopBreak(
-                source_ref = source_ref
-            ),
-        )
+        statements = (StatementLoopBreak(source_ref=source_ref),)
 
     pushBuildContext("loop_body")
     loop_statements = buildStatementsNode(
-        provider   = provider,
-        nodes      = node.body,
-        source_ref = source_ref
+        provider=provider, nodes=node.body, source_ref=source_ref
     )
     popBuildContext()
 
     # The loop body contains a conditional statement at the start that breaks
     # the loop if it fails.
     loop_body = makeStatementsSequence(
-        statements = (
+        statements=(
             makeStatementConditional(
-                condition  = ExpressionOperationNOT(
-                    operand    = buildNode(provider, node.test, source_ref),
-                    source_ref = source_ref,
+                condition=ExpressionOperationNOT(
+                    operand=buildNode(provider, node.test, source_ref),
+                    source_ref=source_ref,
                 ),
-                yes_branch = StatementsSequence(
-                    statements = statements,
-                    source_ref = source_ref
+                yes_branch=StatementsSequence(
+                    statements=statements, source_ref=source_ref
                 ),
-                no_branch  = None,
-                source_ref = source_ref
+                no_branch=None,
+                source_ref=source_ref,
             ),
-            loop_statements
+            loop_statements,
         ),
-        allow_none = True,
-        source_ref = source_ref
+        allow_none=True,
+        source_ref=source_ref,
     )
 
-    loop_statement = StatementLoop(
-        body       = loop_body,
-        source_ref = source_ref
-    )
+    loop_statement = StatementLoop(body=loop_body, source_ref=source_ref)
 
     if else_block is None:
         return loop_statement
     else:
         statements = (
             StatementAssignmentVariable(
-                variable   = tmp_break_indicator,
-                source     = makeConstantRefNode(
-                    constant   = False,
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
+                variable=tmp_break_indicator,
+                source=makeConstantRefNode(constant=False, source_ref=source_ref),
+                source_ref=source_ref,
             ),
             loop_statement,
             makeStatementConditional(
-                condition  = ExpressionComparisonIs(
-                    left       = ExpressionTempVariableRef(
-                        variable   = tmp_break_indicator,
-                        source_ref = source_ref
+                condition=ExpressionComparisonIs(
+                    left=ExpressionTempVariableRef(
+                        variable=tmp_break_indicator, source_ref=source_ref
                     ),
-                    right      = makeConstantRefNode(
-                        constant   = True,
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
+                    right=makeConstantRefNode(constant=True, source_ref=source_ref),
+                    source_ref=source_ref,
                 ),
-                yes_branch = else_block,
-                no_branch  = None,
-                source_ref = source_ref
-            )
+                yes_branch=else_block,
+                no_branch=None,
+                source_ref=source_ref,
+            ),
         )
 
         statements = (
             makeTryFinallyStatement(
-                provider   = provider,
-                tried      = statements,
-                final      = StatementReleaseVariable(
-                    variable   = tmp_break_indicator,
-                    source_ref = source_ref
+                provider=provider,
+                tried=statements,
+                final=StatementReleaseVariable(
+                    variable=tmp_break_indicator, source_ref=source_ref
                 ),
-                source_ref = source_ref
+                source_ref=source_ref,
             ),
         )
 
         return StatementsSequence(
-            statements = mergeStatements(statements, False),
-            source_ref = source_ref
+            statements=mergeStatements(statements, False), source_ref=source_ref
         )

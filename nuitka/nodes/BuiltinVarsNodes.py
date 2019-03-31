@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,17 +28,11 @@ from .ExpressionBases import ExpressionChildrenHavingBase
 class ExpressionBuiltinVars(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_VARS"
 
-    named_children = (
-        "source",
-    )
+    named_children = ("source",)
 
     def __init__(self, source, source_ref):
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "source" : source,
-            },
-            source_ref = source_ref
+            self, values={"source": source}, source_ref=source_ref
         )
 
     getSource = ExpressionChildrenHavingBase.childGetter("source")

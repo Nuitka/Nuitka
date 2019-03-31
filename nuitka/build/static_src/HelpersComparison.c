@@ -1,4 +1,4 @@
-//     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -1222,7 +1222,7 @@ int RICH_COMPARE_BOOL_GTE_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_GE);
 }
 
-int RICH_COMPARE_LT_BOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
+int RICH_COMPARE_BOOL_LT_INT_INT(PyObject *operand1, PyObject *operand2) {
     assert(PyInt_CheckExact(operand1));
     assert(PyInt_CheckExact(operand2));
 

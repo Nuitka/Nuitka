@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -215,7 +215,6 @@ goto %(no_exception_exit)s;
 """
 
 
-
 # TODO: This cannot happen, can it?
 template_frame_guard_generator_return_handler = """\
 %(frame_return_exit)s:;
@@ -278,5 +277,6 @@ Py_DECREF( %(frame_identifier)s );
 goto %(parent_exception_exit)s;
 """
 
-from . import TemplateDebugWrapper # isort:skip
+from . import TemplateDebugWrapper  # isort:skip
+
 TemplateDebugWrapper.checkDebug(globals())

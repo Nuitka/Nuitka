@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -33,8 +33,9 @@ def checkStatements(value):
     assert None not in value
 
     for statement in value:
-        assert statement.isStatement() or statement.isStatementsFrame(), \
-          statement.asXmlText()
+        assert (
+            statement.isStatement() or statement.isStatementsFrame()
+        ), statement.asXmlText()
 
     return tuple(value)
 
@@ -48,9 +49,7 @@ class StatementsSequence(StatementChildHavingBase):
 
     def __init__(self, statements, source_ref):
         StatementChildHavingBase.__init__(
-            self,
-            value      = tuple(statements),
-            source_ref = source_ref
+            self, value=tuple(statements), source_ref=source_ref
         )
 
     getStatements = StatementChildHavingBase.childGetter("statements")
@@ -72,10 +71,9 @@ class StatementsSequence(StatementChildHavingBase):
         assert statement.parent is self
 
         old_statements = list(self.getStatements())
-        assert statement in old_statements, \
-          (statement, self)
+        assert statement in old_statements, (statement, self)
 
-        new_statements = old_statements[ : old_statements.index(statement)+1 ]
+        new_statements = old_statements[: old_statements.index(statement) + 1]
 
         self.setChild("statements", new_statements)
 
@@ -91,14 +89,15 @@ class StatementsSequence(StatementChildHavingBase):
         assert statement_sequence.parent is self
 
         old_statements = list(self.getStatements())
-        assert statement_sequence in old_statements, \
-          (statement_sequence, self)
+        assert statement_sequence in old_statements, (statement_sequence, self)
 
-        merge_index =  old_statements.index(statement_sequence)
+        merge_index = old_statements.index(statement_sequence)
 
-        new_statements = tuple(old_statements[ : merge_index ])     + \
-                         statement_sequence.getStatements()         + \
-                         tuple(old_statements[ merge_index+1 : ])
+        new_statements = (
+            tuple(old_statements[:merge_index])
+            + statement_sequence.getStatements()
+            + tuple(old_statements[merge_index + 1 :])
+        )
 
         self.setChild("statements", new_statements)
 
@@ -140,10 +139,12 @@ class StatementsSequence(StatementChildHavingBase):
         return False
 
     def mayRaiseExceptionOrAbort(self, exception_type):
-        return self.mayRaiseException(exception_type) or \
-               self.mayReturn() or \
-               self.mayBreak() or \
-               self.mayContinue()
+        return (
+            self.mayRaiseException(exception_type)
+            or self.mayReturn()
+            or self.mayBreak()
+            or self.mayContinue()
+        )
 
     def isStatementAborting(self):
         return self.getStatements()[-1].isStatementAborting()
@@ -161,34 +162,30 @@ class StatementsSequence(StatementChildHavingBase):
         for count, statement in enumerate(statements):
             # May be frames embedded.
             if statement.isStatementsFrame():
-                new_statement = statement.computeStatementsSequence(
-                    trace_collection
-                )
+                new_statement = statement.computeStatementsSequence(trace_collection)
             else:
-                new_statement = trace_collection.onStatement(
-                    statement = statement
-                )
+                new_statement = trace_collection.onStatement(statement=statement)
 
             if new_statement is not None:
-                if new_statement.isStatementsSequence() and \
-                   not new_statement.isStatementsFrame():
-                    new_statements.extend(
-                        new_statement.getStatements()
-                    )
+                if (
+                    new_statement.isStatementsSequence()
+                    and not new_statement.isStatementsFrame()
+                ):
+                    new_statements.extend(new_statement.getStatements())
                 else:
-                    new_statements.append(
-                        new_statement
-                    )
+                    new_statements.append(new_statement)
 
-                if statement is not statements[-1] and \
-                   new_statement.isStatementAborting():
+                if (
+                    statement is not statements[-1]
+                    and new_statement.isStatementAborting()
+                ):
                     trace_collection.signalChange(
                         "new_statements",
-                        statements[count+1].getSourceReference(),
-                        "Removed dead statements."
+                        statements[count + 1].getSourceReference(),
+                        "Removed dead statements.",
                     )
 
-                    for s in statements[statements.index(statement)+1:]:
+                    for s in statements[statements.index(statement) + 1 :]:
                         s.finalize()
 
                     break
@@ -215,11 +212,7 @@ class StatementExpressionOnly(StatementChildHavingBase):
     def __init__(self, expression, source_ref):
         assert expression.isExpression()
 
-        StatementChildHavingBase.__init__(
-            self,
-            value      = expression,
-            source_ref = source_ref
-        )
+        StatementChildHavingBase.__init__(self, value=expression, source_ref=source_ref)
 
     def getDetail(self):
         return "expression %s" % self.getExpression()
@@ -233,17 +226,14 @@ class StatementExpressionOnly(StatementChildHavingBase):
     getExpression = StatementChildHavingBase.childGetter("expression")
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(
-            expression = self.getExpression()
-        )
+        trace_collection.onExpression(expression=self.getExpression())
         expression = self.getExpression()
 
         if expression.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         result, change_tags, change_desc = expression.computeExpressionDrop(
-            statement        = self,
-            trace_collection = trace_collection
+            statement=self, trace_collection=trace_collection
         )
 
         if result is not self:
@@ -261,10 +251,7 @@ class StatementPreserveFrameException(StatementBase):
     __slots__ = ("preserver_id",)
 
     def __init__(self, preserver_id, source_ref):
-        StatementBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        StatementBase.__init__(self, source_ref=source_ref)
 
         self.preserver_id = preserver_id
 
@@ -272,9 +259,7 @@ class StatementPreserveFrameException(StatementBase):
         del self.parent
 
     def getDetails(self):
-        return {
-            "preserver_id" : self.preserver_id
-        }
+        return {"preserver_id": self.preserver_id}
 
     def getPreserverId(self):
         return self.preserver_id
@@ -289,7 +274,7 @@ class StatementPreserveFrameException(StatementBase):
             return (
                 None,
                 "new_statements",
-                "Removed frame preservation for generators."
+                "Removed frame preservation for generators.",
             )
 
     def mayRaiseException(self, exception_type):
@@ -305,10 +290,7 @@ class StatementRestoreFrameException(StatementBase):
     __slots__ = ("preserver_id",)
 
     def __init__(self, preserver_id, source_ref):
-        StatementBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        StatementBase.__init__(self, source_ref=source_ref)
 
         self.preserver_id = preserver_id
 
@@ -316,9 +298,7 @@ class StatementRestoreFrameException(StatementBase):
         del self.parent
 
     def getDetails(self):
-        return {
-            "preserver_id" : self.preserver_id
-        }
+        return {"preserver_id": self.preserver_id}
 
     def getPreserverId(self):
         return self.preserver_id
@@ -334,10 +314,7 @@ class StatementPublishException(StatementBase):
     kind = "STATEMENT_PUBLISH_EXCEPTION"
 
     def __init__(self, source_ref):
-        StatementBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        StatementBase.__init__(self, source_ref=source_ref)
 
     def finalize(self):
         del self.parent

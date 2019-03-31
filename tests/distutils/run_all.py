@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -23,12 +23,13 @@ import os
 import sys
 import subprocess
 
-# Find nuitka package relative to us.
+# Find nuitka package relative to us. The replacement is for POSIX python
+# and Windows paths on command line.
 sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
+            os.path.dirname(os.path.abspath(__file__.replace("\\", os.sep))),
             "..",
             ".."
         )

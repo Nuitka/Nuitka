@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,14 +31,14 @@ from .DictionaryNodes import (
     ExpressionDictOperationIn,
     ExpressionDictOperationNOTIn,
     StatementDictOperationRemove,
-    StatementDictOperationSet
+    StatementDictOperationSet,
 )
 from .ExpressionBases import ExpressionBase
 from .ModuleAttributeNodes import (
     ExpressionModuleAttributeLoaderRef,
     ExpressionModuleAttributeNameRef,
     ExpressionModuleAttributePackageRef,
-    ExpressionModuleAttributeSpecRef
+    ExpressionModuleAttributeSpecRef,
 )
 from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
 from .shapes.StandardShapes import ShapeUnknown
@@ -56,10 +56,7 @@ class ExpressionVariableNameRef(ExpressionBase):
     def __init__(self, provider, variable_name, source_ref):
         assert not provider.isExpressionOutlineBody(), source_ref
 
-        ExpressionBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         self.variable_name = variable_name
 
@@ -74,10 +71,7 @@ class ExpressionVariableNameRef(ExpressionBase):
         return True
 
     def getDetails(self):
-        return {
-            "variable_name" : self.variable_name,
-            "provider"      : self.provider
-        }
+        return {"variable_name": self.variable_name, "provider": self.provider}
 
     def getVariableName(self):
         return self.variable_name
@@ -98,6 +92,7 @@ class ExpressionVariableLocalNameRef(ExpressionVariableNameRef):
         used for __annotations__.
 
     """
+
     kind = "EXPRESSION_VARIABLE_LOCAL_NAME_REF"
 
     @staticmethod
@@ -111,10 +106,7 @@ class ExpressionVariableRefBase(ExpressionBase):
     __slots__ = "variable", "variable_trace"
 
     def __init__(self, variable, source_ref):
-        ExpressionBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         self.variable = variable
         self.variable_trace = None
@@ -151,22 +143,21 @@ class ExpressionVariableRefBase(ExpressionBase):
             message = """\
 Check '%s' on dictionary lowered to dictionary '%s'.""" % (
                 in_node.comparator,
-                in_node.comparator
+                in_node.comparator,
             )
 
             if in_node.comparator == "In":
                 in_node = ExpressionDictOperationIn(
-                    key        = value_node,
-                    dict_arg   = self,
-                    source_ref = in_node.getSourceReference()
+                    key=value_node,
+                    dict_arg=self,
+                    source_ref=in_node.getSourceReference(),
                 )
             else:
                 in_node = ExpressionDictOperationNOTIn(
-                    key        = value_node,
-                    dict_arg   = self,
-                    source_ref = in_node.getSourceReference()
+                    key=value_node,
+                    dict_arg=self,
+                    source_ref=in_node.getSourceReference(),
                 )
-
 
         # Any exception may be raised.
         if in_node.mayRaiseException(BaseException):
@@ -174,8 +165,9 @@ Check '%s' on dictionary lowered to dictionary '%s'.""" % (
 
         return in_node, tags, message
 
-    def computeExpressionSetSubscript(self, set_node, subscript, value_node,
-                                      trace_collection):
+    def computeExpressionSetSubscript(
+        self, set_node, subscript, value_node, trace_collection
+    ):
         tags = None
         message = None
 
@@ -183,10 +175,10 @@ Check '%s' on dictionary lowered to dictionary '%s'.""" % (
         # source.
         if self.variable_trace.hasShapeDictionaryExact():
             set_node = StatementDictOperationSet(
-                dict_arg   = self,
-                key        = subscript,
-                value      = value_node,
-                source_ref = set_node.getSourceReference()
+                dict_arg=self,
+                key=subscript,
+                value=value_node,
+                source_ref=set_node.getSourceReference(),
             )
 
             tags = "new_statements"
@@ -202,8 +194,7 @@ Subscript assignment to dictionary lowered to dictionary assignment."""
 
         return set_node, tags, message
 
-    def computeExpressionDelSubscript(self, del_node, subscript,
-                                      trace_collection):
+    def computeExpressionDelSubscript(self, del_node, subscript, trace_collection):
         tags = None
         message = None
 
@@ -214,15 +205,12 @@ Subscript assignment to dictionary lowered to dictionary assignment."""
 
         if self.variable_trace.hasShapeDictionaryExact():
             del_node = StatementDictOperationRemove(
-                dict_arg   = self,
-                key        = subscript,
-                source_ref = del_node.getSourceReference()
+                dict_arg=self, key=subscript, source_ref=del_node.getSourceReference()
             )
 
             tags = "new_statements"
             message = """\
 Subscript del to dictionary lowered to dictionary del."""
-
 
         # Any exception might be raised.
         if del_node.mayRaiseException(BaseException):
@@ -239,9 +227,9 @@ Subscript del to dictionary lowered to dictionary del."""
 
         if self.variable_trace.hasShapeDictionaryExact():
             lookup_node = ExpressionDictOperationGet(
-                dict_arg   = self,
-                key        = subscript,
-                source_ref = lookup_node.getSourceReference()
+                dict_arg=self,
+                key=subscript,
+                source_ref=lookup_node.getSourceReference(),
             )
 
             tags = "new_expression"
@@ -257,6 +245,7 @@ Subscript look-up to dictionary lowered to dictionary look-up."""
 
 _hard_names = ("dir", "eval", "exec", "execfile", "locals", "vars", "super")
 
+
 class ExpressionVariableRef(ExpressionVariableRefBase):
     kind = "EXPRESSION_VARIABLE_REF"
 
@@ -266,20 +255,16 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         assert variable is not None
 
         ExpressionVariableRefBase.__init__(
-            self,
-            variable   = variable,
-            source_ref = source_ref
+            self, variable=variable, source_ref=source_ref
         )
 
     def getDetails(self):
-        return {
-            "variable"      : self.variable
-        }
+        return {"variable": self.variable}
 
     def getDetailsForDisplay(self):
         return {
-            "variable_name" : self.variable.getName(),
-            "owner"         : self.variable.getOwner().getCodeName()
+            "variable_name": self.variable.getName(),
+            "owner": self.variable.getOwner().getCodeName(),
         }
 
     @classmethod
@@ -289,10 +274,7 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         owner = getOwnerFromCodeName(args["owner"])
         variable = owner.getProvidedVariable(args["variable_name"])
 
-        return cls(
-            variable   = variable,
-            source_ref = source_ref
-        )
+        return cls(variable=variable, source_ref=source_ref)
 
     def getDetail(self):
         if self.variable is None:
@@ -322,7 +304,7 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         assert variable is not None
 
         self.variable_trace = trace_collection.getVariableCurrentTrace(
-            variable = variable
+            variable=variable
         )
 
         replacement = self.variable_trace.getReplacementNode(self)
@@ -331,10 +313,8 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             trace_collection.signalChange(
                 "new_expression",
                 self.source_ref,
-                "Value propagated for '%s' from '%s'." % (
-                    variable.getName(),
-                    replacement.getSourceReference().getAsString()
-                )
+                "Value propagated for '%s' from '%s'."
+                % (variable.getName(), replacement.getSourceReference().getAsString()),
             )
 
             # Need to compute the replacement still.
@@ -342,12 +322,9 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
 
         if not self.variable_trace.mustHaveValue():
             # TODO: This could be way more specific surely.
-            trace_collection.onExceptionRaiseExit(
-                BaseException
-            )
+            trace_collection.onExceptionRaiseExit(BaseException)
 
-        if variable.isModuleVariable() and \
-           variable.hasDefiniteWrites() is False:
+        if variable.isModuleVariable() and variable.hasDefiniteWrites() is False:
             variable_name = self.variable.getName()
 
             if variable_name in Builtins.builtin_exception_names:
@@ -355,8 +332,8 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
                     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
                     new_node = ExpressionBuiltinExceptionRef(
-                        exception_name = self.variable.getName(),
-                        source_ref     = self.getSourceReference()
+                        exception_name=self.variable.getName(),
+                        source_ref=self.getSourceReference(),
                     )
 
                     change_tags = "new_builtin_ref"
@@ -372,12 +349,14 @@ Module variable '%s' found to be built-in exception reference.""" % (
                     change_desc = None
 
             elif variable_name in Builtins.builtin_names:
-                if variable_name in _hard_names or not self.variable.getOwner().getModuleDictScope().isEscaped():
+                if (
+                    variable_name in _hard_names
+                    or not self.variable.getOwner().getModuleDictScope().isEscaped()
+                ):
                     from .BuiltinRefNodes import makeExpressionBuiltinRef
 
                     new_node = makeExpressionBuiltinRef(
-                        builtin_name = variable_name,
-                        source_ref   = self.getSourceReference()
+                        builtin_name=variable_name, source_ref=self.getSourceReference()
                     )
 
                     change_tags = "new_builtin_ref"
@@ -393,8 +372,7 @@ Module variable '%s' found to be built-in reference.""" % (
                     change_desc = None
             elif variable_name == "__name__":
                 new_node = ExpressionModuleAttributeNameRef(
-                    variable   = variable,
-                    source_ref = self.getSourceReference()
+                    variable=variable, source_ref=self.getSourceReference()
                 )
 
                 change_tags = "new_expression"
@@ -402,8 +380,7 @@ Module variable '%s' found to be built-in reference.""" % (
 Replaced read-only module attribute '__name__' with module attribute reference."""
             elif variable_name == "__package__":
                 new_node = ExpressionModuleAttributePackageRef(
-                    variable   = variable,
-                    source_ref = self.getSourceReference()
+                    variable=variable, source_ref=self.getSourceReference()
                 )
 
                 change_tags = "new_expression"
@@ -411,8 +388,7 @@ Replaced read-only module attribute '__name__' with module attribute reference."
 Replaced read-only module attribute '__package__' with module attribute reference."""
             elif variable_name == "__loader__" and python_version >= 300:
                 new_node = ExpressionModuleAttributeLoaderRef(
-                    variable   = variable,
-                    source_ref = self.getSourceReference()
+                    variable=variable, source_ref=self.getSourceReference()
                 )
 
                 change_tags = "new_expression"
@@ -420,8 +396,7 @@ Replaced read-only module attribute '__package__' with module attribute referenc
 Replaced read-only module attribute '__loader__' with module attribute reference."""
             elif variable_name == "__spec__" and python_version >= 340:
                 new_node = ExpressionModuleAttributeSpecRef(
-                    variable   = variable,
-                    source_ref = self.getSourceReference()
+                    variable=variable, source_ref=self.getSourceReference()
                 )
 
                 change_tags = "new_expression"
@@ -445,26 +420,32 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
             variable_name = self.variable.getName()
 
             result = makeRaiseExceptionReplacementExpression(
-                expression      = self,
-                exception_type  = "UnboundLocalError",
-                exception_value = """\
-local variable '%s' referenced before assignment""" % variable_name
+                expression=self,
+                exception_type="UnboundLocalError",
+                exception_value="""\
+local variable '%s' referenced before assignment"""
+                % variable_name,
             )
 
-            return result, "new_raise", "Variable access of not initialized variable '%s'" % variable_name
+            return (
+                result,
+                "new_raise",
+                "Variable access of not initialized variable '%s'" % variable_name,
+            )
 
         return self, None, None
 
-    def computeExpressionCall(self, call_node, call_args, call_kw,
-                              trace_collection):
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
 
         trace_collection.onExceptionRaiseExit(BaseException)
 
         trace_collection.onControlFlowEscape(self)
 
-        if not Variables.complete and \
-           self.variable.getName() in _hard_names and \
-           self.variable.isModuleVariable():
+        if (
+            not Variables.complete
+            and self.variable.getName() in _hard_names
+            and self.variable.isModuleVariable()
+        ):
             # Just inform the collection that all escaped.
             trace_collection.onLocalsUsage(self.getParentVariableProvider())
 
@@ -483,8 +464,7 @@ local variable '%s' referenced before assignment""" % variable_name
         return not self.variable_trace.mustHaveValue()
 
     def mayRaiseException(self, exception_type):
-        return self.variable_trace is None or \
-               not self.variable_trace.mustHaveValue()
+        return self.variable_trace is None or not self.variable_trace.mustHaveValue()
 
 
 class ExpressionTempVariableRef(ExpressionVariableRefBase):
@@ -494,21 +474,17 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
         assert variable.isTempVariable()
 
         ExpressionVariableRefBase.__init__(
-            self,
-            variable   = variable,
-            source_ref = source_ref
+            self, variable=variable, source_ref=source_ref
         )
 
     def getDetailsForDisplay(self):
         return {
-            "temp_name" : self.variable.getName(),
-            "owner"     : self.variable.getOwner().getCodeName()
+            "temp_name": self.variable.getName(),
+            "owner": self.variable.getOwner().getCodeName(),
         }
 
     def getDetails(self):
-        return {
-            "variable" : self.variable
-        }
+        return {"variable": self.variable}
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
@@ -518,10 +494,7 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
 
         variable = owner.getTempVariable(None, args["temp_name"])
 
-        return cls(
-            variable   = variable,
-            source_ref = source_ref
-        )
+        return cls(variable=variable, source_ref=source_ref)
 
     def getDetail(self):
         return self.variable.getName()
@@ -532,13 +505,17 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
 
     def computeExpressionRaw(self, trace_collection):
         self.variable_trace = trace_collection.getVariableCurrentTrace(
-            variable = self.variable
+            variable=self.variable
         )
 
         replacement = self.variable_trace.getReplacementNode(self)
 
         if replacement is not None:
-            return replacement, "new_expression", "Value propagated for temp '%s'." % self.variable.getName()
+            return (
+                replacement,
+                "new_expression",
+                "Value propagated for temp '%s'." % self.variable.getName(),
+            )
 
         self.variable_trace.addUsage()
 
@@ -553,15 +530,21 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
             trace_collection.onIteratorNext(value)
 
             if value.hasShapeSlotNext():
-                if current_index is not None and \
-                   value.isKnownToBeIterableAtMin(current_index+1) and \
-                   value.canPredictIterationValues():
+                if (
+                    current_index is not None
+                    and value.isKnownToBeIterableAtMin(current_index + 1)
+                    and value.canPredictIterationValues()
+                ):
 
                     # TODO: Make use of this, pylint: disable=W0125
                     candidate = value.getIterationValue(current_index)
 
                     if False:
-                        return candidate, "new_expression", "Predicted 'next' value from iteration."
+                        return (
+                            candidate,
+                            "new_expression",
+                            "Predicted 'next' value from iteration.",
+                        )
             else:
                 # TODO: Could ask it about exception predictability for that case
                 # or warn about it at least.
@@ -590,13 +573,17 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
         return False
 
     def mayRaiseExceptionImportName(self, exception_type, import_name):
-        if self.variable_trace is not None and \
-           self.variable_trace.isAssignTrace():
-            return self.variable_trace.getAssignNode().\
-                     getAssignSource().mayRaiseExceptionImportName(exception_type, import_name)
+        if self.variable_trace is not None and self.variable_trace.isAssignTrace():
+            return (
+                self.variable_trace.getAssignNode()
+                .getAssignSource()
+                .mayRaiseExceptionImportName(exception_type, import_name)
+            )
 
         else:
-            return ExpressionBase.mayRaiseExceptionImportName(self, exception_type, import_name)
+            return ExpressionBase.mayRaiseExceptionImportName(
+                self, exception_type, import_name
+            )
 
     def isKnownToBeIterableAtMin(self, count):
         # TODO: See through the variable current trace.

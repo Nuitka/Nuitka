@@ -592,7 +592,6 @@ for filename in sorted(os.listdir(".")):
             continue
         if "gtk" in loaded_filename and "/engines/" in loaded_filename:
             continue
-
         if loaded_filename in (
             "/usr",
             "/usr/local",
@@ -603,6 +602,10 @@ for filename in sorted(os.listdir(".")):
             continue
 
         # TCL/tk for tkinter for non-Windows is OK.
+        if loaded_filename in ("/usr", "/usr/local", "/usr/local/lib", "/usr/share", "/usr/local/share"):
+            continue
+
+        # TCL/tk for tkinter
         if loaded_filename.startswith(("/usr/lib/tcltk/", "/usr/share/tcltk/")):
             continue
         if loaded_filename in ("/usr/lib/tcltk", "/usr/share/tcltk"):
@@ -678,6 +681,27 @@ for filename in sorted(os.listdir(".")):
                 "libpcre2-8.so.",
             )
         ):
+        if loaded_basename.startswith((
+            "libnss_",
+            "libnsl",
+
+            # Some systems load a lot more, this is CentOS 7 on OBS
+            'libattr.so.',
+            'libbz2.so.',
+            'libcap.so.',
+            'libdw.so.',
+            'libelf.so.',
+            'liblzma.so.',
+
+            # Some systems load a lot more, this is Fedora 26 on OBS
+            "libselinux.so.",
+            "libpcre.so.",
+
+            # And this is Fedora 29 on OBS
+            "libblkid.so.",
+            "libmount.so.",
+            "libpcre2-8.so.",
+        )):
             continue
 
         # Loaded by dtruss on macOS X.

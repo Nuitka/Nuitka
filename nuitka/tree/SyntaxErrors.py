@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,6 +20,7 @@
 Format SyntaxError/IndentationError exception for output, as well as
 raise it for the given source code reference.
 """
+
 
 def formatOutput(e):
     if len(e.args) > 1:
@@ -54,10 +55,10 @@ def formatOutput(e):
             filename,
             lineno,
             message.strip(),
-            ' ' * (colno-1) if colno is not None else "",
+            " " * (colno - 1) if colno is not None else "",
             e.__class__.__name__,
-            reason
-         )
+            reason,
+        )
     elif message is not None:
         return """\
   File "%s", line %d
@@ -67,8 +68,8 @@ def formatOutput(e):
             lineno,
             message.strip(),
             e.__class__.__name__,
-            reason
-         )
+            reason,
+        )
     elif filename is not None:
         return """\
   File "%s", line %s
@@ -76,23 +77,23 @@ def formatOutput(e):
             filename,
             lineno,
             e.__class__.__name__,
-            reason
-         )
+            reason,
+        )
     else:
         return """\
 %s: %s""" % (
             e.__class__.__name__,
-            reason
-         )
+            reason,
+        )
 
 
-def raiseSyntaxError(reason, source_ref, display_file = True,
-                     display_line = True):
+def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
     col_offset = source_ref.getColumnNumber()
 
     def readSource():
         # Cyclic dependency.
         from .SourceReading import readSourceLine
+
         return readSourceLine(source_ref)
 
     if display_file and display_line:
@@ -104,8 +105,8 @@ def raiseSyntaxError(reason, source_ref, display_file = True,
                 source_ref.getFilename(),
                 source_ref.getLineNumber(),
                 col_offset,
-                source_line
-            )
+                source_line,
+            ),
         )
     else:
         if source_ref is not None:
@@ -120,16 +121,8 @@ def raiseSyntaxError(reason, source_ref, display_file = True,
                     source_ref.getFilename(),
                     source_ref.getLineNumber(),
                     col_offset,
-                    source_line
-                )
+                    source_line,
+                ),
             )
         else:
-            raise SyntaxError(
-                reason,
-                (
-                    None,
-                    None,
-                    None,
-                    None
-                )
-            )
+            raise SyntaxError(reason, (None, None, None, None))

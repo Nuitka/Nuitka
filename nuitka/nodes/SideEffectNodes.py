@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -43,14 +43,9 @@ def checkSideEffects(value):
 class ExpressionSideEffects(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SIDE_EFFECTS"
 
-    named_children = (
-        "side_effects",
-        "expression"
-    )
+    named_children = ("side_effects", "expression")
 
-    checkers = {
-        "side_effects" : checkSideEffects
-    }
+    checkers = {"side_effects": checkSideEffects}
 
     def __init__(self, side_effects, expression, source_ref):
         # We expect to be not used without there actually being side effects.
@@ -58,15 +53,12 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
 
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "side_effects" : tuple(side_effects),
-                "expression"   : expression
-            },
-            source_ref = source_ref
+            values={"side_effects": tuple(side_effects), "expression": expression},
+            source_ref=source_ref,
         )
 
-    getSideEffects  = ExpressionChildrenHavingBase.childGetter("side_effects")
-    setSideEffects  = ExpressionChildrenHavingBase.childSetter("side_effects")
+    getSideEffects = ExpressionChildrenHavingBase.childGetter("side_effects")
+    setSideEffects = ExpressionChildrenHavingBase.childSetter("side_effects")
 
     getExpression = ExpressionChildrenHavingBase.childGetter("expression")
 
@@ -82,7 +74,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
             side_effect = trace_collection.onExpression(side_effect)
 
             if side_effect.willRaiseException(BaseException):
-                for c in side_effects[count+1:]:
+                for c in side_effects[count + 1 :]:
                     c.finalize()
 
                 if new_side_effects:
@@ -91,17 +83,23 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
 
                     self.setChild("expression", side_effect)
 
-                    return self, "new_expression", "Side effects caused exception raise."
+                    return (
+                        self,
+                        "new_expression",
+                        "Side effects caused exception raise.",
+                    )
                 else:
                     del self.parent
                     del self.subnode_side_effects
 
-                    return side_effect, "new_expression", "Side effects caused exception raise."
+                    return (
+                        side_effect,
+                        "new_expression",
+                        "Side effects caused exception raise.",
+                    )
 
             if side_effect.isExpressionSideEffects():
-                new_side_effects.extend(
-                    side_effect.getSideEffects()
-                )
+                new_side_effects.extend(side_effect.getSideEffects())
 
                 del side_effect.parent
                 del side_effect.subnode_side_effects
@@ -112,7 +110,11 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
         trace_collection.onExpression(self.subnode_expression)
 
         if not new_side_effects:
-            return self.subnode_expression, "new_expression", "Removed empty side effects."
+            return (
+                self.subnode_expression,
+                "new_expression",
+                "Removed empty side effects.",
+            )
 
         return self, None, None
 
@@ -131,9 +133,11 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
 
         expressions = self.getSideEffects() + (self.getExpression(),)
 
-        result = makeStatementOnlyNodesFromExpressions(
-            expressions = expressions
-        )
+        result = makeStatementOnlyNodesFromExpressions(expressions=expressions)
 
-        return result, "new_statements", """\
-Turned side effects of expression only statement into statements."""
+        return (
+            result,
+            "new_statements",
+            """\
+Turned side effects of expression only statement into statements.""",
+        )

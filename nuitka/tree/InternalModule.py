@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,6 +28,7 @@ from nuitka.nodes.ModuleNodes import PythonInternalModule
 from nuitka.SourceCodeReferences import fromFilename
 
 internal_source_ref = fromFilename("internal").atInternal()
+
 
 def once_decorator(func):
     """ Cache result of a function call without arguments.
@@ -61,11 +62,11 @@ def getInternalModule():
 
 def makeInternalHelperFunctionBody(name, parameters):
     return ExpressionFunctionBody(
-        provider    = getInternalModule(),
-        name        = name,
-        code_object = None,
-        doc         = None,
-        parameters  = parameters,
-        flags       = set(),
-        source_ref  = internal_source_ref
+        provider=getInternalModule(),
+        name=name,
+        code_object=None,
+        doc=None,
+        parameters=parameters,
+        flags=set(),
+        source_ref=internal_source_ref,
     )

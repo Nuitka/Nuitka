@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,11 +29,11 @@ from nuitka.Builtins import builtin_names
 from .BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
     ExpressionBuiltinRef,
-    makeExpressionBuiltinRef
+    makeExpressionBuiltinRef,
 )
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
-    ExpressionChildrenHavingBase
+    ExpressionChildrenHavingBase,
 )
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 from .shapes.BuiltinTypeShapes import ShapeTypeType
@@ -52,21 +52,18 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
 
             if type_name is not None and type_name in __builtins__:
                 result = ExpressionBuiltinRef(
-                    builtin_name = type_name,
-                    source_ref   = value.getSourceReference(),
+                    builtin_name=type_name, source_ref=value.getSourceReference()
                 )
 
                 result = wrapExpressionWithNodeSideEffects(
-                    new_node = result,
-                    old_node = value
+                    new_node=result, old_node=value
                 )
 
                 return (
                     result,
                     "new_builtin",
-                    "Replaced predictable type lookup with builtin type '%s'." % (
-                        type_name
-                    )
+                    "Replaced predictable type lookup with builtin type '%s'."
+                    % (type_name),
                 )
 
         if value.isCompileTimeConstant():
@@ -75,24 +72,20 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
 
             type_name = value.__class__.__name__
 
-
             if type_name in builtin_names:
                 new_node = makeExpressionBuiltinRef(
-                    builtin_name = type_name,
-                    source_ref   = self.getSourceReference()
+                    builtin_name=type_name, source_ref=self.getSourceReference()
                 )
             else:
                 new_node = ExpressionBuiltinAnonymousRef(
-                    builtin_name = type_name,
-                    source_ref   = self.getSourceReference()
+                    builtin_name=type_name, source_ref=self.getSourceReference()
                 )
 
             return (
                 new_node,
                 "new_builtin",
-                "Replaced predictable type lookup with builtin type '%s'." % (
-                    type_name
-                )
+                "Replaced predictable type lookup with builtin type '%s'."
+                % (type_name),
             )
 
         return self, None, None
@@ -101,16 +94,18 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
         return ShapeTypeType
 
     def computeExpressionDrop(self, statement, trace_collection):
-        from .NodeMakingHelpers import \
-          makeStatementExpressionOnlyReplacementNode
+        from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
         result = makeStatementExpressionOnlyReplacementNode(
-            expression = self.getValue(),
-            node       = statement
+            expression=self.getValue(), node=statement
         )
 
-        return result, "new_statements", """\
-Removed type taking for unused result."""
+        return (
+            result,
+            "new_statements",
+            """\
+Removed type taking for unused result.""",
+        )
 
     def mayRaiseException(self, exception_type):
         return self.getValue().mayRaiseException(exception_type)
@@ -122,20 +117,14 @@ Removed type taking for unused result."""
 class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_SUPER"
 
-    named_children = (
-        "type",
-        "object"
-    )
+    named_children = ("type", "object")
 
     def __init__(self, super_type, super_object, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "type"   : super_type,
-                "object" : super_object
-
-            },
-            source_ref = source_ref )
+            values={"type": super_type, "object": super_object},
+            source_ref=source_ref,
+        )
 
     getType = ExpressionChildrenHavingBase.childGetter("type")
     getObject = ExpressionChildrenHavingBase.childGetter("object")
@@ -150,20 +139,13 @@ class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
 class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ISINSTANCE"
 
-    named_children = (
-        "instance",
-        "classes"
-    )
+    named_children = ("instance", "classes")
 
     def __init__(self, instance, classes, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "instance" : instance,
-                "classes"  : classes
-
-            },
-            source_ref = source_ref
+            values={"instance": instance, "classes": classes},
+            source_ref=source_ref,
         )
 
     getInstance = ExpressionChildrenHavingBase.childGetter("instance")
@@ -190,10 +172,9 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
 
         # So if both are compile time constant, we are able to compute it.
         return trace_collection.getCompileTimeComputationResult(
-            node        = self,
-            computation = lambda : isinstance(
-                instance.getCompileTimeConstant(),
-                cls.getCompileTimeConstant()
+            node=self,
+            computation=lambda: isinstance(
+                instance.getCompileTimeConstant(), cls.getCompileTimeConstant()
             ),
-            description = "Built-in call to 'isinstance' computed."
+            description="Built-in call to 'isinstance' computed.",
         )

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -47,7 +47,7 @@ branch_name = checkBranchName()
 
 if branch_name == "factory":
     for remote in "origin", "github":
-        assert 0 == os.system("git push --recurse-submodules=no -f %s factory" % remote)
+        assert 0 == os.system("git push --recurse-submodules=no --force-with-lease %s factory" % remote)
 
     sys.exit(0)
 
@@ -61,7 +61,7 @@ if branch_name.startswith("release") or branch_name == "master":
     pass
 elif branch_name == "develop":
     for remote in "origin", "bitbucket", "github", "gitlab":
-        assert 0 == os.system("git push --recurse-submodules=no --tags -f %s develop" % remote)
+        assert 0 == os.system("git push --recurse-submodules=no --tags --force-with-lease %s develop" % remote)
         assert 0 == os.system("git push %s master" % remote)
 else:
     sys.stdout.write("Skipping for branch '%s'" % branch_name)

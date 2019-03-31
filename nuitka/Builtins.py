@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,12 +29,16 @@ from nuitka.PythonVersions import python_version
 
 def _getBuiltinExceptionNames():
     def isExceptionName(builtin_name):
-        if builtin_name.endswith("Error") or \
-           builtin_name.endswith("Exception"):
+        if builtin_name.endswith("Error") or builtin_name.endswith("Exception"):
             return True
-        elif builtin_name in ("StopIteration", "GeneratorExit", "SystemExit",
-                              "NotImplemented", "KeyboardInterrupt",
-                              "StopAsyncIteration"):
+        elif builtin_name in (
+            "StopIteration",
+            "GeneratorExit",
+            "SystemExit",
+            "NotImplemented",
+            "KeyboardInterrupt",
+            "StopAsyncIteration",
+        ):
             return True
         else:
             return False
@@ -64,6 +68,7 @@ def _getBuiltinExceptionNames():
 
     return list(exceptions.keys()), exceptions
 
+
 builtin_exception_names, builtin_exception_values = _getBuiltinExceptionNames()
 builtin_exception_values_list = tuple(builtin_exception_values.values())
 
@@ -82,10 +87,7 @@ assert "StopAsyncIteration" in builtin_exception_names or python_version < 350
 
 
 def _getBuiltinNames():
-    names = [
-        str(x)
-        for x in dir(builtins)
-    ]
+    names = [str(x) for x in dir(builtins)]
 
     for builtin_exception_name in builtin_exception_names:
         if builtin_exception_name in names:
@@ -112,11 +114,9 @@ def _getBuiltinNames():
 
     return names, warnings
 
+
 builtin_names, builtin_warnings = _getBuiltinNames()
-builtin_named_values = dict(
-    (getattr(builtins, x), x)
-    for x in builtin_names
-)
+builtin_named_values = dict((getattr(builtins, x), x) for x in builtin_names)
 builtin_named_values_list = tuple(builtin_named_values)
 
 assert "__import__" in builtin_names
@@ -126,6 +126,7 @@ assert "__doc__" not in builtin_names
 assert "sys" not in builtin_names
 
 builtin_all_names = builtin_names + builtin_exception_names + builtin_warnings
+
 
 def getBuiltinTypeNames():
     result = []
@@ -144,29 +145,29 @@ def _getAnonBuiltins():
     with open(sys.executable) as any_file:
         anon_names = {
             # Strangely not Python3 types module
-            "NoneType"                   : type(None),
-            "ellipsis"                   : type(Ellipsis), # see above
-            "NotImplementedType"         : type(NotImplemented),
-            "function"                   : FunctionType,
-            "builtin_function_or_method" : BuiltinFunctionType,
+            "NoneType": type(None),
+            "ellipsis": type(Ellipsis),  # see above
+            "NotImplementedType": type(NotImplemented),
+            "function": FunctionType,
+            "builtin_function_or_method": BuiltinFunctionType,
             # Can't really have it any better way.
             # "compiled_function"          : BuiltinFunctionType,
-            "generator"                  : GeneratorType,
+            "generator": GeneratorType,
             # "compiled_generator"         : GeneratorType, # see above
-            "code"                       : type(_getAnonBuiltins.__code__),
-            "file"                       : type(any_file)
+            "code": type(_getAnonBuiltins.__code__),
+            "file": type(any_file),
         }
 
     anon_codes = {
-        "NoneType"                   : "Py_TYPE( Py_None )",
-        "ellipsis"                   : "&PyEllipsis_Type",
-        "NotImplementedType"         : "Py_TYPE( Py_NotImplemented )",
-        "function"                   : "&PyFunction_Type",
-        "builtin_function_or_method" : "&PyCFunction_Type",
-        "compiled_function"          : "&Nuitka_Function_Type",
-        "compiled_generator"         : "&Nuitka_Generator_Type",
-        "code"                       : "&PyCode_Type",
-        "file"                       : "&PyFile_Type"
+        "NoneType": "Py_TYPE( Py_None )",
+        "ellipsis": "&PyEllipsis_Type",
+        "NotImplementedType": "Py_TYPE( Py_NotImplemented )",
+        "function": "&PyFunction_Type",
+        "builtin_function_or_method": "&PyCFunction_Type",
+        "compiled_function": "&Nuitka_Function_Type",
+        "compiled_generator": "&Nuitka_Generator_Type",
+        "code": "&PyCode_Type",
+        "file": "&PyFile_Type",
     }
 
     if python_version < 300:
@@ -185,16 +186,14 @@ def _getAnonBuiltins():
 
     return anon_names, anon_codes
 
+
 builtin_anon_names, builtin_anon_codes = _getAnonBuiltins()
-builtin_anon_values = dict(
-    (b, a)
-    for a, b in
-    builtin_anon_names.items()
-)
+builtin_anon_values = dict((b, a) for a, b in builtin_anon_names.items())
 
 # For being able to check if it's not hashable, we need something not using
 # a hash.
 builtin_anon_value_list = tuple(builtin_anon_values)
+
 
 def calledWithBuiltinArgumentNamesDecorator(f):
     """ Allow a function to be called with an "_arg" if a built-in name.

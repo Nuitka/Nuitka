@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,6 +22,7 @@ issue when output.
 
 """
 
+
 class NuitkaErrorBase(Exception):
     pass
 
@@ -35,7 +36,7 @@ class NuitkaNodeError(NuitkaErrorBase):
 
             parts = [""]
 
-            for arg in self.args: # false alarm, pylint: disable=I0021,not-an-iterable
+            for arg in self.args:  # false alarm, pylint: disable=I0021,not-an-iterable
                 if hasattr(arg, "asXmlText"):
                     parts.append(indented("\n%s\n" % arg.asXmlText()))
                 else:
@@ -44,8 +45,8 @@ class NuitkaNodeError(NuitkaErrorBase):
             parts.append("")
             parts.append("The above information should be included in a bug report.")
 
-            return '\n'.join(parts)
-        except Exception as e: # Catch all the things, pylint: disable=broad-except
+            return "\n".join(parts)
+        except Exception as e:  # Catch all the things, pylint: disable=broad-except
             return "<NuitkaNodeError failed with %r>" % e
 
 

@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -62,7 +62,7 @@ def getOwnProcessMemoryUsage():
         rv = GetProcessMemoryInfo(
             ctypes.windll.kernel32.GetCurrentProcess(),  # @UndefinedVariable
             ctypes.byref(counters),
-            ctypes.sizeof(counters)
+            ctypes.sizeof(counters),
         )
 
         if not rv:
@@ -71,8 +71,9 @@ def getOwnProcessMemoryUsage():
         return counters.PrivateUsage
     else:
         import resource  # Posix only code, @UnresolvedImport pylint: disable=I0021,import-error
+
         # The value is from "getrusage", which has OS dependent scaling, at least
-        # MacOS and Linux are different. Others maybe too.
+        # macOS and Linux are different. Others maybe too.
         if getOS() == "Darwin":
             factor = 1
         else:
@@ -81,25 +82,16 @@ def getOwnProcessMemoryUsage():
         return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * factor
 
 
-def getHumanReadableProcessMemoryUsage(value = None):
+def getHumanReadableProcessMemoryUsage(value=None):
     if value is None:
         value = getOwnProcessMemoryUsage()
 
-    if abs(value) < 1024*1014:
-        return "%.2f KB (%d bytes)" % (
-            value / 1024.0,
-            value
-        )
-    elif abs(value) < 1024*1014*1024:
-        return "%.2f MB (%d bytes)" % (
-            value / (1024*1024.0),
-            value
-        )
-    elif abs(value) < 1024*1014*1024*1024:
-        return "%.2f GB (%d bytes)" % (
-            value / (1024*1024*1024.0),
-            value
-        )
+    if abs(value) < 1024 * 1014:
+        return "%.2f KB (%d bytes)" % (value / 1024.0, value)
+    elif abs(value) < 1024 * 1014 * 1024:
+        return "%.2f MB (%d bytes)" % (value / (1024 * 1024.0), value)
+    elif abs(value) < 1024 * 1014 * 1024 * 1024:
+        return "%.2f GB (%d bytes)" % (value / (1024 * 1024 * 1024.0), value)
     else:
         return "%d bytes" % value
 

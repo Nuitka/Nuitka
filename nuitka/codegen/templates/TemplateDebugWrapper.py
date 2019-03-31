@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -34,6 +34,7 @@ def enableDebug(globals_dict):
             To better trace and control template usage.
 
         """
+
         def __init__(self, name, value):
             self.name = name
             self.value = value
@@ -49,9 +50,7 @@ def enableDebug(globals_dict):
                     from logging import warning
 
                     warning(
-                        "Extra value '%s' provided to template '%s'.",
-                        key,
-                        self.name
+                        "Extra value '%s' provided to template '%s'.", key, self.name
                     )
 
             try:
@@ -65,14 +64,12 @@ def enableDebug(globals_dict):
     for template_name, template_value in iterItems(templates):
         # Ignore internal attribute like "__name__" that the module will also
         # have of course.
-        if template_name.startswith('_'):
+        if template_name.startswith("_"):
             continue
 
         if type(template_value) is str:
-            globals_dict[template_name] = TemplateWrapper(
-                template_name,
-                template_value
-            )
+            globals_dict[template_name] = TemplateWrapper(template_name, template_value)
+
 
 def checkDebug(globals_dict):
     if isDebug():

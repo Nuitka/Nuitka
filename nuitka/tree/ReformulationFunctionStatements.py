@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,32 +25,32 @@ source code comments with developer manual sections.
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementAssignmentVariableName,
-    StatementReleaseVariable
+    StatementReleaseVariable,
 )
 from nuitka.nodes.AsyncgenNodes import (
     ExpressionAsyncgenObjectBody,
-    ExpressionMakeAsyncgenObject
+    ExpressionMakeAsyncgenObject,
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
-    StatementSpecialUnpackCheck
+    StatementSpecialUnpackCheck,
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinRef
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
-    ExpressionMakeCoroutineObject
+    ExpressionMakeCoroutineObject,
 )
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef
+    ExpressionFunctionRef,
 )
 from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
     ExpressionMakeGeneratorObject,
-    StatementGeneratorReturnNone
+    StatementGeneratorReturnNone,
 )
 from nuitka.nodes.LocalsDictNodes import StatementSetLocalsDictionary
 from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
@@ -58,7 +58,7 @@ from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableNameRef,
-    ExpressionVariableRef
+    ExpressionVariableRef,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
@@ -76,21 +76,18 @@ from .TreeHelpers import (
     makeCallNode,
     makeDictCreationOrConstant2,
     makeStatementsSequenceFromStatement,
-    mangleName
+    mangleName,
 )
 
 
 def _insertFinalReturnStatement(function_statements_body, return_statement):
     if function_statements_body is None:
         function_statements_body = makeStatementsSequenceFromStatement(
-            statement = return_statement
+            statement=return_statement
         )
     elif not function_statements_body.isStatementAborting():
         function_statements_body.setStatements(
-            function_statements_body.getStatements() +
-            (
-                return_statement,
-            )
+            function_statements_body.getStatements() + (return_statement,)
         )
 
     return function_statements_body
@@ -98,19 +95,17 @@ def _insertFinalReturnStatement(function_statements_body, return_statement):
 
 def _insertInitialSetLocalsDictStatement(function_body, function_statements_body):
     locals_statement = StatementSetLocalsDictionary(
-        locals_scope = function_body.getFunctionLocalsScope(),
-        source_ref   = function_body.source_ref
+        locals_scope=function_body.getFunctionLocalsScope(),
+        source_ref=function_body.source_ref,
     )
 
     if function_statements_body is None:
         function_statements_body = makeStatementsSequenceFromStatement(
-            statement = locals_statement
+            statement=locals_statement
         )
     else:
         function_statements_body.setStatements(
-            (
-                locals_statement,
-            ) + function_statements_body.getStatements()
+            (locals_statement,) + function_statements_body.getStatements()
         )
 
     return function_statements_body
@@ -121,15 +116,14 @@ def _injectDecorator(decorators, inject, acceptable, source_ref):
     assert type(acceptable) is tuple
 
     for decorator in decorators:
-        if decorator.isExpressionVariableNameRef() and \
-           decorator.getVariableName() in acceptable:
+        if (
+            decorator.isExpressionVariableNameRef()
+            and decorator.getVariableName() in acceptable
+        ):
             break
     else:
         decorators.append(
-            makeExpressionBuiltinRef(
-                builtin_name = inject,
-                source_ref   = source_ref
-            )
+            makeExpressionBuiltinRef(builtin_name=inject, source_ref=source_ref)
         )
 
 
@@ -140,38 +134,36 @@ def buildFunctionNode(provider, node, source_ref):
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
-    function_kind, flags = detectFunctionBodyKind(
-        nodes = function_statement_nodes
-    )
+    function_kind, flags = detectFunctionBodyKind(nodes=function_statement_nodes)
 
     function_body, code_body, code_object = buildFunctionWithParsing(
-        provider      = provider,
-        function_kind = function_kind,
-        name          = node.name,
-        function_doc  = function_doc,
-        flags         = flags,
-        node          = node,
-        source_ref    = source_ref
+        provider=provider,
+        function_kind=function_kind,
+        name=node.name,
+        function_doc=function_doc,
+        flags=flags,
+        node=node,
+        source_ref=source_ref,
     )
 
     if function_kind in ("Generator", "Coroutine"):
         if function_kind == "Coroutine":
             code_body = ExpressionCoroutineObjectBody(
-                provider    = function_body,
-                name        = node.name,
-                code_object = code_object,
-                flags       = flags,
-                source_ref  = source_ref
+                provider=function_body,
+                name=node.name,
+                code_object=code_object,
+                flags=flags,
+                source_ref=source_ref,
             )
 
             maker_class = ExpressionMakeCoroutineObject
         else:
             code_body = ExpressionGeneratorObjectBody(
-                provider    = function_body,
-                name        = node.name,
-                code_object = code_object,
-                flags       = flags,
-                source_ref  = source_ref
+                provider=function_body,
+                name=node.name,
+                code_object=code_object,
+                flags=flags,
+                source_ref=source_ref,
             )
 
             maker_class = ExpressionMakeGeneratorObject
@@ -183,115 +175,107 @@ def buildFunctionNode(provider, node, source_ref):
 
         function_body.setBody(
             makeStatementsSequenceFromStatement(
-                statement = StatementReturn(
-                    expression = maker_class(
+                statement=StatementReturn(
+                    expression=maker_class(
                         ExpressionFunctionRef(
-                            function_body = code_body,
-                            source_ref    = source_ref
+                            function_body=code_body, source_ref=source_ref
                         ),
-                        source_ref = source_ref
+                        source_ref=source_ref,
                     ),
-                    source_ref = source_ref
+                    source_ref=source_ref,
                 )
             )
         )
 
     decorators = buildNodeList(
-        provider   = provider,
-        nodes      = reversed(node.decorator_list),
-        source_ref = source_ref
+        provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
     )
 
     defaults = buildNodeList(
-        provider   = provider,
-        nodes      = node.args.defaults,
-        source_ref = source_ref
+        provider=provider, nodes=node.args.defaults, source_ref=source_ref
     )
 
     kw_defaults = buildParameterKwDefaults(
-        provider      = provider,
-        node          = node,
-        function_body = function_body,
-        source_ref    = source_ref
+        provider=provider, node=node, function_body=function_body, source_ref=source_ref
     )
 
     function_statements_body = buildFrameNode(
-        provider    = code_body,
-        nodes       = function_statement_nodes,
-        code_object = code_object,
-        source_ref  = source_ref
+        provider=code_body,
+        nodes=function_statement_nodes,
+        code_object=code_object,
+        source_ref=source_ref,
     )
 
     if function_kind == "Function":
         # TODO: Generators might have to raise GeneratorExit instead.
         function_statements_body = _insertFinalReturnStatement(
-            function_statements_body = function_statements_body,
-            return_statement         = StatementReturnNone(
-                source_ref = source_ref
-            )
+            function_statements_body=function_statements_body,
+            return_statement=StatementReturnNone(source_ref=source_ref),
         )
 
     if "has_exec" in flags:
         function_statements_body = _insertInitialSetLocalsDictStatement(
-            function_body            = code_body,
-            function_statements_body = function_statements_body,
+            function_body=code_body, function_statements_body=function_statements_body
         )
 
     if function_statements_body.isStatementsFrame():
         function_statements_body = makeStatementsSequenceFromStatement(
-            statement = function_statements_body
+            statement=function_statements_body
         )
 
-    code_body.setBody(
-        function_statements_body
-    )
+    code_body.setBody(function_statements_body)
 
     annotations = buildParameterAnnotations(provider, node, source_ref)
 
     function_creation = ExpressionFunctionCreation(
-        function_ref = ExpressionFunctionRef(
-            function_body = function_body,
-            source_ref    = source_ref
+        function_ref=ExpressionFunctionRef(
+            function_body=function_body, source_ref=source_ref
         ),
-        defaults     = defaults,
-        kw_defaults  = kw_defaults,
-        annotations  = annotations,
-        source_ref   = source_ref
+        defaults=defaults,
+        kw_defaults=kw_defaults,
+        annotations=annotations,
+        source_ref=source_ref,
     )
 
     # Add the "staticmethod" decorator to __new__ methods if not provided.
 
     # CPython made these optional, but secretly applies them when it does
     # "class __new__".  We add them earlier, so our optimization will see it.
-    if python_version < 300 and \
-       node.name == "__new__" and \
-       provider.isExpressionClassBody():
-        _injectDecorator(decorators, "staticmethod", ("staticmethod", "classmethod"), source_ref)
+    if (
+        python_version < 300
+        and node.name == "__new__"
+        and provider.isExpressionClassBody()
+    ):
+        _injectDecorator(
+            decorators, "staticmethod", ("staticmethod", "classmethod"), source_ref
+        )
 
     # Add the "classmethod" decorator to __init_subclass__ methods if not provided.
-    if python_version >= 360 and \
-       node.name == "__init_subclass__" and \
-       provider.isExpressionClassBody():
+    if (
+        python_version >= 360
+        and node.name == "__init_subclass__"
+        and provider.isExpressionClassBody()
+    ):
         _injectDecorator(decorators, "classmethod", ("classmethod",), source_ref)
 
-    if python_version >= 370 and \
-       node.name == "__class_getitem__" and \
-       provider.isExpressionClassBody():
+    if (
+        python_version >= 370
+        and node.name == "__class_getitem__"
+        and provider.isExpressionClassBody()
+    ):
         _injectDecorator(decorators, "classmethod", ("classmethod",), source_ref)
 
     decorated_function = function_creation
     for decorator in decorators:
         decorated_function = makeCallNode(
-            decorator,
-            decorated_function,
-            decorator.getSourceReference()
+            decorator, decorated_function, decorator.getSourceReference()
         )
 
     result = StatementAssignmentVariableName(
-        provider      = provider,
-        variable_name = mangleName(node.name, provider),
-        source        = decorated_function,
-        source_ref    = source_ref
+        provider=provider,
+        variable_name=mangleName(node.name, provider),
+        source=decorated_function,
+        source_ref=source_ref,
     )
 
     if python_version >= 340:
@@ -308,35 +292,34 @@ def buildAsyncFunctionNode(provider, node, source_ref):
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
     function_kind, flags = detectFunctionBodyKind(
-        nodes       = function_statement_nodes,
-        start_value = "Coroutine"
+        nodes=function_statement_nodes, start_value="Coroutine"
     )
 
     creator_function_body, _, code_object = buildFunctionWithParsing(
-        provider      = provider,
-        function_kind = function_kind,
-        name          = node.name,
-        function_doc  = function_doc,
-        flags         = (),
-        node          = node,
-        source_ref    = source_ref
+        provider=provider,
+        function_kind=function_kind,
+        name=node.name,
+        function_doc=function_doc,
+        flags=(),
+        node=node,
+        source_ref=source_ref,
     )
 
     if function_kind == "Coroutine":
         function_body = ExpressionCoroutineObjectBody(
-            provider    = creator_function_body,
-            name        = node.name,
-            code_object = code_object,
-            flags       = flags,
-            source_ref  = source_ref
+            provider=creator_function_body,
+            name=node.name,
+            code_object=code_object,
+            flags=flags,
+            source_ref=source_ref,
         )
     else:
         function_body = ExpressionAsyncgenObjectBody(
-            provider    = creator_function_body,
-            name        = node.name,
-            code_object = code_object,
-            flags       = flags,
-            source_ref  = source_ref
+            provider=creator_function_body,
+            name=node.name,
+            code_object=code_object,
+            flags=flags,
+            source_ref=source_ref,
         )
 
     function_body.qualname_provider = provider
@@ -345,100 +328,83 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         function_body.getVariableForReference(variable.getName())
 
     decorators = buildNodeList(
-        provider   = provider,
-        nodes      = reversed(node.decorator_list),
-        source_ref = source_ref
+        provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
     )
 
     defaults = buildNodeList(
-        provider   = provider,
-        nodes      = node.args.defaults,
-        source_ref = source_ref
+        provider=provider, nodes=node.args.defaults, source_ref=source_ref
     )
 
     function_statements_body = buildFrameNode(
-        provider    = function_body,
-        nodes       = function_statement_nodes,
-        code_object = code_object,
-        source_ref  = source_ref
+        provider=function_body,
+        nodes=function_statement_nodes,
+        code_object=code_object,
+        source_ref=source_ref,
     )
 
     function_statements_body = _insertFinalReturnStatement(
-        function_statements_body = function_statements_body,
-        return_statement         = StatementGeneratorReturnNone(
-            source_ref = source_ref
-        )
+        function_statements_body=function_statements_body,
+        return_statement=StatementGeneratorReturnNone(source_ref=source_ref),
     )
 
     if function_statements_body.isStatementsFrame():
         function_statements_body = makeStatementsSequenceFromStatement(
-            statement = function_statements_body
+            statement=function_statements_body
         )
 
-    function_body.setBody(
-        function_statements_body
-    )
+    function_body.setBody(function_statements_body)
 
     annotations = buildParameterAnnotations(provider, node, source_ref)
 
     kw_defaults = buildParameterKwDefaults(
-        provider      = provider,
-        node          = node,
-        function_body = creator_function_body,
-        source_ref    = source_ref
+        provider=provider,
+        node=node,
+        function_body=creator_function_body,
+        source_ref=source_ref,
     )
 
     if function_kind == "Coroutine":
         creation_node = ExpressionMakeCoroutineObject(
-            coroutine_ref = ExpressionFunctionRef(
-                function_body = function_body,
-                source_ref    = source_ref
+            coroutine_ref=ExpressionFunctionRef(
+                function_body=function_body, source_ref=source_ref
             ),
-            source_ref    = source_ref
+            source_ref=source_ref,
         )
     else:
         creation_node = ExpressionMakeAsyncgenObject(
-            asyncgen_ref = ExpressionFunctionRef(
-                function_body = function_body,
-                source_ref    = source_ref
+            asyncgen_ref=ExpressionFunctionRef(
+                function_body=function_body, source_ref=source_ref
             ),
-            source_ref   = source_ref
+            source_ref=source_ref,
         )
-
 
     creator_function_body.setBody(
         makeStatementsSequenceFromStatement(
-            statement = StatementReturn(
-                expression = creation_node,
-                source_ref = source_ref
-            )
+            statement=StatementReturn(expression=creation_node, source_ref=source_ref)
         )
     )
 
     function_creation = ExpressionFunctionCreation(
-        function_ref = ExpressionFunctionRef(
-            function_body = creator_function_body,
-            source_ref    = source_ref
+        function_ref=ExpressionFunctionRef(
+            function_body=creator_function_body, source_ref=source_ref
         ),
-        defaults     = defaults,
-        kw_defaults  = kw_defaults,
-        annotations  = annotations,
-        source_ref   = source_ref
+        defaults=defaults,
+        kw_defaults=kw_defaults,
+        annotations=annotations,
+        source_ref=source_ref,
     )
 
     decorated_function = function_creation
     for decorator in decorators:
         decorated_function = makeCallNode(
-            decorator,
-            decorated_function,
-            decorator.getSourceReference()
+            decorator, decorated_function, decorator.getSourceReference()
         )
 
     result = StatementAssignmentVariableName(
-        provider      = provider,
-        variable_name = mangleName(node.name, provider),
-        source        = decorated_function,
-        source_ref    = source_ref
+        provider=provider,
+        variable_name=mangleName(node.name, provider),
+        source=decorated_function,
+        source_ref=source_ref,
     )
 
     function_body.qualname_setup = result.getVariableName()
@@ -461,18 +427,13 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
             keys = []
             values = []
 
-            for kw_only_name, kw_default in \
-              zip(kw_only_names, node.args.kw_defaults):
+            for kw_only_name, kw_default in zip(kw_only_names, node.args.kw_defaults):
                 if kw_default is not None:
                     keys.append(kw_only_name)
-                    values.append(
-                        buildNode(provider, kw_default, source_ref)
-                    )
+                    values.append(buildNode(provider, kw_default, source_ref))
 
             kw_defaults = makeDictCreationOrConstant2(
-                keys       = keys,
-                values     = values,
-                source_ref = source_ref
+                keys=keys, values=values, source_ref=source_ref
             )
         else:
             kw_defaults = None
@@ -509,8 +470,8 @@ def buildParameterAnnotations(provider, node, source_ref):
         elif getKind(arg) == "arg":
             if arg.annotation is not None:
                 addAnnotation(
-                    key   = arg.arg,
-                    value = buildAnnotationNode(provider, arg.annotation, source_ref)
+                    key=arg.arg,
+                    value=buildAnnotationNode(provider, arg.annotation, source_ref),
                 )
         elif getKind(arg) == "Tuple":
             for sub_arg in arg.elts:
@@ -527,18 +488,14 @@ def buildParameterAnnotations(provider, node, source_ref):
     if python_version < 340:
         if node.args.varargannotation is not None:
             addAnnotation(
-                key   = node.args.vararg,
-                value = buildNode(
-                    provider, node.args.varargannotation, source_ref
-                )
+                key=node.args.vararg,
+                value=buildNode(provider, node.args.varargannotation, source_ref),
             )
 
         if node.args.kwargannotation is not None:
             addAnnotation(
-                key   = node.args.kwarg,
-                value = buildNode(
-                    provider, node.args.kwargannotation, source_ref
-                )
+                key=node.args.kwarg,
+                value=buildNode(provider, node.args.kwargannotation, source_ref),
             )
     else:
         if node.args.vararg is not None:
@@ -549,23 +506,20 @@ def buildParameterAnnotations(provider, node, source_ref):
     # Return value annotation (not there for lambdas)
     if hasattr(node, "returns") and node.returns is not None:
         addAnnotation(
-            key   = "return",
-            value = buildAnnotationNode(
-                provider, node.returns, source_ref
-            )
+            key="return", value=buildAnnotationNode(provider, node.returns, source_ref)
         )
 
     if keys:
         return makeDictCreationOrConstant2(
-            keys       = keys,
-            values     = values,
-            source_ref = source_ref
+            keys=keys, values=values, source_ref=source_ref
         )
     else:
         return None
 
 
-def _wrapFunctionWithSpecialNestedArgs(name, outer_body, parameters, special_args, source_ref):
+def _wrapFunctionWithSpecialNestedArgs(
+    name, outer_body, parameters, special_args, source_ref
+):
     inner_name = name.strip("<>") + "$inner"
     iter_vars = []
 
@@ -583,12 +537,9 @@ def _wrapFunctionWithSpecialNestedArgs(name, outer_body, parameters, special_arg
 
         statements.append(
             StatementAssignmentVariable(
-                variable   = iter_var,
-                source     = ExpressionBuiltinIter1(
-                    value      = source,
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
+                variable=iter_var,
+                source=ExpressionBuiltinIter1(value=source, source_ref=source_ref),
+                source_ref=source_ref,
             )
         )
 
@@ -599,41 +550,36 @@ def _wrapFunctionWithSpecialNestedArgs(name, outer_body, parameters, special_arg
 
                 statements.append(
                     StatementAssignmentVariable(
-                        variable   = arg_var,
-                        source     = ExpressionSpecialUnpack(
-                            value      = ExpressionTempVariableRef(
-                                variable   = iter_var,
-                                source_ref = source_ref
+                        variable=arg_var,
+                        source=ExpressionSpecialUnpack(
+                            value=ExpressionTempVariableRef(
+                                variable=iter_var, source_ref=source_ref
                             ),
-                            count      = element_index + 1,
-                            expected   = len(arg_names),
-                            starred    = False,
-                            source_ref = source_ref
+                            count=element_index + 1,
+                            expected=len(arg_names),
+                            starred=False,
+                            source_ref=source_ref,
                         ),
-                        source_ref = source_ref
+                        source_ref=source_ref,
                     )
                 )
 
                 accesses.append(
-                    ExpressionVariableRef(
-                        variable   = arg_var,
-                        source_ref = source_ref
-                    )
+                    ExpressionVariableRef(variable=arg_var, source_ref=source_ref)
                 )
             elif getKind(arg_name) == "Tuple":
                 accesses.extend(
                     unpackFrom(
-                        source    = ExpressionSpecialUnpack(
-                            value      = ExpressionTempVariableRef(
-                                variable   = iter_var,
-                                source_ref = source_ref
+                        source=ExpressionSpecialUnpack(
+                            value=ExpressionTempVariableRef(
+                                variable=iter_var, source_ref=source_ref
                             ),
-                            count      = element_index + 1,
-                            expected   = len(arg_names),
-                            starred    = False,
-                            source_ref = source_ref
+                            count=element_index + 1,
+                            expected=len(arg_names),
+                            starred=False,
+                            source_ref=source_ref,
                         ),
-                        arg_names = arg_name.elts
+                        arg_names=arg_name.elts,
                     )
                 )
 
@@ -643,68 +589,50 @@ def _wrapFunctionWithSpecialNestedArgs(name, outer_body, parameters, special_arg
 
         statements.append(
             StatementSpecialUnpackCheck(
-                iterator   = ExpressionTempVariableRef(
-                    variable   = iter_var,
-                    source_ref = source_ref
+                iterator=ExpressionTempVariableRef(
+                    variable=iter_var, source_ref=source_ref
                 ),
-                count      = len(arg_names),
-                source_ref = source_ref
+                count=len(arg_names),
+                source_ref=source_ref,
             )
         )
 
         return accesses
 
     for arg_name in parameters.getParameterNames():
-        if arg_name.startswith('.'):
+        if arg_name.startswith("."):
             source = ExpressionVariableNameRef(
-                provider      = outer_body,
-                variable_name = arg_name,
-                source_ref    = source_ref
+                provider=outer_body, variable_name=arg_name, source_ref=source_ref
             )
 
-            values.extend(
-                unpackFrom(source, special_args[arg_name])
-            )
+            values.extend(unpackFrom(source, special_args[arg_name]))
         else:
             values.append(
                 ExpressionVariableNameRef(
-                    provider      = outer_body,
-                    variable_name = arg_name,
-                    source_ref    = source_ref
+                    provider=outer_body, variable_name=arg_name, source_ref=source_ref
                 )
             )
 
     code_body = ExpressionOutlineFunction(
-        provider   = outer_body,
-        name       = inner_name,
-        source_ref = source_ref
+        provider=outer_body, name=inner_name, source_ref=source_ref
     )
 
-    statements.append(
-        StatementReturn(
-            expression = code_body,
-            source_ref = source_ref
-        )
-    )
+    statements.append(StatementReturn(expression=code_body, source_ref=source_ref))
 
     outer_body.setBody(
         makeStatementsSequenceFromStatement(
-            statement = makeTryFinallyStatement(
-                provider   = outer_body,
-                tried      = statements,
-                final      = [
-                    StatementReleaseVariable(
-                        variable   = variable,
-                        source_ref = source_ref
-                    )
-                    for variable in
-                    sorted(
+            statement=makeTryFinallyStatement(
+                provider=outer_body,
+                tried=statements,
+                final=[
+                    StatementReleaseVariable(variable=variable, source_ref=source_ref)
+                    for variable in sorted(
                         outer_body.getTempVariables(),
-                        key = lambda variable: variable.getName()
+                        key=lambda variable: variable.getName(),
                     )
                 ],
-                source_ref = source_ref,
-                public_exc = False
+                source_ref=source_ref,
+                public_exc=False,
             )
         )
     )
@@ -712,13 +640,16 @@ def _wrapFunctionWithSpecialNestedArgs(name, outer_body, parameters, special_arg
     return code_body
 
 
-def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
-                             node, source_ref):
+def buildFunctionWithParsing(
+    provider, function_kind, name, function_doc, flags, node, source_ref
+):
     # This contains a complex re-formulation for nested parameter functions.
     # pylint: disable=too-many-locals
 
     kind = getKind(node)
-    assert kind in ("FunctionDef", "Lambda", "AsyncFunctionDef"), "unsupported for kind " + kind
+    assert kind in ("FunctionDef", "Lambda", "AsyncFunctionDef"), (
+        "unsupported for kind " + kind
+    )
 
     def extractArg(arg):
         if arg is None:
@@ -754,61 +685,54 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
     normal_args = extractNormalArgs(node.args.args)
 
     parameters = ParameterSpec(
-        ps_name          = name,
-        ps_normal_args   = normal_args,
-        ps_kw_only_args  = [
-            extractArg(arg)
-            for arg in
-            node.args.kwonlyargs
-            ]
-              if python_version >= 300 else
-            [],
-        ps_list_star_arg = extractArg(node.args.vararg),
-        ps_dict_star_arg = extractArg(node.args.kwarg),
-        ps_default_count = len(node.args.defaults)
+        ps_name=name,
+        ps_normal_args=normal_args,
+        ps_kw_only_args=[extractArg(arg) for arg in node.args.kwonlyargs]
+        if python_version >= 300
+        else [],
+        ps_list_star_arg=extractArg(node.args.vararg),
+        ps_dict_star_arg=extractArg(node.args.kwarg),
+        ps_default_count=len(node.args.defaults),
     )
 
     message = parameters.checkParametersValid()
 
     if message is not None:
-        raiseSyntaxError(
-            message,
-            source_ref.atColumnNumber(node.col_offset),
-        )
+        raiseSyntaxError(message, source_ref.atColumnNumber(node.col_offset))
 
     parent_module = provider.getParentModule()
 
     code_object = CodeObjectSpec(
-        co_name           = name,
-        co_kind           = function_kind,
-        co_varnames       = parameters.getParameterNames(),
-        co_argcount       = parameters.getArgumentCount(),
-        co_kwonlyargcount = parameters.getKwOnlyParameterCount(),
-        co_has_starlist   = parameters.getStarListArgumentName() is not None,
-        co_has_stardict   = parameters.getStarDictArgumentName() is not None,
-        co_filename       = parent_module.getRunTimeFilename(),
-        co_lineno         = source_ref.getLineNumber(),
-        future_spec       = parent_module.getFutureSpec()
+        co_name=name,
+        co_kind=function_kind,
+        co_varnames=parameters.getParameterNames(),
+        co_argcount=parameters.getArgumentCount(),
+        co_kwonlyargcount=parameters.getKwOnlyParameterCount(),
+        co_has_starlist=parameters.getStarListArgumentName() is not None,
+        co_has_stardict=parameters.getStarDictArgumentName() is not None,
+        co_filename=parent_module.getRunTimeFilename(),
+        co_lineno=source_ref.getLineNumber(),
+        future_spec=parent_module.getFutureSpec(),
     )
 
     outer_body = ExpressionFunctionBody(
-        provider    = provider,
-        name        = name,
-        code_object = code_object,
-        flags       = flags,
-        doc         = function_doc,
-        parameters  = parameters,
-        source_ref  = source_ref
+        provider=provider,
+        name=name,
+        code_object=code_object,
+        flags=flags,
+        doc=function_doc,
+        parameters=parameters,
+        source_ref=source_ref,
     )
 
     # Wrap if necessary for special nested arguments.
     if special_args:
         code_body = _wrapFunctionWithSpecialNestedArgs(
-            name         = name,
-            outer_body   = outer_body,
-            parameters   = parameters,
-            special_args = special_args,
-            source_ref   = source_ref
+            name=name,
+            outer_body=outer_body,
+            parameters=parameters,
+            special_args=special_args,
+            source_ref=source_ref,
         )
 
     else:
@@ -831,31 +755,19 @@ def addFunctionVariableReleases(function):
             continue
 
         releases.append(
-            StatementReleaseVariable(
-                variable   = variable,
-                source_ref = source_ref
-            )
+            StatementReleaseVariable(variable=variable, source_ref=source_ref)
         )
 
     if releases:
         body = function.getBody()
 
         if body.isStatementsFrame():
-            body = makeStatementsSequenceFromStatement(
-                statement = body
-            )
+            body = makeStatementsSequenceFromStatement(statement=body)
 
         body = makeTryFinallyStatement(
-            provider   = function,
-            tried      = body,
-            final      = releases,
-            source_ref = source_ref
+            provider=function, tried=body, final=releases, source_ref=source_ref
         )
 
-        function.setBody(
-            makeStatementsSequenceFromStatement(
-                statement = body
-            )
-        )
+        function.setBody(makeStatementsSequenceFromStatement(statement=body))
 
         # assert body.isStatementAborting(), body.asXmlText()

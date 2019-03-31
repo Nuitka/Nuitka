@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,15 +23,12 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
-from nuitka.nodes.ReturnNodes import (
-    ExpressionReturnedValueRef,
-    StatementReturn
-)
+from nuitka.nodes.ReturnNodes import ExpressionReturnedValueRef, StatementReturn
 from nuitka.nodes.StatementNodes import (
     StatementPreserveFrameException,
     StatementPublishException,
     StatementRestoreFrameException,
-    StatementsSequence
+    StatementsSequence,
 )
 from nuitka.nodes.TryNodes import StatementTry
 from nuitka.Options import isDebug
@@ -47,7 +44,7 @@ from .TreeHelpers import (
     makeStatementsSequenceFromStatements,
     mergeStatements,
     popBuildContext,
-    pushBuildContext
+    pushBuildContext,
 )
 
 
@@ -56,6 +53,7 @@ def _checkCloning(final, provider):
     final2.parent = provider
 
     import nuitka.TreeXML
+
     if nuitka.TreeXML.Element is not None:
         f1 = final.asXml()
         f2 = final2.asXml()
@@ -69,21 +67,18 @@ def _checkCloning(final, provider):
         compare(f1, f2)
 
 
-def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = False):
+def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False):
     # Complex handling, due to the many variants, pylint: disable=too-many-branches
 
     if type(tried) in (tuple, list):
         if tried:
-            tried = makeStatementsSequenceFromStatements(
-                *tried
-            )
+            tried = makeStatementsSequenceFromStatements(*tried)
         else:
             tried = None
     if type(final) in (tuple, list):
         if final:
             final = StatementsSequence(
-                statements = mergeStatements(final, False),
-                source_ref = source_ref
+                statements=mergeStatements(final, False), source_ref=source_ref
             )
         else:
             final = None
@@ -121,97 +116,80 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
 
     if tried.mayRaiseException(BaseException):
         except_handler = getStatementsAppended(
-            statement_sequence = getFinal(),
-            statements         = makeReraiseExceptionStatement(
-                source_ref = source_ref
-            )
+            statement_sequence=getFinal(),
+            statements=makeReraiseExceptionStatement(source_ref=source_ref),
         )
 
         if public_exc:
             preserver_id = provider.allocatePreserverId()
 
             except_handler = getStatementsPrepended(
-                statement_sequence = except_handler,
-                statements         = (
+                statement_sequence=except_handler,
+                statements=(
                     StatementPreserveFrameException(
-                        preserver_id = preserver_id,
-                        source_ref   = source_ref.atInternal()
+                        preserver_id=preserver_id, source_ref=source_ref.atInternal()
                     ),
-                    StatementPublishException(
-                        source_ref = source_ref
-                    )
-                )
+                    StatementPublishException(source_ref=source_ref),
+                ),
             )
 
             except_handler = makeTryFinallyStatement(
-                provider   = provider,
-                tried      = except_handler,
-                final      = StatementRestoreFrameException(
-                    preserver_id = preserver_id,
-                    source_ref   = source_ref.atInternal()
+                provider=provider,
+                tried=except_handler,
+                final=StatementRestoreFrameException(
+                    preserver_id=preserver_id, source_ref=source_ref.atInternal()
                 ),
-                public_exc = False,
-                source_ref = source_ref,
+                public_exc=False,
+                source_ref=source_ref,
             )
 
             except_handler = makeStatementsSequenceFromStatement(
-                statement = except_handler
+                statement=except_handler
             )
     else:
         except_handler = None
 
     if tried.mayBreak():
         break_handler = getStatementsAppended(
-            statement_sequence = getFinal(),
-            statements         = StatementLoopBreak(
-                source_ref = source_ref
-            )
+            statement_sequence=getFinal(),
+            statements=StatementLoopBreak(source_ref=source_ref),
         )
     else:
         break_handler = None
 
     if tried.mayContinue():
         continue_handler = getStatementsAppended(
-            statement_sequence = getFinal(),
-            statements         = StatementLoopContinue(
-                source_ref = source_ref
-            )
+            statement_sequence=getFinal(),
+            statements=StatementLoopContinue(source_ref=source_ref),
         )
     else:
         continue_handler = None
 
     if tried.mayReturn():
         return_handler = getStatementsAppended(
-            statement_sequence = getFinal(),
-            statements         = StatementReturn(
-                expression = ExpressionReturnedValueRef(
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
-            )
+            statement_sequence=getFinal(),
+            statements=StatementReturn(
+                expression=ExpressionReturnedValueRef(source_ref=source_ref),
+                source_ref=source_ref,
+            ),
         )
     else:
         return_handler = None
 
     result = StatementTry(
-        tried            = tried,
-        except_handler   = except_handler,
-        break_handler    = break_handler,
-        continue_handler = continue_handler,
-        return_handler   = return_handler,
-        source_ref       = source_ref
+        tried=tried,
+        except_handler=except_handler,
+        break_handler=break_handler,
+        continue_handler=continue_handler,
+        return_handler=return_handler,
+        source_ref=source_ref,
     )
 
     if result.isStatementAborting():
         return result
     else:
         return makeStatementsSequence(
-            statements = (
-                result,
-                getFinal()
-            ),
-            allow_none = False,
-            source_ref = source_ref
+            statements=(result, getFinal()), allow_none=False, source_ref=source_ref
         )
 
 
@@ -221,17 +199,12 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         # Prevent "continue" statements in the final blocks
         pushBuildContext("finally")
         final = buildStatementsNode(
-            provider   = provider,
-            nodes      = node.finalbody,
-            source_ref = source_ref
+            provider=provider, nodes=node.finalbody, source_ref=source_ref
         )
         popBuildContext()
 
         return makeTryFinallyStatement(
-            provider   = provider,
-            tried      = build_tried(),
-            final      = final,
-            source_ref = source_ref
+            provider=provider, tried=build_tried(), final=final, source_ref=source_ref
         )
     else:
         tried = build_tried()
@@ -240,16 +213,14 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         # become "SyntaxError".
         pushBuildContext("finally")
         final = buildStatementsNode(
-            provider   = provider,
-            nodes      = node.finalbody,
-            source_ref = source_ref
+            provider=provider, nodes=node.finalbody, source_ref=source_ref
         )
         popBuildContext()
 
         return makeTryFinallyStatement(
-            provider   = provider,
-            tried      = tried,
-            final      = final,
-            public_exc = True,
-            source_ref = source_ref
+            provider=provider,
+            tried=tried,
+            final=final,
+            public_exc=True,
+            source_ref=source_ref,
         )

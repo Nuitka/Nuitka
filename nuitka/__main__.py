@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -57,13 +57,13 @@ def main():
         ]
 
     # For re-execution, we might not have done this.
-    from nuitka import Options                  # isort:skip
+    from nuitka import Options  # isort:skip
+
     Options.parseArgs()
 
+    import logging  # isort:skip
 
-
-    import logging # isort:skip
-    logging.basicConfig(format = "Nuitka:%(levelname)s:%(message)s")
+    logging.basicConfig(format="Nuitka:%(levelname)s:%(message)s")
 
     # We don't care, and these are triggered by run time calculations of "range" and
     # others, while on python2.7 they are disabled by default.
@@ -84,7 +84,7 @@ def main():
     # caching it, and comparing generated source code. While the created binary
     # actually may still use it, during compilation we don't want to. So lets
     # disable it.
-    if os.environ.get("PYTHONHASHSEED", "-1") != '0':
+    if os.environ.get("PYTHONHASHSEED", "-1") != "0":
         needs_reexec = True
 
     # In case we need to re-execute.
@@ -96,20 +96,12 @@ def main():
 
         # Execute with full path as the process name, so it can find itself and its
         # libraries.
-        args = [
-            sys.executable,
-            sys.executable
-        ]
+        args = [sys.executable, sys.executable]
 
         if current_version >= "3.7" and sys.flags.utf8_mode:
-            args += [
-                "-X", "utf8"
-            ]
+            args += ["-X", "utf8"]
 
-        args += [
-            "-S",
-            our_filename,
-        ]
+        args += ["-S", our_filename]
 
         os.environ["NUITKA_BINARY_NAME"] = sys.modules["__main__"].__file__
 
@@ -119,36 +111,38 @@ def main():
         # Same arguments as before.
         args += sys.argv[1:] + list(Options.getMainArgs())
 
-        os.environ["NUITKA_PYTHONPATH"] = repr(
-            sys.path
+        os.environ["NUITKA_PYTHONPATH"] = repr(sys.path)
+
+        from nuitka.importing.PreloadedPackages import (
+            detectPreLoadedPackagePaths,
+            detectPthImportedPackages,
         )
 
-        from nuitka.importing.PreloadedPackages import detectPreLoadedPackagePaths, detectPthImportedPackages
-        os.environ["NUITKA_NAMESPACES"] = repr(
-            detectPreLoadedPackagePaths()
-        )
+        os.environ["NUITKA_NAMESPACES"] = repr(detectPreLoadedPackagePaths())
 
         if "site" in sys.modules:
             os.environ["NUITKA_SITE_FILENAME"] = sys.modules["site"].__file__
 
             os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
 
+        os.environ["NUITKA_SITE_FLAG"] = (
+            str(sys.flags.no_site) if "no_site" not in Options.getPythonFlags() else "1"
+        )
 
-        os.environ["NUITKA_SITE_FLAG"] = str(sys.flags.no_site) \
-                                           if "no_site" not in Options.getPythonFlags() \
-                                         else '1'
+        os.environ["PYTHONHASHSEED"] = "0"
 
-        os.environ["PYTHONHASHSEED"] = '0'
+        from nuitka.utils import Execution  # isort:skip
 
-        from nuitka.utils import Execution   # isort:skip
         Execution.callExec(args)
 
     if Options.isShowMemory():
         from nuitka.utils import MemoryUsage
+
         MemoryUsage.startMemoryTracing()
 
     # Inform the user about potential issues.
     from nuitka.PythonVersions import getSupportedPythonVersions
+
     if current_version not in getSupportedPythonVersions():
 
         # Do not disturb run of automatic tests, detected from the presence of
@@ -156,7 +150,7 @@ def main():
         if "PYTHON" not in os.environ:
             logging.warning(
                 "The version '%s' is not currently supported. Expect problems.",
-                current_version
+                current_version,
             )
 
     if "NUITKA_NAMESPACES" in os.environ:
@@ -179,10 +173,12 @@ def main():
 
     # Now the real main program of Nuitka can take over.
     from nuitka import MainControl  # isort:skip
+
     MainControl.main()
 
     if Options.isShowMemory():
         MemoryUsage.showMemoryTrace()
+
 
 if __name__ == "__main__":
     main()

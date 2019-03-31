@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,31 +28,22 @@ allowed_tags = (
     # New code means new statements.
     # Could be a new module, or an inlined exec statement.
     "new_code",
-
     # Added new import.
     "new_import",
-
     # New statements added, removed.
     "new_statements",
-
     # New expression added.
     "new_expression",
-
     # TODO: A bit unclear what this it, potentially a changed variable.
     "var_usage",
-
     # Detected module variable to be read only.
     "read_only_mvar",
-
     # New built-in reference detected.
     "new_builtin_ref",
-
     # New built-in call detected.
     "new_builtin",
-
     # New raise statement detected.
     "new_raise",
-
     # New constant introduced.
     "new_constant",
 )

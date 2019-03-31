@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -49,26 +49,40 @@ class ParameterSpec(object):
     # variables, pylint: disable=too-many-instance-attributes
 
     __slots__ = (
-        "name", "owner", "normal_args", "normal_variables",
-        "list_star_arg", "dict_star_arg", "list_star_variable",
-        "dict_star_variable", "default_count", "kw_only_args",
-        "kw_only_variables"
+        "name",
+        "owner",
+        "normal_args",
+        "normal_variables",
+        "list_star_arg",
+        "dict_star_arg",
+        "list_star_variable",
+        "dict_star_variable",
+        "default_count",
+        "kw_only_args",
+        "kw_only_variables",
     )
 
     @counted_init
-    def __init__(self, ps_name, ps_normal_args, ps_kw_only_args, ps_list_star_arg,
-                 ps_dict_star_arg, ps_default_count):
+    def __init__(
+        self,
+        ps_name,
+        ps_normal_args,
+        ps_kw_only_args,
+        ps_list_star_arg,
+        ps_dict_star_arg,
+        ps_default_count,
+    ):
         if type(ps_normal_args) is str:
             if ps_normal_args == "":
                 ps_normal_args = ()
             else:
-                ps_normal_args = ps_normal_args.split(',')
+                ps_normal_args = ps_normal_args.split(",")
 
         if type(ps_kw_only_args) is str:
             if ps_kw_only_args == "":
                 ps_kw_only_args = ()
             else:
-                ps_kw_only_args = ps_kw_only_args.split(',')
+                ps_kw_only_args = ps_kw_only_args.split(",")
 
         assert None not in ps_normal_args
 
@@ -78,10 +92,12 @@ class ParameterSpec(object):
         self.normal_args = tuple(ps_normal_args)
         self.normal_variables = None
 
-        assert ps_list_star_arg is None or type(ps_list_star_arg) is str, \
-          ps_list_star_arg
-        assert ps_dict_star_arg is None or type(ps_dict_star_arg) is str, \
-          ps_dict_star_arg
+        assert (
+            ps_list_star_arg is None or type(ps_list_star_arg) is str
+        ), ps_list_star_arg
+        assert (
+            ps_dict_star_arg is None or type(ps_dict_star_arg) is str
+        ), ps_dict_star_arg
 
         self.list_star_arg = ps_list_star_arg if ps_list_star_arg else None
         self.dict_star_arg = ps_dict_star_arg if ps_dict_star_arg else None
@@ -98,22 +114,26 @@ class ParameterSpec(object):
 
     def makeClone(self):
         return ParameterSpec(
-            ps_name          = self.name,
-            ps_normal_args   = self.normal_args,
-            ps_kw_only_args  = self.kw_only_args,
-            ps_list_star_arg = self.list_star_arg,
-            ps_dict_star_arg = self.dict_star_arg,
-            ps_default_count = self.default_count
+            ps_name=self.name,
+            ps_normal_args=self.normal_args,
+            ps_kw_only_args=self.kw_only_args,
+            ps_list_star_arg=self.list_star_arg,
+            ps_dict_star_arg=self.dict_star_arg,
+            ps_default_count=self.default_count,
         )
 
     def getDetails(self):
         return {
-            "ps_name"          : self.name,
-            "ps_normal_args"   : ','.join(self.normal_args),
-            "ps_kw_only_args"  : ','.join(self.kw_only_args),
-            "ps_list_star_arg" : self.list_star_arg if self.list_star_arg is not None else "",
-            "ps_dict_star_arg" : self.dict_star_arg if self.dict_star_arg is not None else "",
-            "ps_default_count" : self.default_count
+            "ps_name": self.name,
+            "ps_normal_args": ",".join(self.normal_args),
+            "ps_kw_only_args": ",".join(self.kw_only_args),
+            "ps_list_star_arg": self.list_star_arg
+            if self.list_star_arg is not None
+            else "",
+            "ps_dict_star_arg": self.dict_star_arg
+            if self.dict_star_arg is not None
+            else "",
+            "ps_default_count": self.default_count,
         }
 
     def checkParametersValid(self):
@@ -127,11 +147,7 @@ class ParameterSpec(object):
         return None
 
     def __repr__(self):
-        parts = [
-            str(normal_arg)
-            for normal_arg
-            in self.normal_args
-        ]
+        parts = [str(normal_arg) for normal_arg in self.normal_args]
 
         if self.list_star_arg is not None:
             parts.append("*%s" % self.list_star_arg)
@@ -140,7 +156,7 @@ class ParameterSpec(object):
             parts.append("**%s" % self.dict_star_variable)
 
         if parts:
-            return "<ParameterSpec '%s'>" % ','.join(parts)
+            return "<ParameterSpec '%s'>" % ",".join(parts)
         else:
             return "<NoParameters>"
 
@@ -157,8 +173,7 @@ class ParameterSpec(object):
         for normal_arg in self.normal_args:
             if type(normal_arg) is str:
                 normal_variable = Variables.ParameterVariable(
-                    owner          = self.owner,
-                    parameter_name = normal_arg
+                    owner=self.owner, parameter_name=normal_arg
                 )
             else:
                 assert False, normal_arg
@@ -167,27 +182,21 @@ class ParameterSpec(object):
 
         if self.list_star_arg:
             self.list_star_variable = Variables.ParameterVariable(
-                owner          = owner,
-                parameter_name = self.list_star_arg
+                owner=owner, parameter_name=self.list_star_arg
             )
         else:
             self.list_star_variable = None
 
         if self.dict_star_arg:
             self.dict_star_variable = Variables.ParameterVariable(
-                owner          = owner,
-                parameter_name = self.dict_star_arg
+                owner=owner, parameter_name=self.dict_star_arg
             )
         else:
             self.dict_star_variable = None
 
         self.kw_only_variables = [
-            Variables.ParameterVariable(
-                owner          = self.owner,
-                parameter_name = kw_only_arg
-            )
-            for kw_only_arg in
-            self.kw_only_args
+            Variables.ParameterVariable(owner=self.owner, parameter_name=kw_only_arg)
+            for kw_only_arg in self.kw_only_args
         ]
 
     def getDefaultCount(self):
@@ -262,8 +271,17 @@ class ParameterSpec(object):
 
 
 # Note: Based loosely on "inspect.getcallargs" with corrections.
-def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
-              num_posonly, positional, pairs, improved = False):
+def matchCall(
+    func_name,
+    args,
+    star_list_arg,
+    star_dict_arg,
+    num_defaults,
+    num_posonly,
+    positional,
+    pairs,
+    improved=False,
+):
     # This is of incredible code complexity, but there really is no other way to
     # express this with less statements, branches, or variables.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
@@ -281,7 +299,7 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
     def assign(arg, value):
         if type(arg) is str:
             # Normal case:
-            result[ arg ] = value
+            result[arg] = value
         else:
             # Tuple argument case:
 
@@ -294,10 +312,8 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
                 except StopIteration:
                     raise TooManyArguments(
                         ValueError(
-                            "need more than %d %s to unpack" % (
-                                i,
-                                "values" if i > 1 else "value"
-                            )
+                            "need more than %d %s to unpack"
+                            % (i, "values" if i > 1 else "value")
                         )
                     )
 
@@ -310,9 +326,7 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
             except StopIteration:
                 pass
             else:
-                raise TooManyArguments(
-                    ValueError("too many values to unpack")
-                )
+                raise TooManyArguments(ValueError("too many values to unpack"))
 
     def isAssigned(arg):
         if type(arg) is str:
@@ -336,29 +350,27 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
                 if improved or python_version >= 370:
                     message = "'%s' is an invalid keyword argument for %s()" % (
                         pair[0],
-                        func_name
+                        func_name,
                     )
                 else:
-                    message = "'%s' is an invalid keyword argument for this function" % pair[0]
+                    message = (
+                        "'%s' is an invalid keyword argument for this function"
+                        % pair[0]
+                    )
 
-                raise TooManyArguments(
-                    TypeError(message)
-                )
+                raise TooManyArguments(TypeError(message))
             else:
                 if arg_index < num_posonly:
                     message = "'%s' is an invalid keyword argument for %s()" % (
                         pair[0],
-                        func_name
+                        func_name,
                     )
 
-                    raise TooManyArguments(
-                        TypeError(message)
-                    )
-
+                    raise TooManyArguments(TypeError(message))
 
     if star_list_arg:
         if num_pos > num_args:
-            assign(star_list_arg, positional[ -(num_pos-num_args) : ])
+            assign(star_list_arg, positional[-(num_pos - num_args) :])
         else:
             assign(star_list_arg, ())
     elif 0 < num_args < num_total:
@@ -366,31 +378,27 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
             if num_args == 1:
                 raise TooManyArguments(
                     TypeError(
-                        "%s() takes exactly one argument (%d given)" % (
-                            func_name,
-                            num_total
-                        )
+                        "%s() takes exactly one argument (%d given)"
+                        % (func_name, num_total)
                     )
                 )
             else:
                 raise TooManyArguments(
                     TypeError(
-                        "%s expected %d arguments, got %d" % (
-                            func_name,
-                            num_args,
-                            num_total
-                        )
+                        "%s expected %d arguments, got %d"
+                        % (func_name, num_args, num_total)
                     )
                 )
 
         else:
             raise TooManyArguments(
                 TypeError(
-                    "%s() takes at most %d %s (%d given)" % (
+                    "%s() takes at most %d %s (%d given)"
+                    % (
                         func_name,
                         num_args,
                         "argument" if num_args == 1 else "arguments",
-                        num_total
+                        num_total,
                     )
                 )
             )
@@ -400,37 +408,24 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
                 # Could use num_pos, but Python also uses num_total.
                 raise TooManyArguments(
                     TypeError(
-                        "%s() takes exactly 0 arguments (%d given)" % (
-                            func_name,
-                            num_total
-                        )
+                        "%s() takes exactly 0 arguments (%d given)"
+                        % (func_name, num_total)
                     )
                 )
         else:
             raise TooManyArguments(
-                TypeError(
-                    "%s() takes no arguments (%d given)" % (
-                        func_name,
-                        num_total
-                    )
-                )
+                TypeError("%s() takes no arguments (%d given)" % (func_name, num_total))
             )
 
-    named_argument_names = [
-        pair[0]
-        for pair in
-        pairs
-    ]
+    named_argument_names = [pair[0] for pair in pairs]
 
     for arg in args:
         if type(arg) is str and arg in named_argument_names:
             if isAssigned(arg):
                 raise TooManyArguments(
                     TypeError(
-                        "%s() got multiple values for keyword argument '%s'" % (
-                            func_name,
-                            arg
-                        )
+                        "%s() got multiple values for keyword argument '%s'"
+                        % (func_name, arg)
                     )
                 )
             else:
@@ -448,7 +443,7 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
 
     # Fill in any missing values with the None to indicate "default".
     if num_defaults > 0:
-        for arg in args[ -num_defaults : ]:
+        for arg in args[-num_defaults:]:
             if not isAssigned(arg):
                 assign(arg, None)
 
@@ -460,22 +455,16 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
         if improved:
             message = "%s() got an unexpected keyword argument '%s'" % (
                 func_name,
-                unexpected
+                unexpected,
             )
         else:
-            message = "'%s' is an invalid keyword argument for this function" % unexpected
+            message = (
+                "'%s' is an invalid keyword argument for this function" % unexpected
+            )
 
-        raise TooManyArguments(
-            TypeError(message)
-        )
+        raise TooManyArguments(TypeError(message))
 
-    unassigned = num_args - len(
-        [
-            arg
-            for arg in args
-            if isAssigned(arg)
-        ]
-    )
+    unassigned = num_args - len([arg for arg in args if isAssigned(arg)])
 
     if unassigned:
         num_required = num_args - num_defaults
@@ -484,11 +473,8 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
             if num_defaults == 0 and num_args != 1:
                 raise TooManyArguments(
                     TypeError(
-                        "%s expected %d arguments, got %d" % (
-                            func_name,
-                            num_args,
-                            num_total
-                        )
+                        "%s expected %d arguments, got %d"
+                        % (func_name, num_args, num_total)
                     )
                 )
 
@@ -499,24 +485,26 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
 
             raise TooManyArguments(
                 TypeError(
-                    "%s() takes %s %s (%d given)" % (
+                    "%s() takes %s %s (%d given)"
+                    % (
                         func_name,
                         "at least" if num_defaults > 0 else "exactly",
                         arg_desc,
-                        num_total
+                        num_total,
                     )
                 )
             )
         else:
             raise TooManyArguments(
                 TypeError(
-                    "%s expected %s%s, got %d" % (
+                    "%s expected %s%s, got %d"
+                    % (
                         func_name,
-                        ( "at least " if python_version < 300 else "" )
-                            if num_defaults > 0
+                        ("at least " if python_version < 300 else "")
+                        if num_defaults > 0
                         else "exactly ",
                         "%d arguments" % num_required,
-                        num_total
+                        num_total,
                     )
                 )
             )

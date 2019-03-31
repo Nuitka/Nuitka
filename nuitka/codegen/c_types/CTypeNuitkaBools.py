@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,19 +27,15 @@ class CTypeNuitkaBoolEnum(CTypeBase):
     c_type = "nuitka_bool"
 
     @classmethod
-    def emitVariableAssignCode(cls, value_name, needs_release, tmp_name,
-                               ref_count, in_place, emit, context):
+    def emitVariableAssignCode(
+        cls, value_name, needs_release, tmp_name, ref_count, in_place, emit, context
+    ):
 
         assert not in_place
         assert not ref_count
 
         if tmp_name.c_type == "nuitka_bool":
-            emit(
-                "%s = %s;" % (
-                    value_name,
-                    tmp_name
-                )
-            )
+            emit("%s = %s;" % (value_name, tmp_name))
         else:
             if tmp_name.c_type == "PyObject *":
                 test_code = "%s == Py_True" % tmp_name
@@ -47,17 +43,12 @@ class CTypeNuitkaBoolEnum(CTypeBase):
                 assert False, tmp_name
 
             cls.emitAssignmentCodeFromBoolCondition(
-                to_name   = value_name,
-                condition = test_code,
-                emit      = emit
+                to_name=value_name, condition=test_code, emit=emit
             )
 
     @classmethod
     def getLocalVariableInitTestCode(cls, value_name, inverted):
-        return "%s %s NUITKA_BOOL_UNASSIGNED" % (
-            value_name,
-            "==" if inverted else "!="
-        )
+        return "%s %s NUITKA_BOOL_UNASSIGNED" % (value_name, "==" if inverted else "!=")
 
     @classmethod
     def getTruthCheckCode(cls, value_name):
@@ -66,12 +57,7 @@ class CTypeNuitkaBoolEnum(CTypeBase):
     @classmethod
     def emitTruthCheckCode(cls, to_name, value_name, needs_check, emit, context):
         # Not using needs_check, pylint: disable=unused-argument
-        emit(
-            "%s = %s ? 1 : 0;" % (
-                to_name,
-                cls.getTruthCheckCode(value_name)
-            )
-        )
+        emit("%s = %s ? 1 : 0;" % (to_name, cls.getTruthCheckCode(value_name)))
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
@@ -81,26 +67,19 @@ class CTypeNuitkaBoolEnum(CTypeBase):
     @classmethod
     def emitValueAssertionCode(cls, value_name, emit, context):
         # Not using the context, pylint: disable=unused-argument
-        emit(
-            "assert( %s != NUITKA_BOOL_UNASSIGNED);" % value_name
-        )
+        emit("assert( %s != NUITKA_BOOL_UNASSIGNED);" % value_name)
 
     @classmethod
     def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
         if value_name.c_type == cls.c_type:
-            emit(
-                "%s = %s;" % (
-                    to_name,
-                    value_name
-                )
-            )
+            emit("%s = %s;" % (to_name, value_name))
         else:
             value_name.getCType().emitAssignmentCodeToNuitkaBool(
-                to_name     = to_name,
-                value_name  = value_name,
-                needs_check = needs_check,
-                emit        = emit,
-                context     = context
+                to_name=to_name,
+                value_name=value_name,
+                needs_check=needs_check,
+                emit=emit,
+                context=context,
             )
 
     @classmethod
@@ -117,32 +96,20 @@ class CTypeNuitkaBoolEnum(CTypeBase):
         pass
 
     @classmethod
-    def getDeleteObjectCode(cls, to_name, value_name, needs_check, tolerant,
-                            emit, context):
+    def getDeleteObjectCode(
+        cls, to_name, value_name, needs_check, tolerant, emit, context
+    ):
         if not needs_check:
-            emit(
-                "%s = NUITKA_BOOL_UNASSIGNED;" % value_name
-            )
+            emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
         elif tolerant:
-            emit(
-                "%s = NUITKA_BOOL_UNASSIGNED;" % value_name
-            )
+            emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
         else:
-            emit(
-                "%s = %s == NUITKA_BOOL_UNASSIGNED;" % (
-                    to_name,
-                    value_name,
-                )
-            )
-            emit(
-                "%s = NUITKA_BOOL_UNASSIGNED;" % value_name
-            )
+            emit("%s = %s == NUITKA_BOOL_UNASSIGNED;" % (to_name, value_name))
+            emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
         emit(
-            "%(to_name)s = ( %(condition)s ) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % {
-                "to_name"   : to_name,
-                "condition" : condition
-            }
+            "%(to_name)s = ( %(condition)s ) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;"
+            % {"to_name": to_name, "condition": condition}
         )

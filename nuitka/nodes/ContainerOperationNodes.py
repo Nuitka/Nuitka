@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,10 +28,7 @@ from .NodeBases import StatementChildrenHavingBase
 class StatementListOperationAppend(StatementChildrenHavingBase):
     kind = "STATEMENT_LIST_OPERATION_APPEND"
 
-    named_children = (
-        "list",
-        "value"
-    )
+    named_children = ("list", "value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, list_arg, value, source_ref):
@@ -39,12 +36,7 @@ class StatementListOperationAppend(StatementChildrenHavingBase):
         assert value is not None
 
         StatementChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "list"  : list_arg,
-                "value" : value
-            },
-            source_ref = source_ref
+            self, values={"list": list_arg, "value": value}, source_ref=source_ref
         )
 
     getList = StatementChildrenHavingBase.childGetter("list")
@@ -52,7 +44,7 @@ class StatementListOperationAppend(StatementChildrenHavingBase):
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection = trace_collection
+            trace_collection=trace_collection
         )
 
         if result is not self:
@@ -66,10 +58,7 @@ class StatementListOperationAppend(StatementChildrenHavingBase):
 class ExpressionListOperationExtend(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_LIST_OPERATION_EXTEND"
 
-    named_children = (
-        "list",
-        "value"
-    )
+    named_children = ("list", "value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, list_arg, value, source_ref):
@@ -77,12 +66,7 @@ class ExpressionListOperationExtend(ExpressionChildrenHavingBase):
         assert value is not None
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "list"  : list_arg,
-                "value" : value
-            },
-            source_ref = source_ref
+            self, values={"list": list_arg, "value": value}, source_ref=source_ref
         )
 
     getList = ExpressionChildrenHavingBase.childGetter("list")
@@ -97,20 +81,14 @@ class ExpressionListOperationExtend(ExpressionChildrenHavingBase):
 class ExpressionListOperationPop(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_LIST_OPERATION_POP"
 
-    named_children = (
-        "list",
-    )
+    named_children = ("list",)
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, list_arg, source_ref):
         assert list_arg is not None
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "list"  : list_arg,
-            },
-            source_ref = source_ref
+            self, values={"list": list_arg}, source_ref=source_ref
         )
 
     getList = ExpressionChildrenHavingBase.childGetter("list")
@@ -126,10 +104,7 @@ class ExpressionListOperationPop(ExpressionChildrenHavingBase):
 class StatementSetOperationAdd(StatementChildrenHavingBase):
     kind = "STATEMENT_SET_OPERATION_ADD"
 
-    named_children = (
-        "set",
-        "value"
-    )
+    named_children = ("set", "value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, set_arg, value, source_ref):
@@ -137,24 +112,15 @@ class StatementSetOperationAdd(StatementChildrenHavingBase):
         assert value is not None
 
         StatementChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "set"   : set_arg,
-                "value" : value
-            },
-            source_ref = source_ref
+            self, values={"set": set_arg, "value": value}, source_ref=source_ref
         )
 
-    getSet = StatementChildrenHavingBase.childGetter(
-        "set"
-    )
-    getValue = StatementChildrenHavingBase.childGetter(
-        "value"
-    )
+    getSet = StatementChildrenHavingBase.childGetter("set")
+    getValue = StatementChildrenHavingBase.childGetter("value")
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection = trace_collection
+            trace_collection=trace_collection
         )
 
         if result is not self:
@@ -168,10 +134,7 @@ class StatementSetOperationAdd(StatementChildrenHavingBase):
 class ExpressionSetOperationUpdate(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SET_OPERATION_UPDATE"
 
-    named_children = (
-        "set",
-        "value"
-    )
+    named_children = ("set", "value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, set_arg, value, source_ref):
@@ -179,20 +142,11 @@ class ExpressionSetOperationUpdate(ExpressionChildrenHavingBase):
         assert value is not None
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "set"  : set_arg,
-                "value" : value
-            },
-            source_ref = source_ref
+            self, values={"set": set_arg, "value": value}, source_ref=source_ref
         )
 
-    getSet = ExpressionChildrenHavingBase.childGetter(
-        "set"
-    )
-    getValue = ExpressionChildrenHavingBase.childGetter(
-        "value"
-    )
+    getSet = ExpressionChildrenHavingBase.childGetter("set")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, trace_collection):
         trace_collection.removeKnowledge(self.getSet())

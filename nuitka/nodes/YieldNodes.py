@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -37,22 +37,21 @@ class ExpressionYieldBase(ExpressionChildHavingBase):
         __slots__ = ()
 
     def __init__(self, value, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self,
-            value      = value,
-            source_ref = source_ref
-        )
+        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
         if python_version >= 300:
             self.exception_preserving = False
 
     if python_version >= 300:
+
         def markAsExceptionPreserving(self):
             self.exception_preserving = True
 
         def isExceptionPreserving(self):
             return self.exception_preserving
+
     else:
+
         @staticmethod
         def isExceptionPreserving():
             return False
@@ -87,12 +86,7 @@ class ExpressionYield(ExpressionYieldBase):
     named_child = "expression"
 
     def __init__(self, expression, source_ref):
-        ExpressionYieldBase.__init__(
-            self,
-            value      = expression,
-            source_ref = source_ref
-        )
-
+        ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)
 
 
 class ExpressionYieldFrom(ExpressionYieldBase):
@@ -107,16 +101,13 @@ class ExpressionYieldFrom(ExpressionYieldBase):
         a return value is what makes Python3 generators special, and with yield
         from, that value is the expression result.
     """
+
     kind = "EXPRESSION_YIELD_FROM"
 
     named_child = "expression"
 
     def __init__(self, expression, source_ref):
-        ExpressionYieldBase.__init__(
-            self,
-            value      = expression,
-            source_ref = source_ref
-        )
+        ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)
 
 
 class ExpressionYieldFromWaitable(ExpressionYieldBase):
@@ -130,13 +121,10 @@ class ExpressionYieldFromWaitable(ExpressionYieldBase):
         Similar to yield from. The actual lookups of awaitable go through
         slots and have dedicated nodes.
     """
+
     kind = "EXPRESSION_YIELD_FROM_WAITABLE"
 
     named_child = "expression"
 
     def __init__(self, expression, source_ref):
-        ExpressionYieldBase.__init__(
-            self,
-            value      = expression,
-            source_ref = source_ref
-        )
+        ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)

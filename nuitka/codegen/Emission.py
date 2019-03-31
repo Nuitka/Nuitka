@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,8 +32,8 @@ class SourceCodeCollector(object):
     def __call__(self, code):
         self.emit(code)
 
-    def emit(self,code):
-        for line in code.split('\n'):
+    def emit(self, code):
+        for line in code.split("\n"):
             self.codes.append(line)
 
     def emitTo(self, emit, level):

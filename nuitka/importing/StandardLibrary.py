@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -43,9 +43,7 @@ def getStandardLibraryPaths():
         if os_filename.endswith(".pyc"):
             os_filename = os_filename[:-1]
 
-        os_path = os.path.normcase(
-            os.path.dirname(os_filename)
-        )
+        os_path = os.path.normcase(os.path.dirname(os_filename))
 
         stdlib_paths = set([os_path])
 
@@ -53,11 +51,7 @@ def getStandardLibraryPaths():
         # this points to.
         if os.path.islink(os_filename):
             os_filename = os.readlink(os_filename)  # @UndefinedVariable
-            stdlib_paths.add(
-                os.path.normcase(
-                    os.path.dirname(os_filename)
-                )
-            )
+            stdlib_paths.add(os.path.normcase(os.path.dirname(os_filename)))
 
         # Another possibility is "orig-prefix.txt" file near the os.py, which
         # points to the original install.
@@ -72,8 +66,9 @@ def getStandardLibraryPaths():
             lib_part = ""
 
             while os.path.splitdrive(search)[1] not in (os.path.sep, ""):
-                if os.path.isfile(os.path.join(search,"bin/activate")) or \
-                   os.path.isfile(os.path.join(search,"scripts/activate")):
+                if os.path.isfile(
+                    os.path.join(search, "bin/activate")
+                ) or os.path.isfile(os.path.join(search, "scripts/activate")):
                     break
 
                 lib_part = os.path.join(os.path.basename(search), lib_part)
@@ -84,22 +79,18 @@ def getStandardLibraryPaths():
 
             stdlib_paths.add(
                 os.path.normcase(
-                    os.path.join(
-                        open(orig_prefix_filename).read(),
-                        lib_part,
-                    )
+                    os.path.join(open(orig_prefix_filename).read(), lib_part)
                 )
             )
 
-        # And yet another possibility, for MacOS Homebrew created virtualenv
+        # And yet another possibility, for macOS Homebrew created virtualenv
         # at least is a link ".Python", which points to the original install.
         python_link_filename = os.path.join(os_path, "..", ".Python")
         if os.path.islink(python_link_filename):
             stdlib_paths.add(
                 os.path.normcase(
                     os.path.join(
-                        os.readlink(python_link_filename),
-                        "lib"
+                        os.readlink(python_link_filename), "lib"  # @UndefinedVariable
                     )
                 )
             )
@@ -112,14 +103,11 @@ def getStandardLibraryPaths():
 
         if getOS() == "Windows":
             import _ctypes
-            stdlib_paths.add(
-                os.path.dirname(_ctypes.__file__)
-            )
+
+            stdlib_paths.add(os.path.dirname(_ctypes.__file__))
 
         getStandardLibraryPaths.result = [
-            os.path.normcase(stdlib_path)
-            for stdlib_path in
-            stdlib_paths
+            os.path.normcase(stdlib_path) for stdlib_path in stdlib_paths
         ]
 
     return getStandardLibraryPaths.result

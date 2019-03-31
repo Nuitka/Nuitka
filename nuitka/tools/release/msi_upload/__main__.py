@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,16 +30,20 @@ from nuitka.tools.release.MSI import createMSIPackage
 def main():
     msi_filename = createMSIPackage()
 
-    assert subprocess.call(
-        (
-            "scp",
-            msi_filename,
-            "git@nuitka.net:/var/www/releases/" + os.path.basename(msi_filename)
-        ),
-        shell = True # scan scp in PATH.
-    ) == 0
+    assert (
+        subprocess.call(
+            (
+                "scp",
+                msi_filename,
+                "git@nuitka.net:/var/www/releases/" + os.path.basename(msi_filename),
+            ),
+            shell=True,  # scan scp in PATH.
+        )
+        == 0
+    )
 
     print("OK, uploaded", msi_filename)
+
 
 if __name__ == "__main__":
     main()

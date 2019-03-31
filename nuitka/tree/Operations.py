@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,16 +22,13 @@ You can visit a scope, a tree (module), or every scope of a tree (module).
 
 """
 
+
 def visitTree(tree, visitor):
     visitor.onEnterNode(tree)
 
     for visitable in tree.getVisitableNodes():
         if visitable is None:
-            raise AssertionError(
-                "'None' child encountered",
-                tree,
-                tree.source_ref
-            )
+            raise AssertionError("'None' child encountered", tree, tree.source_ref)
 
         visitTree(visitable, visitor)
 

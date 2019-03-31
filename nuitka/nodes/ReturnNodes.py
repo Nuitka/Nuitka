@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -35,11 +35,7 @@ class StatementReturn(StatementChildHavingBase):
     nice_child = "return value"
 
     def __init__(self, expression, source_ref):
-        StatementChildHavingBase.__init__(
-            self,
-            value      = expression,
-            source_ref = source_ref
-        )
+        StatementChildHavingBase.__init__(self, value=expression, source_ref=source_ref)
 
     getExpression = StatementChildHavingBase.childGetter("expression")
 
@@ -60,25 +56,31 @@ class StatementReturn(StatementChildHavingBase):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
-                expression = expression,
-                node       = self
+                expression=expression, node=self
             )
 
-            return result, "new_raise", """\
-Return statement raises in returned expression, removed return."""
+            return (
+                result,
+                "new_raise",
+                """\
+Return statement raises in returned expression, removed return.""",
+            )
 
         trace_collection.onFunctionReturn()
 
         if expression.isExpressionConstantRef():
             result = makeStatementReturnConstant(
-                constant   = expression.getCompileTimeConstant(),
-                source_ref = self.source_ref
+                constant=expression.getCompileTimeConstant(), source_ref=self.source_ref
             )
 
             del self.parent
 
-            return result, "new_statements", """\
-Return value is always constant."""
+            return (
+                result,
+                "new_statements",
+                """\
+Return value is always constant.""",
+            )
 
         return self, None, None
 
@@ -87,10 +89,7 @@ class StatementReturnConstantBase(StatementBase):
     __slots__ = ()
 
     def __init__(self, source_ref):
-        StatementBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        StatementBase.__init__(self, source_ref=source_ref)
 
     @staticmethod
     def isStatementReturn():
@@ -114,10 +113,7 @@ class StatementReturnConstantBase(StatementBase):
         """
 
     def getExpression(self):
-        return makeConstantReplacementNode(
-            node     = self,
-            constant = self.getConstant()
-        )
+        return makeConstantReplacementNode(node=self, constant=self.getConstant())
 
     def getStatementNiceName(self):
         return "return statement"
@@ -129,10 +125,7 @@ class StatementReturnNone(StatementReturnConstantBase):
     __slots__ = ()
 
     def __init__(self, source_ref):
-        StatementReturnConstantBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        StatementReturnConstantBase.__init__(self, source_ref=source_ref)
 
     def finalize(self):
         del self.parent
@@ -147,10 +140,7 @@ class StatementReturnFalse(StatementReturnConstantBase):
     __slots__ = ()
 
     def __init__(self, source_ref):
-        StatementReturnConstantBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        StatementReturnConstantBase.__init__(self, source_ref=source_ref)
 
     def finalize(self):
         del self.parent
@@ -165,10 +155,7 @@ class StatementReturnTrue(StatementReturnConstantBase):
     __slots__ = ()
 
     def __init__(self, source_ref):
-        StatementReturnConstantBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        StatementReturnConstantBase.__init__(self, source_ref=source_ref)
 
     def finalize(self):
         del self.parent
@@ -183,10 +170,7 @@ class StatementReturnConstant(StatementReturnConstantBase):
     __slots__ = ("constant",)
 
     def __init__(self, constant, source_ref):
-        StatementReturnConstantBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        StatementReturnConstantBase.__init__(self, source_ref=source_ref)
 
         self.constant = constant
 
@@ -198,39 +182,25 @@ class StatementReturnConstant(StatementReturnConstantBase):
         return self.constant
 
     def getDetails(self):
-        return {
-            "constant" : self.constant
-        }
+        return {"constant": self.constant}
 
 
 def makeStatementReturnConstant(constant, source_ref):
     if constant is None:
-        return StatementReturnNone(
-            source_ref = source_ref
-        )
+        return StatementReturnNone(source_ref=source_ref)
     elif constant is True:
-        return StatementReturnTrue(
-            source_ref = source_ref
-        )
+        return StatementReturnTrue(source_ref=source_ref)
     elif constant is False:
-        return StatementReturnFalse(
-            source_ref = source_ref
-        )
+        return StatementReturnFalse(source_ref=source_ref)
     else:
-        return StatementReturnConstant(
-            constant   = constant,
-            source_ref = source_ref
-        )
+        return StatementReturnConstant(constant=constant, source_ref=source_ref)
 
 
 class ExpressionReturnedValueRef(ExpressionBase):
     kind = "EXPRESSION_RETURNED_VALUE_REF"
 
     def __init__(self, source_ref):
-        ExpressionBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
     def finalize(self):
         del self.parent

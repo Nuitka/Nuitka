@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,7 @@ from logging import info
 from nuitka import Tracing
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     raw_input,
-    urlretrieve
+    urlretrieve,
 )
 from nuitka.Options import assumeYesForDownloads
 from nuitka.utils import Utils
@@ -49,23 +49,14 @@ def getDependsExePath():
 
     nuitka_app_dir = getAppDir()
 
-    nuitka_depends_dir = os.path.join(
-        nuitka_app_dir,
-        Utils.getArchitecture()
-    )
-    nuitka_depends_zip = os.path.join(
-        nuitka_depends_dir,
-        os.path.basename(depends_url)
-    )
-    depends_exe = os.path.join(
-        nuitka_depends_dir,
-        "depends.exe"
-    )
+    nuitka_depends_dir = os.path.join(nuitka_app_dir, Utils.getArchitecture())
+    nuitka_depends_zip = os.path.join(nuitka_depends_dir, os.path.basename(depends_url))
+    depends_exe = os.path.join(nuitka_depends_dir, "depends.exe")
     makePath(nuitka_depends_dir)
 
     if not os.path.isfile(nuitka_depends_zip) and not os.path.isfile(depends_exe):
         if assumeYesForDownloads():
-            reply = 'y'
+            reply = "y"
         else:
             Tracing.printLine(
                 """\
@@ -74,31 +65,25 @@ to analyze the dependencies of Python extension modules. Is it OK to download
 and put it in "%s".
 No installer needed, cached, one time question.
 
-Proceed and download? [Yes]/No """ % (
-                    nuitka_app_dir
-                )
+Proceed and download? [Yes]/No """
+                % (nuitka_app_dir)
             )
             Tracing.flushStdout()
 
             reply = raw_input()
 
-        if reply.lower() in ("no", 'n'):
+        if reply.lower() in ("no", "n"):
             sys.exit("Nuitka does not work in --standalone on Windows without.")
 
         info("Downloading '%s'" % depends_url)
 
         try:
-            urlretrieve(
-                depends_url,
-                nuitka_depends_zip
-            )
-        except Exception: # Any kind of error, pylint: disable=broad-except
+            urlretrieve(depends_url, nuitka_depends_zip)
+        except Exception:  # Any kind of error, pylint: disable=broad-except
             sys.exit(
                 """Failed to download '%s'.\
-Contents should manually be extracted to '%s'.""" % (
-                    depends_url,
-                    nuitka_depends_dir
-                )
+Contents should manually be extracted to '%s'."""
+                % (depends_url, nuitka_depends_dir)
             )
 
     if not os.path.isfile(depends_exe):
@@ -109,17 +94,14 @@ Contents should manually be extracted to '%s'.""" % (
         try:
             depends_zip = zipfile.ZipFile(nuitka_depends_zip)
             depends_zip.extractall(nuitka_depends_dir)
-        except Exception: # Catching anything zip throws, pylint:disable=W0703
+        except Exception:  # Catching anything zip throws, pylint:disable=W0703
             info("Problem with the downloaded zip file, deleting it.")
 
-            deleteFile(depends_exe, must_exist = False)
-            deleteFile(nuitka_depends_zip, must_exist = True)
+            deleteFile(depends_exe, must_exist=False)
+            deleteFile(nuitka_depends_zip, must_exist=True)
 
             sys.exit(
-                "Error, need '%s' as extracted from '%s'." % (
-                    depends_exe,
-                    depends_url
-                )
+                "Error, need '%s' as extracted from '%s'." % (depends_exe, depends_url)
             )
 
     assert os.path.isfile(depends_exe)

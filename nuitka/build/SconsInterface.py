@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -103,18 +103,18 @@ def _getPythonSconsExePathWindows():
         import winreg  # @Reimport @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
     for search in scons_supported:
-        for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
-            for arch_key in 0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY:
+        for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):  # @UndefinedVariable
+            for arch_key in 0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY:  # @UndefinedVariable
                 try:
-                    key = winreg.OpenKey(
+                    key = winreg.OpenKey(  # @UndefinedVariable
                         hkey_branch,
                         r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
                         0,
-                        winreg.KEY_READ | arch_key
+                        winreg.KEY_READ | arch_key  # @UndefinedVariable
                     )
 
                     return os.path.join(
-                        winreg.QueryValue(key, ""),
+                        winreg.QueryValue(key, ""),  # @UndefinedVariable
                         "python.exe"
                     )
                 except WindowsError:  # @UndefinedVariable
@@ -172,8 +172,8 @@ def _setupSconsEnvironment():
     "NUITKA_PYTHON_EXE_PATH" to find the Python binary itself.
     """
 
-    if Utils.getOS() == "Windows":
-        # On Windows, we use the Python.DLL path for some things. We pass it
+    if Utils.isWin32Windows():
+        # On Win32, we use the Python.DLL path for some things. We pass it
         # via environment variable
         os.environ["NUITKA_PYTHON_DLL_PATH"] = getTargetPythonDLLPath()
 
@@ -204,9 +204,10 @@ def _setupSconsEnvironment():
         if old_pythonhome is not None:
             os.environ["PYTHONHOME"] = old_pythonhome
 
-    if Utils.getOS() == "Windows":
+    if Utils.isWin32Windows():
         del os.environ["NUITKA_PYTHON_DLL_PATH"]
-        del os.environ["NUITKA_PYTHON_EXE_PATH"]
+
+    del os.environ["NUITKA_PYTHON_EXE_PATH"]
 
 
 def _buildSconsCommand(quiet, options):

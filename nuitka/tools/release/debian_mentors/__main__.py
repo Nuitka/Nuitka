@@ -25,7 +25,7 @@ def main():
 
     # Clean the stage for the debian package. The name "deb_dist" is what "py2dsc"
     # uses for its output later on.
-    shutil.rmtree("deb_dist", ignore_errors = True)
+    shutil.rmtree("deb_dist", ignore_errors=True)
 
     # Provide a re-packed tar.gz for the Debian package as input.
 
@@ -36,30 +36,28 @@ def main():
 
     # Then run "py2dsc" on it.
 
-    for filename in os.listdir('.'):
+    for filename in os.listdir("."):
         if filename.endswith(".tar.gz"):
             new_name = filename[:-7] + "+ds.tar.gz"
 
             cleanupTarfileForDebian(filename, new_name)
 
-            assert os.system(
-                "py2dsc " + new_name
-            ) == 0
+            assert os.system("py2dsc " + new_name) == 0
 
             # Fixup for py2dsc not taking our custom suffix into account, so we need
             # to rename it ourselves.
-            before_deb_name = filename[:-7].lower().replace('-', '_')
+            before_deb_name = filename[:-7].lower().replace("-", "_")
             after_deb_name = before_deb_name.replace("rc", "~rc")
 
-            assert os.system(
-                "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'" % (
-                    before_deb_name, after_deb_name
+            assert (
+                os.system(
+                    "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'"
+                    % (before_deb_name, after_deb_name)
                 )
-            ) == 0
+                == 0
+            )
 
-            assert os.system(
-                "rm -f deb_dist/*_source*"
-            ) == 0
+            assert os.system("rm -f deb_dist/*_source*") == 0
 
             # Remove the now useless input, py2dsc has copied it, and we don't
             # publish it.
@@ -72,10 +70,12 @@ def main():
     os.chdir("deb_dist")
 
     # Assert that the unpacked directory is there. Otherwise fail badly.
-    for entry in os.listdir('.'):
-        if os.path.isdir(entry) and \
-           entry.startswith("nuitka") and \
-           not entry.endswith(".orig"):
+    for entry in os.listdir("."):
+        if (
+            os.path.isdir(entry)
+            and entry.startswith("nuitka")
+            and not entry.endswith(".orig")
+        ):
             break
     else:
         assert False
@@ -84,33 +84,30 @@ def main():
 
     # Import the "debian" directory from above. It's not in the original tar and
     # overrides or extends what py2dsc does.
-    assert os.system(
-        "rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry
-    ) == 0
+    assert (
+        os.system(
+            "rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry
+        )
+        == 0
+    )
 
     # Remove now unnecessary files.
-    assert os.system(
-        "rm *.dsc *.debian.tar.[gx]z"
-    ) == 0
+    assert os.system("rm *.dsc *.debian.tar.[gx]z") == 0
     os.chdir(entry)
 
     # Build the debian package, but disable the running of tests, will be done later
     # in the pbuilder test steps.
-    assert os.system(
-        "debuild --set-envvar=DEB_BUILD_OPTIONS=nocheck"
-    ) == 0
+    assert os.system("debuild --set-envvar=DEB_BUILD_OPTIONS=nocheck") == 0
 
     os.chdir("../../..")
     assert os.path.exists("dist/deb_dist")
 
     # Cleanup the build directory, not needed anymore.
-    shutil.rmtree("build", ignore_errors = True)
+    shutil.rmtree("build", ignore_errors=True)
 
     print("Uploading...")
     os.chdir("dist/deb_dist")
 
-    assert os.system(
-        "dput mentors *.changes"
-    ) == 0
+    assert os.system("dput mentors *.changes") == 0
 
     print("Finished.")

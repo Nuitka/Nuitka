@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,13 +29,20 @@ from nuitka.utils import InstanceCounters, Utils
 
 complete = False
 
+
 class Variable(object):
 
     # We will need all of these attributes, since we track the global
     # state and cache some decisions as attributes, pylint: disable=too-many-instance-attributes
     __slots__ = (
-        "variable_name", "owner", "version_number", "shared_users", "shared_scopes",
-        "traces", "users", "writers"
+        "variable_name",
+        "owner",
+        "version_number",
+        "shared_users",
+        "shared_scopes",
+        "traces",
+        "users",
+        "writers",
     )
 
     @InstanceCounters.counted_init
@@ -79,7 +86,7 @@ class Variable(object):
 
     def getCodeName(self):
         var_name = self.variable_name
-        var_name = var_name.replace('.', '$')
+        var_name = var_name.replace(".", "$")
         var_name = Utils.encodeNonAscii(var_name)
 
         return var_name
@@ -104,6 +111,7 @@ class Variable(object):
 
     def isLocalsDictVariable(self):
         return False
+
     # pylint: enable=R0201
 
     def addVariableUser(self, user):
@@ -112,9 +120,11 @@ class Variable(object):
             self.shared_users = True
 
             # These are not really scopes, just shared uses.
-            if user.isExpressionGeneratorObjectBody() or \
-               user.isExpressionCoroutineObjectBody() or \
-               user.isExpressionAsyncgenObjectBody():
+            if (
+                user.isExpressionGeneratorObjectBody()
+                or user.isExpressionCoroutineObjectBody()
+                or user.isExpressionAsyncgenObjectBody()
+            ):
                 if self.owner is user.getParentVariableProvider():
                     return
 
@@ -141,11 +151,10 @@ class Variable(object):
         for user in self.users:
             user = user.getEntryPoint()
 
-            while user is not owner and \
-                  (
-                   (user.isExpressionFunctionBody() and not user.needsCreation()) or \
-                   user.isExpressionClassBody()
-                  ):
+            while user is not owner and (
+                (user.isExpressionFunctionBody() and not user.needsCreation())
+                or user.isExpressionClassBody()
+            ):
                 user = user.getParentVariableProvider()
 
             if user is not owner:
@@ -214,9 +223,7 @@ class Variable(object):
 
         for trace in self.traces:
             if trace.isAssignTrace():
-                result.add(
-                    trace.getAssignNode().getAssignSource().getTypeShape()
-                )
+                result.add(trace.getAssignNode().getAssignSource().getTypeShape())
             elif trace.isUnknownTrace():
                 result.add(ShapeUnknown)
             elif trace.isUninitTrace():
@@ -239,17 +246,13 @@ class LocalVariable(Variable):
     __slots__ = ()
 
     def __init__(self, owner, variable_name):
-        Variable.__init__(
-            self,
-            owner         = owner,
-            variable_name = variable_name
-        )
+        Variable.__init__(self, owner=owner, variable_name=variable_name)
 
     def __repr__(self):
         return "<%s '%s' of '%s'>" % (
             self.__class__.__name__,
             self.variable_name,
-            self.owner.getName()
+            self.owner.getName(),
         )
 
     def isLocalVariable(self):
@@ -260,11 +263,7 @@ class ParameterVariable(LocalVariable):
     __slots__ = ()
 
     def __init__(self, owner, parameter_name):
-        LocalVariable.__init__(
-            self,
-            owner         = owner,
-            variable_name = parameter_name
-        )
+        LocalVariable.__init__(self, owner=owner, variable_name=parameter_name)
 
     def getDescription(self):
         return "parameter variable '%s'" % self.variable_name
@@ -280,18 +279,14 @@ class ModuleVariable(Variable):
         assert type(variable_name) is str, repr(variable_name)
         assert module.isCompiledPythonModule()
 
-        Variable.__init__(
-            self,
-            owner         = module,
-            variable_name = variable_name
-        )
+        Variable.__init__(self, owner=module, variable_name=variable_name)
 
         self.module = module
 
     def __repr__(self):
         return "<ModuleVariable '%s' of '%s'>" % (
             self.variable_name,
-            self.getModule().getFullName()
+            self.getModule().getFullName(),
         )
 
     def getDescription(self):
@@ -308,16 +303,12 @@ class TempVariable(Variable):
     __slots__ = ()
 
     def __init__(self, owner, variable_name):
-        Variable.__init__(
-            self,
-            owner         = owner,
-            variable_name = variable_name
-        )
+        Variable.__init__(self, owner=owner, variable_name=variable_name)
 
     def __repr__(self):
         return "<TempVariable '%s' of '%s'>" % (
             self.getName(),
-            self.getOwner().getName()
+            self.getOwner().getName(),
         )
 
     def getDescription(self):
@@ -331,16 +322,12 @@ class LocalsDictVariable(Variable):
     __slots__ = ()
 
     def __init__(self, owner, variable_name):
-        Variable.__init__(
-            self,
-            owner         = owner,
-            variable_name = variable_name
-        )
+        Variable.__init__(self, owner=owner, variable_name=variable_name)
 
     def __repr__(self):
         return "<LocalsDictVariable '%s' of '%s'>" % (
             self.getName(),
-            self.getOwner().getName()
+            self.getOwner().getName(),
         )
 
     def isLocalsDictVariable(self):
@@ -353,12 +340,16 @@ def updateVariablesFromCollection(old_collection, new_collection):
     touched_variables = set()
 
     if old_collection is not None:
-        for (variable, _version), variable_trace in iterItems(old_collection.getVariableTracesAll()):
+        for (variable, _version), variable_trace in iterItems(
+            old_collection.getVariableTracesAll()
+        ):
             variable.removeTrace(variable_trace)
             touched_variables.add(variable)
 
     if new_collection is not None:
-        for (variable, _version), variable_trace in iterItems(new_collection.getVariableTracesAll()):
+        for (variable, _version), variable_trace in iterItems(
+            new_collection.getVariableTracesAll()
+        ):
             variable.addTrace(variable_trace)
             touched_variables.add(variable)
 

@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -39,7 +39,7 @@ def _readSourceCodeFromFilename3(source_filename):
     # Only using this for Python3, for Python2 it's too buggy.
     import tokenize
 
-    with tokenize.open(source_filename) as source_file:   # @UndefinedVariable
+    with tokenize.open(source_filename) as source_file:  # @UndefinedVariable
         return source_file.read()
 
 
@@ -49,7 +49,7 @@ def _detectEncoding2(source_file):
 
     line1 = source_file.readline()
 
-    if line1.startswith(b'\xef\xbb\xbf'):
+    if line1.startswith(b"\xef\xbb\xbf"):
         encoding = "utf-8"
     else:
         line1_match = re.search(b"coding[:=]\\s*([-\\w.]+)", line1)
@@ -81,7 +81,7 @@ def _readSourceCodeFromFilename2(source_filename):
             try:
                 _source_code = source_code.decode(encoding)
             except UnicodeDecodeError as e:
-                lines = source_code.split('\n')
+                lines = source_code.split("\n")
                 so_far = 0
 
                 for count, line in enumerate(lines):
@@ -94,22 +94,18 @@ def _readSourceCodeFromFilename2(source_filename):
                     count = -1
 
                 wrong_byte = re.search(
-                    "byte 0x([a-f0-9]{2}) in position",
-                    str(e)
+                    "byte 0x([a-f0-9]{2}) in position", str(e)
                 ).group(1)
 
                 raiseSyntaxError(
                     """\
 Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; \
-see http://python.org/dev/peps/pep-0263/ for details""" % (
-                        wrong_byte,
-                        source_filename,
-                        count+1,
-                    ),
+see http://python.org/dev/peps/pep-0263/ for details"""
+                    % (wrong_byte, source_filename, count + 1),
                     SourceCodeReferences.fromFilename(source_filename).atLineNumber(
-                        count+1
+                        count + 1
                     ),
-                    display_line = False
+                    display_line=False,
                 )
 
     return source_code
@@ -139,7 +135,7 @@ def checkPythonVersionFromCode(source_code):
             try:
                 if os.path.samefile(sys.executable, binary):
                     return True
-            except OSError: # Might not exist
+            except OSError:  # Might not exist
                 pass
 
         basename = os.path.basename(binary)
@@ -169,7 +165,8 @@ def checkPythonVersionFromCode(source_code):
             result = None
 
         if result is False:
-            sys.exit("""\
+            sys.exit(
+                """\
 The program you compiled wants to be run with: %s.
 
 Nuitka is currently running with Python version '%s', which seems to not
@@ -177,13 +174,14 @@ match that. Nuitka cannot guess the Python version of your source code. You
 therefore might want to specify: '%s -m nuitka'.
 
 That will make use the correct Python version for Nuitka.
-""" % (shebang, python_version_str, binary)
+"""
+                % (shebang, python_version_str, binary)
             )
 
 
 def readSourceLine(source_ref):
     import linecache
+
     return linecache.getline(
-        filename = source_ref.getFilename(),
-        lineno   = source_ref.getLineNumber()
+        filename=source_ref.getFilename(), lineno=source_ref.getLineNumber()
     )

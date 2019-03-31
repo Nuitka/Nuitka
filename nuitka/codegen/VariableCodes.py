@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,18 +19,24 @@
 
 """
 
-from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeBool
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    ShapeTypeBool,
+    ShapeTypeInt,
+    ShapeTypeIntOrLong,
+    ShapeTypeLong,
+)
+from nuitka.PythonVersions import python_version
 
 from .c_types.CTypePyObjectPtrs import (
     CTypeCellObject,
     CTypePyObjectPtr,
-    CTypePyObjectPtrPtr
+    CTypePyObjectPtrPtr,
 )
 from .CodeHelpers import decideConversionCheckNeeded, generateExpressionCode
 from .ErrorCodes import (
     getAssertionCode,
     getLocalVariableReferenceErrorCode,
-    getNameReferenceErrorCode
+    getNameReferenceErrorCode,
 )
 from .VariableDeclarations import VariableDeclaration
 
@@ -47,29 +53,36 @@ def generateAssignmentVariableCode(statement, emit, context):
     else:
         source_shape = assign_source.getTypeShape()
 
-        variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
+        variable_declaration = getLocalVariableDeclaration(
+            context, variable, variable_trace
+        )
 
-        if source_shape is ShapeTypeBool and \
-           variable_declaration.c_type == "nuitka_bool":
+        if (
+            source_shape is ShapeTypeBool
+            and variable_declaration.c_type == "nuitka_bool"
+        ):
             tmp_name = context.allocateTempName("assign_source", "nuitka_bool")
+        elif (
+            source_shape is ShapeTypeIntOrLong
+            and variable_declaration.c_type == "nuitka_ilong"
+        ):
+
+            tmp_name = context.allocateTempName("assign_source", "nuitka_ilong")
         else:
             tmp_name = context.allocateTempName("assign_source")
 
     generateExpressionCode(
-        expression = assign_source,
-        to_name    = tmp_name,
-        emit       = emit,
-        context    = context
+        expression=assign_source, to_name=tmp_name, emit=emit, context=context
     )
 
     getVariableAssignmentCode(
-        tmp_name       = tmp_name,
-        variable       = variable,
-        variable_trace = variable_trace,
-        needs_release  = statement.needsReleasePreviousValue(),
-        in_place       = statement.isInplaceSuspect(),
-        emit           = emit,
-        context        = context
+        tmp_name=tmp_name,
+        variable=variable,
+        variable_trace=variable_trace,
+        needs_release=statement.needsReleasePreviousValue(),
+        in_place=statement.isInplaceSuspect(),
+        emit=emit,
+        context=context,
     )
 
     # Ownership of that reference must have been transferred.
@@ -82,37 +95,33 @@ def generateDelVariableCode(statement, emit, context):
     )
 
     _getVariableDelCode(
-        variable       = statement.getVariable(),
-        variable_trace = statement.variable_trace,
-        previous_trace = statement.previous_trace,
-        tolerant       = statement.isTolerant(),
-        needs_check    = statement.isTolerant() or \
-                         statement.mayRaiseException(BaseException),
-        emit           = emit,
-        context        = context
+        variable=statement.getVariable(),
+        variable_trace=statement.variable_trace,
+        previous_trace=statement.previous_trace,
+        tolerant=statement.isTolerant(),
+        needs_check=statement.isTolerant()
+        or statement.mayRaiseException(BaseException),
+        emit=emit,
+        context=context,
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)
 
 
-
-
-def getVariableReferenceCode(to_name, variable, variable_trace, needs_check,
-                             conversion_check, emit, context):
+def getVariableReferenceCode(
+    to_name, variable, variable_trace, needs_check, conversion_check, emit, context
+):
     if variable.isModuleVariable():
         variable_declaration = VariableDeclaration(
-            "module_var",
-            variable.getName(),
-            None,
-            None
+            "module_var", variable.getName(), None, None
         )
     else:
-        variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
+        variable_declaration = getLocalVariableDeclaration(
+            context, variable, variable_trace
+        )
 
     value_name = variable_declaration.getCType().emitValueAccessCode(
-        value_name = variable_declaration,
-        emit       = emit,
-        context    = context
+        value_name=variable_declaration, emit=emit, context=context
     )
 
     if needs_check:
@@ -120,48 +129,43 @@ def getVariableReferenceCode(to_name, variable, variable_trace, needs_check,
 
         if variable.isModuleVariable():
             getNameReferenceErrorCode(
-                variable_name = variable.getName(),
-                condition     = condition,
-                emit          = emit,
-                context       = context
+                variable_name=variable.getName(),
+                condition=condition,
+                emit=emit,
+                context=context,
             )
         else:
             getLocalVariableReferenceErrorCode(
-                variable  = variable,
-                condition = condition,
-                emit      = emit,
-                context   = context
+                variable=variable, condition=condition, emit=emit, context=context
             )
     else:
         value_name.getCType().emitValueAssertionCode(
-            value_name = value_name,
-            emit       = emit,
-            context    = context
+            value_name=value_name, emit=emit, context=context
         )
 
     to_name.getCType().emitAssignConversionCode(
-        to_name     = to_name,
-        value_name  = value_name,
-        needs_check = conversion_check,
-        emit        = emit,
-        context     = context
+        to_name=to_name,
+        value_name=value_name,
+        needs_check=conversion_check,
+        emit=emit,
+        context=context,
     )
 
 
 def generateVariableReferenceCode(to_name, expression, emit, context):
-    variable       = expression.getVariable()
+    variable = expression.getVariable()
     variable_trace = expression.getVariableTrace()
 
-    needs_check    = expression.mayRaiseException(BaseException)
+    needs_check = expression.mayRaiseException(BaseException)
 
     getVariableReferenceCode(
-        to_name          = to_name,
-        variable         = variable,
-        variable_trace   = variable_trace,
-        needs_check      = needs_check,
-        conversion_check = decideConversionCheckNeeded(to_name, expression),
-        emit             = emit,
-        context          = context
+        to_name=to_name,
+        variable=variable,
+        variable_trace=variable_trace,
+        needs_check=needs_check,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        emit=emit,
+        context=context,
     )
 
 
@@ -177,8 +181,10 @@ def _getVariableCodeName(in_context, variable):
         return "var_" + variable.getCodeName()
 
 
-def getPickedCType(variable, variable_trace, context):
+def getPickedCType(variable, context):
     """ Return type to use for specific context. """
+
+    # Necessarily complex, pylint: disable=too-many-branches
 
     user = context.getEntryPoint()
     owner = variable.getEntryPoint()
@@ -190,12 +196,19 @@ def getPickedCType(variable, variable_trace, context):
             shapes = variable.getTypeShapes()
 
             if len(shapes) > 1:
-                return CTypePyObjectPtr
-            else:
-                # We are avoiding this for now.
-                assert shapes, (variable, variable_trace)
+                # There are a few shapes that are included in one another.
+                if python_version < 300:
+                    if ShapeTypeIntOrLong in shapes:
+                        if ShapeTypeInt in shapes:
+                            shapes.discard(ShapeTypeInt)
+                        if ShapeTypeLong in shapes:
+                            shapes.discard(ShapeTypeLong)
 
-                return shapes.pop().getCType()
+                # Avoiding this for now.
+                if len(shapes) > 1:
+                    return CTypePyObjectPtr
+
+            return shapes.pop().getCType()
     elif context.isForDirectCall():
         if variable.isSharedTechnically():
             result = CTypeCellObject
@@ -207,7 +220,7 @@ def getPickedCType(variable, variable_trace, context):
     return result
 
 
-def decideLocalVariableCodeType(context, variable, variable_trace):
+def decideLocalVariableCodeType(context, variable):
     # Now must be local or temporary variable.
 
     user = context.getOwner()
@@ -220,16 +233,15 @@ def decideLocalVariableCodeType(context, variable, variable_trace):
     if owner.isExpressionOutlineFunction() or owner.isExpressionClassBody():
         entry_point = owner.getEntryPoint()
 
-        prefix = "outline_%d_" % entry_point.getTraceCollection().getOutlineFunctions().index(owner)
+        prefix = "outline_%d_" % entry_point.getTraceCollection().getOutlineFunctions().index(
+            owner
+        )
         owner = entry_point
 
-    c_type = getPickedCType(variable, variable_trace, context)
+    c_type = getPickedCType(variable, context)
 
     if owner is user:
-        result = _getVariableCodeName(
-            in_context = False,
-            variable   = variable
-        )
+        result = _getVariableCodeName(in_context=False, variable=variable)
 
         result = prefix + result
     elif context.isForDirectCall():
@@ -247,10 +259,7 @@ def decideLocalVariableCodeType(context, variable, variable_trace):
 
             result = "asyncgen->m_closure[%d]" % closure_index
         else:
-            result = _getVariableCodeName(
-                in_context = True,
-                variable   = variable
-            )
+            result = _getVariableCodeName(in_context=True, variable=variable)
 
             result = prefix + result
     else:
@@ -286,14 +295,13 @@ def getLocalVariableDeclaration(context, variable, variable_trace):
     if owner.isExpressionOutlineFunction() or owner.isExpressionClassBody():
         entry_point = owner.getEntryPoint()
 
-        prefix = "outline_%d_" % entry_point.getTraceCollection().getOutlineFunctions().index(owner)
+        prefix = "outline_%d_" % entry_point.getTraceCollection().getOutlineFunctions().index(
+            owner
+        )
         owner = entry_point
 
     if owner is user:
-        result = _getVariableCodeName(
-            in_context = False,
-            variable   = variable
-        )
+        result = _getVariableCodeName(in_context=False, variable=variable)
 
         result = prefix + result
 
@@ -308,8 +316,9 @@ def getLocalVariableDeclaration(context, variable, variable_trace):
         return context.variable_storage.getVariableDeclarationClosure(closure_index)
 
 
-def getVariableAssignmentCode(context, emit, variable, variable_trace,
-                              tmp_name, needs_release, in_place):
+def getVariableAssignmentCode(
+    context, emit, variable, variable_trace, tmp_name, needs_release, in_place
+):
     # For transfer of ownership.
     if context.needsCleanup(tmp_name):
         ref_count = 1
@@ -318,13 +327,12 @@ def getVariableAssignmentCode(context, emit, variable, variable_trace,
 
     if variable.isModuleVariable():
         variable_declaration = VariableDeclaration(
-            "module_var",
-            variable.getName(),
-            None,
-            None
+            "module_var", variable.getName(), None, None
         )
     else:
-        variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
+        variable_declaration = getLocalVariableDeclaration(
+            context, variable, variable_trace
+        )
 
         assert variable_declaration, (variable, context)
 
@@ -336,32 +344,34 @@ def getVariableAssignmentCode(context, emit, variable, variable_trace,
         assert not in_place or not variable.isTempVariable()
 
     variable_declaration.getCType().emitVariableAssignCode(
-        value_name    = variable_declaration,
-        needs_release = needs_release,
-        tmp_name      = tmp_name,
-        ref_count     = ref_count,
-        in_place      = in_place,
-        emit          = emit,
-        context       = context
+        value_name=variable_declaration,
+        needs_release=needs_release,
+        tmp_name=tmp_name,
+        ref_count=ref_count,
+        in_place=in_place,
+        emit=emit,
+        context=context,
     )
 
     if ref_count:
         context.removeCleanupTempName(tmp_name)
 
 
-def _getVariableDelCode(variable, variable_trace, previous_trace, tolerant,
-                        needs_check, emit, context):
+def _getVariableDelCode(
+    variable, variable_trace, previous_trace, tolerant, needs_check, emit, context
+):
     if variable.isModuleVariable():
         variable_declaration_old = VariableDeclaration(
-            "module_var",
-            variable.getName(),
-            None,
-            None
+            "module_var", variable.getName(), None, None
         )
         variable_declaration_new = variable_declaration_old
     else:
-        variable_declaration_old = getLocalVariableDeclaration(context, variable, previous_trace)
-        variable_declaration_new = getLocalVariableDeclaration(context, variable, variable_trace)
+        variable_declaration_old = getLocalVariableDeclaration(
+            context, variable, previous_trace
+        )
+        variable_declaration_new = getLocalVariableDeclaration(
+            context, variable, variable_trace
+        )
 
         # TODO: We need to split this operation in two parts. Release and init
         # are not one thing, until then require this.
@@ -376,34 +386,31 @@ def _getVariableDelCode(variable, variable_trace, previous_trace, tolerant,
         to_name = None
 
     variable_declaration_old.getCType().getDeleteObjectCode(
-        to_name     = to_name,
-        value_name  = variable_declaration_old,
-        tolerant    = tolerant,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
+        to_name=to_name,
+        value_name=variable_declaration_old,
+        tolerant=tolerant,
+        needs_check=needs_check,
+        emit=emit,
+        context=context,
     )
 
     if needs_check and not tolerant:
         if variable.isModuleVariable():
             getNameReferenceErrorCode(
-                variable_name = variable.getName(),
-                condition     = "%s == false" % to_name,
-                emit          = emit,
-                context       = context
+                variable_name=variable.getName(),
+                condition="%s == false" % to_name,
+                emit=emit,
+                context=context,
             )
         elif variable.isLocalVariable():
             getLocalVariableReferenceErrorCode(
-                variable  = variable,
-                condition = "%s == false" % to_name,
-                emit      = emit,
-                context   = context
+                variable=variable,
+                condition="%s == false" % to_name,
+                emit=emit,
+                context=context,
             )
         else:
-            getAssertionCode(
-                check = "%s != false" % to_name,
-                emit  = emit
-            )
+            getAssertionCode(check="%s != false" % to_name, emit=emit)
 
 
 def generateVariableReleaseCode(statement, emit, context):
@@ -417,21 +424,21 @@ def generateVariableReleaseCode(statement, emit, context):
         needs_check = not statement.variable_trace.mustHaveValue()
 
     _getVariableReleaseCode(
-        variable       = statement.getVariable(),
-        variable_trace = statement.getVariableTrace(),
-        needs_check    = needs_check,
-        emit           = emit,
-        context        = context
+        variable=statement.getVariable(),
+        variable_trace=statement.getVariableTrace(),
+        needs_check=needs_check,
+        emit=emit,
+        context=context,
     )
 
 
 def _getVariableReleaseCode(variable, variable_trace, needs_check, emit, context):
     assert not variable.isModuleVariable()
 
-    variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
+    variable_declaration = getLocalVariableDeclaration(
+        context, variable, variable_trace
+    )
 
     variable_declaration.getCType().getReleaseCode(
-        variable_code_name = variable_declaration,
-        needs_check        = needs_check,
-        emit               = emit
+        variable_code_name=variable_declaration, needs_check=needs_check, emit=emit
     )

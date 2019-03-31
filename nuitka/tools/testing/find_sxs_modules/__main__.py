@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,19 +27,17 @@ import os
 import sys
 import tempfile
 
-from nuitka.tools.testing.Common import (
-    compileLibraryTest,
-    createSearchMode,
-    setup
-)
+from nuitka.tools.testing.Common import compileLibraryTest, createSearchMode, setup
 from nuitka.Tracing import my_print
 from nuitka.utils.SharedLibraries import getSxsFromDLL
 
 
 def decide(root, filename):
-    return filename.endswith((".so", ".pyd")) and \
-           not filename.startswith("libpython") and \
-           getSxsFromDLL(os.path.join(root,filename))
+    return (
+        filename.endswith((".so", ".pyd"))
+        and not filename.startswith("libpython")
+        and getSxsFromDLL(os.path.join(root, filename))
+    )
 
 
 def action(stage_dir, root, path):
@@ -54,19 +52,20 @@ def main():
     if os.name != "nt":
         sys.exit("Error, this is only for use on Windows where SxS exists.")
 
-    setup(needs_io_encoding = True)
+    setup(needs_io_encoding=True)
     search_mode = createSearchMode()
 
     tmp_dir = tempfile.gettempdir()
 
     compileLibraryTest(
-        search_mode = search_mode,
-        stage_dir   = os.path.join(tmp_dir, "find_sxs_modules"),
-        decide      = decide,
-        action      = action
+        search_mode=search_mode,
+        stage_dir=os.path.join(tmp_dir, "find_sxs_modules"),
+        decide=decide,
+        action=action,
     )
 
     my_print("FINISHED, all extension modules checked.")
+
 
 if __name__ == "__main__":
     main()

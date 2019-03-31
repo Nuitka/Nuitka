@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,8 +30,10 @@ from nuitka.Tracing import printIndented, printLine
 counted_inits = {}
 counted_dels = {}
 
+
 def counted_init(init):
     if isShowMemory():
+
         def wrapped_init(self, *args, **kw):
             name = self.__class__.__name__
             assert type(name) is str
@@ -47,10 +49,13 @@ def counted_init(init):
     else:
         return init
 
-empty_del = lambda x : 0
 
-def counted_del(del_func = empty_del):
+empty_del = lambda x: 0
+
+
+def counted_del(del_func=empty_del):
     if isShowMemory():
+
         def wrapped_del(self):
             # This cannot be necessary, because in program finalization, the
             # global variables were assign to None.
@@ -71,6 +76,7 @@ def counted_del(del_func = empty_del):
         return wrapped_del
     else:
         return empty_del
+
 
 def printStats():
     printLine("Init/del/alive calls:")

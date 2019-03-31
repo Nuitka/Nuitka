@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -37,9 +37,7 @@ def getSupportedPythonVersionStr():
 
     supported_python_versions_str = repr(supported_python_versions)[1:-1]
     supported_python_versions_str = re.sub(
-        r"(.*),(.*)$",
-        r"\1, or\2",
-        supported_python_versions_str
+        r"(.*),(.*)$", r"\1, or\2", supported_python_versions_str
     )
 
     return supported_python_versions_str
@@ -50,10 +48,12 @@ def _getPythonVersion():
 
     return big * 100 + major * 10 + minor
 
+
 python_version = _getPythonVersion()
 
-python_version_full_str = '.'.join(str(s) for s in sys.version_info[0:3])
-python_version_str = '.'.join(str(s) for s in sys.version_info[0:2])
+python_version_full_str = ".".join(str(s) for s in sys.version_info[0:3])
+python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
+
 
 def isAtLeastSubVersion(version):
     if version < 280 <= python_version < 300:
@@ -75,11 +75,13 @@ def getErrorMessageExecWithNestedFunction():
     # Need to use "exec" to detect the syntax error, pylint: disable=W0122
 
     try:
-        exec("""
+        exec(
+            """
 def f():
    exec ""
    def nested():
-      return closure""")
+      return closure"""
+        )
     except SyntaxError as e:
         return e.message.replace("'f'", "'%s'")
 
@@ -92,7 +94,9 @@ def getComplexCallSequenceErrorTemplate():
             f = None
             f(*None)
         except TypeError as e:
-            result = e.args[0].replace("NoneType object", "%s").replace("NoneType", "%s")
+            result = (
+                e.args[0].replace("NoneType object", "%s").replace("NoneType", "%s")
+            )
             getComplexCallSequenceErrorTemplate.result = result
         else:
             sys.exit("Error, cannot detect expected error message.")
@@ -102,7 +106,7 @@ def getComplexCallSequenceErrorTemplate():
 
 def needsSetLiteralReverseInsertion():
     try:
-        value = eval("{1,1.0}.pop()") # pylint: disable=eval-used
+        value = eval("{1,1.0}.pop()")  # pylint: disable=eval-used
     except SyntaxError:
         return False
     else:
@@ -120,11 +124,10 @@ def isUninstalledPython():
     if os.name == "nt":
         import ctypes.wintypes
 
-        GetSystemDirectory  = ctypes.windll.kernel32.GetSystemDirectoryW   # @UndefinedVariable
-        GetSystemDirectory.argtypes = (
-            ctypes.wintypes.LPWSTR,
-            ctypes.wintypes.DWORD
-        )
+        GetSystemDirectory = (
+            ctypes.windll.kernel32.GetSystemDirectoryW
+        )  # @UndefinedVariable
+        GetSystemDirectory.argtypes = (ctypes.wintypes.LPWSTR, ctypes.wintypes.DWORD)
         GetSystemDirectory.restype = ctypes.wintypes.DWORD
 
         MAX_PATH = 4096
@@ -149,7 +152,7 @@ def getRunningPythonDLLPath():
     GetModuleFileName.argtypes = (
         ctypes.wintypes.HANDLE,
         ctypes.wintypes.LPWSTR,
-        ctypes.wintypes.DWORD
+        ctypes.wintypes.DWORD,
     )
     GetModuleFileName.restype = ctypes.wintypes.DWORD
 
@@ -157,7 +160,9 @@ def getRunningPythonDLLPath():
     res = GetModuleFileName(ctypes.pythonapi._handle, buf, MAX_PATH)
     if res == 0:
         # Windows only code, pylint: disable=I0021,undefined-variable
-        raise WindowsError(ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())) # @UndefinedVariable
+        raise WindowsError(
+            ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
+        )  # @UndefinedVariable
 
     dll_path = os.path.normcase(buf.value)
     assert os.path.exists(dll_path), dll_path
@@ -200,19 +205,17 @@ def isStaticallyLinkedPython():
     if result:
         from nuitka.utils.Execution import check_output
 
-        with open(os.devnull, 'w') as devnull:
+        with open(os.devnull, "w") as devnull:
             output = check_output(
-                (
-                    os.path.realpath(sys.executable) + "-config",
-                    "--ldflags"
-                ),
-                stderr = devnull
+                (os.path.realpath(sys.executable) + "-config", "--ldflags"),
+                stderr=devnull,
             )
 
         if str is not bytes:
             output = output.decode("utf8")
 
         import shlex
+
         output = shlex.split(output)
 
         python_abi_version = python_version_str + getPythonABI()
@@ -228,9 +231,10 @@ def getPythonABI():
 
         # Cyclic dependency here.
         from nuitka.Options import isPythonDebug
+
         if isPythonDebug() or hasattr(sys, "getobjects"):
-            if not abiflags.startswith('d'):
-                abiflags = 'd' + abiflags
+            if not abiflags.startswith("d"):
+                abiflags = "d" + abiflags
     else:
         abiflags = ""
 
