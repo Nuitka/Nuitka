@@ -375,46 +375,61 @@ class ExpressionBase(NodeBase):
         return len_node, None, None
 
     def computeExpressionAny(self, any_node, trace_collection):
-        shape = self.getTypeShape()
+        value = any_node.getValue()
+        shape = value.getTypeShape()
 
-        has_any = shape.hasShapeSlotIter()
-
-        if has_any is False:
+        if shape.hasShapeSlotIter() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                template="object of type '%s' has no any()",
+                template="'%s' object is not iterable",
                 operation="any",
-                original_node=any_node,
-                value_node=self,
+                original_node=value,
+                value_node=value,
             )
-        elif has_any is True:
-            iter_any = self.getTruthValue()
 
-            if iter_any is not None:
-                from .ConstantRefNodes import makeConstantRefNode
+        iteration_length = value.getIterationLength()
 
-                result = makeConstantRefNode(
-                    constant=bool(iter_any),  # make sure to downcast long
-                    source_ref=any_node.getSourceReference(),
-                )
+        if (
+            iteration_length is not None
+            and iteration_length < 256
+            and value.canPredictIterationValues()
+        ):
+            all_false = True
+            for i in range(value.getIterationLength()):
+                truth_value = value.getIterationValue(i).getTruthValue()
 
+                if truth_value is True:
+                    result = wrapExpressionWithNodeSideEffects(
+                        new_node=makeConstantReplacementNode(constant=True, node=self),
+                        old_node=value,
+                    )
+
+                    return (
+                        result,
+                        "new_constant",
+                        "Predicted truth value of built-in any argument",
+                    )
+                elif truth_value is None:
+                    all_false = False
+            if all_false is True:
                 result = wrapExpressionWithNodeSideEffects(
-                    new_node=result, old_node=self
+                    new_node=makeConstantReplacementNode(constant=False, node=self),
+                    old_node=value,
                 )
 
                 return (
                     result,
                     "new_constant",
-                    "Predicted 'any' result from value shape.",
+                    "Predicted truth value of built-in any argument",
                 )
 
-        self.onContentEscapes(trace_collection)
+        any_node.onContentEscapes(trace_collection)
 
         # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
-
+        trace_collection.onControlFlowEscape(any_node)
+    
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
-
+                        
         return any_node, None, None
 
     def computeExpressionInt(self, int_node, trace_collection):

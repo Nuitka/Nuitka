@@ -49,58 +49,6 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
     builtin_spec = BuiltinParameterSpecs.builtin_any_spec
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
-        shape = value.getTypeShape()
-
-        if shape.hasShapeSlotIter() is False:
-            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                template="'%s' object is not iterable",
-                operation="any",
-                original_node=value,
-                value_node=value,
-            )
-
-        iteration_length = value.getIterationLength()
-
-        if (
-            iteration_length is not None
-            and iteration_length < 256
-            and value.canPredictIterationValues()
-        ):
-            all_false = True
-            for i in range(value.getIterationLength()):
-                truth_value = value.getIterationValue(i).getTruthValue()
-
-                if truth_value is True:
-                    result = wrapExpressionWithNodeSideEffects(
-                        new_node=makeConstantReplacementNode(constant=True, node=self),
-                        old_node=value,
-                    )
-
-                    return (
-                        result,
-                        "new_constant",
-                        "Predicted truth value of built-in any argument",
-                    )
-                elif truth_value is None:
-                    all_false = False
-            if all_false is True:
-                result = wrapExpressionWithNodeSideEffects(
-                    new_node=makeConstantReplacementNode(constant=False, node=self),
-                    old_node=value,
-                )
-
-                return (
-                    result,
-                    "new_constant",
-                    "Predicted truth value of built-in any argument",
-                )
-            else:
-                return self, None, None
-
-        else:
-            return self, None, None
-
         return self.getValue().computeExpressionAny(
             any_node=self, trace_collection=trace_collection
         )
