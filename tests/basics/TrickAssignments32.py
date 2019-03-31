@@ -23,6 +23,7 @@ def someFunctionThatReturnsDeletedValueViaAttributeLookup():
             del a
     c = C()
 
+
     a = 1
     c.something
     return a
@@ -41,7 +42,6 @@ def someFunctionThatReturnsDeletedValueViaAttributeSetting():
         def __setattr__(self, attr_name, value):
             nonlocal a
             del a
-
     c = C()
 
 
@@ -67,7 +67,6 @@ def someFunctionThatReturnsDeletedValueViaAttributeDel():
 
     c = C()
 
-
     a = 1
     del c.something
     return a
@@ -87,7 +86,6 @@ def someFunctionThatReturnsDeletedValueViaItemLookup():
             nonlocal a
             del a
     c = C()
-
 
     a = 1
     c[2]
@@ -378,7 +376,6 @@ def someFunctionThatReturnsDeletedValueViaInvert():
 
     c = C()
 
-
     a = 1
     ~c
     return a
@@ -401,7 +398,6 @@ def someFunctionThatReturnsDeletedValueViaLshift():
             return False
 
     c = C()
-
 
     a = 1
     c << 1
@@ -426,7 +422,6 @@ def someFunctionThatReturnsDeletedValueViaRshift():
 
     c = C()
 
-
     a = 1
     c >> 1
     return a
@@ -449,7 +444,6 @@ def someFunctionThatReturnsDeletedValueViaBitwiseAnd():
             return False
 
     c = C()
-
 
     a = 1
     c & 1
@@ -474,7 +468,6 @@ def someFunctionThatReturnsDeletedValueViaBitwiseOr():
 
     c = C()
 
-
     a = 1
     c | 1
     return a
@@ -497,7 +490,6 @@ def someFunctionThatReturnsDeletedValueViaBitwiseXor():
             return False
 
     c = C()
-
 
     a = 1
     c ^ 1
@@ -522,7 +514,6 @@ def someFunctionThatReturnsDeletedValueViaInt():
 
     c = C()
 
-
     a = 1
     int(c)
     return a
@@ -545,7 +536,6 @@ def someFunctionThatReturnsDeletedValueViaFloat():
             return 0.0
 
     c = C()
-
 
     a = 1
     float(c)
@@ -570,7 +560,6 @@ def someFunctionThatReturnsDeletedValueViaComplex():
 
     c = C()
 
-
     a = 1
     complex(c)
     return a
@@ -590,7 +579,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceAdd():
             nonlocal a
             del a
     c = C()
-
 
     a = 1
     c += 1
@@ -612,7 +600,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceSub():
             del a
     c = C()
 
-
     a = 1
     c -= 1
     return a
@@ -633,7 +620,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceMul():
             del a
     c = C()
 
-
     a = 1
     c *= 1
     return a
@@ -653,7 +639,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceRemainder():
             nonlocal a
             del a
     c = C()
-
 
     a = 1
     c %= 1
@@ -861,7 +846,6 @@ def someFunctionThatReturnsDeletedValueViaIndex():
 
     c = C()
 
-
     a = 1
     [1][c]
     return a
@@ -884,7 +868,6 @@ def someFunctionThatReturnsDeletedValueViaLen():
             return 0
 
     c = C()
-
 
     a = 1
     len(c)
@@ -1005,7 +988,6 @@ def someFunctionThatReturnsDeletedValueViaHash():
 
     c = C()
 
-
     a = 1
     {}[c] = 1
     return a
@@ -1029,7 +1011,6 @@ def someFunctionThatReturnsDeletedValueViaIter():
 
     c = C()
 
-
     a = 1
     x, y = c
     return a, x, y
@@ -1052,7 +1033,6 @@ def someFunctionThatReturnsDeletedValueViaBytes():
             return bytes(range(2))
 
     c = C()
-
 
     a = 1
     bytes(c)
