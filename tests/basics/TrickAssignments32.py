@@ -21,7 +21,6 @@ def someFunctionThatReturnsDeletedValueViaAttributeLookup():
         def __getattr__(self, attr_name):
             nonlocal a
             del a
-
     c = C()
 
     a = 1
@@ -57,7 +56,6 @@ except UnboundLocalError:
 else:
     print("Ouch.!")
 
-
 def someFunctionThatReturnsDeletedValueViaAttributeDel():
     class C:
         def __delattr__(self, attr_name):
@@ -86,7 +84,6 @@ def someFunctionThatReturnsDeletedValueViaItemLookup():
         def __getitem__(self, attr_name):
             nonlocal a
             del a
-
     c = C()
 
     a = 1
@@ -101,13 +98,11 @@ except UnboundLocalError:
 else:
     print("Ouch.!")
 
-
 def someFunctionThatReturnsDeletedValueViaItemSetting():
     class C:
         def __setitem__(self, attr_name, value):
             nonlocal a
             del a
-
     c = C()
 
     a = 1
@@ -128,7 +123,6 @@ def someFunctionThatReturnsDeletedValueViaItemDel():
         def __delitem__(self, attr_name):
             nonlocal a
             del a
-
     c = C()
 
     a = 1
@@ -149,7 +143,6 @@ def someFunctionThatReturnsDeletedValueViaCall():
         def __call__(self):
             nonlocal a
             del a
-
     c = C()
 
     a = 1
@@ -170,7 +163,6 @@ def someFunctionThatReturnsDeletedValueViaAdd():
         def __add__(self, other):
             nonlocal a
             del a
-
     c = C()
 
     a = 1
@@ -191,7 +183,6 @@ def someFunctionThatReturnsDeletedValueViaSub():
         def __sub__(self, other):
             nonlocal a
             del a
-
     c = C()
 
     a = 1
@@ -214,7 +205,6 @@ def someFunctionThatReturnsDeletedValueViaMul():
             del a
 
             return 7
-
     c = C()
 
     a = 1
@@ -237,7 +227,6 @@ def someFunctionThatReturnsDeletedValueViaRemainder():
             del a
 
             return 7
-
     c = C()
 
     a = 1
@@ -260,7 +249,6 @@ def someFunctionThatReturnsDeletedValueViaDivmod():
             del a
 
             return 7
-
     c = C()
 
     a = 1
@@ -283,7 +271,6 @@ def someFunctionThatReturnsDeletedValueViaPower():
             del a
 
             return 7
-
     c = C()
 
     a = 1
@@ -306,7 +293,6 @@ def someFunctionThatReturnsDeletedValueViaUnaryMinus():
             del a
 
             return 7
-
     c = C()
 
     a = 1
@@ -329,7 +315,6 @@ def someFunctionThatReturnsDeletedValueViaUnaryPlus():
             del a
 
             return 7
-
     c = C()
 
     a = 1
@@ -580,7 +565,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceAdd():
         def __iadd__(self, other):
             nonlocal a
             del a
-
     c = C()
 
     a = 1
@@ -601,7 +585,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceSub():
         def __isub__(self, other):
             nonlocal a
             del a
-
     c = C()
 
     a = 1
@@ -622,7 +605,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceMul():
         def __imul__(self, other):
             nonlocal a
             del a
-
     c = C()
 
     a = 1
@@ -643,7 +625,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceRemainder():
         def __imod__(self, other):
             nonlocal a
             del a
-
     c = C()
 
     a = 1
@@ -666,7 +647,6 @@ def someFunctionThatReturnsDeletedValueViaInplacePower():
             del a
 
             return 7
-
     c = C()
 
     a = 1
@@ -689,7 +669,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceAnd():
             del a
 
             return False
-
     c = C()
 
     a = 1
@@ -712,7 +691,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceFloordiv():
             del a
 
             return 7
-
     c = C()
 
     a = 1
@@ -735,7 +713,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceLshift():
             del a
 
             return False
-
     c = C()
 
     a = 1
@@ -758,7 +735,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceRshift():
             del a
 
             return False
-
     c = C()
 
     a = 1
@@ -781,7 +757,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceOr():
             del a
 
             return False
-
     c = C()
 
     a = 1
@@ -796,7 +771,6 @@ except UnboundLocalError:
 else:
     print("Ouch.!")
 
-
 def someFunctionThatReturnsDeletedValueViaInplaceTrueDiv():
     class C:
         def __itruediv__(self, other):
@@ -804,7 +778,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceTrueDiv():
             del a
 
             return 7
-
     c = C()
 
     a = 1
@@ -827,7 +800,6 @@ def someFunctionThatReturnsDeletedValueViaInplaceXor():
             del a
 
             return False
-
     c = C()
 
     a = 1
