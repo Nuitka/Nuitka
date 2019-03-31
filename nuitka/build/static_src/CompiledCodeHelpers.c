@@ -557,16 +557,17 @@ PyObject *BUILTIN_ANY(PyObject *value) {
     CHECK_OBJECT(value);
 
     PyObject *it = PyObject_GetIter(value);
-    PyObject *(*iternextfunc)(PyObject *) = *Py_TYPE(it)->tp_iternext;;
-    PyObject *item;
 
-    if (unlikely((it == NULL)))
-        return NULL;
+    if (unlikely((it == NULL))) {
+    	return NULL;
+    }
+
 
     int cmp;
 
+    iternextfunc iternext = Py_TYPE(it)->tp_iternext;
     for (;;) {
-        item = iternextfunc(it);
+        PyObject *item = iternext(it);
 
         if (unlikely((item == NULL)))
             break;

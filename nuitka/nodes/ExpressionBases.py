@@ -426,10 +426,10 @@ class ExpressionBase(NodeBase):
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(any_node)
-    
+
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
-                        
+
         return any_node, None, None
 
     def computeExpressionInt(self, int_node, trace_collection):

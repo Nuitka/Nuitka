@@ -23,11 +23,6 @@
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionBuiltinSingleArgBase
-from .NodeMakingHelpers import (
-    makeConstantReplacementNode,
-    makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
-    wrapExpressionWithNodeSideEffects,
-)
 from .shapes.BuiltinTypeShapes import ShapeTypeBool
 
 
@@ -44,6 +39,7 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
           else return False
 
     """
+
     kind = "EXPRESSION_BUILTIN_ANY"
 
     builtin_spec = BuiltinParameterSpecs.builtin_any_spec
