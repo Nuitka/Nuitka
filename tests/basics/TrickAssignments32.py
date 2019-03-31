@@ -44,6 +44,7 @@ def someFunctionThatReturnsDeletedValueViaAttributeSetting():
 
     c = C()
 
+
     a = 1
     c.something = 1
     return a
@@ -66,6 +67,7 @@ def someFunctionThatReturnsDeletedValueViaAttributeDel():
 
     c = C()
 
+
     a = 1
     del c.something
     return a
@@ -86,6 +88,7 @@ def someFunctionThatReturnsDeletedValueViaItemLookup():
             del a
     c = C()
 
+
     a = 1
     c[2]
     return a
@@ -104,6 +107,7 @@ def someFunctionThatReturnsDeletedValueViaItemSetting():
             nonlocal a
             del a
     c = C()
+
 
     a = 1
     c[2] = 3
@@ -125,6 +129,7 @@ def someFunctionThatReturnsDeletedValueViaItemDel():
             del a
     c = C()
 
+
     a = 1
     del c[2]
     return a
@@ -144,6 +149,7 @@ def someFunctionThatReturnsDeletedValueViaCall():
             nonlocal a
             del a
     c = C()
+
 
     a = 1
     c()
@@ -165,6 +171,7 @@ def someFunctionThatReturnsDeletedValueViaAdd():
             del a
     c = C()
 
+
     a = 1
     c + 1
     return a
@@ -184,6 +191,7 @@ def someFunctionThatReturnsDeletedValueViaSub():
             nonlocal a
             del a
     c = C()
+
 
     a = 1
     c - 1
@@ -207,6 +215,7 @@ def someFunctionThatReturnsDeletedValueViaMul():
             return 7
     c = C()
 
+
     a = 1
     c * 1
     return a
@@ -228,6 +237,7 @@ def someFunctionThatReturnsDeletedValueViaRemainder():
 
             return 7
     c = C()
+
 
     a = 1
     c % 1
@@ -251,6 +261,7 @@ def someFunctionThatReturnsDeletedValueViaDivmod():
             return 7
     c = C()
 
+
     a = 1
     divmod(c, 1)
     return a
@@ -272,6 +283,7 @@ def someFunctionThatReturnsDeletedValueViaPower():
 
             return 7
     c = C()
+
 
     a = 1
     c ** 1
@@ -295,6 +307,7 @@ def someFunctionThatReturnsDeletedValueViaUnaryMinus():
             return 7
     c = C()
 
+
     a = 1
     -c
     return a
@@ -316,6 +329,7 @@ def someFunctionThatReturnsDeletedValueViaUnaryPlus():
 
             return 7
     c = C()
+
 
     a = 1
     +c
@@ -340,6 +354,7 @@ def someFunctionThatReturnsDeletedValueViaNot():
 
     c = C()
 
+
     a = 1
     not c
     return a
@@ -362,6 +377,7 @@ def someFunctionThatReturnsDeletedValueViaInvert():
             return False
 
     c = C()
+
 
     a = 1
     ~c
@@ -386,6 +402,7 @@ def someFunctionThatReturnsDeletedValueViaLshift():
 
     c = C()
 
+
     a = 1
     c << 1
     return a
@@ -408,6 +425,7 @@ def someFunctionThatReturnsDeletedValueViaRshift():
             return False
 
     c = C()
+
 
     a = 1
     c >> 1
@@ -432,6 +450,7 @@ def someFunctionThatReturnsDeletedValueViaBitwiseAnd():
 
     c = C()
 
+
     a = 1
     c & 1
     return a
@@ -454,6 +473,7 @@ def someFunctionThatReturnsDeletedValueViaBitwiseOr():
             return False
 
     c = C()
+
 
     a = 1
     c | 1
@@ -478,6 +498,7 @@ def someFunctionThatReturnsDeletedValueViaBitwiseXor():
 
     c = C()
 
+
     a = 1
     c ^ 1
     return a
@@ -500,6 +521,7 @@ def someFunctionThatReturnsDeletedValueViaInt():
             return 0
 
     c = C()
+
 
     a = 1
     int(c)
@@ -524,6 +546,7 @@ def someFunctionThatReturnsDeletedValueViaFloat():
 
     c = C()
 
+
     a = 1
     float(c)
     return a
@@ -547,6 +570,7 @@ def someFunctionThatReturnsDeletedValueViaComplex():
 
     c = C()
 
+
     a = 1
     complex(c)
     return a
@@ -566,6 +590,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceAdd():
             nonlocal a
             del a
     c = C()
+
 
     a = 1
     c += 1
@@ -587,6 +612,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceSub():
             del a
     c = C()
 
+
     a = 1
     c -= 1
     return a
@@ -607,6 +633,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceMul():
             del a
     c = C()
 
+
     a = 1
     c *= 1
     return a
@@ -626,6 +653,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceRemainder():
             nonlocal a
             del a
     c = C()
+
 
     a = 1
     c %= 1
@@ -649,6 +677,7 @@ def someFunctionThatReturnsDeletedValueViaInplacePower():
             return 7
     c = C()
 
+
     a = 1
     c **= 1
     return a
@@ -670,6 +699,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceAnd():
 
             return False
     c = C()
+
 
     a = 1
     c &= 1
@@ -693,6 +723,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceFloordiv():
             return 7
     c = C()
 
+
     a = 1
     c //= 1
     return a
@@ -714,6 +745,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceLshift():
 
             return False
     c = C()
+
 
     a = 1
     c <<= 1
@@ -737,6 +769,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceRshift():
             return False
     c = C()
 
+
     a = 1
     c >>= 1
     return a
@@ -759,6 +792,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceOr():
             return False
     c = C()
 
+
     a = 1
     c |= 1
     return a
@@ -779,6 +813,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceTrueDiv():
 
             return 7
     c = C()
+
 
     a = 1
     c /= 1
@@ -801,6 +836,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceXor():
 
             return False
     c = C()
+
 
     a = 1
     c ^= 1
@@ -825,6 +861,7 @@ def someFunctionThatReturnsDeletedValueViaIndex():
 
     c = C()
 
+
     a = 1
     [1][c]
     return a
@@ -847,6 +884,7 @@ def someFunctionThatReturnsDeletedValueViaLen():
             return 0
 
     c = C()
+
 
     a = 1
     len(c)
@@ -871,6 +909,7 @@ def someFunctionThatReturnsDeletedValueViaRepr():
 
     c = C()
 
+
     a = 1
     repr(c)
     return a
@@ -893,6 +932,7 @@ def someFunctionThatReturnsDeletedValueViaStr():
             return "<some_repr>"
 
     c = C()
+
 
     a = 1
     str(c)
@@ -917,6 +957,7 @@ def someFunctionThatReturnsDeletedValueViaCompare():
 
     c = C()
 
+
     a = 1
     c < None
     return a
@@ -939,6 +980,7 @@ def someFunctionThatReturnsDeletedValueViaDel():
             return "<some_repr>"
 
     c = C()
+
 
     a = 1
     del c
@@ -963,6 +1005,7 @@ def someFunctionThatReturnsDeletedValueViaHash():
 
     c = C()
 
+
     a = 1
     {}[c] = 1
     return a
@@ -986,6 +1029,7 @@ def someFunctionThatReturnsDeletedValueViaIter():
 
     c = C()
 
+
     a = 1
     x, y = c
     return a, x, y
@@ -1008,6 +1052,7 @@ def someFunctionThatReturnsDeletedValueViaBytes():
             return bytes(range(2))
 
     c = C()
+
 
     a = 1
     bytes(c)
