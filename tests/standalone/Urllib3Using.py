@@ -19,6 +19,7 @@
 #
 # 	  Python3 changed module name.
 #	  Test file for Urllib3
+#     nuitka-skip-test-unless-module: urllib3
 import urllib3
 import builtins
 http = urllib3.PoolManager()
