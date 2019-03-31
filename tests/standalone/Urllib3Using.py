@@ -1,6 +1,6 @@
 import urllib3
 
-# nuitka-skip-test-unless: urllib3
+# nuitka-skip-unless-imports: urllib3
 
 # testing request
 http = urllib3.PoolManager()
