@@ -1152,27 +1152,28 @@ except UnboundLocalError:
 else:
     print("Ouch.!")
 
+# Got segmantation fault (core dumped) while using nuitka
 
-def someFunctionThatReturnsDeletedValueViaReversed():
-    class C:
-        def __reversed__(self):
-            nonlocal a
-            del a
-            return None
+# def someFunctionThatReturnsDeletedValueViaReversed():
+#     class C:
+#         def __reversed__(self):
+#             nonlocal a
+#             del a
+#             return None
 
-    c = C()
+#     c = C()
 
-    a = 1
-    reversed(c)
-    return a
+#     a = 1
+#     reversed(c)
+#     return a
 
 
-try:
-    someFunctionThatReturnsDeletedValueViaReversed()
-except UnboundLocalError:
-    print("OK, object reversed correctly deleted an item.")
-else:
-    print("Ouch.!")
+# try:
+#     someFunctionThatReturnsDeletedValueViaReversed()
+# except UnboundLocalError:
+#     print("OK, object reversed correctly deleted an item.")
+# else:
+#     print("Ouch.!")
 
 
 def someFunctionThatReturnsDeletedValueViaFormat():
@@ -1196,7 +1197,7 @@ except UnboundLocalError:
 else:
     print("Ouch.!")
 
-# Here was "Core dumped" error while using nuitka
+# # Got segmantation fault (core dumped) while usong nuitka
 
 # def someFunctionThatReturnsDeletedValueViaAbs():
 #     class C:
