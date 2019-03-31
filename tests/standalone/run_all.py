@@ -289,9 +289,9 @@ def checkRequirements(filename):
                     imports_needed = line[30:].rstrip().split(',')
                     for i in imports_needed:
                         if not hasModule(i):
-                            return(False,i+" not installed for this Python version, but test needs it")
+                            return (False,i+" not installed for this Python version, but test needs it")
     # default return value
-    return(True,"")
+    return (True,"")
 
 
 for filename in sorted(os.listdir(".")):
