@@ -320,6 +320,8 @@ def autoformat(filename, abort=False):
     shutil.copy(filename, tmp_filename)
 
     try:
+        _cleanupWindowsNewlines(tmp_filename)
+
         if is_python:
             _cleanupPyLintComments(tmp_filename, abort)
             _cleanupImportSortOrder(tmp_filename)
@@ -333,8 +335,7 @@ def autoformat(filename, abort=False):
         else:
             _cleanupTrailingWhitespace(tmp_filename)
 
-        if getOS() == "Windows":
-            _cleanupWindowsNewlines(tmp_filename)
+        _cleanupWindowsNewlines(tmp_filename)
 
         changed = False
         if old_code != getFileContents(tmp_filename):
