@@ -607,6 +607,11 @@ for filename in sorted(os.listdir(".")):
         ):
             continue
 
+        # System SSL config on Linux. TODO: Should this not be included and
+        # read from dist folder.
+        if loaded_basename == "openssl.cnf":
+            continue
+
         # Taking these from system is harmless and desirable
         if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
             continue
