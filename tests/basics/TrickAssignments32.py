@@ -1069,6 +1069,94 @@ else:
     print("Ouch.!")
 
 
+def someFunctionThatReturnsDeletedValueViaLe():
+    class C:
+        def __le__(self, other):
+            nonlocal a
+            del a
+            return False
+
+    c = C()
+
+    a = 1
+    c <= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaEq()
+except UnboundLocalError:
+    print("OK, object le correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaGt():
+    class C:
+        def __gt__(self, other):
+            nonlocal a
+            del a
+            return False
+
+    c = C()
+
+    a = 1
+    c > 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaEq()
+except UnboundLocalError:
+    print("OK, object gt correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaGe():
+    class C:
+        def __ge__(self, other):
+            nonlocal a
+            del a
+            return False
+
+    c = C()
+
+    a = 1
+    c >= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaEq()
+except UnboundLocalError:
+    print("OK, object ge correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaNe():
+    class C:
+        def __ne__(self, other):
+            nonlocal a
+            del a
+            return False
+
+    c = C()
+
+    a = 1
+    c != 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaEq()
+except UnboundLocalError:
+    print("OK, object ne correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
 def someFunctionThatReturnsDeletedValueViaContains():
     class C:
         def __contains__(self, item):
