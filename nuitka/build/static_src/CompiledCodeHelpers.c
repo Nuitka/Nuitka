@@ -563,15 +563,13 @@ PyObject *BUILTIN_ANY(PyObject *value) {
     }
 
 
-    int cmp;
-
     iternextfunc iternext = Py_TYPE(it)->tp_iternext;
     for (;;) {
         PyObject *item = iternext(it);
 
         if (unlikely((item == NULL)))
             break;
-        cmp = PyObject_IsTrue(item);
+        int cmp = PyObject_IsTrue(item);
         Py_DECREF(item);
         if (unlikely(cmp < 0)) {
             Py_DECREF(it);
@@ -583,9 +581,12 @@ PyObject *BUILTIN_ANY(PyObject *value) {
             return Py_True;
         }
     }
+
     Py_DECREF(it);
-    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED()))
-        return NULL;
+    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED())) {
+    	return NULL;
+    }
+
     Py_INCREF(Py_False);
     return Py_False;
 }

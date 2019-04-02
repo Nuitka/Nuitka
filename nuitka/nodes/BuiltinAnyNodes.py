@@ -29,14 +29,12 @@ from .shapes.BuiltinTypeShapes import ShapeTypeBool
 class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
     """ Builtin Any Node class.
 
-    Parameter
-    ---------
-    ExpressionBase: 'any' expression
+    Args:
+        ExpressionBase: 'any' expression
 
-    Returns
-    -------
-    Bool: True if at least one element of an iterable is true
-          else return False
+    Returns:
+        Bool: True if at least one element of an iterable is true
+              else return False
 
     """
 
