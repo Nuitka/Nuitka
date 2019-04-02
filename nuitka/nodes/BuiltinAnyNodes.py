@@ -30,11 +30,10 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
     """ Builtin Any Node class.
 
     Args:
-        ExpressionBase: 'any' expression
+        ExpressionBase: 'any - expression'
 
     Returns:
-        Bool: True if at least one element of an iterable is true
-              else return False
+        Node that represents built-in 'any' call.
 
     """
 
