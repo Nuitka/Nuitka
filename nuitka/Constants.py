@@ -203,7 +203,7 @@ def isMutable(constant):
     """ Is a constant mutable
 
         That means a user of a reference to it, can modify it. Strings are
-        a prime example of mutable, dictionaries are mutable.
+        a prime example of immutable, dictionaries are mutable.
     """
     # Many cases and all return, that is how we do it here,
     # pylint: disable=too-many-return-statements

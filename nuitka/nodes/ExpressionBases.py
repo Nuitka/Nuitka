@@ -377,7 +377,6 @@ class ExpressionBase(NodeBase):
     def computeExpressionAny(self, any_node, trace_collection):
         value = any_node.getValue()
         shape = value.getTypeShape()
-
         if shape.hasShapeSlotIter() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="'%s' object is not iterable",
@@ -394,7 +393,7 @@ class ExpressionBase(NodeBase):
             and value.canPredictIterationValues()
         ):
             all_false = True
-            for i in range(value.getIterationLength()):
+            for i in range(iteration_length):
                 truth_value = value.getIterationValue(i).getTruthValue()
 
                 if truth_value is True:

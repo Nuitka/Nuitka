@@ -357,6 +357,39 @@ Iteration over constant %s changed to tuple."""
 
         return iter_node, None, None
 
+    def computeExpressionAny(self, any_node, trace_collection):
+        constant_type = type(self.constant)
+
+        if constant_type in (list, set, frozenset, dict):
+            result = makeConstantRefNode(
+                constant=tuple(self.constant),
+                user_provided=self.user_provided,
+                source_ref=self.getSourceReference(),
+            )
+
+            self.parent.replaceChild(self, result)
+            self.finalize()
+
+            return (
+                any_node,
+                "new_constant",
+                """\
+Iteration over constant %s changed to list."""
+                % constant_type.__name__,
+            )
+
+        if not isIterableConstant(self.constant):
+            # An exception may be raised.
+            trace_collection.onExceptionRaiseExit(TypeError)
+
+            return getComputationResult(
+                node=any_node,
+                computation=lambda: any_node.simulator(self.constant),
+                description="Iteration of non-iterable constant.",
+            )
+
+        return any_node, None, None
+
 
 class ExpressionConstantNoneRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_NONE_REF"
