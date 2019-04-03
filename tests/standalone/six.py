@@ -1,28 +1,58 @@
 from __future__ import absolute_import
 import six
 import sys
+from logging import handlers
 
-MAXSIZE = sys.maxsize
+
+PY3 = sys.version_info[0] == 3
+if PY3:
+ string_types = str,
+ integer_types = int,
+ class_types = type
+
 
 def dispatch_types(value):
-    assert isinstance(six.MAXSIZE + 23, six.integer_types)
-    assert isinstance(six.u("hi"), six.string_types)
-    class X(object):
-        pass
+   
+    if isinstance(value, six.integer_types):
+        print(value)
 
-    assert isinstance(X, six.class_types)
-
+    elif isinstance(value, six.string_types):
+        print(value)
+        
+    elif isinstance(value, six.class_types):
+        value
+        
 
 def import_module(name):
-    from logging import handlers
-    m = six._import_module("logging.handlers")
-    assert m is handlers
-
+    __import__(name)
+    return sys.modules[name]
+    
 
 def add_doc(func, doc):
-    def f():
-        """Icky doc"""
-        pass
+    print(func.__doc__) 
 
-    six._add_doc(f, """New doc""")
-    assert f.__doc__ == "New doc"
+
+def main():
+    dispatch_types(6)
+    dispatch_types('hi')
+    
+    class X():
+        pass
+    
+    p1 = X()
+    
+    dispatch_types(p1) 
+
+    import_module("logging.handlers")
+     
+    def f():
+      """Icky doc"""
+      pass
+
+    add_doc(f, """New doc""")
+
+
+if __name__ == "__main__":
+    main()
+
+
