@@ -31,7 +31,7 @@ import stat
 
 from nuitka.tools.Basics import goHome
 from nuitka.utils.Execution import getExecutablePath
-from nuitka.utils.FileOperations import getFileContents
+from nuitka.utils.FileOperations import getFileContents, getWindowsShortPathName
 
 
 def main():
