@@ -510,7 +510,7 @@ def someFunctionThatReturnsDeletedValueViaInt():
             nonlocal a
             del a
 
-            return 0
+            return False
 
     c = C()
 
