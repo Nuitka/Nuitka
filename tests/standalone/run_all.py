@@ -46,7 +46,7 @@ from nuitka.tools.testing.Common import (
     reportSkip,
     setup,
 )
-from nuitka.utils.FileOperations import removeDirectory
+from nuitka.utils.FileOperations import removeDirectory,getFileContentByLine
 
 python_version = setup(needs_io_encoding=True)
 
@@ -271,25 +271,24 @@ _win_dll_whitelist = (
 #       OR
 #     "# nuitka-skip-unless-imports: module1,module2,..."
 def checkRequirements(filename):
-    with open(filename,'r') as f:
-        for line in f:
-            if line.startswith('# nuitka-skip-unless-'):
-                if line[21:33] == 'expression: ':
-                    expression = line[33:]
-                    with open(os.devnull, "w") as devnull:
-                        result = subprocess.call(
-                            (sys.executable, "-c" "import sys, os; %s" % expression),
-                            stdout=devnull,
-                            stderr=subprocess.STDOUT,
-                        )
-                    if not result == 0:
-                        return (False,eval_str+"evaluated to false")
+    for line in getFileContentByLine(filename):
+        if line.startswith('# nuitka-skip-unless-'):
+            if line[21:33] == 'expression: ':
+                expression = line[33:]
+                with open(os.devnull, "w") as devnull:
+                    result = subprocess.call(
+                        (sys.executable, "-c" "import sys, os; %s" % expression),
+                        stdout=devnull,
+                        stderr=subprocess.STDOUT,
+                    )
+                if not result == 0:
+                    return (False,expression+"evaluated to false")
 
-                elif line[21:30] == 'imports: ':
-                    imports_needed = line[30:].rstrip().split(',')
-                    for i in imports_needed:
-                        if not hasModule(i):
-                            return (False,i+" not installed for this Python version, but test needs it")
+            elif line[21:30] == 'imports: ':
+                imports_needed = line[30:].rstrip().split(',')
+                for i in imports_needed:
+                    if not hasModule(i):
+                        return (False,i+" not installed for this Python version, but test needs it")
     # default return value
     return (True,"")
 
@@ -312,10 +311,10 @@ for filename in sorted(os.listdir(".")):
     extra_flags = ["expect_success", "standalone", "remove_output"]
 
     # skip each test if their respective requirements are not met
-    requirementsMet, errorMessage = checkRequirements(filename)
-    if not requirementsMet:
+    requirements_met,error_message = checkRequirements(filename)
+    if not requirements_met:
         reportSkip(
-                errorMessage,
+                error_message,
                 ".",
                 filename,
         )
