@@ -8,13 +8,19 @@ static PyObject *list1(PyObject* self, PyObject* args)
 	PyObject *result = PyList_New(1);
 	PyList_SetItem(result, 0, a);
 
-	
 	for(;i<7; i++)
 	{
 		PyList_Append(result,a);
 	}
 
-	return result;
+	int sum = 0;
+	i = 0;
+	for(;i<7;i++)
+	{
+		sum = sum + PyLong_AsLong(PyList_GetItem(result,i));
+	}
+
+	return Py_BuildValue("i", sum);;
 }
 
 static PyMethodDef myMethods[] = {
