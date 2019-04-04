@@ -358,25 +358,6 @@ Iteration over constant %s changed to tuple."""
         return iter_node, None, None
 
     def computeExpressionAny(self, any_node, trace_collection):
-        constant_type = type(self.constant)
-
-        if constant_type in (list, set, frozenset, dict):
-            result = makeConstantRefNode(
-                constant=tuple(self.constant),
-                user_provided=self.user_provided,
-                source_ref=self.getSourceReference(),
-            )
-
-            self.parent.replaceChild(self, result)
-            self.finalize()
-
-            return (
-                any_node,
-                "new_constant",
-                """\
-Iteration over constant %s changed to list."""
-                % constant_type.__name__,
-            )
 
         if not isIterableConstant(self.constant):
             # An exception may be raised.
@@ -387,6 +368,54 @@ Iteration over constant %s changed to list."""
                 computation=lambda: any_node.simulator(self.constant),
                 description="Iteration of non-iterable constant.",
             )
+
+        value = any_node.getValue()
+
+        iteration_length = value.getIterationLength()
+
+        if (
+            iteration_length is not None
+            and iteration_length < 256
+            and value.canPredictIterationValues()
+        ):
+            all_false = True
+            for i in range(iteration_length):
+                truth_value = value.getIterationValue(i).getTruthValue()
+
+                if truth_value is True:
+                    result = wrapExpressionWithSideEffects(
+                        side_effects=self.extractSideEffects(),
+                        old_node=value,
+                        new_node=makeConstantRefNode(
+                            constant=True,
+                            user_provided=self.user_provided,
+                            source_ref=self.getSourceReference(),
+                        ),
+                    )
+
+                    return (
+                        result,
+                        "new_constant",
+                        "Predicted truth value of built-in any argument",
+                    )
+                elif truth_value is None:
+                    all_false = False
+            if all_false is True:
+                result = wrapExpressionWithSideEffects(
+                    side_effects=self.extractSideEffects(),
+                    old_node=value,
+                    new_node=makeConstantRefNode(
+                        constant=False,
+                        user_provided=self.user_provided,
+                        source_ref=self.getSourceReference(),
+                    ),
+                )
+
+                return (
+                    result,
+                    "new_constant",
+                    "Predicted truth value of built-in any argument",
+                )
 
         return any_node, None, None
 

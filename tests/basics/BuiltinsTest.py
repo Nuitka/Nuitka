@@ -550,6 +550,6 @@ try:
 except Exception as e:
     print("Object not iterable")
 
-print(any(set([0, 1, 2, 3, 3])))
-print(any({1:"One", 2:"Two"}))
+#print(any(set([0, 1, 2, 3, 3])))
+#print(any({1:"One", 2:"Two"}))
 
