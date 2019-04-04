@@ -339,7 +339,9 @@ def detectVersion(env, cc):
     if show_scons_mode:
         print("Scons CC %r version check:" % cc)
 
-    if clvar[0] in ("gcc", "g++", "clang"):
+    clvar0 = os.path.basename(clvar[0])
+
+    if "gcc" in clvar0 or "g++" in clvar0 or "gnu-cc" in clvar0 or "clang" in clvar0:
         command = list(clvar) + ["-dumpversion"]
     else:
         command = list(clvar) + ["--version"]
@@ -614,7 +616,12 @@ if "clang" in the_cc_name and "-cl" not in the_cc_name:
 
 # We consider clang to be a form of gcc for the most things, they strive to
 # be compatible.
-gcc_mode = "gcc" in the_cc_name or "g++" in the_cc_name or clang_mode
+gcc_mode = (
+    "gcc" in the_cc_name
+    or "g++" in the_cc_name
+    or "gnu-cc" in the_cc_name
+    or clang_mode
+)
 
 msvc_mode = win_target and not gcc_mode
 mingw_mode = win_target and gcc_mode
