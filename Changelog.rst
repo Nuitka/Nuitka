@@ -1,5 +1,5 @@
-Nuitka Release 0.6.3 (Draft)
-============================
+Nuitka Release 0.6.3
+====================
 
 This has a focus on organisational improvements. With more and
 more people joining Nuitka, normal developers as well as many
@@ -40,7 +40,6 @@ Optimization
 ------------
 
 - Avoid static C++ runtime library when using MinGW64.
-
 
 New Features
 ------------
