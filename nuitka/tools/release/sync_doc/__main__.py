@@ -25,6 +25,8 @@ import inspect
 import re
 import sys
 
+from nuitka.utils.FileOperations import getFileContentByLine
+
 
 def main():
     quote_start_re = re.compile("[Qq]uoting the ``(.*)`` documentation")
@@ -32,7 +34,7 @@ def main():
 
     quoting = False
 
-    for line in open("Developer_Manual.rst"):
+    for line in getFileContentByLine("Developer_Manual.rst"):
         if not quoting:
             print(line, end="")
 

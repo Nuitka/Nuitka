@@ -32,7 +32,7 @@ from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
-from nuitka.utils.FileOperations import relpath
+from nuitka.utils.FileOperations import getFileContentByLine, relpath
 
 from .Checkers import checkStatementsSequenceOrNone
 from .FutureSpecs import FutureSpec, fromFlags
@@ -160,7 +160,35 @@ class PythonModuleBase(NodeBase):
         return None
 
     def getCompileTimeFilename(self):
+        """ The compile time filename for the module.
+
+        Returns:
+            Full path to module file at compile time.
+        Notes:
+            We are getting the absolute path here, since we do
+            not want to have to deal with resolving paths at
+            all.
+
+        """
         return os.path.abspath(self.getSourceReference().getFilename())
+
+    def getCompileTimeDirectory(self):
+        """ The compile time directory for the module.
+
+        Returns:
+            Full path to module directory at compile time.
+        Notes:
+            For packages, we let the package directory be
+            the result, otherwise the containing directory
+            is the result.
+        Notes:
+            Use this to finde files nearby a module, mainly
+            in plugin code.
+        """
+        result = self.getCompileTimeFilename()
+        if not os.path.isdir(result):
+            result = os.path.dirname(result)
+        return result
 
     def getRunTimeFilename(self):
         # TODO: Don't look at such things this late, push this into building.
@@ -831,7 +859,7 @@ class PythonShlibModule(PythonModuleBase):
             if os.path.exists(pyi_filename):
                 pyi_deps = OrderedSet()
 
-                for line in open(pyi_filename):
+                for line in getFileContentByLine(pyi_filename):
                     line = line.strip()
 
                     if line.startswith("import "):

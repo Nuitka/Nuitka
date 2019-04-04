@@ -25,6 +25,8 @@ static inline Py_ssize_t DICT_SIZE(PyObject *dict) {
 }
 
 static inline PyDictObject *MODULE_DICT(PyObject *module) {
+    CHECK_OBJECT(module);
+
     PyDictObject *dict = (PyDictObject *)(((PyModuleObject *)module)->md_dict);
 
     return dict;

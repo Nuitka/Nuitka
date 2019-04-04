@@ -16,6 +16,11 @@
 #     limitations under the License.
 #
 
+try:
+    from collections.abc import OrderedDict
+except ImportError:
+    from collections import OrderedDict
+
 print("Call order of Python3 metaclasses:")
 
 def a():
@@ -34,8 +39,6 @@ def b():
     print("Called", b)
 
     return B
-
-from collections import OrderedDict
 
 def displayable(dictionary):
     return sorted(dictionary.items())

@@ -43,12 +43,13 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
 )
 from nuitka.Builtins import builtin_named_values, builtin_named_values_list
 from nuitka.Constants import NoneType, compareConstants, getConstantWeight, isMutable
+from nuitka.PythonVersions import python_version
+from nuitka.Version import getNuitkaVersion
 
 from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
 from .Indentation import indented
 from .templates.CodeTemplatesConstants import template_constants_reading
-from nuitka.Version import getNuitkaVersion
 
 
 def generateConstantReferenceCode(to_name, expression, emit, context):
@@ -1095,12 +1096,24 @@ def getConstantsDefinitionCode(context):
 
     constant_declarations = getConstantsDeclCode(context=context)
 
-    if Options.shallMakeModule():
-        sys_executable = None
-        sys_prefix = None
-    else:
+    sys_executable = None
+    sys_prefix = None
+    sys_base_prefix = None
+    sys_exec_prefix = None
+    sys_base_exec_prefix = None
+
+    if not Options.shallMakeModule():
         sys_executable = context.getConstantCode(sys.executable)
         sys_prefix = context.getConstantCode(sys.prefix)
+        sys_exec_prefix = context.getConstantCode(sys.exec_prefix)
+
+        if python_version >= 300:
+            sys_base_prefix = context.getConstantCode(
+                sys.base_prefix  # @UndefinedVariable
+            )
+            sys_base_exec_prefix = context.getConstantCode(
+                sys.base_exec_prefix  # @UndefinedVariable
+            )
 
     major, minor, micro = getNuitkaVersion().split(".")
 
@@ -1116,6 +1129,9 @@ def getConstantsDefinitionCode(context):
         "constant_checks": indented(constant_checks),
         "sys_executable": sys_executable,
         "sys_prefix": sys_prefix,
+        "sys_base_prefix": sys_base_prefix,
+        "sys_exec_prefix": sys_exec_prefix,
+        "sys_base_exec_prefix": sys_base_exec_prefix,
         "nuitka_version_major": major,
         "nuitka_version_minor": minor,
         "nuitka_version_micro": micro,

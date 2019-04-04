@@ -22,10 +22,10 @@ replacement or extension to the Python interpreter and compiles **every**
 construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, and 3.7 have, when itself
 run with that Python version.
 
-It then executes uncompiled code, and compiled code together in an extremely
+It then executes uncompiled code and compiled code together in an extremely
 compatible manner.
 
-You can use all Python library modules or and all extension modules freely.
+You can use all Python library modules and all extension modules freely.
 
 It translates the Python into a C level program that then uses ``libpython`` and
 a few C files of its own to execute in the same way as CPython does. All
@@ -52,16 +52,16 @@ Requirements
   * The ``clang`` compiler on macOS X or FreeBSD.
 
   * The MinGW64 [#]_ C11 compiler on Windows, ideally the one based on gcc
-    6 or higher. The AnaConda compilers [#]_ are suitable too, even if you
+    6 or higher. The Anaconda compilers [#]_ are suitable too, even if you
     use CPython, they are the easiest installation method.
 
-  * Visual Studio 2017 or higher on Windows [#]_, older versions may work,
-    but are not officially supported. Configure to use English language
+  * Visual Studio 2017 or higher on Windows [#]_, older versions may work
+    but are not officially supported. Configure to use the English language
     pack for best results (Nuitka filters away garbage outputs, but only
     for that language).
 
   * On Windows the ``clang-cl`` compiler on Windows can be used if provided if
-    you use the ``CC`` environmentvariable to point to it, *and* you also have
+    you use the ``CC`` environment variable to point to it, *and* you also have
     MSVC installed.
 
 
@@ -86,20 +86,20 @@ Requirements
   .. admonition:: Binary filename suffix
 
      The created binaries have an ``.exe`` suffix on Windows. On other platforms
-     they have no suffix for standalone mode, or ``.bin`` suffix, that you ar
+     they have no suffix for standalone mode, or ``.bin`` suffix, that you are
      free to remove or change, or specify with the ``-o`` option.
 
      The suffix for acceleration mode is added just to be sure that the original
      script name and the binary name do not ever collide, so we can safely do
      an overwrite without destroying the original source file.
 
-  .. admonition:: It **has to** be CPython, AnaConda or MiniConda Python.
+  .. admonition:: It **has to** be CPython, Anaconda or Miniconda Python.
 
      You need the standard Python implementation, called "CPython", to execute
      Nuitka, because it is closely tied to implementation details of it.
 
-     On Windows, for Python not installed system wide and acceleration mode, you
-     need to copy the ``PythonXX.DLL`` alongside of it, something Nuitka does
+     On Windows, for Python not installed system-wide and acceleration mode, you
+     need to copy the ``PythonXX.DLL`` alongside it, something Nuitka does
      automatically.
 
   .. admonition:: It **has to** be CPython, AnaConda or MiniConda Python.
@@ -116,7 +116,7 @@ Requirements
 
   Other architectures are expected to also work, out of the box, as Nuitka is
   generally not using any hardware specifics. These are just the ones tested
-  and known to be good. Feedback is welcome. Generally the architectures that
+  and known to be good. Feedback is welcome. Generally, the architectures that
   Debian supports can be considered good and tested too.
 
 .. [#] Support for this C11 is a given with gcc 5 or higher or any clang
@@ -132,8 +132,8 @@ Requirements
        Also, when prompted, use ``posix`` for threads and ```dwarf`` for
        exception model, although these currently do not matter at all.
 
-.. [#] Installation of matching MinGW64 is easiest of you have an AnaConda or
-       MiniConda installation and execute
+.. [#] Installation of matching MinGW64 is easiest if you have an Anaconda or
+       Miniconda installation and execute
        ``<path_to_Anaconda>\Scripts\conda install m2w64-gcc libpython`` and then
        before you run Nuitka do
        ``setenv CC=<path_to_Anaconda>\Library\mingw-w64\bin\gcc.exe``
@@ -143,8 +143,8 @@ Requirements
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
        (the Express editions work just fine). The latest version is recommended
-       if not required. There is no need to use older versions, they might in
-       fact not work.
+       if not required. There is no need to use older versions, they might in fact
+       not work.
 
 
 Command Line
@@ -161,7 +161,7 @@ have to mess with ``PYTHONPATH`` at all for Nuitka. You just execute the
 environment. You may want to add the ``bin`` directory to your ``PATH`` for
 your convenience, but that step is optional.
 
-Moreover, if you want to execute with the right interpreter in that case, be
+Moreover, if you want to execute with the right interpreter, in that case, be
 sure to execute ``<the_right_python> bin/nuitka`` and be good.
 
   .. admonition:: Pick the right Interpreter
@@ -175,23 +175,23 @@ Nuitka has a ``--help`` option to output what it can do:
 
     nuitka --help
 
-The ``nuitka-run`` command is the same as ``nuitka``, but with different
+The ``nuitka-run`` command is the same as ``nuitka``, but with a different
 default. It tries to compile *and* directly execute a Python script:
 
 .. code-block:: bash
 
     nuitka-run --help
 
-These option that is different is ``--run``, and passing on arguments after the
+This option that is different is ``--run``, and passing on arguments after the
 first non-option to the created binary, so it is somewhat more similar to what
 plain ``python`` will do.
 
 Installation
 ------------
 
-For most systems there will be packages on the `download page
+For most systems, there will be packages on the `download page
 <http://www.nuitka.net/pages/download.html>`__ of Nuitka. But you
-can also install it from source code as described aboe, but also like any other
+can also install it from source code as described above, but also like any other
 Python program it can be installed via the normal ``python setup.py install``
 routine.
 
@@ -208,6 +208,82 @@ Unless required by applicable law or agreed to in writing, software distributed
 under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 CONDITIONS OF ANY KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations under the License.
+
+
+Tutorial Setup and build on Windows
+===================================
+
+This is basic steps if you have nothing installed, of course
+if you have any of the parts, just skip it.
+
+Setup
+-----
+
+Install the C compiler
+++++++++++++++++++++++
+
+ - Download and install mingw64 from
+   `https://sourceforge.net/projects/mingw-w64/ <https://sourceforge.net/projects/mingw-w64/>`_
+ - Select destination folder to **c:\\MinGW64**
+ - verify using command  **gcc.exe --version**
+ - Set a environment variable pointing to **gcc.exe**
+   **CC=c:\\mingw64\bin\\gcc.exe**
+
+Install Python 3.7 (64 Bits)
+++++++++++++++++++++++++++++
+
+ - Download and install from
+   `https://www.python.org/downloads/windows <https://www.python.org/downloads/windows>`_
+ - Select Windows x86-64 web-based installer **or**
+ - Select Windows x86-64 executable installer
+ - verify using command **python --version**
+
+Install Nuitka
+++++++++++++++
+
+ - **pip install nuitka**
+ - verify using command **nuitka --version**
+
+Write some code and test
+-------------------------
+
+Create a folder for the Python code
++++++++++++++++++++++++++++++++++++
+
+ - mkdir HelloWorld
+ - make a python file named **hello.py**
+
+ .. code-block:: python
+
+      def talk(message):
+          return "Talk " + message
+
+      def main():
+          print( talk("Hello World"))
+
+      if __name__ == "__main__":
+          main()
+
+Test it using **python hello.py**
++++++++++++++++++++++++++++++++++
+
+Build it using
+++++++++++++++
+
+  **python -m nuitka --standalone --mingw64 hello.py**
+
+If you like to have full output add **--show-progress** **--show-scons**
+
+Run it
+++++++
+
+Execute the **hello.exe** in the folder **hello.dist**
+
+Distribute
+++++++++++
+
+To distribute copy the **hello.dist** folder
+
 
 Use Cases
 =========
@@ -295,7 +371,7 @@ feasible, use Nuitka like this:
 .. note::
 
    The recursion into the package directory needs to be provided manually,
-   otherwise the package is empty. Data files located inside the package will
+   otherwise, the package is empty. Data files located inside the package will
    not be embedded yet.
 
 Tips
@@ -312,7 +388,7 @@ The most important ones are supported, more can certainly be added.
 Caching
 -------
 
-The C compiler when invoked with the same input files will take a long time
+The C compiler, when invoked with the same input files, will take a long time
 and much CPU to compile. Make sure you are having ``ccache`` installed and
 configured on non-Windows. It will make repeated compilations much faster,
 even if things are not yet not perfect, i.e. changes to the program can
@@ -324,7 +400,7 @@ by though for the non-MSVC compilers, and ``clcache.exe`` which is just one
 ``pip install clcache`` command away. To make Nuitka use those, set either
 ``NUITKA_CCACHE_BINARY`` to the full path of ``ccache.exe`` or
 ``NUITKA_CLCACHE_BINARY`` to the full path of ``clcache.exe``, which will be
-in the scripts folder of the Python you installed it into.
+in the scripts folder of the Python, you installed it into.
 
 Runners
 -------
@@ -336,7 +412,7 @@ Fastest C Compilers
 -------------------
 
 The fastest binaries of ``pystone.exe`` on Windows with 64 bits Python proved
-to be signicantly faster with MinGW64, roughly 20% better score. So it is
+to be significantly faster with MinGW64, roughly 20% better score. So it is
 recommended for use over MSVC. Using ``clang-cl.exe`` of Clang7 was faster
 than MSVC, but still significantly slower than MinGW64, and it will be harder
 to use, so it is not recommended.
@@ -351,24 +427,24 @@ Unexpected Slowdowns
 --------------------
 
 Using the Python DLL, like standard CPython does can lead to unexpected
-slow downs, e.g. in uncompiled code that works with unicode strings. This is
+slowdowns, e.g. in uncompiled code that works with Unicode strings. This is
 because calling to the DLL rather than residing in the DLL causes overhead,
 and this even happens to the DLL with itself, being slower, than a Python
 all contained in one binary.
 
 So if feasible, aim at static linking, which is currently only possible with
-AnaConda Python on non-Windows.
+Anaconda Python on non-Windows.
 
-Windows Standalone executables and dependecies
-----------------------------------------------
+Windows Standalone executables and dependencies
+-----------------------------------------------
 
-The process of making Standalone executables for Windows traditionnaly involves
+The process of making Standalone executables for Windows traditionally involves
 using an external dependency walker in order to copy necessary libraries along
 with the compiled executables to the distribution folder.
-Usng the external dependency walker is quite time consuming, and may copy
+Using the external dependency walker is quite a time consuming, and may copy
 some unnecessary libraries along the way (better have too much than missing).
 Since Nuitka 0.6.2, there's an experimental alternative internal dependency
-walker that relies on pefile which analyses PE imports of executables / libraries.
+walker that relies on pefile which analyses PE imports of executables/libraries.
 This implementation shall create smaller Standalone distributions since it won't
 include Windows' equivalent of the standard library, and will speed-up first
 Nuitka compilations by an order of magnitude.
@@ -385,7 +461,7 @@ following switch:
 
     The pefile dependency walker will test all dependencies of the distribution folder.
 
-    Optionnally, it is also possible to check all recursive dependencies of included libraries
+    Optionally, it is also possible to check all recursive dependencies of included libraries
     using the following switch along with the above one:
 
 .. code-block:: bash
@@ -405,7 +481,7 @@ following switch:
 
 .. note::
 
-    Be aware that using this switch will increase compilation time alot.
+    Be aware that using this switch will increase compilation time a lot.
 
 
 Where to go next
@@ -421,7 +497,7 @@ Subscribe to its mailing lists
 Please visit the `mailing list page
 <http://www.nuitka.net/pages/mailinglist.html>`__ in order to subscribe the
 relatively low volume mailing list. All Nuitka issues can be discussed there.
-Also this is the place to stay informed of what's coming.
+Also, this is the place to stay informed of what's coming.
 
 Follow me on Twitter
 --------------------
@@ -430,7 +506,7 @@ Nuitka announcements and interesting stuff is pointed to on the Twitter account,
 but obviously with no details. `@KayHayen <https://twitter.com/KayHayen>`_.
 
 I will not answer Nuitka issues via Twitter though, rather make occasional
-polls, and give important announcements, as well as low level posts about
+polls, and give important announcements, as well as low-level posts about
 development ongoing.
 
 Report issues or bugs
@@ -464,7 +540,7 @@ Best practices for reporting bugs:
   it's redundant, and it's not likely that I will look at it without
   the ability to change the Python or Nuitka source and re-run it.
 
-- Do not send screenshots of text, that is bad and lazy. Instead capture
+- Do not send screenshots of text, that is bad and lazy. Instead, capture
   text outputs from the console.
 
 Word of Warning
@@ -493,7 +569,7 @@ The development of Nuitka occurs in git. We currently have these 3 branches:
   <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/develop>`__:
 
   This branch contains the ongoing development. It may at times contain little
-  regressions, but also new features. On this branch the integration work is
+  regressions, but also new features. On this branch, the integration work is
   done, whereas new features might be developed on feature branches.
 
 - `factory
@@ -531,7 +607,7 @@ Unsupported functionality
 The ``co_code`` attribute of code objects
 -----------------------------------------
 
-The code objects are empty for for native compiled functions. There is no
+The code objects are empty for native compiled functions. There is no
 bytecode with Nuitka's compiled function objects, so there is no way to provide
 it.
 
@@ -547,7 +623,7 @@ Constant Folding
 ----------------
 
 The most important form of optimization is the constant folding. This is when an
-operation can be fully predicted at compile time. Currently Nuitka does these
+operation can be fully predicted at compile time. Currently, Nuitka does these
 for some built-ins (but not all yet, somebody to look at this more closely will
 be very welcome!), and it does it e.g. for binary/unary operations and
 comparisons.
@@ -569,19 +645,19 @@ quality a lot.
 
 .. admonition:: Status
 
-   The folding of constants is considered implemented, but it might be
-   incomplete in that not all possible cases are caught. Please report it as a
-   bug when you find an operation in Nuitka that has only constants as input
-   and is not folded.
+   The folding of constants is considered implemented, but it might be incomplete
+   in that not all possible cases are caught. Please report it as a
+   bug when you find an operation in Nuitka that has only constants as input and
+   is not folded.
 
 Constant Propagation
 --------------------
 
-At the core of optimizations there is an attempt to determine values of
+At the core of optimizations, there is an attempt to determine the values of
 variables at run time and predictions of assignments. It determines if their
 inputs are constants or of similar values. An expression, e.g. a module variable
 access, an expensive operation, may be constant across the module of the
-function scope and then there needs to be none, or no repeated module variable
+function scope and then there needs to be none or no repeated module variable
 look-up.
 
 Consider e.g. the module attribute ``__name__`` which likely is only ever read,
@@ -596,15 +672,15 @@ can then be used as input to the constant folding.
 
 .. admonition:: Status
 
-   From modules attributes, only ``__name__`` are currently actually optimized.
+   From modules attributes, only ``__name__`` is currently actually optimized.
    Also possible would be at least ``__doc__``. In the future, this may improve
    as SSA is expanded to module variables.
 
 Built-in Name Lookups
 ---------------------
 
-Also built-in exception name references are optimized if they are used as module
-level read only variables:
+Also, built-in exception name references are optimized if they are used as a module
+level read-only variables:
 
 .. code-block:: python
 
@@ -616,7 +692,7 @@ level read only variables:
 .. admonition:: Status
 
    This works for all built-in names. When an assignment is done to such a
-   name, or it's even local, then of course it is not done.
+   name, or it's even local, then, of course, it is not done.
 
 Built-in Call Prediction
 ------------------------
@@ -716,12 +792,12 @@ statement sequence can then be aborted and as such the ``something_else`` call
 needs no code generation or consideration anymore.
 
 To that end, Nuitka works with a special node that raises an exception and is
-wrapped with a so called "side_effects" expression, but yet can be used in code
+wrapped with a so-called "side_effects" expression, but yet can be used in the code
 as an expression having a value.
 
 .. admonition:: Status
 
-   The propagation of exceptions is mostly implemented, but needs handling in
+   The propagation of exceptions is mostly implemented but needs handling in
    every kind of operations, and not all of them might do it already. As work
    progresses or examples arise, the coverage will be extended. Feel free to
    generate bug reports with non-working examples.
@@ -763,7 +839,7 @@ without any risk.
 Exception Block Inlining
 ------------------------
 
-With the exception propagation it is then becomes possible to transform this
+With the exception propagation, it then becomes possible to transform this
 code:
 
 .. code-block:: python
@@ -805,7 +881,7 @@ should be possible to remove the whole construct:
    for i in range(1000):
        pass
 
-The loop could be removed, at maximum it should be considered an assignment of
+The loop could be removed, at maximum, it should be considered an assignment of
 variable ``i`` to ``999`` and no more.
 
 .. admonition:: Status
@@ -828,13 +904,13 @@ effects, but many times this might be possible.
 .. admonition:: Status
 
    This is considered implemented. The conditional statement nature is removed
-   if both branches are empty, only the condition is evaluated, and checked for
+   if both branches are empty, only the condition is evaluated and checked for
    truth (in cases that could raise an exception).
 
 Unpacking Prediction
 --------------------
 
-When the length of the right hand side of an assignment to a sequence can be
+When the length of the right-hand side of an assignment to a sequence can be
 predicted, the unpacking can be replaced with multiple assignments.
 
 .. code-block:: python
@@ -847,7 +923,7 @@ predicted, the unpacking can be replaced with multiple assignments.
    b = side_effect_free()
    c = 3
 
-This is of course only really safe if the left hand side cannot raise an
+This is of course only really safe if the left-hand side cannot raise an
 exception while building the assignment targets.
 
 We do this now, but only for constants, because we currently have no ability to
@@ -856,14 +932,14 @@ predict if an expression can raise an exception or not.
 .. admonition:: Status
 
    Not implemented yet. Will need us to see through the unpacking of what is
-   an iteration over a tuple, we created ourselves. We are not there yet, but
-   we will get there.
+   an iteration over a tuple, we created ourselves. We are not there yet, but we
+   will get there.
 
 Built-in Type Inference
 -----------------------
 
 When a construct like ``in xrange()`` or ``in range()`` is used, it is possible
-to know what the iteration does and represent that, so that iterator users can
+to know what the iteration does and represent that so that iterator users can
 use that instead.
 
 I consider that:
@@ -899,7 +975,7 @@ This will have to evaluate first ``get1()``, then ``get2()`` and only then
 ``get3()`` and then make the function call with these values.
 
 Therefore it will be necessary to have a staging of the parameters before making
-the actual call, to avoid an re-ordering of the calls to ``get1()``, ``get2()``,
+the actual call, to avoid a re-ordering of the calls to ``get1()``, ``get2()``,
 and ``get3()``.
 
 .. admonition:: Status
@@ -928,7 +1004,7 @@ Can be optimized into this:
    for x in (a, b, c):
         something(x)
 
-This allows for simpler, faster code to be generated, and less checks needed,
+This allows for simpler, faster code to be generated, and fewer checks needed,
 because e.g. the ``tuple`` is clearly immutable, whereas the ``list`` needs a
 check to assert that. This is also possible for sets.
 
@@ -939,7 +1015,7 @@ check to assert that. This is also possible for sets.
    possible. This allows us to e.g. only treat iteration over tuples, and not
    care about sets.
 
-In theory something similar is also possible for ``dict``. For the later it will
+In theory, something similar is also possible for ``dict``. For the later, it will
 be non-trivial though to maintain the order of execution without temporary
 values introduced. The same thing is done for pure constants of these types,
 they change to ``tuple`` values when iterated.
@@ -950,7 +1026,7 @@ Credits
 Contributors to Nuitka
 ----------------------
 
-Thanks go to these individuals for their much valued contributions to
+Thanks go to these individuals for their much-valued contributions to
 Nuitka. Contributors have the license to use Nuitka for their own code even if
 Closed Source.
 
@@ -966,7 +1042,7 @@ The order is sorted by time.
 
 - Khalid Abu Bakr: Submitted patches for his work to support MinGW and Windows,
   debugged the issues, and helped me to get cross compile with MinGW from Linux
-  to Windows. This was quite a difficult stuff.
+  to Windows. This was quite difficult stuff.
 
 - Liu Zhenhai: Submitted patches for Windows support, making the inline Scons
   copy actually work on Windows as well. Also reported import related bugs, and
@@ -979,14 +1055,14 @@ The order is sorted by time.
 - Pete Hunt: Submitted patches for macOS X support.
 
 - "ownssh": Submitted patches for built-ins module guarding, and made massive
-  efforts to make high quality bug reports. Also the initial "standalone" mode
+  efforts to make high-quality bug reports. Also the initial "standalone" mode
   implementation was created by him.
 
 - Juan Carlos Paco: Submitted cleanup patches, creator of the `Nuitka GUI
   <https://github.com/juancarlospaco/nuitka-gui>`__, creator of the `Ninja IDE
   plugin <https://github.com/juancarlospaco/nuitka-ninja>`__ for Nuitka.
 
-- "dr. Equivalent": Submitted the Nuitka Logo.
+- "Dr. Equivalent": Submitted the Nuitka Logo.
 
 - Johan Holmberg: Submitted patch for Python3 support on macOS X.
 
@@ -1022,7 +1098,7 @@ Projects used by Nuitka
 
 * The `GCC project <http://gcc.gnu.org>`__
 
-  Thanks for not only the best compiler suite, but also thanks for making it
+  Thanks for not only the best compiler suite but also thanks for making it
   easy supporting to get Nuitka off the ground. Your compiler was the first
   usable for Nuitka and with very little effort.
 
@@ -1058,12 +1134,12 @@ Projects used by Nuitka
 
   Thanks for creating an easy to deploy and use continuous integration framework
   that also runs on Windows and is written and configured in Python code. This
-  allows to run the Nuitka tests long before release time.
+  allows running the Nuitka tests long before release time.
 
 * The `isort project <http://timothycrosley.github.io/isort/>`__
 
   Thanks for making nice import ordering so easy. This makes it so easy to let
-  your IDE do it and clean up afterwards.
+  your IDE do it and clean up afterward.
 
 * The `black project <https://github.com/ambv/black>`__
 

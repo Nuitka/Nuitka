@@ -20,12 +20,16 @@
 """
 
 import array
-
 import os
 from sys import getfilesystemencoding
 
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import python_version
+from nuitka.utils.WindowsResources import (
+    RT_MANIFEST,
+    deleteWindowsResources,
+    getResourcesFromDLL,
+)
 
 from .Utils import isAlpineLinux
 
@@ -86,57 +90,23 @@ def locateDLL(dll_name):
 def getSxsFromDLL(filename):
     """ List the SxS manifests of a Windows DLL.
 
+    Args:
+        filename: Filename of DLL to investigate
+
+    Returns:
+        List of resource names that are manifests.
+
     """
-    import ctypes.wintypes
 
-    if type(filename) is unicode:
-        LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExW  # @UndefinedVariable
-    else:
-        LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExA  # @UndefinedVariable
-
-    EnumResourceNames = ctypes.windll.kernel32.EnumResourceNamesA  # @UndefinedVariable
-    FreeLibrary = ctypes.windll.kernel32.FreeLibrary  # @UndefinedVariable
-
-    EnumResourceNameCallback = ctypes.WINFUNCTYPE(
-        ctypes.wintypes.BOOL, ctypes.wintypes.HMODULE, ctypes.wintypes.LONG, ctypes.wintypes.LONG, ctypes.wintypes.LONG
-    )
-
-    DONT_RESOLVE_DLL_REFERENCES = 0x1
-    LOAD_LIBRARY_AS_DATAFILE = 0x2
-    LOAD_LIBRARY_AS_IMAGE_RESOURCE = 0x20
-
-    RT_MANIFEST = 24
-
-    hmodule = LoadLibraryEx(
-        filename,
-        0,
-        DONT_RESOLVE_DLL_REFERENCES
-        | LOAD_LIBRARY_AS_DATAFILE
-        | LOAD_LIBRARY_AS_IMAGE_RESOURCE,
-    )
-
-    if hmodule == 0:
-        raise ctypes.WinError()
-
-    manifests = []
-
-    def callback(_hModule, _lpType, lpName, _lParam):
-        manifests.append(lpName)
-
-        return True
-
-    EnumResourceNames(hmodule, RT_MANIFEST, EnumResourceNameCallback(callback), None)
-
-    FreeLibrary(hmodule)
-    return manifests
+    return getResourcesFromDLL(filename, RT_MANIFEST)
 
 
 def removeSxsFromDLL(filename):
     """ Remove the Windows DLL SxS manifest.
 
+    Args:
+        filename: Filename to remove SxS manifests from
     """
-    import ctypes
-
     # There may be more files that need this treatment, these are from scans
     # with the "find_sxs_modules" tool.
     if os.path.normcase(os.path.basename(filename)) not in (
@@ -149,30 +119,7 @@ def removeSxsFromDLL(filename):
     res_names = getSxsFromDLL(filename)
 
     if res_names:
-        BeginUpdateResource = (
-            ctypes.windll.kernel32.BeginUpdateResourceA  # @UndefinedVariable
-        )  # @UndefinedVariable
-        EndUpdateResource = (
-            ctypes.windll.kernel32.EndUpdateResourceA  # @UndefinedVariable
-        )  # @UndefinedVariable
-        UpdateResource = ctypes.windll.kernel32.UpdateResourceA  # @UndefinedVariable
-        RT_MANIFEST = 24
-
-        update_handle = BeginUpdateResource(filename, False)
-
-        if not update_handle:
-            raise ctypes.WinError()
-
-        for res_name in res_names:
-            ret = UpdateResource(update_handle, RT_MANIFEST, res_name, 1033, None, 0)
-
-            if not ret:
-                raise ctypes.WinError()
-
-        ret = EndUpdateResource(update_handle, False)
-
-        if not ret:
-            raise ctypes.WinError()
+        deleteWindowsResources(filename, RT_MANIFEST, res_names)
 
 
 def getWindowsDLLVersion(filename):
@@ -183,7 +130,6 @@ def getWindowsDLLVersion(filename):
     """
     # Get size needed for buffer (0 if no info)
     import ctypes
-
 
     if type(filename) is unicode:
         size = ctypes.windll.version.GetFileVersionInfoSizeW(filename, None)

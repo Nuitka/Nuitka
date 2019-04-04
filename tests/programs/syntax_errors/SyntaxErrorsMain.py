@@ -17,8 +17,6 @@
 #
 from __future__ import print_function
 
-import os
-
 try:
     from SyntaxErroring import x
 except Exception as e:

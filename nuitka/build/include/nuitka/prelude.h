@@ -281,4 +281,9 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #include "nuitka/compiled_asyncgen.h"
 #endif
 
+/* Safe to use function to copy a string, will abort program for overflow. */
+extern void copyStringSafe(char *buffer, char *source, size_t buffer_size);
+/* Safe to use function to append a string, will abort program for overflow. */
+extern void appendStringSafe(char *buffer, char *source, size_t buffer_size);
+
 #endif

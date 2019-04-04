@@ -43,10 +43,11 @@ from nuitka.PythonVersions import python_version
 # pylint: disable=E0611,W0141
 
 try:
-    from collections import OrderedDict
-
     if python_version >= 360:
         OrderedDict = dict
+    else:
+        from collections import OrderedDict
+
 except ImportError:
 
     from itertools import izip, imap

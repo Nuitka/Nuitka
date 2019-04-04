@@ -12,6 +12,9 @@ matrix:
     - python: 3.7
       dist: xenial    # required for Python 3.7 (travis-ci/travis-ci#9069)
       sudo: required  # required for Python 3.7 (travis-ci/travis-ci#9069)
+# disable submodules from git
+git:
+  submodules: false
 # commands to install dependencies
 install:
   - "sudo apt-get install scons chrpath"

@@ -26,7 +26,7 @@ import os
 import sys
 from logging import warning
 
-from nuitka.utils.FileOperations import listDir
+from nuitka.utils.FileOperations import getFileContentByLine, listDir
 
 
 def getLoadedPackages():
@@ -104,7 +104,7 @@ def detectPthImportedPackages():
         for path, filename in listDir(prefix):
             if filename.endswith(".pth"):
                 try:
-                    for line in open(path, "rU"):
+                    for line in getFileContentByLine(path, "rU"):
                         if line.startswith("import "):
                             if ";" in line:
                                 line = line[: line.find(";")]

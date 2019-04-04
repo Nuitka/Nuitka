@@ -56,7 +56,8 @@ sig_files = []
 # extension the underlying DB module will add).
 DataBase = {}
 DB_Module = SCons.dblite
-DB_Name = ".sconsign"
+# Nuitka: Avoid collisions with newer Scons using newer pickle protocols
+DB_Name = ".sconsign2"
 DB_sync_list = []
 
 def Get_DataBase(dir):

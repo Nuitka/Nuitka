@@ -42,6 +42,21 @@ def logRecursion(*args):
 
 
 def matchesModuleNameToPatterns(module_name, patterns):
+    """ Match a module name to a list of patterns
+
+    Args:
+        module_name:
+            The module name to match. Full path with dot separators.
+        patters:
+            List of patterns that comply with fnmatch.fnmatch description
+            or also is below the package. So "*.tests" will matches to also
+            "something.tests.MyTest", thereby allowing to match whole
+            packages with one pattern only.
+    Returns:
+        Tuple of two values, where the first value is the result, second value
+        explains which pattern matched and how.
+    """
+
     for pattern in patterns:
         if module_name == pattern:
             return True, "is exact match of %r" % pattern
@@ -275,7 +290,7 @@ def checkPluginSinglePath(plugin_filename, module_package):
                 module_filename=plugin_filename,
                 module_relpath=module_relpath,
                 module_package=module_package,
-                module_kind="py",
+                module_kind=module_kind,
                 reason=reason,
             )
 

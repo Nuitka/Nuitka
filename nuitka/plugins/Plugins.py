@@ -96,11 +96,20 @@ class Plugins(object):
         # Post load code may have been created, if so indicate it's used.
         full_name = module.getFullName()
 
+        if full_name in pre_modules:
+            addUsedModule(pre_modules[full_name])
+
         if full_name in post_modules:
             addUsedModule(post_modules[full_name])
 
-        if full_name in pre_modules:
-            addUsedModule(pre_modules[full_name])
+    @staticmethod
+    def onStandaloneDistributionFinished(dist_dir):
+        """ Let plugins postprocess the distribution folder if standalone
+        """
+        for plugin in active_plugin_list:
+            plugin.onStandaloneDistributionFinished(dist_dir)
+
+        return None
 
     @staticmethod
     def considerExtraDlls(dist_dir, module):
@@ -110,7 +119,7 @@ class Plugins(object):
             for extra_dll in plugin.considerExtraDlls(dist_dir, module):
                 if not os.path.isfile(extra_dll[0]):
                     sys.exit(
-                        "Error, attempting to copy plugin determinted filename %r for module %r that is not a file."
+                        "Error, attempting to copy plugin determined filename %r for module %r that is not a file."
                         % (extra_dll[0], module.getFullName())
                     )
 
@@ -126,6 +135,14 @@ class Plugins(object):
 
     @staticmethod
     def removeDllDependencies(dll_filename, dll_filenames):
+        """ Create list of removable shared libraries by scanning through the plugins.
+
+        Args:
+            dll_filename: shared library filename
+            dll_filenames: list of shared library filenames
+        Returns:
+            list of removable files
+        """
         dll_filenames = tuple(sorted(dll_filenames))
 
         result = []
@@ -140,6 +157,14 @@ class Plugins(object):
 
     @staticmethod
     def considerDataFiles(module):
+        """ For a given module, ask plugins for any needed data files it may require.
+
+        Args:
+            module: module object
+        Yields:
+            Data file description pairs, either (source, dest) or (func, dest)
+            where the func will be called to create the content dynamically.
+        """
         for plugin in active_plugin_list:
             for value in plugin.considerDataFiles(module):
                 yield value
@@ -209,6 +234,18 @@ class Plugins(object):
 
     @staticmethod
     def suppressBuiltinImportWarning(module, source_ref):
+        """ Let plugins decide whether to suppress import warnings for builtin modules.
+
+        Notes:
+            Return will be True if at least one plugin returns other than False or None,
+            else False.
+
+        Args:
+            module: the module object
+            source_ref: ???
+        Returns:
+            True or False
+        """
         for plugin in active_plugin_list:
             if plugin.suppressBuiltinImportWarning(module, source_ref):
                 return True
@@ -217,6 +254,16 @@ class Plugins(object):
 
     @staticmethod
     def suppressUnknownImportWarning(importing, module_name):
+        """ Let plugins decide whether to suppress import warnings for an unknown module.
+
+        Notes:
+            If all plugins return False or None, the return will be False, else True.
+        Args:
+            importing: the module which is importing "module_name"
+            module_name: the module to be imported
+        returns:
+            True or False (default)
+        """
         if importing.isCompiledPythonModule() or importing.isPythonShlibModule():
             importing_module = importing
         else:
@@ -234,6 +281,14 @@ class Plugins(object):
 
     @staticmethod
     def decideCompilation(module_name, source_ref):
+        """ Let plugins decide whether to compile a module.
+
+        Notes:
+            The decision is made by the first plugin not returning None.
+
+        Returns:
+            "compiled" (default) or "bytecode".
+        """
         for plugin in active_plugin_list:
             value = plugin.decideCompilation(module_name, source_ref)
 
@@ -245,6 +300,8 @@ class Plugins(object):
 
 
 def listPlugins():
+    """ Print available standard plugins.
+    """
     for plugin_name in sorted(plugin_name2plugin_classes):
         print(plugin_name)
 
@@ -252,6 +309,8 @@ def listPlugins():
 
 
 def isObjectAUserPluginBaseClass(obj):
+    """ Verify that a user plugin inherits from UserPluginBase.
+    """
     try:
         return obj is not UserPluginBase and issubclass(obj, UserPluginBase)
     except TypeError:
@@ -259,6 +318,8 @@ def isObjectAUserPluginBaseClass(obj):
 
 
 def importFilePy3NewWay(filename):
+    """ Import a file for Python versions 3.5+.
+    """
     import importlib.util  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
     spec = importlib.util.spec_from_file_location(filename, filename)
@@ -268,6 +329,8 @@ def importFilePy3NewWay(filename):
 
 
 def importFilePy3OldWay(filename):
+    """ Import a file for Python versions 3.x where x < 5.
+    """
     from importlib.machinery import (  # pylint: disable=I0021,import-error,no-name-in-module
         SourceFileLoader,  # @UnresolvedImport
     )
@@ -277,12 +340,25 @@ def importFilePy3OldWay(filename):
 
 
 def importFilePy2(filename):
+    """ Import a file for Python version 2.
+    """
     import imp
 
     return imp.load_source(filename, filename)
 
 
 def importFile(filename):
+    """ Import Python module given as a file name.
+
+    Notes:
+        Provides a Python version independent way to import any script files.
+
+    Args:
+        filename: complete path of a Python script
+
+    Returns:
+        Imported Python module defined in filename.
+    """
     if python_version < 300:
         return importFilePy2(filename)
     elif python_version < 350:
@@ -292,7 +368,17 @@ def importFile(filename):
 
 
 def importUserPlugins():
+    """ Extract the filenames of user plugins and store them in list of active plugins.
+
+    Notes:
+        A plugin is accepted only if it has a non-empty variable plugin_name, which
+        does not equal that of a disabled (standard) plugin.
+        Supports plugin option specifications.
+    Returns:
+        None
+    """
     for plugin_filename in Options.getUserPlugins():
+        plugin_filename = plugin_filename.split("=", 1)[0]
         if not os.path.exists(plugin_filename):
             sys.exit("Error, cannot find '%s'." % plugin_filename)
 
@@ -309,6 +395,24 @@ def importUserPlugins():
 
 
 def initPlugins():
+    """ Initialize plugins
+
+    Notes:
+        Load user plugins provided as Python script file names, and standard
+        plugins via their class attribute 'plugin_name'.
+        Several checks are made, see below.
+        The final result is 'active_plugin_list' which contains all enabled
+        plugins.
+
+    Returns:
+        None
+    """
+
+    # load user plugins first to allow any preparative action
+    importUserPlugins()
+
+    # now load standard plugins
+    # ensure plugin is known and not both, enabled and disabled
     for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
         if plugin_name not in plugin_name2plugin_classes:
             sys.exit("Error, unknown plug-in '%s' referenced." % plugin_name)
@@ -332,8 +436,6 @@ def initPlugins():
                 and plugin_detector.isRelevant()
             ):
                 active_plugin_list.append(plugin_detector())
-
-    importUserPlugins()
 
 
 initPlugins()

@@ -27,6 +27,7 @@ import shutil
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
+from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import getOS
 
@@ -258,11 +259,16 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "apt_pkg", True
         elif full_name == "numpy.core":
             yield "numpy.core._dtype_ctypes", False
+        elif full_name == "scipy.special":
+            yield "scipy.special._ufuncs_cxx", False
+        elif full_name == "scipy.linalg":
+            yield "scipy.linalg.cython_blas", False
+            yield "scipy.linalg.cython_lapack", False
         elif full_name == "PIL._imagingtk":
             yield "PIL._tkinter_finder", True
         elif full_name == "pkg_resources.extern":
             if self.pkg_utils_externals is None:
-                for line in open(module.getCompileTimeFilename()):
+                for line in getFileContentByLine(module.getCompileTimeFilename()):
                     if line.startswith("names"):
                         line = line.split("=")[-1].strip()
                         parts = line.split(",")
@@ -294,7 +300,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             if self.opengl_plugins is None:
                 self.opengl_plugins = []
 
-                for line in open(module.getCompileTimeFilename()):
+                for line in getFileContentByLine(module.getCompileTimeFilename()):
                     if line.startswith("PlatformPlugin("):
                         os_part, plugin_name_part = line[15:-1].split(",")
                         os_part = os_part.strip("' ")
@@ -319,6 +325,43 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
             for opengl_plugin in self.opengl_plugins:
                 yield opengl_plugin, True
+        elif full_name == "Cryptodome.Util._raw_api":
+            for module_name in (
+                "_raw_aes",
+                "_raw_aesni",
+                "_raw_arc2",
+                "_raw_blowfish",
+                "_raw_cast",
+                "_raw_cbc",
+                "_raw_cfb",
+                "_raw_ctr",
+                "_raw_des",
+                "_raw_des3",
+                "_raw_ecb",
+                "_raw_ocb",
+                "_raw_ofb",
+            ):
+                yield "Cryptodome.Cipher." + module_name, True
+        elif full_name == "Cryptodome.Util.strxor":
+            yield "Cryptodome.Util._strxor", True
+        elif full_name == "Cryptodome.Util._cpu_features":
+            yield "Cryptodome.Util._cpuid_c", True
+        elif full_name == "Cryptodome.Hash.BLAKE2s":
+            yield "Cryptodome.Hash._BLAKE2s", True
+        elif full_name == "Cryptodome.Hash.SHA1":
+            yield "Cryptodome.Hash._SHA1", True
+        elif full_name == "Cryptodome.Hash.SHA256":
+            yield "Cryptodome.Hash._SHA256", True
+        elif full_name == "Cryptodome.Hash.MD5":
+            yield "Cryptodome.Hash._MD5", True
+        elif full_name == "Cryptodome.Protocol.KDF":
+            yield "Cryptodome.Cipher._Salsa20", True
+            yield "Cryptodome.Protocol._scrypt", True
+        elif full_name == "Cryptodome.Cipher._mode_gcm":
+            yield "Cryptodome.Hash._ghash_portable", True
+        elif full_name == "pycparser.c_parser":
+            yield "pycparser.yacctab", True
+            yield "pycparser.lextab", True
 
     # We don't care about line length here, pylint: disable=line-too-long
 
@@ -487,6 +530,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "distutils",  # Not performance relevant.
         "wheel",  # Not performance relevant.
         "pkg_resources",  # Not performance relevant.
+        "pycparser",  # Not performance relevant.
+        #        "cffi",  # Not performance relevant.
         "numpy.distutils",  # Largely unused, and a lot of modules.
         "numpy.f2py",  # Mostly unused, only numpy.distutils import it.
         "numpy.testing",  # Useless.

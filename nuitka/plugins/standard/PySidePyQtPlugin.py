@@ -98,6 +98,8 @@ if os.path.exists(guess_path):
         return False
 
     def considerExtraDlls(self, dist_dir, module):
+        # pylint: disable=too-many-branches,too-many-locals
+
         full_name = module.getFullName()
 
         if full_name in ("PyQt4", "PyQt5"):
@@ -123,6 +125,7 @@ if os.path.exists(guess_path):
                             "iconengines",
                             "mediaservice",
                             "printsupport",
+                            "platforms",
                         )
                         if self.hasPluginFamily(plugin_dir, family)
                     )
@@ -133,10 +136,6 @@ if os.path.exists(guess_path):
                 # Make sure the above didn't detect nothing, which would be
                 # indicating the check to be bad.
                 assert plugin_options
-
-                # Seems platforms is required on Windows.
-                if os.name == "nt":
-                    plugin_options.add("platforms")
 
             info(
                 "Copying Qt plug-ins '%s' to '%s'."
@@ -181,6 +180,19 @@ if os.path.exists(guess_path):
                 )
             ]
 
+            if os.name == "nt":
+                # Those 2 vars will be used later, just saving some resources
+                # by caching the files list
+                qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
+                qt_bin_files = getFileList(qt_bin_dir)
+
+                info("Copying OpenSSL DLLs to %r" % (dist_dir,))
+
+                for filename in qt_bin_files:
+                    basename = os.path.basename(filename).lower()
+                    if basename in ("libeay32.dll", "ssleay32.dll"):
+                        shutil.copy(filename, os.path.join(dist_dir, basename))
+
             if "qml" in plugin_options or "all" in plugin_options:
                 qml_plugin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "qml"))
 
@@ -217,6 +229,20 @@ if os.path.exists(guess_path):
                     if not os.path.isdir(filename)
                     if not os.path.basename(filename) == "qmldir"
                 ]
+
+                # Also copy required OpenGL DLLs on Windows
+                if os.name == "nt":
+                    opengl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
+
+                    info("Copying OpenGL DLLs to %r" % (dist_dir,))
+
+                    for filename in qt_bin_files:
+                        basename = os.path.basename(filename).lower()
+
+                        if basename in opengl_dlls or basename.startswith(
+                            "d3dcompiler_"
+                        ):
+                            shutil.copy(filename, os.path.join(dist_dir, basename))
 
             return result
 

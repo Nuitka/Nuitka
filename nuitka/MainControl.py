@@ -26,14 +26,15 @@ a distribution folder.
 
 import os
 import shutil
-import subprocess
 import sys
 from logging import info, warning
 
 from nuitka.finalizations.FinalizeMarkups import getImportedNames
+from nuitka.freezer.Standalone import copyDataFiles
 from nuitka.importing import Importing, Recursion
 from nuitka.Options import getPythonFlags
 from nuitka.plugins.Plugins import Plugins
+from nuitka.PostProcessing import executePostProcessing
 from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
@@ -702,9 +703,6 @@ of the precise Python interpreter binary and '-m nuitka', e.g. use this
     sys.exit(error_message)
 
 
-data_files = []
-
-
 def main():
     """ Main program flow of Nuitka
 
@@ -732,14 +730,6 @@ def main():
         for module in detectEarlyImports():
             ModuleRegistry.addUncompiledModule(module)
 
-            if module.getName() == "site":
-                origin_prefix_filename = os.path.join(
-                    os.path.dirname(module.getCompileTimeFilename()), "orig-prefix.txt"
-                )
-
-                if os.path.isfile(origin_prefix_filename):
-                    data_files.append((filename, "orig-prefix.txt"))
-
     # Turn that source code into a node tree structure.
     try:
         main_module = createNodeTree(filename=filename)
@@ -764,6 +754,8 @@ def main():
 
             sys.exit(0)
 
+        executePostProcessing(getResultFullpath(main_module))
+
         if Options.isStandaloneMode():
             binary_filename = options["result_exe"]
 
@@ -776,39 +768,25 @@ def main():
                     Plugins.considerExtraDlls(dist_dir, module)
                 )
 
-            for module in ModuleRegistry.getUncompiledModules():
-                standalone_entry_points.extend(
-                    Plugins.considerExtraDlls(dist_dir, module)
-                )
-
             copyUsedDLLs(
                 source_dir=getSourceDirectoryPath(main_module),
                 dist_dir=dist_dir,
                 standalone_entry_points=standalone_entry_points,
             )
 
+            data_files = []
             for module in ModuleRegistry.getDoneModules():
                 data_files.extend(Plugins.considerDataFiles(module))
 
-            for source_filename, target_filename in data_files:
-                target_filename = os.path.join(
-                    getStandaloneDirectoryPath(main_module), target_filename
-                )
+            copyDataFiles(dist_dir=dist_dir, data_files=data_files)
 
-                makePath(os.path.dirname(target_filename))
-
-                shutil.copy2(source_filename, target_filename)
+            Plugins.onStandaloneDistributionFinished(dist_dir)
 
         # Remove the source directory (now build directory too) if asked to.
         if Options.isRemoveBuildDir():
             removeDirectory(
                 path=getSourceDirectoryPath(main_module), ignore_errors=False
             )
-
-        # Modules should not be executable, but Scons creates them like it, fix
-        # it up here. TODO: Move inside scons file and avoid subprocess call.
-        if Utils.getOS() != "Windows" and Options.shallMakeModule():
-            subprocess.call(("chmod", "-x", getResultFullpath(main_module)))
 
         if Options.shallMakeModule() and Options.shallCreatePyiFile():
             pyi_filename = getResultBasepath(main_module) + ".pyi"
