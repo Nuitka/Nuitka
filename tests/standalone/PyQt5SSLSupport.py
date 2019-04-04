@@ -18,4 +18,7 @@
 #     limitations under the License.
 #
 from PyQt5.QtNetwork import QSslSocket
+
+# nuitka-skip-unless-imports: PyQt5.QtGui
+
 print("SSL support: %r" % (QSslSocket.supportsSsl(),))

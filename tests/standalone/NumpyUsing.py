@@ -18,4 +18,7 @@
 #     limitations under the License.
 #
 import numpy
+
+# nuitka-skip-unless-imports: numpy
+
 numpy.test()
