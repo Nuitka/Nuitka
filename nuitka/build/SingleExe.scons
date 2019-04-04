@@ -318,6 +318,17 @@ blacklisted_tools = (
     "nasm",
 )
 
+gcc_names = ["gcc", "g++", "cc", "c++"]
+
+def has_names(test_names, compiler_name):
+    """returns True the name of the compiler_name contains any of the names in
+    test_names, compiler names, False otherwise."""
+
+    return any(gcc_name in compiler_name for gcc_name in gcc_names)
+
+def has_gcc_names(compiler_name):
+    return has_names(gcc_names, compiler_name)
+
 v_cache = {}
 
 # From gcc.py of Scons
@@ -339,7 +350,7 @@ def detectVersion(env, cc):
     if show_scons_mode:
         print("Scons CC %r version check:" % cc)
 
-    if clvar[0] in ("gcc", "g++", "clang"):
+    if has_names(["gcc", "g++", "cc", "clang"], clvar[0]):
         command = list(clvar) + ["-dumpversion"]
     else:
         command = list(clvar) + ["--version"]
@@ -635,7 +646,7 @@ if "clang" in the_cc_name and "-cl" not in the_cc_name:
 
 # We consider clang to be a form of gcc for the most things, they strive to
 # be compatible.
-gcc_mode = "gcc" in the_cc_name or "g++" in the_cc_name or clang_mode
+gcc_mode =  has_gcc_names(the_cc_name) or clang_mode
 
 msvc_mode = win_target and not gcc_mode
 mingw_mode = win_target and gcc_mode
@@ -1265,7 +1276,7 @@ if debug_mode or unstripped_mode:
         env.Append(CCFLAGS=["-g"])
         env.Append(ASFLAGS=["-g"])
 
-        if "gcc" in the_cc_name or "g++" in the_cc_name:
+        if has_gcc_names(the_cc_name):
             env.Append(CCFLAGS=["-feliminate-unused-debug-types"])
     elif msvc_mode:
         env.Append(CCFLAGS=["/Z7"])
@@ -1432,7 +1443,7 @@ env.Append(
 
 # Tell compiler to create a shared library or program.
 if module_mode:
-    if "gcc" in the_cc_name or "g++" in the_cc_name:
+    if has_gcc_names(the_cc_name):
         env.Append(CCFLAGS=["-shared"])
     elif clang_mode:
         pass
