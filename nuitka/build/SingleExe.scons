@@ -138,9 +138,13 @@ uninstalled_python = getBoolOption("uninstalled_python", False)
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getBoolOption("unstripped_mode", False)
 
+# Target arch, uses for compiler choice and quick linking of constants binary
+# data.
+target_arch = ARGUMENTS["target_arch"]
+
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
-if macosx_target or ("freebsd" in sys.platform and os.uname()[4] != "powerpc"):  # @UndefinedVariable
+if macosx_target or ("freebsd" in sys.platform and target_arch != "powerpc"):
     clang_mode = True
 
 # MinGW compiler mode, optional and interesting to Windows only.
@@ -163,10 +167,6 @@ show_scons_mode = getBoolOption("show_scons", False)
 # Home of Python to be compiled against, used to find include files and
 # libraries to link against.
 python_prefix = ARGUMENTS["python_prefix"]
-
-# Target arch, uses for compiler choice and quick linking of constants binary
-# data.
-target_arch = ARGUMENTS["target_arch"]
 
 # Icon for executable (windows-only)
 icon_path = ARGUMENTS.get("icon_path", None)
@@ -1671,7 +1671,7 @@ if cache_mode:
     if show_scons_mode:
         print("scons: Using scons cache inside build directory.")
 
-    CacheDir( # @UndefinedVariable
+    CacheDir(  # @UndefinedVariable
         os.path.join(source_dir, "cache-" + target_arch + "-" + python_abi_version)
     )
     Decider("MD5-timestamp")  # @UndefinedVariable
