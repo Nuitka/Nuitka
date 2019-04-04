@@ -32,6 +32,7 @@ from nuitka import Options, Tracing
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
+from nuitka.utils.FileOperations import getWindowsShortPathName
 
 
 def getSconsDataPath():
@@ -171,6 +172,11 @@ def _setupSconsEnvironment():
     Python DLL lives, in case it needs to be copied, and then the
     "NUITKA_PYTHON_EXE_PATH" to find the Python binary itself.
     """
+
+    # For Python2, avoid unicode working directory.
+    if Utils.isWin32Windows() and python_version < 300:
+        if os.getcwd() != os.getcwdu():
+            os.chdir(getWindowsShortPathName(os.getcwdu()))
 
     if Utils.isWin32Windows():
         # On Win32, we use the Python.DLL path for some things. We pass it
