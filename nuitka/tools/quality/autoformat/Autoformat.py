@@ -329,7 +329,7 @@ def autoformat(filename, git_stage, abort):
         old_code = getFileContents(filename)
 
     with open(tmp_filename, "wb") as output_file:
-        output_file.write(old_code)
+        output_file.write(old_code.encode("utf-8"))
 
     try:
         _cleanupWindowsNewlines(tmp_filename)
