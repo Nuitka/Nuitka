@@ -288,7 +288,7 @@ def _shouldNotFormatCode(filename):
 
 
 def _isPythonFile(filename):
-    if filename.endswith((".py", ".pyw")):
+    if filename.endswith((".py", ".pyw", ".scons")):
         return True
     else:
         shebang = getShebangFromFile(filename)
@@ -328,7 +328,7 @@ def autoformat(filename, git_stage, abort):
     else:
         old_code = getFileContents(filename)
 
-    with open(tmp_filename, "wb") as output_file:
+    with open(tmp_filename, "w") as output_file:
         output_file.write(old_code)
 
     try:
