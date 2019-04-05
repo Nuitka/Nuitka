@@ -655,7 +655,7 @@ static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLo
 #if PYTHON_VERSION >= 340
         PyObject *spec_value = LOOKUP_ATTRIBUTE(result, const_str_plain___spec__);
 
-        if (spec_value != Py_None) {
+        if (spec_value && spec_value != Py_None) {
             if (PyObject_HasAttr(spec_value, const_str_plain__initializing)) {
                 SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_False);
             }
