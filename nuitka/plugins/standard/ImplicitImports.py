@@ -362,6 +362,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "pycparser.c_parser":
             yield "pycparser.yacctab", True
             yield "pycparser.lextab", True
+        elif full_name == "passlib.hash":
+            yield "passlib.handlers.sha2_crypt", True
 
     # We don't care about line length here, pylint: disable=line-too-long
 
