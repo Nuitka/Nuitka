@@ -40,6 +40,7 @@ from .SearchModes import (
     SearchModeByPattern,
     SearchModeCoverage,
     SearchModeResume,
+    SearchModeOnly,
 )
 
 
@@ -834,6 +835,7 @@ def checkReferenceCount(checked_function, max_rounds=10):
 def createSearchMode():
     search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
     resume_mode = len(sys.argv) > 1 and sys.argv[1] == "resume"
+    only_mode = len(sys.argv) > 1 and sys.argv[1] == "only"
     start_at = sys.argv[2] if len(sys.argv) > 2 else None
     coverage_mode = len(sys.argv) > 1 and sys.argv[1] == "coverage"
 
@@ -845,6 +847,9 @@ def createSearchMode():
     elif search_mode and start_at:
         start_at = start_at.replace("/", os.path.sep)
         return SearchModeByPattern(start_at)
+    elif only_mode and start_at:
+        only_at = start_at.replace("/", os.path.sep)
+        return SearchModeOnly(only_at)
     else:
 
         class SearchModeImmediate(SearchModeBase):

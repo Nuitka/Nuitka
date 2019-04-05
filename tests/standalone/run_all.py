@@ -740,5 +740,8 @@ for filename in sorted(os.listdir(".")):
         sys.exit(1)
 
     removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
+    
+    if search_mode.abortIfExecuted():
+        break
 
 search_mode.finish()
