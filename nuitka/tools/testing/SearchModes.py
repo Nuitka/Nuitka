@@ -54,6 +54,10 @@ class SearchModeBase(object):
         self.may_fail += names
 
     @classmethod
+    def abortIfExecuted(cls):
+        return False
+
+    @classmethod
     def _match(cls, dirname, filename, candidate):
         parts = [dirname, filename]
 
@@ -162,3 +166,10 @@ class SearchModeCoverage(SearchModeBase):
 
     def isCoverage(self):
         return True
+
+class SearchModeOnly(SearchModeByPattern):
+    def abortIfExecuted(self):
+        if self.active:
+            return True
+        return False
+    
