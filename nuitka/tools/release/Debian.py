@@ -26,7 +26,11 @@ import sys
 from nuitka.utils.FileOperations import getFileContentByLine
 
 
-def updateDebianChangelog(old_version, new_version):
+def _bumpVersion(debian_version):
+    assert os.system('debchange --newversion=%s ""' % debian_version) == 0
+
+
+def updateDebianChangelog(old_version, new_version, distribution):
     debian_version = new_version.replace("rc", "~rc") + "+ds-1"
 
     os.environ["DEBEMAIL"] = "Kay Hayen <kay.hayen@gmail.com>"
@@ -34,9 +38,8 @@ def updateDebianChangelog(old_version, new_version):
     if "rc" in new_version:
         if "rc1" in new_version:
             assert os.system('debchange -R "New upstream pre-release."') == 0
-            assert os.system('debchange --newversion=%s ""' % debian_version) == 0
-        else:
-            assert os.system('debchange --newversion=%s ""' % debian_version) == 0
+
+        _bumpVersion(debian_version)
 
         with open("Changelog.rst") as f:
             changelog = f.read()
@@ -63,13 +66,12 @@ def updateDebianChangelog(old_version, new_version):
                         output.write(line)
 
             os.system('debchange -R "New upstream release."')
-            os.system('debchange --newversion=%s ""' % debian_version)
         else:
             # Hotfix release after previous final or hotfix release.
             os.system('debchange -R "New upstream hotfix release."')
-            os.system('debchange --newversion=%s ""' % debian_version)
 
-        os.system('debchange -r ""')
+    _bumpVersion(debian_version)
+    assert os.system('debchange -r "" --distribution "%s"' % distribution) == 0
 
 
 def checkChangeLog(message):
