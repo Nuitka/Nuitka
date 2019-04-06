@@ -328,8 +328,12 @@ def autoformat(filename, git_stage, abort):
     else:
         old_code = getFileContents(filename)
 
-    with open(tmp_filename, "wb") as output_file:
-        output_file.write(old_code)
+    if not isinstance(old_code, str):
+        with open(tmp_filename, "w") as output_file:
+            output_file.write(old_code.decode("utf-8"))
+    else:
+        with open(tmp_filename, "wb") as output_file:
+            output_file.write(old_code)
 
     try:
         _cleanupWindowsNewlines(tmp_filename)
