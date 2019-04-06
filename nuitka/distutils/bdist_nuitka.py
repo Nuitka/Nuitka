@@ -121,10 +121,12 @@ class build(distutils.command.build.build):
 
         # Process any extra options from setuptools
         if "nuitka" in self.distribution.command_options:
-            for option, details in self.distribution.command_options["nuitka"].items():
+            for option, value in self.distribution.command_options["nuitka"].items():
                 option = "--" + option.lstrip("-")
-                _source, value = details
                 if value is None:
+                    command.append(option)
+                elif isinstance(value, bool):
+                    option = "--" + ("no" if not value else "") + option.lstrip("-")
                     command.append(option)
                 elif isinstance(value, Iterable) and not isinstance(
                     value, (unicode, bytes, str)
