@@ -502,12 +502,14 @@ class NuitkaPluginBase(object):
         return ()
 
     def considerDataFiles(self, module):
-        """ Yield data file names (source, target) for inclusion (iterator).
+        """ Yield data file names (source|func, target) for inclusion (iterator).
 
         Args:
             module: module object that may need extra data files
         Yields:
-            tuple
+            Data file description pairs, either (source, dest) or (func, dest)
+            where the func will be called to create the content dynamically.
+
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()

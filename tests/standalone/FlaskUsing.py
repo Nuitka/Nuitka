@@ -18,6 +18,9 @@
 #     limitations under the License.
 #
 from flask import Flask
+
+# nuitka-skip-unless-imports: flask
+
 app = Flask(__name__)
 
 @app.route("/")

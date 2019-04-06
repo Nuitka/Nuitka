@@ -534,49 +534,58 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if trace_command:
             my_print("Nuitka command 1:", nuitka_cmd1)
 
-        with withPythonPathChange(nuitka_package_dir):
-            process = subprocess.Popen(
-                args=nuitka_cmd1, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
+        for _i in range(5):
+            with withPythonPathChange(nuitka_package_dir):
+                process = subprocess.Popen(
+                    args=nuitka_cmd1, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
 
-        stdout_nuitka1, stderr_nuitka1 = process.communicate()
-        exit_nuitka1 = process.returncode
+            stdout_nuitka1, stderr_nuitka1 = process.communicate()
+            exit_nuitka1 = process.returncode
 
-        if exit_nuitka1 != 0:
-            if (
-                not expect_failure
-                and not comparison_mode
-                and not os.path.exists(".coverage")
-            ):
-                sys.exit(
-                    """\
+            if exit_nuitka1 != 0:
+                if (
+                    not expect_failure
+                    and not comparison_mode
+                    and not os.path.exists(".coverage")
+                ):
+                    sys.exit(
+                        """\
 Error, failed to take coverage with '%s'.
 
 Stderr was:
 %s
 """
-                    % (os.environ["PYTHON"], stderr_nuitka1)
-                )
+                        % (os.environ["PYTHON"], stderr_nuitka1)
+                    )
 
-            exit_nuitka = exit_nuitka1
-            stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
-        else:
-            # No execution second step for coverage mode.
-            if comparison_mode:
-                if trace_command:
-                    my_print("Nuitka command 2:", nuitka_cmd2)
-
-                process = subprocess.Popen(
-                    args=nuitka_cmd2, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-
-                stdout_nuitka2, stderr_nuitka2 = process.communicate()
-                stdout_nuitka = stdout_nuitka1 + stdout_nuitka2
-                stderr_nuitka = stderr_nuitka1 + stderr_nuitka2
-                exit_nuitka = process.returncode
-            else:
                 exit_nuitka = exit_nuitka1
                 stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
+            else:
+                # No execution second step for coverage mode.
+                if comparison_mode:
+                    if trace_command:
+                        my_print("Nuitka command 2:", nuitka_cmd2)
+
+                    process = subprocess.Popen(
+                        args=nuitka_cmd2, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                    )
+
+                    stdout_nuitka2, stderr_nuitka2 = process.communicate()
+                    stdout_nuitka = stdout_nuitka1 + stdout_nuitka2
+                    stderr_nuitka = stderr_nuitka1 + stderr_nuitka2
+                    exit_nuitka = process.returncode
+                else:
+                    exit_nuitka = exit_nuitka1
+                    stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
+
+            if checkNoPermissionError(stdout_nuitka) and checkNoPermissionError(
+                stderr_nuitka
+            ):
+                break
+
+            my_print("Retrying nuitka exe due to permission problems after delay.")
+            time.sleep(2)
 
     stop_watch.stop()
     nuitka_time = stop_watch.delta()

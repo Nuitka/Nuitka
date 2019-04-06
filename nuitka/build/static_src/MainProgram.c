@@ -43,24 +43,6 @@ static wchar_t **argv_unicode;
 
 #ifdef _NUITKA_STANDALONE
 
-static char *original_home;
-static char *original_path;
-
-#if defined(_WIN32)
-static void setenv(char const *name, char const *value, int overwrite) {
-    assert(overwrite);
-
-    char buffer[MAXPATHLEN + 100];
-    memset(buffer, 0, sizeof(buffer));
-    snprintf(buffer, sizeof(buffer) - 1, "%s=%s", name, value ? value : "");
-
-    NUITKA_MAY_BE_UNUSED int res = _putenv(buffer);
-    assert(res == 0);
-}
-
-static void unsetenv(char const *name) { setenv(name, NULL, 1); }
-#endif
-
 #if _NUITKA_FROZEN > 0
 extern void copyFrozenModulesTo(struct _frozen *destination);
 #endif
@@ -95,34 +77,21 @@ static void prepareStandaloneEnvironment() {
      * the provided binary directory as the place to look for DLLs and for
      * extension modules.
      */
-    char *binary_directory = getBinaryDirectoryHostEncoded();
-
 #if defined(_WIN32) && defined(_MSC_VER)
-    SetDllDirectory(binary_directory);
+    SetDllDirectoryW(getBinaryDirectoryWideChars());
 #endif
 
-    /* get original environment variable values */
-    original_home = getenv("PYTHONHOME");
-    original_path = getenv("PYTHONPATH");
-
-    assert(binary_directory != NULL);
-    assert(strlen(binary_directory) > 0);
-
+#if PYTHON_VERSION < 300
+    char *binary_directory = getBinaryDirectoryHostEncoded();
     NUITKA_PRINTF_TRACE("Binary dir is %s\n", binary_directory);
 
-    setenv("PYTHONHOME", binary_directory, 1);
+    Py_SetPythonHome(binary_directory);
+#else
+    wchar_t *binary_directory = getBinaryDirectoryWideChars();
+    NUITKA_PRINTF_TRACE("Binary dir is %S\n", binary_directory);
 
-    // This has really failed before, on Windows.
-    assert(getenv("PYTHONHOME") != NULL);
-    assert(strcmp(binary_directory, getenv("PYTHONHOME")) == 0);
+    Py_SetPythonHome(binary_directory);
 
-    unsetenv("PYTHONPATH");
-
-#if PYTHON_VERSION >= 300
-    wchar_t binary_directory2[MAXPATHLEN + 1];
-    mbstowcs(binary_directory2, binary_directory, MAXPATHLEN);
-
-    Py_SetPath(binary_directory2);
 #endif
 }
 
@@ -133,37 +102,15 @@ static void prepareStandaloneEnvironment() {
 #endif
 
 static void restoreStandaloneEnvironment() {
-    /* Make use the PYTHONHOME set previously. */
-    NUITKA_PRINTF_TRACE("Path is '" PY_FORMAT_GETPATH_RESULT "' (PYTHONHOME %s)\n", Py_GetPath(), getenv("PYTHONHOME"));
-    Py_GetPath();
-
-    // Restore PYTHONHOME and PYTHONPATH, so spawning executables of Python
-    // will still work as expected.
-    if (original_home == NULL) {
-        unsetenv("PYTHONHOME");
-    } else {
-        setenv("PYTHONHOME", original_home, 1);
-    }
-
-    if (original_path != NULL) {
-        setenv("PYTHONPATH", original_path, 1);
-    }
-
-    // Emulate the effect of Py_SetPath for Python2, and cleanup the duplicate
-    // produced for Python3. We do not want to have outside locations in the
-    // "sys.path", this removes them reliably. For Python2 it's relatively late
-    // but ought to be good enough still.
-    char *binary_directory = getBinaryDirectoryHostEncoded();
+    /* Make sure to use the optimal value for standalone mode only. */
 #if PYTHON_VERSION < 300
-    PySys_SetPath(binary_directory);
+    PySys_SetPath(getBinaryDirectoryHostEncoded());
+    NUITKA_PRINTF_TRACE("Final PySys_GetPath is 's'.\n", PySys_GetPath());
 #else
-    wchar_t binary_directory2[MAXPATHLEN + 1];
-    mbstowcs(binary_directory2, binary_directory, MAXPATHLEN);
-
-    PySys_SetPath(binary_directory2);
+    PySys_SetPath(getBinaryDirectoryWideChars());
+    Py_SetPath(getBinaryDirectoryWideChars());
+    NUITKA_PRINTF_TRACE("Final Py_GetPath is '%ls'.\n", Py_GetPath());
 #endif
-
-    NUITKA_PRINTF_TRACE("Path is '" PY_FORMAT_GETPATH_RESULT "'.\n", Py_GetPath());
 }
 
 #endif
@@ -183,6 +130,81 @@ extern void _initCompiledAsyncgenTypes();
 #if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
 unsigned char const *constant_bin = NULL;
 #endif
+
+#include <locale.h>
+
+// Types of command line arguments are different between Python2/3.
+#if PYTHON_VERSION >= 300
+typedef wchar_t **argv_type_t;
+static argv_type_t convertCommandLineParameters(int argc, char **argv) {
+#if _WIN32
+    int new_argc;
+
+    argv_type_t result = CommandLineToArgvW(GetCommandLineW(), &new_argc);
+    assert(new_argc == argc);
+    return result;
+#else
+    // Originally taken from CPython3: There seems to be no sane way to use
+    static wchar_t **argv_copy;
+    argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t *) * argc);
+
+    // Temporarily disable locale for conversions to not use it.
+    char *oldloc = strdup(setlocale(LC_ALL, NULL));
+    setlocale(LC_ALL, "");
+
+    for (int i = 0; i < argc; i++) {
+#ifdef __APPLE__
+        argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
+#elif PYTHON_VERSION < 350
+        argv_copy[i] = _Py_char2wchar(argv[i], NULL);
+#else
+        argv_copy[i] = Py_DecodeLocale(argv[i], NULL);
+#endif
+
+        assert(argv_copy[i]);
+    }
+
+    setlocale(LC_ALL, oldloc);
+    free(oldloc);
+
+    return argv_copy;
+#endif
+}
+#else
+typedef char **argv_type_t;
+#endif
+
+// Parse the command line parameters and provide it to "sys" built-in module,
+// as well as decide if it's a multiprocessing usage.
+
+static bool setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
+    bool is_multiprocessing_fork = false;
+
+    if (initial) {
+        /* We might need to skip what multiprocessing has told us. */
+        for (int i = 1; i < argc; i++) {
+#if PYTHON_VERSION < 300
+            if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i + 1 < argc))
+#else
+            wchar_t constant_buffer[100];
+            mbstowcs(constant_buffer, "--multiprocessing-fork", 100);
+            if ((wcscmp(argv[i], constant_buffer)) == 0 && (i + 1 < argc))
+#endif
+            {
+                is_multiprocessing_fork = true;
+                break;
+            }
+        }
+    }
+
+    if (initial) {
+        // Py_SetProgramName(argv[0]);
+    } else {
+        PySys_SetArgv(argc, argv);
+    }
+
+    return is_multiprocessing_fork;
+}
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
@@ -289,33 +311,17 @@ int main(int argc, char **argv) {
     bool is_multiprocess_forking = setCommandLineParameters(argc, argv_unicode, true);
 #endif
 
-    /* For Python installations that need the PYTHONHOME set, we inject it back here. */
+    /* For Python installations that need the home set, we inject it back here. */
 #if defined(PYTHON_HOME_PATH)
-    NUITKA_PRINT_TRACE("main(): Prepare run environment PYTHONHOME.");
-    {
-#if !defined(_WIN32) || PYTHON_VERSION < 360
-        int res = putenv("PYTHONHOME=" PYTHON_HOME_PATH);
-        assert(res == 0);
+#if PYTHON_VERSION < 300
+    NUITKA_PRINT_TRACE("main(): Prepare run environment '" PYTHON_HOME_PATH "'.");
+    Py_SetPythonHome(PYTHON_HOME_PATH);
 #else
-        char buffer[MAXPATHLEN * 4 + 1];
-
-        copyStringSafe(buffer, PYTHON_HOME_PATH "\\lib;" PYTHON_HOME_PATH "\\DLLs;", sizeof(buffer));
-        appendStringSafe(buffer, getBinaryDirectoryHostEncoded(), sizeof(buffer));
-
-        char *python_path = getenv("PYTHONPATH");
-        if (python_path != NULL) {
-            appendStringSafe(buffer, ";", sizeof(buffer));
-            appendStringSafe(buffer, python_path, sizeof(buffer));
-        }
-
-        wchar_t *v = Py_DecodeLocale(buffer, NULL);
-        if (v == NULL)
-            abort();
-
-        Py_SetPath(v);
-        PyMem_RawFree(v);
+    NUITKA_PRINTF_TRACE("main(): Prepare run environment '%S'.\n", L"" PYTHON_HOME_PATH );
+    Py_SetPythonHome(L"" PYTHON_HOME_PATH);
+    // Make sure the above Py_SetPythonHome call has effect already.
+    Py_GetPath();
 #endif
-    }
 #endif
 
     /* Initialize the embedded CPython interpreter. */

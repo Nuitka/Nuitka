@@ -23,11 +23,16 @@
 
 import os
 import re
-import shutil
 import subprocess
 import sys
 from logging import warning
 
+from nuitka.tools.quality.Git import (
+    getFileHashContent,
+    putFileHashContent,
+    updateFileIndex,
+    updateWorkingFile,
+)
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import getFileContents, renameFile
@@ -283,7 +288,7 @@ def _shouldNotFormatCode(filename):
 
 
 def _isPythonFile(filename):
-    if filename.endswith((".py", ".pyw")):
+    if filename.endswith((".py", ".pyw", ".scons")):
         return True
     else:
         shebang = getShebangFromFile(filename)
@@ -299,12 +304,12 @@ def _isPythonFile(filename):
     return False
 
 
-def autoformat(filename, abort=False):
+def autoformat(filename, git_stage, abort):
+    # This does a lot of distinctions, pylint:disable=too-many-branches
+
     filename = os.path.normpath(filename)
 
     my_print("Consider", filename, end=": ")
-
-    old_code = getFileContents(filename)
 
     is_python = _isPythonFile(filename)
 
@@ -317,9 +322,18 @@ def autoformat(filename, abort=False):
 
     # Work on a temporary copy
     tmp_filename = filename + ".tmp"
-    shutil.copy(filename, tmp_filename)
+
+    if git_stage:
+        old_code = getFileHashContent(git_stage["dst_hash"])
+    else:
+        old_code = getFileContents(filename)
+
+    with open(tmp_filename, "w") as output_file:
+        output_file.write(old_code)
 
     try:
+        _cleanupWindowsNewlines(tmp_filename)
+
         if is_python:
             _cleanupPyLintComments(tmp_filename, abort)
             _cleanupImportSortOrder(tmp_filename)
@@ -333,14 +347,18 @@ def autoformat(filename, abort=False):
         else:
             _cleanupTrailingWhitespace(tmp_filename)
 
-        if getOS() == "Windows":
-            _cleanupWindowsNewlines(tmp_filename)
+        _cleanupWindowsNewlines(tmp_filename)
 
         changed = False
         if old_code != getFileContents(tmp_filename):
             my_print("Updated.")
 
-            renameFile(tmp_filename, filename)
+            if git_stage:
+                new_hash_value = putFileHashContent(tmp_filename)
+                updateFileIndex(git_stage, new_hash_value)
+                updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
+            else:
+                renameFile(tmp_filename, filename)
 
             changed = True
         else:

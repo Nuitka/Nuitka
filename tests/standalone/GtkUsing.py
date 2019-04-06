@@ -24,6 +24,9 @@ import sys
 import gtk
 
 import pygtk
+
+# nuitka-skip-unless-imports: pygtk
+
 pygtk.require("2.0")
 
 print("OK")

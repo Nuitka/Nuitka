@@ -25,6 +25,8 @@ from __future__ import print_function
 
 from PySide.QtCore import Slot, Signal, QObject, QMetaObject
 
+# nuitka-skip-unless-imports: PySide.QtCore
+
 class Communicate(QObject):
     speak = Signal(int)
     def __init__(self,name = "",parent = None):

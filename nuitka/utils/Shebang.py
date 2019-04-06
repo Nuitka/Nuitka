@@ -66,8 +66,16 @@ def getShebangFromFile(filename):
         The binary that the kernel will use (Linux and compatible).
     """
 
-    with open(filename) as f:
-        return getShebangFromSource(f.readline())
+    with open(filename, "rb") as f:
+        source_code = f.readline()
+
+        if str is not bytes:
+            try:
+                source_code = source_code.decode("utf8")
+            except UnicodeDecodeError:
+                source_code = ""
+
+        return getShebangFromSource(source_code)
 
 
 def parseShebang(shebang):

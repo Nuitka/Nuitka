@@ -22,11 +22,11 @@
 """
 
 import glob
-import os
 import sys
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
+from nuitka.tools.quality.Git import getStagedFileChangeDesc
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print
 
@@ -66,23 +66,20 @@ def main():
 
     options, positional_args = parser.parse_args()
 
-    if not positional_args:
-        positional_args = [
-            "bin",
-            "nuitka",
-            # "tests/*/run_all.py"
-        ]
-
     if options.from_commit:
-        positional_args = [
-            positional_arg
-            for positional_arg in positional_args
-            if not os.path.isdir(positional_arg)
-        ]
+        assert not positional_args
+        for desc in getStagedFileChangeDesc():
+            autoformat(desc["src_path"], git_stage=desc, abort=options.abort)
+    else:
+        if not positional_args:
+            positional_args = [
+                "bin",
+                "nuitka",
+                # "tests/*/run_all.py"
+            ]
 
-    my_print("Working on:", positional_args)
+        my_print("Working on:", positional_args)
 
-    if not options.from_commit:
         positional_args = sum(
             (
                 resolveShellPatternToFilenames(positional_arg)
@@ -91,17 +88,16 @@ def main():
             [],
         )
 
-    positional_args = [
-        os.path.abspath(positional_arg) for positional_arg in positional_args
-    ]
-    goHome()
+        goHome()
 
-    filenames = list(scanTargets(positional_args, (".py", ".scons", ".rst", ".txt")))
-    if not filenames:
-        sys.exit("No files found.")
+        filenames = list(
+            scanTargets(positional_args, (".py", ".scons", ".rst", ".txt"))
+        )
+        if not filenames:
+            sys.exit("No files found.")
 
-    for filename in filenames:
-        autoformat(filename, abort=options.abort)
+        for filename in filenames:
+            autoformat(filename, git_stage=False, abort=options.abort)
 
 
 if __name__ == "__main__":

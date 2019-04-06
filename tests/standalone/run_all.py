@@ -21,6 +21,7 @@
 
 import os
 import sys
+import subprocess
 
 # Find nuitka package relative to us. The replacement is for POSIX python
 # and Windows paths on command line.
@@ -45,7 +46,7 @@ from nuitka.tools.testing.Common import (
     reportSkip,
     setup,
 )
-from nuitka.utils.FileOperations import removeDirectory
+from nuitka.utils.FileOperations import getFileContentByLine, removeDirectory
 
 python_version = setup(needs_io_encoding=True)
 
@@ -264,6 +265,38 @@ _win_dll_whitelist = (
     "MFCM140U.DLL",
 )
 
+# checks requirements needed to run each test module, according to the specified special comment
+# special comments are in the following formats:
+#     "# nuitka-skip-unless-expression: expression to be evaluated"
+#       OR
+#     "# nuitka-skip-unless-imports: module1,module2,..."
+def checkRequirements(filename):
+    for line in getFileContentByLine(filename):
+        if line.startswith("# nuitka-skip-unless-"):
+            if line[21:33] == "expression: ":
+                expression = line[33:]
+                with open(os.devnull, "w") as devnull:
+                    result = subprocess.call(
+                        (sys.executable, "-c" "import sys, os; %s" % expression),
+                        stdout=devnull,
+                        stderr=subprocess.STDOUT,
+                    )
+                if not result == 0:
+                    return (False, expression + "evaluated to false")
+
+            elif line[21:30] == "imports: ":
+                imports_needed = line[30:].rstrip().split(",")
+                for i in imports_needed:
+                    if not hasModule(i):
+                        return (
+                            False,
+                            i
+                            + " not installed for this Python version, but test needs it",
+                        )
+    # default return value
+    return (True, "")
+
+
 for filename in sorted(os.listdir(".")):
     if not filename.endswith(".py"):
         continue
@@ -281,195 +314,94 @@ for filename in sorted(os.listdir(".")):
 
     extra_flags = ["expect_success", "standalone", "remove_output"]
 
-    if filename == "PySideUsing.py":
+    # skip each test if their respective requirements are not met
+    requirements_met, error_message = checkRequirements(filename)
+    if not requirements_met:
+        reportSkip(error_message, ".", filename)
+        continue
+
+    elif filename == "PySideUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or python_version.startswith("3.2"):
             reportSkip("irrelevant Python version", ".", filename)
-            continue
-
-        if not hasModule("PySide.QtCore"):
-            reportSkip(
-                "PySide not installed for this Python version, but test needs it",
-                ".",
-                filename,
-            )
             continue
 
         # For the warnings.
         extra_flags.append("ignore_stderr")
 
-    if "PyQt4" in filename:
+    elif "PyQt4" in filename:
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or python_version.startswith("3.2"):
             reportSkip("irrelevant Python version", ".", filename)
-            continue
-
-        if not hasModule("PyQt4.QtGui"):
-            reportSkip(
-                "PyQt4 not installed for this Python version, but test needs it",
-                ".",
-                filename,
-            )
             continue
 
         # For the plug-in information.
         extra_flags.append("ignore_infos")
 
-    if "Idna" in filename:
-        if not hasModule("idna.core"):
-            reportSkip(
-                "idna not installed for this Python version, but test needs it",
-                ".",
-                filename,
-            )
-            continue
-
+    elif "Idna" in filename:
         # For the warnings of Python2.
         if python_version.startswith("2"):
             extra_flags.append("ignore_stderr")
 
-    if "PyQt5" in filename:
+    elif "PyQt5" in filename:
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or python_version.startswith("3.2"):
             reportSkip("irrelevant Python version", ".", filename)
-            continue
-
-        if not hasModule("PyQt5.QtGui"):
-            reportSkip(
-                "PyQt5 not installed for this Python version, but test needs it",
-                ".",
-                filename,
-            )
             continue
 
         # For the plug-in information.
         extra_flags.append("ignore_infos")
 
     # TODO: Temporary only
-    if os.name == "nt" and "PyQt" in filename:
+    elif os.name == "nt" and "PyQt" in filename:
         continue
 
-    if "PySide" in filename or "PyQt" in filename:
+    elif "PySide" in filename or "PyQt" in filename:
         extra_flags.append("plugin_enable:qt-plugins")
 
-    if filename == "CtypesUsing.py":
+    elif filename == "CtypesUsing.py":
         extra_flags.append("plugin_disable:pylint-warnings")
 
-    if filename == "GtkUsing.py":
+    elif filename == "GtkUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or python_version.startswith("3.2"):
             reportSkip("irrelevant Python version", ".", filename)
             continue
 
-        if not hasModule("pygtk"):
-            reportSkip(
-                "pygtk not installed for this Python version, but test needs it",
-                ".",
-                filename,
-            )
-            continue
-
         # For the warnings.
         extra_flags.append("ignore_stderr")
 
-    if filename.startswith("Win"):
+    elif filename.startswith("Win"):
         if os.name != "nt":
             reportSkip("Windows only test", ".", filename)
             continue
 
-    if filename == "Win32ComUsing.py":
-        if not hasModule("win32com"):
-            reportSkip(
-                "win32com not installed for this Python version, but test needs it",
-                ".",
-                filename,
-            )
-            continue
-
-    if filename == "LxmlUsing.py":
-        if not hasModule("lxml.etree"):
-            reportSkip(
-                "lxml.etree not installed for this Python version, but test needs it",
-                ".",
-                filename,
-            )
-            continue
-
-    if filename == "TkInterUsing.py":
-        if python_version.startswith("2"):
-            if not hasModule("Tkinter"):
-                reportSkip(
-                    "Tkinter not installed for this Python version, but test needs it",
-                    ".",
-                    filename,
-                )
-                continue
-        else:
-            if not hasModule("tkinter"):
-                reportSkip(
-                    "tkinter not installed for this Python version, but test needs it",
-                    ".",
-                    filename,
-                )
-                continue
-
+    elif filename == "TkInterUsing.py":
         # For the plug-in information.
         extra_flags.append("ignore_infos")
 
         if os.name == "nt":
             extra_flags.append("plugin_enable:tk-inter")
 
-    if filename == "FlaskUsing.py":
-        if not hasModule("flask"):
-            reportSkip(
-                "flask not installed for this Python version, but test needs it",
-                ".",
-                filename,
-            )
-            continue
-
+    elif filename == "FlaskUsing.py":
         # For the warnings.
         extra_flags.append("ignore_stderr")
 
-    if filename == "NumpyUsing.py":
+    elif filename == "NumpyUsing.py":
         # TODO: Disabled for now.
         reportSkip("numpy.test not fully working yet", ".", filename)
         continue
 
-        if not hasModule("numpy"):
-            reportSkip(
-                "numpy not installed for this Python version, but test needs it",
-                ".",
-                filename,
-            )
-            continue
-
         extra_flags.append("plugin_enable:data-files")
 
-    if filename == "PmwUsing.py":
-        if not hasModule("Pwm"):
-            reportSkip(
-                "Pwm not installed for this Python version, but test needs it",
-                ".",
-                filename,
-            )
-            continue
-
+    elif filename == "PmwUsing.py":
         extra_flags.append("plugin_enable:pmw-freeze")
 
-    if filename == "OpenGLUsing.py":
-        if not hasModule("OpenGL"):
-            reportSkip(
-                "OpenGL not installed for this Python version, but test needs it",
-                ".",
-                filename,
-            )
-            continue
-
+    elif filename == "OpenGLUsing.py":
         # For the warnings.
         extra_flags.append("ignore_stderr")
 
@@ -605,6 +537,11 @@ for filename in sorted(os.listdir(".")):
             "/usr/share/tcl8.6/encoding",
             "/usr/share/tcl8.5/encoding",
         ):
+            continue
+
+        # System SSL config on Linux. TODO: Should this not be included and
+        # read from dist folder.
+        if loaded_basename == "openssl.cnf":
             continue
 
         # Taking these from system is harmless and desirable
@@ -802,5 +739,8 @@ for filename in sorted(os.listdir(".")):
         sys.exit(1)
 
     removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
+    
+    if search_mode.abortIfExecuted():
+        break
 
 search_mode.finish()

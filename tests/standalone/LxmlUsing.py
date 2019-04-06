@@ -19,6 +19,8 @@
 #
 import lxml.etree
 
+# nuitka-skip-unless-imports: lxml.etree
+
 tree = lxml.etree.fromstring("<root>value</root>")
 assert tree.tag == "root"
 assert tree.text == "value"
