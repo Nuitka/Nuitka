@@ -587,7 +587,7 @@ PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line
 #endif
 {
     CHECK_OBJECT(filename);
-    assert(Nuitka_String_Check(filename));
+    assert(Nuitka_String_CheckExact(filename));
     CHECK_OBJECT(function_name);
     assert(Nuitka_String_Check(function_name));
     CHECK_OBJECT(argnames);
@@ -631,10 +631,7 @@ PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line
 
     assert(DEEP_HASH(argnames) == hash);
 
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
+    CHECK_OBJECT(result);
     return result;
 }
 

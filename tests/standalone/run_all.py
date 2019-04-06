@@ -46,7 +46,11 @@ from nuitka.tools.testing.Common import (
     reportSkip,
     setup,
 )
+<<<<<<< HEAD
 from nuitka.utils.FileOperations import removeDirectory,getFileContentByLine
+=======
+from nuitka.utils.FileOperations import getFileContentByLine, removeDirectory
+>>>>>>> e0e660efb86fadeb69c32fe027078f1ceab4233b
 
 python_version = setup(needs_io_encoding=True)
 
@@ -272,8 +276,13 @@ _win_dll_whitelist = (
 #     "# nuitka-skip-unless-imports: module1,module2,..."
 def checkRequirements(filename):
     for line in getFileContentByLine(filename):
+<<<<<<< HEAD
         if line.startswith('# nuitka-skip-unless-'):
             if line[21:33] == 'expression: ':
+=======
+        if line.startswith("# nuitka-skip-unless-"):
+            if line[21:33] == "expression: ":
+>>>>>>> e0e660efb86fadeb69c32fe027078f1ceab4233b
                 expression = line[33:]
                 with open(os.devnull, "w") as devnull:
                     result = subprocess.call(
@@ -282,6 +291,7 @@ def checkRequirements(filename):
                         stderr=subprocess.STDOUT,
                     )
                 if not result == 0:
+<<<<<<< HEAD
                     return (False,expression+"evaluated to false")
 
             elif line[21:30] == 'imports: ':
@@ -291,6 +301,21 @@ def checkRequirements(filename):
                         return (False,i+" not installed for this Python version, but test needs it")
     # default return value
     return (True,"")
+=======
+                    return (False, expression + "evaluated to false")
+
+            elif line[21:30] == "imports: ":
+                imports_needed = line[30:].rstrip().split(",")
+                for i in imports_needed:
+                    if not hasModule(i):
+                        return (
+                            False,
+                            i
+                            + " not installed for this Python version, but test needs it",
+                        )
+    # default return value
+    return (True, "")
+>>>>>>> e0e660efb86fadeb69c32fe027078f1ceab4233b
 
 
 for filename in sorted(os.listdir(".")):
@@ -311,6 +336,7 @@ for filename in sorted(os.listdir(".")):
     extra_flags = ["expect_success", "standalone", "remove_output"]
 
     # skip each test if their respective requirements are not met
+<<<<<<< HEAD
     requirements_met,error_message = checkRequirements(filename)
     if not requirements_met:
         reportSkip(
@@ -318,6 +344,11 @@ for filename in sorted(os.listdir(".")):
                 ".",
                 filename,
         )
+=======
+    requirements_met, error_message = checkRequirements(filename)
+    if not requirements_met:
+        reportSkip(error_message, ".", filename)
+>>>>>>> e0e660efb86fadeb69c32fe027078f1ceab4233b
         continue
 
     elif filename == "PySideUsing.py":
@@ -540,6 +571,11 @@ for filename in sorted(os.listdir(".")):
         ):
             continue
 
+        # System SSL config on Linux. TODO: Should this not be included and
+        # read from dist folder.
+        if loaded_basename == "openssl.cnf":
+            continue
+
         # Taking these from system is harmless and desirable
         if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
             continue
@@ -735,5 +771,8 @@ for filename in sorted(os.listdir(".")):
         sys.exit(1)
 
     removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
+    
+    if search_mode.abortIfExecuted():
+        break
 
 search_mode.finish()

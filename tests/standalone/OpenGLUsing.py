@@ -19,4 +19,8 @@
 #
 import OpenGL
 
+<<<<<<< HEAD
 # nuitka-skip-unless-imports: OpenGL
+=======
+# nuitka-skip-unless-imports: OpenGL
+>>>>>>> e0e660efb86fadeb69c32fe027078f1ceab4233b

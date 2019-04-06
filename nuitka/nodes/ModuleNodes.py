@@ -160,7 +160,35 @@ class PythonModuleBase(NodeBase):
         return None
 
     def getCompileTimeFilename(self):
+        """ The compile time filename for the module.
+
+        Returns:
+            Full path to module file at compile time.
+        Notes:
+            We are getting the absolute path here, since we do
+            not want to have to deal with resolving paths at
+            all.
+
+        """
         return os.path.abspath(self.getSourceReference().getFilename())
+
+    def getCompileTimeDirectory(self):
+        """ The compile time directory for the module.
+
+        Returns:
+            Full path to module directory at compile time.
+        Notes:
+            For packages, we let the package directory be
+            the result, otherwise the containing directory
+            is the result.
+        Notes:
+            Use this to finde files nearby a module, mainly
+            in plugin code.
+        """
+        result = self.getCompileTimeFilename()
+        if not os.path.isdir(result):
+            result = os.path.dirname(result)
+        return result
 
     def getRunTimeFilename(self):
         # TODO: Don't look at such things this late, push this into building.

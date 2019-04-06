@@ -35,8 +35,6 @@ fi
 # Redirect output to stderr.
 exec 1>&2
 
-# Determine changed files
-
 files=$(git diff --cached --name-only $against)
 
 if [ -z "$files" ]
@@ -45,7 +43,4 @@ then
 fi
 
 # Autoformat the files.
-./bin/autoformat-nuitka-source --from-commit $files
-git add $files
-
-exit 0
+exec ./bin/autoformat-nuitka-source --from-commit

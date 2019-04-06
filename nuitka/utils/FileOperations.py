@@ -279,3 +279,40 @@ def renameFile(source_filename, dest_filename):
         os.unlink(source_filename)
 
     os.chmod(dest_filename, old_stat.st_mode)
+
+
+def isPathBelow(path, filename):
+    path = os.path.abspath(path)
+    filename = os.path.abspath(filename)
+
+    return os.path.relpath(filename, path)[:3].split(os.path.sep) != ".."
+
+
+def getWindowsShortPathName(filename):
+    """ Gets the short path name of a given long path.
+
+    Args:
+        filename - long Windows filename
+    Returns:
+        Path that is a short filename pointing at the same file.
+    Notes:
+        Originally from http://stackoverflow.com/a/23598461/200291
+    """
+    import ctypes.wintypes
+
+    GetShortPathNameW = ctypes.windll.kernel32.GetShortPathNameW  # @UndefinedVariable
+    GetShortPathNameW.argtypes = [
+        ctypes.wintypes.LPCWSTR,
+        ctypes.wintypes.LPWSTR,
+        ctypes.wintypes.DWORD,
+    ]
+    GetShortPathNameW.restype = ctypes.wintypes.DWORD
+
+    output_buf_size = 0
+    while True:
+        output_buf = ctypes.create_unicode_buffer(output_buf_size)
+        needed = GetShortPathNameW(filename, output_buf, output_buf_size)
+        if output_buf_size >= needed:
+            return output_buf.value
+        else:
+            output_buf_size = needed

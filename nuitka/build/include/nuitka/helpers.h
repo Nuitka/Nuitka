@@ -334,16 +334,6 @@ extern void enhancePythonTypes(void);
 // Setup meta path based loader if any.
 extern void setupMetaPathBasedLoader(void);
 
-// Parse the command line parameters and provide it to "sys" built-in module.
-
-#if PYTHON_VERSION >= 300
-typedef wchar_t **argv_type_t;
-extern argv_type_t convertCommandLineParameters(int argc, char **argv);
-#else
-typedef char **argv_type_t;
-#endif
-extern bool setCommandLineParameters(int argc, argv_type_t argv, bool initial);
-
 // Replace built-in functions with ones that accept compiled types too.
 extern void patchBuiltinModule(void);
 
@@ -379,8 +369,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME(PyObject *module) {
     return PyDict_GetItem(module_dict, const_str_plain___name__);
 }
 
-// Get the binary directory, translated to UTF8 or usable as a native path,
-// e.g. ANSI on Windows.
+// Get the binary directory was wide characters.
+extern wchar_t *getBinaryDirectoryWideChars();
+// Get the binary directory, translated to native path
 extern char *getBinaryDirectoryHostEncoded();
 
 #if _NUITKA_STANDALONE
