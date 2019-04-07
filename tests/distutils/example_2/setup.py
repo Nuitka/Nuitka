@@ -22,6 +22,10 @@ setup(
         }
     },
     package_data={'': ['*.txt'] },
-    scripts = ["runner"],
+    entry_points={
+        'console_scripts': [
+            'runner = package1.main:main'
+        ]
+    },
     zip_safe=False
 )
