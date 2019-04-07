@@ -21,9 +21,10 @@ setup(
          '--file-reference-choice':'original', 
         }
     },
+    package_data={'': ['*.txt'] },
     entry_points={
         'console_scripts': [
-            'bdist_nuitka_test_2 = package1.main:main'
+            'runner = package1.main:main'
         ]
     },
     zip_safe=False
