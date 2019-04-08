@@ -17,6 +17,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
+
 import urllib3
 import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -24,20 +26,23 @@ from threading import Thread
 
 # nuitka-skip-unless-imports: urllib3
 
-
 def runHTTPServer():
     class myServer(BaseHTTPRequestHandler):
         def do_GET(self):
             if self.path == "/":
                 self.path = "/index.html"
             try:
-                file_to_open = open(self.path[1:]).read()
+                file_to_open = open(self.path[1:], "rb").read()
                 self.send_response(200)
+                self.end_headers()
+                self.wfile.write(file_to_open)
             except IOError:
-                file_to_open = "File not found" + self.path[1:]
                 self.send_response(404)
-            self.end_headers()
-            self.wfile.write(bytes(file_to_open, "utf-8"))
+                self.end_headers()
+
+        # No logging due to races.
+        def log_request(self, code):
+            pass
 
     server_address = ("127.0.0.1", 8020)
     global server
@@ -52,20 +57,21 @@ print("Server started")
 http = urllib3.PoolManager()
 r = http.request("GET", "http://localhost:8020/")
 # print response
-print(r.status, r.data, r.headers)
+print(r.status, r.data)
 
 # testing JSON content
 import json
 
 # make a temporary test file
 with open("testjson.json", "w") as f:
-    f.write('{"origin": "128.195.97.166, 128.195.97.166"}')
+    f.write('{"origin": "some, value"}')
 
 r = http.request("GET", "http://localhost:8020/testjson.json")
 
 data = json.loads(r.data.decode("utf-8"))
-del data["Date"]
-print(data)
+if "Date" in data:
+    del data["Date"]
+print("DATA:", data)
 
 os.remove("testjson.json")
 
@@ -76,10 +82,13 @@ print("Server shutdown")
 import socket
 import ssl
 
-hostname = "www.google.com"
-context = ssl.create_default_context()
-with socket.create_connection((hostname, 443)) as sock:
-    with context.wrap_socket(sock, server_hostname=hostname) as ssock:
-        print(ssock.version())
+# TODO: Testing via network is not allowed, but SSL on localhost
+# is not easy.
+if False:
+    hostname = "www.google.com"
+    context = ssl.create_default_context()
+    with socket.create_connection((hostname, 443)) as sock:
+        with context.wrap_socket(sock, server_hostname=hostname) as ssock:
+            print(ssock.version())
 
-print("Reached end of file")
+print("OK.")
