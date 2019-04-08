@@ -56,7 +56,7 @@ class Virtualenv(object):
 
 
 @contextmanager
-def withVirtualenv(env_name, base_dir = None, python = None):
+def withVirtualenv(env_name, base_dir=None, python=None):
     """ Create a virtualenv and change into it.
 
         Activating it will be your task.
@@ -72,19 +72,11 @@ def withVirtualenv(env_name, base_dir = None, python = None):
     else:
         env_dir = env_name
 
-    removeDirectory(env_dir, ignore_errors = False)
+    removeDirectory(env_dir, ignore_errors=False)
 
-    with withDirectoryChange(base_dir, allow_none = True):
-        subprocess.check_call(
-            [
-                python,
-                "-m",
-                "virtualenv",
-                env_name
-            ]
-        )
+    with withDirectoryChange(base_dir, allow_none=True):
+        subprocess.check_call([python, "-m", "virtualenv", env_name])
 
         yield Virtualenv(env_dir)
 
-
-    removeDirectory(env_dir, ignore_errors = False)
+    removeDirectory(env_dir, ignore_errors=False)

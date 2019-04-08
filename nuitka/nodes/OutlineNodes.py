@@ -41,23 +41,17 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
 
     kind = "EXPRESSION_OUTLINE_BODY"
 
-    named_children = (
-        "body",
-    )
+    named_children = ("body",)
 
     @staticmethod
     def isExpressionOutlineBody():
         return True
 
-    def __init__(self, provider, name, source_ref, body = None):
+    def __init__(self, provider, name, source_ref, body=None):
         assert name != ""
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "body" : body
-            },
-            source_ref = source_ref
+            self, values={"body": body}, source_ref=source_ref
         )
 
         self.provider = provider
@@ -70,10 +64,7 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
         self.parent = provider
 
     def getDetails(self):
-        return {
-            "provider" : self.provider,
-            "name"     : self.name
-        }
+        return {"provider": self.provider, "name": self.name}
 
     getBody = ExpressionChildrenHavingBase.childGetter("body")
     setBody = ExpressionChildrenHavingBase.childSetter("body")
@@ -90,17 +81,12 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
         if temp_scope is None:
             temp_scope = self.getOutlineTempScope()
 
-        return self.provider.allocateTempVariable(
-            temp_scope = temp_scope,
-            name       = name
-        )
+        return self.provider.allocateTempVariable(temp_scope=temp_scope, name=name)
 
     def allocateTempScope(self, name):
 
         # Let's scope the temporary scopes by the outline they come from.
-        return self.provider.allocateTempScope(
-            name = self.name + '$' + name
-        )
+        return self.provider.allocateTempScope(name=self.name + "$" + name)
 
     def getContainingClassDictCreation(self):
         return self.getParentVariableProvider().getContainingClassDictCreation()
@@ -112,21 +98,20 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
         # important for helper functions, or modules, which otherwise have
         # become unused.
         from nuitka.ModuleRegistry import addUsedModule
+
         addUsedModule(owning_module)
 
         abort_context = trace_collection.makeAbortStackContext(
-            catch_breaks     = False,
-            catch_continues  = False,
-            catch_returns    = True,
-            catch_exceptions = False
+            catch_breaks=False,
+            catch_continues=False,
+            catch_returns=True,
+            catch_exceptions=False,
         )
 
         with abort_context:
             body = self.getBody()
 
-            result = body.computeStatementsSequence(
-                trace_collection = trace_collection
-            )
+            result = body.computeStatementsSequence(trace_collection=trace_collection)
 
             if result is not body:
                 self.setBody(result)
@@ -143,20 +128,20 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
             return (
                 first_statement.getExpression(),
                 "new_expression",
-                "Outline '%s' is now simple return, use directly." % self.name
+                "Outline '%s' is now simple return, use directly." % self.name,
             )
 
         if first_statement.isStatementRaiseException():
             result = ExpressionRaiseException(
-                exception_type  = first_statement.getExceptionType(),
-                exception_value = first_statement.getExceptionValue(),
-                source_ref      = first_statement.getSourceReference()
+                exception_type=first_statement.getExceptionType(),
+                exception_value=first_statement.getExceptionValue(),
+                source_ref=first_statement.getSourceReference(),
             )
 
             return (
                 result,
                 "new_expression",
-                "Outline is now exception raise, use directly."
+                "Outline is now exception raise, use directly.",
             )
 
         # TODO: Function outline may become too trivial to outline and return
@@ -197,18 +182,17 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
         Once this has no frame, it can be changed to a mere outline expression.
     """
 
-    def __init__(self, provider, name, source_ref, code_prefix = "outline",
-                 body = None):
+    def __init__(self, provider, name, source_ref, code_prefix="outline", body=None):
         assert name != ""
 
         ExpressionFunctionBodyBase.__init__(
             self,
-            provider    = provider,
-            name        = name,
-            code_prefix = code_prefix,
-            flags       = None,
-            body        = body,
-            source_ref  = source_ref
+            provider=provider,
+            name=name,
+            code_prefix=code_prefix,
+            flags=None,
+            body=body,
+            source_ref=source_ref,
         )
 
         self.temp_scope = None
@@ -217,16 +201,10 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
         return True
 
     def getDetails(self):
-        return {
-            "name"     : self.name,
-            "provider" : self.provider
-        }
+        return {"name": self.name, "provider": self.provider}
 
     def getDetailsForDisplay(self):
-        return {
-            "name"     : self.name,
-            "provider" : self.provider.getCodeName()
-        }
+        return {"name": self.name, "provider": self.provider.getCodeName()}
 
     def computeExpressionRaw(self, trace_collection):
         # Keep track of these, so they can provide what variables are to be
@@ -234,18 +212,16 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
         trace_collection.addOutlineFunction(self)
 
         abort_context = trace_collection.makeAbortStackContext(
-            catch_breaks     = False,
-            catch_continues  = False,
-            catch_returns    = True,
-            catch_exceptions = False
+            catch_breaks=False,
+            catch_continues=False,
+            catch_returns=True,
+            catch_exceptions=False,
         )
 
         with abort_context:
             body = self.getBody()
 
-            result = body.computeStatementsSequence(
-                trace_collection = trace_collection
-            )
+            result = body.computeStatementsSequence(trace_collection=trace_collection)
 
             if result is not body:
                 self.setBody(result)
@@ -262,20 +238,20 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
             return (
                 first_statement.getExpression(),
                 "new_expression",
-                "Outline function '%s' is now simple return, use directly." % self.name
+                "Outline function '%s' is now simple return, use directly." % self.name,
             )
 
         if first_statement.isStatementRaiseException():
             result = ExpressionRaiseException(
-                exception_type  = first_statement.getExceptionType(),
-                exception_value = first_statement.getExceptionValue(),
-                source_ref      = first_statement.getSourceReference()
+                exception_type=first_statement.getExceptionType(),
+                exception_value=first_statement.getExceptionValue(),
+                source_ref=first_statement.getSourceReference(),
             )
 
             return (
                 result,
                 "new_expression",
-                "Outline function is now exception raise, use directly."
+                "Outline function is now exception raise, use directly.",
             )
 
         # TODO: Function outline may become too trivial to outline and return
@@ -303,17 +279,12 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
         if temp_scope is None:
             temp_scope = self.getOutlineTempScope()
 
-        return self.provider.allocateTempVariable(
-            temp_scope = temp_scope,
-            name       = name
-        )
+        return self.provider.allocateTempVariable(temp_scope=temp_scope, name=name)
 
     def allocateTempScope(self, name):
 
         # Let's scope the temporary scopes by the outline they come from.
-        return self.provider.allocateTempScope(
-            name = self.name + '$' + name
-        )
+        return self.provider.allocateTempScope(name=self.name + "$" + name)
 
     def getEntryPoint(self):
         """ Entry point for code.
@@ -330,9 +301,7 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
 
     def getClosureVariable(self, variable_name):
         # Simply try and get from our parent.
-        return self.provider.getVariableForReference(
-            variable_name = variable_name
-        )
+        return self.provider.getVariableForReference(variable_name=variable_name)
 
 
 # TODO: No other uses of the base class, maybe ExpressionOutlineBody should be

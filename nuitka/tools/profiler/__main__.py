@@ -34,9 +34,10 @@ import vmprof  # @UnresolvedImport pylint: disable=I0021,import-error
 
 def _namelen(e):
     if e.startswith("py:"):
-        return len(e.split(':')[1])
+        return len(e.split(":")[1])
     else:
         return len(e)
+
 
 def show(stats):
     p = stats.top_profile()
@@ -44,22 +45,25 @@ def show(stats):
         print("no stats")
         return
 
-    p.sort(key = lambda x: x[1], reverse = True)
+    p.sort(key=lambda x: x[1], reverse=True)
     top = p[0][1]
 
     max_len = max([_namelen(e[0]) for e in p])
 
     print(" vmprof output:")
-    print(" %:      name:" + ' ' * (max_len - 3) + "location:")
+    print(" %:      name:" + " " * (max_len - 3) + "location:")
 
     for k, v in p:
         v = "%.1f%%" % (float(v) / top * 100)
         if v == "0.0%":
             v = "<0.1%"
         if k.startswith("py:"):
-            _, func_name, lineno, filename = k.split(':', 3)
+            _, func_name, lineno, filename = k.split(":", 3)
             lineno = int(lineno)
-            print(" %s %s %s:%d" % (v.ljust(7), func_name.ljust(max_len + 1), filename, lineno))
+            print(
+                " %s %s %s:%d"
+                % (v.ljust(7), func_name.ljust(max_len + 1), filename, lineno)
+            )
         else:
             print(" %s %s" % (v.ljust(7), k.ljust(max_len + 1)))
 
@@ -72,17 +76,14 @@ def main():
             program = sys.argv[1]
             del sys.argv[1]
 
-#            sys.argv = [args.program] + args.args
-            runpy.run_path(program, run_name = "__main__")
-        except BaseException as e:
-            if not isinstance(e, (KeyboardInterrupt, SystemExit)):
-                raise
+            #            sys.argv = [args.program] + args.args
+            runpy.run_path(program, run_name="__main__")
+        except (KeyboardInterrupt, SystemExit):
+            pass
+
         vmprof.disable()
 
-        stats = vmprof.read_profile(
-            prof_file.name,
-            virtual_only = True
-        )
+        stats = vmprof.read_profile(prof_file.name, virtual_only=True)
 
         show(stats)
 

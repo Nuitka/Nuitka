@@ -23,39 +23,119 @@
 
 import os
 import re
-import shutil
+import subprocess
 import sys
+from logging import warning
 
+from nuitka.tools.quality.Git import (
+    getFileHashContent,
+    putFileHashContent,
+    updateFileIndex,
+    updateWorkingFile,
+)
 from nuitka.Tracing import my_print
+from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
+from nuitka.utils.FileOperations import getFileContents, renameFile
+from nuitka.utils.Shebang import getShebangFromFile
+from nuitka.utils.Utils import getOS
 
 
-def cleanupWindowsNewlines(filename):
+def _cleanupWindowsNewlines(filename):
     """ Remove Windows new-lines from a file.
 
         Simple enough to not depend on external binary.
     """
 
-    source_code = open(filename, "rb").read()
+    with open(filename, "rb") as f:
+        source_code = f.read()
 
-    updated_code = source_code.replace(b"\r\n", b'\n')
-    updated_code = updated_code.replace(b"\n\r", b'\n')
+    updated_code = source_code.replace(b"\r\n", b"\n")
+    updated_code = updated_code.replace(b"\n\r", b"\n")
 
     if updated_code != source_code:
-        my_print("Fixing Windows new lines for", filename)
-
         with open(filename, "wb") as out_file:
             out_file.write(updated_code)
 
 
-def autoformat(filename, abort = False):
-    # All the complexity in one place, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+def _cleanupTrailingWhitespace(filename):
+    """ Remove trailing white spaces from a file.
 
-    from baron.parser import ParsingError  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
-    from redbaron import RedBaron  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+    """
+    with open(filename, "r") as f:
+        source_lines = [line for line in f]
 
-    my_print("Consider", filename, end = ": ")
+    clean_lines = [line.rstrip() for line in source_lines]
 
-    old_code = open(filename, 'r').read()
+    if clean_lines != source_lines:
+        with open(filename, "w") as out_file:
+            out_file.write("\n".join(clean_lines) + "\n")
+
+
+def _updateCommentNode(comment_node):
+    if "pylint:" in str(comment_node.value):
+
+        def replacer(part):
+            def renamer(pylint_token):
+                # pylint: disable=too-many-branches,too-many-return-statements
+                if pylint_token == "E0602":
+                    return "undefined-variable"
+                elif pylint_token in ("E0401", "F0401"):
+                    return "import-error"
+                elif pylint_token == "E1102":
+                    return "not-callable"
+                elif pylint_token == "E1133":
+                    return "  not-an-iterable"
+                elif pylint_token == "E1128":
+                    return "assignment-from-none"
+                # Save line length for this until isort is better at long lines.
+                elif pylint_token == "useless-suppression":
+                    return "I0021"
+                #                     elif pylint_token == "I0021":
+                #                        return "useless-suppression"
+                elif pylint_token == "R0911":
+                    return "too-many-return-statements"
+                elif pylint_token == "R0201":
+                    return "no-self-use"
+                elif pylint_token == "R0902":
+                    return "too-many-instance-attributes"
+                elif pylint_token == "R0912":
+                    return "too-many-branches"
+                elif pylint_token == "R0914":
+                    return "too-many-locals"
+                elif pylint_token == "R0915":
+                    return "too-many-statements"
+                elif pylint_token == "W0123":
+                    return "eval-used"
+                elif pylint_token == "W0603":
+                    return "global-statement"
+                elif pylint_token == "W0613":
+                    return "unused-argument"
+                elif pylint_token == "W0622":
+                    return "redefined-builtin"
+                elif pylint_token == "W0703":
+                    return "broad-except"
+                else:
+                    return pylint_token
+
+            return part.group(1) + ",".join(
+                sorted(renamer(token) for token in part.group(2).split(","))
+            )
+
+        new_value = re.sub(
+            r"(pylint\: disable=)(.*)", replacer, str(comment_node.value), flags=re.M
+        )
+        comment_node.value = new_value
+
+
+def _cleanupPyLintComments(filename, abort):
+    from baron.parser import (  # pylint: disable=I0021,import-error,no-name-in-module
+        ParsingError,  # @UnresolvedImport
+    )
+    from redbaron import (  # pylint: disable=I0021,import-error,no-name-in-module
+        RedBaron,  # @UnresolvedImport
+    )
+
+    old_code = getFileContents(filename)
 
     try:
         red = RedBaron(old_code)
@@ -67,247 +147,224 @@ def autoformat(filename, abort = False):
         my_print("PARSING ERROR.")
         return 2
 
-    def updateCall(call_node):
-        max_len = 0
-        for argument in call_node:
-            if argument.type == "argument_generator_comprehension":
-                return
-
-            if hasattr(argument, "target") and argument.target is not None:
-                key = argument.target.value
-            else:
-                key = None
-
-            if key is not None:
-                max_len = max(max_len, len(key))
-
-        if '\n' not in call_node.second_formatting.dumps():
-            del call_node.second_formatting[:]
-            del call_node.third_formatting[:]
-
-        for argument in call_node:
-            if hasattr(argument, "target") and argument.target is not None:
-                key = argument.target.value
-            else:
-                key = None
-
-            if key is not None:
-                if not argument.second_formatting:
-                    argument.second_formatting = ' '
-
-                if '\n' in str(call_node.second_formatting):
-                    if argument.first_formatting:
-                        spacing = argument.first_formatting[0].value
-                    else:
-                        spacing = ""
-
-                    if len(key)+len(spacing) != max_len + 1:
-                        argument.first_formatting = ' ' * (max_len - len(key) + 1)
-                else:
-                    argument.first_formatting = ' '
-            else:
-                if '\n' not in str(call_node.second_formatting):
-                    if argument.value.type in ("string", "binary_string", "raw_string"):
-                        argument.value.second_formatting = ""
-
-    def updateTuple(tuple_node):
-        if '\n' not in str(tuple_node.dumps()):
-            tuple_node.second_formatting = ""
-            tuple_node.third_formatting = ""
-
-            if tuple_node.type == "tuple" and tuple_node.with_parenthesis:
-                if tuple_node.value.node_list:
-                    if tuple_node.value.node_list[-1].type not in ("yield_atom",):
-                        tuple_node.value.node_list[-1].second_formatting = ""
-
-            for argument in tuple_node.value:
-                if argument.type in ("string", "binary_string", "raw_string"):
-                    argument.second_formatting = ""
-
-    def updateString(string_node):
-        # Skip doc strings for now.
-        if not hasattr(node.parent, "type") or \
-           string_node.parent.type in ("class", "def", None):
-            return
-
-        value = string_node.value
-
-        def isQuotedWith(quote):
-            return value.startswith(quote) and value.endswith(quote)
-
-        quote = None # For PyLint.
-        for quote in "'''", '"""', "'", '"':
-            if isQuotedWith(quote):
-                break
-        else:
-            sys.exit("Error, quote not understood.")
-
-        real_value = value[len(quote):-len(quote)]
-        assert quote + real_value + quote == value
-
-        if '\n' not in real_value:
-            # Single characters, should be quoted with "'"
-            if len(eval(value)) == 1: # pylint: disable=eval-used
-                if real_value != "'":
-                    string_node.value = "'" + real_value + "'"
-            else:
-                if '"' not in real_value:
-                    string_node.value = '"' + real_value + '"'
-
-    def updateDefNode(def_node):
-        # This is between "def" and function name.
-        def_node.first_formatting = ' '
-
-        # This is after the opening/closing brace, we don't want it there.
-        def_node.third_formatting = ""
-        def_node.fourth_formatting = ""
-
-        # This is to insert/remove spaces or new lines, depending on line length
-        # so far, but is not functional at all.
-        for argument_node in def_node.arguments:
-            argument_node.first_formatting = ' '
-            argument_node.second_formatting = ' '
-
-    def updateCommentNode(comment_node):
-
-        if "pylint:" in str(comment_node.value):
-            def replacer(part):
-                def renamer(pylint_token):
-                    # pylint: disable=too-many-return-statements
-                    if pylint_token == "E0602":
-                        return "undefined-variable"
-                    elif pylint_token in ("E0401", "F0401"):
-                        return "import-error"
-                    elif pylint_token == "E1102":
-                        return "not-callable"
-                    elif pylint_token == "E1133":
-                        return "  not-an-iterable"
-                    elif pylint_token == "E1128":
-                        return "assignment-from-none"
-# Save line length for this until isort is better at long lines.
-                    elif pylint_token == "useless-suppression":
-                        return "I0021"
-#                     elif pylint_token == "I0021":
-#                        return "useless-suppression"
-                    elif pylint_token == "R0911":
-                        return "too-many-return-statements"
-                    elif pylint_token == "R0201":
-                        return "no-self-use"
-                    elif pylint_token == "R0902":
-                        return "too-many-instance-attributes"
-                    elif pylint_token == "R0912":
-                        return "too-many-branches"
-                    elif pylint_token == "R0914":
-                        return "too-many-locals"
-                    elif pylint_token == "R0915":
-                        return "too-many-statements"
-                    elif pylint_token == "W0123":
-                        return "eval-used"
-                    elif pylint_token == "W0603":
-                        return "global-statement"
-                    elif pylint_token == "W0613":
-                        return "unused-argument"
-                    elif pylint_token == "W0622":
-                        return "redefined-builtin"
-                    elif pylint_token == "W0703":
-                        return "broad-except"
-                    else:
-                        return pylint_token
-
-                return part.group(1) + ','.join(
-                    sorted(
-                        renamer(token)
-                        for token in
-                        part.group(2).split(',')
-                    )
-                )
-
-            new_value = re.sub(r"(pylint\: disable=)(.*)", replacer, str(comment_node.value), flags = re.M)
-            comment_node.value = new_value
-
-    for node in red.find_all("CallNode"):
-        try:
-            updateCall(node)
-        except Exception:
-            my_print("Problem with", node)
-            node.help(deep = True, with_formatting = True)
-            raise
-
-    for node in red.find_all("TupleNode"):
-        try:
-            updateTuple(node)
-        except Exception:
-            my_print("Problem with", node)
-            node.help(deep = True, with_formatting = True)
-            raise
-
-    for node in red.find_all("ListNode"):
-        try:
-            updateTuple(node)
-        except Exception:
-            my_print("Problem with", node)
-            node.help(deep = True, with_formatting = True)
-            raise
-
-    for node in red.find_all("SetNode"):
-        try:
-            updateTuple(node)
-        except Exception:
-            my_print("Problem with", node)
-            node.help(deep = True, with_formatting = True)
-            raise
-
-    for node in red.find_all("StringNode"):
-        try:
-            updateString(node)
-        except Exception:
-            my_print("Problem with", node)
-            node.help(deep = True, with_formatting = True)
-            raise
-
-    for node in red.find_all("DefNode"):
-        try:
-            updateDefNode(node)
-        except Exception:
-            my_print("Problem with", node)
-            node.help(deep = True, with_formatting = True)
-            raise
-
     for node in red.find_all("CommentNode"):
         try:
-            updateCommentNode(node)
+            _updateCommentNode(node)
         except Exception:
             my_print("Problem with", node)
-            node.help(deep = True, with_formatting = True)
+            node.help(deep=True, with_formatting=True)
             raise
 
     new_code = red.dumps()
 
     if new_code != old_code:
-        new_name = filename + ".new"
-
-        with open(new_name, 'w') as source_code:
+        with open(filename, "w") as source_code:
             source_code.write(red.dumps())
 
-        if os.name == "nt":
-            cleanupWindowsNewlines(new_name)
 
-        # There is no way to safely replace a file on Windows, but lets try on Linux
-        # at least.
-        old_stat = os.stat(filename)
+def _cleanupImportRelative(filename):
+    package_name = os.path.dirname(filename)
 
+    # Make imports local if possible.
+    if package_name.startswith("nuitka" + os.path.sep):
+        package_name = package_name.replace(os.path.sep, ".")
+
+        source_code = getFileContents(filename)
+        updated_code = re.sub(
+            r"from %s import" % package_name, "from . import", source_code
+        )
+        updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
+
+        if source_code != updated_code:
+            with open(filename, "w") as out_file:
+                out_file.write(updated_code)
+
+
+_binary_calls = {}
+
+
+def _getPythonBinaryCall(binary_name):
+    if binary_name not in _binary_calls:
+        # Try running Python installation.
         try:
-            os.rename(new_name, filename)
-        except OSError:
-            shutil.copyfile(new_name, filename)
-            os.unlink(new_name)
+            __import__(binary_name)
+            _binary_calls[binary_name] = [sys.executable, "-m", binary_name]
 
-        os.chmod(filename, old_stat.st_mode)
+            return _binary_calls[binary_name]
+        except ImportError:
+            pass
 
-        my_print("updated.")
-        changed = 1
+        binary_path = getExecutablePath(binary_name)
+
+        if binary_path:
+            _binary_calls[binary_name] = [binary_path]
+            return _binary_calls[binary_name]
+
+        sys.exit("Error, cannot find %s, not installed for this Python?" % binary_name)
+
+    return _binary_calls[binary_name]
+
+
+def _cleanupImportSortOrder(filename):
+    isort_call = _getPythonBinaryCall("isort")
+
+    contents = getFileContents(filename)
+
+    start_index = None
+    if "\n# isort:start" in contents:
+        parts = contents.splitlines()
+
+        start_index = parts.index("# isort:start")
+        contents = "\n".join(parts[start_index + 1 :])
+
+        with open(filename, "w") as out_file:
+            out_file.write(contents)
+
+    with open(os.devnull, "w") as devnull:
+        subprocess.check_call(
+            isort_call
+            + [
+                "-q",  # quiet, but stdout is still garbage
+                "-ot",  # Order imports by type in addition to alphabetically
+                "-m3",  # "vert-hanging"
+                "-up",  # Prefer braces () over \ for line continuation.
+                "-tc",  # Trailing commas
+                "-ns",  # Do not ignore those:
+                "__init__.py",
+                filename,
+            ],
+            stdout=devnull,
+        )
+
+    if start_index is not None:
+        contents = getFileContents(filename)
+
+        contents = "\n".join(parts[: start_index + 1]) + "\n" + contents
+
+        with open(filename, "w") as out_file:
+            out_file.write(contents)
+
+
+warned_clang_format = False
+
+
+def _cleanupClangFormat(filename):
+    # Using global here, as this is really a singleton, in
+    # the form of a module, pylint: disable=global-statement
+    global warned_clang_format
+
+    clang_format_path = getExecutablePath("clang-format")
+
+    # Extra ball on Windows, check default installation PATH too.
+    if not clang_format_path and getOS() == "Windows":
+        with withEnvironmentPathAdded("PATH", r"C:\Program Files\LLVM\bin"):
+            clang_format_path = getExecutablePath("clang-format")
+
+    if clang_format_path:
+        subprocess.call(
+            [
+                clang_format_path,
+                "-i",
+                "-style={BasedOnStyle: llvm, IndentWidth: 4, ColumnLimit: 120}",
+                filename,
+            ]
+        )
     else:
-        my_print("OK.")
-        changed = 0
+        if not warned_clang_format:
 
-    return changed
+            warning("Need to install LLVM for C files format.")
+            warned_clang_format = True
+
+
+def _shouldNotFormatCode(filename):
+    parts = os.path.abspath(filename).split(os.path.sep)
+
+    if "inline_copy" in parts:
+        return True
+    elif "tests" in parts and "run_all.py" not in parts:
+        return True
+    else:
+        return False
+
+
+def _isPythonFile(filename):
+    if filename.endswith((".py", ".pyw", ".scons")):
+        return True
+    else:
+        shebang = getShebangFromFile(filename)
+
+        if shebang is not None:
+            shebang = shebang[2:].lstrip()
+            if shebang.startswith("/usr/bin/env"):
+                shebang = shebang[12:].lstrip()
+
+            if shebang.startswith("python"):
+                return True
+
+    return False
+
+
+def autoformat(filename, git_stage, abort):
+    # This does a lot of distinctions, pylint:disable=too-many-branches
+
+    filename = os.path.normpath(filename)
+
+    my_print("Consider", filename, end=": ")
+
+    is_python = _isPythonFile(filename)
+
+    is_c = filename.endswith((".c", ".h"))
+
+    # Some parts of Nuitka must not be re-formatted with black or clang-format
+    # as they have different intentions.
+    if _shouldNotFormatCode(filename):
+        is_python = is_c = False
+
+    # Work on a temporary copy
+    tmp_filename = filename + ".tmp"
+
+    if git_stage:
+        old_code = getFileHashContent(git_stage["dst_hash"])
+    else:
+        old_code = getFileContents(filename)
+
+    with open(tmp_filename, "w") as output_file:
+        output_file.write(old_code)
+
+    try:
+        _cleanupWindowsNewlines(tmp_filename)
+
+        if is_python:
+            _cleanupPyLintComments(tmp_filename, abort)
+            _cleanupImportSortOrder(tmp_filename)
+
+        if is_python:
+            black_call = _getPythonBinaryCall("black")
+
+            subprocess.call(black_call + ["-q", tmp_filename])
+        elif is_c:
+            _cleanupClangFormat(filename)
+        else:
+            _cleanupTrailingWhitespace(tmp_filename)
+
+        _cleanupWindowsNewlines(tmp_filename)
+
+        changed = False
+        if old_code != getFileContents(tmp_filename):
+            my_print("Updated.")
+
+            if git_stage:
+                new_hash_value = putFileHashContent(tmp_filename)
+                updateFileIndex(git_stage, new_hash_value)
+                updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
+            else:
+                renameFile(tmp_filename, filename)
+
+            changed = True
+        else:
+            my_print("OK.")
+
+        return changed
+    finally:
+        if os.path.exists(tmp_filename):
+            os.unlink(tmp_filename)

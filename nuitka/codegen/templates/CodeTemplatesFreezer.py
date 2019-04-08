@@ -66,5 +66,6 @@ void copyFrozenModulesTo( struct _frozen *destination )
 """
 
 
-from . import TemplateDebugWrapper # isort:skip
+from . import TemplateDebugWrapper  # isort:skip
+
 TemplateDebugWrapper.checkDebug(globals())

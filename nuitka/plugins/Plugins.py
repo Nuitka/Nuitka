@@ -40,19 +40,19 @@ from nuitka.PythonVersions import python_version
 from .PluginBase import UserPluginBase, post_modules, pre_modules
 from .standard.ConsiderPyLintAnnotationsPlugin import (
     NuitkaPluginDetectorPylintEclipseAnnotations,
-    NuitkaPluginPylintEclipseAnnotations
+    NuitkaPluginPylintEclipseAnnotations,
 )
 from .standard.DataFileCollectorPlugin import NuitkaPluginDataFileCollector
 from .standard.ImplicitImports import NuitkaPluginPopularImplicitImports
 from .standard.MultiprocessingPlugin import (
     NuitkaPluginDetectorMultiprocessingWorkarounds,
-    NuitkaPluginMultiprocessingWorkarounds
+    NuitkaPluginMultiprocessingWorkarounds,
 )
 from .standard.NumpyPlugin import NumpyPlugin, NumpyPluginDetector
 from .standard.PmwPlugin import NuitkaPluginDetectorPmw, NuitkaPluginPmw
 from .standard.PySidePyQtPlugin import (
     NuitkaPluginDetectorPyQtPySidePlugins,
-    NuitkaPluginPyQtPySidePlugins
+    NuitkaPluginPyQtPySidePlugins,
 )
 from .standard.TkinterPlugin import TkinterPlugin, TkinterPluginDetector
 
@@ -68,18 +68,22 @@ active_plugin_list = [
 # add your class here. The second one is a detector, which is supposed to give
 # a missing plug-in message, should it find the condition to make it useful.
 optional_plugin_classes = (
-    (NuitkaPluginMultiprocessingWorkarounds, NuitkaPluginDetectorMultiprocessingWorkarounds),
+    (
+        NuitkaPluginMultiprocessingWorkarounds,
+        NuitkaPluginDetectorMultiprocessingWorkarounds,
+    ),
     (NuitkaPluginPyQtPySidePlugins, NuitkaPluginDetectorPyQtPySidePlugins),
-    (NuitkaPluginPylintEclipseAnnotations, NuitkaPluginDetectorPylintEclipseAnnotations),
+    (
+        NuitkaPluginPylintEclipseAnnotations,
+        NuitkaPluginDetectorPylintEclipseAnnotations,
+    ),
     (NuitkaPluginPmw, NuitkaPluginDetectorPmw),
     (TkinterPlugin, TkinterPluginDetector),
     (NumpyPlugin, NumpyPluginDetector),
 )
 
 plugin_name2plugin_classes = dict(
-    (plugin[0].plugin_name, plugin)
-    for plugin in
-    optional_plugin_classes
+    (plugin[0].plugin_name, plugin) for plugin in optional_plugin_classes
 )
 
 
@@ -92,11 +96,20 @@ class Plugins(object):
         # Post load code may have been created, if so indicate it's used.
         full_name = module.getFullName()
 
+        if full_name in pre_modules:
+            addUsedModule(pre_modules[full_name])
+
         if full_name in post_modules:
             addUsedModule(post_modules[full_name])
 
-        if full_name in pre_modules:
-            addUsedModule(pre_modules[full_name])
+    @staticmethod
+    def onStandaloneDistributionFinished(dist_dir):
+        """ Let plugins postprocess the distribution folder if standalone
+        """
+        for plugin in active_plugin_list:
+            plugin.onStandaloneDistributionFinished(dist_dir)
+
+        return None
 
     @staticmethod
     def considerExtraDlls(dist_dir, module):
@@ -106,18 +119,14 @@ class Plugins(object):
             for extra_dll in plugin.considerExtraDlls(dist_dir, module):
                 if not os.path.isfile(extra_dll[0]):
                     sys.exit(
-                        "Error, attempting to copy plugin determinted filename %r for module %r that is not a file." % (
-                            extra_dll[0],
-                            module.getFullName()
-                        )
+                        "Error, attempting to copy plugin determined filename %r for module %r that is not a file."
+                        % (extra_dll[0], module.getFullName())
                     )
 
                 if not os.path.isfile(extra_dll[1]):
                     sys.exit(
-                        "Error, copied filename %r for module %r that is not a file." % (
-                            extra_dll[1],
-                            module.getFullName()
-                        )
+                        "Error, copied filename %r for module %r that is not a file."
+                        % (extra_dll[1], module.getFullName())
                     )
 
                 result.append(extra_dll)
@@ -126,18 +135,36 @@ class Plugins(object):
 
     @staticmethod
     def removeDllDependencies(dll_filename, dll_filenames):
+        """ Create list of removable shared libraries by scanning through the plugins.
+
+        Args:
+            dll_filename: shared library filename
+            dll_filenames: list of shared library filenames
+        Returns:
+            list of removable files
+        """
         dll_filenames = tuple(sorted(dll_filenames))
 
         result = []
 
         for plugin in active_plugin_list:
-            for removed_dll in plugin.removeDllDependencies(dll_filename, dll_filenames):
+            for removed_dll in plugin.removeDllDependencies(
+                dll_filename, dll_filenames
+            ):
                 result.append(removed_dll)
 
         return result
 
     @staticmethod
     def considerDataFiles(module):
+        """ For a given module, ask plugins for any needed data files it may require.
+
+        Args:
+            module: module object
+        Yields:
+            Data file description pairs, either (source, dest) or (func, dest)
+            where the func will be called to create the content dynamically.
+        """
         for plugin in active_plugin_list:
             for value in plugin.considerDataFiles(module):
                 yield value
@@ -164,7 +191,9 @@ class Plugins(object):
         assert type(source_code) is str
 
         for plugin in active_plugin_list:
-            source_code = plugin.onFrozenModuleSourceCode(module_name, is_package, source_code)
+            source_code = plugin.onFrozenModuleSourceCode(
+                module_name, is_package, source_code
+            )
             assert type(source_code) is str
 
         return source_code
@@ -181,16 +210,12 @@ class Plugins(object):
         return bytecode
 
     @staticmethod
-    def onModuleEncounter(module_filename, module_name, module_package,
-                          module_kind):
+    def onModuleEncounter(module_filename, module_name, module_package, module_kind):
         result = False
 
         for plugin in active_plugin_list:
             must_recurse = plugin.onModuleEncounter(
-                module_filename,
-                module_name,
-                module_package,
-                module_kind
+                module_filename, module_name, module_package, module_kind
             )
 
             result = result or must_recurse
@@ -209,6 +234,18 @@ class Plugins(object):
 
     @staticmethod
     def suppressBuiltinImportWarning(module, source_ref):
+        """ Let plugins decide whether to suppress import warnings for builtin modules.
+
+        Notes:
+            Return will be True if at least one plugin returns other than False or None,
+            else False.
+
+        Args:
+            module: the module object
+            source_ref: ???
+        Returns:
+            True or False
+        """
         for plugin in active_plugin_list:
             if plugin.suppressBuiltinImportWarning(module, source_ref):
                 return True
@@ -217,6 +254,16 @@ class Plugins(object):
 
     @staticmethod
     def suppressUnknownImportWarning(importing, module_name):
+        """ Let plugins decide whether to suppress import warnings for an unknown module.
+
+        Notes:
+            If all plugins return False or None, the return will be False, else True.
+        Args:
+            importing: the module which is importing "module_name"
+            module_name: the module to be imported
+        returns:
+            True or False (default)
+        """
         if importing.isCompiledPythonModule() or importing.isPythonShlibModule():
             importing_module = importing
         else:
@@ -225,13 +272,23 @@ class Plugins(object):
         source_ref = importing.getSourceReference()
 
         for plugin in active_plugin_list:
-            if plugin.suppressUnknownImportWarning(importing_module, module_name, source_ref):
+            if plugin.suppressUnknownImportWarning(
+                importing_module, module_name, source_ref
+            ):
                 return True
 
         return False
 
     @staticmethod
     def decideCompilation(module_name, source_ref):
+        """ Let plugins decide whether to compile a module.
+
+        Notes:
+            The decision is made by the first plugin not returning None.
+
+        Returns:
+            "compiled" (default) or "bytecode".
+        """
         for plugin in active_plugin_list:
             value = plugin.decideCompilation(module_name, source_ref)
 
@@ -243,6 +300,8 @@ class Plugins(object):
 
 
 def listPlugins():
+    """ Print available standard plugins.
+    """
     for plugin_name in sorted(plugin_name2plugin_classes):
         print(plugin_name)
 
@@ -250,6 +309,8 @@ def listPlugins():
 
 
 def isObjectAUserPluginBaseClass(obj):
+    """ Verify that a user plugin inherits from UserPluginBase.
+    """
     try:
         return obj is not UserPluginBase and issubclass(obj, UserPluginBase)
     except TypeError:
@@ -257,7 +318,10 @@ def isObjectAUserPluginBaseClass(obj):
 
 
 def importFilePy3NewWay(filename):
-    import importlib.util   # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+    """ Import a file for Python versions 3.5+.
+    """
+    import importlib.util  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+
     spec = importlib.util.spec_from_file_location(filename, filename)
     user_plugin_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(user_plugin_module)
@@ -265,16 +329,36 @@ def importFilePy3NewWay(filename):
 
 
 def importFilePy3OldWay(filename):
-    from importlib.machinery import SourceFileLoader  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
-    return SourceFileLoader(filename, filename).load_module(filename)   # pylint: disable=I0021,deprecated-method
+    """ Import a file for Python versions 3.x where x < 5.
+    """
+    from importlib.machinery import (  # pylint: disable=I0021,import-error,no-name-in-module
+        SourceFileLoader,  # @UnresolvedImport
+    )
+
+    # pylint: disable=I0021,deprecated-method
+    return SourceFileLoader(filename, filename).load_module(filename)
 
 
 def importFilePy2(filename):
+    """ Import a file for Python version 2.
+    """
     import imp
+
     return imp.load_source(filename, filename)
 
 
 def importFile(filename):
+    """ Import Python module given as a file name.
+
+    Notes:
+        Provides a Python version independent way to import any script files.
+
+    Args:
+        filename: complete path of a Python script
+
+    Returns:
+        Imported Python module defined in filename.
+    """
     if python_version < 300:
         return importFilePy2(filename)
     elif python_version < 350:
@@ -284,7 +368,17 @@ def importFile(filename):
 
 
 def importUserPlugins():
+    """ Extract the filenames of user plugins and store them in list of active plugins.
+
+    Notes:
+        A plugin is accepted only if it has a non-empty variable plugin_name, which
+        does not equal that of a disabled (standard) plugin.
+        Supports plugin option specifications.
+    Returns:
+        None
+    """
     for plugin_filename in Options.getUserPlugins():
+        plugin_filename = plugin_filename.split("=", 1)[0]
         if not os.path.exists(plugin_filename):
             sys.exit("Error, cannot find '%s'." % plugin_filename)
 
@@ -301,28 +395,47 @@ def importUserPlugins():
 
 
 def initPlugins():
+    """ Initialize plugins
+
+    Notes:
+        Load user plugins provided as Python script file names, and standard
+        plugins via their class attribute 'plugin_name'.
+        Several checks are made, see below.
+        The final result is 'active_plugin_list' which contains all enabled
+        plugins.
+
+    Returns:
+        None
+    """
+
+    # load user plugins first to allow any preparative action
+    importUserPlugins()
+
+    # now load standard plugins
+    # ensure plugin is known and not both, enabled and disabled
     for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
         if plugin_name not in plugin_name2plugin_classes:
             sys.exit("Error, unknown plug-in '%s' referenced." % plugin_name)
 
-        if plugin_name in Options.getPluginsEnabled() and \
-           plugin_name in Options.getPluginsDisabled():
+        if (
+            plugin_name in Options.getPluginsEnabled()
+            and plugin_name in Options.getPluginsDisabled()
+        ):
             sys.exit("Error, conflicting enable/disable of plug-in '%s'." % plugin_name)
 
-    for plugin_name, (plugin_class, plugin_detector) in plugin_name2plugin_classes.items():
+    for (
+        plugin_name,
+        (plugin_class, plugin_detector),
+    ) in plugin_name2plugin_classes.items():
         if plugin_name in Options.getPluginsEnabled():
-            active_plugin_list.append(
-                plugin_class()
-            )
+            active_plugin_list.append(plugin_class())
         elif plugin_name not in Options.getPluginsDisabled():
-            if plugin_detector is not None \
-               and Options.shallDetectMissingPlugins() and \
-               plugin_detector.isRelevant():
-                active_plugin_list.append(
-                    plugin_detector()
-                )
-
-    importUserPlugins()
+            if (
+                plugin_detector is not None
+                and Options.shallDetectMissingPlugins()
+                and plugin_detector.isRelevant()
+            ):
+                active_plugin_list.append(plugin_detector())
 
 
 initPlugins()

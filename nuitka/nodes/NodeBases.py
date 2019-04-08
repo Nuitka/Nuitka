@@ -28,10 +28,7 @@ expression only stuff.
 from abc import abstractmethod
 
 from nuitka import Options, Tracing, TreeXML, Variables
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    intern,
-    iterItems
-)
+from nuitka.__past__ import intern, iterItems  # pylint: disable=I0021,redefined-builtin
 from nuitka.Errors import NuitkaNodeError
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
@@ -104,7 +101,6 @@ class NodeBase(NodeMetaClassBase):
         """
         return self.getDetails()
 
-
     def getDetail(self):
         """ Details of the node, intended for use in __repr__ and graphical
             display.
@@ -118,10 +114,7 @@ class NodeBase(NodeMetaClassBase):
     def makeClone(self):
         try:
             # Using star dictionary arguments here for generic use.
-            result = self.__class__(
-                source_ref = self.source_ref,
-                **self.getCloneArgs()
-            )
+            result = self.__class__(source_ref=self.source_ref, **self.getCloneArgs())
         except TypeError as e:
             raise NuitkaNodeError("Problem cloning node", self, e)
 
@@ -138,10 +131,7 @@ class NodeBase(NodeMetaClassBase):
 
         try:
             # Using star dictionary arguments here for generic use.
-            result = self.__class__(
-                source_ref = self.source_ref,
-                **args
-            )
+            result = self.__class__(source_ref=self.source_ref, **args)
         except TypeError as e:
             raise NuitkaNodeError("Problem cloning node", self, e)
 
@@ -159,7 +149,7 @@ class NodeBase(NodeMetaClassBase):
 
         if self.parent is None and not self.isCompiledPythonModule():
             # print self.getVisitableNodesNamed()
-            assert False, (self,  self.source_ref)
+            assert False, (self, self.source_ref)
 
         return self.parent
 
@@ -183,7 +173,9 @@ class NodeBase(NodeMetaClassBase):
         child_name = self.getChildName()
 
         if hasattr(self.parent, "nice_children"):
-            return self.parent.nice_children[self.parent.named_children.index(child_name)]
+            return self.parent.nice_children[
+                self.parent.named_children.index(child_name)
+            ]
         elif hasattr(self.parent, "nice_child"):
             return self.parent.nice_child
         else:
@@ -196,8 +188,7 @@ class NodeBase(NodeMetaClassBase):
 
         parent = self.getParent()
 
-        while parent is not None and \
-              not parent.isExpressionFunctionBodyBase():
+        while parent is not None and not parent.isExpressionFunctionBodyBase():
             parent = parent.getParent()
 
         return parent
@@ -233,8 +224,10 @@ class NodeBase(NodeMetaClassBase):
     def getParentReturnConsumer(self):
         parent = self.getParent()
 
-        while not parent.isParentVariableProvider() and \
-              not parent.isExpressionOutlineBody():
+        while (
+            not parent.isParentVariableProvider()
+            and not parent.isExpressionOutlineBody()
+        ):
             parent = parent.getParent()
 
         return parent
@@ -270,15 +263,16 @@ class NodeBase(NodeMetaClassBase):
 
         # Getting the same source reference can be dealt with quickly, so do
         # this first.
-        if self.source_ref is not source_ref and \
-           Options.isFullCompat() and \
-           self.source_ref != source_ref:
+        if (
+            self.source_ref is not source_ref
+            and Options.isFullCompat()
+            and self.source_ref != source_ref
+        ):
             # An attribute outside of "__init__", so we save one memory for the
             # most cases. Very few cases involve splitting across lines.
             # false alarm for non-slot:
             # pylint: disable=I0021,assigning-non-slot,attribute-defined-outside-init
             self.effective_source_ref = source_ref
-
 
     def getCompatibleSourceReference(self):
         """ Bug compatible line numbers information.
@@ -290,11 +284,7 @@ class NodeBase(NodeMetaClassBase):
     def asXml(self):
         line = self.getSourceReference().getLineNumber()
 
-        result = TreeXML.Element(
-            "node",
-            kind = self.__class__.__name__,
-            line = "%s" % line
-        )
+        result = TreeXML.Element("node", kind=self.__class__.__name__, line="%s" % line)
 
         compat_line = self.getCompatibleSourceReference().getLineNumber()
 
@@ -305,40 +295,33 @@ class NodeBase(NodeMetaClassBase):
             result.set(key, str(value))
 
         for name, children in self.getVisitableNodesNamed():
-            role = TreeXML.Element(
-                "role",
-                name = name
-            )
+            role = TreeXML.Element("role", name=name)
 
             result.append(role)
 
             if children is None:
                 role.attrib["type"] = "none"
             elif type(children) not in (list, tuple):
-                role.append(
-                    children.asXml()
-                )
+                role.append(children.asXml())
             else:
                 role.attrib["type"] = "list"
 
                 for child in children:
-                    role.append(
-                        child.asXml()
-                    )
+                    role.append(child.asXml())
 
         return result
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
         # Only some things need a provider, pylint: disable=unused-argument
-        return cls(source_ref = source_ref, **args)
+        return cls(source_ref=source_ref, **args)
 
     def asXmlText(self):
         xml = self.asXml()
 
         return TreeXML.toString(xml)
 
-    def dump(self, level = 0):
+    def dump(self, level=0):
         Tracing.printIndented(level, self)
         Tracing.printSeparator(level)
 
@@ -498,15 +481,11 @@ class CodeNodeMixin(object):
             assert isinstance(self, CodeNodeMixin)
 
             if self.name:
-                name = uid + '_' + self.name.strip("<>")
+                name = uid + "_" + self.name.strip("<>")
             else:
                 name = uid
 
-            self.code_name = "%s$$$%s%s" % (
-                parent_name,
-                self.code_prefix,
-                name
-            )
+            self.code_name = "%s$$$%s%s" % (parent_name, self.code_prefix, name)
 
         return self.code_name
 
@@ -623,8 +602,7 @@ class ChildrenHavingMixin(object):
                 result.append(value)
             else:
                 raise AssertionError(
-                    self,
-                    "has illegal child", name, value, value.__class__
+                    self, "has illegal child", name, value, value.__class__
                 )
 
         return tuple(result)
@@ -639,7 +617,6 @@ class ChildrenHavingMixin(object):
             value = getattr(self, attr_name)
 
             yield name, value
-
 
     def replaceChild(self, old_node, new_node):
         if new_node is not None and not isinstance(new_node, NodeBase):
@@ -662,19 +639,12 @@ class ChildrenHavingMixin(object):
                             key,
                             tuple(
                                 (val if val is not old_node else new_node)
-                                for val in
-                                value
-                            )
+                                for val in value
+                            ),
                         )
                     else:
                         self.setChild(
-                            key,
-                            tuple(
-                                val
-                                for val in
-                                value
-                                if val is not old_node
-                            )
+                            key, tuple(val for val in value if val is not old_node)
                         )
 
                     return key
@@ -686,12 +656,7 @@ class ChildrenHavingMixin(object):
             else:
                 assert False, (key, value, value.__class__)
 
-        raise AssertionError(
-            "Didn't find child",
-            old_node,
-            "in",
-            self
-        )
+        raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
         values = {}
@@ -704,17 +669,11 @@ class ChildrenHavingMixin(object):
             if value is None:
                 values[key] = None
             elif type(value) is tuple:
-                values[key] = tuple(
-                    v.makeClone()
-                    for v in
-                    value
-                )
+                values[key] = tuple(v.makeClone() for v in value)
             else:
                 values[key] = value.makeClone()
 
-        values.update(
-            self.getDetails()
-        )
+        values.update(self.getDetails())
 
         return values
 
@@ -727,12 +686,9 @@ class ChildrenHavingMixin(object):
 
 class ClosureGiverNodeMixin(CodeNodeMixin):
     """ Blass class for nodes that provide variables for closure takers. """
+
     def __init__(self, name, code_prefix):
-        CodeNodeMixin.__init__(
-            self,
-            name        = name,
-            code_prefix = code_prefix
-        )
+        CodeNodeMixin.__init__(self, name=name, code_prefix=code_prefix)
 
         self.providing = {}
         self.variable_order = []
@@ -749,7 +705,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
     def getProvidedVariable(self, variable_name):
         if variable_name not in self.providing:
             self.providing[variable_name] = self.createProvidedVariable(
-                variable_name = variable_name
+                variable_name=variable_name
             )
             self.variable_order.append(variable_name)
 
@@ -774,17 +730,11 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
     def allocateTempScope(self, name):
         self.temp_scopes[name] = self.temp_scopes.get(name, 0) + 1
 
-        return "%s_%d" % (
-            name,
-            self.temp_scopes[name]
-        )
+        return "%s_%d" % (name, self.temp_scopes[name])
 
     def allocateTempVariable(self, temp_scope, name):
         if temp_scope is not None:
-            full_name = "%s__%s" % (
-                temp_scope,
-                name
-            )
+            full_name = "%s__%s" % (temp_scope, name)
         else:
             assert name != "result"
 
@@ -793,9 +743,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         # No duplicates please.
         assert full_name not in self.temp_variables, full_name
 
-        result = self.createTempVariable(
-            temp_name = full_name
-        )
+        result = self.createTempVariable(temp_name=full_name)
 
         # Late added temp variables should be treated with care for the
         # remaining trace.
@@ -806,12 +754,9 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
     def createTempVariable(self, temp_name):
         if temp_name in self.temp_variables:
-            return self.temp_variables[ temp_name ]
+            return self.temp_variables[temp_name]
 
-        result = Variables.TempVariable(
-            owner         = self,
-            variable_name = temp_name
-        )
+        result = Variables.TempVariable(owner=self, variable_name=temp_name)
 
         self.temp_variables[temp_name] = result
 
@@ -850,9 +795,7 @@ class ClosureTakerMixin(object):
         return self.provider
 
     def getClosureVariable(self, variable_name):
-        result = self.provider.getVariableForClosure(
-            variable_name = variable_name
-        )
+        result = self.provider.getVariableForClosure(variable_name=variable_name)
         assert result is not None, variable_name
 
         if not result.isModuleVariable():
@@ -868,13 +811,8 @@ class ClosureTakerMixin(object):
     def getClosureVariables(self):
         return tuple(
             sorted(
-                [
-                    take
-                    for take in
-                    self.taken
-                    if not take.isModuleVariable()
-                ],
-                key = lambda x : x.getName()
+                [take for take in self.taken if not take.isModuleVariable()],
+                key=lambda x: x.getName(),
             )
         )
 
@@ -906,6 +844,7 @@ class StatementBase(NodeBase):
     """ Base class for all statements.
 
     """
+
     # Base classes can be abstract, pylint: disable=abstract-method
 
     # TODO: Have them all.
@@ -926,13 +865,11 @@ class StatementBase(NodeBase):
         for count, expression in enumerate(expressions):
             assert expression.isExpression(), (self, expression)
 
-            expression = trace_collection.onExpression(
-                expression = expression
-            )
+            expression = trace_collection.onExpression(expression=expression)
 
             if expression.willRaiseException(BaseException):
                 wrapped_expression = makeStatementOnlyNodesFromExpressions(
-                    expressions[:count+1]
+                    expressions[: count + 1]
                 )
 
                 assert wrapped_expression is not None
@@ -940,10 +877,8 @@ class StatementBase(NodeBase):
                 return (
                     wrapped_expression,
                     "new_raise",
-                    lambda : "For %s the child expression '%s' will raise." % (
-                        self.getStatementNiceName(),
-                        expression.getChildNameNice()
-                    )
+                    lambda: "For %s the child expression '%s' will raise."
+                    % (self.getStatementNiceName(), expression.getChildNameNice()),
                 )
 
         return self, None, None
@@ -951,12 +886,9 @@ class StatementBase(NodeBase):
 
 class StatementChildrenHavingBase(ChildrenHavingMixin, StatementBase):
     def __init__(self, values, source_ref):
-        StatementBase.__init__(self, source_ref = source_ref)
+        StatementBase.__init__(self, source_ref=source_ref)
 
-        ChildrenHavingMixin.__init__(
-            self,
-            values = values
-        )
+        ChildrenHavingMixin.__init__(self, values=values)
 
 
 class StatementChildHavingBase(StatementBase):
@@ -965,7 +897,7 @@ class StatementChildHavingBase(StatementBase):
     checker = None
 
     def __init__(self, value, source_ref):
-        StatementBase.__init__(self, source_ref = source_ref)
+        StatementBase.__init__(self, source_ref=source_ref)
 
         assert type(self.named_child) is str and self.named_child
 
@@ -1053,10 +985,7 @@ class StatementChildHavingBase(StatementBase):
         elif isinstance(value, NodeBase):
             return (value,)
         else:
-            raise AssertionError(
-                self,
-                "has illegal child", value, value.__class__
-            )
+            raise AssertionError(self, "has illegal child", value, value.__class__)
 
     def getVisitableNodesNamed(self):
         """ Named children dictionary.
@@ -1088,20 +1017,12 @@ class StatementChildHavingBase(StatementBase):
                     self.setChild(
                         key,
                         tuple(
-                            (val if val is not old_node else new_node)
-                            for val in
-                            value
-                        )
+                            (val if val is not old_node else new_node) for val in value
+                        ),
                     )
                 else:
                     self.setChild(
-                        key,
-                        tuple(
-                            val
-                            for val in
-                            value
-                            if val is not old_node
-                        )
+                        key, tuple(val for val in value if val is not old_node)
                     )
 
                 return key
@@ -1113,12 +1034,7 @@ class StatementChildHavingBase(StatementBase):
         else:
             assert False, (key, value, value.__class__)
 
-        raise AssertionError(
-            "Didn't find child",
-            old_node,
-            "in",
-            self
-        )
+        raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
         # Make clones of child nodes too.
@@ -1132,17 +1048,11 @@ class StatementChildHavingBase(StatementBase):
         if value is None:
             values[key] = None
         elif type(value) is tuple:
-            values[key] = tuple(
-                v.makeClone()
-                for v in
-                value
-            )
+            values[key] = tuple(v.makeClone() for v in value)
         else:
             values[key] = value.makeClone()
 
-        values.update(
-            self.getDetails()
-        )
+        values.update(self.getDetails())
 
         return values
 
@@ -1166,9 +1076,7 @@ class SideEffectsFromChildrenMixin(object):
         result = []
 
         for child in self.getVisitableNodes():
-            result.extend(
-                child.extractSideEffects()
-            )
+            result.extend(child.extractSideEffects())
 
         return tuple(result)
 
@@ -1183,13 +1091,13 @@ class SideEffectsFromChildrenMixin(object):
             return (
                 makeStatementOnlyNodesFromExpressions(side_effects),
                 "new_statements",
-                "Reduced unused %s to side effects." % self.kind
+                "Reduced unused %s to side effects." % self.kind,
             )
         else:
             return (
                 None,
                 "new_statements",
-                "Removed %s without side effects." % self.kind
+                "Removed %s without side effects." % self.kind,
             )
 
 
@@ -1198,22 +1106,13 @@ def makeChild(provider, child, source_ref):
 
     if child_type == "list":
         return [
-            fromXML(
-                provider   = provider,
-                xml        = sub_child,
-                source_ref = source_ref
-            )
-            for sub_child in
-            child
+            fromXML(provider=provider, xml=sub_child, source_ref=source_ref)
+            for sub_child in child
         ]
     elif child_type == "none":
         return None
     else:
-        return fromXML(
-            provider   = provider,
-            xml        = child[0],
-            source_ref = source_ref
-        )
+        return fromXML(provider=provider, xml=child[0], source_ref=source_ref)
 
 
 def getNodeClassFromKind(kind):
@@ -1228,8 +1127,7 @@ def extractKindAndArgsFromXML(xml, source_ref):
 
     if source_ref is None:
         source_ref = SourceCodeReference.fromFilenameAndLine(
-            args["filename"],
-            int(args["line"])
+            args["filename"], int(args["line"])
         )
 
         del args["filename"]
@@ -1244,7 +1142,7 @@ def extractKindAndArgsFromXML(xml, source_ref):
     return kind, node_class, args, source_ref
 
 
-def fromXML(provider, xml, source_ref = None):
+def fromXML(provider, xml, source_ref=None):
     assert xml.tag == "node", xml
 
     kind, node_class, args, source_ref = extractKindAndArgsFromXML(xml, source_ref)
@@ -1254,9 +1152,13 @@ def fromXML(provider, xml, source_ref = None):
         # global stream     instead. For now, this will do. pylint: disable=eval-used
         args["constant"] = eval(args["constant"])
 
-    if kind in ("ExpressionFunctionBody", "PythonMainModule",
-                "PythonCompiledModule", "PythonCompiledPackage",
-                "PythonInternalModule"):
+    if kind in (
+        "ExpressionFunctionBody",
+        "PythonMainModule",
+        "PythonCompiledModule",
+        "PythonCompiledPackage",
+        "PythonInternalModule",
+    ):
         delayed = node_class.named_children
 
         if "code_flags" in args:
@@ -1278,11 +1180,7 @@ def fromXML(provider, xml, source_ref = None):
             args[child_name] = child
 
     try:
-        return node_class.fromXML(
-            provider   = provider,
-            source_ref = source_ref,
-            **args
-        )
+        return node_class.fromXML(provider=provider, source_ref=source_ref, **args)
     except (TypeError, AttributeError):
         Tracing.printLine(node_class, args, source_ref)
         raise

@@ -53,10 +53,12 @@ def generateTryCode(statement, emit, context):
 
     tried_block_may_raise = tried_block.mayRaiseException(BaseException)
 
-    assert tried_block_may_raise or \
-           continue_handler is not None or \
-           break_handler is not None or \
-           return_handler is not None, statement.asXmlText()
+    assert (
+        tried_block_may_raise
+        or continue_handler is not None
+        or break_handler is not None
+        or return_handler is not None
+    ), statement.asXmlText()
 
     # The tried statements might raise, for which we define an escape.
     tried_handler_escape = context.allocateLabel("try_except_handler")
@@ -82,12 +84,8 @@ def generateTryCode(statement, emit, context):
     # optimization failed.
     emit("// Tried code:")
     generateStatementSequenceCode(
-        statement_sequence = tried_block,
-        emit               = emit,
-        allow_none         = False,
-        context            = context
+        statement_sequence=tried_block, emit=emit, allow_none=False, context=context
     )
-
 
     # Restore the old escape targets as preserved above, during the handlers,
     # the parent handlers should be back in effect.
@@ -112,9 +110,7 @@ def generateTryCode(statement, emit, context):
         getGotoCode(post_label, emit)
     else:
         getMustNotGetHereCode(
-            reason  = "tried codes exits in all cases",
-            context = context,
-            emit    = emit
+            reason="tried codes exits in all cases", context=context, emit=emit
         )
 
     if return_handler is not None:
@@ -128,10 +124,10 @@ def generateTryCode(statement, emit, context):
         old_return_value_release = context.setReturnReleaseMode(True)
 
         generateStatementSequenceCode(
-            statement_sequence = return_handler,
-            emit               = emit,
-            allow_none         = False,
-            context            = context
+            statement_sequence=return_handler,
+            emit=emit,
+            allow_none=False,
+            context=context,
         )
 
         context.setReturnReleaseMode(old_return_value_release)
@@ -143,8 +139,9 @@ def generateTryCode(statement, emit, context):
         getLabelCode(tried_handler_escape, emit)
 
         # Need to preserve exception state.
-        keeper_type, keeper_value, keeper_tb, keeper_lineno = \
-          context.allocateExceptionKeeperVariables()
+        keeper_type, keeper_value, keeper_tb, keeper_lineno = (
+            context.allocateExceptionKeeperVariables()
+        )
 
         old_keepers = context.setExceptionKeeperVariables(
             (keeper_type, keeper_value, keeper_tb, keeper_lineno)
@@ -152,8 +149,9 @@ def generateTryCode(statement, emit, context):
 
         assert keeper_type is not None
 
-        exception_type, exception_value, exception_tb, exception_lineno = \
-          context.variable_storage.getExceptionVariableDescriptions()
+        exception_type, exception_value, exception_tb, exception_lineno = (
+            context.variable_storage.getExceptionVariableDescriptions()
+        )
 
         # TODO: That normalization and chaining is only necessary if the
         # exception is published.
@@ -167,23 +165,24 @@ def generateTryCode(statement, emit, context):
 %(exception_value)s = NULL;
 %(exception_tb)s = NULL;
 %(exception_lineno)s = 0;
-""" %  {
-            "keeper_type"      : keeper_type,
-            "keeper_value"     : keeper_value,
-            "keeper_tb"        : keeper_tb,
-            "keeper_lineno"    : keeper_lineno,
-            "exception_type"   : exception_type,
-            "exception_value"  : exception_value,
-            "exception_tb"     : exception_tb,
-            "exception_lineno" : exception_lineno
+"""
+            % {
+                "keeper_type": keeper_type,
+                "keeper_value": keeper_value,
+                "keeper_tb": keeper_tb,
+                "keeper_lineno": keeper_lineno,
+                "exception_type": exception_type,
+                "exception_value": exception_value,
+                "exception_tb": exception_tb,
+                "exception_lineno": exception_lineno,
             }
         )
 
         generateStatementSequenceCode(
-            statement_sequence = except_handler,
-            emit               = emit,
-            allow_none         = True,
-            context            = context
+            statement_sequence=except_handler,
+            emit=emit,
+            allow_none=True,
+            context=context,
         )
 
         if except_handler is None or not except_handler.isStatementAborting():
@@ -195,9 +194,9 @@ def generateTryCode(statement, emit, context):
             getGotoCode(post_label, emit)
 
             getMustNotGetHereCode(
-                reason  = "exception handler codes exits in all cases",
-                context = context,
-                emit    = emit
+                reason="exception handler codes exits in all cases",
+                context=context,
+                emit=emit,
             )
 
         context.setExceptionKeeperVariables(old_keepers)
@@ -211,10 +210,10 @@ def generateTryCode(statement, emit, context):
         getLabelCode(break_handler_escape, emit)
 
         generateStatementSequenceCode(
-            statement_sequence = break_handler,
-            emit               = emit,
-            allow_none         = False,
-            context            = context
+            statement_sequence=break_handler,
+            emit=emit,
+            allow_none=False,
+            context=context,
         )
 
         assert break_handler.isStatementAborting()
@@ -226,14 +225,13 @@ def generateTryCode(statement, emit, context):
         getLabelCode(continue_handler_escape, emit)
 
         generateStatementSequenceCode(
-            statement_sequence = continue_handler,
-            emit               = emit,
-            allow_none         = False,
-            context            = context
+            statement_sequence=continue_handler,
+            emit=emit,
+            allow_none=False,
+            context=context,
         )
 
         assert continue_handler.isStatementAborting()
-
 
     emit("// End of try:")
 
@@ -302,35 +300,32 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
     tmp_name = context.allocateTempName("next_source")
 
     generateExpressionCode(
-        expression = assign_source.getValue(),
-        to_name    = tmp_name,
-        emit       = emit,
-        context    = context
+        expression=assign_source.getValue(),
+        to_name=tmp_name,
+        emit=emit,
+        context=context,
     )
 
     tmp_name2 = context.allocateTempName("assign_source")
 
     old_source_ref = context.setCurrentSourceCodeReference(
         assign_source.getSourceReference()
-          if Options.isFullCompat() else
-        statement.getSourceReference()
+        if Options.isFullCompat()
+        else statement.getSourceReference()
     )
 
     getBuiltinLoopBreakNextCode(
-        to_name = tmp_name2,
-        value   = tmp_name,
-        emit    = emit,
-        context = context
+        to_name=tmp_name2, value=tmp_name, emit=emit, context=context
     )
 
     getVariableAssignmentCode(
-        tmp_name       = tmp_name2,
-        variable       = tried_statement.getVariable(),
-        variable_trace = tried_statement.getVariableTrace(),
-        needs_release  = None,
-        in_place       = False,
-        emit           = emit,
-        context        = context
+        tmp_name=tmp_name2,
+        variable=tried_statement.getVariable(),
+        variable_trace=tried_statement.getVariableTrace(),
+        needs_release=None,
+        in_place=False,
+        emit=emit,
+        context=context,
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)

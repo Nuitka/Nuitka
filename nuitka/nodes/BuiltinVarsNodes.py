@@ -28,17 +28,11 @@ from .ExpressionBases import ExpressionChildrenHavingBase
 class ExpressionBuiltinVars(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_VARS"
 
-    named_children = (
-        "source",
-    )
+    named_children = ("source",)
 
     def __init__(self, source, source_ref):
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "source" : source,
-            },
-            source_ref = source_ref
+            self, values={"source": source}, source_ref=source_ref
         )
 
     getSource = ExpressionChildrenHavingBase.childGetter("source")

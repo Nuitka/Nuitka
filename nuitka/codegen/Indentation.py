@@ -15,24 +15,23 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 """ Indentation of code.
 
 Language independent, the amount of the spaces is not configurable, as it needs
 to be the same as in templates.
 """
 
+
 def _indentedCode(codes, count):
-    return '\n'.join(
-        ' ' * count + line
-          if (line and not line.startswith('#')) else
-        line for line in codes
+    return "\n".join(
+        " " * count + line if (line and not line.startswith("#")) else line
+        for line in codes
     )
 
 
-def indented(codes, level = 1, vert_block = False):
+def indented(codes, level=1, vert_block=False):
     if type(codes) is str:
-        codes = codes.split('\n')
+        codes = codes.split("\n")
 
     if vert_block and codes != [""]:
         codes.insert(0, "")

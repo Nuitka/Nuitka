@@ -60,18 +60,13 @@ def getCodeObjectsInitCode(context):
 
         # We do not care about release of this object, as code object live
         # forever anyway.
-        if Options.getFileReferenceMode() == "frozen" or \
-           os.path.isabs(module_filename):
+        if Options.getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
             template = "module_filename_obj = %s;"
         else:
             template = "module_filename_obj = MAKE_RELATIVE_PATH( %s );"
 
         statements.append(
-            template % (
-                context.getConstantCode(
-                    constant = module_filename
-                )
-            )
+            template % (context.getConstantCode(constant=module_filename))
         )
 
     for code_object_key, code_identifier in code_objects:
@@ -112,30 +107,22 @@ def getCodeObjectsInitCode(context):
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
                 code_identifier,
                 filename_code,
-                context.getConstantCode(
-                    constant = code_object_key[1]
-                ),
+                context.getConstantCode(constant=code_object_key[1]),
                 code_object_key[2],
-                context.getConstantCode(
-                    constant = code_object_key[3]
-                ),
+                context.getConstantCode(constant=code_object_key[3]),
                 code_object_key[4],
-                " | ".join(co_flags) or '0',
+                " | ".join(co_flags) or "0",
             )
         else:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %d, %s );" % (
                 code_identifier,
                 filename_code,
-                context.getConstantCode(
-                    constant = code_object_key[1]
-                ),
+                context.getConstantCode(constant=code_object_key[1]),
                 code_object_key[2],
-                context.getConstantCode(
-                    constant = code_object_key[3]
-                ),
+                context.getConstantCode(constant=code_object_key[3]),
                 code_object_key[4],
                 code_object_key[5],
-                " | ".join(co_flags) or  '0',
+                " | ".join(co_flags) or "0",
             )
 
         statements.append(code)

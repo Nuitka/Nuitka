@@ -34,54 +34,55 @@ def getBumpedVersion(mode, old_version):
         if "rc" in old_version:
             parts = old_version.split("rc")
 
-            new_version = "rc".join([parts[0], str(int(parts[1]) + 1) ])
+            new_version = "rc".join([parts[0], str(int(parts[1]) + 1)])
         else:
-            old_version = '.'.join(old_version.split('.')[:3])
-            parts = old_version.split('.')
+            old_version = ".".join(old_version.split(".")[:3])
+            parts = old_version.split(".")
             parts[-1] = str(int(parts[-1]) + 1)
 
-            new_version = '.'.join(parts) + "rc1"
+            new_version = ".".join(parts) + "rc1"
     elif mode == "release":
         if "rc" in old_version:
-            old_version = old_version[ : old_version.find("rc") ]
+            old_version = old_version[: old_version.find("rc")]
             was_pre = True
         else:
             was_pre = False
 
-        new_version = '.'.join(old_version.split('.')[:3])
+        new_version = ".".join(old_version.split(".")[:3])
 
         if not was_pre:
-            parts = new_version.split('.')
+            parts = new_version.split(".")
             parts[-1] = str(int(parts[-1]) + 1)
 
-            new_version = '.'.join(parts)
+            new_version = ".".join(parts)
     elif mode == "hotfix":
         assert "pre" not in old_version and "rc" not in old_version
 
-        parts = old_version.split('.')
+        parts = old_version.split(".")
 
         if len(parts) == 3:
-            parts.append('1')
+            parts.append("1")
         else:
             parts[-1] = str(int(parts[-1]) + 1)
 
-        new_version = '.'.join(parts)
+        new_version = ".".join(parts)
 
     else:
         sys.exit("Error, unknown mode '%s'." % mode)
 
     return new_version
 
+
 def main():
     parser = OptionParser()
 
     parser.add_option(
         "--mode",
-        action  = "store",
-        dest    = "mode",
-        default = None,
-        help    = """\
-The mode of update, prerelease, hotfix, release, auto (default auto determines from branch)."""
+        action="store",
+        dest="mode",
+        default=None,
+        help="""\
+The mode of update, prerelease, hotfix, release, auto (default auto determines from branch).""",
     )
 
     options, positional_args = parser.parse_args()
@@ -94,9 +95,10 @@ The mode of update, prerelease, hotfix, release, auto (default auto determines f
     # Go its own directory, to have it easy with path knowledge.
     goHome()
 
-    option_lines = [ line for line in open("nuitka/Version.py") ]
+    with open("nuitka/Version.py") as f:
+        option_lines = f.readlines()
 
-    version_line, = [ line for line in open("nuitka/Version.py") if line.startswith("Nuitka V") ]
+    version_line, = [line for line in option_lines if line.startswith("Nuitka V")]
 
     old_version = version_line[8:].rstrip()
 
@@ -116,10 +118,10 @@ The mode of update, prerelease, hotfix, release, auto (default auto determines f
     new_version = getBumpedVersion(mode, old_version)
     print("Bumped", mode, old_version, "->", new_version)
 
-    with open("nuitka/Version.py", 'w') as options_file:
+    with open("nuitka/Version.py", "w") as options_file:
         for line in option_lines:
             if line.startswith("Nuitka V"):
-                line = "Nuitka V" + new_version + '\n'
+                line = "Nuitka V" + new_version + "\n"
 
             options_file.write(line)
 

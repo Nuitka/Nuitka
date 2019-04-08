@@ -37,22 +37,26 @@ def main():
     nuitka_version = getNuitkaVersion()
     branch_name = checkBranchName()
 
-    shutil.rmtree("dist", ignore_errors = True)
-    shutil.rmtree("build", ignore_errors = True)
+    shutil.rmtree("dist", ignore_errors=True)
+    shutil.rmtree("build", ignore_errors=True)
 
     createReleaseDocumentation()
     assert os.system("python setup.py sdist --formats=gztar") == 0
 
     # Upload stable releases to OpenSUSE Build Service:
-    if branch_name.startswith("release") or \
-       branch_name.startswith("hotfix") or \
-       branch_name == "master":
+    if (
+        branch_name.startswith("release")
+        or branch_name.startswith("hotfix")
+        or branch_name == "master"
+    ):
         # Cleanup the osc directory.
-        shutil.rmtree("osc", ignore_errors = True)
+        shutil.rmtree("osc", ignore_errors=True)
         os.makedirs("osc")
 
         # Stage the "osc" checkout from the ground up.
-        assert os.system("""\
+        assert (
+            os.system(
+                """\
 cd osc && \
 osc init home:kayhayen Nuitka && osc repairwc && \
 cp ../dist/Nuitka-*.tar.gz . && \
@@ -61,18 +65,24 @@ cp ../rpm/nuitka-rpmlintrc . && \
 osc addremove && \
 echo 'New release' >ci_message && \
 osc ci --file ci_message
-""" % nuitka_version) == 0
+"""
+                % nuitka_version
+            )
+            == 0
+        )
 
         # Cleanup the osc directory.
-        shutil.rmtree("osc", ignore_errors = True)
+        shutil.rmtree("osc", ignore_errors=True)
     elif branch_name == "develop":
         # Cleanup the osc directory.
-        shutil.rmtree("osc", ignore_errors = True)
+        shutil.rmtree("osc", ignore_errors=True)
         os.makedirs("osc")
 
         # Stage the "osc" checkout from the ground up, but path the RPM spec to say
         # it is nuitks-unstable package.
-        assert os.system("""\
+        assert (
+            os.system(
+                """\
 cd osc && \
 osc init home:kayhayen Nuitka-Unstable && \
 osc repairwc && \
@@ -82,18 +92,24 @@ sed -i nuitka-unstable.spec -e 's/Name: *nuitka/Name:           nuitka-unstable/
 cp ../rpm/nuitka-rpmlintrc . && \
 osc addremove && echo 'New release' >ci_message && \
 osc ci --file ci_message
-""" % nuitka_version) == 0
+"""
+                % nuitka_version
+            )
+            == 0
+        )
 
         # Cleanup the osc directory.
-        shutil.rmtree("osc", ignore_errors = True)
+        shutil.rmtree("osc", ignore_errors=True)
     elif branch_name == "factory":
         # Cleanup the osc directory.
-        shutil.rmtree("osc", ignore_errors = True)
+        shutil.rmtree("osc", ignore_errors=True)
         os.makedirs("osc")
 
         # Stage the "osc" checkout from the ground up, but path the RPM spec to say
         # it is nuitks-unstable package.
-        assert os.system("""\
+        assert (
+            os.system(
+                """\
 cd osc && \
 osc init home:kayhayen Nuitka-experimental && \
 osc repairwc && \
@@ -103,12 +119,17 @@ sed -i nuitka-experimental.spec -e 's/Name: *nuitka/Name:           nuitka-exper
 cp ../rpm/nuitka-rpmlintrc . && \
 osc addremove && \
 echo 'New release' >ci_message && osc ci --file ci_message
-""" % nuitka_version) == 0
+"""
+                % nuitka_version
+            )
+            == 0
+        )
 
         # Cleanup the osc directory.
-        shutil.rmtree("osc", ignore_errors = True)
+        shutil.rmtree("osc", ignore_errors=True)
     else:
         sys.exit("Skipping OSC for branch '%s'" % branch_name)
+
 
 if __name__ == "__main__":
     main()

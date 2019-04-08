@@ -35,23 +35,24 @@ from .TreeHelpers import buildNode
 def _checkInsideGenerator(provider, node, source_ref):
     if provider.isCompiledPythonModule():
         raiseSyntaxError(
-            "'yield' outside function",
-            source_ref.atColumnNumber(node.col_offset)
+            "'yield' outside function", source_ref.atColumnNumber(node.col_offset)
         )
 
     # This yield is forbidden in 3.5, but allowed in 3.6, but yield_from
     # is neither.
-    if provider.isExpressionAsyncgenObjectBody() and \
-       (node.__class__ is not ast.Yield or python_version < 360):
+    if provider.isExpressionAsyncgenObjectBody() and (
+        node.__class__ is not ast.Yield or python_version < 360
+    ):
         raiseSyntaxError(
-            "'%s' inside async function" % (
-                "yield" if node.__class__ is ast.Yield else "yield from",
-            ),
-            source_ref.atColumnNumber(node.col_offset)
+            "'%s' inside async function"
+            % ("yield" if node.__class__ is ast.Yield else "yield from",),
+            source_ref.atColumnNumber(node.col_offset),
         )
 
-    assert provider.isExpressionGeneratorObjectBody() or \
-           provider.isExpressionAsyncgenObjectBody(), provider
+    assert (
+        provider.isExpressionGeneratorObjectBody()
+        or provider.isExpressionAsyncgenObjectBody()
+    ), provider
 
 
 def buildYieldNode(provider, node, source_ref):
@@ -59,16 +60,15 @@ def buildYieldNode(provider, node, source_ref):
 
     if node.value is not None:
         return ExpressionYield(
-            expression = buildNode(provider, node.value, source_ref),
-            source_ref = source_ref
+            expression=buildNode(provider, node.value, source_ref),
+            source_ref=source_ref,
         )
     else:
         return ExpressionYield(
-            expression = ExpressionConstantNoneRef(
-                source_ref    = source_ref,
-                user_provided = True
+            expression=ExpressionConstantNoneRef(
+                source_ref=source_ref, user_provided=True
             ),
-            source_ref = source_ref
+            source_ref=source_ref,
         )
 
 
@@ -78,6 +78,5 @@ def buildYieldFromNode(provider, node, source_ref):
     _checkInsideGenerator(provider, node, source_ref)
 
     return ExpressionYieldFrom(
-        expression = buildNode(provider, node.value, source_ref),
-        source_ref = source_ref
+        expression=buildNode(provider, node.value, source_ref), source_ref=source_ref
     )

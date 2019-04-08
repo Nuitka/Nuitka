@@ -95,6 +95,9 @@ Error, no package in dir '%s' found, incomplete test case.""" % filename
                 search_mode = search_mode,
                 needs_2to3  = False
             )
+            
+        if search_mode.abortIfExecuted():
+            break    
     else:
         my_print("Skipping", filename)
 

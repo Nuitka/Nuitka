@@ -33,21 +33,17 @@ from .ReturnNodes import StatementReturn, StatementReturnNone
 class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_MAKE_GENERATOR_OBJECT"
 
-    named_children = (
-        "generator_ref",
-    )
+    named_children = ("generator_ref",)
 
     getGeneratorRef = ExpressionChildrenHavingBase.childGetter("generator_ref")
 
     def __init__(self, generator_ref, source_ref):
-        assert generator_ref.getFunctionBody().isExpressionGeneratorObjectBody(), generator_ref
+        assert (
+            generator_ref.getFunctionBody().isExpressionGeneratorObjectBody()
+        ), generator_ref
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "generator_ref" : generator_ref,
-            },
-            source_ref = source_ref
+            self, values={"generator_ref": generator_ref}, source_ref=source_ref
         )
 
         self.variable_closure_traces = None
@@ -58,13 +54,13 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
-        for closure_variable in self.getGeneratorRef().getFunctionBody().getClosureVariables():
+        for closure_variable in (
+            self.getGeneratorRef().getFunctionBody().getClosureVariables()
+        ):
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
             trace.addClosureUsage()
 
-            self.variable_closure_traces.append(
-                (closure_variable, trace)
-            )
+            self.variable_closure_traces.append((closure_variable, trace))
 
         # TODO: Generator body may know something too.
         return self, None, None
@@ -79,8 +75,9 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
         return self.variable_closure_traces
 
 
-class ExpressionGeneratorObjectBody(MarkUnoptimizedFunctionIndicatorMixin,
-                                    ExpressionFunctionEntryPointBase):
+class ExpressionGeneratorObjectBody(
+    MarkUnoptimizedFunctionIndicatorMixin, ExpressionFunctionEntryPointBase
+):
     kind = "EXPRESSION_GENERATOR_OBJECT_BODY"
 
     if python_version >= 340:
@@ -89,12 +86,12 @@ class ExpressionGeneratorObjectBody(MarkUnoptimizedFunctionIndicatorMixin,
     def __init__(self, provider, name, code_object, flags, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
             self,
-            provider    = provider,
-            name        = name,
-            code_object = code_object,
-            code_prefix = "genexpr" if name == "<genexpr>" else "genobj",
-            flags       = flags,
-            source_ref  = source_ref
+            provider=provider,
+            name=name,
+            code_object=code_object,
+            code_prefix="genexpr" if name == "<genexpr>" else "genobj",
+            flags=flags,
+            source_ref=source_ref,
         )
 
         MarkUnoptimizedFunctionIndicatorMixin.__init__(self, flags)
@@ -107,10 +104,7 @@ class ExpressionGeneratorObjectBody(MarkUnoptimizedFunctionIndicatorMixin,
         return self.name
 
     def markAsNeedsGeneratorReturnHandling(self, value):
-        self.needs_generator_return_exit = max(
-            self.needs_generator_return_exit,
-            value
-        )
+        self.needs_generator_return_exit = max(self.needs_generator_return_exit, value)
 
     def needsGeneratorReturnHandling(self):
         return self.needs_generator_return_exit == 2
@@ -127,11 +121,7 @@ class StatementGeneratorReturn(StatementReturn):
     kind = "STATEMENT_GENERATOR_RETURN"
 
     def __init__(self, expression, source_ref):
-        StatementReturn.__init__(
-            self,
-            expression = expression,
-            source_ref = source_ref
-        )
+        StatementReturn.__init__(self, expression=expression, source_ref=source_ref)
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getExpression())
@@ -144,22 +134,27 @@ class StatementGeneratorReturn(StatementReturn):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
-                expression = expression,
-                node       = self
+                expression=expression, node=self
             )
 
-            return result, "new_raise", """\
-Return statement raises in returned expression, removed return."""
+            return (
+                result,
+                "new_raise",
+                """\
+Return statement raises in returned expression, removed return.""",
+            )
 
         trace_collection.onFunctionReturn()
 
         if expression.isExpressionConstantNoneRef():
-            result = StatementGeneratorReturnNone(
-                source_ref = self.source_ref
-            )
+            result = StatementGeneratorReturnNone(source_ref=self.source_ref)
 
-            return result, "new_statements", """\
-Generator return value is always None."""
+            return (
+                result,
+                "new_statements",
+                """\
+Generator return value is always None.""",
+            )
 
         return self, None, None
 
@@ -177,10 +172,7 @@ class StatementGeneratorReturnNone(StatementReturnNone):
     __slots__ = ()
 
     def __init__(self, source_ref):
-        StatementReturnNone.__init__(
-            self,
-            source_ref = source_ref
-        )
+        StatementReturnNone.__init__(self, source_ref=source_ref)
 
     @staticmethod
     def isStatementGeneratorReturn():

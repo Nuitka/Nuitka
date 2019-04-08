@@ -38,6 +38,8 @@ def displayDict(d):
         d["__spec__"].origin = "origin removed"
         d["__spec__"].submodule_search_locations = "submodule_search_locations removed"
 
+    if "__compiled__" in d:
+        del d["__compiled__"]
 
     import pprint
     return pprint.pformat(d)

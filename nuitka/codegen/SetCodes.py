@@ -27,7 +27,7 @@ from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateChildExpressionsCode,
     generateExpressionCode,
-    withObjectCodeTemporaryAssignment
+    withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getAssertionCode, getErrorExitBoolCode
 from .PythonAPICodes import generateCAPIObjectCode
@@ -41,42 +41,30 @@ def generateSetCreationCode(to_name, expression, emit, context):
     # Supposed to optimize empty set to constant value.
     assert elements, expression
 
-    with withObjectCodeTemporaryAssignment(to_name, "set_result", expression, emit, context) \
-      as result_name:
+    with withObjectCodeTemporaryAssignment(
+        to_name, "set_result", expression, emit, context
+    ) as result_name:
 
         for count, element in enumerate(elements):
             generateExpressionCode(
-                to_name    = element_name,
-                expression = element,
-                emit       = emit,
-                context    = context
+                to_name=element_name, expression=element, emit=emit, context=context
             )
 
             if count == 0:
-                emit(
-                    "%s = PySet_New( NULL );" % (
-                        result_name,
-                    )
-                )
+                emit("%s = PySet_New( NULL );" % (result_name,))
                 getAssertionCode(result_name, emit)
 
                 context.addCleanupTempName(to_name)
 
             res_name = context.getIntResName()
 
-            emit(
-                "%s = PySet_Add( %s, %s );" % (
-                    res_name,
-                    to_name,
-                    element_name
-                )
-            )
+            emit("%s = PySet_Add( %s, %s );" % (res_name, to_name, element_name))
 
             getErrorExitBoolCode(
-                condition   = "%s != 0" % res_name,
-                needs_check = not element.isKnownToBeHashable(),
-                emit        = emit,
-                context     = context
+                condition="%s != 0" % res_name,
+                needs_check=not element.isKnownToBeHashable(),
+                emit=emit,
+                context=context,
             )
 
             if context.needsCleanup(element_name):
@@ -88,14 +76,11 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
     if not needsSetLiteralReverseInsertion():
         return generateSetCreationCode(to_name, expression, emit, context)
 
-    with withObjectCodeTemporaryAssignment(to_name, "set_result", expression, emit, context) \
-      as result_name:
+    with withObjectCodeTemporaryAssignment(
+        to_name, "set_result", expression, emit, context
+    ) as result_name:
 
-        emit(
-            "%s = PySet_New( NULL );" % (
-                result_name,
-            )
-        )
+        emit("%s = PySet_New( NULL );" % (result_name,))
 
         context.addCleanupTempName(result_name)
 
@@ -104,43 +89,27 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
         element_names = []
 
         for count, element in enumerate(elements):
-            element_name = context.allocateTempName(
-                "set_element_%d" % (count+1)
-            )
+            element_name = context.allocateTempName("set_element_%d" % (count + 1))
             element_names.append(element_name)
 
             generateExpressionCode(
-                to_name    = element_name,
-                expression = element,
-                emit       = emit,
-                context    = context
+                to_name=element_name, expression=element, emit=emit, context=context
             )
 
         for count, element in enumerate(elements):
-            element_name = element_names[len(elements)-count-1]
+            element_name = element_names[len(elements) - count - 1]
 
             if element.isKnownToBeHashable():
-                emit(
-                    "PySet_Add( %s, %s );" % (
-                        result_name,
-                        element_name
-                    )
-                )
+                emit("PySet_Add( %s, %s );" % (result_name, element_name))
             else:
                 res_name = context.getIntResName()
 
                 emit(
-                    "%s = PySet_Add( %s, %s );" % (
-                        res_name,
-                        result_name,
-                        element_name
-                    )
+                    "%s = PySet_Add( %s, %s );" % (res_name, result_name, element_name)
                 )
 
                 getErrorExitBoolCode(
-                    condition = "%s != 0" % res_name,
-                    emit      = emit,
-                    context   = context
+                    condition="%s != 0" % res_name, emit=emit, context=context
                 )
 
             if context.needsCleanup(element_name):
@@ -151,18 +120,15 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
 def generateSetOperationAddCode(statement, emit, context):
     set_arg_name = context.allocateTempName("append_list")
     generateExpressionCode(
-        to_name    = set_arg_name,
-        expression = statement.getSet(),
-        emit       = emit,
-        context    = context
+        to_name=set_arg_name, expression=statement.getSet(), emit=emit, context=context
     )
 
     value_arg_name = context.allocateTempName("append_value")
     generateExpressionCode(
-        to_name    = value_arg_name,
-        expression = statement.getValue(),
-        emit       = emit,
-        context    = context
+        to_name=value_arg_name,
+        expression=statement.getValue(),
+        emit=emit,
+        context=context,
     )
 
     context.setCurrentSourceCodeReference(statement.getSourceReference())
@@ -170,19 +136,13 @@ def generateSetOperationAddCode(statement, emit, context):
     res_name = context.getIntResName()
 
     emit("assert( PySet_Check( %s ) );" % set_arg_name)
-    emit(
-        "%s = PySet_Add( %s, %s );" % (
-            res_name,
-            set_arg_name,
-            value_arg_name
-        )
-    )
+    emit("%s = PySet_Add( %s, %s );" % (res_name, set_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
-        condition     = "%s == -1" % res_name,
-        release_names = (set_arg_name, value_arg_name),
-        emit          = emit,
-        context       = context
+        condition="%s == -1" % res_name,
+        release_names=(set_arg_name, value_arg_name),
+        emit=emit,
+        context=context,
     )
 
 
@@ -190,32 +150,23 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
     res_name = context.getIntResName()
 
     set_arg_name, value_arg_name = generateChildExpressionsCode(
-        expression = expression,
-        emit       = emit,
-        context    = context
+        expression=expression, emit=emit, context=context
     )
 
     emit("assert( PySet_Check( %s ) );" % set_arg_name)
-    emit(
-        "%s = _PySet_Update( %s, %s );" % (
-            res_name,
-            set_arg_name,
-            value_arg_name
-        )
-    )
+    emit("%s = _PySet_Update( %s, %s );" % (res_name, set_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
-        condition     = "%s == -1" % res_name,
-        release_names = (set_arg_name, value_arg_name),
-        emit          = emit,
-        context       = context
+        condition="%s == -1" % res_name,
+        release_names=(set_arg_name, value_arg_name),
+        emit=emit,
+        context=context,
     )
 
-    with withObjectCodeTemporaryAssignment(to_name, "setupdate_result", expression, emit, context) \
-      as result_name:
-        emit(
-            "%s = Py_None;" % result_name
-        )
+    with withObjectCodeTemporaryAssignment(
+        to_name, "setupdate_result", expression, emit, context
+    ) as result_name:
+        emit("%s = Py_None;" % result_name)
 
         # This conversion will not use it, and since it is borrowed, debug mode
         # would otherwise complain.
@@ -223,32 +174,27 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
             result_name.maybe_unused = True
 
 
-
 def generateBuiltinSetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name          = to_name,
-        capi             = "PySet_New",
-        arg_desc         = (
-            ("set_arg", expression.getValue()),
-        ),
-        may_raise        = expression.mayRaiseException(BaseException),
-        conversion_check = decideConversionCheckNeeded(to_name, expression),
-        source_ref       = expression.getCompatibleSourceReference(),
-        emit             = emit,
-        context          = context
+        to_name=to_name,
+        capi="PySet_New",
+        arg_desc=(("set_arg", expression.getValue()),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
 
 
 def generateBuiltinFrozensetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name          = to_name,
-        capi             = "PyFrozenSet_New",
-        arg_desc         = (
-            ("frozenset_arg", expression.getValue()),
-        ),
-        may_raise        = expression.mayRaiseException(BaseException),
-        conversion_check = decideConversionCheckNeeded(to_name, expression),
-        source_ref       = expression.getCompatibleSourceReference(),
-        emit             = emit,
-        context          = context
+        to_name=to_name,
+        capi="PyFrozenSet_New",
+        arg_desc=(("frozenset_arg", expression.getValue()),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )

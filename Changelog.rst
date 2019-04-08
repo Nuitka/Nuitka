@@ -1,23 +1,251 @@
-Nuitka Release 0.6.2 (Draft)
+Nuitka Release 0.6.4 (Draft)
 ============================
 
 This release is not done yet.
 
+
+Nuitka Release 0.6.3
+====================
+
+This has a focus on organisational improvements. With more and
+more people joining Nuitka, normal developers as well as many
+GSoC 2019 students, the main focus was to open up the development
+tools and processes, and to improve documentation.
+
+That said, an impressive amount of bug fixes was contributed, but
+optimization was on hold.
+
 Bug Fixes
 ---------
 
-- Fix, the python flag ``-O`` was removing doc strings, but that should only
-  be done with ``-OO`` which was added too.
+- Windows: Added support for running compiled binaries in unicode path
+  names.
+
+- Standalone: Added support for crytodomex and pycparser packages.
+
+- Standalone: Added support for OpenSSL support in PyQt on Windows.
+
+- Standalone: Added support for OpenGL support with QML in PyQt on Windows.
+
+- Standalone: Added support fot SciPy and extended the ``ǹumpy`` plugin to also
+  handle it.
+
+- UI: The option ``--plugin-list`` still needed a positional argument to work.
+
+- Make sure ``sys.base_prefix`` is set correctly too.
+
+- Python3: Also make sure ``sys.exec_prefix`` and ``sys.base_exec_prefix`` are
+  set correctly.
+
+- Standalone: Added platform plugins for PyQt to the default list of sensible
+  plugins to include.
+
+- Fix detection of standard library paths that include ``..`` path elements.
+
+Optimization
+------------
+
+- Avoid static C++ runtime library when using MinGW64.
 
 New Features
 ------------
 
-- Added support for Python flag ``-OO``, which allows to remove doc strings.
+- Plugins: A plugin may now also generate data files on the fly for a given
+  module.
+
+- Added support for FreeBSD/PowerPC arch which still uses ``gcc`` and not
+  ``clang``.
+
+Organisational
+--------------
+
+- Nuitka is participating in the GSoC 2019.
+
+- Added documentation on how to create or use Nuitka plugins.
+
+- Added more API doc to functions that were missing them as part of the ongoing
+  effort to complete it.
+
+- Updated to latest PyLint 2.3.1 for checking the code.
+
+- Scons: Using newer Scons inline copy with Python 2.7 as, the old one remains
+  only used with Python 2.6, making it easier to know the relevant code.
+
+- Autoformat was very much enhanced and handles C and ReST files too now. For
+  Python code it does pylint comment formatting, import statement sorting,
+  and blackening.
+
+- Added script ``misc/install-git-hooks.py`` that adds a commit hook that runs
+  autoformat on commit. Currently it commits unstaged content and therefore is
+  not yet ready for prime time.
+
+- Moved adapted CPython test suites to `Github repository under Nuitka
+  Organisation <https://github.com/Nuitka/Nuitka-CPython-tests>`__.
+
+- Moved Nuitka-website repository to `Github repository under Nuitka
+  Organisation <https://github.com/Nuitka/Nuitka-website>`__.
+
+- Moved Nuitka-speedcenter repository to `Github repository under Nuitka
+  Organisation <https://github.com/Nuitka/Nuitka-speedcenter>`__.
+
+- There is now a `Gitter chat for Nuitka community
+  <https://gitter.im/Nuitka-chat/community>`__.
+
+- Many typo and spelling corrections on all the documentation.
+
+- Added short installation guide for Nuitka on Windows.
+
+Cleanups
+--------
+
+- Moved commandline parsing helper functions from common code helpers to the
+  main program where of course their only usage is.
+
+- Moved post processing of the created standalone binary from main control
+  to the freezer code.
+
+- Avoid using ``chmod`` binary to remove executable bit from created extension
+  modules.
+
+- Windows: Avoid using ``rt.exe`` and ``mt.exe`` to deal with copying the
+  manifest from the ``python.exe`` to created binaries. Instead use new code
+  that extracts and adds Windows resources.
+
+- Fixed many ``ResourceWarnings`` on Python3 by improved ways of handling
+  files.
+
+- Fixed deprecation warnings related to not using ``collections.abc``.
+
+- The runners in ``bin`` directory are now formatted with ``black`` too.
+
+Tests
+-----
+
+- Detect Windows permission errors for two step execution of Nuitka as well,
+  leading to retries should they occur.
+
+- The salt value for CPython cached results was improved to take more things
+  into account.
+
+- Tests: Added more trick assignments and generally added more tests that were
+  so far missing.
 
 Summary
 -------
 
-This release is not done yet.
+With the many organisational changes in place, my normal work is
+expected to resume for after and yield quicker improvements now.
+
+It is also important that people are now enabled to contribute
+to the Nuitka web site and the Nuitka speedcenter. Hope is to
+see more improvements on this otherwise neglected areas.
+
+And generally, it's great to see that a community of people is
+now looking at this release in excitement and pride. Thanks to
+everybody who contributed!
+
+
+Nuitka Release 0.6.2
+====================
+
+This release has a huge focus on organizational things. Nuitka is growing in
+terms of contributors and supported platforms.
+
+Bug Fixes
+---------
+
+- Fix, the Python flag ``--python-flag=-O`` was removing doc strings, but that
+  should only be done with ``--python-flag=-OO`` which was added too.
+
+- Fix, accelerated binaries failed to load packages from the ``virtualenv``
+  (not ``venv``) that they were created and ran with, due to not propagating
+  ``sys.prefix``.
+
+- Standalone: Do not include ``plat-*`` directories as frozen code, and also
+  on some platforms they can also contain code that fails to import without
+  error.
+
+- Standalone: Added missing implicit dependency needed for newer numpy versions.
+
+New Features
+------------
+
+- Added support for Alpine Linux.
+
+- Added support for MSYS2 based Python on Windows.
+
+- Added support for Python flag ``--python flag=-OO``, which allows to remove
+  doc strings.
+
+- Added experimental support for ``pefile`` based dependency scans on Windows,
+  thanks to Orsiris for this contribution.
+
+- Added plugin for proper Tkinter standalone support on Windows, thanks to
+  Jorj for this contribution.
+
+- There is now a ``__compiled__`` attribute for each module that Nuitka has
+  compiled. Should be like this now, and contains Nuitka version information
+  for you to use, similar to what ``sys.version_info`` gives as a ``namedtuple``
+  for your checks.
+
+  .. code-block:: python
+
+    __nuitka_version__(major=0, minor=6, micro=2, releaselevel='release')
+
+Optimization
+------------
+
+- Experimental code  for variant types for ``int`` and ``long`` values,
+  that can be plain C value, as well as the ``PyObject *``. This is not
+  yet completed though.
+
+- Minor refinements of specialized code variants reducing them more often
+  the actual needed code.
+
+Organisational
+--------------
+
+- The Nuitka Github Organisation that was created a while ago and owns the
+  Nuitka repo now, has gained members. Check out https://github.com/orgs/Nuitka/people
+  for their list. This is an exciting transformation for Nuitka.
+
+- Nuitka is participating in the GSoC 2019 under the PSF umbrella. We hope to
+  grow even further. Thanks to the mentors who volunteered for this important
+  task. Check out the
+  `GSoC 2019 page <http://nuitka.net/pages/gsoc2019.html#mentors>`__ and thanks
+  to the students that are already helping out.
+
+- Added Nuitka internal `API documentation <http://nuitka.net/apidoc>`__ that
+  will receive more love in the future. It got some for this release, but a
+  lot is missing.
+
+- The Nuitka code has been ``black``-ened and is formatted with an automatic
+  tool now all the way, which makes contributors lives easier.
+
+- Added documentation for questions received as part of the GSoC applications
+  and ideas work.
+
+- Some proof reading pull requests were merged for the documentation, thanks
+  to everybody who addresses these kinds of errors. Sometimes typos, sometimes
+  broken links, etc.
+
+- Updated inline copy of Scons used for Python3 to 3.0.4, which hopefully means
+  more bugs are fixed.
+
+Summary
+-------
+
+This release is a sign of increasing adoption of Nuitka. The GSoC 2019 is
+showing early effects, as is more developers joining the effort. These are
+great times for Nuitka.
+
+This release has not much on the optimization side that is user visible, but
+the work that has begun is capable of producing glorious benchmarks once it
+will be finished.
+
+The focus on this and coming releases is definitely to open up the Nuitka
+development now that people are coming in as permanent or temporary
+contributors in (relatively) high numbers.
 
 
 Nuitka Release 0.6.1
@@ -47,19 +275,19 @@ Bug Fixes
 - macOS: Use standard include of C bool type instead of rolling our own, which
   was not compatible with newest Clang. Fixed in 0.6.0.3 already.
 
-- Python3: Fix, the `bytes` built-in type actually does have a `__float__` slot.
-  Fixed in 0.6.0.4 already.
+- Python3: Fix, the ``bytes`` built-in type actually does have a ``__float__``
+  slot. Fixed in 0.6.0.4 already.
 
 - Python3.7: Types that are also sequences still need to call the method
-  `__class_getitem__` for consideration. Fixed in 0.6.0.4 already.
+  ``__class_getitem__`` for consideration. Fixed in 0.6.0.4 already.
 
 - Python3.7: Error exits from program exit could get lost on Windows due to
-  `__spec__` handling not preserving errors. Fixed in 0.6.0.4 already.
+  ``__spec__`` handling not preserving errors. Fixed in 0.6.0.4 already.
 
 - Windows: Negative exit codes from Nuitka, e.g. due to a triggered assertion
   in debug mode were not working. Fixed in 0.6.0.4 already.
 
-- Fix, conditional `and` expressions were mis-optimized when not used to not
+- Fix, conditional ``and`` expressions were mis-optimized when not used to not
   execute the right hand side still. Fixed in 0.6.0.4 already.
 
 - Python3.6: Fix, generators, coroutines, and asyncgen were not properly
@@ -83,13 +311,13 @@ Bug Fixes
   on Windows.
 
 - Python3.4: Fix, packages didn't indicate that they are packages in their
-  `__spec__` value, causing issues with `importlib_resources` module.
+  ``__spec__`` value, causing issues with ``importlib_resources`` module.
 
-- Python3.4: The `__spec__` values of compiled modules didn't have compatible
-  `origin` and `has_location` values preventing `importlib_resources` module
-  from working to load data files.
+- Python3.4: The ``__spec__`` values of compiled modules didn't have compatible
+  ``origin`` and ``has_location`` values preventing ``importlib_resources``
+  module from working to load data files.
 
-- Fix, packages created from `.pth` files were also considered when checking
+- Fix, packages created from ``.pth`` files were also considered when checking
   for sub-packages of a module.
 
 - Standalone: Handle cases of conflicting DLLs better. On Windows pick the
@@ -99,20 +327,21 @@ Bug Fixes
 - Standalone: Warn about collisions of DLLs on non-Windows only as this can
   happen with wheels apparently.
 
-- Standalone: For Windows Python extension modules `.pyd` files, remove the
+- Standalone: For Windows Python extension modules ``.pyd`` files, remove the
   SxS configuration for cases where it causes problems, not needed.
 
-- Fix: The `exec` statement on file handles was not using the proper filename
-  when compiling, therefore breaking e.g. `inspect.getsource` on functions
+- Fix: The ``exec`` statement on file handles was not using the proper filename
+  when compiling, therefore breaking e.g. ``inspect.getsource`` on functions
   defined there.
 
 - Standalone: Added support for OpenGL platform plugins to be included
   automatically.
 
-- Standalone: Added missing implicit dependency for `zmq` module.
+- Standalone: Added missing implicit dependency for ``zmq`` module.
 
-- Python3.7: Fix, the `-X utf8` flag, aka utf8_mode was not preserved in
-  the compiled binary in all cases.
+- Python3.7: Fix, using the ``-X utf8`` flag on the calling interpreter, aka
+  ``--python-flag=utf8_mode`` was not  preserved in the compiled binary in all
+  cases.
 
 New Optimization
 ----------------
@@ -145,7 +374,7 @@ Organizational
 
 - Added repository for Fedora 29 for download.
 
-- Describe the exact format used for `clang-format` in the Developer Manual.
+- Describe the exact format used for ``clang-format`` in the Developer Manual.
 
 - Added description how to use CondaCC on Windows to the User Manual.
 
@@ -186,8 +415,8 @@ limits the impact of optimization to only taking shortcuts for the supported
 types. These are useful and faster of course, but only building blocks for
 what is to come.
 
-Most of the effort went into specialized helpers that e.g. add a `float` and
-and `int` value in a dedicated fashion, as well as comparison operations, so
+Most of the effort went into specialized helpers that e.g. add a ``float`` and
+and ``int`` value in a dedicated fashion, as well as comparison operations, so
 we can fully operate some minimal examples with specialized code. This is too
 limited still, and must be applied to ever more operations.
 
@@ -2134,8 +2363,8 @@ New Features
   will check of the ``#!`` portion indicates a different Python version and ask
   the user to clarify with ``--python-version`` in case of a mismatch.
 
-- Added support for Python flag ``-O``, which allows to disable assertions and
-  remove doc strings.
+- Added support for Python flag ``--python-flag=-O``, which allows to disable
+  assertions and remove doc strings.
 
 Optimization
 ------------
@@ -3564,10 +3793,10 @@ Optimization
   ``return`` in the tried code. The SSA analysis for after the statement is now
   the result of merging these different cases, should they not abort.
 
-- The code generation for `del` statements is now taking advantage should there
-  be definite knowledge of previous value. This speed them up slightly.
+- The code generation for ``del`` statements is now taking advantage should
+  there be definite knowledge of previous value. This speed them up slightly.
 
-- The SSA analysis of `del` statements now properly decided if the statement
+- The SSA analysis of ``del`` statements now properly decided if the statement
   can raise or not, allowing for more optimization.
 
 - For list contractions, the re-formulation was enhanced using the new outline
@@ -5530,7 +5759,7 @@ New Features
 ------------
 
 - Windows: The "standalone" mode now properly detects used DLLs using
-  `Dependency Walker <http://http://www.dependencywalker.com/>`__ which it
+  `Dependency Walker <http://www.dependencywalker.com/>`__ which it
   offers to download and extra for you.
 
   It is used as a replacement to ``ldd`` on Linux when building the binary, and

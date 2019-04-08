@@ -22,20 +22,18 @@ efficiently. The "StreamData" class is used in two places, for constants
 and for freezing of bytecode.
 """
 
+
 class StreamData(object):
     def __init__(self):
         self.stream_data = bytes()
 
-    def getStreamDataCode(self, value, fixed_size = False):
+    def getStreamDataCode(self, value, fixed_size=False):
         offset = self.getStreamDataOffset(value)
 
         if fixed_size:
             return "&constant_bin[ %d ]" % offset
         else:
-            return "&constant_bin[ %d ], %d" % (
-                offset,
-                len(value)
-            )
+            return "&constant_bin[ %d ], %d" % (offset, len(value))
 
     def getStreamDataOffset(self, value):
         offset = self.stream_data.find(value)

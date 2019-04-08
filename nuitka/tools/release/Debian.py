@@ -23,6 +23,8 @@ import os
 import shutil
 import sys
 
+from nuitka.utils.FileOperations import getFileContentByLine
+
 
 def updateDebianChangelog(old_version, new_version):
     debian_version = new_version.replace("rc", "~rc") + "+ds-1"
@@ -32,24 +34,26 @@ def updateDebianChangelog(old_version, new_version):
     if "rc" in new_version:
         if "rc1" in new_version:
             assert os.system('debchange -R "New upstream pre-release."') == 0
-            assert os.system('debchange --newversion=%s ""'  % debian_version) == 0
+            assert os.system('debchange --newversion=%s ""' % debian_version) == 0
         else:
-            assert os.system('debchange --newversion=%s ""'  % debian_version) == 0
+            assert os.system('debchange --newversion=%s ""' % debian_version) == 0
 
-        changelog = open("Changelog.rst").read()
+        with open("Changelog.rst") as f:
+            changelog = f.read()
         if "(Draft)" not in changelog.splitlines()[0]:
             title = "Nuitka Release " + new_version[:-3] + " (Draft)"
 
-            with open("Changelog.rst", 'w') as changelog_file:
-                changelog_file.write(title + '\n' + ('=' * len(title) + "\n\n"))
+            with open("Changelog.rst", "w") as changelog_file:
+                changelog_file.write(title + "\n" + ("=" * len(title) + "\n\n"))
                 changelog_file.write("This release is not done yet.\n\n\n")
                 changelog_file.write(changelog)
 
     else:
         if "rc" in old_version:
             # Initial final release after pre-releases.
-            changelog_lines = open("debian/changelog").readlines()
-            with open("debian/changelog", 'w') as output:
+            with open("debian/changelog") as f:
+                changelog_lines = f.readlines()
+            with open("debian/changelog", "w") as output:
                 first = True
                 for line in changelog_lines[1:]:
                     if line.startswith("nuitka") and first:
@@ -59,11 +63,11 @@ def updateDebianChangelog(old_version, new_version):
                         output.write(line)
 
             os.system('debchange -R "New upstream release."')
-            os.system('debchange --newversion=%s ""'  % debian_version)
+            os.system('debchange --newversion=%s ""' % debian_version)
         else:
             # Hotfix release after previous final or hotfix release.
             os.system('debchange -R "New upstream hotfix release."')
-            os.system('debchange --newversion=%s ""'  % debian_version)
+            os.system('debchange --newversion=%s ""' % debian_version)
 
         os.system('debchange -r ""')
 
@@ -73,7 +77,7 @@ def checkChangeLog(message):
 
     """
 
-    for line in open("debian/changelog"):
+    for line in getFileContentByLine("debian/changelog"):
         if line.startswith(" --"):
             return False
 
@@ -91,13 +95,13 @@ def cleanupTarfileForDebian(filename, new_name):
     """
 
     shutil.copyfile(filename, new_name)
-    assert os.system(
-        "gunzip " + new_name
-    ) == 0
-    assert os.system(
-        "tar --wildcards --delete --file " + new_name[:-3] + \
-        " Nuitka*/*.pdf Nuitka*/build/inline_copy"
-    ) == 0
-    assert os.system(
-        "gzip -9 -n " + new_name[:-3]
-    ) == 0
+    assert os.system("gunzip " + new_name) == 0
+    assert (
+        os.system(
+            "tar --wildcards --delete --file "
+            + new_name[:-3]
+            + " Nuitka*/*.pdf Nuitka*/build/inline_copy"
+        )
+        == 0
+    )
+    assert os.system("gzip -9 -n " + new_name[:-3]) == 0

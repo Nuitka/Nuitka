@@ -21,6 +21,7 @@
 
 import os
 import sys
+import subprocess
 
 # Find nuitka package relative to us. The replacement is for POSIX python
 # and Windows paths on command line.
@@ -45,7 +46,7 @@ from nuitka.tools.testing.Common import (
     reportSkip,
     setup,
 )
-from nuitka.utils.FileOperations import removeDirectory
+from nuitka.utils.FileOperations import getFileContentByLine, removeDirectory
 
 python_version = setup(needs_io_encoding=True)
 
@@ -264,6 +265,40 @@ _win_dll_whitelist = (
     "MFCM140U.DLL",
 )
 
+
+# checks requirements needed to run each test module, according to the specified special comment
+# special comments are in the following formats:
+#     "# nuitka-skip-unless-expression: expression to be evaluated"
+#       OR
+#     "# nuitka-skip-unless-imports: module1,module2,..."
+def checkRequirements(filename):
+    for line in getFileContentByLine(filename):
+        if line.startswith("# nuitka-skip-unless-"):
+            if line[21:33] == "expression: ":
+                expression = line[33:]
+                with open(os.devnull, "w") as devnull:
+                    result = subprocess.call(
+                        (sys.executable, "-c" "import sys, os; %s" % expression),
+                        stdout=devnull,
+                        stderr=subprocess.STDOUT,
+                    )
+                if not result == 0:
+                    return (False, expression + "evaluated to false")
+
+            elif line[21:30] == "imports: ":
+                imports_needed = line[30:].rstrip().split(",")
+                for i in imports_needed:
+                    if not hasModule(i):
+                        return (
+                            False,
+                            i
+                            + " not installed for this Python version, but test needs it",
+                        )
+    # default return value
+    return (True, "")
+
+
+
 for filename in sorted(os.listdir(".")):
     if not filename.endswith(".py"):
         continue
@@ -281,12 +316,19 @@ for filename in sorted(os.listdir(".")):
 
     extra_flags = ["expect_success", "standalone", "remove_output"]
 
-    if filename == "PySideUsing.py":
+    # skip each test if their respective requirements are not met
+    requirements_met, error_message = checkRequirements(filename)
+    if not requirements_met:
+        reportSkip(error_message, ".", filename)
+        continue
+
+    elif filename == "PySideUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or python_version.startswith("3.2"):
             reportSkip("irrelevant Python version", ".", filename)
             continue
+
 
         if not hasModule("PySide.QtCore"):
             reportSkip(
@@ -299,7 +341,7 @@ for filename in sorted(os.listdir(".")):
         # For the warnings.
         extra_flags.append("ignore_stderr")
 
-    if "PyQt4" in filename:
+    elif "PyQt4" in filename:
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or python_version.startswith("3.2"):
@@ -326,11 +368,16 @@ for filename in sorted(os.listdir(".")):
             )
             continue
 
+        # For the plug-in information.
+        extra_flags.append("ignore_infos")
+
+    elif "Idna" in filename:
+
         # For the warnings of Python2.
         if python_version.startswith("2"):
             extra_flags.append("ignore_stderr")
 
-    if "PyQt5" in filename:
+    elif "PyQt5" in filename:
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or python_version.startswith("3.2"):
@@ -345,20 +392,21 @@ for filename in sorted(os.listdir(".")):
             )
             continue
 
+
         # For the plug-in information.
         extra_flags.append("ignore_infos")
 
     # TODO: Temporary only
-    if os.name == "nt" and "PyQt" in filename:
+    elif os.name == "nt" and "PyQt" in filename:
         continue
 
-    if "PySide" in filename or "PyQt" in filename:
+    elif "PySide" in filename or "PyQt" in filename:
         extra_flags.append("plugin_enable:qt-plugins")
 
-    if filename == "CtypesUsing.py":
+    elif filename == "CtypesUsing.py":
         extra_flags.append("plugin_disable:pylint-warnings")
 
-    if filename == "GtkUsing.py":
+    elif filename == "GtkUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or python_version.startswith("3.2"):
@@ -373,10 +421,11 @@ for filename in sorted(os.listdir(".")):
             )
             continue
 
+
         # For the warnings.
         extra_flags.append("ignore_stderr")
 
-    if filename.startswith("Win"):
+    elif filename.startswith("Win"):
         if os.name != "nt":
             reportSkip("Windows only test", ".", filename)
             continue
@@ -444,14 +493,28 @@ for filename in sorted(os.listdir(".")):
             )
             continue
 
+    elif filename == "TkInterUsing.py":
+        # For the plug-in information.
+        extra_flags.append("ignore_infos")
+
+        if os.name == "nt":
+            extra_flags.append("plugin_enable:tk-inter")
+
+
+    elif filename == "FlaskUsing.py":
         # For the warnings.
         extra_flags.append("ignore_stderr")
 
 
+
     if filename == "NumpyUsing.py":
+
+    elif filename == "NumpyUsing.py":
+
         # TODO: Disabled for now.
         reportSkip("numpy.test not fully working yet", ".", filename)
         continue
+
 
         if not hasModule("numpy"):
             reportSkip(
@@ -483,6 +546,13 @@ for filename in sorted(os.listdir(".")):
             )
             continue
 
+
+        extra_flags.append("plugin_enable:data-files")
+
+    elif filename == "PmwUsing.py":
+        extra_flags.append("plugin_enable:pmw-freeze")
+
+    elif filename == "OpenGLUsing.py":
         # For the warnings.
         extra_flags.append("ignore_stderr")
 
@@ -631,6 +701,7 @@ for filename in sorted(os.listdir(".")):
         ):
             continue
 
+
         # Taking these from system is harmless and desirable
         if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
             continue
@@ -694,23 +765,96 @@ for filename in sorted(os.listdir(".")):
             "libnss_",
             "libnsl",
 
-            # Some systems load a lot more, this is CentOS 7 on OBS
-            'libattr.so.',
-            'libbz2.so.',
-            'libcap.so.',
-            'libdw.so.',
-            'libelf.so.',
-            'liblzma.so.',
+        if loaded_filename in (
+            "/usr",
+            "/usr/local",
+            "/usr/local/lib",
+            "/usr/share",
+            "/usr/local/share",
+        ):
+            continue
 
-            # Some systems load a lot more, this is Fedora 26 on OBS
-            "libselinux.so.",
-            "libpcre.so.",
+        # TCL/tk for tkinter for non-Windows is OK.
+        if loaded_filename.startswith(("/usr/lib/tcltk/", "/usr/share/tcltk/")):
+            continue
+        if loaded_filename in ("/usr/lib/tcltk", "/usr/share/tcltk"):
+            continue
+        if loaded_filename in ("/usr/share/tcl8.6", "/usr/share/tcl8.5"):
+            continue
+        if loaded_filename in (
+            "/usr/share/tcl8.6/init.tcl",
+            "/usr/share/tcl8.5/init.tcl",
+        ):
+            continue
+        if loaded_filename in (
+            "/usr/share/tcl8.6/encoding",
+            "/usr/share/tcl8.5/encoding",
+        ):
+            continue
 
-            # And this is Fedora 29 on OBS
-            "libblkid.so.",
-            "libmount.so.",
-            "libpcre2-8.so.",
-        )):
+        # System SSL config on Linux. TODO: Should this not be included and
+        # read from dist folder.
+        if loaded_basename == "openssl.cnf":
+            continue
+
+        # Taking these from system is harmless and desirable
+        if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
+            continue
+
+        # System C libraries are to be expected.
+        if loaded_basename.startswith(
+            (
+                "ld-linux-x86-64.so",
+                "libc.so.",
+                "libpthread.so.",
+                "libm.so.",
+                "libdl.so.",
+                "libBrokenLocale.so.",
+                "libSegFault.so",
+                "libanl.so.",
+                "libcidn.so.",
+                "libcrypt.so.",
+                "libmemusage.so",
+                "libmvec.so.",
+                "libnsl.so.",
+                "libnss_compat.so.",
+                "libnss_db.so.",
+                "libnss_dns.so.",
+                "libnss_files.so.",
+                "libnss_hesiod.so.",
+                "libnss_nis.so.",
+                "libnss_nisplus.so.",
+                "libpcprofile.so",
+                "libresolv.so.",
+                "librt.so.",
+                "libthread_db-1.0.so",
+                "libthread_db.so.",
+                "libutil.so.",
+            )
+        ):
+            continue
+
+        # Loaded by C library potentially for DNS lookups.
+        if loaded_basename.startswith(
+            (
+                "libnss_",
+                "libnsl",
+                # Some systems load a lot more, this is CentOS 7 on OBS
+                "libattr.so.",
+                "libbz2.so.",
+                "libcap.so.",
+                "libdw.so.",
+                "libelf.so.",
+                "liblzma.so.",
+                # Some systems load a lot more, this is Fedora 26 on OBS
+                "libselinux.so.",
+                "libpcre.so.",
+                # And this is Fedora 29 on OBS
+                "libblkid.so.",
+                "libmount.so.",
+                "libpcre2-8.so.",
+            )
+        ):
             continue
 
         # Loaded by dtruss on macOS X.
@@ -848,5 +992,10 @@ for filename in sorted(os.listdir(".")):
         sys.exit(1)
 
     removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
+
+    
+    if search_mode.abortIfExecuted():
+        break
+
 
 search_mode.finish()

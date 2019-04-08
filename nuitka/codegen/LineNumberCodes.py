@@ -19,6 +19,7 @@
 
 """
 
+
 def getCurrentLineNumberCode(context):
     frame_handle = context.getFrameHandle()
 
@@ -32,31 +33,27 @@ def getCurrentLineNumberCode(context):
         else:
             return str(source_ref.getLineNumber())
 
+
 def getLineNumberUpdateCode(context):
     lineno_value = getCurrentLineNumberCode(context)
 
     if lineno_value:
         frame_handle = context.getFrameHandle()
 
-        return "%s->m_frame.f_lineno = %s;" % (
-            frame_handle,
-            lineno_value
-        )
+        return "%s->m_frame.f_lineno = %s;" % (frame_handle, lineno_value)
     else:
         return ""
 
 
 def getErrorLineNumberUpdateCode(context):
-    _exception_type, _exception_value, _exception_tb, exception_lineno = \
-      context.variable_storage.getExceptionVariableDescriptions()
+    _exception_type, _exception_value, _exception_tb, exception_lineno = (
+        context.variable_storage.getExceptionVariableDescriptions()
+    )
 
     lineno_value = getCurrentLineNumberCode(context)
 
     if lineno_value:
-        return "%s = %s;" % (
-            exception_lineno,
-            lineno_value
-        )
+        return "%s = %s;" % (exception_lineno, lineno_value)
     else:
         return ""
 
@@ -78,20 +75,10 @@ def emitLineNumberUpdateCode(emit, context):
 def getSetLineNumberCodeRaw(to_name, emit, context):
     assert context.getFrameHandle() is not None
 
-    emit(
-        "%s->m_frame.f_lineno = %s;" % (
-            context.getFrameHandle(),
-            to_name
-        )
-    )
+    emit("%s->m_frame.f_lineno = %s;" % (context.getFrameHandle(), to_name))
 
 
 def getLineNumberCode(to_name, emit, context):
     assert context.getFrameHandle() is not None
 
-    emit(
-        "%s = %s->m_frame.f_lineno;"  % (
-            to_name,
-            context.getFrameHandle()
-        )
-    )
+    emit("%s = %s->m_frame.f_lineno;" % (to_name, context.getFrameHandle()))

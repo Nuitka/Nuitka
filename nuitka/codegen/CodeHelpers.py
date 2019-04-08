@@ -35,6 +35,7 @@ from .Reports import onMissingHelper
 
 expression_dispatch_dict = {}
 
+
 def setExpressionDispatchDict(dispatch_dict):
     # Using global here, as this is really a singleton, in the form of a module,
     # and this is to break the cyclic dependency it has, pylint: disable=global-statement
@@ -46,29 +47,29 @@ def setExpressionDispatchDict(dispatch_dict):
     expression_dispatch_dict = dispatch_dict
 
 
-def generateExpressionCode(to_name, expression, emit, context,
-                           allow_none = False):
+def generateExpressionCode(to_name, expression, emit, context, allow_none=False):
     try:
         _generateExpressionCode(
-            to_name    = to_name,
-            expression = expression,
-            emit       = emit,
-            context    = context,
-            allow_none = allow_none
+            to_name=to_name,
+            expression=expression,
+            emit=emit,
+            context=context,
+            allow_none=allow_none,
         )
     except Exception:
         printError(
-            "Problem with %r at %s" % (
+            "Problem with %r at %s"
+            % (
                 expression,
                 ""
-                  if expression is None else
-                expression.getSourceReference().getAsString()
+                if expression is None
+                else expression.getSourceReference().getAsString(),
             )
         )
         raise
 
 
-def _generateExpressionCode(to_name, expression, emit, context, allow_none = False):
+def _generateExpressionCode(to_name, expression, emit, context, allow_none=False):
     # This is a dispatching function for every expression.
 
     if expression is None and allow_none:
@@ -79,7 +80,9 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none = Fal
     assert not hasattr(expression, "code_generated"), expression
     expression.code_generated = True
 
-    old_source_ref = context.setCurrentSourceCodeReference(expression.getSourceReference())
+    old_source_ref = context.setCurrentSourceCodeReference(
+        expression.getSourceReference()
+    )
 
     if not expression.isExpression():
         printError("No expression %r" % expression)
@@ -88,10 +91,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none = Fal
         assert False, expression
 
     expression_dispatch_dict[expression.kind](
-        to_name    = to_name,
-        expression = expression,
-        emit       = emit,
-        context    = context
+        to_name=to_name, expression=expression, emit=emit, context=context
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)
@@ -106,10 +106,7 @@ def generateExpressionsCode(names, expressions, emit, context):
             to_name = context.allocateTempName(name)
 
             generateExpressionCode(
-                to_name    = to_name,
-                expression = expression,
-                emit       = emit,
-                context    = context
+                to_name=to_name, expression=expression, emit=emit, context=context
             )
         else:
             to_name = None
@@ -128,10 +125,7 @@ def generateChildExpressionsCode(expression, emit, context):
             value_name = context.allocateTempName(child_name + "_name")
 
             generateExpressionCode(
-                to_name    = value_name,
-                expression = child_value,
-                emit       = emit,
-                context    = context
+                to_name=value_name, expression=child_value, emit=emit, context=context
             )
 
             value_names.append(value_name)
@@ -143,7 +137,7 @@ def generateChildExpressionsCode(expression, emit, context):
     return value_names
 
 
-def generateChildExpressionCode(expression, emit, context, child_name = None):
+def generateChildExpressionCode(expression, emit, context, child_name=None):
     assert expression is not None
 
     if child_name is None:
@@ -153,16 +147,14 @@ def generateChildExpressionCode(expression, emit, context, child_name = None):
     value_name = context.allocateTempName(child_name + "_name")
 
     generateExpressionCode(
-        to_name    = value_name,
-        expression = expression,
-        emit       = emit,
-        context    = context
+        to_name=value_name, expression=expression, emit=emit, context=context
     )
 
     return value_name
 
 
 statement_dispatch_dict = {}
+
 
 def setStatementDispatchDict(dispatch_dict):
     # Using global here, as this is really a singleton, in the form of a module,
@@ -178,20 +170,15 @@ def setStatementDispatchDict(dispatch_dict):
 def generateStatementCode(statement, emit, context):
     try:
         statement_dispatch_dict[statement.kind](
-            statement = statement,
-            emit      = emit,
-            context   = context
+            statement=statement, emit=emit, context=context
         )
 
         # Complain if any temporary was not dealt with yet.
-        assert not context.getCleanupTempnames(), \
-          context.getCleanupTempnames()
+        assert not context.getCleanupTempnames(), context.getCleanupTempnames()
     except Exception:
         printError(
-            "Problem with %r at %s" % (
-                statement,
-                statement.getSourceReference().getAsString()
-            )
+            "Problem with %r at %s"
+            % (statement, statement.getSourceReference().getAsString())
         )
         raise
 
@@ -211,21 +198,14 @@ def _generateStatementSequenceCode(statement_sequence, emit, context):
                 statement_repr = statement_repr.encode("utf8")
                 source_repr = source_repr.encode("utf8")
 
-            emit(
-                getStatementTrace(
-                    source_repr,
-                    statement_repr
-                )
-            )
+            emit(getStatementTrace(source_repr, statement_repr))
 
         # Might contain frame statement sequences as children.
         if statement.isStatementsFrame():
             from .FrameCodes import generateStatementsFrameCode
 
             generateStatementsFrameCode(
-                statement_sequence = statement,
-                emit               = emit,
-                context            = context
+                statement_sequence=statement, emit=emit, context=context
             )
         else:
             context.pushCleanupScope()
@@ -234,39 +214,36 @@ def _generateStatementSequenceCode(statement_sequence, emit, context):
                 statement_codes = SourceCodeCollector()
 
                 generateStatementCode(
-                    statement = statement,
-                    emit      = statement_codes,
-                    context   = context
+                    statement=statement, emit=statement_codes, context=context
                 )
 
-                statement_declarations = context.variable_storage.makeCLocalDeclarations()
+                statement_declarations = (
+                    context.variable_storage.makeCLocalDeclarations()
+                )
 
                 block = False
                 for s in statement_declarations:
                     if not block:
-                        emit('{')
+                        emit("{")
 
                         block = True
                     emit(indented(s))
 
                 statement_codes.emitTo(emit, 1 if statement_declarations else 0)
                 if block:
-                    emit('}')
+                    emit("}")
 
             context.popCleanupScope()
 
 
-def generateStatementSequenceCode(statement_sequence, emit, context,
-                                  allow_none = False):
+def generateStatementSequenceCode(statement_sequence, emit, context, allow_none=False):
     if allow_none and statement_sequence is None:
         return None
 
     assert statement_sequence.kind == "STATEMENTS_SEQUENCE", statement_sequence
 
     _generateStatementSequenceCode(
-        statement_sequence = statement_sequence,
-        emit               = emit,
-        context            = context
+        statement_sequence=statement_sequence, emit=emit, context=context
     )
 
 
@@ -290,31 +267,26 @@ def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, con
 
     if to_name is not value_name:
         to_name.getCType().emitAssignConversionCode(
-            to_name     = to_name,
-            value_name  = value_name,
-            needs_check = decideConversionCheckNeeded(to_name, expression),
-            emit        = emit,
-            context     = context
+            to_name=to_name,
+            value_name=value_name,
+            needs_check=decideConversionCheckNeeded(to_name, expression),
+            emit=emit,
+            context=context,
         )
 
         from .ErrorCodes import getReleaseCode
+
         getReleaseCode(value_name, emit, context)
 
 
-def pickCodeHelper(prefix, suffix, left_shape, right_shape, helpers,
-                   warn_missing = True):
+def pickCodeHelper(prefix, suffix, left_shape, right_shape, helpers, warn_missing=True):
     left_part = left_shape.helper_code
     right_part = right_shape.helper_code
 
     assert left_part != "INVALID", left_shape
     assert right_part != "INVALID", right_shape
 
-    ideal_helper = "%s_%s_%s%s" % (
-        prefix,
-        left_part,
-        right_part,
-        suffix
-    )
+    ideal_helper = "%s_%s_%s%s" % (prefix, left_part, right_part, suffix)
 
     if ideal_helper in helpers:
         return ideal_helper
@@ -322,11 +294,6 @@ def pickCodeHelper(prefix, suffix, left_shape, right_shape, helpers,
     if warn_missing:
         onMissingHelper(ideal_helper)
 
-    fallback_helper = "%s_%s_%s%s" % (
-        prefix,
-        "OBJECT",
-        "OBJECT",
-        suffix
-    )
+    fallback_helper = "%s_%s_%s%s" % (prefix, "OBJECT", "OBJECT", suffix)
 
     return fallback_helper

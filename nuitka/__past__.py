@@ -38,13 +38,14 @@ else:
 if str is bytes:
     long = long  # @ReservedAssignment pylint: disable=I0021,undefined-variable
 else:
-    long = int   # @ReservedAssignment
+    long = int  # @ReservedAssignment
 
 # Work around for CPython 3.x renaming "unicode" to "str".
 if str is bytes:
     unicode = unicode  # @ReservedAssignment pylint: disable=I0021,undefined-variable
 else:
-    unicode = str      # @ReservedAssignment
+    unicode = str  # @ReservedAssignment
+
 
 def iterItems(d):
     try:
@@ -52,27 +53,34 @@ def iterItems(d):
     except AttributeError:
         return d.items()
 
+
 if str is not bytes:
-    raw_input = input      # @ReservedAssignment
+    raw_input = input  # @ReservedAssignment
 else:
     raw_input = raw_input  # @ReservedAssignment
 
 if str is bytes:
-    xrange = xrange # @ReservedAssignment pylint: disable=I0021,undefined-variable
+    xrange = xrange  # @ReservedAssignment pylint: disable=I0021,undefined-variable
 else:
     xrange = range  # @ReservedAssignment
 
 
 if str is bytes:
-    from urllib import urlretrieve # @UnresolvedImport @UnusedImport pylint: disable=I0021,import-error,no-name-in-module
+    from urllib import (  # pylint: disable=I0021,import-error,no-name-in-module
+        urlretrieve,  # @UnresolvedImport @UnusedImport
+    )
 else:
-    from urllib.request import urlretrieve # @UnresolvedImport @Reimport pylint: disable=I0021,import-error,no-name-in-module
-
+    from urllib.request import (  # pylint: disable=I0021,import-error,no-name-in-module
+        urlretrieve,  #  @Reimport @UnresolvedImport
+    )
 if str is bytes:
-    from cStringIO import StringIO # @UnresolvedImport @UnusedImport pylint: disable=I0021,import-error
+    from cStringIO import (  # pylint: disable=I0021,import-error
+        StringIO,  # @UnresolvedImport @UnusedImport
+    )
 else:
-    from io import StringIO # @UnresolvedImport @Reimport pylint: disable=I0021,import-error
-
+    from io import (
+        StringIO,  # @UnresolvedImport @Reimport pylint: disable=I0021,import-error
+    )
 try:
     from functools import total_ordering
 except ImportError:
@@ -86,8 +94,20 @@ except ImportError:
 
         return cls
 
+
 if str is bytes:
-    intern = intern      # @ReservedAssignment pylint: disable=I0021,undefined-variable
+    from collections import (  # pylint: disable=I0021,import-error,no-name-in-module
+        Iterable,  # @UnresolvedImport @UnusedImport
+        MutableSet,  # @UnresolvedImport @UnusedImport
+    )
+else:
+    from collections.abc import (  # pylint: disable=I0021,import-error,no-name-in-module
+        Iterable,  # @UnresolvedImport @Reimport pylint: disable=I0021,import-error
+        MutableSet,  # @UnresolvedImport @Reimport pylint: disable=I0021,import-error
+    )
+
+if str is bytes:
+    intern = intern  # @ReservedAssignment pylint: disable=I0021,undefined-variable
 else:
     intern = sys.intern  # @ReservedAssignment @UndefinedVariable
 
@@ -100,3 +120,5 @@ assert type(xrange) is type, xrange
 assert total_ordering
 assert intern
 assert builtins
+assert Iterable
+assert MutableSet

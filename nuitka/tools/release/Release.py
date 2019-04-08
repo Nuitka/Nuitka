@@ -31,29 +31,27 @@ def checkAtHome():
     if os.path.isdir(".git"):
         git_dir = ".git"
     else:
-        git_dir = open(".git")
-
         with open(".git") as f:
             line = f.readline().strip()
 
             assert line.startswith("gitdir:")
 
-            git_dir = line[ 8:]
+            git_dir = line[8:]
 
     git_description_filename = os.path.join(git_dir, "description")
 
-    assert open(git_description_filename).read().strip() == "Nuitka Staging"
+    with open(git_description_filename) as f:
+        assert f.read().strip() == "Nuitka Staging"
 
 
 def getBranchName():
-    branch_name = check_output(
-        "git symbolic-ref --short HEAD".split()
-    ).strip()
+    branch_name = check_output("git symbolic-ref --short HEAD".split()).strip()
 
     if str is not bytes:
         branch_name = branch_name.decode()
 
     return branch_name
+
 
 def checkBranchName():
     branch_name = getBranchName()
@@ -65,7 +63,7 @@ def checkBranchName():
         "develop",
         "factory",
         "release/" + nuitka_version,
-        "hotfix/" + nuitka_version
+        "hotfix/" + nuitka_version,
     ), branch_name
 
     return branch_name
@@ -76,9 +74,11 @@ def getBranchCategory(branch_name):
 
     """
 
-    if branch_name.startswith("release") or \
-       branch_name == "master" or \
-       branch_name.startswith("hotfix/"):
+    if (
+        branch_name.startswith("release")
+        or branch_name == "master"
+        or branch_name.startswith("hotfix/")
+    ):
         category = "stable"
     elif branch_name == "factory":
         category = "factory"
@@ -91,7 +91,8 @@ def getBranchCategory(branch_name):
 
 
 def checkNuitkaChangelog():
-    first_line = open("Changelog.rst").readline()
+    with open("Changelog.rst") as f:
+        first_line = f.readline()
 
     if "(Draft)" in first_line:
         return "draft"

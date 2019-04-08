@@ -27,47 +27,74 @@ import sys
 
 
 def makeLogoImages():
-    assert os.system(
-        "convert -background none doc/Logo/Nuitka-Logo-Vertical.svg doc/images/Nuitka-Logo-Vertical.png"
-    ) == 0
-    assert os.system(
-        "convert -background none doc/Logo/Nuitka-Logo-Symbol.svg doc/images/Nuitka-Logo-Symbol.png"
-    ) == 0
-    assert os.system(
-        "convert -background none doc/Logo/Nuitka-Logo-Horizontal.svg doc/images/Nuitka-Logo-Horizontal.png"
-    ) == 0
+    assert (
+        os.system(
+            "convert -background none doc/Logo/Nuitka-Logo-Vertical.svg doc/images/Nuitka-Logo-Vertical.png"
+        )
+        == 0
+    )
+    assert (
+        os.system(
+            "convert -background none doc/Logo/Nuitka-Logo-Symbol.svg doc/images/Nuitka-Logo-Symbol.png"
+        )
+        == 0
+    )
+    assert (
+        os.system(
+            "convert -background none doc/Logo/Nuitka-Logo-Horizontal.svg doc/images/Nuitka-Logo-Horizontal.png"
+        )
+        == 0
+    )
 
     assert os.system("optipng -o2 doc/images/Nuitka-Logo-Vertical.png") == 0
     assert os.system("optipng -o2 doc/images/Nuitka-Logo-Symbol.png") == 0
     assert os.system("optipng -o2 doc/images/Nuitka-Logo-Horizontal.png") == 0
 
     if os.path.exists("../nikola-site"):
-        assert os.system(
-            "convert -resize 32x32 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.ico"
-        ) == 0
-        assert os.system(
-            "convert -resize 32x32 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.png"
-        ) == 0
+        assert (
+            os.system(
+                "convert -resize 32x32 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.ico"
+            )
+            == 0
+        )
+        assert (
+            os.system(
+                "convert -resize 32x32 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.png"
+            )
+            == 0
+        )
 
-        assert os.system(
-            "convert -resize 72x72 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad.png"
-        ) == 0
-        assert os.system(
-            "convert -resize 144x144 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad3.png"
-        ) == 0
-        assert os.system(
-            "convert -resize 57x57 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone.png"
-        ) == 0
-        assert os.system(
-            "convert -resize 114x114 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone4.png"
-        ) == 0
+        assert (
+            os.system(
+                "convert -resize 72x72 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad.png"
+            )
+            == 0
+        )
+        assert (
+            os.system(
+                "convert -resize 144x144 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad3.png"
+            )
+            == 0
+        )
+        assert (
+            os.system(
+                "convert -resize 57x57 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone.png"
+            )
+            == 0
+        )
+        assert (
+            os.system(
+                "convert -resize 114x114 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone4.png"
+            )
+            == 0
+        )
 
 
 def checkRstLint(document):
     import restructuredtext_lint  # @UnresolvedImport pylint:disable=I0021,import-error
 
     print("Checking %r for proper restructed text ..." % document)
-    lint_results = restructuredtext_lint.lint_file(document, encoding = "utf8")
+    lint_results = restructuredtext_lint.lint_file(document, encoding="utf8")
 
     lint_error = False
     for lint_result in lint_results:
@@ -89,23 +116,32 @@ def makeManpages():
         os.mkdir("man")
 
     def makeManpage(python, suffix):
-        assert subprocess.call(
-            """\
+        assert (
+            subprocess.call(
+                """\
 help2man -n 'the Python compiler' --no-discard-stderr --no-info \
 --include doc/nuitka-man-include.txt \
-'%s ./bin/nuitka' >doc/nuitka%s.1""" % (python, suffix),
-            shell = True
-        ) == 0
-        assert subprocess.call(
-            """\
+'%s ./bin/nuitka' >doc/nuitka%s.1"""
+                % (python, suffix),
+                shell=True,
+            )
+            == 0
+        )
+        assert (
+            subprocess.call(
+                """\
 help2man -n 'the Python compiler' --no-discard-stderr --no-info \
 --include doc/nuitka-man-include.txt \
-'%s ./bin/nuitka-run' >doc/nuitka%s-run.1""" % (python, suffix),
-            shell = True
-        ) == 0
+'%s ./bin/nuitka-run' >doc/nuitka%s-run.1"""
+                % (python, suffix),
+                shell=True,
+            )
+            == 0
+        )
 
-        for manpage in ("doc/nuitka%s.1" % suffix, "doc/nuitka%s-run.1" %suffix):
-            manpage_contents = open(manpage).readlines()
+        for manpage in ("doc/nuitka%s.1" % suffix, "doc/nuitka%s-run.1" % suffix):
+            with open(manpage) as f:
+                manpage_contents = f.readlines()
             new_contents = []
             mark = False
 
@@ -113,34 +149,39 @@ help2man -n 'the Python compiler' --no-discard-stderr --no-info \
                 if mark:
                     line = ".SS " + line + ".BR\n"
                     mark = False
-                elif line == ".IP\n" and manpage_contents[ count + 1 ].endswith(":\n"):
+                elif line == ".IP\n" and manpage_contents[count + 1].endswith(":\n"):
                     mark = True
                     continue
 
-                if line == r"\fB\-\-g\fR++\-only" + '\n':
-                    line = r"\fB\-\-g\++\-only\fR" + '\n'
+                if line == r"\fB\-\-g\fR++\-only" + "\n":
+                    line = r"\fB\-\-g\++\-only\fR" + "\n"
 
                 new_contents.append(line)
 
-            open(manpage, 'w').writelines(new_contents)
+            with open(manpage, "w") as f:
+                f.writelines(new_contents)
 
     makeManpage("python2", "")
-    makeManpage("python3", '3')
+    makeManpage("python3", "3")
+
 
 def createRstPDF(document, args):
-    assert subprocess.call(
-        "%(rst2pdf)s %(args)s  %(document)s" %
-        {
-            "rst2pdf"  : (
-                "rst2pdf"
-                    if os.name != "nt" else
-                r"C:\Python27_32\Scripts\rst2pdf.exe"
-            ),
-            "args"     : ' '.join(args),
-            "document" : document
-        },
-        shell = True
-    ) == 0, document
+    assert (
+        subprocess.call(
+            "%(rst2pdf)s %(args)s  %(document)s"
+            % {
+                "rst2pdf": (
+                    "rst2pdf"
+                    if os.name != "nt"
+                    else r"C:\Python27_32\Scripts\rst2pdf.exe"
+                ),
+                "args": " ".join(args),
+                "document": document,
+            },
+            shell=True,
+        )
+        == 0
+    ), document
 
 
 def createReleaseDocumentation():

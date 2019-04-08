@@ -29,6 +29,10 @@ def displayDict(d, remove_keys = ()):
         d = dict(d)
         d["__file__"] = "<__file__ removed>"
 
+    if "__compiled__" in d:
+        d = dict(d)
+        del d["__compiled__"]
+
     for remove_key in remove_keys:
         if remove_key in d:
             d = dict(d)

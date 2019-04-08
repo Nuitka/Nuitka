@@ -19,7 +19,6 @@
 
 """
 
-import collections
 import distutils.command.build  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 import distutils.command.install  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 import os
@@ -29,7 +28,7 @@ import sys
 
 import wheel.bdist_wheel  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
-from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import Iterable, unicode  # pylint: disable=I0021,redefined-builtin
 
 
 def setuptools_build_hook(dist, keyword, value):
@@ -71,14 +70,14 @@ class build(distutils.command.build.build):
         os.chdir(build_lib)
 
         # Search in the build directory preferably.
-        setMainScriptDirectory('.')
+        setMainScriptDirectory(".")
 
         package, main_filename, finding = findModule(
-            importing      = None,
-            module_name    = self.main_package,
-            parent_package = None,
-            level          = 0,
-            warn           = False
+            importing=None,
+            module_name=self.main_package,
+            parent_package=None,
+            level=0,
+            warn=False,
         )
 
         # Check expectations, e.g. do not compile built-in modules.
@@ -109,25 +108,29 @@ class build(distutils.command.build.build):
 
         command = [
             sys.executable,
-            "-m", "nuitka",
+            "-m",
+            "nuitka",
             "--module",
             "--plugin-enable=pylint-warnings",
             "--output-dir=%s" % output_dir,
             "--include-package=%s" % self.main_package,
             "--nofollow-import-to=*.tests",
             "--show-modules",
-            "--remove-output"
+            "--remove-output",
         ]
 
         # Process any extra options from setuptools
         if "nuitka" in self.distribution.command_options:
-            for option, details in self.distribution.command_options["nuitka"].items():
-                option = "--" + option.lstrip('-')
-                _source, value = details
+            for option, value in self.distribution.command_options["nuitka"].items():
+                option = "--" + option.lstrip("-")
                 if value is None:
                     command.append(option)
-                elif isinstance(value, collections.Iterable) and \
-                     not isinstance(value, (unicode, bytes, str)):
+                elif isinstance(value, bool):
+                    option = "--" + ("no" if not value else "") + option.lstrip("-")
+                    command.append(option)
+                elif isinstance(value, Iterable) and not isinstance(
+                    value, (unicode, bytes, str)
+                ):
                     for val in value:
                         command.append("%s=%s" % (option, val))
                 else:
@@ -135,10 +138,7 @@ class build(distutils.command.build.build):
 
         command.append(main_filename)
 
-        subprocess.check_call(
-            command,
-            cwd = build_lib
-        )
+        subprocess.check_call(command, cwd=build_lib)
         os.chdir(old_dir)
 
         self.build_lib = build_lib
@@ -164,7 +164,6 @@ class install(distutils.command.install.install):
 
 # pylint: disable=C0103
 class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
-
     def initialize_options(self):
         # Register the command class overrides above
         dist = self.distribution
@@ -181,13 +180,12 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
         self.root_is_pure = False
         self.plat_name_supplied = self.plat_name is not None
 
-    def write_wheelfile(self, wheelfile_base, generator = None):
+    def write_wheelfile(self, wheelfile_base, generator=None):
         if generator is None:
             from nuitka.Version import getNuitkaVersion
+
             generator = "Nuitka (%s)" % getNuitkaVersion()
 
         wheel.bdist_wheel.bdist_wheel.write_wheelfile(
-            self,
-            wheelfile_base = wheelfile_base,
-            generator      = generator
+            self, wheelfile_base=wheelfile_base, generator=generator
         )

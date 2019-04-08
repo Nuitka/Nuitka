@@ -27,6 +27,7 @@ from .CTypeBases import CTypeBase
 # This is going to not use arguments very commonly. For now disable
 # the warning all around, specialize one done, pylint: disable=unused-argument
 
+
 class CTypeVoid(CTypeBase):
     c_type = "void"
 
@@ -48,6 +49,7 @@ class CTypeVoid(CTypeBase):
         # We have no storage, the original user will cleanup after itself. This
         # is the main point of the whole type.
         from ..ErrorCodes import getReleaseCode
+
         getReleaseCode(value_name, emit, context)
 
     @classmethod
@@ -59,8 +61,9 @@ class CTypeVoid(CTypeBase):
         assert False
 
     @classmethod
-    def getDeleteObjectCode(cls, to_name, value_name, needs_check, tolerant,
-                            emit, context):
+    def getDeleteObjectCode(
+        cls, to_name, value_name, needs_check, tolerant, emit, context
+    ):
         assert False
 
     @classmethod

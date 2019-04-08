@@ -65,22 +65,22 @@ def generateLoopCode(statement, emit, context):
     old_loop_continue = context.setLoopContinueTarget(loop_start_label)
 
     generateStatementSequenceCode(
-        statement_sequence = statement.getLoopBody(),
-        allow_none         = True,
-        emit               = emit,
-        context            = context
+        statement_sequence=statement.getLoopBody(),
+        allow_none=True,
+        emit=emit,
+        context=context,
     )
 
     context.setLoopBreakTarget(old_loop_break)
     context.setLoopContinueTarget(old_loop_continue)
 
     # Note: We are using the wrong line here, but it's an exception, it's unclear what line it would be anyway.
-    old_source_ref = context.setCurrentSourceCodeReference(statement.getSourceReference())
+    old_source_ref = context.setCurrentSourceCodeReference(
+        statement.getSourceReference()
+    )
 
     getErrorExitBoolCode(
-        condition = "CONSIDER_THREADING() == false",
-        emit      = emit,
-        context   = context
+        condition="CONSIDER_THREADING() == false", emit=emit, context=context
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)

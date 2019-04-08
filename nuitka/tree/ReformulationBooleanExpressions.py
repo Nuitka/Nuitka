@@ -24,7 +24,7 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditionalAND,
-    ExpressionConditionalOR
+    ExpressionConditionalOR,
 )
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 
@@ -43,10 +43,7 @@ def buildBoolOpNode(provider, node, source_ref):
 
         source_ref = values[-1].getSourceReference()
 
-        return buildOrNode(
-            values     = values,
-            source_ref = source_ref
-        )
+        return buildOrNode(values=values, source_ref=source_ref)
 
     elif bool_op == "And":
         # The "and" may be short circuit and is therefore not a plain operation.
@@ -57,15 +54,11 @@ def buildBoolOpNode(provider, node, source_ref):
 
         source_ref = values[-1].getSourceReference()
 
-        return buildAndNode(
-            values     = values,
-            source_ref = source_ref
-        )
+        return buildAndNode(values=values, source_ref=source_ref)
     elif bool_op == "Not":
         # The "not" is really only a unary operation and no special.
         return ExpressionOperationNOT(
-            operand    = buildNode(provider, node.operand, source_ref),
-            source_ref = source_ref
+            operand=buildNode(provider, node.operand, source_ref), source_ref=source_ref
         )
     else:
         assert False, bool_op
@@ -81,9 +74,7 @@ def buildOrNode(values, source_ref):
 
     while values:
         result = ExpressionConditionalOR(
-            left       = values.pop(),
-            right      = result,
-            source_ref = source_ref
+            left=values.pop(), right=result, source_ref=source_ref
         )
 
     return result
@@ -98,9 +89,7 @@ def buildAndNode(values, source_ref):
 
     while values:
         result = ExpressionConditionalAND(
-            left       = values.pop(),
-            right      = result,
-            source_ref = source_ref
+            left=values.pop(), right=result, source_ref=source_ref
         )
 
     return result

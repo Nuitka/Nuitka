@@ -23,7 +23,7 @@
 
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
-    ExpressionChildrenHavingBase
+    ExpressionChildrenHavingBase,
 )
 
 
@@ -32,15 +32,12 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
 
     def __init__(self, value, source_ref):
         ExpressionBuiltinSingleArgBase.__init__(
-            self,
-            value      = value,
-            source_ref = source_ref
+            self, value=value, source_ref=source_ref
         )
 
     def computeExpression(self, trace_collection):
         return self.getValue().computeExpressionNext1(
-            next_node        = self,
-            trace_collection = trace_collection
+            next_node=self, trace_collection=trace_collection
         )
 
 
@@ -48,11 +45,7 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
     kind = "EXPRESSION_SPECIAL_UNPACK"
 
     def __init__(self, value, count, expected, starred, source_ref):
-        ExpressionBuiltinNext1.__init__(
-            self,
-            value      = value,
-            source_ref = source_ref
-        )
+        ExpressionBuiltinNext1.__init__(self, value=value, source_ref=source_ref)
 
         self.count = int(count)
 
@@ -80,19 +73,13 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
 class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_NEXT2"
 
-    named_children = (
-        "iterator",
-        "default"
-    )
+    named_children = ("iterator", "default")
 
     def __init__(self, iterator, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "iterator" : iterator,
-                "default"  : default,
-            },
-            source_ref = source_ref
+            values={"iterator": iterator, "default": default},
+            source_ref=source_ref,
         )
 
     getIterator = ExpressionChildrenHavingBase.childGetter("iterator")

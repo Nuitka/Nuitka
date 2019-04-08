@@ -36,10 +36,7 @@ and annotation is happening in the nodes that implement these compute slots.
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase
-)
+from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
 from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
@@ -57,27 +54,19 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
 
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
 
-    named_children = (
-        "source",
-        "expression"
-    )
+    named_children = ("source", "expression")
 
     def __init__(self, expression, attribute_name, source, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
-            values     = {
-                "expression" : expression,
-                "source"     : source,
-            },
-            source_ref = source_ref
+            values={"expression": expression, "source": source},
+            source_ref=source_ref,
         )
 
         self.attribute_name = attribute_name
 
     def getDetails(self):
-        return {
-            "attribute_name" : self.attribute_name
-        }
+        return {"attribute_name": self.attribute_name}
 
     def getDetail(self):
         return "to attribute %s" % self.attribute_name
@@ -93,17 +82,17 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection = trace_collection
+            trace_collection=trace_collection
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
         return self.getLookupSource().computeExpressionSetAttribute(
-            set_node         = self,
-            attribute_name   = self.attribute_name,
-            value_node       = self.getAssignSource(),
-            trace_collection = trace_collection
+            set_node=self,
+            attribute_name=self.attribute_name,
+            value_node=self.getAssignSource(),
+            trace_collection=trace_collection,
         )
 
     def getStatementNiceName(self):
@@ -119,6 +108,7 @@ class StatementDelAttribute(StatementChildHavingBase):
         slot on the source, which gets to decide if it knows it will work or
         not, and what value it will be.
     """
+
     kind = "STATEMENT_DEL_ATTRIBUTE"
 
     named_child = "expression"
@@ -126,18 +116,12 @@ class StatementDelAttribute(StatementChildHavingBase):
     __slots__ = ("attribute_name",)
 
     def __init__(self, expression, attribute_name, source_ref):
-        StatementChildHavingBase.__init__(
-            self,
-            value      = expression,
-            source_ref = source_ref
-        )
+        StatementChildHavingBase.__init__(self, value=expression, source_ref=source_ref)
 
         self.attribute_name = attribute_name
 
     def getDetails(self):
-        return {
-            "attribute_name" : self.attribute_name
-        }
+        return {"attribute_name": self.attribute_name}
 
     def getDetail(self):
         return "to attribute %s" % self.attribute_name
@@ -152,16 +136,16 @@ class StatementDelAttribute(StatementChildHavingBase):
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection = trace_collection,
+            trace_collection=trace_collection
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
         return self.getLookupSource().computeExpressionDelAttribute(
-            set_node         = self,
-            attribute_name   = self.attribute_name,
-            trace_collection = trace_collection
+            set_node=self,
+            attribute_name=self.attribute_name,
+            trace_collection=trace_collection,
         )
 
     def getStatementNiceName(self):
@@ -176,17 +160,11 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
 
-    named_children = (
-        "source",
-    )
+    named_children = ("source",)
 
     def __init__(self, source, attribute_name, source_ref):
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "source" : source
-            },
-            source_ref = source_ref
+            self, values={"source": source}, source_ref=source_ref
         )
 
         self.attribute_name = attribute_name
@@ -198,31 +176,26 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
         self.attribute_name = attribute_name
 
     def getDetails(self):
-        return {
-            "attribute_name" : self.getAttributeName()
-        }
+        return {"attribute_name": self.getAttributeName()}
 
     def getDetail(self):
         return "attribute %s from %s" % (
             self.getAttributeName(),
-            self.getLookupSource()
+            self.getLookupSource(),
         )
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter(
-        "source"
-    )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
 
     def computeExpression(self, trace_collection):
         return self.getLookupSource().computeExpressionAttribute(
-            lookup_node      = self,
-            attribute_name   = self.getAttributeName(),
-            trace_collection = trace_collection
+            lookup_node=self,
+            attribute_name=self.getAttributeName(),
+            trace_collection=trace_collection,
         )
 
     def mayRaiseException(self, exception_type):
         return self.getLookupSource().mayRaiseExceptionAttributeLookup(
-            exception_type = exception_type,
-            attribute_name = self.getAttributeName()
+            exception_type=exception_type, attribute_name=self.getAttributeName()
         )
 
     def isKnownToBeIterable(self, count):
@@ -240,14 +213,13 @@ class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
         of Python2.7 or higher.
     """
 
-
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL"
 
     def computeExpression(self, trace_collection):
         return self.getLookupSource().computeExpressionAttributeSpecial(
-            lookup_node      = self,
-            attribute_name   = self.getAttributeName(),
-            trace_collection = trace_collection
+            lookup_node=self,
+            attribute_name=self.getAttributeName(),
+            trace_collection=trace_collection,
         )
 
 
@@ -267,12 +239,8 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     def __init__(self, object_arg, name, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "object"  : object_arg,
-                "name"    : name,
-                "default" : default
-            },
-            source_ref = source_ref
+            values={"object": object_arg, "name": name, "default": default},
+            source_ref=source_ref,
         )
 
     getLookupSource = ExpressionChildrenHavingBase.childGetter("object")
@@ -300,21 +268,21 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
 
                     if not side_effects:
                         result = ExpressionAttributeLookup(
-                            source         = source,
-                            attribute_name = attribute_name,
-                            source_ref     = self.source_ref
+                            source=source,
+                            attribute_name=attribute_name,
+                            source_ref=self.source_ref,
                         )
 
                         result = wrapExpressionWithNodeSideEffects(
-                            new_node = result,
-                            old_node = attribute
+                            new_node=result, old_node=attribute
                         )
 
                         return (
                             result,
                             "new_expression",
                             """Replaced call to built-in 'getattr' with constant \
-attribute '%s' to mere attribute lookup""" % attribute_name
+attribute '%s' to mere attribute lookup"""
+                            % attribute_name,
                         )
 
         return self, None, None
@@ -334,12 +302,8 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
     def __init__(self, object_arg, name, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "source"    : object_arg,
-                "attribute" : name,
-                "value"     : value
-            },
-            source_ref = source_ref
+            values={"source": object_arg, "attribute": name, "value": value},
+            source_ref=source_ref,
         )
 
     getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
@@ -362,11 +326,8 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
     def __init__(self, object_arg, name, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "source"    : object_arg,
-                "attribute" : name,
-            },
-            source_ref = source_ref
+            values={"source": object_arg, "attribute": name},
+            source_ref=source_ref,
         )
 
     getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
@@ -387,21 +348,18 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
                 # If source or attribute have side effects, they must be
                 # evaluated, before the lookup.
                 result, tags, change_desc = trace_collection.getCompileTimeComputationResult(
-                    node        = self,
-                    computation = lambda : hasattr(
-                        source.getCompileTimeConstant(),
-                        attribute_name
+                    node=self,
+                    computation=lambda: hasattr(
+                        source.getCompileTimeConstant(), attribute_name
                     ),
-                    description = "Call to 'hasattr' pre-computed."
+                    description="Call to 'hasattr' pre-computed.",
                 )
 
                 result = wrapExpressionWithNodeSideEffects(
-                    new_node = result,
-                    old_node = attribute
+                    new_node=result, old_node=attribute
                 )
                 result = wrapExpressionWithNodeSideEffects(
-                    new_node = result,
-                    old_node = source
+                    new_node=result, old_node=source
                 )
 
                 return result, tags, change_desc
@@ -421,9 +379,7 @@ class ExpressionAttributeCheck(ExpressionChildHavingBase):
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, object_arg, attribute_name, source_ref):
         ExpressionChildHavingBase.__init__(
-            self,
-            value      = object_arg,
-            source_ref = source_ref
+            self, value=object_arg, source_ref=source_ref
         )
 
         self.attribute_name = attribute_name
@@ -437,19 +393,15 @@ class ExpressionAttributeCheck(ExpressionChildHavingBase):
 
         if source.isCompileTimeConstant():
             result, tags, change_desc = trace_collection.getCompileTimeComputationResult(
-                node        = self,
-                computation = lambda : hasattr(
-                    source.getCompileTimeConstant(),
-                    self.attribute_name
+                node=self,
+                computation=lambda: hasattr(
+                    source.getCompileTimeConstant(), self.attribute_name
                 ),
-                description = "Attribute check has been pre-computed."
+                description="Attribute check has been pre-computed.",
             )
 
             # If source has has side effects, they must be evaluated.
-            result = wrapExpressionWithNodeSideEffects(
-                new_node = result,
-                old_node = source
-            )
+            result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=source)
 
             return result, tags, change_desc
 

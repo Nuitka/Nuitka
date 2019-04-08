@@ -45,28 +45,27 @@ class ExpressionBuiltinOpenMixin(object):
 
 
 if python_version < 300:
-    class ExpressionBuiltinOpen(ExpressionBuiltinOpenMixin, ExpressionChildrenHavingBase):
+
+    class ExpressionBuiltinOpen(
+        ExpressionBuiltinOpenMixin, ExpressionChildrenHavingBase
+    ):
         kind = "EXPRESSION_BUILTIN_OPEN"
 
-        named_children = (
-            "filename",
-            "mode",
-            "buffering"
-        )
+        named_children = ("filename", "mode", "buffering")
 
         def __init__(self, filename, mode, buffering, source_ref):
             ExpressionChildrenHavingBase.__init__(
                 self,
-                values     = {
-                    "filename"  : filename,
-                    "mode"      : mode,
-                    "buffering" : buffering
-                },
-                source_ref = source_ref
+                values={"filename": filename, "mode": mode, "buffering": buffering},
+                source_ref=source_ref,
             )
 
+
 else:
-    class ExpressionBuiltinOpen(ExpressionBuiltinOpenMixin, ExpressionChildrenHavingBase):
+
+    class ExpressionBuiltinOpen(
+        ExpressionBuiltinOpenMixin, ExpressionChildrenHavingBase
+    ):
         kind = "EXPRESSION_BUILTIN_OPEN"
 
         named_children = (
@@ -77,24 +76,34 @@ else:
             "errors",
             "newline",
             "closefd",
-            "opener"
+            "opener",
         )
 
-        def __init__(self, filename, mode, buffering, encoding, errors,
-                     newline, closefd, opener, source_ref):
+        def __init__(
+            self,
+            filename,
+            mode,
+            buffering,
+            encoding,
+            errors,
+            newline,
+            closefd,
+            opener,
+            source_ref,
+        ):
             ExpressionChildrenHavingBase.__init__(
                 self,
-                values     = {
-                    "filename"  : filename,
-                    "mode"      : mode,
-                    "buffering" : buffering,
-                    "encoding"  : encoding,
-                    "errors"    : errors,
-                    "newline"   : newline,
-                    "closefd"   : closefd,
-                    "opener"    : opener
+                values={
+                    "filename": filename,
+                    "mode": mode,
+                    "buffering": buffering,
+                    "encoding": encoding,
+                    "errors": errors,
+                    "newline": newline,
+                    "closefd": closefd,
+                    "opener": opener,
                 },
-                source_ref = source_ref
+                source_ref=source_ref,
             )
 
         getEncoding = ExpressionChildrenHavingBase.childGetter("encoding")

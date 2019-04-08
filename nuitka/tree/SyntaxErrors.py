@@ -21,6 +21,7 @@ Format SyntaxError/IndentationError exception for output, as well as
 raise it for the given source code reference.
 """
 
+
 def formatOutput(e):
     if len(e.args) > 1:
         reason, (filename, lineno, colno, message) = e.args
@@ -54,10 +55,10 @@ def formatOutput(e):
             filename,
             lineno,
             message.strip(),
-            ' ' * (colno-1) if colno is not None else "",
+            " " * (colno - 1) if colno is not None else "",
             e.__class__.__name__,
-            reason
-         )
+            reason,
+        )
     elif message is not None:
         return """\
   File "%s", line %d
@@ -67,8 +68,8 @@ def formatOutput(e):
             lineno,
             message.strip(),
             e.__class__.__name__,
-            reason
-         )
+            reason,
+        )
     elif filename is not None:
         return """\
   File "%s", line %s
@@ -76,25 +77,26 @@ def formatOutput(e):
             filename,
             lineno,
             e.__class__.__name__,
-            reason
-         )
+            reason,
+        )
     else:
         return """\
 %s: %s""" % (
             e.__class__.__name__,
-            reason
-         )
+            reason,
+        )
 
 
-def raiseSyntaxError(reason, source_ref, display_file = True,
-                     display_line = True):
+def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
     col_offset = source_ref.getColumnNumber()
 
     def readSource():
         # Cyclic dependency.
         from .SourceReading import readSourceLine
+
         return readSourceLine(source_ref)
 
+    # Special case being asked to display.
     if display_file and display_line:
         source_line = readSource()
 
@@ -104,32 +106,25 @@ def raiseSyntaxError(reason, source_ref, display_file = True,
                 source_ref.getFilename(),
                 source_ref.getLineNumber(),
                 col_offset,
-                source_line
-            )
+                source_line,
+            ),
         )
-    else:
-        if source_ref is not None:
-            if display_line:
-                source_line = readSource()
-            else:
-                source_line = None
 
-            raise SyntaxError(
-                reason,
-                (
-                    source_ref.getFilename(),
-                    source_ref.getLineNumber(),
-                    col_offset,
-                    source_line
-                )
-            )
+    # Special case given source reference.
+    if source_ref is not None:
+        if display_line:
+            source_line = readSource()
         else:
-            raise SyntaxError(
-                reason,
-                (
-                    None,
-                    None,
-                    None,
-                    None
-                )
-            )
+            source_line = None
+
+        raise SyntaxError(
+            reason,
+            (
+                source_ref.getFilename(),
+                source_ref.getLineNumber(),
+                col_offset,
+                source_line,
+            ),
+        )
+
+    raise SyntaxError(reason, (None, None, None, None))

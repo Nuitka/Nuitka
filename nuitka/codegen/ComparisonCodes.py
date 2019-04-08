@@ -30,33 +30,30 @@ from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
 _cmp_obj_result_helpers_set = set(
     (
         "RICH_COMPARE_xx_OBJECT_OBJECT",
-
-#        "RICH_COMPARE_xx_OBJECT_INT",
-#        "RICH_COMPARE_xx_OBJECT_LONG",
-#        "RICH_COMPARE_xx_OBJECT_STR",
-#        "RICH_COMPARE_xx_FLOAT_OBJECT",
-#        "RICH_COMPARE_xx_OBJECT_UNICODE",
-#        "RICH_COMPARE_xx_OBJECT_TUPLE",
-#        "RICH_COMPARE_xx_OBJECT_LIST",
-#        "RICH_COMPARE_xx_OBJECT_BYTES",
-
-#        "RICH_COMPARE_xx_INT_OBJECT",
-#        "RICH_COMPARE_xx_LONG_OBJECT",
-#        "RICH_COMPARE_xx_STR_OBJECT",
-#        "RICH_COMPARE_xx_OBJECT_FLOAT",
-#        "RICH_COMPARE_xx_UNICODE_OBJECT",
-#        "RICH_COMPARE_xx_TUPLE_OBJECT",
-#        "RICH_COMPARE_xx_LIST_OBJECT",
-#        "RICH_COMPARE_xx_BYTES_OBJECT",
-
-#        "RICH_COMPARE_xx_INT_INT",
-#        "RICH_COMPARE_xx_LONG_LONG",
-#        "RICH_COMPARE_xx_STR_STR",
-#        "RICH_COMPARE_xx_FLOAT_FLOAT",
-#        "RICH_COMPARE_xx_UNICODE_UNICODE",
-#        "RICH_COMPARE_xx_TUPLE_TUPLE",
-#        "RICH_COMPARE_xx_LIST_LIST",
-#        "RICH_COMPARE_xx_BYTES_BYTES",
+        #        "RICH_COMPARE_xx_OBJECT_INT",
+        #        "RICH_COMPARE_xx_OBJECT_LONG",
+        #        "RICH_COMPARE_xx_OBJECT_STR",
+        #        "RICH_COMPARE_xx_FLOAT_OBJECT",
+        #        "RICH_COMPARE_xx_OBJECT_UNICODE",
+        #        "RICH_COMPARE_xx_OBJECT_TUPLE",
+        #        "RICH_COMPARE_xx_OBJECT_LIST",
+        #        "RICH_COMPARE_xx_OBJECT_BYTES",
+        #        "RICH_COMPARE_xx_INT_OBJECT",
+        #        "RICH_COMPARE_xx_LONG_OBJECT",
+        #        "RICH_COMPARE_xx_STR_OBJECT",
+        #        "RICH_COMPARE_xx_OBJECT_FLOAT",
+        #        "RICH_COMPARE_xx_UNICODE_OBJECT",
+        #        "RICH_COMPARE_xx_TUPLE_OBJECT",
+        #        "RICH_COMPARE_xx_LIST_OBJECT",
+        #        "RICH_COMPARE_xx_BYTES_OBJECT",
+        #        "RICH_COMPARE_xx_INT_INT",
+        #        "RICH_COMPARE_xx_LONG_LONG",
+        #        "RICH_COMPARE_xx_STR_STR",
+        #        "RICH_COMPARE_xx_FLOAT_FLOAT",
+        #        "RICH_COMPARE_xx_UNICODE_UNICODE",
+        #        "RICH_COMPARE_xx_TUPLE_TUPLE",
+        #        "RICH_COMPARE_xx_LIST_LIST",
+        #        "RICH_COMPARE_xx_BYTES_BYTES",
     )
 )
 
@@ -64,31 +61,29 @@ _cmp_bool_result_helpers_set = set(
     (
         "RICH_COMPARE_BOOL_xx_OBJECT_OBJECT",
         "RICH_COMPARE_BOOL_xx_OBJECT_INT",
-#        "RICH_COMPARE_BOOL_xx_OBJECT_LONG",
-#        "RICH_COMPARE_BOOL_xx_OBJECT_STR",
-#        "RICH_COMPARE_BOOL_xx_FLOAT_OBJECT",
-#        "RICH_COMPARE_BOOL_xx_OBJECT_UNICODE",
-#        "RICH_COMPARE_BOOL_xx_OBJECT_TUPLE",
-#        "RICH_COMPARE_BOOL_xx_OBJECT_LIST",
-#        "RICH_COMPARE_BOOL_xx_OBJECT_BYTES",
-
+        #        "RICH_COMPARE_BOOL_xx_OBJECT_LONG",
+        #        "RICH_COMPARE_BOOL_xx_OBJECT_STR",
+        #        "RICH_COMPARE_BOOL_xx_FLOAT_OBJECT",
+        #        "RICH_COMPARE_BOOL_xx_OBJECT_UNICODE",
+        #        "RICH_COMPARE_BOOL_xx_OBJECT_TUPLE",
+        #        "RICH_COMPARE_BOOL_xx_OBJECT_LIST",
+        #        "RICH_COMPARE_BOOL_xx_OBJECT_BYTES",
         "RICH_COMPARE_BOOL_xx_INT_OBJECT",
-#        "RICH_COMPARE_BOOL_xx_LONG_OBJECT",
-#        "RICH_COMPARE_BOOL_xx_STR_OBJECT",
-#        "RICH_COMPARE_BOOL_xx_OBJECT_FLOAT",
-#        "RICH_COMPARE_BOOL_xx_UNICODE_OBJECT",
-#        "RICH_COMPARE_BOOL_xx_TUPLE_OBJECT",
-#        "RICH_COMPARE_BOOL_xx_LIST_OBJECT",
-#        "RICH_COMPARE_BOOL_xx_BYTES_OBJECT",
-
+        #        "RICH_COMPARE_BOOL_xx_LONG_OBJECT",
+        #        "RICH_COMPARE_BOOL_xx_STR_OBJECT",
+        #        "RICH_COMPARE_BOOL_xx_OBJECT_FLOAT",
+        #        "RICH_COMPARE_BOOL_xx_UNICODE_OBJECT",
+        #        "RICH_COMPARE_BOOL_xx_TUPLE_OBJECT",
+        #        "RICH_COMPARE_BOOL_xx_LIST_OBJECT",
+        #        "RICH_COMPARE_BOOL_xx_BYTES_OBJECT",
         "RICH_COMPARE_BOOL_xx_INT_INT",
-#        "RICH_COMPARE_BOOL_xx_LONG_LONG",
-#        "RICH_COMPARE_BOOL_xx_STR_STR",
-#        "RICH_COMPARE_BOOL_xx_FLOAT_FLOAT",
-#        "RICH_COMPARE_BOOL_xx_UNICODE_UNICODE",
-#        "RICH_COMPARE_BOOL_xx_TUPLE_TUPLE",
-#        "RICH_COMPARE_BOOL_xx_LIST_LIST",
-#        "RICH_COMPARE_BOOL_xx_BYTES_BYTES",
+        #        "RICH_COMPARE_BOOL_xx_LONG_LONG",
+        #        "RICH_COMPARE_BOOL_xx_STR_STR",
+        #        "RICH_COMPARE_BOOL_xx_FLOAT_FLOAT",
+        #        "RICH_COMPARE_BOOL_xx_UNICODE_UNICODE",
+        #        "RICH_COMPARE_BOOL_xx_TUPLE_TUPLE",
+        #        "RICH_COMPARE_BOOL_xx_LIST_LIST",
+        #        "RICH_COMPARE_BOOL_xx_BYTES_BYTES",
     )
 )
 
@@ -100,89 +95,68 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
     left = expression.getLeft()
     right = expression.getRight()
 
-    comparator  = expression.getComparator()
+    comparator = expression.getComparator()
 
     type_name = "PyObject *"
     if comparator in ("Is", "IsNot"):
-        if left.getTypeShape() is ShapeTypeBool and \
-           right.getTypeShape() is ShapeTypeBool:
+        if (
+            left.getTypeShape() is ShapeTypeBool
+            and right.getTypeShape() is ShapeTypeBool
+        ):
             type_name = "nuitka_bool"
 
-    left_name = context.allocateTempName("compexpr_left", type_name = type_name)
-    right_name = context.allocateTempName("compexpr_right", type_name = type_name)
+    left_name = context.allocateTempName("compexpr_left", type_name=type_name)
+    right_name = context.allocateTempName("compexpr_right", type_name=type_name)
 
     generateExpressionCode(
-        to_name    = left_name,
-        expression = left,
-        emit       = emit,
-        context    = context
+        to_name=left_name, expression=left, emit=emit, context=context
     )
     generateExpressionCode(
-        to_name    = right_name,
-        expression = right,
-        emit       = emit,
-        context    = context
+        to_name=right_name, expression=right, emit=emit, context=context
     )
 
     if comparator in OperatorCodes.containing_comparison_codes:
-        needs_check = right.mayRaiseExceptionIn(
-            BaseException,
-            expression.getLeft()
-        )
+        needs_check = right.mayRaiseExceptionIn(BaseException, expression.getLeft())
 
         res_name = context.getIntResName()
 
         emit(
-             "%s = PySequence_Contains( %s, %s );" % (
-                res_name,
-                right_name, # sequence goes first in the API.
-                left_name
-            )
+            "%s = PySequence_Contains( %s, %s );"
+            % (res_name, right_name, left_name)  # sequence goes first in the API.
         )
 
         getErrorExitBoolCode(
-            condition     = "%s == -1" % res_name,
-            release_names = (left_name, right_name),
-            needs_check   = needs_check,
-            emit          = emit,
-            context       = context
+            condition="%s == -1" % res_name,
+            release_names=(left_name, right_name),
+            needs_check=needs_check,
+            emit=emit,
+            context=context,
         )
 
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name   = to_name,
-            condition = "%s == %d" % (
-                res_name,
-                1 if comparator == "In" else 0
-            ),
-            emit      = emit
+            to_name=to_name,
+            condition="%s == %d" % (res_name, 1 if comparator == "In" else 0),
+            emit=emit,
         )
 
         return
     elif comparator == "Is":
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name   = to_name,
-            condition = "%s == %s" % (left_name, right_name),
-            emit      = emit
+            to_name=to_name, condition="%s == %s" % (left_name, right_name), emit=emit
         )
 
         getReleaseCodes(
-            release_names = (left_name, right_name),
-            emit          = emit,
-            context       = context
+            release_names=(left_name, right_name), emit=emit, context=context
         )
 
         return
     elif comparator == "IsNot":
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name   = to_name,
-            condition = "%s != %s" % (left_name, right_name),
-            emit      = emit
+            to_name=to_name, condition="%s != %s" % (left_name, right_name), emit=emit
         )
 
         getReleaseCodes(
-            release_names = (left_name, right_name),
-            emit          = emit,
-            context       = context
+            release_names=(left_name, right_name), emit=emit, context=context
         )
 
         return
@@ -198,71 +172,55 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
 
         if c_type.c_type == "PyObject *":
             helper = pickCodeHelper(
-                prefix       = "RICH_COMPARE_xx",
-                suffix       = suffix,
-                left_shape   = left.getTypeShape(),
-                right_shape  = expression.getRight().getTypeShape(),
-                helpers      = _cmp_obj_result_helpers_set,
+                prefix="RICH_COMPARE_xx",
+                suffix=suffix,
+                left_shape=left.getTypeShape(),
+                right_shape=expression.getRight().getTypeShape(),
+                helpers=_cmp_obj_result_helpers_set,
                 # TODO: Too many for now, so disable it
-                warn_missing = False
+                warn_missing=False,
             )
         else:
             helper = pickCodeHelper(
-                prefix       = "RICH_COMPARE_BOOL_xx",
-                suffix       = suffix,
-                left_shape   = left.getTypeShape(),
-                right_shape  = expression.getRight().getTypeShape(),
-                helpers      = _cmp_bool_result_helpers_set,
+                prefix="RICH_COMPARE_BOOL_xx",
+                suffix=suffix,
+                left_shape=left.getTypeShape(),
+                right_shape=expression.getRight().getTypeShape(),
+                helpers=_cmp_bool_result_helpers_set,
                 # TODO: Too many for now, so disable it
-                warn_missing = False
+                warn_missing=False,
             )
 
         # Lets patch this up here, instead of having one set per operation.
         helper = helper.replace("xx", comparator.upper())
 
         if c_type.c_type == "PyObject *":
-            emit(
-                "%s = %s( %s, %s );" % (
-                    to_name,
-                    helper,
-                    left_name,
-                    right_name
-                )
-            )
+            emit("%s = %s( %s, %s );" % (to_name, helper, left_name, right_name))
 
             getErrorExitCode(
-                check_name    = to_name,
-                release_names = (left_name, right_name),
-                needs_check   = needs_check,
-                emit          = emit,
-                context       = context
+                check_name=to_name,
+                release_names=(left_name, right_name),
+                needs_check=needs_check,
+                emit=emit,
+                context=context,
             )
 
             context.addCleanupTempName(to_name)
         elif c_type.c_type in ("nuitka_bool", "void"):
             res_name = context.getIntResName()
 
-            emit(
-                 "%s = %s( %s, %s );" % (
-                    res_name,
-                    helper,
-                    left_name,
-                    right_name
-                )
-            )
+            emit("%s = %s( %s, %s );" % (res_name, helper, left_name, right_name))
 
             getErrorExitBoolCode(
-                condition     = "%s == -1" % res_name,
-                release_names = (left_name, right_name),
-                needs_check   = needs_check,
-                emit          = emit,
-                context       = context
+                condition="%s == -1" % res_name,
+                release_names=(left_name, right_name),
+                needs_check=needs_check,
+                emit=emit,
+                context=context,
             )
 
             c_type.emitAssignmentCodeFromBoolCondition(
-                to_name   = to_name,
-                condition = "%s != 0" % res_name,
-                emit      = emit
+                to_name=to_name, condition="%s != 0" % res_name, emit=emit
             )
         else:
             assert False, to_name.c_type
@@ -273,26 +231,18 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
 
         res_name = context.getIntResName()
 
-        emit(
-             "%s = EXCEPTION_MATCH_BOOL( %s, %s );" % (
-                res_name,
-                left_name,
-                right_name
-            )
-        )
+        emit("%s = EXCEPTION_MATCH_BOOL( %s, %s );" % (res_name, left_name, right_name))
 
         getErrorExitBoolCode(
-            condition     = "%s == -1" % res_name,
-            release_names = (left_name, right_name),
-            needs_check   = needs_check,
-            emit          = emit,
-            context       = context
+            condition="%s == -1" % res_name,
+            release_names=(left_name, right_name),
+            needs_check=needs_check,
+            emit=emit,
+            context=context,
         )
 
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name   = to_name,
-            condition = "%s != 0" % res_name,
-            emit      = emit
+            to_name=to_name, condition="%s != 0" % res_name, emit=emit
         )
     else:
         assert False, comparator
@@ -303,38 +253,26 @@ def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
     cls_name = context.allocateTempName("isinstance_cls")
 
     generateExpressionCode(
-        to_name    = inst_name,
-        expression = expression.getInstance(),
-        emit       = emit,
-        context    = context
+        to_name=inst_name,
+        expression=expression.getInstance(),
+        emit=emit,
+        context=context,
     )
     generateExpressionCode(
-        to_name    = cls_name,
-        expression = expression.getCls(),
-        emit       = emit,
-        context    = context
+        to_name=cls_name, expression=expression.getCls(), emit=emit, context=context
     )
-
 
     res_name = context.getIntResName()
 
-    emit(
-        "%s = Nuitka_IsInstance( %s, %s );" % (
-            res_name,
-            inst_name,
-            cls_name
-        )
-    )
+    emit("%s = Nuitka_IsInstance( %s, %s );" % (res_name, inst_name, cls_name))
 
     getErrorExitBoolCode(
-        condition     = "%s == -1" % res_name,
-        release_names = (inst_name, cls_name),
-        emit          = emit,
-        context       = context
+        condition="%s == -1" % res_name,
+        release_names=(inst_name, cls_name),
+        emit=emit,
+        context=context,
     )
 
     to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name   = to_name,
-        condition = "%s != 0" % res_name,
-        emit      = emit
+        to_name=to_name, condition="%s != 0" % res_name, emit=emit
     )

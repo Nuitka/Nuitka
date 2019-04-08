@@ -40,20 +40,22 @@ from .Tags import TagSet
 _progress = Options.isShowProgress()
 _is_verbose = Options.isVerbose()
 
+
 def _attemptRecursion(module):
     new_modules = module.attemptRecursion()
 
     for new_module in new_modules:
         debug(
             "{source_ref} : {tags} : {message}".format(
-                source_ref = new_module.getSourceReference().getAsString(),
-                tags       = "new_code",
-                message    = "Recursed to module package."
+                source_ref=new_module.getSourceReference().getAsString(),
+                tags="new_code",
+                message="Recursed to module package.",
             )
         )
 
 
 tag_set = None
+
 
 def signalChange(tags, source_ref, message):
     """ Indicate a change to the optimization framework.
@@ -65,13 +67,14 @@ def signalChange(tags, source_ref, message):
         if _is_verbose:
             debug(
                 "{source_ref} : {tags} : {message}".format(
-                    source_ref = source_ref.getAsString(),
-                    tags       = tags,
-                    message    = message() if inspect.isfunction(message) else message
+                    source_ref=source_ref.getAsString(),
+                    tags=tags,
+                    message=message() if inspect.isfunction(message) else message,
                 )
             )
 
     tag_set.onSignal(tags)
+
 
 # Use this globally from there, without cyclic dependency.
 TraceCollections.signalChange = signalChange
@@ -81,7 +84,7 @@ def optimizeCompiledPythonModule(module):
     if _progress:
         info(
             "Doing module local optimizations for '{module_name}'.".format(
-                module_name = module.getFullName()
+                module_name=module.getFullName()
             )
         )
 
@@ -117,16 +120,11 @@ def optimizeCompiledPythonModule(module):
         memory_watch.finish()
 
         info(
-            "Memory usage changed during optimization of '%s': %s" % (
-                module.getFullName(),
-                memory_watch.asStr()
-            )
+            "Memory usage changed during optimization of '%s': %s"
+            % (module.getFullName(), memory_watch.asStr())
         )
 
-    Plugins.considerImplicitImports(
-        module        = module,
-        signal_change = signalChange
-    )
+    Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 
     return touched
 
@@ -135,14 +133,13 @@ def optimizeUncompiledPythonModule(module):
     if _progress:
         info(
             "Doing module dependency considerations for '{module_name}':".format(
-                module_name = module.getFullName()
+                module_name=module.getFullName()
             )
         )
 
     for used_module_name, used_module_path in module.getUsedModules():
         used_module = ImportCache.getImportedModuleByNameAndPath(
-            used_module_name,
-            used_module_path
+            used_module_name, used_module_path
         )
         ModuleRegistry.addUsedModule(used_module)
 
@@ -152,20 +149,14 @@ def optimizeUncompiledPythonModule(module):
         used_module = ImportCache.getImportedModuleByName(package_name)
         ModuleRegistry.addUsedModule(used_module)
 
-    Plugins.considerImplicitImports(
-        module        = module,
-        signal_change = signalChange
-    )
+    Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 
 
 def optimizeShlibModule(module):
     # Pick up parent package if any.
     _attemptRecursion(module)
 
-    Plugins.considerImplicitImports(
-        module        = module,
-        signal_change = signalChange
-    )
+    Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 
 
 def optimizeModule(module):
@@ -232,12 +223,14 @@ def optimizeUnusedClosureVariables(function_body):
         # print "VAR", closure_variable
 
         # Need to take closure of those.
-        if closure_variable.isParameterVariable() and \
-           function_body.isExpressionGeneratorObjectBody():
+        if (
+            closure_variable.isParameterVariable()
+            and function_body.isExpressionGeneratorObjectBody()
+        ):
             continue
 
         variable_traces = function_body.trace_collection.getVariableTraces(
-            variable = closure_variable
+            variable=closure_variable
         )
 
         empty = areEmptyTraces(variable_traces)
@@ -247,7 +240,8 @@ def optimizeUnusedClosureVariables(function_body):
             signalChange(
                 "var_usage",
                 function_body.getSourceReference(),
-                message = "Remove unused closure variable '%s'." % closure_variable.getName()
+                message="Remove unused closure variable '%s'."
+                % closure_variable.getName(),
             )
 
             function_body.removeClosureVariable(closure_variable)
@@ -284,7 +278,11 @@ def optimizeLocalsDictsHandles():
                     # then we can push it down the line. TODO: Once temporary
                     # variables and dictionary building allows for unset values
                     # remove this
-                    if variable_trace.getAssignNode().getAssignSource().mayHaveSideEffects():
+                    if (
+                        variable_trace.getAssignNode()
+                        .getAssignSource()
+                        .mayHaveSideEffects()
+                    ):
                         propagate = False
                         break
                 elif variable_trace.isUninitTrace():
@@ -309,9 +307,11 @@ def optimizeLocalsDictsHandles():
 def optimizeUnusedUserVariables(function_body):
     changed = False
 
-    for local_variable in function_body.getUserLocalVariables() + function_body.getOutlineLocalVariables():
+    for local_variable in (
+        function_body.getUserLocalVariables() + function_body.getOutlineLocalVariables()
+    ):
         variable_traces = function_body.trace_collection.getVariableTraces(
-            variable = local_variable
+            variable=local_variable
         )
 
         empty = areEmptyTraces(variable_traces)
@@ -319,7 +319,7 @@ def optimizeUnusedUserVariables(function_body):
             signalChange(
                 "var_usage",
                 function_body.getSourceReference(),
-                message = "Remove unused local variable '%s'." % local_variable.getName()
+                message="Remove unused local variable '%s'." % local_variable.getName(),
             )
 
             function_body.removeUserVariable(local_variable)
@@ -333,7 +333,7 @@ def optimizeUnusedTempVariables(provider):
 
     for temp_variable in provider.getTempVariables():
         variable_traces = provider.trace_collection.getVariableTraces(
-            variable = temp_variable
+            variable=temp_variable
         )
 
         empty = areEmptyTraces(variable_traces)
@@ -377,7 +377,7 @@ def optimizeVariables(module):
                     changed = True
         except Exception:
             print("Problem with", function_body)
-            raise#
+            raise  #
 
         if optimizeUnusedUserVariables(module):
             changed = True
@@ -385,10 +385,10 @@ def optimizeVariables(module):
         if optimizeUnusedTempVariables(module):
             changed = True
 
-#        TODO: Global optimizations could go here maybe, so far we can do all
-#        the things in assign nodes themselves based on last trace.
-#        if optimizeUnusedAssignments(module):
-#            changed = True
+    #        TODO: Global optimizations could go here maybe, so far we can do all
+    #        the things in assign nodes themselves based on last trace.
+    #        if optimizeUnusedAssignments(module):
+    #            changed = True
     except Exception:
         print("Problem with", module)
         raise
@@ -400,13 +400,13 @@ def _traceProgress(current_module):
     output = """\
 Optimizing module '{module_name}', {remaining:d} more modules to go \
 after that.""".format(
-            module_name = current_module.getFullName(),
-            remaining   = ModuleRegistry.remainingCount(),
+        module_name=current_module.getFullName(),
+        remaining=ModuleRegistry.remainingCount(),
     )
 
     if Options.isShowMemory():
         output += "Memory usage {memory}:".format(
-            memory = MemoryUsage.getHumanReadableProcessMemoryUsage()
+            memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
         )
 
     info(output)
@@ -415,12 +415,10 @@ after that.""".format(
 def restoreFromXML(text):
     from nuitka.TreeXML import fromString
     from nuitka.nodes.NodeBases import fromXML
+
     xml = fromString(text)
 
-    module = fromXML(
-        provider = None,
-        xml      = xml
-    )
+    module = fromXML(provider=None, xml=xml)
 
     return module
 
@@ -466,8 +464,7 @@ def makeOptimizationPass(initial_pass):
         if current_module.isCompiledPythonModule():
             for function in current_module.getUnusedFunctions():
                 Variables.updateVariablesFromCollection(
-                    old_collection = function.trace_collection,
-                    new_collection = None
+                    old_collection=function.trace_collection, new_collection=None
                 )
 
                 function.trace_collection = None
@@ -484,8 +481,7 @@ def makeOptimizationPass(initial_pass):
 
             used_functions = tuple(
                 function
-                for function in
-                current_module.getFunctions()
+                for function in current_module.getFunctions()
                 if function in used_functions
             )
 
@@ -508,22 +504,24 @@ def _checkXMLPersistence():
             continue
 
         text = module.asXmlText()
-        open("out.xml", 'w').write(text)
+        with open("out.xml", "w") as f:
+            f.write(text)
         restored = restoreFromXML(text)
         retext = restored.asXmlText()
-        open("out2.xml", 'w').write(retext)
+        with open("out2.xml", "w") as f:
+            f.write(retext)
 
-        assert module.getOutputFilename() == restored.getOutputFilename(), \
-           (module.getOutputFilename(),restored.getOutputFilename())
+        assert module.getOutputFilename() == restored.getOutputFilename(), (
+            module.getOutputFilename(),
+            restored.getOutputFilename(),
+        )
 
         # The variable versions give diffs.
-        if True: # To manually enable, pylint: disable=W0125
+        if True:  # To manually enable, pylint: disable=W0125
             import difflib
+
             diff = difflib.unified_diff(
-                text.splitlines(),
-                retext.splitlines(),
-                "xml orig",
-                "xml reloaded"
+                text.splitlines(), retext.splitlines(), "xml orig", "xml reloaded"
             )
             for line in diff:
                 printLine(line)
@@ -534,7 +532,6 @@ def _checkXMLPersistence():
     ModuleRegistry.startTraversal()
 
 
-
 def optimize(output_filename):
     Graphs.startGraph()
 
@@ -542,10 +539,10 @@ def optimize(output_filename):
     if _progress:
         info("PASS 1:")
 
-    makeOptimizationPass(initial_pass = True)
+    makeOptimizationPass(initial_pass=True)
     Variables.complete = True
 
-    finished = makeOptimizationPass(initial_pass = False)
+    finished = makeOptimizationPass(initial_pass=False)
 
     if Options.isExperimental("check_xml_persistence"):
         _checkXMLPersistence()
@@ -553,8 +550,7 @@ def optimize(output_filename):
     # Demote compiled modules to bytecode, now that imports had a chance to be resolved, and
     # dependencies were handled.
     for module in ModuleRegistry.getDoneUserModules():
-        if module.isCompiledPythonModule() and \
-           module.mode == "bytecode":
+        if module.isCompiledPythonModule() and module.mode == "bytecode":
             demoteCompiledModuleToBytecode(module)
 
     if _progress:
@@ -562,6 +558,6 @@ def optimize(output_filename):
 
     # Second, "endless" pass.
     while not finished:
-        finished = makeOptimizationPass(initial_pass = False)
+        finished = makeOptimizationPass(initial_pass=False)
 
     Graphs.endGraph(output_filename)

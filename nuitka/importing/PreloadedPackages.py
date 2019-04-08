@@ -26,7 +26,7 @@ import os
 import sys
 from logging import warning
 
-from nuitka.utils.FileOperations import listDir
+from nuitka.utils.FileOperations import getFileContentByLine, listDir
 
 
 def getLoadedPackages():
@@ -50,13 +50,14 @@ def getLoadedPackages():
 def detectPreLoadedPackagePaths():
     result = {}
 
-    for package_name, module  in getLoadedPackages():
+    for package_name, module in getLoadedPackages():
         result[package_name] = list(module.__path__)
 
     return result
 
 
 preloaded_packages = None
+
 
 def getPreloadedPackagePaths():
     # We need to set this from the outside, pylint: disable=global-statement
@@ -103,20 +104,21 @@ def detectPthImportedPackages():
         for path, filename in listDir(prefix):
             if filename.endswith(".pth"):
                 try:
-                    for line in open(path, "rU"):
+                    for line in getFileContentByLine(path, "rU"):
                         if line.startswith("import "):
-                            if ';' in line:
-                                line = line[:line.find(';')]
+                            if ";" in line:
+                                line = line[: line.find(";")]
 
-                            for part in line[7:].split(','):
+                            for part in line[7:].split(","):
                                 pth_imports.add(part.strip())
                 except OSError:
                     warning("Python installation problem, cannot read file '%s'.")
 
-
     return tuple(sorted(pth_imports))
 
+
 pth_imported_packages = ()
+
 
 def setPthImportedPackages(value):
     # We need to set this from the outside, pylint: disable=global-statement

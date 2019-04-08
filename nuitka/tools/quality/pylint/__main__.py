@@ -30,22 +30,15 @@ from optparse import OptionParser
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
 sys.path.insert(
-    0,
-    os.path.normpath(
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            ".."
-        )
-    )
+    0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 )
 
-from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH # isort:skip
-from nuitka.tools.quality.ScanSources import scanTargets # isort:skip
-from nuitka.tools.quality.pylint import PyLint # isort:skip
-from nuitka.tools.testing.Common import setup, hasModule # isort:skip
-from nuitka.PythonVersions import python_version # isort:skip
+from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH  # isort:skip
+from nuitka.tools.quality.ScanSources import scanTargets  # isort:skip
+from nuitka.tools.quality.pylint import PyLint  # isort:skip
+from nuitka.tools.testing.Common import setup, hasModule  # isort:skip
+from nuitka.PythonVersions import python_version  # isort:skip
+
 
 def main():
     setup()
@@ -58,41 +51,41 @@ def main():
     parser = OptionParser()
 
     parser.add_option(
-        "--show-todos", "--todos",
-        action  = "store_true",
-        dest    = "todos",
-        default = False,
-        help    = """\
-Show TODO items. Default is %default."""
+        "--show-todos",
+        "--todos",
+        action="store_true",
+        dest="todos",
+        default=False,
+        help="""\
+Show TODO items. Default is %default.""",
     )
 
     parser.add_option(
         "--verbose",
-        action  = "store_true",
-        dest    = "verbose",
-        default = False,
-        help    = """\
-Be version in output. Default is %default."""
+        action="store_true",
+        dest="verbose",
+        default=False,
+        help="""\
+Be version in output. Default is %default.""",
     )
 
     parser.add_option(
         "--one-by-one",
-        action  = "store_true",
-        dest    = "one_by_one",
-        default = False,
-        help    = """\
-Check files one by one. Default is %default."""
+        action="store_true",
+        dest="one_by_one",
+        default=False,
+        help="""\
+Check files one by one. Default is %default.""",
     )
 
     parser.add_option(
         "--not-installed-is-no-error",
-        action  = "store_true",
-        dest    = "not_installed_is_no_error",
-        default = False,
-        help    = """\
-Insist on PyLint to be installed. Default is %default."""
+        action="store_true",
+        dest="not_installed_is_no_error",
+        default=False,
+        help="""\
+Insist on PyLint to be installed. Default is %default.""",
     )
-
 
     options, positional_args = parser.parse_args()
 
@@ -105,11 +98,7 @@ Insist on PyLint to be installed. Default is %default."""
 
     print("Working on:", positional_args)
 
-    blacklist = [
-        "oset.py",
-        "odict.py",
-        "SyntaxHighlighting.py",
-    ]
+    blacklist = ["oset.py", "odict.py", "SyntaxHighlighting.py"]
 
     # Avoid checking the Python2 runner with Python3, it has name collisions.
     if python_version >= 300:
@@ -117,16 +106,17 @@ Insist on PyLint to be installed. Default is %default."""
 
     filenames = list(scanTargets(positional_args, (".py",), blacklist))
     PyLint.executePyLint(
-        filenames  = filenames,
-        show_todos = options.todos,
-        verbose    = options.verbose,
-        one_by_one = options.one_by_one,
+        filenames=filenames,
+        show_todos=options.todos,
+        verbose=options.verbose,
+        one_by_one=options.one_by_one,
     )
 
     if not filenames:
         sys.exit("No files found.")
 
     sys.exit(PyLint.our_exit_code)
+
 
 if __name__ == "__main__":
     main()

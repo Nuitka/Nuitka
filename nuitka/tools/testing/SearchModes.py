@@ -54,6 +54,10 @@ class SearchModeBase(object):
         self.may_fail += names
 
     @classmethod
+    def abortIfExecuted(cls):
+        return False
+
+    @classmethod
     def _match(cls, dirname, filename, candidate):
         parts = [dirname, filename]
 
@@ -67,22 +71,21 @@ class SearchModeBase(object):
             dirname,
             filename,
             filename.replace(".py", ""),
-            filename.split('.')[0],
+            filename.split(".")[0],
             path,
             path.replace(".py", ""),
-
         )
 
         candidate2 = os.path.relpath(
-            candidate,
-            os.path.dirname(sys.modules["__main__"].__file__)
+            candidate, os.path.dirname(sys.modules["__main__"].__file__)
         )
 
-        return candidate.rstrip('/') in candidates or candidate2 in candidates
+        return candidate.rstrip("/") in candidates or candidate2 in candidates
 
     def isCoverage(self):
         # Virtual method, pylint: disable=no-self-use
         return False
+
 
 class SearchModeByPattern(SearchModeBase):
     def __init__(self, start_at):
@@ -119,15 +122,13 @@ class SearchModeResume(SearchModeBase):
 
         from .Common import getTestingCacheDir
 
-        cache_filename = os.path.join(
-            getTestingCacheDir(),
-            case_hash.hexdigest()
-        )
+        cache_filename = os.path.join(getTestingCacheDir(), case_hash.hexdigest())
 
         self.cache_filename = cache_filename
 
         if os.path.exists(cache_filename):
-            self.resume_from = open(cache_filename, 'r').read() or None
+            with open(cache_filename, "r") as f:
+                self.resume_from = f.read() or None
         else:
             self.resume_from = None
 
@@ -143,7 +144,8 @@ class SearchModeResume(SearchModeBase):
         path = os.path.join(*parts)
 
         if self.active:
-            open(self.cache_filename, 'w').write(path)
+            with open(self.cache_filename, "w") as f:
+                f.write(path)
 
             return True
 
@@ -164,3 +166,10 @@ class SearchModeCoverage(SearchModeBase):
 
     def isCoverage(self):
         return True
+
+class SearchModeOnly(SearchModeByPattern):
+    def abortIfExecuted(self):
+        if self.active:
+            return True
+        return False
+    

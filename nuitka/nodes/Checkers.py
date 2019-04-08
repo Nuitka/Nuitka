@@ -22,10 +22,12 @@ types only.
 
 """
 
+
 def checkStatementsSequenceOrNone(value):
     assert value is None or value.kind == "STATEMENTS_SEQUENCE", value
 
     return value
+
 
 def checkStatementsSequence(value):
     assert value is not None and value.kind == "STATEMENTS_SEQUENCE", value

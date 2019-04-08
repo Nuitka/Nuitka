@@ -125,6 +125,87 @@ Regarding Types, the state is:
 
 The limitation to only do ``PyObject *`` will soon go away.
 
+Setting up the Development Environment for Nuitka
+=================================================
+
+Currently there are 3 kinds of files that we need support for. This is best
+addressed with an IDE. We cover here how to setup the common ones.
+
+Eclipse
+-------
+
+At this time, this is the recommended IDE for Linux and Windows. This is going
+to cover that plugins to install. If you are not familiar with Eclipse, this is
+a Java IDE, but designed to be universally extended, and it truly is. There are
+plugins available for nearly everything.
+
+Download Eclipse from here: https://www.eclipse.org/downloads/packages/
+
+Pick "Eclipse IDE for C/C++ Developers" as that comes with everything useful
+for C development included. Install it.
+
+After launching, you see a welcome screen. But Eclipse will need more setup
+to become a useful IDE. Go to menu point ``Help``/``Eclipse Marketplace`` as
+that is the easiest way to install your plugins. Install these ones:
+
+- PyDev (Python IDE for Eclipse)
+
+  This is for the majority of code in Nuitka, the Python code, to easily
+  navigate and search it, as well as autocompletion.
+
+- AnyEdit Tools
+
+  Proper whitespace handling for Eclipse, this strips trailing whitespace, which
+  Eclipse doesn't handle outside of Java.
+
+- ReST Editor
+
+  This is good for editing the User Manual, Developer Manual, and generally all
+  documentation of Nuitka.
+
+
+PyCharm
+-------
+
+TODO.
+
+VSCode
+------
+
+TODO
+
+Commit and Code Hygiene
+=======================
+
+In Nuitka we have tools to autoformat code, you can execute them
+manually, but it's probably best to execute them at commit time,
+to make sure when we share code, it's already well format, and
+to avoid noise doing cleanups.
+
+The kinds of changes also often cause unnecessary merge
+conflicts, while the autoformat is designed to format code also
+in a way that it avoids merge conflicts in the normal case, e.g. by
+doing imports one item per line.
+
+In order to set up hooks, you need to execute these commands on
+Linux and alikes:
+
+.. code-block:: sh
+
+   ./misc/install-git-hooks.py
+
+For Windows do this:
+
+.. code-block:: sh
+
+   # Where python is the one which has the development requirements, can
+   # be a full PATH.
+   python -m pip install requirements-devel.txt
+   python .\misc\install-git-hooks.py
+
+These commands will make sure that the `autoformat-nuitka-source` is run on
+every changed file at the time you do the commit.
+
 Coding Rules Python
 ===================
 
@@ -136,30 +217,20 @@ Tool to format
 --------------
 
 There is a tool ``bin/autoformat-nuitka-source`` which is to apply automatic
-formatting to code as much as possible.
+formatting to code as much as possible. It uses ``black`` (internally) for
+consistent code formatting. The imports are sorted with ``isort`` for proper
+order.
 
-
-Line Length
------------
-
-No more than 120 characters. Screens are wider these days, but most of the code
-aims at keeping the lines below 80. Long lines are also a sign of writing
-incomprehensible code.
-
-
-Indentation
------------
-
-No tabs, 4 spaces, no trailing white space. Files end in a new line.
-
+The tool (mostly black) encodes all formatting rules, and makes the decisions
+for us. The idea being that we can focus on actual code and do not have to
+care as much about other things.
 
 Identifiers
 -----------
 
-Classes are camel case with leading upper case. Methods are with leading verb in
-lower case, but also camel case. Around braces there are no spaces, but after
-comma, there is spaces for better readability. Variables and arguments are
-lower case with ``_`` as a separator.
+Classes are camel case with leading upper case. Functions and methods are with
+leading verb in lower case, but also camel case. Variables and
+arguments are lower case with ``_`` as a separator.
 
 .. code-block:: python
 
@@ -176,14 +247,11 @@ more readable:
 
 .. code-block:: python
 
-   return Generator.getSequenceCreationCode(
-        sequence_kind       = sequence_kind,
-        element_identifiers = identifiers,
-        context             = context
+   return getSequenceCreationCode(
+        sequence_kind= sequence_kind,
+        element_identifiers=identifiers,
+        context=context
    )
-
-The ``=`` are all aligned to the longest parameter names with an extra space
-around it.
 
 When the names don't add much value, sequential calls can be done, but
 ideally with one value per line:
@@ -199,21 +267,11 @@ Here, ``setLoopContinueTarget`` will be so well known that the reader is
 expected to know the argument names and their meaning, but it would be still
 better to add them.
 
-Contractions should span across multiple lines for increased readability:
-
-.. code-block:: python
-
-   result = [
-       "PyObject *decorator_%d" % (d + 1)
-       for d in
-       range(decorator_count)
-   ]
-
 
 Module/Package Names
 --------------------
 
-Normal modules are named in camel case with leading upper case, because their of
+Normal modules are named in camel case with leading upper case, because of their
 role as singleton classes. The difference between a module and a class is small
 enough and in the source code they are also used similarly.
 
@@ -227,7 +285,7 @@ generation packages are located, while the main interface is
 imports. There is no code in packages themselves.
 
 Names of modules should be plurals if they contain classes. Example is that a
-``Nodes`` module that contain a ``Node`` class.
+``Nodes`` module that contains a ``Node`` class.
 
 
 Prefer list contractions over built-ins
@@ -278,9 +336,9 @@ cannot be overloaded without re-declaring them.
 Overloading is then not at all obvious anymore. Now imagine having a setter and
 only overloading the getter. How to update the property easily?
 
-So, that's not likeable about them. And then we are also for clarity in these
+So, that's not likable about them. And then we are also for clarity in these
 internal APIs too. Properties try and hide the fact that code needs to run and
-may do things. So lets not use them.
+may do things. So let's not use them.
 
 For an external API you may exactly want to hide things, but internally that has
 no use, and in Nuitka, every API is internal API. One exception may be the
@@ -334,11 +392,80 @@ The "git flow" model
   those changes.
 
 
-API documentation
-=================
+API Documentation and Guidelines
+================================
 
 There is API documentation generated with ``doxygen``, available at `this
 location <http://nuitka.net/apidoc>`__ .
+
+To ensure meaningful ``doxygen`` output, the following guidelines must be
+observed when creating or updating Python source:
+
+Use of Standard Python ``"__doc__"`` Strings
+--------------------------------------------
+Every class and every method **must be documented** via the standard Python
+delimiters (``""" ... """``) in the usual way.
+
+Special ``doxygen`` Anatomy of ``"__doc__"``
+--------------------------------------------
+* Immediately after the leading ``"""``, and after 1 space on the same line,
+  enter a brief description or title of the class or method. This must be 1
+  line and be followed by at least 1 empty line.
+
+* Depending on the item, choose from the following "sections" to describe what the
+  item is and does. Each section name is coded on its own line, aligned with the
+  leading ``"""`` and followed by a colon ":". Anything following the section,
+  must start on a new line and be indented by 4 spaces relative to the section.
+  Except for the first section (``Notes:``) after the title, sections need not
+  be preceeded by empty lines -- but it is good practice to still do that.
+
+    - ``Notes:`` detailed description of the item, any length.
+      May contain line breaks with each new line starting aligned with previous one.
+      The text will automatically be joined across line breaks and be reformatted
+      in the browser.
+      If you describe details for a class, you can do so **without** using this
+      section header and all formatting will still work fine.
+      If you however omit the ``Notes:`` for methods, then the text will
+      be interpreted **as code,** be shown in an ugly monospaced font, and no
+      automatic line breaks will occur in the browser.
+    - ``Args:`` positional arguments.
+      Each argument then follows, starting on a new
+      line and indented by 4 spaces. The argument name must be followed by a
+      colon ":" or double hash "--", followed by a description of arbitrary length.
+      The description can be separated by line breaks.
+    - ``Kwargs:`` keyword arguments. Same rules as for args.
+    - ``Returns:`` description of what will be returned if applicable (any length).
+    - ``Yields:`` synonymous for ``Returns:``.
+    - ``Raises:`` name any exceptions that may be raised.
+    - ``Examples:`` specify any example code.
+
+.. code-block:: python
+
+    def foo(p1, p2, kw1=None, kw2=None):
+        """ This is an example method.
+
+        Notes:
+            It does one or the other indispensable things based on some parameters
+            and proudly returns a dictionary.
+
+        Args:
+            p1: parameter one
+            p2: parameter two
+
+        Kwargs:
+            kw1: keyword one
+            kw2: keyword two
+
+        Returns:
+            A dictionary calculated from the input.
+
+        Raises:
+            ValueError, IndexError
+
+        Examples:
+            >>> foo(1, 2, kw1=3, kw2=4)
+            {'a': 4, 'b': 6}
+        """
 
 Checking the Source
 ===================
@@ -353,7 +480,7 @@ So, we currently use ``PyLint`` with options defined in a script.
 
    ./bin/check-nuitka-with-pylint
 
-Ideally the above command gives no warnings. This is currently the case.
+Ideally, the above command gives no warnings. This is currently the case.
 
 If you submit a patch, it would be good if you checked that it doesn't introduce
 new warnings, but that is not strictly required. it will happen before release,
@@ -523,6 +650,33 @@ Nuitka uses a lot of packages and imports between them.
 
    ./tests/reflected/compile_itself.py
 
+Internal/Plugin API
+===================
+
+The documentation from the source code for both the Python and the
+C parts are published as `Nuitka API <http://nuitka.net/apidoc>`__
+and argumently in a relatively bad shape as we started generating
+those with Doxygen only relatively late.
+
+.. code-block:: sh
+
+   doxygen ./doc/Doxyfile
+   xdg-open html
+
+Improvements have already been implemented for plugins: The plugin base
+class defined in ``PluginBase.py`` (which is used as a template for all
+plugins) is fully documented in Doxygen now. The
+same is true for the recently added standard plugins ``NumpyPlugin.py`` and
+``TkinterPlugin.py``. These will be uploaded very soon.
+
+Going forward, this will also happen for the remaining standard plugins.
+
+Please find `here <https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst>`__
+a detailed description of how to write your own plugin.
+
+To learn about plugin option specification consult
+`this document <https://github.com/Nuitka/Nuitka/blob/develop/Using-Plugin-Options.rst>`__.
+
 
 Design Descriptions
 ===================
@@ -614,7 +768,7 @@ where in other languages, I need to check myself.
 _`5`:: One can use a C++03 compiler as a C11 compiler for the largest part,
 e.g. with MSVC.
 
-The *decision for C11* is ultimately:
+The *decision for C11* is ultimate:
 
 * for portability
 * for language knowledge
@@ -725,7 +879,7 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
   Full compatibility, even where it's stupid, i.e. do not provide information,
   even if available, in order to assert maximum compatibility. Intended to
-  control level of compatibility to absurd.
+  control the level of compatibility to absurd.
 
 * ``experimental_mode``
 
@@ -793,7 +947,7 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 Locating Modules and Packages
 -----------------------------
 
-The search for of modules used is driven by ``nuitka.importing.Importing``
+The search for modules used is driven by ``nuitka.importing.Importing``
 module.
 
 * Quoting the ``nuitka.importing.Importing`` documentation:
@@ -827,14 +981,14 @@ module.
 The decision making and caching are located in the ``nuitka.tree`` package, in
 modules ``nuitka.tree.Recursion`` and ``nuitka.tree.ImportCache``. Each module
 is only considered once (then cached), and we need to obey lots of user choices,
-e.g. to compile standard library or not.
+e.g. to compile a standard library or not.
 
 
 Hooking for module ``import`` process
 -------------------------------------
 
 Currently, in generated code, for every ``import`` a normal ``__import__()``
-built-in call is executed. The ``nuitka/build/static_src/ModuleUnfreezer.c``
+built-in call is executed. The ``nuitka/build/static_src/MetaPathBasedLoader.c``
 file provides the implementation of a ``sys.meta_path`` hook.
 
 This meta path based importer allows us to have the Nuitka provided module
@@ -842,7 +996,7 @@ imported even when imported by non-compiled code.
 
 .. note::
 
-   Of course it would make sense to compile time detect which module it is that
+   Of course, it would make sense to compile time detect which module it is that
    is being imported and then to make it directly. At this time, we don't have
    this inter-module optimization yet, mid-term it should become easy to add.
 
@@ -925,7 +1079,7 @@ Frame Stack
 -----------
 
 In Python, every function, class, and module has a frame. It creates created
-when the scope it entered, and there is a stack of these at run time, which
+when the scope is entered, and there is a stack of these at run time, which
 becomes visible in tracebacks in case of exceptions.
 
 The choice of Nuitka is to make this an explicit element of the node tree, that
@@ -982,9 +1136,9 @@ extra care.
 Parameter Parsing
 -----------------
 
-The parsing of parameters is very convoluted in Python, and doing it in an
+The parsing of parameters is very convoluted in Python, and doing it in a
 compatible way is not that easy. This is a description of the required process,
-for easier overview.
+for an easier overview.
 
 Input
 +++++
@@ -998,7 +1152,7 @@ Keyword dictionary
 ++++++++++++++++++
 
 The keyword argument dictionary is checked first. Anything in there, that cannot
-be associated, either raises an error, or is added to a potentially given star
+be associated, either raise an error, or is added to a potentially given star
 dict argument. So there are two major cases.
 
 * No star dict argument: Iterate over dictionary, and assign or raise errors.
@@ -1011,7 +1165,7 @@ dict argument. So there are two major cases.
   is needed, and the keyword argument dictionary could be used as the star
   argument. Should it change, a copy is needed though.
 
-What's noteworthy here, is that in comparison of the keywords, we can hope that
+What's noteworthy here, is that in comparison to the keywords, we can hope that
 they are the same value as we use. The interning of strings increases chances
 for non-compiled code to do that, esp. for short names.
 
@@ -1043,7 +1197,7 @@ collections builds up traces. These are facts about how this works:
    * Assignments draw from a counter unique for the variable, which becomes the
      variable version. This happens during tree building phase.
 
-   * References are associated to the version of the variable active. This can be
+   * References are associated with the version of the variable active. This can be
      a merge of branches. Trace collection does do that and provides nodes with
      the currently active trace for a variable.
 
@@ -1111,7 +1265,7 @@ Trace structure, there are different kinds of traces.
 
  * Initial write of the version
 
-   There may be a initial write for each version. It can only occur at the
+   There may be an initial write for each version. It can only occur at the
    start of the scope, but not later, and there is only one. This might be
    known to be "initialized" (parameter variables of functions are like that)
    or "uninitialized", or "unknown".
@@ -1133,6 +1287,251 @@ to query facts about the state of a variable in that trace. It's e.g. of some
 interest, if a variable must have a value or must not. This allows to e.g. omit
 checks, know what exceptions might raise.
 
+Python Slots in Optimization
+----------------------------
+
+Basic Slot Idea
++++++++++++++++
+
+For almost all the operations in Python, a form of overloading is
+available. That is what makes it so powerful.
+
+So when you write an expression like this one:
+
+.. code-block:: python
+
+   1.0 + something
+
+This something will not just blindly work when it's a float, but
+go through a slot mechanism, which then can be overloaded.
+
+.. code-block:: python
+
+   class SomeStrangeFloat:
+      def __float__(self):
+         return 3.14
+
+   something = SomeStrangeFloat()
+   ...
+   1.0 + float(something) // 4.140000000000001
+
+Here it is the case, that this is used by user code, but more often
+this is used internally. Not all types have all slots, e.g. `list`
+does not have ``__float__`` and therefore will refuse an addition to
+a `float` value, based on that.
+
+Another slot is working here, that we didn't mention yet, and that
+is ``__add__`` which for some times will be these kinds of conversions
+or it will not do that kind of thing, e.g. something do hard checks,
+which is why this fails to work:
+
+.. code-block:: python
+
+   [] + ()
+
+As a deliberate choice, there is no `__list__` slot used. The Python
+designers are aiming at solving many things with slots, but they
+also accept limitations.
+
+There are many slots that are frequently used, most often behind
+your back (``__iter__``, ``__next__``, ``__lt__``, etc.). The list
+is large, and tends to grow with Python releases, but it is not
+endless.
+
+Representation in Nuitka
+++++++++++++++++++++++++
+
+So a slot in Nuitka typically has an owning node. We use ``__len__``
+as an example here. In the ``computeExpression`` the ``len`` node
+named ``ExpressionBuiltinLen`` has to defer the decision what it
+computes to its argument.
+
+.. code-block:: python
+
+    def computeExpression(self, trace_collection):
+        return self.getValue().computeExpressionLen(
+            len_node=self, trace_collection=trace_collection
+        )
+
+That decision then, in the absence of any type knowledge, must be
+done absolutely carefully and conservative, as could see anything
+executing here.
+
+That examples this code in ``ExpressionBase`` which every expression
+by default uses:
+
+.. code-block:: python
+
+    def computeExpressionLen(self, len_node, trace_collection):
+        shape = self.getValueShape()
+
+        has_len = shape.hasShapeSlotLen()
+
+        if has_len is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template="object of type '%s' has no len()",
+                operation="len",
+                original_node=len_node,
+                value_node=self,
+            )
+        elif has_len is True:
+            iter_length = self.getIterationLength()
+
+            if iter_length is not None:
+                from .ConstantRefNodes import makeConstantRefNode
+
+                result = makeConstantRefNode(
+                    constant=int(iter_length),  # make sure to downcast long
+                    source_ref=len_node.getSourceReference(),
+                )
+
+                result = wrapExpressionWithNodeSideEffects(
+                    new_node=result, old_node=self
+                )
+
+                return (
+                    result,
+                    "new_constant",
+                    "Predicted 'len' result from value shape.",
+                )
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return len_node, None, None
+
+Notice how by default, known ``__len__`` but unpredictable or even
+unknown if a ``__len__`` slot is there, the code indicates that
+its contents and the control flow escapes (could change things
+behind out back) and any exception could happen.
+
+Other expressions can know better, e.g. for compile time constants
+we can be a whole lot more certain:
+
+.. code-block:: python
+
+    def computeExpressionLen(self, len_node, trace_collection):
+        return trace_collection.getCompileTimeComputationResult(
+            node=len_node,
+            computation=lambda: len(self.getCompileTimeConstant()),
+            description="""Compile time constant len value pre-computed.""",
+        )
+
+In this case, we are using a function that will produce a concrete
+value or the exception that the `computation` function raised. In
+this case, we can let the Python interpreter that runs Nuitka do
+all the hard work. This lives in ``CompileTimeConstantExpressionBase``
+and is the base for all kinds of constant values, or even built-in
+references like the name ``len`` itself and would be used in case
+of doing ``len(len)`` which obviously gives an exception.
+
+Other overloads do not currently exist in Nuitka, but through the
+iteration length, most cases could be addressed, e.g. ``list``
+nodes typical know their element counts.
+
+The C side
+----------
+
+When a slot is not optimized away at compile time however, we need
+to generate actual code for it. We figure out what this could be
+by looking at the original CPython implementation.
+
+.. code-block:: C
+
+   PyObject *builtin_len(PyObject *self, PyObject *v)
+   {
+       Py_ssize_t res;
+
+       res = PyObject_Size(v);
+       if (res < 0 && PyErr_Occurred())
+           return NULL;
+       return PyInt_FromSsize_t(res);
+   }
+
+We find a pointer to ``PyObject_Size`` which is a generic Python
+C/API function used in the ``builtin_len`` implementation:
+
+.. code-block:: C
+
+   Py_ssize_t PyObject_Size(PyObject *o)
+   {
+       PySequenceMethods *m;
+
+       if (o == NULL) {
+           null_error();
+           return -1;
+       }
+
+       m = o->ob_type->tp_as_sequence;
+       if (m && m->sq_length)
+           return m->sq_length(o);
+
+       return PyMapping_Size(o);
+   }
+
+On the C level, every Python object (the ``PyObject *``) as a type
+named ``ob_type`` and most of its elements are slots. Sometimes
+they form a group, here ``tp_as_sequence`` and then it may or may
+not contain a function. This one is tried in preference. Then, if
+that fails, next up the mapping size is tried.
+
+.. code-block:: C
+
+   Py_ssize_t PyMapping_Size(PyObject *o)
+   {
+       PyMappingMethods *m;
+
+       if (o == NULL) {
+           null_error();
+           return -1;
+       }
+
+       m = o->ob_type->tp_as_mapping;
+       if (m && m->mp_length)
+           return m->mp_length(o);
+
+       type_error("object of type '%.200s' has no len()", o);
+       return -1;
+   }
+
+This is the same principle, except with ``tp_as_mapping`` and
+``mp_length`` used.
+
+So from this, we can tell how ``len`` gets at what could be a
+Python class ``__len__`` or other built-in types.
+
+In principle, every slot needs to be dealt with in Nuitka, and
+it is assumed that currently all slots are supported on at least
+a very defensive level, to avoid unnoticed escapes of control
+flow.
+
+Built-in call optimization
+--------------------------
+
+For calls to built-in names, there is typically a function in
+Python that delegates to the type constructor (e.g. when we talk
+about ``int`` that just creates an object passing the arguments
+of the call) or its own special implementation as we saw with the
+`len`.
+
+For each built-in called, we have a specialized node, that presents
+to optimization the actions of the built-in. What are the impact,
+what are the results. We have seen the resulting example for ``len``
+above, but how do we get there.
+
+In Python, built-in names are used only if there is no module
+level variable of the name, and of course no local variable of
+that name.
+
+Therefore, optimization of a built-in name is only done if it
+turns out the actually assigned in other code, and then when
+the call comes, arguments are checked and a relatively static
+node is created.
 
 Code Generation towards C
 -------------------------
@@ -1152,7 +1551,7 @@ Every helper function that contains code that might raise needs these
 variables. After a failed call, our variant of ``PyErr_Fetch`` called
 ``FETCH_ERROR_OCCURRED`` must be used to catch the defined error, unless some
 quick exception cases apply. The quick exception means, ``NULL`` return from
-C-API without a set exception means means e.g. ``StopIteration``.
+C-API without a set exception means e.g. ``StopIteration``.
 
 As an optimization, functions that raise exceptions, but are known not to do so,
 for whatever reason, could only be asserted to not do so.
@@ -1236,7 +1635,7 @@ Problems were
 
 The current approach is as follows. Code generation detects constants used in
 only one module, and declared ``static`` there, if the module is the only user,
-or ``extern`` if it is not. Some values or forced to be global, as they are
+or ``extern`` if it is not. Some values are forced to be global, as they are
 used pre-main or in helpers.
 
 These ``extern`` values are globally created before anything is used. The
@@ -1843,7 +2242,7 @@ interact with its body. The body starts with a dictionary provided by the
 metaclass, so that is different, because it can ``__prepare__`` a non-empty
 locals for it, which is hidden away in "prepare_class_dict" below.
 
-What's noteworthy, is that this dictionary, could e.g. be a ``OrderDict``. I am
+What's noteworthy, is that this dictionary, could e.g. be an ``OrderDict``. I am
 not sure, what ``__prepare__`` is allowed to return.
 
 .. code-block:: python
@@ -2313,7 +2712,7 @@ things are not affectable by aliasing in any way.
 .. code-block:: python
 
    a = 3
-   b = 3
+   b = a
 
    b += 4 # a is not changed
 
@@ -3229,6 +3628,77 @@ Limitations for now
    PageBreak
 
 
+Adding dependencies to Nuitka
+=============================
+
+First of all, there is an important distinction to make, runtime or development
+time. The first kind of dependency is used when Nuitka is executing.
+
+Adding a Runtime Dependency
+---------------------------
+
+This is the kind of dependency that is the most scrutinized. As we want Nuitka
+to run on latest greatest Python as well as relatively old ones, we have to be
+very careful with these ones.
+
+There is also a distinction of optional dependencies. Right now e.g. the
+``lxml`` package is relatively optional, and Nuitka can work without it being
+installed, because e.g. on some platforms it will not be easy to do so. That
+bar has lifted somewhat, but it means e.g. that XML based optimization tests
+are not run with all Python versions.
+
+The list of runtime dependencies is in ``requirements.txt`` and it is for
+those the case, that they are not really required to be installed by the
+user, consider this snippet:
+
+.. code-block:: python
+
+   # Folders to use for cache files.
+   appdirs == 1.4.3
+
+   # Scons is the backend building tool to turn C files to binaries.
+   scons == 3.0.4
+
+For both these dependencies, there is either an inline copy (Scons) that we
+handle to use in case, Scons is not available (in fact we have a version that
+works with Python 2.6 and 2.7 still), and also for appdirs. But since inline
+copies are against the rules on some platforms that still do not contain the
+package, we even have our own wrapper which provides a minimal fallback.
+
+.. note::
+
+   Therefore, please if you consider adding one of these, get in touch with
+   @Nuitka-pushers first and get a green light.
+
+Adding a Development Dependency
+-------------------------------
+
+A typical example of a development dependency is ``black`` which is used by
+our autoformat, and then in turn by the git pre-commit hook. It is used to
+format source code, and doesn't have a role at run time of the actual compiler
+code of Nuitka.
+
+Much less strict rules apply to these in comparison to runtime dependencies.
+Generally please take care that the tool must be well maitained an available
+on newer Pythons. Then we can use it, no problem normally. But if it's really
+big, say all of SciPy, we might want to justify it a bit better.
+
+The list of development dependencies is in ``requirements-devel.txt`` and it
+is for example like this:
+
+.. code-block:: python
+
+   # API doc, doxygen helper for Python
+   doxypypy == 0.8.8.6 ; python_version >= '2.7'
+
+So the ``doxypypy`` likely practically anything requires 2.7 or higher, but
+since we still run tests on Python 2.6, the installation would fail with that
+version, so we need to make a version requirement. Sometimes we use older
+versions for Python2 than for Python3, ``pylint`` being a notable candidate,
+but generally we ought to avoid that. For many tools only being available
+for currently 3.6 or higher is good enough, esp. if they are run as standalone
+tools, like ``autoformat-nuitka-source`` is.
+
 Idea Bin
 ========
 
@@ -3453,12 +3923,6 @@ The mix-ins prevent slots usage, so lets try and get rid of those. The "children
 having" should become more simple and faster code. I am even thinking of even
 generating code in the meta class, so it's both optimal and doesn't need that
 mix-in any more. This is going to be ugly then.
-
-Plugins API and Options
------------------------
-
-Plugins need options and should be documented API. So should the doxygen be
-generated automatically and published.
 
 Coverage Testing
 ----------------

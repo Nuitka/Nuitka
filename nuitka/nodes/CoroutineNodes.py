@@ -29,9 +29,7 @@ from .FunctionNodes import ExpressionFunctionEntryPointBase
 class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_MAKE_COROUTINE_OBJECT"
 
-    named_children = (
-        "coroutine_ref",
-    )
+    named_children = ("coroutine_ref",)
 
     getCoroutineRef = ExpressionChildrenHavingBase.childGetter("coroutine_ref")
 
@@ -39,30 +37,24 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
         assert coroutine_ref.getFunctionBody().isExpressionCoroutineObjectBody()
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "coroutine_ref" : coroutine_ref,
-            },
-            source_ref = source_ref
+            self, values={"coroutine_ref": coroutine_ref}, source_ref=source_ref
         )
 
         self.variable_closure_traces = None
 
     def getDetailsForDisplay(self):
-        return {
-            "coroutine" : self.getCoroutineRef().getFunctionBody().getCodeName()
-        }
+        return {"coroutine": self.getCoroutineRef().getFunctionBody().getCodeName()}
 
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
-        for closure_variable in self.getCoroutineRef().getFunctionBody().getClosureVariables():
+        for closure_variable in (
+            self.getCoroutineRef().getFunctionBody().getClosureVariables()
+        ):
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
             trace.addClosureUsage()
 
-            self.variable_closure_traces.append(
-                (closure_variable, trace)
-            )
+            self.variable_closure_traces.append((closure_variable, trace))
 
         # TODO: Coroutine body may know something too.
         return self, None, None
@@ -85,12 +77,12 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionEntryPointBase):
     def __init__(self, provider, name, code_object, flags, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
             self,
-            provider    = provider,
-            name        = name,
-            code_object = code_object,
-            code_prefix = "coroutine",
-            flags       = flags,
-            source_ref  = source_ref
+            provider=provider,
+            name=name,
+            code_object=code_object,
+            code_prefix="coroutine",
+            flags=flags,
+            source_ref=source_ref,
         )
 
         self.needs_generator_return_exit = False
@@ -99,10 +91,7 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionEntryPointBase):
         return self.name
 
     def markAsNeedsGeneratorReturnHandling(self, value):
-        self.needs_generator_return_exit = max(
-            self.needs_generator_return_exit,
-            value
-        )
+        self.needs_generator_return_exit = max(self.needs_generator_return_exit, value)
 
     def needsGeneratorReturnHandling(self):
         return self.needs_generator_return_exit == 2
@@ -126,11 +115,7 @@ class ExpressionAsyncWait(ExpressionChildrenHavingBase):
 
     def __init__(self, expression, source_ref):
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "expression" : expression
-            },
-            source_ref = source_ref
+            self, values={"expression": expression}, source_ref=source_ref
         )
 
         self.exception_preserving = False

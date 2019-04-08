@@ -21,11 +21,14 @@
 
 template_constants_reading = """
 #include "nuitka/prelude.h"
+#include "structseq.h"
 
 // Sentinel PyObject to be used for all our call iterator endings. It will
 // become a PyCObject pointing to NULL. It's address is unique, and that's
 // enough for us to use it as sentinel value.
 PyObject *_sentinel_value = NULL;
+
+PyObject *Nuitka_dunder_compiled_value = NULL;
 
 %(constant_declarations)s
 
@@ -49,13 +52,74 @@ static void _createGlobalConstants( void )
         %(sys_executable)s
     );
 
-    /* Set the "sys.executable" path to the original CPython executable. */
+#ifndef _NUITKA_STANDALONE
+    /* Set the "sys.prefix" path to the original one. */
     PySys_SetObject(
         (char *)"prefix",
         %(sys_prefix)s
     );
 
+    /* Set the "sys.prefix" path to the original one. */
+    PySys_SetObject(
+        (char *)"exec_prefix",
+        %(sys_exec_prefix)s
+    );
+
+
+#if PYTHON_VERSION >= 300
+    /* Set the "sys.base_prefix" path to the original one. */
+    PySys_SetObject(
+        (char *)"base_prefix",
+        %(sys_base_prefix)s
+    );
+
+    /* Set the "sys.exec_base_prefix" path to the original one. */
+    PySys_SetObject(
+        (char *)"base_exec_prefix",
+        %(sys_base_exec_prefix)s
+    );
+
 #endif
+#endif
+#endif
+
+    static PyTypeObject Nuitka_VersionInfoType;
+
+    // Same fields as "sys.version_info" except no serial number.
+    static PyStructSequence_Field Nuitka_VersionInfoFields[] = {
+        {(char *)"major", (char *)"Major release number"},
+        {(char *)"minor", (char *)"Minor release number"},
+        {(char *)"micro", (char *)"Micro release number"},
+        {(char *)"releaselevel", (char *)"'alpha', 'beta', 'candidate', or 'release'"},
+        {0}
+    };
+
+    static PyStructSequence_Desc Nuitka_VersionInfoDesc = {
+        (char *)"__nuitka_version__",                                    /* name */
+        (char *)"__compiled__\\n\\nVersion information as a named tuple.", /* doc */
+        Nuitka_VersionInfoFields,                                        /* fields */
+        4
+    };
+
+    PyStructSequence_InitType(&Nuitka_VersionInfoType, &Nuitka_VersionInfoDesc);
+
+    Nuitka_dunder_compiled_value = PyStructSequence_New(&Nuitka_VersionInfoType);
+    assert(Nuitka_dunder_compiled_value != NULL);
+
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 0, PyInt_FromLong(%(nuitka_version_major)s));
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 1, PyInt_FromLong(%(nuitka_version_minor)s));
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 2, PyInt_FromLong(%(nuitka_version_micro)s));
+
+#if PYTHON_VERSION < 300
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, PyString_FromString("%(nuitka_version_level)s"));
+#else
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, PyUnicode_FromString("%(nuitka_version_level)s"));
+#endif
+    // Prevent users from creating the Nuitka version type object.
+    Nuitka_VersionInfoType.tp_init = NULL;
+    Nuitka_VersionInfoType.tp_new = NULL;
+
+
 }
 
 // In debug mode we can check that the constants were not tampered with in any
@@ -85,5 +149,6 @@ void createGlobalConstants( void )
 }
 """
 
-from . import TemplateDebugWrapper # isort:skip
+from . import TemplateDebugWrapper  # isort:skip
+
 TemplateDebugWrapper.checkDebug(globals())

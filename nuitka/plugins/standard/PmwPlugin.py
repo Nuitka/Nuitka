@@ -36,16 +36,40 @@ from nuitka.utils.FileOperations import listDir
 # other files must appear later.  Files may be deleted if they are not
 # used.
 files = [
-    "Dialog", "TimeFuncs", "Balloon", "ButtonBox", "EntryField",
-    "Group", "LabeledWidget", "MainMenuBar", "MenuBar", "MessageBar",
-    "MessageDialog", "NoteBook", "OptionMenu", "PanedWidget", "PromptDialog",
-    "RadioSelect", "ScrolledCanvas", "ScrolledField", "ScrolledFrame",
-    "ScrolledListBox", "ScrolledText", "HistoryText", "SelectionDialog",
-    "TextDialog", "TimeCounter", "AboutDialog", "ComboBox", "ComboBoxDialog",
-    "Counter", "CounterDialog",
+    "Dialog",
+    "TimeFuncs",
+    "Balloon",
+    "ButtonBox",
+    "EntryField",
+    "Group",
+    "LabeledWidget",
+    "MainMenuBar",
+    "MenuBar",
+    "MessageBar",
+    "MessageDialog",
+    "NoteBook",
+    "OptionMenu",
+    "PanedWidget",
+    "PromptDialog",
+    "RadioSelect",
+    "ScrolledCanvas",
+    "ScrolledField",
+    "ScrolledFrame",
+    "ScrolledListBox",
+    "ScrolledText",
+    "HistoryText",
+    "SelectionDialog",
+    "TextDialog",
+    "TimeCounter",
+    "AboutDialog",
+    "ComboBox",
+    "ComboBoxDialog",
+    "Counter",
+    "CounterDialog",
 ]
 
 # Work out which version is being bundled.
+
 
 class NuitkaPluginPmw(NuitkaPluginBase):
     plugin_name = "pmw-freezer"
@@ -53,10 +77,7 @@ class NuitkaPluginPmw(NuitkaPluginBase):
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "Pmw":
             pmw_path = self.locateModule(
-                importing      = None,
-                module_name    = "Pmw",
-                module_package = None,
-                warn           = True
+                importing=None, module_name="Pmw", module_package=None, warn=True
             )
 
             return self._packagePmw(pmw_path)
@@ -89,7 +110,7 @@ class NuitkaPluginPmw(NuitkaPluginBase):
             sys.exit("Error, cannot find any Pmw versions.")
 
         candidate = os.path.join(pmw_path, candidates[0], "lib")
-        version = candidates[0][4:].replace('_', '.')
+        version = candidates[0][4:].replace("_", ".")
 
         return self._packagePmw2(candidate, version)
 
@@ -98,11 +119,12 @@ class NuitkaPluginPmw(NuitkaPluginBase):
             # Read the filename and modify it so that it can be bundled with the
             # other Pmw files.
             filename = "Pmw" + filename + ".py"
-            text = open(os.path.join(srcdir, filename)).read()
+            with open(os.path.join(srcdir, filename)) as f:
+                text = f.read()
             text = re.sub(r"import Pmw\>", "", text)
             text = re.sub("INITOPT = Pmw.INITOPT", "", text)
             text = re.sub(r"\<Pmw\.", "", text)
-            text = '\n' + ('#' * 70) + '\n' + "### File: " + filename + '\n' + text
+            text = "\n" + ("#" * 70) + "\n" + "### File: " + filename + "\n" + text
             return text
 
         # Code to import the Color module.

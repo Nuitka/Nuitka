@@ -27,7 +27,7 @@ from .c_types.CTypeNuitkaInts import CTypeNuitkaIntOrLongStruct
 from .c_types.CTypePyObjectPtrs import (
     CTypeCellObject,
     CTypePyObjectPtr,
-    CTypePyObjectPtrPtr
+    CTypePyObjectPtrPtr,
 )
 from .c_types.CTypeVoids import CTypeVoid
 
@@ -51,25 +51,25 @@ class VariableDeclaration(object):
         return "%s%s%s%s%s;" % (
             "NUITKA_MAY_BE_UNUSED " if self.maybe_unused else "",
             self.c_type,
-            ' ' if self.c_type[-1] != '*' else "",
+            " " if self.c_type[-1] != "*" else "",
             self.code_name,
-            "" if self.init_value is None else " = %s" % self.init_value
+            "" if self.init_value is None else " = %s" % self.init_value,
         )
 
     def makeCStructDeclaration(self):
         c_type = self.c_type
 
-        if '[' in c_type:
-            array_decl = c_type[c_type.find('['):]
-            c_type = c_type[:c_type.find('[')]
+        if "[" in c_type:
+            array_decl = c_type[c_type.find("[") :]
+            c_type = c_type[: c_type.find("[")]
         else:
             array_decl = ""
 
         return "%s%s%s%s;" % (
             c_type,
-            ' ' if self.c_type[-1] != '*' else "",
+            " " if self.c_type[-1] != "*" else "",
             self.code_name,
-            array_decl
+            array_decl,
         )
 
     def makeCStructInit(self):
@@ -81,7 +81,7 @@ class VariableDeclaration(object):
         return "%s%s = %s;" % (
             ((self.heap_name + "->") if self.heap_name is not None else ""),
             self.code_name,
-            self.init_value
+            self.init_value,
         )
 
     def getCType(self):
@@ -109,10 +109,7 @@ class VariableDeclaration(object):
 
     def __str__(self):
         if self.heap_name:
-            return "%s->%s" % (
-                self.heap_name,
-                self.code_name
-            )
+            return "%s->%s" % (self.heap_name, self.code_name)
         else:
             return self.code_name
 
@@ -120,7 +117,7 @@ class VariableDeclaration(object):
         return "<VariableDeclaration %s %s = %r>" % (
             self.c_type,
             self.code_name,
-            self.init_value
+            self.init_value,
         )
 
 
@@ -131,7 +128,7 @@ class VariableStorage(object):
         "variable_declarations_main",
         "variable_declarations_closure",
         "variable_declarations_locals",
-        "exception_variable_declarations"
+        "exception_variable_declarations",
     )
 
     def __init__(self, heap_name):
@@ -176,23 +173,19 @@ class VariableStorage(object):
 
     def addFrameCacheDeclaration(self, frame_identifier):
         return self.addVariableDeclarationFunction(
-            "static struct Nuitka_FrameObject *",
-            "cache_%s" % frame_identifier,
-            "NULL"
+            "static struct Nuitka_FrameObject *", "cache_%s" % frame_identifier, "NULL"
         )
 
     def makeCStructLevelDeclarations(self):
         return [
             variable_declaration.makeCStructDeclaration()
-            for variable_declaration in
-            self.variable_declarations_heap
+            for variable_declaration in self.variable_declarations_heap
         ]
 
     def makeCStructInits(self):
         return [
             variable_declaration.makeCStructInit()
-            for variable_declaration in
-            self.variable_declarations_heap
+            for variable_declaration in self.variable_declarations_heap
             if variable_declaration.init_value is not None
         ]
 
@@ -201,55 +194,39 @@ class VariableStorage(object):
             self.exception_variable_declarations = (
                 self.addVariableDeclarationTop("PyObject *", "exception_type", "NULL"),
                 self.addVariableDeclarationTop("PyObject *", "exception_value", "NULL"),
-                self.addVariableDeclarationTop("PyTracebackObject *", "exception_tb", "NULL"),
-                self.addVariableDeclarationTop("NUITKA_MAY_BE_UNUSED int", "exception_lineno", '0')
+                self.addVariableDeclarationTop(
+                    "PyTracebackObject *", "exception_tb", "NULL"
+                ),
+                self.addVariableDeclarationTop(
+                    "NUITKA_MAY_BE_UNUSED int", "exception_lineno", "0"
+                ),
             )
 
         return self.exception_variable_declarations
 
     def addVariableDeclarationLocal(self, c_type, code_name):
-        result = VariableDeclaration(
-            c_type,
-            code_name,
-            None,
-            None
-        )
+        result = VariableDeclaration(c_type, code_name, None, None)
 
         self.variable_declarations_locals[-1].append(result)
 
         return result
 
     def addVariableDeclarationClosure(self, c_type, code_name):
-        result = VariableDeclaration(
-            c_type,
-            code_name,
-            None,
-            None
-        )
+        result = VariableDeclaration(c_type, code_name, None, None)
 
         self.variable_declarations_closure.append(result)
 
         return result
 
     def addVariableDeclarationFunction(self, c_type, code_name, init_value):
-        result = VariableDeclaration(
-            c_type,
-            code_name,
-            init_value,
-            None
-        )
+        result = VariableDeclaration(c_type, code_name, init_value, None)
 
         self.variable_declarations_main.append(result)
 
         return result
 
     def addVariableDeclarationTop(self, c_type, code_name, init_value):
-        result = VariableDeclaration(
-            c_type,
-            code_name,
-            init_value,
-            self.heap_name
-        )
+        result = VariableDeclaration(c_type, code_name, init_value, self.heap_name)
 
         if self.heap_name is not None:
             self.variable_declarations_heap.append(result)
@@ -261,15 +238,13 @@ class VariableStorage(object):
     def makeCLocalDeclarations(self):
         return [
             variable_declaration.makeCFunctionLevelDeclaration()
-            for variable_declaration in
-            self.variable_declarations_locals[-1]
+            for variable_declaration in self.variable_declarations_locals[-1]
         ]
 
     def makeCFunctionLevelDeclarations(self):
         return [
             variable_declaration.makeCFunctionLevelDeclaration()
-            for variable_declaration in
-            self.variable_declarations_main
+            for variable_declaration in self.variable_declarations_main
             if variable_declaration.c_type != "void"
         ]
 

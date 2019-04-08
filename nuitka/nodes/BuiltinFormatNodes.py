@@ -27,32 +27,26 @@ from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
-    ExpressionChildrenHavingBase
+    ExpressionChildrenHavingBase,
 )
 from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 from .shapes.BuiltinTypeShapes import (
     ShapeTypeIntOrLong,
     ShapeTypeStr,
-    ShapeTypeStrOrUnicode
+    ShapeTypeStrOrUnicode,
 )
 
 
 class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_FORMAT"
 
-    named_children = (
-        "value",
-        "format_spec"
-    )
+    named_children = ("value", "format_spec")
 
     def __init__(self, value, format_spec, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "value"       : value,
-                "format_spec" : format_spec
-            },
-            source_ref = source_ref
+            values={"value": value, "format_spec": format_spec},
+            source_ref=source_ref,
         )
 
     def getTypeShape(self):
@@ -65,9 +59,11 @@ class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
         format_spec = self.getFormatSpec()
 
         # Go to default way if possible.
-        if format_spec is not None and \
-           format_spec.isExpressionConstantStrRef() and \
-           not format_spec.getCompileTimeConstant():
+        if (
+            format_spec is not None
+            and format_spec.isExpressionConstantStrRef()
+            and not format_spec.getCompileTimeConstant()
+        ):
             self.setFormatSpec(None)
             format_spec = None
 
@@ -76,8 +72,10 @@ class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
             if value.hasShapeStrExact() or value.hasShapeUnicodeExact():
                 return (
                     value,
-                    "new_expression", """\
-Removed useless 'format' on '%s' value.""" % value.getTypeShape().getTypeName()
+                    "new_expression",
+                    """\
+Removed useless 'format' on '%s' value."""
+                    % value.getTypeShape().getTypeName(),
                 )
 
         # TODO: Provide "__format__" slot based handling.
@@ -148,17 +146,19 @@ class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
     def getTypeShape(self):
         return ShapeTypeIntOrLong
 
-
     def computeExpressionDrop(self, statement, trace_collection):
         result = makeStatementExpressionOnlyReplacementNode(
-            expression = self.subnode_value,
-            node       = self
+            expression=self.subnode_value, node=self
         )
 
         del self.parent
 
-        return result, "new_statements", """\
-Removed id taking for unused result."""
+        return (
+            result,
+            "new_statements",
+            """\
+Removed id taking for unused result.""",
+        )
 
     def mayHaveSideEffects(self):
         return self.subnode_value.mayHaveSideEffects()
