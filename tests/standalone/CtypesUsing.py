@@ -52,7 +52,7 @@ if os.name == "nt":
     rv = GetProcessMemoryInfo(
         ctypes.windll.kernel32.GetCurrentProcess(),
         ctypes.byref(counters),
-        ctypes.sizeof(counters)
+        ctypes.sizeof(counters),
     )
 
     if not rv:

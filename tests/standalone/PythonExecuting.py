@@ -26,10 +26,4 @@ set modified PYTHONPATH or PYTHONHOME.
 
 import subprocess, sys
 
-subprocess.call(
-    [
-        sys.executable,
-        "-c",
-        "print('From forked CPython', 27)"
-    ]
-)
+subprocess.call([sys.executable, "-c", "print('From forked CPython', 27)"])

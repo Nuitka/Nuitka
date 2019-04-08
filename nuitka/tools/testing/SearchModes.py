@@ -167,9 +167,9 @@ class SearchModeCoverage(SearchModeBase):
     def isCoverage(self):
         return True
 
+
 class SearchModeOnly(SearchModeByPattern):
     def abortIfExecuted(self):
         if self.active:
             return True
         return False
-    

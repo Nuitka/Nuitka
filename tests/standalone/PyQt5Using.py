@@ -39,23 +39,27 @@ print("OK.")
 
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject, QMetaObject
 
+
 class Communicate(QObject):
     speak = pyqtSignal(int)
-    def __init__(self,name = "",parent = None):
-        QObject.__init__(self,parent)
+
+    def __init__(self, name="", parent=None):
+        QObject.__init__(self, parent)
         self.setObjectName(name)
+
 
 class Speaker(QObject):
     @pyqtSlot(int)
     def on_communicator_speak(self, stuff):
         print(stuff)
 
+
 speaker = Speaker()
-someone = Communicate(name = "communicator",parent = speaker)
+someone = Communicate(name="communicator", parent=speaker)
 
 QMetaObject.connectSlotsByName(speaker)
 
-print("The answer is:",end = "")
+print("The answer is:", end="")
 # emit  'speak' signal
 someone.speak.emit(42)
 print("Slot should have made output by now.")

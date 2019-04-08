@@ -399,7 +399,7 @@ for filename in sorted(os.listdir(".")):
         extra_flags.append("plugin_enable:data-files")
 
     elif filename == "PmwUsing.py":
-        extra_flags.append("plugin_enable:pmw-freeze")
+        extra_flags.append("plugin_enable:pmw-freezer")
 
     elif filename == "OpenGLUsing.py":
         # For the warnings.
