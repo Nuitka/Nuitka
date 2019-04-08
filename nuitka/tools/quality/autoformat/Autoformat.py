@@ -350,7 +350,7 @@ def autoformat(filename, git_stage, abort):
         _cleanupWindowsNewlines(tmp_filename)
 
         changed = False
-        if old_code != getFileContents(tmp_filename):
+        if old_code != getFileContents(tmp_filename, "rb"):
             my_print("Updated.")
 
             if git_stage:
