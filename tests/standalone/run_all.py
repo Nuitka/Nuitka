@@ -680,7 +680,8 @@ for filename in sorted(os.listdir(".")):
         ):
             continue
 
-        if loaded_filename == "/usr/bin/python3.2mu":
+        # Can look at these.
+        if loaded_filename in ("/usr/bin/python3.2mu", "/usr/bin/python3"):
             continue
 
         # Current Python executable can actually be a symlink and
@@ -739,7 +740,7 @@ for filename in sorted(os.listdir(".")):
         sys.exit(1)
 
     removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
-    
+
     if search_mode.abortIfExecuted():
         break
 
