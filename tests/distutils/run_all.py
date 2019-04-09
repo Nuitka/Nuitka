@@ -87,19 +87,38 @@ for filename in sorted(os.listdir(".")):
                 'pip install "%s"' % (os.path.join(dist_dir, os.listdir(dist_dir)[0]))
             )
 
-            # Need to call CPython binary for Windows.
-            process = subprocess.Popen(
-                args=[
-                    sys.executable,
-                    os.path.join(
-                        venv.getVirtualenvDir(),
-                        "bin" if os.name != "nt" else "scripts",
-                        "runner",
-                    ),
-                ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+            runner_binary = os.path.join(
+                venv.getVirtualenvDir(),
+                "bin" if os.name != "nt" else "scripts",
+                "runner",
             )
+
+            if os.path.exists(runner_binary):
+                # Need to call CPython binary for Windows.
+                process = subprocess.Popen(
+                    args=[
+                        os.path.join(
+                            venv.getVirtualenvDir(),
+                            "bin" if os.name != "nt" else "scripts",
+                            "python",
+                        ),
+                        os.path.join(
+                            venv.getVirtualenvDir(),
+                            "bin" if os.name != "nt" else "scripts",
+                            "runner",
+                        ),
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+            else:
+                assert os.path.exists(runner_binary + ".exe")
+
+                process = subprocess.Popen(
+                    args=[runner_binary + ".exe"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
 
             stdout_cpython, stderr_cpython = process.communicate()
             exit_cpython = process.returncode
@@ -136,26 +155,41 @@ for filename in sorted(os.listdir(".")):
                 'pip install "%s"' % (os.path.join(dist_dir, os.listdir(dist_dir)[0]))
             )
 
-            process = subprocess.Popen(
-                args=[
-                    sys.executable,
-                    os.path.join(
-                        venv.getVirtualenvDir(),
-                        "bin" if os.name != "nt" else "scripts",
-                        "runner",
-                    ),
-                ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+            runner_binary = os.path.join(
+                venv.getVirtualenvDir(),
+                "bin" if os.name != "nt" else "scripts",
+                "runner",
             )
+
+            if os.path.exists(runner_binary):
+                process = subprocess.Popen(
+                    args=[
+                        os.path.join(
+                            venv.getVirtualenvDir(),
+                            "bin" if os.name != "nt" else "scripts",
+                            "python",
+                        ),
+                        runner_binary,
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+            else:
+                assert os.path.exists(runner_binary + ".exe")
+
+                process = subprocess.Popen(
+                    args=[runner_binary + ".exe"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
 
             stdout_nuitka, stderr_nuitka = process.communicate()
             exit_nuitka = process.returncode
 
             print("STDOUT Nuitka:")
-            print(stdout_cpython)
+            print(stdout_nuitka)
             print("STDERR Nuitka:")
-            print(stderr_cpython)
+            print(stderr_nuitka)
 
             assert exit_nuitka == 0, exit_nuitka
             print("EXIT was OK.")
