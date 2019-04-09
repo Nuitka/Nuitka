@@ -127,10 +127,6 @@ extern void _initCompiledCoroutineTypes();
 extern void _initCompiledAsyncgenTypes();
 #endif
 
-#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-unsigned char const *constant_bin = NULL;
-#endif
-
 #include <locale.h>
 
 // Types of command line arguments are different between Python2/3.
@@ -246,10 +242,7 @@ int main(int argc, char **argv) {
 #if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
     NUITKA_PRINT_TRACE("main(): Loading constants blob from Windows resource.");
 
-    constant_bin =
-        (const unsigned char *)LockResource(LoadResource(NULL, FindResource(NULL, MAKEINTRESOURCE(3), RT_RCDATA)));
-
-    assert(constant_bin);
+    loadConstantsResource();
 #endif
 
 #ifdef _NUITKA_STANDALONE
@@ -317,7 +310,7 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TRACE("main(): Prepare run environment '" PYTHON_HOME_PATH "'.");
     Py_SetPythonHome(PYTHON_HOME_PATH);
 #else
-    NUITKA_PRINTF_TRACE("main(): Prepare run environment '%S'.\n", L"" PYTHON_HOME_PATH );
+    NUITKA_PRINTF_TRACE("main(): Prepare run environment '%S'.\n", L"" PYTHON_HOME_PATH);
     Py_SetPythonHome(L"" PYTHON_HOME_PATH);
     // Make sure the above Py_SetPythonHome call has effect already.
     Py_GetPath();

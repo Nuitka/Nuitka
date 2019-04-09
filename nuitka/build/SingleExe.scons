@@ -1387,13 +1387,23 @@ if win_target and mingw_mode:
 
 constants_bin_filename = os.path.join(source_dir, "__constants.bin")
 
-if win_target and not module_mode:
+if win_target:
+    resource_mode = "win_resource"
+elif gcc_mode and getLinkerArch() is not None:
+    resource_mode = "linker"
+else:
+    resource_mode = "code"
+
+if show_scons_mode:
+    print("Scons: Using resource mode:", resource_mode)
+
+if resource_mode == "win_resource":
     # On Windows constants are accesses as a resource, except in shared
     # libraries, where that option is not available.
     constants_generated_filename = None
 
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
-elif gcc_mode and getLinkerArch() is not None:
+elif resource_mode == "linker":
     env.Append(
         LINKFLAGS=[
             "-Wl,-b",
@@ -1571,10 +1581,6 @@ if win_target:
     rc_file_dependencies = []
 
     if not module_mode:
-        rc_content.append('3 RCDATA "%s"' % constants_bin_filename.replace("\\", "/"))
-
-        rc_file_dependencies.append(constants_bin_filename)
-
         if icon_path:
             rc_content.append(
                 '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"'

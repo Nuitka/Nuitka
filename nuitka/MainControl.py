@@ -52,6 +52,7 @@ from nuitka.utils.FileOperations import (
     makePath,
     removeDirectory,
 )
+from nuitka.utils.Utils import isWin32Windows
 
 from . import ModuleRegistry, Options, TreeXML
 from .build import SconsInterface
@@ -645,10 +646,11 @@ def compileTree(main_module):
                 filename=os.path.join(source_dir, "__frozen.c"), source_code=frozen_code
             )
 
-        writeBinaryData(
-            filename=os.path.join(source_dir, "__constants.bin"),
-            binary_data=ConstantCodes.stream_data.getBytes(),
-        )
+        if not isWin32Windows():
+            writeBinaryData(
+                filename=os.path.join(source_dir, "__constants.bin"),
+                binary_data=ConstantCodes.stream_data.getBytes(),
+            )
     else:
         source_dir = getSourceDirectoryPath(main_module)
 

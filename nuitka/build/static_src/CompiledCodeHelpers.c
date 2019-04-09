@@ -1986,6 +1986,8 @@ void _initSlotIternext() {
 #include "HelpersOperationBinaryAdd.c"
 #include "HelpersOperationBinaryInplaceAdd.c"
 
+#include "HelpersConstantsBlob.c"
+
 #if _NUITKA_PROFILE
 #include "HelpersProfiling.c"
 #endif
