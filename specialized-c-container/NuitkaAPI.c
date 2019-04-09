@@ -7,7 +7,7 @@ typedef struct
 
 }NuitkaList;
 
-NuitkaList *newList(int n)
+NuitkaList *NuitkaList_New(int n)
 {
 	NuitkaList l;
 	NuitkaList *list = &l;
