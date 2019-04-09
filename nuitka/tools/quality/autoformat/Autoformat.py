@@ -326,9 +326,9 @@ def autoformat(filename, git_stage, abort):
     if git_stage:
         old_code = getFileHashContent(git_stage["dst_hash"])
     else:
-        old_code = getFileContents(filename)
+        old_code = getFileContents(filename, "rb")
 
-    with open(tmp_filename, "w") as output_file:
+    with open(tmp_filename, "wb") as output_file:
         output_file.write(old_code)
 
     try:
