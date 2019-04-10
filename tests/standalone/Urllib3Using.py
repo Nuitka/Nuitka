@@ -58,14 +58,14 @@ def runHTTPServer():
             continue
         else:
             break
-    server.serve_forever()
 
     global started
     started = True
 
+    server.serve_forever()
+
 
 Thread(target=runHTTPServer).start()
-
 while not started:
     pass
 print("Server started.")
