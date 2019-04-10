@@ -277,12 +277,16 @@ def checkRequirements(filename):
                 expression = line[33:]
                 with open(os.devnull, "w") as devnull:
                     result = subprocess.call(
-                        (sys.executable, "-c" "import sys, os; %s" % expression),
+                        (
+                            os.environ["PYTHON"],
+                            "-c",
+                            "import sys, os; sys.exit(not bool(%s))" % expression,
+                        ),
                         stdout=devnull,
                         stderr=subprocess.STDOUT,
                     )
                 if not result == 0:
-                    return (False, expression + "evaluated to false")
+                    return (False, "Expression '%s' evaluated to false" % expression)
 
             elif line[21:30] == "imports: ":
                 imports_needed = line[30:].rstrip().split(",")
@@ -368,12 +372,12 @@ for filename in sorted(os.listdir(".")):
     elif filename == "GtkUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
-        if python_version.startswith("2.6") or python_version.startswith("3.2"):
+        if python_version.startswith("2.6"):
             reportSkip("irrelevant Python version", ".", filename)
             continue
 
         # For the warnings.
-        extra_flags.append("ignore_stderr")
+        extra_flags.append("ignore_warnings")
 
     elif filename.startswith("Win"):
         if os.name != "nt":
@@ -389,7 +393,7 @@ for filename in sorted(os.listdir(".")):
 
     elif filename == "FlaskUsing.py":
         # For the warnings.
-        extra_flags.append("ignore_stderr")
+        extra_flags.append("ignore_warnings")
 
     elif filename == "NumpyUsing.py":
         # TODO: Disabled for now.
@@ -403,7 +407,11 @@ for filename in sorted(os.listdir(".")):
 
     elif filename == "OpenGLUsing.py":
         # For the warnings.
-        extra_flags.append("ignore_stderr")
+        extra_flags.append("ignore_warnings")
+
+    elif filename == "PasslibUsing.py":
+        # For the warnings.
+        extra_flags.append("ignore_warnings")
 
     my_print("Consider output of recursively compiled program:", filename)
 
