@@ -307,6 +307,9 @@ def _isPythonFile(filename):
 def autoformat(filename, git_stage, abort):
     # This does a lot of distinctions, pylint:disable=too-many-branches
 
+    if os.path.isdir(filename):
+        return
+
     filename = os.path.normpath(filename)
 
     my_print("Consider", filename, end=": ")
@@ -315,10 +318,13 @@ def autoformat(filename, git_stage, abort):
 
     is_c = filename.endswith((".c", ".h"))
 
+    is_txt = filename.endswith((".txt", ".rst", ".sh", ".in", ".md", ".stylesheet"))
+
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
-    if _shouldNotFormatCode(filename):
-        is_python = is_c = False
+    if not (is_python or is_c or is_txt) or _shouldNotFormatCode(filename):
+        my_print("Ignored")
+        return
 
     # Work on a temporary copy
     tmp_filename = filename + ".tmp"
@@ -332,22 +338,20 @@ def autoformat(filename, git_stage, abort):
         output_file.write(old_code)
 
     try:
-        _cleanupWindowsNewlines(tmp_filename)
-
         if is_python:
+            _cleanupWindowsNewlines(tmp_filename)
             _cleanupPyLintComments(tmp_filename, abort)
             _cleanupImportSortOrder(tmp_filename)
 
-        if is_python:
             black_call = _getPythonBinaryCall("black")
 
             subprocess.call(black_call + ["-q", tmp_filename])
         elif is_c:
+            _cleanupWindowsNewlines(tmp_filename)
             _cleanupClangFormat(filename)
-        else:
+        elif is_txt:
+            _cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)
-
-        _cleanupWindowsNewlines(tmp_filename)
 
         changed = False
         if old_code != getFileContents(tmp_filename, "rb"):
