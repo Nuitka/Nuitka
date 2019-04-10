@@ -19,12 +19,14 @@
 #
 from __future__ import print_function
 
-import urllib3
+import urllib3  # @UnresolvedImport
 import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread
 
 # nuitka-skip-unless-imports: urllib3
+
+started = False
 
 def runHTTPServer():
     class myServer(BaseHTTPRequestHandler):
@@ -44,18 +46,33 @@ def runHTTPServer():
         def log_request(self, code):
             pass
 
-    server_address = ("127.0.0.1", 8020)
+    global port
     global server
-    server = HTTPServer(server_address, myServer)
+
+    for port in range(8020, 9000):
+        server_address = ("127.0.0.1", port)
+
+        try:
+            server = HTTPServer(server_address, myServer)
+        except OSError:
+            continue
+        else:
+            break
     server.serve_forever()
+
+    global started
+    started = True
 
 
 Thread(target=runHTTPServer).start()
-print("Server started")
+
+while not started:
+    pass
+print("Server started.")
 
 # testing request
 http = urllib3.PoolManager()
-r = http.request("GET", "http://localhost:8020/")
+r = http.request("GET", "http://localhost:%d/" % port)
 # print response
 print(r.status, r.data)
 
@@ -66,7 +83,7 @@ import json
 with open("testjson.json", "w") as f:
     f.write('{"origin": "some, value"}')
 
-r = http.request("GET", "http://localhost:8020/testjson.json")
+r = http.request("GET", "http://localhost:%d/testjson.json" % port)
 
 data = json.loads(r.data.decode("utf-8"))
 if "Date" in data:
