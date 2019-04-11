@@ -1,10 +1,7 @@
-import ctypes
+import NuitkaListModule
 import timeit
 
-l = ctypes.CDLL('./list2.so')
+result = NuitkaListModule.list2()
 
-
-result = l.list_sum()
-
-print(result)
-print(timeit.timeit()*100)
+print("the sum of elements in the list" + result)
+print(timeit.timeit()*1000 + " ms")

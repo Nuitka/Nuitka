@@ -3,5 +3,5 @@ import timeit
 
 result = myModule.list1()
 
-print(result)
-print(timeit.timeit()*100)
+print("the sum of the list " + result)
+print(timeit.timeit()*1000 + " ms")
