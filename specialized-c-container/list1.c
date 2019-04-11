@@ -20,7 +20,7 @@ static PyObject *list1(PyObject* self, PyObject* args)
 		sum = sum + PyLong_AsLong(PyList_GetItem(result,i));
 	}
 
-	return Py_BuildValue("i", sum);;
+	return Py_BuildValue("i", sum);
 }
 
 static PyMethodDef myMethods[] = {

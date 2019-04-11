@@ -1,52 +1,37 @@
-int globalBuffer[100];
+#include <Python.h>
 
-typedef struct
+PyObject *globalBuffer[100];
+
+static size_t idx = 0;
+//make a new list
+static PyObject *NuitkaList_New(size_t n)
 {
-	//iter points after the last element
-	int iter;
-
-}NuitkaList;
-
-NuitkaList *NuitkaList_New(int n)
-{
-	NuitkaList l;
-	NuitkaList *list = &l;
-	list->iter = n;
-	return list;
+	idx = n;
+	return Py_None;
 }
 
-int NuitkaList_SetItem(NuitkaList *list,int i,int item)
+static PyObject *NuitkaList_SetItem(PyObject *list,size_t i,PyObject *item)
 {
-	//if overflow return 1
-	if(list->iter>=i){
-		return 1;
-	}
-	globalBuffer[i] = item;
-	//if successful return 0
-	return 0;
+	globalBuffer[i] = PyLong_AsLong(item); 
+	return Py_None;
 
 }
 
-int NuitkaList_Append(NuitkaList *list,int item)
+static PyObject *NuitkaList_Append(PyObject *list,PyObject *item)
 {
-	//if overflow return 1
-	if(item>=100)return 1;
+	globalBuffer[idx] = item;
 
-	//append the new value at the end of the list
-	//and increase iter by one
-	globalBuffer[list->iter] = item;
-	list->iter = list->iter + 1;
-	//if successful return 0
-	return 0;
+	idx = idx+ 1;
+	return Py_None;
 }
-int NuitkaList_Sum(NuitkaList *list)
+static PyObject *NuitkaList_Sum(PyObject *list)
 {
 	int sum = 0;
 	int i = 0;
-	for(; i <list->iter;i++)
+	for(; i <7;i++)
 	{
 		sum = sum + globalBuffer[i];
 	}
-	return sum;
+	return Py_BuildValue("i", sum);
 
 }
