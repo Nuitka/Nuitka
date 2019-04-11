@@ -17,6 +17,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import Pmw
+import Pmw  # @UnresolvedImport
 
-# nuitka-skip-unless-imports: pygtk
+# nuitka-skip-unless-imports: Pmw

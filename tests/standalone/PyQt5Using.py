@@ -19,12 +19,14 @@
 #
 from __future__ import print_function
 
+import sys
+
+from PyQt5.QtCore import QCoreApplication  # @UnresolvedImport
+from PyQt5.QtCore import QSettings  # @UnresolvedImport
+from PyQt5.QtCore import QMetaObject, QObject, pyqtSignal, pyqtSlot
+
 # This test is playing with configuration settings and checking that works.
 
-from PyQt5.QtCore import QSettings  # @UnresolvedImport
-from PyQt5.QtCore import QCoreApplication  # @UnresolvedImport
-
-import sys
 
 # nuitka-skip-unless-imports: PyQt5.QtGui
 
@@ -36,8 +38,6 @@ print("OK.")
 
 # This test is using signals and will only work if PySide properly accepts
 # compiled functions as callables.
-
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject, QMetaObject
 
 
 class Communicate(QObject):

@@ -22,7 +22,7 @@
 
 from __future__ import print_function
 
-from PyQt4.QtCore import pyqtSlot, pyqtSignal, QObject, QMetaObject
+from PyQt4.QtCore import QMetaObject, QObject, pyqtSignal, pyqtSlot
 
 # nuitka-skip-unless-imports: PyQt4.QtGui
 

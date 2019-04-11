@@ -22,7 +22,7 @@
 
 from __future__ import print_function
 
-from PySide.QtCore import Slot, Signal, QObject, QMetaObject
+from PySide.QtCore import QMetaObject, QObject, Signal, Slot
 
 # nuitka-skip-unless-imports: PySide.QtCore
 

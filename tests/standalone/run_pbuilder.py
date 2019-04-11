@@ -19,12 +19,12 @@
 #     limitations under the License.
 #
 
+import getpass
+import os
+import shutil
 import subprocess
 import sys
-import os
 import tempfile
-import shutil
-import getpass
 
 nuitka_dir = os.path.normcase(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")

@@ -19,8 +19,9 @@
 #
 from __future__ import print_function
 
-import idna.core
 import sys
+
+import idna.core
 
 # nuitka-skip-unless-imports: idna.core
 

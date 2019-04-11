@@ -19,14 +19,22 @@
 #
 from __future__ import print_function
 
-import urllib3  # @UnresolvedImport
+# testing JSON content
+import json
 import os
-from http.server import HTTPServer, BaseHTTPRequestHandler
+
+# test ssl
+import socket
+import ssl
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
+
+import urllib3  # @UnresolvedImport
 
 # nuitka-skip-unless-imports: urllib3
 
 started = False
+
 
 def runHTTPServer():
     class myServer(BaseHTTPRequestHandler):
@@ -58,16 +66,13 @@ def runHTTPServer():
             continue
         else:
             break
+    server.serve_forever()
 
     global started
     started = True
 
-    server.serve_forever()
-
 
 Thread(target=runHTTPServer).start()
-while not started:
-    pass
 print("Server started.")
 
 # testing request
@@ -76,8 +81,6 @@ r = http.request("GET", "http://localhost:%d/" % port)
 # print response
 print(r.status, r.data)
 
-# testing JSON content
-import json
 
 # make a temporary test file
 with open("testjson.json", "w") as f:
@@ -95,9 +98,6 @@ os.remove("testjson.json")
 server.shutdown()
 print("Server shutdown")
 
-# test ssl
-import socket
-import ssl
 
 # TODO: Testing via network is not allowed, but SSL on localhost
 # is not easy.
