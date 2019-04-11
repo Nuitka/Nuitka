@@ -281,8 +281,8 @@ def _shouldNotFormatCode(filename):
 
     if "inline_copy" in parts:
         return True
-    elif "tests" in parts and "run_all.py" not in parts:
-        return True
+    elif "tests" in parts:
+        return "run_all.py" not in parts
     else:
         return False
 
@@ -322,8 +322,8 @@ def autoformat(filename, git_stage, abort):
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
-    if not (is_python or is_c or is_txt) or _shouldNotFormatCode(filename):
-        my_print("Ignored")
+    if not (is_python or is_c or is_txt):
+        my_print("Ignored file type")
         return
 
     # Work on a temporary copy
@@ -340,15 +340,20 @@ def autoformat(filename, git_stage, abort):
     try:
         if is_python:
             _cleanupWindowsNewlines(tmp_filename)
-            _cleanupPyLintComments(tmp_filename, abort)
-            _cleanupImportSortOrder(tmp_filename)
 
-            black_call = _getPythonBinaryCall("black")
+            if not _shouldNotFormatCode(filename):
+                _cleanupPyLintComments(tmp_filename, abort)
+                _cleanupImportSortOrder(tmp_filename)
 
-            subprocess.call(black_call + ["-q", tmp_filename])
+                black_call = _getPythonBinaryCall("black")
+
+                subprocess.call(black_call + ["-q", tmp_filename])
+                _cleanupWindowsNewlines(tmp_filename)
+
         elif is_c:
             _cleanupWindowsNewlines(tmp_filename)
             _cleanupClangFormat(filename)
+            _cleanupWindowsNewlines(tmp_filename)
         elif is_txt:
             _cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)
