@@ -1748,7 +1748,23 @@ createBuildDefinitionsFile()
 if show_scons_mode:
     print("Scons: Launching target:", target)
 
+# Hack to make Scons use tempfile for gcc linking.
+if gcc_mode:
+    tmp_linker_filename = os.path.join(source_dir, "@sources.tmp")
+
+    env["LINKCOM"] = env["LINKCOM"].replace(
+        "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
+    )
+
+    with open(tmp_linker_filename, "w") as tmpfile:
+        for filename in source_files:
+            filename = ".".join(filename.split(".")[:-1]) + ".o"
+            tmpfile.write('"%s"\n' % filename)
+
+        tmpfile.write(env.subst("$SOURCES"))
+
 Default(target)  # @UndefinedVariable
+
 
 # Copy the Python DLL to the target directory, so the executable can be run.
 if uninstalled_python:
