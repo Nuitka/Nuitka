@@ -3628,6 +3628,74 @@ Limitations for now
    PageBreak
 
 
+How to make Features Experimental
+=================================
+
+Every experimental feature needs a name. We have a rule to pick a name with
+lower case and ``_`` as separators. An example of with would be the name
+``jinja_generated_add`` that has been used.
+
+Command Line
+------------
+
+Experimental features are enabled with the command line argument
+
+.. code-block:: sh
+
+   nuitka --experimental=jinja_generated_add ...
+
+In C code
+---------
+
+In Scons, all experimental features automatically are converted into C
+defines, and can be used like this:
+
+.. code-block:: C
+
+   #ifdef _NUITKA_EXPERIMENTAL_JINJA_GENERATED_ADD
+   #include "HelpersOperationGeneratedBinaryAdd.c"
+   #else
+   #include "HelpersOperationBinaryAdd.c"
+   #endif
+
+The C pre-processor is the only thing that makes an experimental feature
+usable.
+
+In Python
+---------
+
+You can query experimental features using ``Options.isExperimental()`` with
+e.g. code like this:
+
+.. code-block:: python
+
+   if Options.isExperimental("use_pefile"):
+      ... # experimental code for pe_file
+   else:
+      ... # standard code
+
+When to use it
+--------------
+
+Often we need to keep feature in parallel because they are not finished, or
+need to be tested after merge and should not break. Then we can do code changes
+that will not make a difference except when the experimental flag is given on
+the command line to Nuitka.
+
+The testing of Nuitka is very heavy weight when e.g. all Python code is
+compiled, and very often, it is interesting to compare behavior with and
+without a change.
+
+When to remove it
+-----------------
+
+When a feature becomes default, we might choose to keep the old variant around,
+but normally we do not. Then we remove the ``if`` and ``#if`` checks and drop
+the old code.
+
+At this time, large scale testing will have demonstrated the viability of the
+code.
+
 Adding dependencies to Nuitka
 =============================
 
