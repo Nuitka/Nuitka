@@ -3,6 +3,69 @@ Nuitka Release 0.6.4 (Draft)
 
 This release is not done yet.
 
+Bug Fixes
+---------
+
+- When linking very large programs or packages, with gcc compiler, Scons can
+  produce commands that are too large for the OS. This happens sooner on the
+  Windows OS, but also on Linux. We now have a workaround that avoids long
+  command lines by using ``@sources.tmp`` syntax.
+
+- Standalone: Remove temporary module after its use, instead of keeping it
+  in ``sys.modules`` where e.g. Quart code tripped over its ``__file__``
+  value that is illegal on Windows.
+
+- Fixed non-usage of our enhanced detection of ``gcc`` version for compilers
+  if given as a full path.
+
+- Fixed non-detection of ``gnu-cc`` as a form of gcc compiler.
+
+New Features
+------------
+
+- Windows: Catch most common user error of using compiler from one architecure
+  against Python from another. We now check those and compare it, and if they
+  do not match, inform the user directly. Previously the compilation could
+  fail, or the linking, with cryptic errors.
+
+- Distutils: Using setuptools and its runners works now too, not merely only
+  pure distutils.
+
+Optimization
+------------
+
+- Windows: Attach data blobs as Windows resource files directly for programs
+  and avoid using C data files for modules or MinGW64.
+
+Tests
+-----
+
+- Added new mode of operation to test runners, ``only`` that executes just
+  one test and stops, useful during development.
+
+- Added new mechanism for standalone tests to expression modules that need
+  to be importable, or else to skip the test by a special comment in the
+  file, instead of by coded checks in the test runner.
+
+- Added also for more complex cases, another form of special comment, that can
+  be any expression, that decides if the test makes sense.
+
+- Cover also setuptools in our distutils tests and made the execution more
+  robust against variable behavior of distutils and setuptools.
+
+- Added standalone test for Urllib3.
+
+- Added standalone test for rsa.
+
+- Added standalone test for Pmw.
+
+- Added standalone test for passlib.
+
+Summary
+-------
+
+This release is not done yet.
+
 
 Nuitka Release 0.6.3
 ====================
