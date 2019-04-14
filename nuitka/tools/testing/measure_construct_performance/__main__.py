@@ -33,6 +33,7 @@ import shutil
 import subprocess
 import sys
 from optparse import OptionParser
+from tempfile import NamedTemporaryFile
 
 from nuitka.tools.testing.Common import (
     check_output,
@@ -43,6 +44,7 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.tools.testing.Constructs import generateConstructCases
 from nuitka.tools.testing.Valgrind import runValgrind
+from nuitka.tools.testing.TestFromTemplateCreator import makeTestFromTemplate
 
 
 def main():
@@ -75,6 +77,12 @@ def main():
 
     if os.path.exists(test_case):
         test_case = os.path.abspath(test_case)
+
+    test_case_data = open(test_case).read()
+    if test_case_data.startswith("{% extends"):
+        temp_file = NamedTemporaryFile(prefix="temp_testing_", suffix=".py")
+        makeTestFromTemplate(test_case, temp_file)
+        test_case = temp_file.name
 
     if options.cpython == "no":
         options.cpython = ""
