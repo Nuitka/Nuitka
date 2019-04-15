@@ -316,13 +316,15 @@ def autoformat(filename, git_stage, abort):
 
     is_python = _isPythonFile(filename)
 
+    is_jinja = filename.endswith(".py.j2")
+
     is_c = filename.endswith((".c", ".h"))
 
     is_txt = filename.endswith((".txt", ".rst", ".sh", ".in", ".md", ".stylesheet"))
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
-    if not (is_python or is_c or is_txt):
+    if not (is_python or is_c or is_txt or is_jinja):
         my_print("Ignored file type")
         return
 
@@ -341,7 +343,7 @@ def autoformat(filename, git_stage, abort):
         if is_python:
             _cleanupWindowsNewlines(tmp_filename)
 
-            if not _shouldNotFormatCode(filename):
+            if True: #not _shouldNotFormatCode(filename):
                 _cleanupPyLintComments(tmp_filename, abort)
                 _cleanupImportSortOrder(tmp_filename)
 
@@ -357,6 +359,10 @@ def autoformat(filename, git_stage, abort):
         elif is_txt:
             _cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)
+        elif is_jinja:
+            _cleanupWindowsNewlines(tmp_filename)
+            _cleanupTrailingWhitespace(tmp_filename)
+            _cleanupImportSortOrder(tmp_filename)
 
         changed = False
         if old_code != getFileContents(tmp_filename, "rb"):
