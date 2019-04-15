@@ -1,0 +1,20 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+
+
+
+{% endblock %}
+{% block in_function %}
+    # We measure making a generator iterator step or not.
+    def generator():
+        yield 1
+        yield 2
+        yield 3
+
+    gen = generator()
+
+    x = next(gen)
+{% endblock %}
+{% block construct %}
+    next(gen)
+{% endblock %}

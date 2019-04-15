@@ -1,0 +1,27 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+
+module_value1 = 5
+
+additiv_global = u'*' * 500
+
+{% endblock %}
+{% block in_function %}
+    # Force frame and eliminate forward propagation (currently).
+    module_value1
+
+    # Make sure we have a local variable s anyway
+    s = u'2'
+
+    additiv = additiv_global
+
+    s += additiv
+{% endblock %}
+{% block construct %}
+    s += u'lala'
+{% endblock %}
+{% block after_construct %}
+    s += additiv
+
+    return s
+{% endblock %}

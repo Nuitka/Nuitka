@@ -1,0 +1,29 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+from __future__ import print_function
+
+def compiled_func(a,b,c,d,e,f):
+    return a, b, c, d, e, f
+
+def getUnknownValue():
+    return 8
+
+{% endblock %}
+{% block in_function %}
+    a = getUnknownValue()
+    b = getUnknownValue()
+    c = getUnknownValue()
+    d = getUnknownValue()
+    e = getUnknownValue()
+    f = getUnknownValue()
+
+    # This is supposed to make a call to a non-compiled function, which is
+    # being optimized separately.
+{% endblock %}
+{% block construct %}
+    compiled_func(a, b, c, d, e, f)
+    compiled_func(a, c, b, d, e, f)
+    compiled_func(a, b, c, d, f, e)
+# construct_alternative
+    pass
+{% endblock %}

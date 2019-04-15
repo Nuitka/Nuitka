@@ -1,0 +1,23 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+from __future__ import print_function
+
+class C:
+    def compiled_method(self, a,b,c,d,e,f):
+        return a, b, c, d, e, f
+
+{% endblock %}
+{% block in_function %}
+    inst = C()
+
+    # This is supposed to make a call to a non-compiled function, which is
+    # being optimized separately.
+{% endblock %}
+{% block construct %}
+    inst.compiled_method("some", "random", "values", "to", "check", "call")
+    inst.compiled_method("some", "other", "values", "to", "check", "call")
+    inst.compiled_method("some", "new", "values", "to", "check", "call")
+
+# construct_alternative
+    pass
+{% endblock %}

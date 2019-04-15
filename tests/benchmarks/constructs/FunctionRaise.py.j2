@@ -1,0 +1,24 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+
+from __future__ import print_function
+
+count = 0
+
+def raisy():
+    global count
+    count += 1
+
+    raise TypeError
+
+{% endblock %}
+{% block in_function %}
+{% endblock %}
+{% block construct %}
+    try:
+        raisy()
+    except TypeError:
+        pass
+# construct_alternative
+    pass
+{% endblock %}

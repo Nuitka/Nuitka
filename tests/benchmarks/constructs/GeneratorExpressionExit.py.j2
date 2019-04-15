@@ -1,0 +1,24 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+{% endblock %}
+{% block in_function %}
+    # We measure making a generator iterator step or not.
+    gen = (x for x in range(3))
+
+    next(gen)
+
+    # Take attribute lookup out of it, and built-in lookup too.
+    throw = gen.throw
+    exc = GeneratorExit
+
+    try:
+{% endblock %}
+{% block construct %}
+        throw(exc)
+# construct_alternative
+        pass
+{% endblock %}
+{% block after_construct %}
+    except exc:
+        pass
+{% endblock %}

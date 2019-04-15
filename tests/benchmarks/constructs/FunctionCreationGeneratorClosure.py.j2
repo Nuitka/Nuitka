@@ -1,0 +1,18 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+
+module_var = None
+
+{% endblock %}
+{% block in_function %}
+    # We measure making a local function that will remain unused.
+    closure_var = module_var
+
+{% endblock %}
+{% block construct %}
+    def empty():
+        yield closure_var
+
+# construct_alternative
+    empty = 1
+{% endblock %}

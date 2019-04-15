@@ -1,0 +1,21 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+module_value1 = module_value2 = module_value3 = module_value4 = 1000
+module_key1 = module_key2 = module_key3 = module_key4 = 1000
+
+{% endblock %}
+{% block in_function %}
+    # Force frame and eliminate forward propagation (currently).
+    module_value1
+
+{% endblock %}
+{% block construct %}
+    l = {
+        module_key1 : module_value1,
+        module_key2 : module_value2,
+        module_key3 : module_value3,
+        module_key4 : module_value4
+    }
+# construct_alternative
+    l = 1
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+module_value1 = 1000
+
+{% endblock %}
+{% block in_function %}
+    # Force frame and eliminate forward propagation (currently).
+    module_value1
+
+{% endblock %}
+{% block construct %}
+    l = {
+        module_value1,
+        module_value1,
+        module_value1,
+        module_value1,
+        module_value1
+    }
+# construct_alternative
+    l = 1
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+
+empty = set()
+
+value = set(range(10))
+
+{% endblock %}
+{% block in_function %}
+    # We measure making a generator iterator step or not.
+
+    x = value
+
+    # This should abort.
+{% endblock %}
+{% block construct %}
+    y = sum(x)
+# construct_alternative
+    y = sum(empty)
+{% endblock %}

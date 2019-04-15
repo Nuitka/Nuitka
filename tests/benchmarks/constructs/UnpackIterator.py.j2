@@ -1,0 +1,19 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+module_var = 1
+range_arg = 2
+
+{% endblock %}
+{% block in_function %}
+    global module_var
+    c = module_var
+
+    iterator=iter(range(range_arg))
+
+{% endblock %}
+{% block construct %}
+    a, b = iterator
+# construct_alternative
+    a = c
+    b = c
+{% endblock %}

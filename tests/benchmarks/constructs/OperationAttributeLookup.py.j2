@@ -1,0 +1,22 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+
+module_value1 = list()
+module_value2 = 3000
+
+{% endblock %}
+{% block in_function %}
+    # Force frame and eliminate forward propagation (currently).
+    module_value1
+
+    local_value = module_value1
+
+    s = module_value1
+    s.append
+{% endblock %}
+{% block construct %}
+    s.append
+{% endblock %}
+{% block after_construct %}
+    s.append
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+
+
+def empty():
+    pass
+
+module_var = None
+
+{% endblock %}
+{% block in_function %}
+    # We measure making that call or not. Lets get the module
+    # variable look-up out of the game, by making it a local
+    # variable
+    called = empty
+
+{% endblock %}
+{% block construct %}
+    called()
+{% endblock %}

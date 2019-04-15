@@ -1,0 +1,19 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+
+module_value1 = 18446744073709551615 + 10
+module_value2 = 18446744073709551615 + 10
+
+{% endblock %}
+{% block in_function %}
+    # Force frame and eliminate forward propagation (currently).
+    module_value1
+
+    local_value = module_value1
+
+    s = module_value1
+    t = module_value2
+{% endblock %}
+{% block construct %}
+    t = s + t
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+from __future__ import print_function
+
+exec("""
+def python_func(a,b,c,d,e,f):
+    pass
+""")
+
+a = (
+   1, 2, 3, 4, 5
+)
+
+{% endblock %}
+{% block in_function %}
+    # This is supposed to make a call to a non-compiled function, which is
+    # being optimized separately.
+    args = a
+
+{% endblock %}
+{% block construct %}
+    python_func(3, *a)
+# construct_alternative
+    pass
+{% endblock %}

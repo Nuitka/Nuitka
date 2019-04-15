@@ -1,0 +1,26 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+module_value1 = 1000
+module_value2 = None
+module_value3 = None
+
+{% endblock %}
+{% block in_function %}
+    closure_value = module_value1
+
+    def f():
+        # Force frame and eliminate forward propagation (currently).
+        module_value1
+
+        # Use writing to global variable as access method.
+        global module_value2, module_value3
+
+{% endblock %}
+{% block construct %}
+        module_value2 = closure_value
+{% endblock %}
+{% block after_construct %}
+        module_value3 = closure_value
+
+    f()
+{% endblock %}

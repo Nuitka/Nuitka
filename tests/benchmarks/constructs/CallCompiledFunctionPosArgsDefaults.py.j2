@@ -1,0 +1,19 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+from __future__ import print_function
+
+def compiled_func(a = 1,b = 2,c = 3,d = 4,e = 5,f = 6):
+    return a, b, c, d, e, f
+
+{% endblock %}
+{% block in_function %}
+    # This is supposed to make a call to a non-compiled function, which is
+    # being optimized separately.
+{% endblock %}
+{% block construct %}
+    compiled_func()
+    compiled_func()
+    compiled_func()
+# construct_alternative
+    pass
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+
+
+
+{% endblock %}
+{% block in_function %}
+    # We measure making a local function that will remain unused.
+{% endblock %}
+{% block construct %}
+    def empty():
+        pass
+# construct_alternative
+    empty = 1
+{% endblock %}

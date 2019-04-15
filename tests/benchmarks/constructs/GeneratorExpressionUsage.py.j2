@@ -1,0 +1,23 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+
+not_all = [1,1,1,1,1,1,1,1,0,1]
+
+{% endblock %}
+{% block in_function %}
+    # We measure making a generator iterator step or not.
+    gen = (x for x in not_all)
+
+    # make sure it is started.
+    x = next(gen)
+
+    # This should abort.
+{% endblock %}
+{% block construct %}
+    all(gen)
+{% endblock %}
+{% block after_construct %}
+
+    # make sure it is still running.
+    y = next(gen)
+{% endblock %}

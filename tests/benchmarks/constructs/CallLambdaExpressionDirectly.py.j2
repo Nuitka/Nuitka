@@ -1,0 +1,12 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+from __future__ import print_function
+
+{% endblock %}
+{% block in_function %}
+{% endblock %}
+{% block construct %}
+    return (lambda x : x)(7)
+# construct_alternative
+    return 7
+{% endblock %}
