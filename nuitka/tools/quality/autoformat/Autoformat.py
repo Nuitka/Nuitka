@@ -281,8 +281,8 @@ def _shouldNotFormatCode(filename):
 
     if "inline_copy" in parts:
         return True
-    elif "tests" in parts and "run_all.py" not in parts:
-        return True
+    elif "tests" in parts:
+        return "run_all.py" not in parts
     else:
         return False
 
@@ -307,6 +307,9 @@ def _isPythonFile(filename):
 def autoformat(filename, git_stage, abort):
     # This does a lot of distinctions, pylint:disable=too-many-branches
 
+    if os.path.isdir(filename):
+        return
+
     filename = os.path.normpath(filename)
 
     my_print("Consider", filename, end=": ")
@@ -315,10 +318,13 @@ def autoformat(filename, git_stage, abort):
 
     is_c = filename.endswith((".c", ".h"))
 
+    is_txt = filename.endswith((".txt", ".rst", ".sh", ".in", ".md", ".stylesheet"))
+
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
-    if _shouldNotFormatCode(filename):
-        is_python = is_c = False
+    if not (is_python or is_c or is_txt):
+        my_print("Ignored file type")
+        return
 
     # Work on a temporary copy
     tmp_filename = filename + ".tmp"
@@ -326,31 +332,34 @@ def autoformat(filename, git_stage, abort):
     if git_stage:
         old_code = getFileHashContent(git_stage["dst_hash"])
     else:
-        old_code = getFileContents(filename)
+        old_code = getFileContents(filename, "rb")
 
-    with open(tmp_filename, "w") as output_file:
+    with open(tmp_filename, "wb") as output_file:
         output_file.write(old_code)
 
     try:
-        _cleanupWindowsNewlines(tmp_filename)
-
         if is_python:
-            _cleanupPyLintComments(tmp_filename, abort)
-            _cleanupImportSortOrder(tmp_filename)
+            _cleanupWindowsNewlines(tmp_filename)
 
-        if is_python:
-            black_call = _getPythonBinaryCall("black")
+            if not _shouldNotFormatCode(filename):
+                _cleanupPyLintComments(tmp_filename, abort)
+                _cleanupImportSortOrder(tmp_filename)
 
-            subprocess.call(black_call + ["-q", tmp_filename])
+                black_call = _getPythonBinaryCall("black")
+
+                subprocess.call(black_call + ["-q", tmp_filename])
+                _cleanupWindowsNewlines(tmp_filename)
+
         elif is_c:
+            _cleanupWindowsNewlines(tmp_filename)
             _cleanupClangFormat(filename)
-        else:
+            _cleanupWindowsNewlines(tmp_filename)
+        elif is_txt:
+            _cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)
 
-        _cleanupWindowsNewlines(tmp_filename)
-
         changed = False
-        if old_code != getFileContents(tmp_filename):
+        if old_code != getFileContents(tmp_filename, "rb"):
             my_print("Updated.")
 
             if git_stage:

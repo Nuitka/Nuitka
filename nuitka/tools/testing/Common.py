@@ -39,8 +39,8 @@ from .SearchModes import (
     SearchModeBase,
     SearchModeByPattern,
     SearchModeCoverage,
-    SearchModeResume,
     SearchModeOnly,
+    SearchModeResume,
 )
 
 

@@ -262,8 +262,8 @@ def getFileContentByLine(filename, mode="r"):
         return f.readlines()
 
 
-def getFileContents(filename):
-    with open(filename, "r") as f:
+def getFileContents(filename, mode="r"):
+    with open(filename, mode) as f:
         return f.read()
 
 

@@ -23,17 +23,19 @@ First, if the PR is directly related to an already existing issue (which has no
 PR yet), drop a note in that issue before opening the PR.
 
  1. Fork the repo on github.
- 2. Make a new branch. For feature additions/changes base your new branch at
+ 2. Install the pre-commit hook that is going to automatically format your
+    code as described in the Developer Manual.
+ 3. Make a new branch. For feature additions/changes base your new branch at
     `develop`, for pure bugfixes base your new branch at e.g. `master`.
- 3. Ideally add a test specific for your change to demonstrate it. Due to Nuitka
+ 4. Ideally add a test specific for your change to demonstrate it. Due to Nuitka
     testing being basically to compile the whole world, it's ok to not have one.
     But obviously if you fix something, it wasn't observed by that, it would be
     good to provide a reproducer.
- 4. Make the tests pass.
- 5. Push to your fork and submit a pull request.
+ 5. Make the tests pass.
+ 6. Push to your fork and submit a pull request.
     - for feature branches set base branch to `nuitka:develop`
     - for bugfix branches set base branch to the latest maintenance branch, e.g. `nuitka:master`
- 6. Wait for review, suggestions for improvements or alternative ideas may
+ 7. Wait for review, suggestions for improvements or alternative ideas may
     happen. Keep in mind that PR checklist items can be met after the pull
     request has been opened by adding more commits to the branch.
 

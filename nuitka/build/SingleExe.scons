@@ -604,10 +604,10 @@ def setupSpawn(env):
 
 
 the_compiler = env["CC"] or env["CXX"]
-printCompilerVersionOutput("Picked compiler=", the_compiler)
+printCompilerVersionOutput("Picked compiler:", the_compiler)
 
 the_cc_name = os.path.normcase(os.path.basename(the_compiler))
-printCompilerVersionOutput("Picked name=", the_cc_name)
+printCompilerVersionOutput("Picked name:", the_cc_name)
 
 # Requested or user provided, detect if it's clang even from environment
 if "clang" in the_cc_name and "-cl" not in the_cc_name:
@@ -855,7 +855,7 @@ if mingw_mode:
     env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])
 
 # At least older MinGW64 has issues with this, so disable it.
-if mingw_mode and gcc_version < "6":
+if mingw_mode and gcc_version < "6" and not clang_mode:
     env.Append(LINKFLAGS=["-Wl,--no-gc-sections"])
 
 if debug_mode:
@@ -970,7 +970,8 @@ if win_target:
     # For MinGW and cross compilation, we need to tell the subsystem
     # to target as well as to automatically import everything used.
     if gcc_mode:
-        env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
+        if not clang_mode:
+            env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
 
         if win_disable_console:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
@@ -1265,7 +1266,7 @@ else:
     if gcc_mode:
         if macosx_target:
             env.Append(LINKFLAGS=["-Wno-deprecated-declarations"])
-        else:
+        elif not clang_mode:
             env.Append(LINKFLAGS=["-s"])
 
 # When debugging, optimize less than when optimizing, when not remove
@@ -1306,15 +1307,14 @@ if gcc_mode and not macosx_target and not win_target and not module_mode:
         env.Append(LINKFLAGS=["-Wl,--disable-new-dtags"])
 
 
-def _getLinkerArch():
-    if "linux" in sys.platform:
-        python_exe = os.environ["NUITKA_PYTHON_EXE_PATH"]
-        assert os.path.exists(python_exe), python_exe
+def _getBinaryArch(binary):
+    if "linux" in sys.platform or mingw_mode:
+        assert os.path.exists(binary), binary
 
-        command = ["objdump", "-f", python_exe]
+        command = ["objdump", "-f", binary]
 
         if show_scons_mode:
-            print("Scons: Detecting Linux target arch with :", command)
+            print("Scons: Detecting arch with :", command)
 
         try:
             proc = subprocess.Popen(
@@ -1352,21 +1352,59 @@ def getLinkerArch():
     global _linker_arch_determined, _linker_arch
 
     if not _linker_arch_determined:
-        _linker_arch = _getLinkerArch()
+        _linker_arch = _getBinaryArch(os.environ["NUITKA_PYTHON_EXE_PATH"])
         _linker_arch_determined = True
 
     return _linker_arch
 
 
+_compiler_arch_determined = False
+_compiler_arch = None
+
+
+def getCompilerArch():
+    global _compiler_arch_determined, _compiler_arch
+
+    if not _compiler_arch_determined:
+        _compiler_arch = _getBinaryArch(getExecutablePath(the_compiler, initial=False))
+        _compiler_arch_determined = True
+
+    return _compiler_arch
+
+
+if win_target and mingw_mode:
+    # Check most common user error related to MinGW64. People install 32 and
+    # 64 variants and do not consider that MinGW64 could be 32 bits too.
+
+    if getLinkerArch() != getCompilerArch():
+        sys.exit(
+            "Error, mismatch between Python %s and MinGW64 ('%s') arches."
+            % (
+                "%s" % (getLinkerArch() or "unknown, but likely 'pei-x86-64'"),
+                getCompilerArch(),
+            )
+        )
+
+
 constants_bin_filename = os.path.join(source_dir, "__constants.bin")
 
-if win_target and not module_mode:
+if win_target:
+    resource_mode = "win_resource"
+elif gcc_mode and getLinkerArch() is not None:
+    resource_mode = "linker"
+else:
+    resource_mode = "code"
+
+if show_scons_mode:
+    print("Scons: Using resource mode:", resource_mode)
+
+if resource_mode == "win_resource":
     # On Windows constants are accesses as a resource, except in shared
     # libraries, where that option is not available.
     constants_generated_filename = None
 
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
-elif gcc_mode and getLinkerArch() is not None:
+elif resource_mode == "linker":
     env.Append(
         LINKFLAGS=[
             "-Wl,-b",
@@ -1544,10 +1582,6 @@ if win_target:
     rc_file_dependencies = []
 
     if not module_mode:
-        rc_content.append('3 RCDATA "%s"' % constants_bin_filename.replace("\\", "/"))
-
-        rc_file_dependencies.append(constants_bin_filename)
-
         if icon_path:
             rc_content.append(
                 '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"'
@@ -1598,7 +1632,7 @@ else:
     target = env.Program(result_exe, source_files + source_targets)
 
 # Avoid dependency on MinGW libraries.
-if win_target and gcc_mode:
+if win_target and gcc_mode and not clang_mode:
     env.Append(LINKFLAGS=["-static-libgcc"])
 
 # Avoid IO for compilation as much as possible, this should make the
@@ -1714,7 +1748,23 @@ createBuildDefinitionsFile()
 if show_scons_mode:
     print("Scons: Launching target:", target)
 
+# Hack to make Scons use tempfile for gcc linking.
+if gcc_mode:
+    tmp_linker_filename = os.path.join(source_dir, "@sources.tmp")
+
+    env["LINKCOM"] = env["LINKCOM"].replace(
+        "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
+    )
+
+    with open(tmp_linker_filename, "w") as tmpfile:
+        for filename in source_files:
+            filename = ".".join(filename.split(".")[:-1]) + ".o"
+            tmpfile.write('"%s"\n' % filename)
+
+        tmpfile.write(env.subst("$SOURCES"))
+
 Default(target)  # @UndefinedVariable
+
 
 # Copy the Python DLL to the target directory, so the executable can be run.
 if uninstalled_python:

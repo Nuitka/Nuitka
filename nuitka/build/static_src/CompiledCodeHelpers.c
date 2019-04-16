@@ -1770,6 +1770,24 @@ static PyObject *getBinaryDirectoryObject() {
 }
 
 #else
+
+#if defined(_WIN32)
+/* Small helper function to get current DLL handle. */
+static HMODULE getDllModuleHandle() {
+    static HMODULE hm = NULL;
+
+    if (hm == NULL) {
+        int res =
+            GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                               (LPCSTR)&getDllModuleHandle, &hm);
+        assert(res != 0);
+    }
+
+    assert(hm != NULL);
+    return hm;
+}
+#endif
+
 static char *getDllDirectory() {
 #if defined(_WIN32)
     static char path[MAXPATHLEN + 1];
@@ -1780,21 +1798,13 @@ static char *getDllDirectory() {
     WCHAR path2[MAXPATHLEN + 1];
     path2[0] = 0;
 
-    int res = GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                                 (LPCSTR)&getDllDirectory, &hm);
-    assert(res != 0);
-
-    res = GetModuleFileNameW(hm, path2, MAXPATHLEN + 1);
+    int res = GetModuleFileNameW(getDllModuleHandle(), path2, MAXPATHLEN + 1);
     assert(res != 0);
 
     int res2 = WideCharToMultiByte(CP_UTF8, 0, path2, -1, path, MAXPATHLEN + 1, NULL, NULL);
     assert(res2 != 0);
 #else
-    int res = GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                                 (LPCSTR)&getDllDirectory, &hm);
-    assert(res != 0);
-
-    res = GetModuleFileNameA(hm, path, MAXPATHLEN + 1);
+    int res = GetModuleFileNameA(getDllModuleHandle(), path, MAXPATHLEN + 1);
     assert(res != 0);
 #endif
     PathRemoveFileSpec(path);
@@ -1975,6 +1985,8 @@ void _initSlotIternext() {
 
 #include "HelpersOperationBinaryAdd.c"
 #include "HelpersOperationBinaryInplaceAdd.c"
+
+#include "HelpersConstantsBlob.c"
 
 #if _NUITKA_PROFILE
 #include "HelpersProfiling.c"

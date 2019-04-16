@@ -15,29 +15,34 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-#ifndef __NUITKA_CONSTANTS_BLOB_H__
-#define __NUITKA_CONSTANTS_BLOB_H__
 
-/** Declaration of the constants binary blob.
+/** Providing access to the constants binary blob.
  *
  * There are multiple ways, the constants binary is accessed, and its
  * definition depends on how that is done.
  *
- * It could be a Windows resource, then it must be a pointer. If it's defined
- * externally in a C file, or at link time with "ld", it must be an array. This
- * hides these facts.
+ * This deals with loading the resource from a DLL under Windows.
  *
  */
 
 #if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-extern const unsigned char *constant_bin;
-void loadConstantsResource();
-#else
-#ifdef __cplusplus
-extern "C" const unsigned char constant_bin[];
-#else
-const unsigned char constant_bin[0];
-#endif
+
+#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
+unsigned char const *constant_bin = NULL;
 #endif
 
+void loadConstantsResource() {
+
+#ifdef _NUITKA_EXE
+    // Using NULL as this indicates running program.
+    HMODULE handle = NULL;
+#else
+    HMODULE handle = getDllModuleHandle();
+#endif
+
+    constant_bin =
+        (const unsigned char *)LockResource(LoadResource(handle, FindResource(handle, MAKEINTRESOURCE(3), RT_RCDATA)));
+
+    assert(constant_bin);
+}
 #endif

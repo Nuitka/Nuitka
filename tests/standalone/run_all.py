@@ -277,12 +277,16 @@ def checkRequirements(filename):
                 expression = line[33:]
                 with open(os.devnull, "w") as devnull:
                     result = subprocess.call(
-                        (sys.executable, "-c" "import sys, os; %s" % expression),
+                        (
+                            os.environ["PYTHON"],
+                            "-c",
+                            "import sys, os; sys.exit(not bool(%s))" % expression,
+                        ),
                         stdout=devnull,
                         stderr=subprocess.STDOUT,
                     )
                 if not result == 0:
-                    return (False, expression + "evaluated to false")
+                    return (False, "Expression '%s' evaluated to false" % expression)
 
             elif line[21:30] == "imports: ":
                 imports_needed = line[30:].rstrip().split(",")
@@ -319,48 +323,10 @@ for filename in sorted(os.listdir(".")):
     if not requirements_met:
         reportSkip(error_message, ".", filename)
         continue
-
-    elif filename == "PySideUsing.py":
-        # Don't test on platforms not supported by current Debian testing, and
-        # which should be considered irrelevant by now.
-        if python_version.startswith("2.6") or python_version.startswith("3.2"):
-            reportSkip("irrelevant Python version", ".", filename)
-            continue
-
-        # For the warnings.
-        extra_flags.append("ignore_stderr")
-
-    elif "PyQt4" in filename:
-        # Don't test on platforms not supported by current Debian testing, and
-        # which should be considered irrelevant by now.
-        if python_version.startswith("2.6") or python_version.startswith("3.2"):
-            reportSkip("irrelevant Python version", ".", filename)
-            continue
-
-        # For the plug-in information.
-        extra_flags.append("ignore_infos")
-
     elif "Idna" in filename:
         # For the warnings of Python2.
         if python_version.startswith("2"):
             extra_flags.append("ignore_stderr")
-
-    elif "PyQt5" in filename:
-        # Don't test on platforms not supported by current Debian testing, and
-        # which should be considered irrelevant by now.
-        if python_version.startswith("2.6") or python_version.startswith("3.2"):
-            reportSkip("irrelevant Python version", ".", filename)
-            continue
-
-        # For the plug-in information.
-        extra_flags.append("ignore_infos")
-
-    # TODO: Temporary only
-    elif os.name == "nt" and "PyQt" in filename:
-        continue
-
-    elif "PySide" in filename or "PyQt" in filename:
-        extra_flags.append("plugin_enable:qt-plugins")
 
     elif filename == "CtypesUsing.py":
         extra_flags.append("plugin_disable:pylint-warnings")
@@ -368,12 +334,12 @@ for filename in sorted(os.listdir(".")):
     elif filename == "GtkUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
-        if python_version.startswith("2.6") or python_version.startswith("3.2"):
+        if python_version.startswith("2.6"):
             reportSkip("irrelevant Python version", ".", filename)
             continue
 
         # For the warnings.
-        extra_flags.append("ignore_stderr")
+        extra_flags.append("ignore_warnings")
 
     elif filename.startswith("Win"):
         if os.name != "nt":
@@ -386,24 +352,34 @@ for filename in sorted(os.listdir(".")):
 
         if os.name == "nt":
             extra_flags.append("plugin_enable:tk-inter")
-
     elif filename == "FlaskUsing.py":
         # For the warnings.
-        extra_flags.append("ignore_stderr")
-
+        extra_flags.append("ignore_warnings")
     elif filename == "NumpyUsing.py":
         # TODO: Disabled for now.
         reportSkip("numpy.test not fully working yet", ".", filename)
         continue
 
         extra_flags.append("plugin_enable:data-files")
-
     elif filename == "PmwUsing.py":
-        extra_flags.append("plugin_enable:pmw-freeze")
-
+        extra_flags.append("plugin_enable:pmw-freezer")
     elif filename == "OpenGLUsing.py":
         # For the warnings.
-        extra_flags.append("ignore_stderr")
+        extra_flags.append("ignore_warnings")
+    elif filename == "PasslibUsing.py":
+        # For the warnings.
+        extra_flags.append("ignore_warnings")
+
+    if filename.startswith(("PySide", "PyQt")):
+        if python_version.startswith("2.6"):
+            reportSkip("irrelevant Python version", ".", filename)
+            continue
+
+        if "Plugins" in filename:
+            extra_flags.append("plugin_enable:qt-plugins")
+
+        # For the plug-in used or not used information.
+        extra_flags.append("ignore_infos")
 
     my_print("Consider output of recursively compiled program:", filename)
 
@@ -680,7 +656,8 @@ for filename in sorted(os.listdir(".")):
         ):
             continue
 
-        if loaded_filename == "/usr/bin/python3.2mu":
+        # Can look at these.
+        if loaded_filename in ("/usr/bin/python3.2mu", "/usr/bin/python3"):
             continue
 
         # Current Python executable can actually be a symlink and
@@ -739,7 +716,7 @@ for filename in sorted(os.listdir(".")):
         sys.exit(1)
 
     removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
-    
+
     if search_mode.abortIfExecuted():
         break
 

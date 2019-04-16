@@ -32,6 +32,7 @@ import sys
 import tempfile
 import time
 
+from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
     addToPythonPath,
     getTestingCPythonOutputsCacheDir,
@@ -129,6 +130,13 @@ def getCPythonResults(cpython_cmd, cpython_cached):
         if str is not bytes:
             hash_salt = hash_salt.encode("utf8")
         command_hash.update(hash_salt)
+
+        if os.name == "nt" and python_version < 300:
+            curdir = os.getcwdu()
+        else:
+            curdir = os.getcwd()
+
+        command_hash.update(curdir.encode("utf8"))
 
         cache_filename = os.path.join(
             getTestingCPythonOutputsCacheDir(), command_hash.hexdigest()

@@ -24,19 +24,39 @@ import stat
 import sys
 
 from nuitka import Options
+from nuitka.codegen import ConstantCodes
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Utils import isWin32Windows
-from nuitka.utils.WindowsResources import RT_MANIFEST, copyResourcesFromFileToFile
+from nuitka.utils.WindowsResources import (
+    RT_MANIFEST,
+    RT_RCDATA,
+    addResourceToFile,
+    copyResourcesFromFileToFile,
+)
 
 
 def executePostProcessing(result_filename):
 
-    # Copy the Windows manifest from the CPython binary to the created
-    # executable, so it finds "MSCRT.DLL". This is needed for Python2
-    # only, for Python3 newer MSVC doesn't hide the C runtime.
-    if python_version < 300:
-        if isWin32Windows() and not Options.shallMakeModule():
-            copyResourcesFromFileToFile(sys.executable, result_filename, RT_MANIFEST)
+    if isWin32Windows():
+        # Copy the Windows manifest from the CPython binary to the created
+        # executable, so it finds "MSCRT.DLL". This is needed for Python2
+        # only, for Python3 newer MSVC doesn't hide the C runtime.
+        if python_version < 300 and not Options.shallMakeModule():
+            copyResourcesFromFileToFile(
+                sys.executable,
+                target_filename=result_filename,
+                resource_kind=RT_MANIFEST,
+            )
+
+        assert os.path.exists(result_filename)
+
+        # Attach the binary blob as a Windows resource.
+        addResourceToFile(
+            target_filename=result_filename,
+            data=ConstantCodes.stream_data.getBytes(),
+            resource_kind=RT_RCDATA,
+            res_name=3,
+        )
 
     # Modules should not be executable, but Scons creates them like it, fix
     # it up here.
