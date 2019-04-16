@@ -18,5 +18,4 @@ def main(*args):
 
 if __name__ == '__main__':
         commands = '--count=7 --fname=Tabi --sname=Derick'
-        main(commands.split())
 
