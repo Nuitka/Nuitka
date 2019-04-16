@@ -44,8 +44,8 @@ def readS3Object(bucket,key):
 
 
 if __name__ == '__main__':
-	# script for testing, mocks uploading files to AWS with moto
-	
+    # script for testing, mocks uploading files to AWS with moto
+
     bucket = 'static'
     key = 'style.css'
     value = b'value'
