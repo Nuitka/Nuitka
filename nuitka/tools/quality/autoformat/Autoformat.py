@@ -343,7 +343,7 @@ def autoformat(filename, git_stage, abort):
         if is_python:
             _cleanupWindowsNewlines(tmp_filename)
 
-            if True: #not _shouldNotFormatCode(filename):
+            if not _shouldNotFormatCode(filename):
                 _cleanupPyLintComments(tmp_filename, abort)
                 _cleanupImportSortOrder(tmp_filename)
 
