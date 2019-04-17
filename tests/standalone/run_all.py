@@ -21,15 +21,9 @@
 
 import os
 import sys
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-import subprocess
 import argparse
->>>>>>> 1df9ece... [Enhancement] CLI argument handling for standalone binaries.
-=======
 import subprocess
->>>>>>> develop
+
 
 # Find nuitka package relative to us. The replacement is for POSIX python
 # and Windows paths on command line.
@@ -273,11 +267,7 @@ _win_dll_whitelist = (
     "MFCM140U.DLL",
 )
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> develop
+
 # checks requirements needed to run each test module, according to the specified special comment
 # special comments are in the following formats:
 #     "# nuitka-skip-unless-expression: expression to be evaluated"
@@ -314,7 +304,6 @@ def checkRequirements(filename):
     return (True, "")
 
 
-
 def ParseCommandLineArguments(filename):
     '''
 	Checks if the program requires command line arguments and parses
@@ -331,9 +320,7 @@ def ParseCommandLineArguments(filename):
             parser.parse_args(commands.split()) # At this point, the global namespace
             #contains the variable assignments as determined by the user,in the command
             #line,when the program was run.
-            
 
-1df9ece... [Enhancement] CLI argument handling for standalone binaries.
 
 for filename in sorted(os.listdir(".")):
     if not filename.endswith(".py"):
