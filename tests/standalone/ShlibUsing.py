@@ -19,6 +19,7 @@
 #
 try:
     import pyexpat
+
     print(pyexpat.__doc__)
 except ImportError:
     print("Skipped, no pyexpat module installed.")

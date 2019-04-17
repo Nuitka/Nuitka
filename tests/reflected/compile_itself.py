@@ -86,26 +86,28 @@ def readSource(filename):
 def diffRecursive(dir1, dir2):
     done = set()
 
+    result = False
+
     for path1, filename in listDir(dir1):
         path2 = os.path.join(dir2, filename)
 
         done.add(path1)
 
-        # Skip these binary files of course.
-        if filename.endswith(".o") or \
-           filename.endswith(".os") or \
-           filename.endswith(".obj"):
+        # Skip these binary files and scons build database of course.
+        if filename.endswith((".o", ".os", ".obj", ".dblite")):
             continue
 
-        # Skip scons build database
-        if filename == ".sconsign.dblite":
+        # Skip
+        if filename == ".sconsign":
             continue
 
         if not os.path.exists(path2):
             sys.exit("Only in %s: %s" % (dir1, filename))
 
         if os.path.isdir(path1):
-            diffRecursive(path1, path2)
+            r = diffRecursive(path1, path2)
+            if r:
+                result = True
         elif os.path.isfile(path1):
             fromdate = time.ctime(os.stat(path1).st_mtime)
             todate = time.ctime(os.stat(path2).st_mtime)
@@ -120,13 +122,13 @@ def diffRecursive(dir1, dir2):
                 n            = 3
             )
 
-            result = list(diff)
+            diff_list = list(diff)
 
-            if result:
-                for line in result:
+            if diff_list :
+                for line in diff_list :
                     my_print(line)
 
-                sys.exit(1)
+                result = True
         else:
             assert False, path1
 
@@ -138,6 +140,8 @@ def diffRecursive(dir1, dir2):
 
         if not os.path.exists(path1):
             sys.exit("Only in %s: %s" % (dir2, filename))
+
+    return result
 
 
 def executePASS1():
@@ -293,7 +297,10 @@ def compileAndCompareWith(nuitka):
                 if result != 0:
                     sys.exit(result)
 
-                diffRecursive(os.path.join(package, target), target_dir)
+                has_diff = diffRecursive(os.path.join(package, target), target_dir)
+
+                if has_diff:
+                    sys.exit("There were differences!")
 
                 shutil.rmtree(target_dir)
 

@@ -23,11 +23,16 @@
 
 import os
 import re
-import shutil
 import subprocess
 import sys
 from logging import warning
 
+from nuitka.tools.quality.Git import (
+    getFileHashContent,
+    putFileHashContent,
+    updateFileIndex,
+    updateWorkingFile,
+)
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import getFileContents, renameFile
@@ -276,14 +281,14 @@ def _shouldNotFormatCode(filename):
 
     if "inline_copy" in parts:
         return True
-    elif "tests" in parts and "run_all.py" not in parts:
-        return True
+    elif "tests" in parts:
+        return "run_all.py" not in parts
     else:
         return False
 
 
 def _isPythonFile(filename):
-    if filename.endswith((".py", ".pyw")):
+    if filename.endswith((".py", ".pyw", ".scons")):
         return True
     else:
         shebang = getShebangFromFile(filename)
@@ -299,48 +304,70 @@ def _isPythonFile(filename):
     return False
 
 
-def autoformat(filename, abort=False):
+def autoformat(filename, git_stage, abort):
+    # This does a lot of distinctions, pylint:disable=too-many-branches
+
+    if os.path.isdir(filename):
+        return
+
     filename = os.path.normpath(filename)
 
     my_print("Consider", filename, end=": ")
-
-    old_code = getFileContents(filename)
 
     is_python = _isPythonFile(filename)
 
     is_c = filename.endswith((".c", ".h"))
 
+    is_txt = filename.endswith((".txt", ".rst", ".sh", ".in", ".md", ".stylesheet"))
+
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
-    if _shouldNotFormatCode(filename):
-        is_python = is_c = False
+    if not (is_python or is_c or is_txt):
+        my_print("Ignored file type")
+        return
 
     # Work on a temporary copy
     tmp_filename = filename + ".tmp"
-    shutil.copy(filename, tmp_filename)
+
+    if git_stage:
+        old_code = getFileHashContent(git_stage["dst_hash"])
+    else:
+        old_code = getFileContents(filename, "rb")
+
+    with open(tmp_filename, "wb") as output_file:
+        output_file.write(old_code)
 
     try:
         if is_python:
-            _cleanupPyLintComments(tmp_filename, abort)
-            _cleanupImportSortOrder(tmp_filename)
-
-        if is_python:
-            black_call = _getPythonBinaryCall("black")
-
-            subprocess.call(black_call + ["-q", tmp_filename])
-        elif is_c:
-            _cleanupClangFormat(filename)
-        else:
-            _cleanupTrailingWhitespace(tmp_filename)
-
-        if getOS() == "Windows":
             _cleanupWindowsNewlines(tmp_filename)
 
+            if not _shouldNotFormatCode(filename):
+                _cleanupPyLintComments(tmp_filename, abort)
+                _cleanupImportSortOrder(tmp_filename)
+
+                black_call = _getPythonBinaryCall("black")
+
+                subprocess.call(black_call + ["-q", tmp_filename])
+                _cleanupWindowsNewlines(tmp_filename)
+
+        elif is_c:
+            _cleanupWindowsNewlines(tmp_filename)
+            _cleanupClangFormat(filename)
+            _cleanupWindowsNewlines(tmp_filename)
+        elif is_txt:
+            _cleanupWindowsNewlines(tmp_filename)
+            _cleanupTrailingWhitespace(tmp_filename)
+
         changed = False
-        if old_code != getFileContents(tmp_filename):
+        if old_code != getFileContents(tmp_filename, "rb"):
             my_print("Updated.")
 
-            renameFile(tmp_filename, filename)
+            if git_stage:
+                new_hash_value = putFileHashContent(tmp_filename)
+                updateFileIndex(git_stage, new_hash_value)
+                updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
+            else:
+                renameFile(tmp_filename, filename)
 
             changed = True
         else:

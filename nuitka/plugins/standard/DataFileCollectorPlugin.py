@@ -30,10 +30,23 @@ known_data_files = {
     # the target path can be specified (None is just default, i.e. the
     # package directory) and the filename relative to the source package
     # directory
+    "site": ((None, "orig-prefix.txt"),),
     "nose.core": ((None, "usage.txt"),),
     "scrapy": ((None, "VERSION"),),
     "requests": (("certifi", "../certifi/cacert.pem"),),
     "importlib_resources": ((None, "version.txt"),),
+}
+
+
+def _createEmptyDirText(filename):
+    # We create the same content all the time, pylint: disable=unused-argument
+    return "This directory has to be present, even if otherwise empty.\n"
+
+
+generated_data_files = {
+    "Cryptodome.Util._raw_api": (
+        ("Cryptodome/Util", ".keep_dir.txt", _createEmptyDirText),
+    )
 }
 
 
@@ -47,9 +60,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     def considerDataFiles(self, module):
         if module.getFullName() in known_data_files:
             for target_dir, filename in known_data_files[module.getFullName()]:
-                source_path = os.path.join(
-                    os.path.dirname(module.getCompileTimeFilename()), filename
-                )
+                source_path = os.path.join(module.getCompileTimeDirectory(), filename)
 
                 if os.path.isfile(source_path):
                     if target_dir is None:
@@ -59,3 +70,12 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                         source_path,
                         os.path.normpath(os.path.join(target_dir, filename)),
                     )
+
+        if module.getFullName() in generated_data_files:
+            for target_dir, filename, func in generated_data_files[
+                module.getFullName()
+            ]:
+                if target_dir is None:
+                    target_dir = module.getFullName().replace(".", os.path.sep)
+
+                yield (func, os.path.normpath(os.path.join(target_dir, filename)))

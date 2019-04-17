@@ -1047,4 +1047,260 @@ else:
     print("Ouch.!")
 
 
+def someFunctionThatReturnsDeletedValueViaEq():
+    class C:
+        def __eq__(self, other):
+            nonlocal a
+            del a
+            return False
+
+    c = C()
+
+    a = 1
+    c == 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaEq()
+except UnboundLocalError:
+    print("OK, object eq correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaLe():
+    class C:
+        def __le__(self, other):
+            nonlocal a
+            del a
+            return False
+
+    c = C()
+
+    a = 1
+    c <= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaEq()
+except UnboundLocalError:
+    print("OK, object le correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaGt():
+    class C:
+        def __gt__(self, other):
+            nonlocal a
+            del a
+            return False
+
+    c = C()
+
+    a = 1
+    c > 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaEq()
+except UnboundLocalError:
+    print("OK, object gt correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaGe():
+    class C:
+        def __ge__(self, other):
+            nonlocal a
+            del a
+            return False
+
+    c = C()
+
+    a = 1
+    c >= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaEq()
+except UnboundLocalError:
+    print("OK, object ge correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaNe():
+    class C:
+        def __ne__(self, other):
+            nonlocal a
+            del a
+            return False
+
+    c = C()
+
+    a = 1
+    c != 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaEq()
+except UnboundLocalError:
+    print("OK, object ne correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaContains():
+    class C:
+        def __contains__(self, item):
+            nonlocal a
+            del a
+            return False
+
+    c = C()
+
+    a = 1
+    1 in c
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaContains()
+except UnboundLocalError:
+    print("OK, object contains correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaInit():
+    class C:
+        def __init__(self):
+            nonlocal a
+            del a
+
+    a = 1
+    c = C()
+
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInit()
+except UnboundLocalError:
+    print("OK, object init correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaNew():
+    class C:
+        def __new__(self):
+            nonlocal a
+            del a
+
+    a = 1
+    c = C()
+
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaNew()
+except UnboundLocalError:
+    print("OK, object new correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaDir():
+    class C:
+        def __dir__(self):
+            nonlocal a
+            del a
+            return []
+
+    c = C()
+
+    a = 1
+    dir(c)
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaDir()
+except UnboundLocalError:
+    print("OK, object dir correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaReversed():
+    class C:
+        def __reversed__(self):
+            nonlocal a
+            del a
+            return None
+    a = 1
+    c = C()
+
+    reversed(c)
+    return a
+
+try:
+    someFunctionThatReturnsDeletedValueViaReversed()
+except UnboundLocalError:
+    print("OK, object reversed correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaFormat():
+    class C:
+        def __format__(self, string):
+            nonlocal a
+            del a
+            return "formated string"
+
+    c = C()
+
+    a = 1
+    format(c, "some string")
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaFormat()
+except UnboundLocalError:
+    print("OK, object format correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaAbs():
+    class C:
+        def __abs__(self):
+            nonlocal a
+            del a
+            return abs(10)
+    a = 1
+    c = C()
+
+    abs(c)
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaAbs()
+except UnboundLocalError:
+    print("OK, object abs correctly deleted an item.")
+else:
+    print("Ouch.!")
+
 # TODO: There must be way more than these.

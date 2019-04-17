@@ -44,4 +44,8 @@ class StreamData(object):
         return offset
 
     def getBytes(self):
-        return self.stream_data
+        r = self.stream_data
+
+        # Release memory as soon as we are finished.
+        del self.stream_data
+        return r

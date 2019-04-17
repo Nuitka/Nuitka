@@ -162,7 +162,8 @@ class Plugins(object):
         Args:
             module: module object
         Yields:
-            data file names
+            Data file description pairs, either (source, dest) or (func, dest)
+            where the func will be called to create the content dynamically.
         """
         for plugin in active_plugin_list:
             for value in plugin.considerDataFiles(module):

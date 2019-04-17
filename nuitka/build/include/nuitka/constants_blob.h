@@ -18,16 +18,20 @@
 #ifndef __NUITKA_CONSTANTS_BLOB_H__
 #define __NUITKA_CONSTANTS_BLOB_H__
 
-/* There are multiple ways, the constants binary is accessed, and its
+/** Declaration of the constants binary blob.
+ *
+ * There are multiple ways, the constants binary is accessed, and its
  * definition depends on how that is done.
  *
  * It could be a Windows resource, then it must be a pointer. If it's defined
  * externally in a C file, or at link time with "ld", it must be an array. This
  * hides these facts.
+ *
  */
 
 #if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
 extern const unsigned char *constant_bin;
+void loadConstantsResource();
 #else
 #ifdef __cplusplus
 extern "C" const unsigned char constant_bin[];

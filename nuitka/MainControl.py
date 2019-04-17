@@ -30,6 +30,7 @@ import sys
 from logging import info, warning
 
 from nuitka.finalizations.FinalizeMarkups import getImportedNames
+from nuitka.freezer.Standalone import copyDataFiles
 from nuitka.importing import Importing, Recursion
 from nuitka.Options import getPythonFlags
 from nuitka.plugins.Plugins import Plugins
@@ -51,6 +52,7 @@ from nuitka.utils.FileOperations import (
     makePath,
     removeDirectory,
 )
+from nuitka.utils.Utils import isWin32Windows
 
 from . import ModuleRegistry, Options, TreeXML
 from .build import SconsInterface
@@ -644,10 +646,11 @@ def compileTree(main_module):
                 filename=os.path.join(source_dir, "__frozen.c"), source_code=frozen_code
             )
 
-        writeBinaryData(
-            filename=os.path.join(source_dir, "__constants.bin"),
-            binary_data=ConstantCodes.stream_data.getBytes(),
-        )
+        if not isWin32Windows():
+            writeBinaryData(
+                filename=os.path.join(source_dir, "__constants.bin"),
+                binary_data=ConstantCodes.stream_data.getBytes(),
+            )
     else:
         source_dir = getSourceDirectoryPath(main_module)
 
@@ -702,9 +705,6 @@ of the precise Python interpreter binary and '-m nuitka', e.g. use this
     sys.exit(error_message)
 
 
-data_files = []
-
-
 def main():
     """ Main program flow of Nuitka
 
@@ -731,15 +731,6 @@ def main():
     if Options.isStandaloneMode():
         for module in detectEarlyImports():
             ModuleRegistry.addUncompiledModule(module)
-
-            # TODO: Move this to data files plugin.
-            if module.getName() == "site":
-                origin_prefix_filename = os.path.join(
-                    os.path.dirname(module.getCompileTimeFilename()), "orig-prefix.txt"
-                )
-
-                if os.path.isfile(origin_prefix_filename):
-                    data_files.append((filename, "orig-prefix.txt"))
 
     # Turn that source code into a node tree structure.
     try:
@@ -785,17 +776,11 @@ def main():
                 standalone_entry_points=standalone_entry_points,
             )
 
+            data_files = []
             for module in ModuleRegistry.getDoneModules():
                 data_files.extend(Plugins.considerDataFiles(module))
 
-            for source_filename, target_filename in data_files:
-                target_filename = os.path.join(
-                    getStandaloneDirectoryPath(main_module), target_filename
-                )
-
-                makePath(os.path.dirname(target_filename))
-
-                shutil.copy2(source_filename, target_filename)
+            copyDataFiles(dist_dir=dist_dir, data_files=data_files)
 
             Plugins.onStandaloneDistributionFinished(dist_dir)
 

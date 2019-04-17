@@ -21,12 +21,14 @@
 
 from __future__ import print_function
 
+import os
 import subprocess
 import sys
-import os
 import tempfile
 
-nuitka_dir = os.path.normcase(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+nuitka_dir = os.path.normcase(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+)
 my_dir = os.path.dirname(os.path.abspath(__file__))
 
 verbose = False
@@ -53,7 +55,7 @@ if True:
             [
                 os.path.join(my_dir, "run_pbuilder.py"),
                 code_name,
-                "1" if verbose else "0"
+                "1" if verbose else "0",
             ]
         )
 
@@ -62,11 +64,9 @@ if True:
 error = False
 for code_name in code_names:
     exit_code = subprocess.call(
-        [
-            "./Asserts-%s.dist/Asserts.exe" % code_name
-        ],
-        stdout = open("/dev/null") if not verbose else sys.stdout,
-        stderr = subprocess.STDOUT
+        ["./Asserts-%s.dist/Asserts.exe" % code_name],
+        stdout=open("/dev/null") if not verbose else sys.stdout,
+        stderr=subprocess.STDOUT,
     )
 
     if exit_code:
@@ -77,13 +77,14 @@ for code_name in code_names:
 
 
 if not error:
-    with tempfile.NamedTemporaryFile("w", delete = False) as script_file:
+    with tempfile.NamedTemporaryFile("w", delete=False) as script_file:
         script_file.write("cd %s\n" % nuitka_dir)
         for code_name in code_names:
             script_file.write(
                 """\
 (./Asserts-%(code_name)s.dist/Asserts.exe >/dev/null && echo %(code_name)s OK) || \
-echo %(code_name)s FAIL\n""" % {"code_name" : code_name}
+echo %(code_name)s FAIL\n"""
+                % {"code_name": code_name}
             )
 
         tmp_script = script_file.name
@@ -98,8 +99,9 @@ echo %(code_name)s FAIL\n""" % {"code_name" : code_name}
                     "--execute",
                     "--basetgz",
                     "/var/cache/pbuilder/" + code_name + ".tgz",
-                    "--bindmounts", nuitka_dir,
-                    tmp_script
+                    "--bindmounts",
+                    nuitka_dir,
+                    tmp_script,
                 ]
             )
     finally:
