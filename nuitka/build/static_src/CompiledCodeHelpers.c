@@ -1416,7 +1416,7 @@ PyObject *BUILTIN_SUM1(PyObject *sequence) {
 
         CHECK_OBJECT(item);
 
-        // For Python2 int objects:
+// For Python2 int objects:
 #if PYTHON_VERSION < 300
         if (PyInt_CheckExact(item)) {
             long b = PyInt_AS_LONG(item);
@@ -1431,7 +1431,7 @@ PyObject *BUILTIN_SUM1(PyObject *sequence) {
         }
 #endif
 
-        // For Python2 long, Python3 int objects
+// For Python2 long, Python3 int objects
 #if PYTHON_VERSION >= 270
         if (PyLong_CheckExact(item)) {
             int overflow;
@@ -1473,7 +1473,7 @@ PyObject *BUILTIN_SUM1(PyObject *sequence) {
         break;
     }
 
-    /* Switch over to objects, and redo last step. */
+/* Switch over to objects, and redo last step. */
 #if PYTHON_VERSION < 300
     result = PyInt_FromLong(int_result);
 #else
@@ -1749,8 +1749,8 @@ static PyObject *getBinaryDirectoryObject() {
         return binary_directory;
     }
 
-    // On Python3, this must be a unicode object, it cannot be on Python2,
-    // there e.g. code objects expect Python2 strings.
+// On Python3, this must be a unicode object, it cannot be on Python2,
+// there e.g. code objects expect Python2 strings.
 #if PYTHON_VERSION >= 300
 #if defined(_WIN32)
     binary_directory = PyUnicode_FromWideChar(getBinaryDirectoryWideChars(), -1);
@@ -1874,6 +1874,8 @@ void _initBuiltinModule() {
 #include "HelpersCalling.c"
 
 PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
+    CHECK_OBJECT(relative);
+
     static PyObject *our_path_object = NULL;
 
     if (our_path_object == NULL) {
@@ -1897,7 +1899,7 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
     PyObject *result = PyNumber_Add(our_path_object, PyUnicode_FromString(sep));
 #endif
 
-    assert(result);
+    CHECK_OBJECT(result);
 
 #if PYTHON_VERSION < 300
     result = PyNumber_InPlaceAdd(result, relative);
@@ -1905,7 +1907,7 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
     result = PyNumber_InPlaceAdd(result, relative);
 #endif
 
-    assert(result);
+    CHECK_OBJECT(result);
 
     return result;
 }

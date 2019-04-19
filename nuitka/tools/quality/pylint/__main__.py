@@ -27,17 +27,11 @@ import os
 import sys
 from optparse import OptionParser
 
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought be there.
-sys.path.insert(
-    0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-)
-
-from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH  # isort:skip
-from nuitka.tools.quality.ScanSources import scanTargets  # isort:skip
-from nuitka.tools.quality.pylint import PyLint  # isort:skip
-from nuitka.tools.testing.Common import setup, hasModule  # isort:skip
-from nuitka.PythonVersions import python_version  # isort:skip
+from nuitka.PythonVersions import python_version
+from nuitka.tools.Basics import addPYTHONPATH, goHome, setupPATH
+from nuitka.tools.quality.pylint import PyLint
+from nuitka.tools.quality.ScanSources import scanTargets
+from nuitka.tools.testing.Common import hasModule, setup
 
 
 def main():
@@ -116,7 +110,3 @@ Insist on PyLint to be installed. Default is %default.""",
         sys.exit("No files found.")
 
     sys.exit(PyLint.our_exit_code)
-
-
-if __name__ == "__main__":
-    main()

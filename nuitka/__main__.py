@@ -19,7 +19,7 @@
 
 """
 This is the main program of Nuitka, it checks the options and then translates
-one or more modules to a C-ish source code using Python C/API in a "*.build"
+one or more modules to a C source code using Python C/API in a "*.build"
 directory and then compiles that to either an executable or an extension module
 or package, that can contain all used modules too.
 """
