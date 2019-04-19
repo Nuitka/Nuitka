@@ -46,6 +46,9 @@ def locateDLL(dll_name):
 
     dll_name = ctypes.util.find_library(dll_name)
 
+    if dll_name is None:
+        return None
+
     if os.path.sep in dll_name:
         # Use this from ctypes instead of rolling our own.
         # pylint: disable=protected-access

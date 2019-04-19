@@ -375,7 +375,7 @@ for filename in sorted(os.listdir(".")):
             reportSkip("irrelevant Python version", ".", filename)
             continue
 
-        if "Plugins" in filename:
+        if "Plugins" in filename or "SSL" in filename:
             extra_flags.append("plugin_enable:qt-plugins")
 
         # For the plug-in used or not used information.

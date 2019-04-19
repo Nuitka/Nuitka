@@ -30,6 +30,8 @@ from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils import Execution
 from nuitka.utils.FileOperations import getFileList, getSubDirectories, removeDirectory
+from nuitka.utils.SharedLibraries import locateDLL
+from nuitka.utils.Utils import isWin32Windows
 
 
 class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
@@ -98,7 +100,7 @@ if os.path.exists(guess_path):
         return False
 
     def considerExtraDlls(self, dist_dir, module):
-        # pylint: disable=too-many-branches,too-many-locals
+        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
         full_name = module.getFullName()
 
@@ -180,7 +182,7 @@ if os.path.exists(guess_path):
                 )
             ]
 
-            if os.name == "nt":
+            if isWin32Windows():
                 # Those 2 vars will be used later, just saving some resources
                 # by caching the files list
                 qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
@@ -231,7 +233,7 @@ if os.path.exists(guess_path):
                 ]
 
                 # Also copy required OpenGL DLLs on Windows
-                if os.name == "nt":
+                if isWin32Windows():
                     opengl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
 
                     info("Copying OpenGL DLLs to %r" % (dist_dir,))
@@ -245,6 +247,19 @@ if os.path.exists(guess_path):
                             shutil.copy(filename, os.path.join(dist_dir, basename))
 
             return result
+        elif full_name == "PyQt5.QtNetwork":
+            if not isWin32Windows():
+                dll_path = locateDLL("crypto")
+
+                if dll_path is None:
+                    dist_dll_path = os.path.join(dist_dir, os.path.basename(dll_path))
+                    shutil.copy(dll_path, dist_dll_path)
+
+                dll_path = locateDLL("ssl")
+                if dll_path is not None:
+                    dist_dll_path = os.path.join(dist_dir, os.path.basename(dll_path))
+
+                    shutil.copy(dll_path, dist_dll_path)
 
         return ()
 
@@ -291,6 +306,8 @@ if os.path.exists(guess_path):
             qt_version = int(full_name.split(".")[0][-1])
 
             code = """\
+from __future__ import absolute_import
+
 from PyQt%(qt_version)d.QtCore import QCoreApplication
 import os
 
