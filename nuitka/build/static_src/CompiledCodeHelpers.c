@@ -1746,6 +1746,8 @@ static PyObject *getBinaryDirectoryObject() {
     static PyObject *binary_directory = NULL;
 
     if (binary_directory != NULL) {
+        CHECK_OBJECT(binary_directory);
+
         return binary_directory;
     }
 
@@ -1765,6 +1767,9 @@ static PyObject *getBinaryDirectoryObject() {
         PyErr_Print();
         abort();
     }
+
+    // Make sure it's usable for caching.
+    Py_INCREF(binary_directory);
 
     return binary_directory;
 }
