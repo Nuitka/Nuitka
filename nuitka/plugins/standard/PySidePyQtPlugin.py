@@ -91,9 +91,10 @@ if os.path.exists(guess_path):
         return result
 
     @staticmethod
-    def hasPluginFamily(plugin_dir, family):
-        if os.path.isdir(os.path.join(plugin_dir, family)):
-            return True
+    def hasPluginFamily(plugin_dirs, family):
+        for plugin_dir in plugin_dirs:
+            if os.path.isdir(os.path.join(plugin_dir, family)):
+                return True
 
         # TODO: Special case xxml.
 
@@ -107,7 +108,10 @@ if os.path.exists(guess_path):
         if full_name in ("PyQt4", "PyQt5"):
             qt_version = int(full_name[-1])
 
-            plugin_dir, = self.getPyQtPluginDirs(qt_version)
+            plugin_dirs = self.getPyQtPluginDirs(qt_version)
+
+            if not plugin_dirs:
+                sys.exit("Error, failed to detect %s plugin directories.")
 
             target_plugin_dir = os.path.join(dist_dir, full_name, "qt-plugins")
 
@@ -129,7 +133,7 @@ if os.path.exists(guess_path):
                             "printsupport",
                             "platforms",
                         )
-                        if self.hasPluginFamily(plugin_dir, family)
+                        if self.hasPluginFamily(plugin_dirs, family)
                     )
                 )
 
@@ -147,7 +151,8 @@ if os.path.exists(guess_path):
                 )
             )
 
-            shutil.copytree(plugin_dir, target_plugin_dir)
+            for plugin_dir in plugin_dirs:
+                shutil.copytree(plugin_dir, target_plugin_dir)
 
             if "all" not in plugin_options:
                 for plugin_candidate in getSubDirectories(target_plugin_dir):
@@ -173,6 +178,7 @@ if os.path.exists(guess_path):
                     ),
                     full_name,
                 )
+                for plugin_dir in plugin_dirs
                 for filename in getFileList(plugin_dir)
                 if not filename.endswith(".qml")
                 if os.path.exists(
