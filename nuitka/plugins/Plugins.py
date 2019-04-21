@@ -35,6 +35,10 @@ from logging import info
 
 from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
+from nuitka.plugins.standard.EnumPlugin import (
+    NuitkaPluginDetectorEnumWorkarounds,
+    NuitkaPluginEnumWorkarounds,
+)
 from nuitka.PythonVersions import python_version
 
 from .PluginBase import UserPluginBase, post_modules, pre_modules
@@ -80,6 +84,7 @@ optional_plugin_classes = (
     (NuitkaPluginPmw, NuitkaPluginDetectorPmw),
     (TkinterPlugin, TkinterPluginDetector),
     (NumpyPlugin, NumpyPluginDetector),
+    (NuitkaPluginEnumWorkarounds, NuitkaPluginDetectorEnumWorkarounds),
 )
 
 plugin_name2plugin_classes = dict(
