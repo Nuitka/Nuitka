@@ -377,9 +377,9 @@ for filename in sorted(os.listdir(".")):
 
         if "Plugins" in filename or "SSL" in filename:
             extra_flags.append("plugin_enable:qt-plugins")
-
-        # For the plug-in used or not used information.
-        extra_flags.append("ignore_infos")
+        else:
+            # For the plug-in used or not used information.
+            extra_flags.append("ignore_warnings")
 
     my_print("Consider output of recursively compiled program:", filename)
 
