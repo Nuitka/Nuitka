@@ -1,0 +1,14 @@
+{% extends 'RepeatedFunctionCall.py.j2' %}
+{% block start %}
+module_value1 = "1000"
+module_value2 = "2000"
+
+{% endblock %}
+{% block in_function %}
+{% endblock %}
+{% block construct %}
+    module_value1 == module_value2
+# construct_alternative
+    module_value1
+    module_value2
+{% endblock %}

@@ -17,3 +17,8 @@ module_value2 = 50
 # construct_alternative
     local_value * 2
 {% endblock %}
+{% block after_construct %}
+
+    local_value2 = local_value * 4
+
+{% endblock %}

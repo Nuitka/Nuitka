@@ -19,3 +19,7 @@ module_value2 = 3
 {% block construct %}
     s *= 1000
 {% endblock %}
+{% block after_construct %}
+    s *= module_value2
+
+{% endblock %}

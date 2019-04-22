@@ -17,20 +17,17 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-
-from __future__ import print_function
-
-{% block start %}
-{% endblock %}
+{%- block start -%}
+{%- endblock -%}
 def calledRepeatedly():
-    {% block in_function %}
-    {% endblock %}
+    {%- block in_function -%}
+    {%- endblock -%}
 # construct_begin
-    {% block construct %}
-    {% endblock %}
+    {%- block construct -%}
+    {%- endblock -%}
 # construct_end
-    {% block after_construct %}
-    {% endblock %}
+    {%- block after_construct -%}
+    {%- endblock %}
 
     return None
 
