@@ -30,11 +30,7 @@ from nuitka.utils.Utils import isWin32Windows
 
 def _isTkInterModule(module):
     full_name = module.getFullName()
-
-    if python_version < 300:
-        return full_name == "Tkinter"
-    else:
-        return full_name == "tkinter"
+    return full_name in ("Tkinter", "tkinter", "PySimpleGUI", "PySimpleGUI27")
 
 
 class TkinterPlugin(UserPluginBase):
@@ -57,6 +53,10 @@ class TkinterPlugin(UserPluginBase):
     """
 
     plugin_name = "tk-inter"  # Nuitka knows us by this name
+
+    def __init__(self):
+        self.files_copied = False  # ensure one-time action
+        return None
 
     @staticmethod
     def createPreModuleLoadCode(module):
@@ -104,6 +104,9 @@ if not os.environ.get("TCL_LIBRARY", None):
         """
         if not _isTkInterModule(module):
             return ()
+        if self.files_copied:
+            return ()
+        self.files_copied = True
 
         if not isWin32Windows():  # if not Windows notify wrong usage once
             info("tkinter plugin supported on Windows only")

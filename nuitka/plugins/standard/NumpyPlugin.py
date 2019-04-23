@@ -98,7 +98,10 @@ def get_package_paths(package):
 
 
 def get_scipy_core_binaries():
-    """ Return binaries from the extra-dlls folder (Windows only).
+    """ Return binaries from the extra-dlls folder.
+    
+    Notes:
+        Extra binaries exist for Windows platform only.
     """
     binaries = []
     if not isWin32Windows():
@@ -260,6 +263,22 @@ class NumpyPlugin(UserPluginBase):
             msg = msg % (bin_total, "binary" if bin_total < 2 else "binaries")
             info(msg)
             return ()
+
+    def suppressBuiltinImportWarning(self, module, source_ref):
+        """ Whether to suppress import warnings for modules.
+
+        Notes:
+            Suppress messages "Unresolved '__import__' at ..."
+        Args:
+            module: the module object
+            source_ref: source of module with line number
+        Returns:
+            True or False
+        """
+        if module.getFullName().startswith(("numpy", "scipy")):
+            return True
+
+        return False
 
 
 class NumpyPluginDetector(UserPluginBase):

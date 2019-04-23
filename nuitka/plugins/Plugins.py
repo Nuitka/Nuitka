@@ -49,6 +49,8 @@ from .standard.MultiprocessingPlugin import (
     NuitkaPluginMultiprocessingWorkarounds,
 )
 from .standard.NumpyPlugin import NumpyPlugin, NumpyPluginDetector
+from .standard.TorchPlugin import TorchPlugin, TorchPluginDetector
+from .standard.SklearnPlugin import SklearnPlugin, SklearnPluginDetector
 from .standard.PmwPlugin import NuitkaPluginDetectorPmw, NuitkaPluginPmw
 from .standard.PySidePyQtPlugin import (
     NuitkaPluginDetectorPyQtPySidePlugins,
@@ -80,6 +82,8 @@ optional_plugin_classes = (
     (NuitkaPluginPmw, NuitkaPluginDetectorPmw),
     (TkinterPlugin, TkinterPluginDetector),
     (NumpyPlugin, NumpyPluginDetector),
+    (TorchPlugin, TorchPluginDetector),
+    (SklearnPlugin, SklearnPluginDetector),
 )
 
 plugin_name2plugin_classes = dict(

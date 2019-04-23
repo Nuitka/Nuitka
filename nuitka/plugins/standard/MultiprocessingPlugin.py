@@ -55,6 +55,8 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
 import sys
 sys.frozen = 1
 sys.executable = sys.argv[0]
+if sys.platform == "win32" and not sys.executable.endswith(".exe"):
+    sys.executable += ".exe"
 """
             return (
                 code,

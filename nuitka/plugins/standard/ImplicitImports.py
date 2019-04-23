@@ -257,13 +257,29 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "yaml", True
         elif full_name == "apt_inst":
             yield "apt_pkg", True
+
         elif full_name == "numpy.core":
-            yield "numpy.core._dtype_ctypes", False
+            yield "numpy.core._dtype_ctypes", True
+
         elif full_name == "scipy.special":
-            yield "scipy.special._ufuncs_cxx", False
+            yield "scipy.special._ufuncs_cxx", True
         elif full_name == "scipy.linalg":
-            yield "scipy.linalg.cython_blas", False
-            yield "scipy.linalg.cython_lapack", False
+            yield "scipy.linalg.cython_blas", True
+            yield "scipy.linalg.cython_lapack", True
+        elif full_name == "scipy.sparse.csgraph":
+            yield "scipy.sparse.csgraph._validation", True
+        elif full_name == "scipy._lib":
+            yield "scipy._lib.messagestream", True
+
+        elif full_name == "sklearn.utils.sparsetools":
+            yield "sklearn.utils.sparsetools._graph_validation", True
+            yield "sklearn.utils.sparsetools._graph_tools", True
+
+        elif full_name == "sklearn.utils":
+            yield "sklearn.utils.lgamma", True
+            yield "sklearn.utils.weight_vector", True
+            yield "sklearn.utils._unittest_backport", True
+
         elif full_name == "PIL._imagingtk":
             yield "PIL._tkinter_finder", True
         elif full_name == "pkg_resources.extern":
