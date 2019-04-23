@@ -181,6 +181,7 @@ if os.path.exists(guess_path):
             ]
 
             if os.name == "nt":
+                plugin_options.add("styles") # Qt Styles
                 # Those 2 vars will be used later, just saving some resources
                 # by caching the files list
                 qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
