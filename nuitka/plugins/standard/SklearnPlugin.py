@@ -66,6 +66,9 @@ class SklearnPlugin(NuitkaPluginBase):
     def onModuleEncounter(
         self, module_filename, module_name, module_package, module_kind
     ):
+        if module_package == "scipy.sparse.csgraph" and module_name == "_validation":
+            return True, "Needed by sklearn"
+
         if module_package == "sklearn.utils.sparsetools" and module_name in (
             "_graph_validation",
             "_graph_tools",

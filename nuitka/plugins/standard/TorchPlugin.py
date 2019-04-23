@@ -42,7 +42,7 @@ def get_module_file_attribute(package):
 
 
 def get_torch_core_binaries():
-    """ Return required files from the torch folders.
+    """ Return required files from the torch/lib folder.
 
     Notes:
         So far only tested for Windows. Requirements for other platforms
@@ -50,36 +50,17 @@ def get_torch_core_binaries():
     """
     binaries = []
 
-    extras = os.path.join(os.path.dirname(get_module_file_attribute("torch")), "lib")
+    extra_dll = os.path.join(os.path.dirname(get_module_file_attribute("torch")), "lib")
+    if not os.path.isdir(extra_dll):
+        return binaries
 
-    if os.path.isdir(extras):
-        for f in os.listdir(extras):
-            # apart from shared libs, also the C header files are required!
-            if f.endswith((".dll", ".so", ".h")) or ".so." in f:
-                item = os.path.join(extras, f)
-                if os.path.isfile(item):
-                    binaries.append((item, "."))
+    netto_bins = os.listdir(extra_dll)
 
-    # this folder exists in the Linux version
-    extras = os.path.join(os.path.dirname(get_module_file_attribute("torch")), "bin")
-
-    if os.path.isdir(extras):
-        for f in os.listdir(extras):
-            item = os.path.join(extras, f)
-            if os.path.isfile(item):
-                binaries.append((item, "."))
-
-    # this folder exists in the Linux version
-    extras = os.path.join(
-        os.path.dirname(get_module_file_attribute("torch")), "include"
-    )
-
-    if os.path.isdir(extras):
-        for root, _, files in os.walk(extras):
-            for f in files:
-                item = os.path.join(root, f)
-                if os.path.isfile(item):
-                    binaries.append((item, "."))
+    for f in netto_bins:
+        # apart from DLLs, also the C header files are required!
+        if not f.endswith((".dll", ".so", ".dylib", ".h")):
+            continue
+        binaries.append((os.path.join(extra_dll, f), "."))
 
     return binaries
 
@@ -104,6 +85,31 @@ class TorchPlugin(NuitkaPluginBase):
         """
         self.files_copied = False
         return None
+
+    def onModuleEncounter(
+        self, module_filename, module_name, module_package, module_kind
+    ):
+        """ Help decide whether to include a module.
+
+        Notes:
+            'torchvision.transforms' always imports its 'functional' module,
+            which in turn imports several PIL modules. Here we maintain a list
+            of these modules and request their inclusion.
+        """
+        if module_package == "torchvision.transforms":
+            # accept everything under this package
+            return True, "Basic torchvision module"
+
+        if module_package == "PIL" and module_name in (
+            "Image",
+            "ImageColor",
+            "ImageOps",
+            "ImageEnhance",
+            "ImageStat",
+            "ImageFilter",
+        ):  # these are imported directly or indirectly by 'functional.py'.
+            return True, "Required by torchvision"
+        return None  # we have no opinion about other stuff
 
     def considerExtraDlls(self, dist_dir, module):
         """ Copy extra files from torch/lib.

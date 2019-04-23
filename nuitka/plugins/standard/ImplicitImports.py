@@ -541,6 +541,15 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "scipy._lib":
             yield "scipy._lib.messagestream", True
 
+        elif full_name == "sklearn.utils.sparsetools":
+            yield "sklearn.utils.sparsetools._graph_validation", True
+            yield "sklearn.utils.sparsetools._graph_tools", True
+
+        elif full_name == "sklearn.utils":
+            yield "sklearn.utils.lgamma", True
+            yield "sklearn.utils.weight_vector", True
+            yield "sklearn.utils._unittest_backport", True
+
         # scikit-learn imports ------------------------------------------------
         elif full_name == "sklearn.utils.sparsetools":
             yield "sklearn.utils.sparsetools._graph_validation", True
