@@ -18,13 +18,11 @@
 """ Details see below in class definition.
 """
 import os
-import sys
 import pkgutil
 import shutil
 from logging import info
 from nuitka import Options
 from nuitka.plugins.PluginBase import UserPluginBase
-from nuitka.utils.Utils import isWin32Windows
 
 
 def get_module_file_attribute(package):

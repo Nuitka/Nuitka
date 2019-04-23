@@ -99,7 +99,7 @@ def get_package_paths(package):
 
 def get_scipy_core_binaries():
     """ Return binaries from the extra-dlls folder.
-    
+
     Notes:
         Extra binaries exist for Windows platform only.
     """

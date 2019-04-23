@@ -18,7 +18,6 @@
 """ Details see below in class definition.
 """
 import os
-import sys
 import pkgutil
 import shutil
 from logging import info
