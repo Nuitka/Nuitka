@@ -66,6 +66,7 @@ def goMainDir():
 _python_version = None
 _python_arch = None
 _python_executable = None
+_python_vendor = None
 
 
 def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
@@ -102,21 +103,24 @@ import sys, os;\
 print(".".join(str(s) for s in list(sys.version_info)[:3]));\
 print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os.uname()[4]);\
 print(sys.executable);\
+print("Anaconda" if "Anaconda" in sys.version else "Unknown")\
 """,
         ),
         stderr=subprocess.STDOUT,
     )
 
-    global _python_version, _python_arch, _python_executable  # singleton, pylint: disable=global-statement
+    global _python_version, _python_arch, _python_executable, _python_vendor  # singleton, pylint: disable=global-statement
 
     _python_version = version_output.split(b"\n")[0].strip()
     _python_arch = version_output.split(b"\n")[1].strip()
     _python_executable = version_output.split(b"\n")[2].strip()
+    _python_vendor = version_output.split(b"\n")[3].strip()
 
     if sys.version.startswith("3"):
         _python_arch = _python_arch.decode("utf-8")
         _python_version = _python_version.decode("utf-8")
         _python_executable = _python_executable.decode("utf-8")
+        _python_vendor = _python_vendor.decode("utf-8")
 
     if not silent:
         my_print("Using concrete python", _python_version, "on", _python_arch)
@@ -131,6 +135,10 @@ print(sys.executable);\
         )
 
     return _python_version
+
+
+def getPythonVendor():
+    return _python_vendor
 
 
 tmp_dir = None
