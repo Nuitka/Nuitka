@@ -52,12 +52,18 @@ class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
 
         command = """\
 from __future__ import print_function
+from __future__ import absolute_import
 
 import PyQt%(qt_version)d.QtCore
 for v in PyQt%(qt_version)d.QtCore.QCoreApplication.libraryPaths():
     print(v)
 import os
+# Standard CPython has installations like this.
 guess_path = os.path.join(os.path.dirname(PyQt%(qt_version)d.__file__), "plugins")
+if os.path.exists(guess_path):
+    print("GUESS:", guess_path)
+# Anaconda has this, but it seems not automatic.
+guess_path = os.path.join(os.path.dirname(PyQt%(qt_version)d.__file__), "..", "..", "..", "Library", "plugins")
 if os.path.exists(guess_path):
     print("GUESS:", guess_path)
 """ % {
@@ -86,6 +92,9 @@ if os.path.exists(guess_path):
 
             result.append(os.path.normpath(line))
 
+        # Avoid duplicates.
+        result = tuple(sorted(set(result)))
+
         self.qt_dirs[qt_version] = result
 
         return result
@@ -100,9 +109,16 @@ if os.path.exists(guess_path):
 
         return False
 
+    @staticmethod
+    def _getQtBinDirs(plugin_dirs):
+        for plugin_dir in plugin_dirs:
+            qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
+
+            if os.path.isdir(qt_bin_dir):
+                yield qt_bin_dir
+
     def considerExtraDlls(self, dist_dir, module):
         # pylint: disable=too-many-branches,too-many-locals,too-many-statements
-
         full_name = module.getFullName()
 
         if full_name in ("PyQt4", "PyQt5"):
@@ -111,13 +127,14 @@ if os.path.exists(guess_path):
             plugin_dirs = self.getPyQtPluginDirs(qt_version)
 
             if not plugin_dirs:
-                sys.exit("Error, failed to detect %s plugin directories.")
+                sys.exit("Error, failed to detect %s plugin directories." % full_name)
 
             target_plugin_dir = os.path.join(dist_dir, full_name, "qt-plugins")
 
             plugin_options = self.getPluginOptions()
             plugin_options = set(plugin_options)
 
+            # Default to using sensible plugins.
             if not plugin_options:
                 plugin_options.add("sensible")
 
@@ -191,8 +208,13 @@ if os.path.exists(guess_path):
             if isWin32Windows():
                 # Those 2 vars will be used later, just saving some resources
                 # by caching the files list
-                qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
-                qt_bin_files = getFileList(qt_bin_dir)
+                qt_bin_files = sum(
+                    (
+                        getFileList(qt_bin_dir)
+                        for qt_bin_dir in self._getQtBinDirs(plugin_dirs)
+                    ),
+                    [],
+                )
 
                 info("Copying OpenSSL DLLs to %r" % (dist_dir,))
 
@@ -202,7 +224,15 @@ if os.path.exists(guess_path):
                         shutil.copy(filename, os.path.join(dist_dir, basename))
 
             if "qml" in plugin_options or "all" in plugin_options:
-                qml_plugin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "qml"))
+                for plugin_dir in plugin_dirs:
+                    qml_plugin_dir = os.path.normpath(
+                        os.path.join(plugin_dir, "..", "qml")
+                    )
+
+                    if os.path.exists(qml_plugin_dir):
+                        break
+                else:
+                    sys.exit("Error, no such Qt plugin family: qml")
 
                 qml_target_dir = os.path.normpath(
                     os.path.join(target_plugin_dir, "..", "Qt", "qml")
