@@ -98,7 +98,7 @@ static void wcscat_cstr(wchar_t *target, char const *source) {
     }
 }
 
-static void copyModulenameAsPathW(wchar_t *buffer, char const *module_name) {
+static void concatModulenameAsPathW(wchar_t *buffer, char const *module_name) {
     while (*module_name) {
         char c = *module_name++;
 
@@ -352,8 +352,6 @@ typedef PyObject *(*entrypoint_t)(void);
 static PyObject *createModuleSpec(PyObject *module_name);
 #endif
 
-
-
 #ifdef _WIN32
 PyObject *callIntoShlibModule(const char *full_name, const wchar_t *filename) {
 #else
@@ -387,6 +385,7 @@ PyObject *callIntoShlibModule(const char *full_name, const char *filename) {
     }
 
     unsigned int old_mode = SetErrorMode(SEM_FAILCRITICALERRORS);
+
     HINSTANCE hDLL = LoadLibraryExW(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
     SetErrorMode(old_mode);
 
@@ -404,21 +403,17 @@ PyObject *callIntoShlibModule(const char *full_name, const char *filename) {
 
         // Report either way even if failed to get error message.
         if (size == 0) {
-            PyOS_snprintf(buffer, sizeof(buffer), "DLL load failed with error code %d", error_code);
+            PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryEx '%S' failed with error code %d", filename, error_code);
         } else {
-            size_t len;
             // Strip trailing newline.
             if (size >= 2 && error_message[size - 2] == '\r' && error_message[size - 1] == '\n') {
                 size -= 2;
                 error_message[size] = '\0';
             }
-            strcpy(buffer, "DLL load failed: ");
-            len = strlen(buffer);
-            strncpy(buffer + len, error_message, sizeof(buffer) - len);
-            buffer[sizeof(buffer) - 1] = '\0';
+            PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryEx '%S' failed: %s", filename, error_message);
         }
 
-        PyErr_Format(PyExc_ImportError, "LoadLibraryEx '%S' failed", filename);
+        PyErr_SetString(PyExc_ImportError, buffer);
         return NULL;
     }
 
@@ -613,7 +608,7 @@ static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLo
 
         wcscpy(filename, getBinaryDirectoryWideChars());
         wcscat_char(filename, SEP);
-        copyModulenameAsPathW(filename, entry->name);
+        concatModulenameAsPathW(filename, entry->name);
         wcscat_cstr(filename, ".pyd");
 #else
         char filename[MAXPATHLEN + 1];
@@ -988,7 +983,8 @@ static PyMethodDef Nuitka_Loader_methods[] = {
     {"module_repr", (PyCFunction)_path_unfreezer_repr_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"find_spec", (PyCFunction)_path_unfreezer_find_spec, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #endif
-    {NULL, NULL}};
+    {NULL, NULL}
+};
 
 static PyObject *Nuitka_Loader_tp_repr(struct Nuitka_LoaderObject *loader) {
 #if PYTHON_VERSION < 300
