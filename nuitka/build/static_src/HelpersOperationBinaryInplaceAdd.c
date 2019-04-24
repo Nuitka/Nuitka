@@ -77,15 +77,14 @@ NUITKA_MAY_BE_UNUSED static bool BYTES_ADD_INCREMENTAL(PyObject **operand1, PyOb
     assert(PyBytes_CheckExact(*operand1));
     assert(PyBytes_CheckExact(operand2));
 
-    // Buffer
+    // Buffer of operand2
     Py_buffer wb;
     wb.len = -1;
 
-    if (PyObject_GetBuffer(operand2, &wb, PyBUF_SIMPLE) != 0) {
-        PyErr_Format(PyExc_TypeError, "can't concat %s to %s", Py_TYPE(operand2)->tp_name, Py_TYPE(*operand1)->tp_name);
+    int res = PyObject_GetBuffer(operand2, &wb, PyBUF_SIMPLE);
 
-        return false;
-    }
+    // Has to work.
+    assert(res == 0);
 
     Py_ssize_t oldsize = PyBytes_GET_SIZE(*operand1);
 
