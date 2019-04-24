@@ -56,6 +56,7 @@ def executePostProcessing(result_filename):
             data=ConstantCodes.stream_data.getBytes(),
             resource_kind=RT_RCDATA,
             res_name=3,
+            lang_id=0,
         )
 
     # Modules should not be executable, but Scons creates them like it, fix
