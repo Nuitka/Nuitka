@@ -23,6 +23,7 @@ methods, due to CPython only checking for plain uncompiled functions.
 """
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.PythonVersions import python_version
 
 
 class NuitkaPluginEnumWorkarounds(NuitkaPluginBase):
@@ -30,7 +31,7 @@ class NuitkaPluginEnumWorkarounds(NuitkaPluginBase):
 
     """
 
-    plugin_name = "enum_compat"
+    plugin_name = "enum-compat"
 
     @staticmethod
     def createPostModuleLoadCode(module):
@@ -38,6 +39,7 @@ class NuitkaPluginEnumWorkarounds(NuitkaPluginBase):
 
         if full_name == "enum":
             code = """\
+from __future__ import absolute_import
 import enum
 try:
     enum.Enum.__new__ = staticmethod(enum.Enum.__new__.__func__)
@@ -55,11 +57,11 @@ Monkey patching "enum" for compiled '__new__' methods.""",
 
 
 class NuitkaPluginDetectorEnumWorkarounds(NuitkaPluginBase):
-    plugin_name = "enum_compat"
+    plugin_name = "enum-compat"
 
     @staticmethod
     def isRelevant():
-        return True
+        return python_version < 300
 
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "enum":
