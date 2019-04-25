@@ -87,7 +87,8 @@ static char *copyModulenameAsPath(char *buffer, char const *module_name) {
 static void wcscat_char(wchar_t *target, char c) {
     target += wcslen(target);
     char buffer_c[2] = {c};
-    mbstowcs(target, buffer_c, 1);
+    size_t res = mbstowcs(target, buffer_c, 2);
+    assert(res == 1);
 }
 
 static void wcscat_cstr(wchar_t *target, char const *source) {
