@@ -1115,7 +1115,7 @@ def getConstantsDefinitionCode(context):
                 sys.base_exec_prefix  # @UndefinedVariable
             )
 
-    major, minor, micro = getNuitkaVersion().split(".")
+    major, minor, micro = getNuitkaVersion().split(".")[:3]
 
     if "rc" in micro:
         micro = micro[: micro.find("rc")]
