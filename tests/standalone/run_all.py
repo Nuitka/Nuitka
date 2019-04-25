@@ -21,7 +21,6 @@
 
 import os
 import sys
-import subprocess
 
 # Find nuitka package relative to us. The replacement is for POSIX python
 # and Windows paths on command line.
@@ -36,10 +35,13 @@ sys.path.insert(
 
 # isort:start
 
+import subprocess
+
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
     decideFilenameVersionSkip,
+    getPythonVendor,
     getRuntimeTraceOfLoadedFiles,
     hasModule,
     my_print,
@@ -375,10 +377,15 @@ for filename in sorted(os.listdir(".")):
             reportSkip("irrelevant Python version", ".", filename)
             continue
 
-        if "Plugins" in filename or "SSL" in filename:
+        extra_flags.append("plugin_enable:enum-compat")
+        # For the plug-in information.
+        extra_flags.append("ignore_infos")
+
+        if getPythonVendor() != "Anaconda" and (
+            "Plugins" in filename or "SSL" in filename
+        ):
             extra_flags.append("plugin_enable:qt-plugins")
-            # For the plug-in information.
-            extra_flags.append("ignore_infos")
+            # extra_flags.append("ignore_infos")
         else:
             # For the plug-in not used information.
             extra_flags.append("ignore_warnings")
