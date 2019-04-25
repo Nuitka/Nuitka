@@ -4,6 +4,12 @@ nuitka (0.6.4~rc2+ds-1) experimental; urgency=medium
 
  -- Kay Hayen <kay.hayen@gmail.com>  Thu, 11 Apr 2019 16:26:30 +0200
 
+nuitka (0.6.3.1+ds-1) experimental; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 25 Apr 2019 22:08:36 +0200
+
 nuitka (0.6.3+ds-1) unstable; urgency=medium
 
   * New upstream release.
