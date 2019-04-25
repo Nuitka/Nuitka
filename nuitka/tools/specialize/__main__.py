@@ -21,6 +21,7 @@
 
 from __future__ import print_function
 
+import os
 from abc import ABCMeta, abstractmethod
 
 import jinja2
@@ -571,6 +572,9 @@ def main():
     filename_c = "nuitka/build/static_src/HelpersOperationBinaryAdd.c"
     filename_h = "nuitka/build/include/nuitka/helper/operations_binary_add.h"
 
+    def emitGenerationWarning(emit):
+        emit("/* WARNING, this code is GENERATED. Modify the template instead! */")
+
     with open(filename_c, "w") as output_c:
         with open(filename_h, "w") as output_h:
 
@@ -591,6 +595,13 @@ def main():
             def emit(*args):
                 emit_h(*args)
                 emit_c(*args)
+
+            emitGenerationWarning(emit_h)
+            emitGenerationWarning(emit_c)
+
+            emit_c(
+                '#include "%s"' % os.path.basename(filename_c).replace(".c", "Utils.c")
+            )
 
             makeHelpersBinaryOperationAdd(emit_h, emit_c, emit)
 

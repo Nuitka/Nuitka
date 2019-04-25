@@ -15,6 +15,8 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+/* WARNING, this code is GENERATED. Modify the template instead! */
+#include "HelpersOperationBinaryAddUtils.c"
 /* C helpers for type specialized "+" (Add) operations */
 
 #if PYTHON_VERSION < 300
