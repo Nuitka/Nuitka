@@ -414,7 +414,7 @@ Fastest C Compilers
 The fastest binaries of ``pystone.exe`` on Windows with 64 bits Python proved
 to be significantly faster with MinGW64, roughly 20% better score. So it is
 recommended for use over MSVC. Using ``clang-cl.exe`` of Clang7 was faster
-than MSVC, but still significantly slower than MinGW64, and it will be harder
+than MinGW64, but still significantly slower than MSVC, and it will be harder
 to use, so it is not recommended.
 
 On Linux for ``pystone.bin`` the binary produced by ``clang6`` was faster
