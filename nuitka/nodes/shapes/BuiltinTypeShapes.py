@@ -699,7 +699,7 @@ class ShapeTypeTuple(ShapeBase):
         if right_shape is ShapeTypeTuple:
             return operation_result_tuple_noescape
 
-        if right_shape in (ShapeTypeNoneType, ShapeTypeList):
+        if right_shape in (ShapeTypeNoneType, ShapeTypeList, ShapeTypeStr):
             return operation_result_unsupported_add
 
         return _getOperationBinaryAddShapeGeneric(cls, right_shape)
@@ -779,7 +779,7 @@ class ShapeTypeList(ShapeBase):
         if right_shape is ShapeTypeList:
             return operation_result_list_noescape
 
-        if right_shape in (ShapeTypeNoneType, ShapeTypeTuple):
+        if right_shape in (ShapeTypeNoneType, ShapeTypeTuple, ShapeTypeStr):
             return operation_result_unsupported_add
 
         return _getOperationBinaryAddShapeGeneric(cls, right_shape)
