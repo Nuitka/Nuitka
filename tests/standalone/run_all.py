@@ -701,6 +701,10 @@ for filename in sorted(os.listdir(".")):
         if loaded_filename.endswith(("site-packages", "dist-packages")):
             continue
 
+        # QtNetwork insist on doing this it seems.
+        if loaded_basename.startswith(("libcrypto.so", "libssl.so")):
+            continue
+
         # Windows baseline DLLs
         if loaded_basename.upper() in _win_dll_whitelist:
             continue
