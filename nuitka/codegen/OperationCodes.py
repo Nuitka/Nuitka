@@ -23,6 +23,8 @@ in-place assignments, which have other operation variants.
 """
 
 
+from nuitka.containers.oset import OrderedSet
+
 from . import OperatorCodes
 from .CodeHelpers import (
     generateChildExpressionsCode,
@@ -91,39 +93,42 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
     )
 
 
-_add_helpers_set = set(
+# Note: These are ordered, so we can define the order they are created in
+# the code generation of specialized helpers, as this set is used for input
+# there too.
+specialized_add_helpers_set = OrderedSet(
     (
-        "BINARY_OPERATION_ADD_OBJECT_OBJECT",
         "BINARY_OPERATION_ADD_OBJECT_INT",
-        "BINARY_OPERATION_ADD_OBJECT_LONG",
-        "BINARY_OPERATION_ADD_OBJECT_STR",
-        "BINARY_OPERATION_ADD_OBJECT_FLOAT",
-        "BINARY_OPERATION_ADD_OBJECT_UNICODE",
-        "BINARY_OPERATION_ADD_OBJECT_TUPLE",
-        "BINARY_OPERATION_ADD_OBJECT_LIST",
-        "BINARY_OPERATION_ADD_OBJECT_BYTES",
         "BINARY_OPERATION_ADD_INT_OBJECT",
-        "BINARY_OPERATION_ADD_LONG_OBJECT",
-        "BINARY_OPERATION_ADD_STR_OBJECT",
-        "BINARY_OPERATION_ADD_FLOAT_OBJECT",
-        "BINARY_OPERATION_ADD_UNICODE_OBJECT",
-        "BINARY_OPERATION_ADD_TUPLE_OBJECT",
-        "BINARY_OPERATION_ADD_LIST_OBJECT",
-        "BINARY_OPERATION_ADD_BYTES_OBJECT",
         "BINARY_OPERATION_ADD_INT_INT",
-        "BINARY_OPERATION_ADD_LONG_LONG",
+        "BINARY_OPERATION_ADD_OBJECT_STR",
+        "BINARY_OPERATION_ADD_STR_OBJECT",
         "BINARY_OPERATION_ADD_STR_STR",
-        "BINARY_OPERATION_ADD_FLOAT_FLOAT",
+        "BINARY_OPERATION_ADD_OBJECT_UNICODE",
+        "BINARY_OPERATION_ADD_UNICODE_OBJECT",
         "BINARY_OPERATION_ADD_UNICODE_UNICODE",
+        "BINARY_OPERATION_ADD_OBJECT_FLOAT",
+        "BINARY_OPERATION_ADD_FLOAT_OBJECT",
+        "BINARY_OPERATION_ADD_FLOAT_FLOAT",
+        "BINARY_OPERATION_ADD_OBJECT_TUPLE",
+        "BINARY_OPERATION_ADD_TUPLE_OBJECT",
         "BINARY_OPERATION_ADD_TUPLE_TUPLE",
+        "BINARY_OPERATION_ADD_OBJECT_LIST",
+        "BINARY_OPERATION_ADD_LIST_OBJECT",
         "BINARY_OPERATION_ADD_LIST_LIST",
+        "BINARY_OPERATION_ADD_OBJECT_BYTES",
+        "BINARY_OPERATION_ADD_BYTES_OBJECT",
         "BINARY_OPERATION_ADD_BYTES_BYTES",
-        "BINARY_OPERATION_ADD_LONG_FLOAT",
+        "BINARY_OPERATION_ADD_OBJECT_LONG",
+        "BINARY_OPERATION_ADD_LONG_OBJECT",
+        "BINARY_OPERATION_ADD_LONG_LONG",
         "BINARY_OPERATION_ADD_FLOAT_LONG",
+        "BINARY_OPERATION_ADD_LONG_FLOAT",
+        "BINARY_OPERATION_ADD_OBJECT_OBJECT",
     )
 )
 
-_iadd_helpers_set = set(
+_iadd_helpers_set = OrderedSet(
     (
         "BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE",
         "BINARY_OPERATION_ADD_OBJECT_LIST_INPLACE",
@@ -178,7 +183,7 @@ def _getBinaryOperationCode(
             suffix="",
             left_shape=left.getTypeShape(),
             right_shape=expression.getRight().getTypeShape(),
-            helpers=_add_helpers_set,
+            helpers=specialized_add_helpers_set,
         )
     elif operator == "IAdd" and in_place:
         helper = pickCodeHelper(

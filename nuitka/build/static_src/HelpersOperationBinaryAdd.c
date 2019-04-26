@@ -20,9 +20,7 @@
 /* C helpers for type specialized "+" (Add) operations */
 
 #if PYTHON_VERSION < 300
-
-/* Code referring to "INT" corresponds to Python2 'int'. */
-
+/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -195,7 +193,10 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *operand1, PyObject *operand2
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'int'", type1->tp_name);
     return NULL;
 }
+#endif
 
+#if PYTHON_VERSION < 300
+/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -366,7 +367,10 @@ PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *operand1, PyObject *operand2
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and '%s'", type2->tp_name);
     return NULL;
 }
+#endif
 
+#if PYTHON_VERSION < 300
+/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 PyObject *BINARY_OPERATION_ADD_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -541,12 +545,10 @@ PyObject *BINARY_OPERATION_ADD_INT_INT(PyObject *operand1, PyObject *operand2) {
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'int'");
     return NULL;
 }
-
 #endif
+
 #if PYTHON_VERSION < 300
-
-/* Code referring to "STR" corresponds to Python2 'str'. */
-
+/* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
 PyObject *BINARY_OPERATION_ADD_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -719,7 +721,10 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_STR(PyObject *operand1, PyObject *operand2
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'str'", type1->tp_name);
     return NULL;
 }
+#endif
 
+#if PYTHON_VERSION < 300
+/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
 PyObject *BINARY_OPERATION_ADD_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -891,7 +896,10 @@ PyObject *BINARY_OPERATION_ADD_STR_OBJECT(PyObject *operand1, PyObject *operand2
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and '%s'", type2->tp_name);
     return NULL;
 }
+#endif
 
+#if PYTHON_VERSION < 300
+/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
 PyObject *BINARY_OPERATION_ADD_STR_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -1067,10 +1075,9 @@ PyObject *BINARY_OPERATION_ADD_STR_STR(PyObject *operand1, PyObject *operand2) {
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'str'");
     return NULL;
 }
-
 #endif
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str'. */
 
+/* Code referring to "OBJECT" corresponds to any Python object and "UNICODE" to Python2 'unicode', Python3 'str'. */
 PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -1242,6 +1249,7 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE(PyObject *operand1, PyObject *oper
     return NULL;
 }
 
+/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "OBJECT" to any Python object. */
 PyObject *BINARY_OPERATION_ADD_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -1412,6 +1420,8 @@ PyObject *BINARY_OPERATION_ADD_UNICODE_OBJECT(PyObject *operand1, PyObject *oper
     return NULL;
 }
 
+/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "UNICODE" to Python2 'unicode',
+ * Python3 'str'. */
 PyObject *BINARY_OPERATION_ADD_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -1583,8 +1593,8 @@ PyObject *BINARY_OPERATION_ADD_UNICODE_UNICODE(PyObject *operand1, PyObject *ope
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'UNICODE' and 'UNICODE'");
     return NULL;
 }
-/* Code referring to "FLOAT" corresponds to Python 'float'. */
 
+/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -1758,6 +1768,7 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT(PyObject *operand1, PyObject *operan
     return NULL;
 }
 
+/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 PyObject *BINARY_OPERATION_ADD_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -1929,6 +1940,7 @@ PyObject *BINARY_OPERATION_ADD_FLOAT_OBJECT(PyObject *operand1, PyObject *operan
     return NULL;
 }
 
+/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 PyObject *BINARY_OPERATION_ADD_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -2103,8 +2115,8 @@ PyObject *BINARY_OPERATION_ADD_FLOAT_FLOAT(PyObject *operand1, PyObject *operand
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and 'float'");
     return NULL;
 }
-/* Code referring to "TUPLE" corresponds to Python 'tuple'. */
 
+/* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
 PyObject *BINARY_OPERATION_ADD_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -2278,6 +2290,7 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_TUPLE(PyObject *operand1, PyObject *operan
     return NULL;
 }
 
+/* Code referring to "TUPLE" corresponds to Python 'tuple' and "OBJECT" to any Python object. */
 PyObject *BINARY_OPERATION_ADD_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
@@ -2450,6 +2463,7 @@ PyObject *BINARY_OPERATION_ADD_TUPLE_OBJECT(PyObject *operand1, PyObject *operan
     return NULL;
 }
 
+/* Code referring to "TUPLE" corresponds to Python 'tuple' and "TUPLE" to Python 'tuple'. */
 PyObject *BINARY_OPERATION_ADD_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
@@ -2625,8 +2639,8 @@ PyObject *BINARY_OPERATION_ADD_TUPLE_TUPLE(PyObject *operand1, PyObject *operand
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'tuple' and 'tuple'");
     return NULL;
 }
-/* Code referring to "LIST" corresponds to Python 'list'. */
 
+/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
 PyObject *BINARY_OPERATION_ADD_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -2800,6 +2814,7 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_LIST(PyObject *operand1, PyObject *operand
     return NULL;
 }
 
+/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
 PyObject *BINARY_OPERATION_ADD_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
@@ -2972,6 +2987,7 @@ PyObject *BINARY_OPERATION_ADD_LIST_OBJECT(PyObject *operand1, PyObject *operand
     return NULL;
 }
 
+/* Code referring to "LIST" corresponds to Python 'list' and "LIST" to Python 'list'. */
 PyObject *BINARY_OPERATION_ADD_LIST_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
@@ -3147,10 +3163,9 @@ PyObject *BINARY_OPERATION_ADD_LIST_LIST(PyObject *operand1, PyObject *operand2)
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'list' and 'list'");
     return NULL;
 }
+
 #if PYTHON_VERSION >= 300
-
-/* Code referring to "BYTES" corresponds to Python3 'bytes'. */
-
+/* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
 PyObject *BINARY_OPERATION_ADD_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -3323,7 +3338,10 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_BYTES(PyObject *operand1, PyObject *operan
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'bytes'", type1->tp_name);
     return NULL;
 }
+#endif
 
+#if PYTHON_VERSION >= 300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
 PyObject *BINARY_OPERATION_ADD_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
@@ -3495,7 +3513,10 @@ PyObject *BINARY_OPERATION_ADD_BYTES_OBJECT(PyObject *operand1, PyObject *operan
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'bytes' and '%s'", type2->tp_name);
     return NULL;
 }
+#endif
 
+#if PYTHON_VERSION >= 300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
 PyObject *BINARY_OPERATION_ADD_BYTES_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
@@ -3671,10 +3692,9 @@ PyObject *BINARY_OPERATION_ADD_BYTES_BYTES(PyObject *operand1, PyObject *operand
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'bytes' and 'bytes'");
     return NULL;
 }
-
 #endif
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int'. */
 
+/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 PyObject *BINARY_OPERATION_ADD_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -3848,6 +3868,7 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_LONG(PyObject *operand1, PyObject *operand
     return NULL;
 }
 
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 PyObject *BINARY_OPERATION_ADD_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -4019,6 +4040,7 @@ PyObject *BINARY_OPERATION_ADD_LONG_OBJECT(PyObject *operand1, PyObject *operand
     return NULL;
 }
 
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 PyObject *BINARY_OPERATION_ADD_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -4194,6 +4216,7 @@ PyObject *BINARY_OPERATION_ADD_LONG_LONG(PyObject *operand1, PyObject *operand2)
     return NULL;
 }
 
+/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 PyObject *BINARY_OPERATION_ADD_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -4369,6 +4392,7 @@ PyObject *BINARY_OPERATION_ADD_FLOAT_LONG(PyObject *operand1, PyObject *operand2
     return NULL;
 }
 
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
 PyObject *BINARY_OPERATION_ADD_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -4543,8 +4567,8 @@ PyObject *BINARY_OPERATION_ADD_LONG_FLOAT(PyObject *operand1, PyObject *operand2
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'long' and 'float'");
     return NULL;
 }
-/* Code referring to "OBJECT" corresponds to Any Python object. */
 
+/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);

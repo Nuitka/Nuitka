@@ -51,6 +51,9 @@ class TypeDescBase(TypeMetaClassBase):
         assert self.type_desc
         assert self.type_decl
 
+    def __repr__(self):
+        return "<%s %s %s>" % (self.__class__.__name__, self.type_name, self.type_desc)
+
     @classmethod
     def getHelperCodeName(cls):
         return cls.type_name.upper()
@@ -443,7 +446,7 @@ long_desc = LongDesc()
 
 class ObjectDesc(TypeDescBase):
     type_name = "object"
-    type_desc = "Any Python object"
+    type_desc = "any Python object"
     type_decl = "PyObject *"
 
     def hasSlot(self, slot):
@@ -513,59 +516,49 @@ types = (
 )
 
 
+def findTypeFromCodeName(code_name):
+    for candidate in types:
+        if candidate.getHelperCodeName() == code_name:
+            return candidate
+
+
 def makeHelpersBinaryOperationAdd(emit_h, emit_c, emit):
+    # We need to create exactly those:
+    from nuitka.codegen.OperationCodes import specialized_add_helpers_set
+
     binary_operation_add_template = env.get_template("HelperOperationBinaryAdd.c.j2")
 
     emit('/* C helpers for type specialized "+" (Add) operations */')
     emit()
 
-    def emitCode(left, right):
+    for helper_name in specialized_add_helpers_set:
+        left = findTypeFromCodeName(helper_name.split("_")[3])
+        right = findTypeFromCodeName(helper_name.split("_")[4])
+
+        if left.python_requirement:
+            emit("#if %s" % left.python_requirement)
+        elif right.python_requirement:
+            emit("#if %s" % right.python_requirement)
+
+        emit(
+            '/* Code referring to "%s" corresponds to %s and "%s" to %s. */'
+            % (
+                left.getHelperCodeName(),
+                left.type_desc,
+                right.getHelperCodeName(),
+                right.type_desc,
+            )
+        )
+
         code = binary_operation_add_template.render(left=left, right=right)
 
         emit_c(code)
         emit_h("extern " + code.splitlines()[0].replace(" {", ";"))
 
-    for left in types[:-1]:
-        if left.python_requirement:
-            emit("#if %s" % left.python_requirement)
-            emit()
-
-        emit(
-            '/* Code referring to "%s" corresponds to %s. */'
-            % (left.getHelperCodeName(), left.type_desc)
-        )
-        emit()
-
-        emitCode(left=object_desc, right=left)
-
-        for right in [object_desc, left]:
-            emit()
-            emitCode(left=left, right=right)
-
-        if left.python_requirement:
-            emit()
+        if left.python_requirement or right.python_requirement:
             emit("#endif")
 
-    emit()
-    emitCode(left=float_desc, right=long_desc)
-
-    emit()
-    emitCode(left=long_desc, right=float_desc)
-
-    emit(
-        '/* Code referring to "%s" corresponds to %s. */'
-        % (object_desc.getHelperCodeName(), object_desc.type_desc)
-    )
-    emit()
-    emitCode(left=object_desc, right=object_desc)
-
-    if False:  # TODO, pylint: disable=using-constant-test
-        emit(
-            '/* Code referring to "%s" corresponds to %s. */'
-            % (clong_desc.getHelperCodeName(), clong_desc.type_desc)
-        )
         emit()
-        emit(binary_operation_add_template.render(left=long_desc, right=clong_desc))
 
 
 def main():
