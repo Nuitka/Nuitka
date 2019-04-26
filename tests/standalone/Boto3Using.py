@@ -43,61 +43,60 @@ def readS3Object(bucket,key):
 
 
 
-if __name__ == '__main__':
-    # script for testing, mocks uploading files to AWS with moto
+# script for testing, mocks uploading files to AWS with moto
 
-    bucket = 'static'
-    key = 'style.css'
-    value = b'value'
+bucket = 'static'
+key = 'style.css'
+value = b'value'
 
-    @mock_s3
-    def __motoSetup():
-        """
-        simulate s3 file upload
-        """
-        s3 = getClient()
-        s3.create_bucket(Bucket=bucket)
-        s3.put_object(Bucket=bucket, Key=key, Body=value)
+@mock_s3
+def __motoSetup():
+    """
+    simulate s3 file upload
+    """
+    s3 = getClient()
+    s3.create_bucket(Bucket=bucket)
+    s3.put_object(Bucket=bucket, Key=key, Body=value)
 
-    def testGetClient():
-        """
-        checks that getClient has a valid endpoint
-        """
-        s3 = getClient()
-        assert s3._endpoint.host == "https://s3.amazonaws.com"
+def testGetClient():
+    """
+    checks that getClient has a valid endpoint
+    """
+    s3 = getClient()
+    assert s3._endpoint.host == "https://s3.amazonaws.com"
 
-    @mock_s3
-    def testListS3Buckets():
-        """
-        checks that our bucket shows correctly
-        """
-        __motoSetup()
+@mock_s3
+def testListS3Buckets():
+    """
+    checks that our bucket shows correctly
+    """
+    __motoSetup()
 
-        buckets = list(listS3Buckets())
-        assert bucket in buckets
+    buckets = list(listS3Buckets())
+    assert bucket in buckets
 
-    @mock_s3
-    def testListS3Objects():
-        """
-        checks that object is in bucket as expected
-        """
-        __motoSetup()
+@mock_s3
+def testListS3Objects():
+    """
+    checks that object is in bucket as expected
+    """
+    __motoSetup()
 
-        objects = list(listS3Objects(bucket))
-        assert key in objects
+    objects = list(listS3Objects(bucket))
+    assert key in objects
 
-    @mock_s3
-    def testReadS3Object():
-        """
-        checks that object contents are corrent
-        """
-        __motoSetup()
+@mock_s3
+def testReadS3Object():
+    """
+    checks that object contents are corrent
+    """
+    __motoSetup()
 
-        content = readS3Object(bucket, key)
-        assert value == content
+    content = readS3Object(bucket, key)
+    assert value == content
 
-    testGetClient()
-    testListS3Buckets()
-    testListS3Objects()
-    testReadS3Object()
-    print('All tests passed')
+testGetClient()
+testListS3Buckets()
+testListS3Objects()
+testReadS3Object()
+print('OK.')
