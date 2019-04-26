@@ -33,7 +33,13 @@ from contextlib import contextmanager
 from nuitka.Tracing import my_print
 from nuitka.utils.AppDirs import getAppDir, getCacheDir
 from nuitka.utils.Execution import check_output, withEnvironmentVarOverriden
-from nuitka.utils.FileOperations import getFileContentByLine, makePath, removeDirectory
+from nuitka.utils.FileOperations import (
+    getFileContentByLine,
+    getFileContents,
+    getFileList,
+    makePath,
+    removeDirectory,
+)
 
 from .SearchModes import (
     SearchModeBase,
@@ -1262,16 +1268,25 @@ def withDirectoryChange(path, allow_none=False):
 def setupCacheHashSalt(test_code_path):
     assert os.path.exists(test_code_path)
 
-    git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
+    if os.path.exists(os.path.join(test_code_path, ".git")):
+        git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
 
-    process = subprocess.Popen(
-        args=git_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+        process = subprocess.Popen(
+            args=git_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
 
-    stdout_git, stderr_git = process.communicate()
-    assert process.returncode == 0, stderr_git
+        stdout_git, stderr_git = process.communicate()
+        assert process.returncode == 0, stderr_git
 
-    os.environ["NUITKA_HASH_SALT"] = hashlib.md5(stdout_git).hexdigest()
+        salt_value = hashlib.md5(stdout_git)
+    else:
+        salt_value = hashlib.md5()
+
+        for filename in getFileList(test_code_path):
+            if filename.endswith(".py"):
+                salt_value.update(getFileContents(filename, mode="rb"))
+
+    os.environ["NUITKA_HASH_SALT"] = salt_value.hexdigest()
 
 
 def someGenerator():
