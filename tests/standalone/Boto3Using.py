@@ -58,6 +58,7 @@ def __motoSetup():
     s3.create_bucket(Bucket=bucket)
     s3.put_object(Bucket=bucket, Key=key, Body=value)
 
+@mock_s3
 def testGetClient():
     """
     checks that getClient has a valid endpoint
