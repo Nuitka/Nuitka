@@ -18,6 +18,7 @@
 #     limitations under the License.
 #
 from __future__ import print_function
+from sys import version_info
 
 # testing JSON content
 import json
@@ -26,51 +27,94 @@ import os
 # test ssl
 import socket
 import ssl
-from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 
 import urllib3  # @UnresolvedImport
 
 # nuitka-skip-unless-imports: urllib3
 
+
+
 started = False
 
+# running on python2
+if version_info[0] < 3:
+	import BaseHTTPServer
+	def runHTTPServer(server_class=BaseHTTPServer.HTTPServer,
+			handler_class=BaseHTTPServer.BaseHTTPRequestHandler):
+	    class myServer(handler_class):
+	        def do_GET(self):
+	            if self.path == "/":
+	                self.path = "/index.html"
+	            try:
+	                file_to_open = open(self.path[1:], "rb").read()
+	                self.send_response(200)
+	                self.end_headers()
+	                self.wfile.write(file_to_open)
+	            except IOError:
+	                self.send_response(404)
+	                self.end_headers()
 
-def runHTTPServer():
-    class myServer(BaseHTTPRequestHandler):
-        def do_GET(self):
-            if self.path == "/":
-                self.path = "/index.html"
-            try:
-                file_to_open = open(self.path[1:], "rb").read()
-                self.send_response(200)
-                self.end_headers()
-                self.wfile.write(file_to_open)
-            except IOError:
-                self.send_response(404)
-                self.end_headers()
+	        # No logging due to races.
+	        def log_request(self, code):
+	            pass
 
-        # No logging due to races.
-        def log_request(self, code):
-            pass
+	    global port
+	    global server
 
-    global port
-    global server
+	    for port in range(8020, 9000):
+	        server_address = ("127.0.0.1", port)
 
-    for port in range(8020, 9000):
-        server_address = ("127.0.0.1", port)
+	        try:
+	            server = server_class(server_address, myServer)
+	        except OSError:
+	            continue
+	        else:
+	            break
 
-        try:
-            server = HTTPServer(server_address, myServer)
-        except OSError:
-            continue
-        else:
-            break
+	    global started
+	    started = True
 
-    global started
-    started = True
+	    server.serve_forever()
 
-    server.serve_forever()
+# running on python3
+else:
+	from http.server import BaseHTTPRequestHandler, HTTPServer
+	def runHTTPServer():
+	    class myServer(BaseHTTPRequestHandler):
+	        def do_GET(self):
+	            if self.path == "/":
+	                self.path = "/index.html"
+	            try:
+	                file_to_open = open(self.path[1:], "rb").read()
+	                self.send_response(200)
+	                self.end_headers()
+	                self.wfile.write(file_to_open)
+	            except IOError:
+	                self.send_response(404)
+	                self.end_headers()
+
+	        # No logging due to races.
+	        def log_request(self, code):
+	            pass
+
+	    global port
+	    global server
+
+	    for port in range(8020, 9000):
+	        server_address = ("127.0.0.1", port)
+
+	        try:
+	            server = HTTPServer(server_address, myServer)
+	        except OSError:
+	            continue
+	        else:
+	            break
+
+	    global started
+	    started = True
+
+	    server.serve_forever()
 
 
 Thread(target=runHTTPServer).start()
