@@ -16,7 +16,7 @@
 //     limitations under the License.
 //
 /* WARNING, this code is GENERATED. Modify the template instead! */
-/* C helpers for type specialized "+" (Add) operations */
+/* C helpers for type specialized "+" (ADD) operations */
 
 #if PYTHON_VERSION < 300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
@@ -114,6 +114,36 @@ extern PyObject *BINARY_OPERATION_ADD_FLOAT_LONG(PyObject *operand1, PyObject *o
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
 extern PyObject *BINARY_OPERATION_ADD_LONG_FLOAT(PyObject *operand1, PyObject *operand2);
+
+#if PYTHON_VERSION < 300
+/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_ADD_FLOAT_INT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 300
+/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
+extern PyObject *BINARY_OPERATION_ADD_INT_FLOAT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_ADD_LONG_INT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 300
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern PyObject *BINARY_OPERATION_ADD_INT_LONG(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 300
+/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "STR" to Python2 'str'. */
+extern PyObject *BINARY_OPERATION_ADD_UNICODE_STR(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 300
+/* Code referring to "STR" corresponds to Python2 'str' and "UNICODE" to Python2 'unicode', Python3 'str'. */
+extern PyObject *BINARY_OPERATION_ADD_STR_UNICODE(PyObject *operand1, PyObject *operand2);
+#endif
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);

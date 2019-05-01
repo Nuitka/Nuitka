@@ -68,8 +68,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION(binary_api api, PyObject 
     return result;
 }
 
-// Generated helpers to execute "+" on fully or partially known types.
+// Generated helpers to execute operations on fully or partially known types.
 #include "nuitka/helper/operations_binary_add.h"
+#include "nuitka/helper/operations_binary_mul.h"
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_INPLACE(binary_api api, PyObject **operand1, PyObject *operand2) {
     assert(operand1);
@@ -124,9 +125,7 @@ static bool FLOAT_MUL_INCREMENTAL(PyObject **operand1, PyObject *operand2) {
     assert(PyFloat_CheckExact(*operand1));
     assert(PyFloat_CheckExact(operand2));
 
-    PyFPE_START_PROTECT("mul", return false);
     PyFloat_AS_DOUBLE(*operand1) *= PyFloat_AS_DOUBLE(operand2);
-    PyFPE_END_PROTECT(*operand1);
 
     return true;
 }
@@ -156,172 +155,6 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_MUL_INPLACE(PyObject **operand
     *operand1 = result;
 
     return true;
-}
-
-static PyObject *SEQUENCE_REPEAT(ssizeargfunc repeatfunc, PyObject *seq, PyObject *n) {
-    if (unlikely(!PyIndex_Check(n))) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(n)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = PyNumber_Index(n);
-
-    if (unlikely(index_value == NULL)) {
-        return NULL;
-    }
-
-    /* We're done if PyInt_AsSsize_t() returns without error. */
-#if PYTHON_VERSION < 300
-    Py_ssize_t count = PyInt_AsSsize_t(index_value);
-#else
-    Py_ssize_t count = PyLong_AsSsize_t(index_value);
-#endif
-
-    Py_DECREF(index_value);
-
-    if (unlikely(count == -1)) // Note: -1 is an unlikely repetition count
-    {
-        PyObject *exception = GET_ERROR_OCCURRED();
-
-        if (unlikely(exception)) {
-            if (!EXCEPTION_MATCH_BOOL_SINGLE(exception, PyExc_OverflowError)) {
-                return NULL;
-            }
-
-            PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(n)->tp_name);
-
-            return NULL;
-        }
-    }
-
-    PyObject *result = (*repeatfunc)(seq, count);
-
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_multiply;
-    }
-
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_multiply;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 300
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
-
-        if (unlikely(err < 0)) {
-            return NULL;
-        }
-
-        if (err == 0) {
-            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
-
-            if (mv) {
-                binaryfunc slot = mv->nb_multiply;
-
-                if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
-
-                    Py_DECREF(operand1);
-                    Py_DECREF(operand2);
-
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-            }
-
-            // CoerceEx did that
-            Py_DECREF(operand1);
-            Py_DECREF(operand2);
-        }
-    }
-#endif
-
-    // Special case for "+", also works as sequence concat.
-    PySequenceMethods *seq_methods1 = Py_TYPE(operand1)->tp_as_sequence;
-
-    if (seq_methods1 != NULL && seq_methods1->sq_repeat) {
-        return SEQUENCE_REPEAT(seq_methods1->sq_repeat, operand1, operand2);
-    }
-
-    PySequenceMethods *seq_methods2 = Py_TYPE(operand2)->tp_as_sequence;
-
-    if (seq_methods2 != NULL && seq_methods2->sq_repeat) {
-        return SEQUENCE_REPEAT(seq_methods2->sq_repeat, operand2, operand1);
-    }
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and '%s'", type1->tp_name, type2->tp_name);
-
-    return NULL;
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_SUB(PyObject *operand1, PyObject *operand2) {

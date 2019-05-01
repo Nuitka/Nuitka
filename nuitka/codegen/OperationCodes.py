@@ -122,11 +122,81 @@ specialized_add_helpers_set = OrderedSet(
         "BINARY_OPERATION_ADD_OBJECT_LONG",
         "BINARY_OPERATION_ADD_LONG_OBJECT",
         "BINARY_OPERATION_ADD_LONG_LONG",
+        # These are friends naturally, they all add with another
         "BINARY_OPERATION_ADD_FLOAT_LONG",
         "BINARY_OPERATION_ADD_LONG_FLOAT",
+        "BINARY_OPERATION_ADD_FLOAT_INT",
+        "BINARY_OPERATION_ADD_INT_FLOAT",
+        "BINARY_OPERATION_ADD_LONG_INT",
+        "BINARY_OPERATION_ADD_INT_LONG",
+        # These are friends too.
+        "BINARY_OPERATION_ADD_UNICODE_STR",
+        "BINARY_OPERATION_ADD_STR_UNICODE",
         "BINARY_OPERATION_ADD_OBJECT_OBJECT",
     )
 )
+
+specialized_mul_helpers_set = OrderedSet(
+    (
+        "BINARY_OPERATION_MUL_OBJECT_INT",
+        "BINARY_OPERATION_MUL_INT_OBJECT",
+        "BINARY_OPERATION_MUL_INT_INT",
+        "BINARY_OPERATION_MUL_OBJECT_STR",
+        "BINARY_OPERATION_MUL_STR_OBJECT",
+        "BINARY_OPERATION_MUL_INT_STR",
+        "BINARY_OPERATION_MUL_STR_INT",
+        "BINARY_OPERATION_MUL_LONG_STR",
+        "BINARY_OPERATION_MUL_STR_LONG",
+        # Should not occur.
+        # "BINARY_OPERATION_MUL_STR_STR",
+        "BINARY_OPERATION_MUL_OBJECT_UNICODE",
+        "BINARY_OPERATION_MUL_UNICODE_OBJECT",
+        "BINARY_OPERATION_MUL_INT_UNICODE",
+        "BINARY_OPERATION_MUL_UNICODE_INT",
+        "BINARY_OPERATION_MUL_LONG_UNICODE",
+        "BINARY_OPERATION_MUL_UNICODE_LONG",
+        # Should not occur.
+        # "BINARY_OPERATION_MUL_UNICODE_UNICODE",
+        "BINARY_OPERATION_MUL_OBJECT_FLOAT",
+        "BINARY_OPERATION_MUL_FLOAT_OBJECT",
+        "BINARY_OPERATION_MUL_FLOAT_FLOAT",
+        "BINARY_OPERATION_MUL_OBJECT_TUPLE",
+        "BINARY_OPERATION_MUL_TUPLE_OBJECT",
+        "BINARY_OPERATION_MUL_INT_TUPLE",
+        "BINARY_OPERATION_MUL_TUPLE_INT",
+        "BINARY_OPERATION_MUL_LONG_TUPLE",
+        "BINARY_OPERATION_MUL_TUPLE_LONG",
+        # Should not occur.
+        # "BINARY_OPERATION_MUL_TUPLE_TUPLE",
+        "BINARY_OPERATION_MUL_OBJECT_LIST",
+        "BINARY_OPERATION_MUL_LIST_OBJECT",
+        "BINARY_OPERATION_MUL_INT_LIST",
+        "BINARY_OPERATION_MUL_LIST_INT",
+        "BINARY_OPERATION_MUL_LONG_LIST",
+        "BINARY_OPERATION_MUL_LIST_LONG",
+        # Should not occur.
+        # "BINARY_OPERATION_MUL_LIST_LIST",
+        "BINARY_OPERATION_MUL_OBJECT_BYTES",
+        "BINARY_OPERATION_MUL_BYTES_OBJECT",
+        "BINARY_OPERATION_MUL_LONG_BYTES",
+        "BINARY_OPERATION_MUL_BYTES_LONG",
+        # Should not occur.
+        # "BINARY_OPERATION_MUL_BYTES_BYTES",
+        "BINARY_OPERATION_MUL_OBJECT_LONG",
+        "BINARY_OPERATION_MUL_LONG_OBJECT",
+        "BINARY_OPERATION_MUL_LONG_LONG",
+        # These are friends naturally, they all mul with another
+        "BINARY_OPERATION_MUL_FLOAT_LONG",
+        "BINARY_OPERATION_MUL_LONG_FLOAT",
+        "BINARY_OPERATION_MUL_FLOAT_INT",
+        "BINARY_OPERATION_MUL_INT_FLOAT",
+        "BINARY_OPERATION_MUL_LONG_INT",
+        "BINARY_OPERATION_MUL_INT_LONG",
+        # These are friends too.
+        "BINARY_OPERATION_MUL_OBJECT_OBJECT",
+    )
+)
+
 
 _iadd_helpers_set = OrderedSet(
     (
@@ -204,7 +274,14 @@ def _getBinaryOperationCode(
     elif operator == "TrueDiv":
         helper = "BINARY_OPERATION_TRUEDIV"
     elif operator == "Mult":
-        helper = "BINARY_OPERATION_MUL"
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_MUL",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_mul_helpers_set,
+        )
+
     elif operator == "Mod":
         helper = "BINARY_OPERATION_REMAINDER"
     elif operator == "Divmod":

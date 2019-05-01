@@ -77,6 +77,10 @@ class TypeDescBase(TypeMetaClassBase):
     def getNewStyleNumberTypeCheckExpression(self, operand):
         pass
 
+    @staticmethod
+    def needsIndexConversion():
+        return True
+
     def canTypeCoerceObjects(self, left):
         if left is self and left is not object_desc:
             return "0"
@@ -97,6 +101,14 @@ class TypeDescBase(TypeMetaClassBase):
         else:
             return "0"
 
+    def getIndexCheckExpression(self, operand):
+        if self.hasSlot("nb_index"):
+            return "1"
+        elif self.type_name == "object":
+            return "PyIndex_Check(%s)" % operand
+        else:
+            return "0"
+
     def getTypeIdenticalCheckExpression(self, other, operand1, operand2):
         if self is object_desc or other is object_desc:
             return "%s == %s" % (operand1, operand2)
@@ -111,6 +123,12 @@ class TypeDescBase(TypeMetaClassBase):
             return "PyType_IsSubtype(%s, %s)" % (operand2, operand1)
         else:
             return 0
+
+    def getSlotComparisonEqualExpression(self, right, operand1, operand2):
+        if right is object_desc or self is object_desc:
+            return "%s == %s" % (operand1, operand2)
+        else:
+            return "0"
 
     @abstractmethod
     def hasSlot(self, slot):
@@ -165,7 +183,9 @@ return NULL;""" % (
             args,
         )
 
-    def getSameTypeSpecializationCode(self, other, slot, operand1, operand2):
+    def getSameTypeSpecializationCode(
+        self, other, nb_slot, sq_slot, operand1, operand2
+    ):
         cand = self if self is not object_desc else other
 
         if cand is object_desc:
@@ -175,11 +195,15 @@ return NULL;""" % (
 
         helper_name = cand.getHelperCodeName()
 
-        # Special case "+" for sequence concats.
-        if slot == "nb_add" and not cand.hasSlot(slot) and cand.hasSlot("sq_concat"):
-            return cand.getSqConcatSlotSpecializationCode(
-                cand, "sq_concat", operand1, operand2
-            )
+        # Special case for sequence concats/repeats.
+        if sq_slot is not None and not cand.hasSlot(nb_slot) and cand.hasSlot(sq_slot):
+            slot = sq_slot
+        else:
+            slot = nb_slot
+
+        if slot == "sq_repeat":
+            if cand in (list_desc, tuple_desc, unicode_desc, str_desc, bytes_desc):
+                return ""
 
         return "return SLOT_%s_%s_%s(%s, %s);" % (
             slot,
@@ -258,6 +282,10 @@ class IntDesc(ConcreteTypeBase):
             return False
         else:
             assert False
+
+    @staticmethod
+    def needsIndexConversion():
+        return False
 
 
 int_desc = IntDesc()
@@ -440,6 +468,10 @@ class LongDesc(ConcreteTypeBase):
     def getNewStyleNumberTypeCheckExpression(cls, operand):
         return "1"
 
+    @staticmethod
+    def needsIndexConversion():
+        return False
+
 
 long_desc = LongDesc()
 
@@ -452,6 +484,9 @@ class ObjectDesc(TypeDescBase):
     def hasSlot(self, slot):
         # Don't want to get asked, we cannot know.
         assert False
+
+    def getIndexCheckExpression(self, operand):
+        return "PyIndex_Check(%s)" % operand
 
     def getNewStyleNumberTypeCheckExpression(self, operand):
         return "NEW_STYLE_NUMBER_TYPE(%s)" % operand
@@ -503,6 +538,8 @@ env = jinja2.Environment(
     lstrip_blocks=True,
 )
 
+env.undefined = jinja2.StrictUndefined
+
 types = (
     int_desc,
     str_desc,
@@ -522,16 +559,30 @@ def findTypeFromCodeName(code_name):
             return candidate
 
 
-def makeHelpersBinaryOperationAdd(emit_h, emit_c, emit):
-    # We need to create exactly those:
-    from nuitka.codegen.OperationCodes import specialized_add_helpers_set
+mul_repeats = set()
 
-    binary_operation_add_template = env.get_template("HelperOperationBinaryAdd.c.j2")
 
-    emit('/* C helpers for type specialized "+" (Add) operations */')
+def makeMulRepeatCode(left, right, emit):
+    key = right, left
+    if key in mul_repeats:
+        return
+
+    template = env.get_template("HelperOperationMulRepeatSlot.c.j2")
+
+    code = template.render(left=left, right=right)
+
+    emit(code)
+
+    mul_repeats.add(key)
+
+
+def makeHelperOperations(template, helpers_set, operand, op_code, emit_h, emit_c, emit):
+    emit(
+        '/* C helpers for type specialized "%s" (%s) operations */' % (operand, op_code)
+    )
     emit()
 
-    for helper_name in specialized_add_helpers_set:
+    for helper_name in helpers_set:
         left = findTypeFromCodeName(helper_name.split("_")[3])
         right = findTypeFromCodeName(helper_name.split("_")[4])
 
@@ -539,6 +590,21 @@ def makeHelpersBinaryOperationAdd(emit_h, emit_c, emit):
             emit("#if %s" % left.python_requirement)
         elif right.python_requirement:
             emit("#if %s" % right.python_requirement)
+
+        if operand == "*":
+            repeat = left.getSqConcatSlotSpecializationCode(
+                right, "sq_repeat", "operand2", "operand1"
+            )
+
+            if repeat:
+                makeMulRepeatCode(left, right, emit_c)
+
+            repeat = right.getSqConcatSlotSpecializationCode(
+                left, "sq_repeat", "operand2", "operand1"
+            )
+
+            if repeat:
+                makeMulRepeatCode(right, left, emit_c)
 
         emit(
             '/* Code referring to "%s" corresponds to %s and "%s" to %s. */'
@@ -550,7 +616,23 @@ def makeHelpersBinaryOperationAdd(emit_h, emit_c, emit):
             )
         )
 
-        code = binary_operation_add_template.render(left=left, right=right)
+        if operand == "+":
+            nb_slot = "nb_add"
+            sq_slot1 = "sq_concat"
+        elif operand == "*":
+            nb_slot = "nb_multiply"
+            sq_slot1 = "sq_repeat"
+        else:
+            assert False, operand
+
+        code = template.render(
+            left=left,
+            right=right,
+            op_code=op_code,
+            operand=operand,
+            nb_slot=nb_slot,
+            sq_slot1=sq_slot1,
+        )
 
         emit_c(code)
         emit_h("extern " + code.splitlines()[0].replace(" {", ";"))
@@ -561,34 +643,56 @@ def makeHelpersBinaryOperationAdd(emit_h, emit_c, emit):
         emit()
 
 
+def makeHelpersBinaryOperationMul(emit_h, emit_c, emit):
+    # We need to create exactly those:
+    from nuitka.codegen.OperationCodes import specialized_mul_helpers_set
+
+    template = env.get_template("HelperOperationBinaryAdd.c.j2")
+
+    makeHelperOperations(
+        template, specialized_mul_helpers_set, "*", "MUL", emit_h, emit_c, emit
+    )
+
+
+def makeHelpersBinaryOperationAdd(emit_h, emit_c, emit):
+    # We need to create exactly those:
+    from nuitka.codegen.OperationCodes import specialized_add_helpers_set
+
+    template = env.get_template("HelperOperationBinaryAdd.c.j2")
+
+    makeHelperOperations(
+        template, specialized_add_helpers_set, "+", "ADD", emit_h, emit_c, emit
+    )
+
+
+def writeline(output, *args):
+    if not args:
+        output.write("\n")
+    elif len(args) == 1:
+        output.write(args[0] + "\n")
+    else:
+        assert False, args
+
+
 def main():
-    filename_c = "nuitka/build/static_src/HelpersOperationBinaryAdd.c"
-    filename_h = "nuitka/build/include/nuitka/helper/operations_binary_add.h"
+    def emit_h(*args):
+        writeline(output_h, *args)
+
+    def emit_c(*args):
+        writeline(output_c, *args)
+
+    def emit(*args):
+        emit_h(*args)
+        emit_c(*args)
 
     def emitGenerationWarning(emit):
         emit("/* WARNING, this code is GENERATED. Modify the template instead! */")
 
+    filename_c = "nuitka/build/static_src/HelpersOperationBinaryAdd.c"
+    filename_h = "nuitka/build/include/nuitka/helper/operations_binary_add.h"
+
     with open(filename_c, "w") as output_c:
         with open(filename_h, "w") as output_h:
-
-            def writeline(output, *args):
-                if not args:
-                    output.write("\n")
-                elif len(args) == 1:
-                    output.write(args[0] + "\n")
-                else:
-                    assert False, args
-
-            def emit_h(*args):
-                writeline(output_h, *args)
-
-            def emit_c(*args):
-                writeline(output_c, *args)
-
-            def emit(*args):
-                emit_h(*args)
-                emit_c(*args)
-
             emitGenerationWarning(emit_h)
             emitGenerationWarning(emit_c)
 
@@ -597,6 +701,23 @@ def main():
             )
 
             makeHelpersBinaryOperationAdd(emit_h, emit_c, emit)
+
+    cleanupClangFormat(filename_c)
+    cleanupClangFormat(filename_h)
+
+    filename_c = "nuitka/build/static_src/HelpersOperationBinaryMul.c"
+    filename_h = "nuitka/build/include/nuitka/helper/operations_binary_mul.h"
+
+    with open(filename_c, "w") as output_c:
+        with open(filename_h, "w") as output_h:
+            emitGenerationWarning(emit_h)
+            emitGenerationWarning(emit_c)
+
+            emit_c(
+                '#include "%s"' % os.path.basename(filename_c).replace(".c", "Utils.c")
+            )
+
+            makeHelpersBinaryOperationMul(emit_h, emit_c, emit)
 
     cleanupClangFormat(filename_c)
     cleanupClangFormat(filename_h)
