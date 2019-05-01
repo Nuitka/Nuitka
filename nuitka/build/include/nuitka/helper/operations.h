@@ -71,6 +71,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION(binary_api api, PyObject 
 // Generated helpers to execute operations on fully or partially known types.
 #include "nuitka/helper/operations_binary_add.h"
 #include "nuitka/helper/operations_binary_mul.h"
+#include "nuitka/helper/operations_binary_sub.h"
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_INPLACE(binary_api api, PyObject **operand1, PyObject *operand2) {
     assert(operand1);
@@ -155,113 +156,6 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_MUL_INPLACE(PyObject **operand
     *operand1 = result;
 
     return true;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_SUB(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_subtract;
-    }
-
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_subtract;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 300
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
-
-        if (unlikely(err < 0)) {
-            return NULL;
-        }
-
-        if (err == 0) {
-            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
-
-            if (mv) {
-                binaryfunc slot = mv->nb_subtract;
-
-                if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
-
-                    Py_DECREF(operand1);
-                    Py_DECREF(operand2);
-
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-            }
-
-            // CoerceEx did that
-            Py_DECREF(operand1);
-            Py_DECREF(operand2);
-        }
-    }
-#endif
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: '%s' and '%s'", type1->tp_name, type2->tp_name);
-
-    return NULL;
 }
 
 #if PYTHON_VERSION < 300

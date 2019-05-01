@@ -132,7 +132,31 @@ specialized_add_helpers_set = OrderedSet(
         # These are friends too.
         "BINARY_OPERATION_ADD_UNICODE_STR",
         "BINARY_OPERATION_ADD_STR_UNICODE",
+        # Default implementation.
         "BINARY_OPERATION_ADD_OBJECT_OBJECT",
+    )
+)
+
+specialized_sub_helpers_set = OrderedSet(
+    (
+        "BINARY_OPERATION_SUB_OBJECT_INT",
+        "BINARY_OPERATION_SUB_INT_OBJECT",
+        "BINARY_OPERATION_SUB_INT_INT",
+        "BINARY_OPERATION_SUB_OBJECT_FLOAT",
+        "BINARY_OPERATION_SUB_FLOAT_OBJECT",
+        "BINARY_OPERATION_SUB_FLOAT_FLOAT",
+        "BINARY_OPERATION_SUB_OBJECT_LONG",
+        "BINARY_OPERATION_SUB_LONG_OBJECT",
+        "BINARY_OPERATION_SUB_LONG_LONG",
+        # These are friends naturally, they all sub with another
+        "BINARY_OPERATION_SUB_FLOAT_LONG",
+        "BINARY_OPERATION_SUB_LONG_FLOAT",
+        "BINARY_OPERATION_SUB_FLOAT_INT",
+        "BINARY_OPERATION_SUB_INT_FLOAT",
+        "BINARY_OPERATION_SUB_LONG_INT",
+        "BINARY_OPERATION_SUB_INT_LONG",
+        # Default implementation.
+        "BINARY_OPERATION_SUB_OBJECT_OBJECT",
     )
 )
 
@@ -141,6 +165,9 @@ specialized_mul_helpers_set = OrderedSet(
         "BINARY_OPERATION_MUL_OBJECT_INT",
         "BINARY_OPERATION_MUL_INT_OBJECT",
         "BINARY_OPERATION_MUL_INT_INT",
+        "BINARY_OPERATION_MUL_OBJECT_LONG",
+        "BINARY_OPERATION_MUL_LONG_OBJECT",
+        "BINARY_OPERATION_MUL_LONG_LONG",
         "BINARY_OPERATION_MUL_OBJECT_STR",
         "BINARY_OPERATION_MUL_STR_OBJECT",
         "BINARY_OPERATION_MUL_INT_STR",
@@ -182,9 +209,6 @@ specialized_mul_helpers_set = OrderedSet(
         "BINARY_OPERATION_MUL_BYTES_LONG",
         # Should not occur.
         # "BINARY_OPERATION_MUL_BYTES_BYTES",
-        "BINARY_OPERATION_MUL_OBJECT_LONG",
-        "BINARY_OPERATION_MUL_LONG_OBJECT",
-        "BINARY_OPERATION_MUL_LONG_LONG",
         # These are friends naturally, they all mul with another
         "BINARY_OPERATION_MUL_FLOAT_LONG",
         "BINARY_OPERATION_MUL_LONG_FLOAT",
@@ -192,7 +216,7 @@ specialized_mul_helpers_set = OrderedSet(
         "BINARY_OPERATION_MUL_INT_FLOAT",
         "BINARY_OPERATION_MUL_LONG_INT",
         "BINARY_OPERATION_MUL_INT_LONG",
-        # These are friends too.
+        # Default implementation.
         "BINARY_OPERATION_MUL_OBJECT_OBJECT",
     )
 )
@@ -255,6 +279,14 @@ def _getBinaryOperationCode(
             right_shape=expression.getRight().getTypeShape(),
             helpers=specialized_add_helpers_set,
         )
+    elif operator == "Sub":
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_SUB",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_sub_helpers_set,
+        )
     elif operator == "IAdd" and in_place:
         helper = pickCodeHelper(
             prefix="BINARY_OPERATION_ADD",
@@ -265,8 +297,6 @@ def _getBinaryOperationCode(
         )
     elif operator == "IMult" and in_place:
         helper = "BINARY_OPERATION_MUL_INPLACE"
-    elif operator == "Sub":
-        helper = "BINARY_OPERATION_SUB"
     elif operator == "Div":
         helper = "BINARY_OPERATION_DIV"
     elif operator == "FloorDiv":
@@ -281,7 +311,6 @@ def _getBinaryOperationCode(
             right_shape=expression.getRight().getTypeShape(),
             helpers=specialized_mul_helpers_set,
         )
-
     elif operator == "Mod":
         helper = "BINARY_OPERATION_REMAINDER"
     elif operator == "Divmod":

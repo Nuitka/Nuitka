@@ -1991,6 +1991,7 @@ void _initSlotIternext() {
 
 #include "HelpersOperationBinaryAdd.c"
 #include "HelpersOperationBinaryMul.c"
+#include "HelpersOperationBinarySub.c"
 
 #include "HelpersOperationBinaryInplaceAdd.c"
 

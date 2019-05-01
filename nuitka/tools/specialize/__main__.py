@@ -26,7 +26,7 @@ from abc import ABCMeta, abstractmethod
 
 import jinja2
 
-from nuitka.tools.quality.autoformat.Autoformat import cleanupClangFormat
+from nuitka.tools.quality.autoformat.Autoformat import autoformat
 
 
 class TypeMetaClass(ABCMeta):
@@ -286,6 +286,10 @@ class IntDesc(ConcreteTypeBase):
     @staticmethod
     def needsIndexConversion():
         return False
+
+    @staticmethod
+    def getAsLongValueExpression(operand):
+        return "PyInt_AS_LONG(%s)" % operand
 
 
 int_desc = IntDesc()
@@ -559,6 +563,36 @@ def findTypeFromCodeName(code_name):
             return candidate
 
 
+add_codes = set()
+
+
+def makeAddCode(operand, left, emit):
+    key = operand, left
+    if key in add_codes:
+        return
+
+    if left == int_desc:
+        template = env.get_template("HelperOperationBinaryInt.c.j2")
+
+        # Manual still and different.
+        if operand == "*":
+            return
+    elif left == long_desc:
+        template = env.get_template("HelperOperationBinaryLong.c.j2")
+    elif left == float_desc:
+        template = env.get_template("HelperOperationBinaryFloat.c.j2")
+    else:
+        return
+
+    code = template.render(
+        operand=operand, left=left, right=left, nb_slot=_getNbSlotFromOperand(operand)
+    )
+
+    emit(code)
+
+    add_codes.add(key)
+
+
 mul_repeats = set()
 
 
@@ -576,6 +610,17 @@ def makeMulRepeatCode(left, right, emit):
     mul_repeats.add(key)
 
 
+def _getNbSlotFromOperand(operand):
+    if operand == "+":
+        return "nb_add"
+    elif operand == "*":
+        return "nb_multiply"
+    elif operand == "-":
+        return "nb_subtract"
+    else:
+        assert False, operand
+
+
 def makeHelperOperations(template, helpers_set, operand, op_code, emit_h, emit_c, emit):
     emit(
         '/* C helpers for type specialized "%s" (%s) operations */' % (operand, op_code)
@@ -590,6 +635,13 @@ def makeHelperOperations(template, helpers_set, operand, op_code, emit_h, emit_c
             emit("#if %s" % left.python_requirement)
         elif right.python_requirement:
             emit("#if %s" % right.python_requirement)
+
+        if operand in "+-*":
+            add_slot = left.getSameTypeSpecializationCode(
+                right, _getNbSlotFromOperand(operand), None, "operand1", "operand2"
+            )
+            if add_slot:
+                makeAddCode(operand, left if left is not object_desc else right, emit_c)
 
         if operand == "*":
             repeat = left.getSqConcatSlotSpecializationCode(
@@ -617,21 +669,19 @@ def makeHelperOperations(template, helpers_set, operand, op_code, emit_h, emit_c
         )
 
         if operand == "+":
-            nb_slot = "nb_add"
-            sq_slot1 = "sq_concat"
+            sq_slot = "sq_concat"
         elif operand == "*":
-            nb_slot = "nb_multiply"
-            sq_slot1 = "sq_repeat"
+            sq_slot = "sq_repeat"
         else:
-            assert False, operand
+            sq_slot = None
 
         code = template.render(
             left=left,
             right=right,
             op_code=op_code,
             operand=operand,
-            nb_slot=nb_slot,
-            sq_slot1=sq_slot1,
+            nb_slot=_getNbSlotFromOperand(operand),
+            sq_slot1=sq_slot,
         )
 
         emit_c(code)
@@ -643,26 +693,59 @@ def makeHelperOperations(template, helpers_set, operand, op_code, emit_h, emit_c
         emit()
 
 
-def makeHelpersBinaryOperationMul(emit_h, emit_c, emit):
+def makeHelpersBinaryOperation(operand, op_code):
     # We need to create exactly those:
-    from nuitka.codegen.OperationCodes import specialized_mul_helpers_set
+    import nuitka.codegen.OperationCodes
 
-    template = env.get_template("HelperOperationBinaryAdd.c.j2")
-
-    makeHelperOperations(
-        template, specialized_mul_helpers_set, "*", "MUL", emit_h, emit_c, emit
+    specialized_add_helpers_set = getattr(
+        nuitka.codegen.OperationCodes, "specialized_%s_helpers_set" % op_code.lower()
     )
 
+    template = env.get_template("HelperOperationBinary.c.j2")
 
-def makeHelpersBinaryOperationAdd(emit_h, emit_c, emit):
-    # We need to create exactly those:
-    from nuitka.codegen.OperationCodes import specialized_add_helpers_set
-
-    template = env.get_template("HelperOperationBinaryAdd.c.j2")
-
-    makeHelperOperations(
-        template, specialized_add_helpers_set, "+", "ADD", emit_h, emit_c, emit
+    filename_c = "nuitka/build/static_src/HelpersOperationBinary%s.c" % op_code.title()
+    filename_h = (
+        "nuitka/build/include/nuitka/helper/operations_binary_%s.h" % op_code.lower()
     )
+
+    with open(filename_c, "w") as output_c:
+        with open(filename_h, "w") as output_h:
+
+            def emit_h(*args):
+                writeline(output_h, *args)
+
+            def emit_c(*args):
+                writeline(output_c, *args)
+
+            def emit(*args):
+                emit_h(*args)
+                emit_c(*args)
+
+            def emitGenerationWarning(emit):
+                emit(
+                    "/* WARNING, this code is GENERATED. Modify the template instead! */"
+                )
+
+            emitGenerationWarning(emit_h)
+            emitGenerationWarning(emit_c)
+
+            filename_utils = filename_c[:-2] + "Utils.c"
+
+            if os.path.exists(filename_utils):
+                emit_c('#include "%s"' % os.path.basename(filename_utils))
+
+            makeHelperOperations(
+                template,
+                specialized_add_helpers_set,
+                operand,
+                op_code,
+                emit_h,
+                emit_c,
+                emit,
+            )
+
+    autoformat(filename_c, None, True)
+    autoformat(filename_h, None, True)
 
 
 def writeline(output, *args):
@@ -675,52 +758,9 @@ def writeline(output, *args):
 
 
 def main():
-    def emit_h(*args):
-        writeline(output_h, *args)
-
-    def emit_c(*args):
-        writeline(output_c, *args)
-
-    def emit(*args):
-        emit_h(*args)
-        emit_c(*args)
-
-    def emitGenerationWarning(emit):
-        emit("/* WARNING, this code is GENERATED. Modify the template instead! */")
-
-    filename_c = "nuitka/build/static_src/HelpersOperationBinaryAdd.c"
-    filename_h = "nuitka/build/include/nuitka/helper/operations_binary_add.h"
-
-    with open(filename_c, "w") as output_c:
-        with open(filename_h, "w") as output_h:
-            emitGenerationWarning(emit_h)
-            emitGenerationWarning(emit_c)
-
-            emit_c(
-                '#include "%s"' % os.path.basename(filename_c).replace(".c", "Utils.c")
-            )
-
-            makeHelpersBinaryOperationAdd(emit_h, emit_c, emit)
-
-    cleanupClangFormat(filename_c)
-    cleanupClangFormat(filename_h)
-
-    filename_c = "nuitka/build/static_src/HelpersOperationBinaryMul.c"
-    filename_h = "nuitka/build/include/nuitka/helper/operations_binary_mul.h"
-
-    with open(filename_c, "w") as output_c:
-        with open(filename_h, "w") as output_h:
-            emitGenerationWarning(emit_h)
-            emitGenerationWarning(emit_c)
-
-            emit_c(
-                '#include "%s"' % os.path.basename(filename_c).replace(".c", "Utils.c")
-            )
-
-            makeHelpersBinaryOperationMul(emit_h, emit_c, emit)
-
-    cleanupClangFormat(filename_c)
-    cleanupClangFormat(filename_h)
+    makeHelpersBinaryOperation("+", "ADD")
+    makeHelpersBinaryOperation("-", "SUB")
+    makeHelpersBinaryOperation("*", "MUL")
 
 
 if __name__ == "__main__":

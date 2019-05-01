@@ -15,20 +15,9 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
-static PyObject *SLOT_nb_add_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
     {{left.getCheckValueCode("operand1")|indent}}
     {{right.getCheckValueCode("operand2")|indent}}
 
-    {# This is supposed to be Python2 int_add code #}
-    long a = {{left.getAsLongValueExpression("operand1")}};
-    long b = {{right.getAsLongValueExpression("operand2")}};
-
-    long x = (long)((unsigned long)a + b);
-    if ((x^a) >= 0 || (x^b) >= 0)
-        return PyInt_FromLong(x);
-
-    // TODO: Could in-line and specialize this too.
-    PyObject *x = PyLong_Type.tp_as_number->nb_add((PyObject *)operand1, (PyObject *)operand2);
-    assert(x != Py_NotImplemented);
-    return x;
+    return PyFloat_FromDouble(PyFloat_AS_DOUBLE(operand1) {{operand}} PyFloat_AS_DOUBLE(operand2));
 }

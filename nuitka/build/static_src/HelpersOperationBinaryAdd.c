@@ -20,6 +20,30 @@
 /* C helpers for type specialized "+" (ADD) operations */
 
 #if PYTHON_VERSION < 300
+static PyObject *SLOT_nb_add_INT_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    const long a = PyInt_AS_LONG(operand1);
+    const long b = PyInt_AS_LONG(operand2);
+
+    const long x = (long)((unsigned long)a + b);
+    if ((x ^ a) >= 0 || (x ^ b) >= 0)
+        return PyInt_FromLong(x);
+
+    // TODO: Could in-line and specialize this too.
+    PyObject *o = PyLong_Type.tp_as_number->nb_add(operand1, operand2);
+    assert(o != Py_NotImplemented);
+    return o;
+}
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -1546,6 +1570,20 @@ PyObject *BINARY_OPERATION_ADD_UNICODE_UNICODE(PyObject *operand1, PyObject *ope
     return NULL;
 }
 
+static PyObject *SLOT_nb_add_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    return PyFloat_FromDouble(PyFloat_AS_DOUBLE(operand1) + PyFloat_AS_DOUBLE(operand2));
+}
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -3574,6 +3612,11 @@ PyObject *BINARY_OPERATION_ADD_BYTES_BYTES(PyObject *operand1, PyObject *operand
 }
 #endif
 
+static PyObject *SLOT_nb_add_LONG_LONG(PyObject *operand1, PyObject *operand2) {
+    PyObject *x = PyLong_Type.tp_as_number->nb_add((PyObject *)operand1, (PyObject *)operand2);
+    assert(x != Py_NotImplemented);
+    return x;
+}
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 PyObject *BINARY_OPERATION_ADD_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);

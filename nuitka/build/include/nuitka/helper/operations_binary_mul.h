@@ -33,6 +33,15 @@ extern PyObject *BINARY_OPERATION_MUL_INT_OBJECT(PyObject *operand1, PyObject *o
 extern PyObject *BINARY_OPERATION_MUL_INT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
+/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
+extern PyObject *BINARY_OPERATION_MUL_OBJECT_LONG(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
+extern PyObject *BINARY_OPERATION_MUL_LONG_OBJECT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern PyObject *BINARY_OPERATION_MUL_LONG_LONG(PyObject *operand1, PyObject *operand2);
+
 #if PYTHON_VERSION < 300
 /* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
 extern PyObject *BINARY_OPERATION_MUL_OBJECT_STR(PyObject *operand1, PyObject *operand2);
@@ -159,15 +168,6 @@ extern PyObject *BINARY_OPERATION_MUL_LONG_BYTES(PyObject *operand1, PyObject *o
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *BINARY_OPERATION_MUL_BYTES_LONG(PyObject *operand1, PyObject *operand2);
 #endif
-
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-extern PyObject *BINARY_OPERATION_MUL_OBJECT_LONG(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-extern PyObject *BINARY_OPERATION_MUL_LONG_OBJECT(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern PyObject *BINARY_OPERATION_MUL_LONG_LONG(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *BINARY_OPERATION_MUL_FLOAT_LONG(PyObject *operand1, PyObject *operand2);
