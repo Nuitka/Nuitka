@@ -665,6 +665,8 @@ for filename in sorted(os.listdir(".")):
         if loaded_filename in (
             "/usr/lib/qt5/plugins",
             "/usr/lib/qt5",
+            "/usr/lib64/qt5/plugins",
+            "/usr/lib64/qt5",
             "/usr/lib/x86_64-linux-gnu/qt5/plugins",
             "/usr/lib/x86_64-linux-gnu/qt5",
             "/usr/lib/x86_64-linux-gnu",
