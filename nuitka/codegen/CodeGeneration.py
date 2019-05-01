@@ -620,6 +620,7 @@ setExpressionDispatchDict(
         "EXPRESSION_MAKE_DICT": generateDictionaryCreationCode,
         "EXPRESSION_OPERATION_BINARY": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_ADD": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_BINARY_SUB": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_MULT": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_DIVMOD": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_INPLACE": generateOperationBinaryCode,

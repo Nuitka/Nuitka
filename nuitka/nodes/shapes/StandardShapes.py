@@ -89,6 +89,12 @@ class ShapeBase(object):
         return ShapeUnknown, ControlFlowDescriptionFullEscape
 
     @classmethod
+    def getOperationBinarySubShape(cls, right_shape):
+        onMissingOperation("Sub", cls, right_shape)
+
+        return ShapeUnknown, ControlFlowDescriptionFullEscape
+
+    @classmethod
     def getComparisonLtShape(cls, right_shape):
         onMissingOperation("Lt", cls, right_shape)
 
@@ -122,6 +128,10 @@ class ShapeBase(object):
 class ShapeUnknown(ShapeBase):
     @classmethod
     def getOperationBinaryAddShape(cls, right_shape):
+        return ShapeUnknown, ControlFlowDescriptionFullEscape
+
+    @classmethod
+    def getOperationBinarySubShape(cls, right_shape):
         return ShapeUnknown, ControlFlowDescriptionFullEscape
 
     @classmethod
@@ -373,6 +383,15 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
         return self._collectShapeOperation(
             operation=left_shape.getOperationBinaryAddShape
+        )
+
+    # Special method to be called by other shapes encountering this type on
+    # the right side.
+    def getOperationBinarySubLShape(self, left_shape):
+        assert left_shape is not ShapeUnknown
+
+        return self._collectShapeOperation(
+            operation=left_shape.getOperationBinarySubShape
         )
 
     def getComparisonLtShape(self, right_shape):

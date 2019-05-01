@@ -45,14 +45,10 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
     named_children = ("left", "right")
     nice_children = tuple(child_name + " operand" for child_name in named_children)
 
-    def __init__(self, operator, left, right, source_ref):
+    def __init__(self, left, right, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self, values={"left": left, "right": right}, source_ref=source_ref
         )
-
-        self.operator = operator
-
-        self.simulator = PythonOperators.binary_operator_functions[operator]
 
     @staticmethod
     def isExpressionOperationBinary():
@@ -66,9 +62,6 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
 
     def getOperator(self):
         return self.operator
-
-    def getSimulator(self):
-        return self.simulator
 
     inplace_suspect = False
 
@@ -96,7 +89,7 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
 
             return trace_collection.getCompileTimeComputationResult(
                 node=self,
-                computation=lambda: self.getSimulator()(left_value, right_value),
+                computation=lambda: self.simulator(left_value, right_value),
                 description="Operator '%s' with constant arguments." % operator,
             )
 
@@ -137,17 +130,24 @@ class ExpressionOperationBinary(ExpressionOperationBinaryBase):
     def __init__(self, operator, left, right, source_ref):
         assert left.isExpression() and right.isExpression, (left, right)
 
+        self.operator = operator
+
+        self.simulator = PythonOperators.binary_operator_functions[self.operator]
+
         ExpressionOperationBinaryBase.__init__(
-            self, operator=operator, left=left, right=right, source_ref=source_ref
+            self, left=left, right=right, source_ref=source_ref
         )
 
 
 class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_ADD"
 
+    operator = "Add"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
     def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryBase.__init__(
-            self, operator="Add", left=left, right=right, source_ref=source_ref
+            self, left=left, right=right, source_ref=source_ref
         )
 
         self.type_shape = None
@@ -185,7 +185,80 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
 
             return trace_collection.getCompileTimeComputationResult(
                 node=self,
-                computation=lambda: self.getSimulator()(left_value, right_value),
+                computation=lambda: self.simulator(left_value, right_value),
+                description="Operator '%s' with constant arguments." % operator,
+            )
+
+        exception_raise_exit = self.escape_desc.getExceptionExit()
+        if exception_raise_exit is not None:
+            trace_collection.onExceptionRaiseExit(exception_raise_exit)
+
+        if self.escape_desc.isValueEscaping():
+            # The value of these nodes escaped and could change its contents.
+            trace_collection.removeKnowledge(left)
+            trace_collection.removeKnowledge(right)
+
+        if self.escape_desc.isControlFlowEscape():
+            # Any code could be run, note that.
+            trace_collection.onControlFlowEscape(self)
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        # TODO: Match more precisely
+        return (
+            self.escape_desc is None
+            or self.escape_desc.getExceptionExit() is not None
+            or self.subnode_left.mayRaiseException(exception_type)
+            or self.subnode_right.mayRaiseException(exception_type)
+        )
+
+    def mayRaiseExceptionOperation(self):
+        return (
+            self.escape_desc is None or self.escape_desc.getExceptionExit() is not None
+        )
+
+
+class ExpressionOperationBinarySub(ExpressionOperationBinaryBase):
+    kind = "EXPRESSION_OPERATION_BINARY_SUB"
+
+    operator = "Sub"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def __init__(self, left, right, source_ref):
+        ExpressionOperationBinaryBase.__init__(
+            self, left=left, right=right, source_ref=source_ref
+        )
+
+        self.type_shape = None
+        self.escape_desc = None
+
+    def getDetails(self):
+        return {}
+
+    def getTypeShape(self):
+        return self.type_shape
+
+    def computeExpression(self, trace_collection):
+        operator = self.getOperator()
+
+        left = self.subnode_left
+        right = self.subnode_right
+
+        left_shape = left.getTypeShape()
+        right_shape = right.getTypeShape()
+
+        self.type_shape, self.escape_desc = left_shape.getOperationBinarySubShape(
+            right_shape
+        )
+
+        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
+            left_value = left.getCompileTimeConstant()
+            right_value = right.getCompileTimeConstant()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: self.simulator(left_value, right_value),
                 description="Operator '%s' with constant arguments." % operator,
             )
 
@@ -222,9 +295,12 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
 class ExpressionOperationBinaryMult(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_MULT"
 
+    operator = "Mult"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
     def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryBase.__init__(
-            self, operator="Mult", left=left, right=right, source_ref=source_ref
+            self, left=left, right=right, source_ref=source_ref
         )
 
         self.shape = None
@@ -323,7 +399,7 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinaryBase):
 
             return trace_collection.getCompileTimeComputationResult(
                 node=self,
-                computation=lambda: self.getSimulator()(left_value, right_value),
+                computation=lambda: self.simulator(left_value, right_value),
                 description="Operator '*' with constant arguments.",
             )
 
@@ -365,9 +441,12 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinaryBase):
 class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_DIVMOD"
 
+    operator = "Divmod"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
     def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryBase.__init__(
-            self, operator="Divmod", left=left, right=right, source_ref=source_ref
+            self, left=left, right=right, source_ref=source_ref
         )
 
         self.shape = None
@@ -380,6 +459,10 @@ class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
 def makeBinaryOperationNode(operator, left, right, source_ref):
     if operator == "Add":
         return ExpressionOperationBinaryAdd(
+            left=left, right=right, source_ref=source_ref
+        )
+    elif operator == "Sub":
+        return ExpressionOperationBinarySub(
             left=left, right=right, source_ref=source_ref
         )
     elif operator == "Mult":
@@ -415,9 +498,6 @@ class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
     def getOperator(self):
         return self.operator
 
-    def getSimulator(self):
-        return self.simulator
-
     def computeExpression(self, trace_collection):
         operator = self.getOperator()
         operand = self.subnode_operand
@@ -427,7 +507,7 @@ class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
 
             return trace_collection.getCompileTimeComputationResult(
                 node=self,
-                computation=lambda: self.getSimulator()(operand_value),
+                computation=lambda: self.simulator(operand_value),
                 description="Operator '%s' with constant argument." % operator,
             )
         else:

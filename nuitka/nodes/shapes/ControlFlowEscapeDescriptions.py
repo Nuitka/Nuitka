@@ -75,3 +75,7 @@ class ControlFlowDescriptionComparisonUnorderable(ControlFlowDescriptionFullEsca
 
 class ControlFlowDescriptionAddUnsupported(ControlFlowDescriptionFullEscape):
     pass
+
+
+class ControlFlowDescriptionSubUnsupported(ControlFlowDescriptionFullEscape):
+    pass
