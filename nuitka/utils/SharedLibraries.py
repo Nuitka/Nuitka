@@ -24,13 +24,9 @@ from sys import getfilesystemencoding
 
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import python_version
-from nuitka.utils.WindowsResources import (
-    RT_MANIFEST,
-    deleteWindowsResources,
-    getResourcesFromDLL,
-)
 
 from .Utils import isAlpineLinux
+from .WindowsResources import RT_MANIFEST, deleteWindowsResources, getResourcesFromDLL
 
 
 def localDLLFromFilesystem(name, paths):

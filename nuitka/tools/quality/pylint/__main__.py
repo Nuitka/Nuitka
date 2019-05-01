@@ -60,7 +60,7 @@ Show TODO items. Default is %default.""",
         dest="verbose",
         default=False,
         help="""\
-Be version in output. Default is %default.""",
+Be verbose in output. Default is %default.""",
     )
 
     parser.add_option(

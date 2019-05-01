@@ -35,10 +35,6 @@ from logging import info
 
 from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.plugins.standard.EnumPlugin import (
-    NuitkaPluginDetectorEnumWorkarounds,
-    NuitkaPluginEnumWorkarounds,
-)
 from nuitka.PythonVersions import python_version
 
 from .PluginBase import UserPluginBase, post_modules, pre_modules
@@ -47,6 +43,10 @@ from .standard.ConsiderPyLintAnnotationsPlugin import (
     NuitkaPluginPylintEclipseAnnotations,
 )
 from .standard.DataFileCollectorPlugin import NuitkaPluginDataFileCollector
+from .standard.EnumPlugin import (
+    NuitkaPluginDetectorEnumWorkarounds,
+    NuitkaPluginEnumWorkarounds,
+)
 from .standard.ImplicitImports import NuitkaPluginPopularImplicitImports
 from .standard.MultiprocessingPlugin import (
     NuitkaPluginDetectorMultiprocessingWorkarounds,
