@@ -33,15 +33,14 @@ import urllib3  # @UnresolvedImport
 
 # nuitka-skip-unless-imports: urllib3
 
-
-started = False
-
 # running on python2
 if version_info[0] < 3:
 	from BaseHTTPServer import HTTPServer as server_class, BaseHTTPRequestHandler as handler_class
 #running on python3
 else:
 	from http.server import HTTPServer as server_class, BaseHTTPRequestHandler as handler_class
+
+started = False
 
 def runHTTPServer():
     class myServer(handler_class):
