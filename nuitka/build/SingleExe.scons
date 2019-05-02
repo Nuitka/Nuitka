@@ -127,6 +127,8 @@ static_libpython = getBoolOption("static_libpython", False)
 # no longer cross compile this way.
 win_target = os.name == "nt"
 
+noelf_mode = getBoolOption("noelf_mode", False)
+
 macosx_target = sys.platform == "darwin"
 
 # Windows subsystem mode: Disable console for windows builds.
@@ -820,6 +822,9 @@ version for lto mode (>= 4.6)."""
     # The var-tracking does not scale, disable it. Should we really need it, we
     # can enable it. TODO: Does this cause a performance loss?
     env.Append(CCFLAGS=["-fno-var-tracking"])
+
+if gcc_mode and not noelf_mode:
+    env.Append(LINKFLAGS=["-z", "noexecstack"])
 
 if msvc_mode:
     # With Clang on Windows, there is also an linker to use.

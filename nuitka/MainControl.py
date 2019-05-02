@@ -521,6 +521,9 @@ def runScons(main_module, quiet):
 
         options["msvc_version"] = msvc_version
 
+    if Utils.getOS() == "Windows":
+        options["noelf_mode"] = "true"
+
     if Options.isClang():
         options["clang_mode"] = "true"
 
