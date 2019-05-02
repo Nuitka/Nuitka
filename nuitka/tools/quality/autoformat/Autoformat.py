@@ -35,7 +35,11 @@ from nuitka.tools.quality.Git import (
 )
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
-from nuitka.utils.FileOperations import getFileContents, renameFile
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    renameFile,
+    withPreserveFileMode,
+)
 from nuitka.utils.Shebang import getShebangFromFile
 from nuitka.utils.Utils import getOS
 
@@ -372,12 +376,13 @@ def autoformat(filename, git_stage, abort):
         if old_code != getFileContents(tmp_filename, "rb"):
             my_print("Updated.")
 
-            if git_stage:
-                new_hash_value = putFileHashContent(tmp_filename)
-                updateFileIndex(git_stage, new_hash_value)
-                updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
-            else:
-                renameFile(tmp_filename, filename)
+            with withPreserveFileMode(filename):
+                if git_stage:
+                    new_hash_value = putFileHashContent(tmp_filename)
+                    updateFileIndex(git_stage, new_hash_value)
+                    updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
+                else:
+                    renameFile(tmp_filename, filename)
 
             changed = True
         else:

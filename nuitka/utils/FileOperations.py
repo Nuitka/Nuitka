@@ -267,6 +267,13 @@ def getFileContents(filename, mode="r"):
         return f.read()
 
 
+@contextmanager
+def withPreserveFileMode(filename):
+    old_mode = os.stat(filename).st_mode
+    yield
+    os.chmod(filename, old_mode)
+
+
 def renameFile(source_filename, dest_filename):
     # There is no way to safely update a file on Windows, but lets
     # try on Linux at least.
