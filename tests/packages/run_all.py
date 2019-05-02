@@ -41,6 +41,8 @@ from nuitka.tools.testing.Common import (
     getTempDir
 )
 
+from nuitka.tools.testing.SearchModes import SearchModeAll
+
 python_version = setup()
 
 search_mode = createSearchMode()
@@ -75,10 +77,13 @@ for filename in sorted(os.listdir('.')):
             if filename_main not in ("..", '.'):
                 break
         else:
-            sys.exit(
-                """\
-Error, no package in dir '%s' found, incomplete test case.""" % filename
-            )
+            if isinstance(search_mode, SearchModeAll):
+                search_mode.updateTotalErrors()
+            else:
+                sys.exit(
+                    """\
+    Error, no package in dir '%s' found, incomplete test case.""" % filename
+                )
 
         extensions = [
             "--include-package=%s" % os.path.basename(filename_main)

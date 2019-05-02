@@ -50,7 +50,7 @@ from nuitka.tools.testing.Common import (  # isort:skip
     my_print,
     setup
 )
-
+from nuitka.tools.testing.SearchModes import SearchModeAll
 from nuitka.TreeXML import toString
 
 python_version = setup()
@@ -108,12 +108,15 @@ def checkSequence(statements):
             print_arg, = getRole(statement, "value")
 
             if not isConstantExpression(print_arg):
-                sys.exit(
-                    "%s: Error, print of non-constant '%s'." % (
-                        getSourceRef(statement),
-                        getKind(print_arg)
+                if isinstance(search_mode, SearchModeAll):
+                    search_mode.updateTotalErrors()
+                else:
+                    sys.exit(
+                        "%s: Error, print of non-constant '%s'." % (
+                            getSourceRef(statement),
+                            getKind(print_arg)
+                        )
                     )
-                )
 
             continue
 
@@ -163,7 +166,10 @@ def checkSequence(statements):
                 continue
 
             elif not isConstantExpression(assign_source):
-                sys.exit("Error, assignment from non-constant '%s'." % getKind(assign_source))
+                if isinstance(search_mode, SearchModeAll):
+                    search_mode.updateTotalErrors()
+                else:
+                    sys.exit("Error, assignment from non-constant '%s'." % getKind(assign_source))
 
             continue
 
@@ -173,7 +179,10 @@ def checkSequence(statements):
             if getKind(assign_source) == "ModuleAttributeSpecRef":
                 continue
             else:
-                sys.exit("Error, attribute assignment to '%s'." % getKind(assign_source))
+                if isinstance(search_mode, SearchModeAll):
+                    search_mode.updateTotalErrors()
+                else:            
+                    sys.exit("Error, attribute assignment to '%s'." % getKind(assign_source))
 
 
         if kind in ("ReturnNone", "ReturnConstant"):
@@ -181,7 +190,10 @@ def checkSequence(statements):
 
 
         print(toString(statement))
-        sys.exit("Error, non-print statement of unknown kind '%s'." % kind)
+        if isinstance(search_mode, SearchModeAll):
+            search_mode.updateTotalErrors()
+        else:        
+            sys.exit("Error, non-print statement of unknown kind '%s'." % kind)
 
 
 for filename in sorted(os.listdir('.')):
@@ -266,7 +278,7 @@ for filename in sorted(os.listdir('.')):
 
         assert len(module_statements_sequence) == 1
         module_statements = next(iter(module_statements_sequence))
-
+        
         try:
             checkSequence(module_statements)
 

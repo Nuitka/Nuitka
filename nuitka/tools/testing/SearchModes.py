@@ -25,6 +25,7 @@ import hashlib
 import os
 import sys
 
+from nuitka.Tracing import my_print
 from nuitka.utils.FileOperations import areSamePaths
 
 
@@ -173,3 +174,15 @@ class SearchModeOnly(SearchModeByPattern):
         if self.active:
             return True
         return False
+
+
+class SearchModeAll(SearchModeBase):
+    def __init__(self):
+        SearchModeBase.__init__(self)
+        self.total_errors = 0
+
+    def updateTotalErrors(self):
+        self.total_errors += 1
+
+    def finish(self):
+        my_print("Total " + str(self.total_errors) + " error(s) found.")
