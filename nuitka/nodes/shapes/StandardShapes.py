@@ -82,17 +82,65 @@ class ShapeBase(object):
     def hasShapeSlotContains():
         return None
 
+    add_shapes = {}
+
     @classmethod
     def getOperationBinaryAddShape(cls, right_shape):
-        onMissingOperation("Add", cls, right_shape)
+        result = cls.add_shapes.get(right_shape)
 
-        return ShapeUnknown, ControlFlowDescriptionFullEscape
+        if result is not None:
+            return result
+        else:
+            right_shape_type = type(right_shape)
+            if right_shape_type is ShapeLoopCompleteAlternative:
+                return right_shape.getOperationBinaryAddLShape(cls)
+
+            if right_shape_type is ShapeLoopInitialAlternative:
+                return ShapeUnknown, ControlFlowDescriptionFullEscape
+
+            onMissingOperation("Add", cls, right_shape)
+
+            return ShapeUnknown, ControlFlowDescriptionFullEscape
+
+    sub_shapes = {}
 
     @classmethod
     def getOperationBinarySubShape(cls, right_shape):
-        onMissingOperation("Sub", cls, right_shape)
+        result = cls.sub_shapes.get(right_shape)
 
-        return ShapeUnknown, ControlFlowDescriptionFullEscape
+        if result is not None:
+            return result
+        else:
+            right_shape_type = type(right_shape)
+            if right_shape_type is ShapeLoopCompleteAlternative:
+                return right_shape.getOperationBinarySubLShape(cls)
+
+            if right_shape_type is ShapeLoopInitialAlternative:
+                return ShapeUnknown, ControlFlowDescriptionFullEscape
+
+            onMissingOperation("Sub", cls, right_shape)
+
+            return ShapeUnknown, ControlFlowDescriptionFullEscape
+
+    mul_shapes = {}
+
+    @classmethod
+    def getOperationBinaryMultShape(cls, right_shape):
+        result = cls.mul_shapes.get(right_shape)
+
+        if result is not None:
+            return result
+        else:
+            right_shape_type = type(right_shape)
+            if right_shape_type is ShapeLoopCompleteAlternative:
+                return right_shape.getOperationBinaryMultLShape(cls)
+
+            if right_shape_type is ShapeLoopInitialAlternative:
+                return ShapeUnknown, ControlFlowDescriptionFullEscape
+
+            onMissingOperation("Mult", cls, right_shape)
+
+            return ShapeUnknown, ControlFlowDescriptionFullEscape
 
     @classmethod
     def getComparisonLtShape(cls, right_shape):
@@ -132,6 +180,10 @@ class ShapeUnknown(ShapeBase):
 
     @classmethod
     def getOperationBinarySubShape(cls, right_shape):
+        return ShapeUnknown, ControlFlowDescriptionFullEscape
+
+    @classmethod
+    def getOperationBinaryMultShape(cls, right_shape):
         return ShapeUnknown, ControlFlowDescriptionFullEscape
 
     @classmethod
@@ -274,6 +326,32 @@ class ShapeLoopInitialAlternative(ShapeBase):
                 ControlFlowDescriptionFullEscape,
             )
 
+    def getOperationBinarySubShape(self, right_shape):
+        if right_shape is ShapeUnknown:
+            return ShapeUnknown, ControlFlowDescriptionFullEscape
+        else:
+            return (
+                self._collectInitialShape(
+                    operation=lambda left_shape: left_shape.getOperationBinarySubShape(
+                        right_shape
+                    )
+                ),
+                ControlFlowDescriptionFullEscape,
+            )
+
+    def getOperationBinaryMultShape(self, right_shape):
+        if right_shape is ShapeUnknown:
+            return ShapeUnknown, ControlFlowDescriptionFullEscape
+        else:
+            return (
+                self._collectInitialShape(
+                    operation=lambda left_shape: left_shape.getOperationBinaryMultShape(
+                        right_shape
+                    )
+                ),
+                ControlFlowDescriptionFullEscape,
+            )
+
     def getComparisonLtShape(self, right_shape):
         if right_shape is ShapeUnknown:
             return ShapeUnknown, ControlFlowDescriptionFullEscape
@@ -376,6 +454,26 @@ class ShapeLoopCompleteAlternative(ShapeBase):
             )
         )
 
+    def getOperationBinarySubShape(self, right_shape):
+        if right_shape is ShapeUnknown:
+            return ShapeUnknown, ControlFlowDescriptionFullEscape
+
+        return self._collectShapeOperation(
+            operation=lambda left_shape: left_shape.getOperationBinarySubShape(
+                right_shape
+            )
+        )
+
+    def getOperationBinaryMultShape(self, right_shape):
+        if right_shape is ShapeUnknown:
+            return ShapeUnknown, ControlFlowDescriptionFullEscape
+
+        return self._collectShapeOperation(
+            operation=lambda left_shape: left_shape.getOperationBinaryMultShape(
+                right_shape
+            )
+        )
+
     # Special method to be called by other shapes encountering this type on
     # the right side.
     def getOperationBinaryAddLShape(self, left_shape):
@@ -392,6 +490,13 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
         return self._collectShapeOperation(
             operation=left_shape.getOperationBinarySubShape
+        )
+
+    def getOperationBinaryMultLShape(self, left_shape):
+        assert left_shape is not ShapeUnknown
+
+        return self._collectShapeOperation(
+            operation=left_shape.getOperationBinaryMultShape
         )
 
     def getComparisonLtShape(self, right_shape):

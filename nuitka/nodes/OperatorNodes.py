@@ -22,14 +22,15 @@ no real difference.
 """
 
 import math
+from abc import abstractmethod
 
 from nuitka import PythonOperators
 
 from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
-from .shapes.BuiltinTypeShapes import ShapeTypeBool, ShapeTypeTuple
+from .shapes.BuiltinTypeShapes import ShapeTypeBool, ShapeTypeIntOrLong, ShapeTypeTuple
 from .shapes.StandardShapes import (
+    ShapeLargeConstantValue,
     ShapeLargeConstantValuePredictable,
-    ShapeUnknown,
     vshape_unknown,
 )
 
@@ -76,9 +77,7 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
 
     # TODO: Make this unnecessary by specializing for all operations.
     def computeExpression(self, trace_collection):
-        operator = self.getOperator()
-
-        assert operator not in ("Mult", "Add")
+        assert self.operator not in ("Mult", "Add", "Sub")
 
         left = self.subnode_left
         right = self.subnode_right
@@ -90,7 +89,7 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
             return trace_collection.getCompileTimeComputationResult(
                 node=self,
                 computation=lambda: self.simulator(left_value, right_value),
-                description="Operator '%s' with constant arguments." % operator,
+                description="Operator '%s' with constant arguments." % self.operator,
             )
 
         # TODO: May go down to MemoryError for compile time constant overflow
@@ -139,91 +138,10 @@ class ExpressionOperationBinary(ExpressionOperationBinaryBase):
         )
 
 
-class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
-    kind = "EXPRESSION_OPERATION_BINARY_ADD"
+# TODO: Only while ExpressionOperationBinaryBase is still taken.
+class ExpressionOperationBinaryConcreteBase(ExpressionOperationBinaryBase):
 
-    operator = "Add"
-    simulator = PythonOperators.binary_operator_functions[operator]
-
-    def __init__(self, left, right, source_ref):
-        ExpressionOperationBinaryBase.__init__(
-            self, left=left, right=right, source_ref=source_ref
-        )
-
-        self.type_shape = None
-        self.escape_desc = None
-
-    def getDetails(self):
-        return {}
-
-    def getTypeShape(self):
-        return self.type_shape
-
-    def computeExpression(self, trace_collection):
-        operator = self.getOperator()
-
-        left = self.subnode_left
-        right = self.subnode_right
-
-        left_shape = left.getTypeShape()
-        right_shape = right.getTypeShape()
-
-        self.type_shape, self.escape_desc = left_shape.getOperationBinaryAddShape(
-            right_shape
-        )
-
-        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            left_value = left.getCompileTimeConstant()
-            right_value = right.getCompileTimeConstant()
-
-            if left.isKnownToBeIterable(None) and right.isKnownToBeIterable(None):
-
-                iter_length = left.getIterationLength() + right.getIterationLength()
-
-                if iter_length > 256:
-                    return self, None, None
-
-            return trace_collection.getCompileTimeComputationResult(
-                node=self,
-                computation=lambda: self.simulator(left_value, right_value),
-                description="Operator '%s' with constant arguments." % operator,
-            )
-
-        exception_raise_exit = self.escape_desc.getExceptionExit()
-        if exception_raise_exit is not None:
-            trace_collection.onExceptionRaiseExit(exception_raise_exit)
-
-        if self.escape_desc.isValueEscaping():
-            # The value of these nodes escaped and could change its contents.
-            trace_collection.removeKnowledge(left)
-            trace_collection.removeKnowledge(right)
-
-        if self.escape_desc.isControlFlowEscape():
-            # Any code could be run, note that.
-            trace_collection.onControlFlowEscape(self)
-
-        return self, None, None
-
-    def mayRaiseException(self, exception_type):
-        # TODO: Match more precisely
-        return (
-            self.escape_desc is None
-            or self.escape_desc.getExceptionExit() is not None
-            or self.subnode_left.mayRaiseException(exception_type)
-            or self.subnode_right.mayRaiseException(exception_type)
-        )
-
-    def mayRaiseExceptionOperation(self):
-        return (
-            self.escape_desc is None or self.escape_desc.getExceptionExit() is not None
-        )
-
-
-class ExpressionOperationBinarySub(ExpressionOperationBinaryBase):
-    kind = "EXPRESSION_OPERATION_BINARY_SUB"
-
-    operator = "Sub"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    shape = None
 
     def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryBase.__init__(
@@ -238,75 +156,6 @@ class ExpressionOperationBinarySub(ExpressionOperationBinaryBase):
 
     def getTypeShape(self):
         return self.type_shape
-
-    def computeExpression(self, trace_collection):
-        operator = self.getOperator()
-
-        left = self.subnode_left
-        right = self.subnode_right
-
-        left_shape = left.getTypeShape()
-        right_shape = right.getTypeShape()
-
-        self.type_shape, self.escape_desc = left_shape.getOperationBinarySubShape(
-            right_shape
-        )
-
-        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            left_value = left.getCompileTimeConstant()
-            right_value = right.getCompileTimeConstant()
-
-            return trace_collection.getCompileTimeComputationResult(
-                node=self,
-                computation=lambda: self.simulator(left_value, right_value),
-                description="Operator '%s' with constant arguments." % operator,
-            )
-
-        exception_raise_exit = self.escape_desc.getExceptionExit()
-        if exception_raise_exit is not None:
-            trace_collection.onExceptionRaiseExit(exception_raise_exit)
-
-        if self.escape_desc.isValueEscaping():
-            # The value of these nodes escaped and could change its contents.
-            trace_collection.removeKnowledge(left)
-            trace_collection.removeKnowledge(right)
-
-        if self.escape_desc.isControlFlowEscape():
-            # Any code could be run, note that.
-            trace_collection.onControlFlowEscape(self)
-
-        return self, None, None
-
-    def mayRaiseException(self, exception_type):
-        # TODO: Match more precisely
-        return (
-            self.escape_desc is None
-            or self.escape_desc.getExceptionExit() is not None
-            or self.subnode_left.mayRaiseException(exception_type)
-            or self.subnode_right.mayRaiseException(exception_type)
-        )
-
-    def mayRaiseExceptionOperation(self):
-        return (
-            self.escape_desc is None or self.escape_desc.getExceptionExit() is not None
-        )
-
-
-class ExpressionOperationBinaryMult(ExpressionOperationBinaryBase):
-    kind = "EXPRESSION_OPERATION_BINARY_MULT"
-
-    operator = "Mult"
-    simulator = PythonOperators.binary_operator_functions[operator]
-
-    def __init__(self, left, right, source_ref):
-        ExpressionOperationBinaryBase.__init__(
-            self, left=left, right=right, source_ref=source_ref
-        )
-
-        self.shape = None
-
-    def getDetails(self):
-        return {}
 
     def getValueShape(self):
         if self.shape is not None:
@@ -314,11 +163,192 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinaryBase):
         else:
             return vshape_unknown
 
-    def getTypeShape(self):
-        if self.shape is not None:
-            return self.shape.getTypeShape()
+    @abstractmethod
+    def _getOperationShape(self):
+        pass
+
+    @staticmethod
+    def _isTooLarge():
+        return False
+
+    @staticmethod
+    def _onTooLarge():
+        pass
+
+    def computeExpression(self, trace_collection):
+        # TODO: May go down to MemoryError for compile time constant overflow
+        # ones.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # Nothing to do anymore for large constants.
+        if self.shape is not None and self.shape.isConstant():
+            return self, None, None
+
+        left = self.subnode_left
+        right = self.subnode_right
+
+        self.type_shape, self.escape_desc = self._getOperationShape()
+
+        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
+            if not self._isTooLarge():
+                left_value = left.getCompileTimeConstant()
+                right_value = right.getCompileTimeConstant()
+
+                return trace_collection.getCompileTimeComputationResult(
+                    node=self,
+                    computation=lambda: self.simulator(left_value, right_value),
+                    description="Operator '%s' with constant arguments."
+                    % self.operator,
+                )
+
+        exception_raise_exit = self.escape_desc.getExceptionExit()
+        if exception_raise_exit is not None:
+            trace_collection.onExceptionRaiseExit(exception_raise_exit)
+
+        if self.escape_desc.isValueEscaping():
+            # The value of these nodes escaped and could change its contents.
+            trace_collection.removeKnowledge(left)
+            trace_collection.removeKnowledge(right)
+
+        if self.escape_desc.isControlFlowEscape():
+            # Any code could be run, note that.
+            trace_collection.onControlFlowEscape(self)
+
+        return self, None, None
+
+    def mayRaiseExceptionOperation(self):
+        return (
+            self.escape_desc is None or self.escape_desc.getExceptionExit() is not None
+        )
+
+    def mayRaiseException(self, exception_type):
+        # TODO: Match more precisely
+        return (
+            self.escape_desc is None
+            or self.escape_desc.getExceptionExit() is not None
+            or self.subnode_left.mayRaiseException(exception_type)
+            or self.subnode_right.mayRaiseException(exception_type)
+        )
+
+    def canPredictIterationValues(self):
+        # TODO: Actually we could very well, esp. for sequence repeats.
+        # pylint: disable=no-self-use
+        return False
+
+
+class ExpressionOperationBinaryAdd(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_ADD"
+
+    operator = "Add"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryAddShape(
+            self.subnode_right.getTypeShape()
+        )
+
+    def _isTooLarge(self):
+        if self.subnode_left.isKnownToBeIterable(
+            None
+        ) and self.subnode_right.isKnownToBeIterable(None):
+            size = (
+                self.subnode_left.getIterationLength()
+                + self.subnode_right.getIterationLength()
+            )
+
+            # TODO: Actually could make a predictor, but we don't use it yet.
+            self.shape = ShapeLargeConstantValuePredictable(
+                size=size,
+                predictor=None,  # predictValuesFromRightAndLeftValue,
+                shape=self.subnode_left.getTypeShape(),
+            )
+
+            return size > 256
         else:
-            return ShapeUnknown
+            return False
+
+
+class ExpressionOperationBinarySub(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_SUB"
+
+    operator = "Sub"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinarySubShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationBinaryMult(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_MULT"
+
+    operator = "Mult"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryMultShape(
+            self.subnode_right.getTypeShape()
+        )
+
+    def _isTooLarge(self):
+        if self.subnode_right.isNumberConstant():
+            iter_length = self.subnode_left.getIterationLength()
+
+            if iter_length is not None:
+                size = iter_length * self.subnode_right.getCompileTimeConstant()
+                if size > 256:
+                    self.shape = ShapeLargeConstantValuePredictable(
+                        size=size,
+                        predictor=None,  # predictValuesFromRightAndLeftValue,
+                        shape=self.subnode_left.getTypeShape(),
+                    )
+
+                    return True
+
+            if self.subnode_left.isNumberConstant():
+                if (
+                    self.subnode_left.isIndexConstant()
+                    and self.subnode_right.isIndexConstant()
+                ):
+                    # Estimate with logarithm, if the result of number
+                    # calculations is computable with acceptable effort,
+                    # otherwise, we will have to do it at runtime.
+                    left_value = self.subnode_left.getCompileTimeConstant()
+
+                    if left_value != 0:
+                        right_value = self.subnode_right.getCompileTimeConstant()
+
+                        # TODO: Is this really useful, can this be really slow.
+                        if right_value != 0:
+                            if (
+                                math.log10(abs(left_value))
+                                + math.log10(abs(right_value))
+                                > 20
+                            ):
+                                self.shape = ShapeLargeConstantValue(
+                                    size=None, shape=ShapeTypeIntOrLong
+                                )
+
+                                return True
+
+        elif self.subnode_left.isNumberConstant():
+            iter_length = self.subnode_right.getIterationLength()
+
+            if iter_length is not None:
+                left_value = self.subnode_left.getCompileTimeConstant()
+
+                size = iter_length * left_value
+                if iter_length * left_value > 256:
+                    self.shape = ShapeLargeConstantValuePredictable(
+                        size=size,
+                        predictor=None,  # predictValuesFromRightAndLeftValue,
+                        shape=self.subnode_right.getTypeShape(),
+                    )
+
+                    return True
+
+        return False
 
     def getIterationLength(self):
         left_length = self.getLeft().getIterationLength()
@@ -338,79 +368,6 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinaryBase):
                 return right_length * left_value
 
         return ExpressionOperationBinaryBase.getIterationLength(self)
-
-    def computeExpression(self, trace_collection):
-        # TODO: May go down to MemoryError for compile time constant overflow
-        # ones.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Nothing to do anymore for large constants.
-        if self.shape is not None and self.shape.isConstant():
-            return self, None, None
-
-        left = self.subnode_left
-        right = self.subnode_right
-
-        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            left_value = left.getCompileTimeConstant()
-            right_value = right.getCompileTimeConstant()
-
-            if right.isNumberConstant():
-                iter_length = left.getIterationLength()
-
-                if iter_length is not None:
-                    size = iter_length * right_value
-                    if size > 256:
-                        self.shape = ShapeLargeConstantValuePredictable(
-                            size=size,
-                            predictor=None,  # predictValuesFromRightAndLeftValue,
-                            shape=left.getTypeShape(),
-                        )
-
-                        return self, None, None
-
-                if left.isNumberConstant():
-                    if left.isIndexConstant() and right.isIndexConstant():
-                        # Estimate with logarithm, if the result of number
-                        # calculations is computable with acceptable effort,
-                        # otherwise, we will have to do it at runtime.
-
-                        if left_value != 0 and right_value != 0:
-                            if (
-                                math.log10(abs(left_value))
-                                + math.log10(abs(right_value))
-                                > 20
-                            ):
-                                return self, None, None
-
-            elif left.isNumberConstant():
-                iter_length = right.getIterationLength()
-
-                if iter_length is not None:
-                    size = iter_length * left_value
-                    if iter_length * left_value > 256:
-                        self.shape = ShapeLargeConstantValuePredictable(
-                            size=size,
-                            predictor=None,  # predictValuesFromRightAndLeftValue,
-                            shape=right.getTypeShape(),
-                        )
-
-                        return self, None, None
-
-            return trace_collection.getCompileTimeComputationResult(
-                node=self,
-                computation=lambda: self.simulator(left_value, right_value),
-                description="Operator '*' with constant arguments.",
-            )
-
-        # The value of these nodes escaped and could change its contents.
-        trace_collection.removeKnowledge(left)
-        trace_collection.removeKnowledge(right)
-
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
-
-        return self, None, None
 
     def extractSideEffects(self):
         left_length = self.getLeft().getIterationLength()

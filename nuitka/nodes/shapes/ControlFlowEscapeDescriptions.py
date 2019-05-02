@@ -73,9 +73,25 @@ class ControlFlowDescriptionComparisonUnorderable(ControlFlowDescriptionFullEsca
     pass
 
 
-class ControlFlowDescriptionAddUnsupported(ControlFlowDescriptionFullEscape):
+class ControlFlowDescriptionOperationUnsupportedBase(ControlFlowDescriptionFullEscape):
+    @staticmethod
+    def getExceptionExit():
+        return TypeError
+
+
+class ControlFlowDescriptionAddUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
     pass
 
 
-class ControlFlowDescriptionSubUnsupported(ControlFlowDescriptionFullEscape):
+class ControlFlowDescriptionSubUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionMulUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
     pass
