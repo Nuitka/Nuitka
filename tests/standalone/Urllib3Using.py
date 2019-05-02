@@ -35,15 +35,15 @@ import urllib3  # @UnresolvedImport
 
 # running on python2
 if version_info[0] < 3:
-	from BaseHTTPServer import HTTPServer as server_class, BaseHTTPRequestHandler as handler_class
+	from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 #running on python3
 else:
-	from http.server import HTTPServer as server_class, BaseHTTPRequestHandler as handler_class
+	from http.server import HTTPServer, BaseHTTPRequestHandler
 
 started = False
 
 def runHTTPServer():
-    class myServer(handler_class):
+    class myServer(BaseHTTPRequestHandler):
         def do_GET(self):
             if self.path == "/":
                 self.path = "/index.html"
@@ -67,7 +67,7 @@ def runHTTPServer():
         server_address = ("127.0.0.1", port)
 
         try:
-            server = server_class(server_address, myServer)
+            server = HTTPServer(server_address, myServer)
         except OSError:
             continue
         else:
