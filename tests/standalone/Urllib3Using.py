@@ -34,87 +34,50 @@ import urllib3  # @UnresolvedImport
 # nuitka-skip-unless-imports: urllib3
 
 
-
 started = False
 
 # running on python2
 if version_info[0] < 3:
-	import BaseHTTPServer
-	def runHTTPServer(server_class=BaseHTTPServer.HTTPServer,
-			handler_class=BaseHTTPServer.BaseHTTPRequestHandler):
-	    class myServer(handler_class):
-	        def do_GET(self):
-	            if self.path == "/":
-	                self.path = "/index.html"
-	            try:
-	                file_to_open = open(self.path[1:], "rb").read()
-	                self.send_response(200)
-	                self.end_headers()
-	                self.wfile.write(file_to_open)
-	            except IOError:
-	                self.send_response(404)
-	                self.end_headers()
-
-	        # No logging due to races.
-	        def log_request(self, code):
-	            pass
-
-	    global port
-	    global server
-
-	    for port in range(8020, 9000):
-	        server_address = ("127.0.0.1", port)
-
-	        try:
-	            server = server_class(server_address, myServer)
-	        except OSError:
-	            continue
-	        else:
-	            break
-
-	    global started
-	    started = True
-
-	    server.serve_forever()
-
-# running on python3
+	from BaseHTTPServer import HTTPServer as server_class, BaseHTTPRequestHandler as handler_class
+#running on python3
 else:
-	from http.server import BaseHTTPRequestHandler, HTTPServer
-	def runHTTPServer():
-	    class myServer(BaseHTTPRequestHandler):
-	        def do_GET(self):
-	            if self.path == "/":
-	                self.path = "/index.html"
-	            try:
-	                file_to_open = open(self.path[1:], "rb").read()
-	                self.send_response(200)
-	                self.end_headers()
-	                self.wfile.write(file_to_open)
-	            except IOError:
-	                self.send_response(404)
-	                self.end_headers()
+	from http.server import HTTPServer as server_class, BaseHTTPRequestHandler as handler_class
 
-	        # No logging due to races.
-	        def log_request(self, code):
-	            pass
+def runHTTPServer():
+    class myServer(handler_class):
+        def do_GET(self):
+            if self.path == "/":
+                self.path = "/index.html"
+            try:
+                file_to_open = open(self.path[1:], "rb").read()
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(file_to_open)
+            except IOError:
+                self.send_response(404)
+                self.end_headers()
 
-	    global port
-	    global server
+        # No logging due to races.
+        def log_request(self, code):
+            pass
 
-	    for port in range(8020, 9000):
-	        server_address = ("127.0.0.1", port)
+    global port
+    global server
 
-	        try:
-	            server = HTTPServer(server_address, myServer)
-	        except OSError:
-	            continue
-	        else:
-	            break
+    for port in range(8020, 9000):
+        server_address = ("127.0.0.1", port)
 
-	    global started
-	    started = True
+        try:
+            server = server_class(server_address, myServer)
+        except OSError:
+            continue
+        else:
+            break
 
-	    server.serve_forever()
+    global started
+    started = True
+
+    server.serve_forever()
 
 
 Thread(target=runHTTPServer).start()
