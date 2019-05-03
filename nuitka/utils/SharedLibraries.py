@@ -132,10 +132,16 @@ def getWindowsDLLVersion(filename):
         a tuple of 4 numbers.
     """
     # Get size needed for buffer (0 if no info)
-    import ctypes
+    import ctypes.wintypes
 
     if type(filename) is unicode:
-        size = ctypes.windll.version.GetFileVersionInfoSizeW(filename, None)
+        GetFileVersionInfoSizeW = ctypes.windll.version.GetFileVersionInfoSizeW
+        GetFileVersionInfoSizeW.argtypes = [
+            ctypes.wintypes.LPCWSTR,
+            ctypes.wintypes.LPDWORD,  # @UndefinedVariable
+        ]
+        GetFileVersionInfoSizeW.restype = ctypes.wintypes.HANDLE
+        size = GetFileVersionInfoSizeW(filename, None)
     else:
         size = ctypes.windll.version.GetFileVersionInfoSizeA(filename, None)
 
@@ -147,17 +153,42 @@ def getWindowsDLLVersion(filename):
     # Load file informations into buffer res
 
     if type(filename) is unicode:
-        ctypes.windll.version.GetFileVersionInfoW(filename, None, size, res)
-    else:
-        ctypes.windll.version.GetFileVersionInfoA(filename, None, size, res)
+        # Python3 needs our help here.
+        GetFileVersionInfo = ctypes.windll.version.GetFileVersionInfoW
+        GetFileVersionInfo.argtypes = [
+            ctypes.wintypes.LPCWSTR,
+            ctypes.wintypes.DWORD,
+            ctypes.wintypes.DWORD,
+            ctypes.wintypes.LPVOID,
+        ]
+        GetFileVersionInfo.restype = ctypes.wintypes.BOOL
 
-    r = ctypes.c_uint()
-    l = ctypes.c_uint()
+    else:
+        # Python2 just works.
+        GetFileVersionInfo = ctypes.windll.version.GetFileVersionInfoA
+
+    success = GetFileVersionInfo(filename, 0, size, res)
+    # This cannot really fail anymore.
+    assert success
+
+    r = ctypes.wintypes.UINT()
+    l = ctypes.wintypes.UINT()
 
     # Look for codepages
-    ctypes.windll.version.VerQueryValueA(
-        res, br"\VarFileInfo\Translation", ctypes.byref(r), ctypes.byref(l)
-    )
+    VerQueryValueA = ctypes.windll.version.VerQueryValueA
+
+    # This doesn't exist yet for Python2
+    PUINT = ctypes.POINTER(ctypes.wintypes.UINT)
+
+    VerQueryValueA.argtypes = [
+        ctypes.wintypes.LPCVOID,
+        ctypes.wintypes.LPCSTR,
+        PUINT,
+        PUINT,
+    ]
+    VerQueryValueA.restype = ctypes.wintypes.BOOL
+
+    VerQueryValueA(res, br"\VarFileInfo\Translation", r, l)
 
     if not l.value:
         return (0, 0, 0, 0)
@@ -166,12 +197,7 @@ def getWindowsDLLVersion(filename):
     codepage = tuple(codepages[:2].tolist())
 
     # Extract information
-    ctypes.windll.version.VerQueryValueA(
-        res,
-        r"\StringFileInfo\%04x%04x\FileVersion" % codepage,
-        ctypes.byref(r),
-        ctypes.byref(l),
-    )
+    VerQueryValueA(res, br"\StringFileInfo\%04x%04x\FileVersion" % codepage, r, l)
 
     data = ctypes.string_at(r.value, l.value)[4 * 2 :]
 
