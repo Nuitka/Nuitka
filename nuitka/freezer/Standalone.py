@@ -59,21 +59,15 @@ from nuitka.utils.FileOperations import (
     listDir,
     makePath,
 )
-from nuitka.utils.SharedLibraries import getWindowsDLLVersion, removeSxsFromDLL
+from nuitka.utils.SharedLibraries import (
+    getPEFileInformation,
+    getWindowsDLLVersion,
+    removeSxsFromDLL,
+)
 from nuitka.utils.ThreadedExecutor import Lock, ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import getArchitecture
 
 from .DependsExe import getDependsExePath
-
-# Use PE file analysis only on Win32
-if Utils.isWin32Windows() and Options.isExperimental("use_pefile"):
-    import pefile  # @UnresolvedImport pylint: disable=I0021,import-error
-
-    # Finding site-packages directory when recursive internal dependency walker is used
-    from distutils.sysconfig import (  # pylint: disable=I0021,import-error
-        get_python_lib,  # @UnresolvedImport
-    )
 
 
 def loadCodeObjectData(precompiled_filename):
@@ -1112,42 +1106,21 @@ SxS
     return result
 
 
-def _getPEFile(binary_filename):
-    try:
-        pe = pefile.PE(binary_filename)
-        return pe
-    except AttributeError:
-        assert False, "Bogus PE header in " + binary_filename
-
-
-def _isPE64(pe_file):
-    pe = _getPEFile(pe_file)
-    arch = {
-        pefile.OPTIONAL_HEADER_MAGIC_PE: False,
-        pefile.OPTIONAL_HEADER_MAGIC_PE_PLUS: True,
-    }
-    try:
-        return arch[pe.PE_TYPE]
-    except KeyError:
-        # Support your architecture.
-        assert False, "Unknown PE file architecture"
-
-
 def _parsePEFileOutput(binary_filename, scan_dirs, result):
-    pe = _getPEFile(binary_filename)
+    scan_dirs = list(scan_dirs)
 
-    # Some DLLs (eg numpy) don't have imports
-    if not hasattr(pe, "DIRECTORY_ENTRY_IMPORT"):
-        info(
-            "Warning: no DIRECTORY_ENTRY_IMPORT PE section for library '%s'!"
-            % binary_filename
-        )
-        return
+    extracted = getPEFileInformation(binary_filename)
+
+    # Add native system directory based on pe file architecture and os architecture
+    # Python 32: system32 = syswow64 = 32 bits systemdirectory
+    # Python 64: system32 = 64 bits systemdirectory, syswow64 = 32 bits systemdirectory
+    if extracted["AMD64"]:
+        scan_dirs.append(os.path.join(os.environ["SYSTEMROOT"], "SysWOW64"))
+    else:
+        scan_dirs.append(os.path.join(os.environ["SYSTEMROOT"], "System32"))
 
     # Get DLL imports from PE file
-    for imported_module in pe.DIRECTORY_ENTRY_IMPORT:
-        dll_filename = imported_module.dll.decode()
-
+    for dll_filename in extracted["DLLs"]:
         # Try to guess DLL path from scan dirs
         for scan_dir in scan_dirs:
             try:
@@ -1217,6 +1190,10 @@ def _detectBinaryPathDLLsWindowsPE(
         scan_dirs.extend(getSubDirectories(original_dir))
 
     if Options.isExperimental("use_pefile_fullrecurse"):
+        from distutils.sysconfig import (  # pylint: disable=I0021,import-error
+            get_python_lib,  # @UnresolvedImport
+        )
+
         try:
             scan_dirs.extend(getSubDirectories(get_python_lib()))
         except OSError:
@@ -1229,26 +1206,6 @@ def _detectBinaryPathDLLsWindowsPE(
             scan_dirs.append(os.path.join(get_python_lib(), "pywin32_system32"))
         except OSError:
             pass
-
-    # Add native system directory based on pe file architecture and os architecture
-    # Python 32: system32 = syswow64 = 32 bits systemdirectory
-    # Python 64: system32 = 64 bits systemdirectory, syswow64 = 32 bits systemdirectory
-    binary_file_is_64bit = _isPE64(binary_filename)
-    python_is_64bit = getArchitecture() == "x86_64"
-    if binary_file_is_64bit is not python_is_64bit:
-        print(
-            "Warning: Using Python x64=%s with x64=%s binary dependencies"
-            % (binary_file_is_64bit, python_is_64bit)
-        )
-
-    if binary_file_is_64bit:
-        # This is actually not useful as of today since we don't compile 32 bits on 64 bits
-        if python_is_64bit:
-            scan_dirs.append(os.path.join(os.environ["SYSTEMROOT"], "System32"))
-        else:
-            scan_dirs.append(os.path.join(os.environ["SYSTEMROOT"], "SysWOW64"))
-    else:
-        scan_dirs.append(os.path.join(os.environ["SYSTEMROOT"], "System32"))
 
     if Options.isExperimental("use_pefile_recurse"):
         # Recursive one level scanning of all .pyd and .dll in the original_dir too

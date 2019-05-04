@@ -50,6 +50,7 @@ Be verbose in output. Default is %default.""",
     for filename in positional_args:
         print(filename)
         print(getWindowsDLLVersion(filename))
+        print(getPEFileInformation(filename))
 
 
 if __name__ == "__main__":
