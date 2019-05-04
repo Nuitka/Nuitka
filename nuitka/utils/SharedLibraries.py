@@ -19,7 +19,6 @@
 
 """
 
-import array
 import os
 from sys import getfilesystemencoding
 
@@ -171,38 +170,44 @@ def getWindowsDLLVersion(filename):
     # This cannot really fail anymore.
     assert success
 
-    r = ctypes.wintypes.UINT()
-    l = ctypes.wintypes.UINT()
-
     # Look for codepages
     VerQueryValueA = ctypes.windll.version.VerQueryValueA
-
-    # This doesn't exist yet for Python2
-    PUINT = ctypes.POINTER(ctypes.wintypes.UINT)
-
     VerQueryValueA.argtypes = [
         ctypes.wintypes.LPCVOID,
         ctypes.wintypes.LPCSTR,
-        PUINT,
-        PUINT,
+        ctypes.wintypes.LPVOID,
+        ctypes.POINTER(ctypes.c_uint32),
     ]
     VerQueryValueA.restype = ctypes.wintypes.BOOL
 
-    VerQueryValueA(res, br"\VarFileInfo\Translation", r, l)
+    class VsFixedFileInfoStructure(ctypes.Structure):
+        _fields_ = [
+            ("dwSignature", ctypes.c_uint32),  # 0xFEEF04BD
+            ("dwStructVersion", ctypes.c_uint32),
+            ("dwFileVersionMS", ctypes.c_uint32),
+            ("dwFileVersionLS", ctypes.c_uint32),
+            ("dwProductVersionMS", ctypes.c_uint32),
+            ("dwProductVersionLS", ctypes.c_uint32),
+            ("dwFileFlagsMask", ctypes.c_uint32),
+            ("dwFileFlags", ctypes.c_uint32),
+            ("dwFileOS", ctypes.c_uint32),
+            ("dwFileType", ctypes.c_uint32),
+            ("dwFileSubtype", ctypes.c_uint32),
+            ("dwFileDateMS", ctypes.c_uint32),
+            ("dwFileDateLS", ctypes.c_uint32),
+        ]
 
-    if not l.value:
+    file_info = ctypes.POINTER(VsFixedFileInfoStructure)()
+    uLen = ctypes.c_uint32(ctypes.sizeof(file_info))
+
+    b = VerQueryValueA(res, br"\\", ctypes.byref(file_info), ctypes.byref(uLen))
+    if not b:
         return (0, 0, 0, 0)
 
-    codepages = array.array("H", ctypes.string_at(r.value, l.value))
-    codepage = tuple(codepages[:2].tolist())
+    if not file_info.contents.dwSignature == 0xFEEF04BD:
+        return (0, 0, 0, 0)
 
-    # Extract information
-    VerQueryValueA(res, br"\StringFileInfo\%04x%04x\FileVersion" % codepage, r, l)
+    ms = file_info.contents.dwFileVersionMS
+    ls = file_info.contents.dwFileVersionLS
 
-    data = ctypes.string_at(r.value, l.value)[4 * 2 :]
-
-    import struct
-
-    data = struct.unpack("HHHH", data[: 4 * 2])
-
-    return data[1], data[0], data[3], data[2]
+    return (ms >> 16) & 0xFFFF, ms & 0xFFFF, (ls >> 16) & 0xFFFF, ls & 0xFFFF
