@@ -159,6 +159,10 @@ specialized_sub_helpers_set = OrderedSet(
         "BINARY_OPERATION_SUB_OBJECT_OBJECT",
     )
 )
+# These made no sense to specialize for, nothing to gain.
+nonspecialized_sub_helpers_set = set(
+    ("BINARY_OPERATION_SUB_OBJECT_LIST", "BINARY_OPERATION_SUB_OBJECT_TUPLE")
+)
 
 specialized_mul_helpers_set = OrderedSet(
     (
@@ -286,6 +290,7 @@ def _getBinaryOperationCode(
             left_shape=left.getTypeShape(),
             right_shape=expression.getRight().getTypeShape(),
             helpers=specialized_sub_helpers_set,
+            nonhelpers=nonspecialized_sub_helpers_set,
         )
     elif operator == "IAdd" and in_place:
         helper = pickCodeHelper(
