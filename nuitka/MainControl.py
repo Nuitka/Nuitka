@@ -639,6 +639,12 @@ def compileTree(main_module):
     source_dir = getSourceDirectoryPath(main_module)
 
     if not Options.shallOnlyExecCCompilerCall():
+        if Options.isShowProgress() or Options.isShowMemory():
+            info(
+                "Total memory usage before generating C code: {memory}:".format(
+                    memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
+                )
+            )
         # Now build the target language code for the whole tree.
         makeSourceDirectory(main_module=main_module)
 
