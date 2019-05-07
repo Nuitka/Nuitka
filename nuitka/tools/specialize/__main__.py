@@ -566,17 +566,13 @@ def findTypeFromCodeName(code_name):
 add_codes = set()
 
 
-def makeAddCode(operand, left, emit):
+def makeNbSlotCode(operand, op_code, left, emit):
     key = operand, left
     if key in add_codes:
         return
 
     if left == int_desc:
         template = env.get_template("HelperOperationBinaryInt.c.j2")
-
-        # Manual still and different.
-        if operand == "*":
-            return
     elif left == long_desc:
         template = env.get_template("HelperOperationBinaryLong.c.j2")
     elif left == float_desc:
@@ -585,7 +581,10 @@ def makeAddCode(operand, left, emit):
         return
 
     code = template.render(
-        operand=operand, left=left, right=left, nb_slot=_getNbSlotFromOperand(operand)
+        operand=operand,
+        left=left,
+        right=left,
+        nb_slot=_getNbSlotFromOperand(operand, op_code),
     )
 
     emit(code)
@@ -610,13 +609,21 @@ def makeMulRepeatCode(left, right, emit):
     mul_repeats.add(key)
 
 
-def _getNbSlotFromOperand(operand):
+def _getNbSlotFromOperand(operand, op_code):
     if operand == "+":
         return "nb_add"
     elif operand == "*":
         return "nb_multiply"
     elif operand == "-":
         return "nb_subtract"
+    elif operand == "//":
+        return "nb_floor_divide"
+    elif operand == "/":
+        if op_code == "TRUEDIV":
+            return "nb_true_divide"
+        else:
+            return "nb_div"
+
     else:
         assert False, operand
 
@@ -636,12 +643,14 @@ def makeHelperOperations(template, helpers_set, operand, op_code, emit_h, emit_c
         elif right.python_requirement:
             emit("#if %s" % right.python_requirement)
 
-        if operand in "+-*":
-            add_slot = left.getSameTypeSpecializationCode(
-                right, _getNbSlotFromOperand(operand), None, "operand1", "operand2"
+        code = left.getSameTypeSpecializationCode(
+            right, _getNbSlotFromOperand(operand, op_code), None, "operand1", "operand2"
+        )
+
+        if code:
+            makeNbSlotCode(
+                operand, op_code, left if left is not object_desc else right, emit_c
             )
-            if add_slot:
-                makeAddCode(operand, left if left is not object_desc else right, emit_c)
 
         if operand == "*":
             repeat = left.getSqConcatSlotSpecializationCode(
@@ -680,7 +689,7 @@ def makeHelperOperations(template, helpers_set, operand, op_code, emit_h, emit_c
             right=right,
             op_code=op_code,
             operand=operand,
-            nb_slot=_getNbSlotFromOperand(operand),
+            nb_slot=_getNbSlotFromOperand(operand, op_code),
             sq_slot1=sq_slot,
         )
 
@@ -723,7 +732,8 @@ def makeHelpersBinaryOperation(operand, op_code):
 
             def emitGenerationWarning(emit):
                 emit(
-                    "/* WARNING, this code is GENERATED. Modify the template instead! */"
+                    "/* WARNING, this code is GENERATED. Modify the template %s instead! */"
+                    % template.name
                 )
 
             emitGenerationWarning(emit_h)
@@ -761,6 +771,9 @@ def main():
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MUL")
+    #    makeHelpersBinaryOperation("/", "TRUEDIV")
+    makeHelpersBinaryOperation("//", "FLOORDIV")
+    makeHelpersBinaryOperation("/", "TRUEDIV")
 
 
 if __name__ == "__main__":

@@ -19,5 +19,75 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
     {{left.getCheckValueCode("operand1")|indent}}
     {{right.getCheckValueCode("operand2")|indent}}
 
-    return PyFloat_FromDouble(PyFloat_AS_DOUBLE(operand1) {{operand}} PyFloat_AS_DOUBLE(operand2));
+    double a = PyFloat_AS_DOUBLE(operand1);
+    double b = PyFloat_AS_DOUBLE(operand2);
+
+{%if operand in "+-*" %}
+    return PyFloat_FromDouble(a {{operand}} b);
+{%elif operand == "//" %}
+    if (unlikely(b == 0)) {
+        PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        return NULL;
+    }
+
+    /* TODO: Isn't this a very specific value only, of which we could
+     * hardcode the constant result. Not sure how well the C compiler
+     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+     * -1 has to be rare anyway.
+     */
+
+    if (unlikely(b == -1 && UNARY_NEG_WOULD_OVERFLOW(a))) {
+        return PyLong_Type.tp_as_number->nb_true_divide(operand1, operand2);
+    }
+
+    /* We use C11 or C++03 which have no trouble doing floor with
+     * signs correctly unlike standard CPython code, which does heavy lifting
+     * to avoid the issue.
+     */
+    long result = a / b;
+
+    return PyInt_FromLong(result);
+{%elif operand == "/" %}
+    if (b == 0.0) {
+        PyErr_SetString(PyExc_ZeroDivisionError, "float divmod()");
+        return NULL;
+    }
+
+    double mod = NUITKA_fmod(a, b);
+    double div = (a - mod) / b;
+
+    /* Proper rounding and sign management. */
+    if (mod) {
+        // TODO: Python3 uses copysign for this.
+
+        if ((b < 0) != (mod < 0)) {
+            mod += a;
+            div -= 1.0;
+        }
+    } else {
+        mod *= mod;
+
+        if (a < 0.0) {
+            mod = -mod;
+        }
+    }
+
+    if (div) {
+        double result = floor(div);
+
+        if (div - result > 0.5) {
+            result += 1.0;
+        }
+
+        return PyFloat_FromDouble(result);
+    } else {
+        div *= div;
+
+        double result = div * a / b;
+
+        return PyFloat_FromDouble(result);
+    }
+{% else %}
+#error Operand {{operand}} not implemented in {{name}}
+{% endif %}
 }

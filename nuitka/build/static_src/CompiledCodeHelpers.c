@@ -1990,8 +1990,10 @@ void _initSlotIternext() {
 #include "HelpersAttributes.c"
 
 #include "HelpersOperationBinaryAdd.c"
+#include "HelpersOperationBinaryFloordiv.c"
 #include "HelpersOperationBinaryMul.c"
 #include "HelpersOperationBinarySub.c"
+#include "HelpersOperationBinaryTruediv.c"
 
 #include "HelpersOperationBinaryInplaceAdd.c"
 

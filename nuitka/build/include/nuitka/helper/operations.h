@@ -70,8 +70,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION(binary_api api, PyObject 
 
 // Generated helpers to execute operations on fully or partially known types.
 #include "nuitka/helper/operations_binary_add.h"
-#include "nuitka/helper/operations_binary_mul.h"
 #include "nuitka/helper/operations_binary_sub.h"
+#include "nuitka/helper/operations_binary_mul.h"
+#include "nuitka/helper/operations_binary_floordiv.h"
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_INPLACE(binary_api api, PyObject **operand1, PyObject *operand2) {
     assert(operand1);

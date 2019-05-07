@@ -928,6 +928,9 @@ if standalone_mode:
     if "linux" in sys.platform:
         env.Append(LIBS=["dl"])
 
+if not msvc_mode:
+    env.Append(LIBS=["m"])
+
 if no_python_warnings:
     env.Append(CPPDEFINES=["_NUITKA_NO_PYTHON_WARNINGS"])
 
@@ -1234,7 +1237,7 @@ elif not module_mode or (macosx_target and not static_libpython):
             env.Append(LIBS=["python" + python_abi_version])
 
     if python_prefix != "/usr" and "linux" in sys.platform:
-        env.Append(LIBS=["dl", "pthread", "util", "rt", "m"])
+        env.Append(LIBS=["dl", "pthread", "util", "rt"])
 
         if gcc_mode and not clang_mode:
             env.Append(LINKFLAGS=["-export-dynamic"])

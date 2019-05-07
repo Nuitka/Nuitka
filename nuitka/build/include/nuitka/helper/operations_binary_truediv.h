@@ -16,66 +16,66 @@
 //     limitations under the License.
 //
 /* WARNING, this code is GENERATED. Modify the template HelperOperationBinary.c.j2 instead! */
-/* C helpers for type specialized "-" (SUB) operations */
+/* C helpers for type specialized "/" (TRUEDIV) operations */
 
 #if PYTHON_VERSION < 300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-extern PyObject *BINARY_OPERATION_SUB_OBJECT_INT(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-extern PyObject *BINARY_OPERATION_SUB_INT_OBJECT(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_TRUEDIV_INT_OBJECT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
-extern PyObject *BINARY_OPERATION_SUB_INT_INT(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_TRUEDIV_INT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
-extern PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
-extern PyObject *BINARY_OPERATION_SUB_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
-extern PyObject *BINARY_OPERATION_SUB_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2);
-
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-extern PyObject *BINARY_OPERATION_SUB_OBJECT_LONG(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_LONG(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-extern PyObject *BINARY_OPERATION_SUB_LONG_OBJECT(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_TRUEDIV_LONG_OBJECT(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern PyObject *BINARY_OPERATION_SUB_LONG_LONG(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_TRUEDIV_LONG_LONG(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
+extern PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
+extern PyObject *BINARY_OPERATION_TRUEDIV_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
+extern PyObject *BINARY_OPERATION_TRUEDIV_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
-extern PyObject *BINARY_OPERATION_SUB_FLOAT_LONG(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_TRUEDIV_FLOAT_LONG(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
-extern PyObject *BINARY_OPERATION_SUB_LONG_FLOAT(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_TRUEDIV_LONG_FLOAT(PyObject *operand1, PyObject *operand2);
 
 #if PYTHON_VERSION < 300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
-extern PyObject *BINARY_OPERATION_SUB_FLOAT_INT(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_TRUEDIV_FLOAT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
-extern PyObject *BINARY_OPERATION_SUB_INT_FLOAT(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_TRUEDIV_INT_FLOAT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-extern PyObject *BINARY_OPERATION_SUB_LONG_INT(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_TRUEDIV_LONG_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern PyObject *BINARY_OPERATION_SUB_INT_LONG(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_TRUEDIV_INT_LONG(PyObject *operand1, PyObject *operand2);
 #endif
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
-extern PyObject *BINARY_OPERATION_SUB_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);

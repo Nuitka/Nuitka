@@ -225,6 +225,33 @@ specialized_mul_helpers_set = OrderedSet(
     )
 )
 
+specialized_truediv_helpers_set = OrderedSet(
+    (
+        "BINARY_OPERATION_TRUEDIV_OBJECT_INT",
+        "BINARY_OPERATION_TRUEDIV_INT_OBJECT",
+        "BINARY_OPERATION_TRUEDIV_INT_INT",
+        "BINARY_OPERATION_TRUEDIV_OBJECT_LONG",
+        "BINARY_OPERATION_TRUEDIV_LONG_OBJECT",
+        "BINARY_OPERATION_TRUEDIV_LONG_LONG",
+        "BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT",
+        "BINARY_OPERATION_TRUEDIV_FLOAT_OBJECT",
+        "BINARY_OPERATION_TRUEDIV_FLOAT_FLOAT",
+        # These are friends naturally, they div mul with another
+        "BINARY_OPERATION_TRUEDIV_FLOAT_LONG",
+        "BINARY_OPERATION_TRUEDIV_LONG_FLOAT",
+        "BINARY_OPERATION_TRUEDIV_FLOAT_INT",
+        "BINARY_OPERATION_TRUEDIV_INT_FLOAT",
+        "BINARY_OPERATION_TRUEDIV_LONG_INT",
+        "BINARY_OPERATION_TRUEDIV_INT_LONG",
+        # Default implementation.
+        "BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT",
+    )
+)
+
+specialized_floordiv_helpers_set = OrderedSet(
+    helper.replace("TRUEDIV", "FLOORDIV") for helper in specialized_truediv_helpers_set
+)
+
 
 _iadd_helpers_set = OrderedSet(
     (

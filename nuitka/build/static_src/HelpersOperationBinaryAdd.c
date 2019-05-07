@@ -15,7 +15,7 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-/* WARNING, this code is GENERATED. Modify the template instead! */
+/* WARNING, this code is GENERATED. Modify the template HelperOperationBinary.c.j2 instead! */
 #include "HelpersOperationBinaryAddUtils.c"
 /* C helpers for type specialized "+" (ADD) operations */
 
@@ -36,10 +36,11 @@ static PyObject *SLOT_nb_add_INT_INT(PyObject *operand1, PyObject *operand2) {
     const long b = PyInt_AS_LONG(operand2);
 
     const long x = (long)((unsigned long)a + b);
-    if ((x ^ a) >= 0 || (x ^ b) >= 0)
+    if ((x ^ a) >= 0 || (x ^ b) >= 0) {
         return PyInt_FromLong(x);
+    }
 
-    // TODO: Could in-line and specialize this too.
+    // TODO: Could in-line and specialize this as well.
     PyObject *o = PyLong_Type.tp_as_number->nb_add(operand1, operand2);
     assert(o != Py_NotImplemented);
     return o;
@@ -1582,7 +1583,10 @@ static PyObject *SLOT_nb_add_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2)
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-    return PyFloat_FromDouble(PyFloat_AS_DOUBLE(operand1) + PyFloat_AS_DOUBLE(operand2));
+    double a = PyFloat_AS_DOUBLE(operand1);
+    double b = PyFloat_AS_DOUBLE(operand2);
+
+    return PyFloat_FromDouble(a + b);
 }
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {

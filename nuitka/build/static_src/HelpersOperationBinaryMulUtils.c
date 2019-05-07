@@ -115,35 +115,3 @@ static PyObject *SEQUENCE_REPEAT(ssizeargfunc repeatfunc, PyObject *seq, PyObjec
 
     return result;
 }
-
-#if PYTHON_VERSION < 300
-
-static PyObject *SLOT_nb_multiply_INT_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-
-    const long a = PyInt_AS_LONG(operand1);
-    const long b = PyInt_AS_LONG(operand2);
-
-    const long longprod = (long)((unsigned long)a * b);
-    const double doubleprod = (double)a * (double)b;
-    const double doubled_longprod = (double)longprod;
-
-    if (likely(doubled_longprod == doubleprod)) {
-        return PyInt_FromLong(longprod);
-    }
-
-    const double diff = doubled_longprod - doubleprod;
-    const double absdiff = diff >= 0.0 ? diff : -diff;
-    const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
-
-    if (likely(32.0 * absdiff <= absprod)) {
-        return PyInt_FromLong(longprod);
-    } else {
-        return PyLong_Type.tp_as_number->nb_multiply(operand1, operand2);
-    }
-}
-
-#endif

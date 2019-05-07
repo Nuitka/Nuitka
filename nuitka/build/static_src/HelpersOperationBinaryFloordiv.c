@@ -16,10 +16,11 @@
 //     limitations under the License.
 //
 /* WARNING, this code is GENERATED. Modify the template HelperOperationBinary.c.j2 instead! */
-/* C helpers for type specialized "-" (SUB) operations */
+#include "HelpersOperationBinaryFloordivUtils.c"
+/* C helpers for type specialized "//" (FLOORDIV) operations */
 
 #if PYTHON_VERSION < 300
-static PyObject *SLOT_nb_subtract_INT_INT(PyObject *operand1, PyObject *operand2) {
+static PyObject *SLOT_nb_floor_divide_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -34,18 +35,34 @@ static PyObject *SLOT_nb_subtract_INT_INT(PyObject *operand1, PyObject *operand2
     const long a = PyInt_AS_LONG(operand1);
     const long b = PyInt_AS_LONG(operand2);
 
-    const long x = (long)((unsigned long)a - b);
-    if ((x ^ a) >= 0 || (x ^ ~b) >= 0) {
-        return PyInt_FromLong(x);
+    if (unlikely(b == 0)) {
+        PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        return NULL;
+    }
+
+    /* TODO: Isn't this a very specific value only, of which we could
+     * hardcode the constant result. Not sure how well the C compiler
+     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+     * -1 has to be rare anyway.
+     */
+
+    if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+
+        /* We use C11 or C++03 which have no trouble doing floor with
+         * signs correctly.
+         */
+        long result = a / b;
+
+        return PyInt_FromLong(result);
     }
 
     // TODO: Could in-line and specialize this as well.
-    PyObject *o = PyLong_Type.tp_as_number->nb_subtract(operand1, operand2);
+    PyObject *o = PyLong_Type.tp_as_number->nb_floor_divide(operand1, operand2);
     assert(o != Py_NotImplemented);
     return o;
 }
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-PyObject *BINARY_OPERATION_SUB_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
@@ -55,7 +72,7 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_INT(PyObject *operand1, PyObject *operand2
 
     PyTypeObject *type1 = Py_TYPE(operand1);
     binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_subtract : NULL;
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_floor_divide : NULL;
 
     PyTypeObject *type2 = &PyInt_Type;
     binaryfunc slot2 = NULL;
@@ -64,7 +81,7 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_INT(PyObject *operand1, PyObject *operand2
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = PyInt_Type.tp_as_number->nb_subtract;
+        slot2 = PyInt_Type.tp_as_number->nb_floor_divide;
 
         if (slot1 == slot2) {
             slot2 = NULL;
@@ -72,7 +89,7 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_INT(PyObject *operand1, PyObject *operand2
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_INT_INT(operand1, operand2);
+        return SLOT_nb_floor_divide_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -139,7 +156,7 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_INT(PyObject *operand1, PyObject *operand2
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -177,7 +194,7 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_INT(PyObject *operand1, PyObject *operand2
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -201,14 +218,14 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_INT(PyObject *operand1, PyObject *operand2
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: '%s' and 'int'", type1->tp_name);
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: '%s' and 'int'", type1->tp_name);
     return NULL;
 }
 #endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-PyObject *BINARY_OPERATION_SUB_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_FLOORDIV_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -217,7 +234,7 @@ PyObject *BINARY_OPERATION_SUB_INT_OBJECT(PyObject *operand1, PyObject *operand2
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyInt_Type;
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_subtract;
+    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_floor_divide;
 
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
@@ -226,7 +243,8 @@ PyObject *BINARY_OPERATION_SUB_INT_OBJECT(PyObject *operand1, PyObject *operand2
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_subtract : NULL;
+        slot2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
 
         if (slot1 == slot2) {
             slot2 = NULL;
@@ -234,7 +252,7 @@ PyObject *BINARY_OPERATION_SUB_INT_OBJECT(PyObject *operand1, PyObject *operand2
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_INT_INT(operand1, operand2);
+        return SLOT_nb_floor_divide_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -300,7 +318,7 @@ PyObject *BINARY_OPERATION_SUB_INT_OBJECT(PyObject *operand1, PyObject *operand2
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -338,7 +356,7 @@ PyObject *BINARY_OPERATION_SUB_INT_OBJECT(PyObject *operand1, PyObject *operand2
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -362,14 +380,14 @@ PyObject *BINARY_OPERATION_SUB_INT_OBJECT(PyObject *operand1, PyObject *operand2
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'int' and '%s'", type2->tp_name);
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'int' and '%s'", type2->tp_name);
     return NULL;
 }
 #endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
-PyObject *BINARY_OPERATION_SUB_INT_INT(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_FLOORDIV_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -382,7 +400,7 @@ PyObject *BINARY_OPERATION_SUB_INT_INT(PyObject *operand1, PyObject *operand2) {
 #endif
 
     PyTypeObject *type1 = &PyInt_Type;
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_subtract;
+    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_floor_divide;
 
     PyTypeObject *type2 = &PyInt_Type;
     binaryfunc slot2 = NULL;
@@ -391,7 +409,7 @@ PyObject *BINARY_OPERATION_SUB_INT_INT(PyObject *operand1, PyObject *operand2) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = PyInt_Type.tp_as_number->nb_subtract;
+        slot2 = PyInt_Type.tp_as_number->nb_floor_divide;
 
         if (0) {
             slot2 = NULL;
@@ -399,7 +417,7 @@ PyObject *BINARY_OPERATION_SUB_INT_INT(PyObject *operand1, PyObject *operand2) {
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_INT_INT(operand1, operand2);
+        return SLOT_nb_floor_divide_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -465,7 +483,7 @@ PyObject *BINARY_OPERATION_SUB_INT_INT(PyObject *operand1, PyObject *operand2) {
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -503,7 +521,7 @@ PyObject *BINARY_OPERATION_SUB_INT_INT(PyObject *operand1, PyObject *operand2) {
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -527,12 +545,501 @@ PyObject *BINARY_OPERATION_SUB_INT_INT(PyObject *operand1, PyObject *operand2) {
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'int' and 'int'");
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'int' and 'int'");
     return NULL;
 }
 #endif
 
-static PyObject *SLOT_nb_subtract_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+static PyObject *SLOT_nb_floor_divide_LONG_LONG(PyObject *operand1, PyObject *operand2) {
+    PyObject *x = PyLong_Type.tp_as_number->nb_floor_divide((PyObject *)operand1, (PyObject *)operand2);
+    assert(x != Py_NotImplemented);
+    return x;
+}
+/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
+PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    binaryfunc slot1 =
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_floor_divide : NULL;
+
+    PyTypeObject *type2 = &PyLong_Type;
+    binaryfunc slot2 = NULL;
+
+    if (!(type1 == type2)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 = PyLong_Type.tp_as_number->nb_floor_divide;
+
+        if (slot1 == slot2) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+
+        return SLOT_nb_floor_divide_LONG_LONG(operand1, operand2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (0) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    if (unlikely(x == NULL)) {
+                        return NULL;
+                    }
+
+                    return x;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 300 && (1 || 1)
+    if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
+        coercion c =
+            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_floor_divide;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        if (unlikely(x == NULL)) {
+                            return NULL;
+                        }
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = PyLong_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_floor_divide;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        if (unlikely(x == NULL)) {
+                            return NULL;
+                        }
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: '%s' and 'long'", type1->tp_name);
+    return NULL;
+}
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
+PyObject *BINARY_OPERATION_FLOORDIV_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyLong_Type;
+    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_floor_divide;
+
+    PyTypeObject *type2 = Py_TYPE(operand2);
+    binaryfunc slot2 = NULL;
+
+    if (!(type1 == type2)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
+
+        if (slot1 == slot2) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+
+        return SLOT_nb_floor_divide_LONG_LONG(operand1, operand2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (PyType_IsSubtype(type2, type1)) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    if (unlikely(x == NULL)) {
+                        return NULL;
+                    }
+
+                    return x;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 300 && (1 || 1)
+    if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
+        coercion c = PyLong_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_floor_divide;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        if (unlikely(x == NULL)) {
+                            return NULL;
+                        }
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_floor_divide;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        if (unlikely(x == NULL)) {
+                            return NULL;
+                        }
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'long' and '%s'", type2->tp_name);
+    return NULL;
+}
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
+PyObject *BINARY_OPERATION_FLOORDIV_LONG_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = &PyLong_Type;
+    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_floor_divide;
+
+    PyTypeObject *type2 = &PyLong_Type;
+    binaryfunc slot2 = NULL;
+
+    if (!(1)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 = PyLong_Type.tp_as_number->nb_floor_divide;
+
+        if (0) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+
+        return SLOT_nb_floor_divide_LONG_LONG(operand1, operand2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (0) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    if (unlikely(x == NULL)) {
+                        return NULL;
+                    }
+
+                    return x;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 300 && (0 || 0)
+    if (!1 || !1) {
+        coercion c = PyLong_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_floor_divide;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        if (unlikely(x == NULL)) {
+                            return NULL;
+                        }
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = PyLong_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_floor_divide;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        if (unlikely(x == NULL)) {
+                            return NULL;
+                        }
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'long' and 'long'");
+    return NULL;
+}
+
+static PyObject *SLOT_nb_floor_divide_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -547,10 +1054,31 @@ static PyObject *SLOT_nb_subtract_FLOAT_FLOAT(PyObject *operand1, PyObject *oper
     double a = PyFloat_AS_DOUBLE(operand1);
     double b = PyFloat_AS_DOUBLE(operand2);
 
-    return PyFloat_FromDouble(a - b);
+    if (unlikely(b == 0)) {
+        PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        return NULL;
+    }
+
+    /* TODO: Isn't this a very specific value only, of which we could
+     * hardcode the constant result. Not sure how well the C compiler
+     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+     * -1 has to be rare anyway.
+     */
+
+    if (unlikely(b == -1 && UNARY_NEG_WOULD_OVERFLOW(a))) {
+        return PyLong_Type.tp_as_number->nb_true_divide(operand1, operand2);
+    }
+
+    /* We use C11 or C++03 which have no trouble doing floor with
+     * signs correctly unlike standard CPython code, which does heavy lifting
+     * to avoid the issue.
+     */
+    long result = (long)(a / b);
+
+    return PyInt_FromLong(result);
 }
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
-PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
@@ -560,7 +1088,7 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT(PyObject *operand1, PyObject *operan
 
     PyTypeObject *type1 = Py_TYPE(operand1);
     binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_subtract : NULL;
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_floor_divide : NULL;
 
     PyTypeObject *type2 = &PyFloat_Type;
     binaryfunc slot2 = NULL;
@@ -569,7 +1097,7 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT(PyObject *operand1, PyObject *operan
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = PyFloat_Type.tp_as_number->nb_subtract;
+        slot2 = PyFloat_Type.tp_as_number->nb_floor_divide;
 
         if (slot1 == slot2) {
             slot2 = NULL;
@@ -577,7 +1105,7 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT(PyObject *operand1, PyObject *operan
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_FLOAT_FLOAT(operand1, operand2);
+        return SLOT_nb_floor_divide_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -644,7 +1172,7 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT(PyObject *operand1, PyObject *operan
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -682,7 +1210,7 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT(PyObject *operand1, PyObject *operan
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -706,12 +1234,12 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT(PyObject *operand1, PyObject *operan
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: '%s' and 'float'", type1->tp_name);
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: '%s' and 'float'", type1->tp_name);
     return NULL;
 }
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
-PyObject *BINARY_OPERATION_SUB_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_FLOORDIV_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -720,7 +1248,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_OBJECT(PyObject *operand1, PyObject *operan
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyFloat_Type;
-    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_subtract;
+    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_floor_divide;
 
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
@@ -729,7 +1257,8 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_OBJECT(PyObject *operand1, PyObject *operan
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_subtract : NULL;
+        slot2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
 
         if (slot1 == slot2) {
             slot2 = NULL;
@@ -737,7 +1266,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_OBJECT(PyObject *operand1, PyObject *operan
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_FLOAT_FLOAT(operand1, operand2);
+        return SLOT_nb_floor_divide_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -803,7 +1332,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_OBJECT(PyObject *operand1, PyObject *operan
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -841,7 +1370,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_OBJECT(PyObject *operand1, PyObject *operan
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -865,12 +1394,12 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_OBJECT(PyObject *operand1, PyObject *operan
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'float' and '%s'", type2->tp_name);
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'float' and '%s'", type2->tp_name);
     return NULL;
 }
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
-PyObject *BINARY_OPERATION_SUB_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_FLOORDIV_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -883,7 +1412,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_FLOAT(PyObject *operand1, PyObject *operand
 #endif
 
     PyTypeObject *type1 = &PyFloat_Type;
-    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_subtract;
+    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_floor_divide;
 
     PyTypeObject *type2 = &PyFloat_Type;
     binaryfunc slot2 = NULL;
@@ -892,7 +1421,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_FLOAT(PyObject *operand1, PyObject *operand
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = PyFloat_Type.tp_as_number->nb_subtract;
+        slot2 = PyFloat_Type.tp_as_number->nb_floor_divide;
 
         if (0) {
             slot2 = NULL;
@@ -900,7 +1429,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_FLOAT(PyObject *operand1, PyObject *operand
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_FLOAT_FLOAT(operand1, operand2);
+        return SLOT_nb_floor_divide_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -966,7 +1495,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_FLOAT(PyObject *operand1, PyObject *operand
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -1004,7 +1533,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_FLOAT(PyObject *operand1, PyObject *operand
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -1028,500 +1557,12 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_FLOAT(PyObject *operand1, PyObject *operand
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'float' and 'float'");
-    return NULL;
-}
-
-static PyObject *SLOT_nb_subtract_LONG_LONG(PyObject *operand1, PyObject *operand2) {
-    PyObject *x = PyLong_Type.tp_as_number->nb_subtract((PyObject *)operand1, (PyObject *)operand2);
-    assert(x != Py_NotImplemented);
-    return x;
-}
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-PyObject *BINARY_OPERATION_SUB_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_subtract : NULL;
-
-    PyTypeObject *type2 = &PyLong_Type;
-    binaryfunc slot2 = NULL;
-
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyLong_Type.tp_as_number->nb_subtract;
-
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    } else {
-        assert(type1 == type2);
-
-        return SLOT_nb_subtract_LONG_LONG(operand1, operand2);
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 300 && (1 || 1)
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: '%s' and 'long'", type1->tp_name);
-    return NULL;
-}
-
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-PyObject *BINARY_OPERATION_SUB_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
-    PyTypeObject *type1 = &PyLong_Type;
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_subtract;
-
-    PyTypeObject *type2 = Py_TYPE(operand2);
-    binaryfunc slot2 = NULL;
-
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_subtract : NULL;
-
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    } else {
-        assert(type1 == type2);
-
-        return SLOT_nb_subtract_LONG_LONG(operand1, operand2);
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 300 && (1 || 1)
-    if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'long' and '%s'", type2->tp_name);
-    return NULL;
-}
-
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
-PyObject *BINARY_OPERATION_SUB_LONG_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    PyTypeObject *type1 = &PyLong_Type;
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_subtract;
-
-    PyTypeObject *type2 = &PyLong_Type;
-    binaryfunc slot2 = NULL;
-
-    if (!(1)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyLong_Type.tp_as_number->nb_subtract;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    } else {
-        assert(type1 == type2);
-
-        return SLOT_nb_subtract_LONG_LONG(operand1, operand2);
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 300 && (0 || 0)
-    if (!1 || !1) {
-        coercion c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'long' and 'long'");
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'float' and 'float'");
     return NULL;
 }
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
-PyObject *BINARY_OPERATION_SUB_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_FLOORDIV_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -1534,7 +1575,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_LONG(PyObject *operand1, PyObject *operand2
 #endif
 
     PyTypeObject *type1 = &PyFloat_Type;
-    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_subtract;
+    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_floor_divide;
 
     PyTypeObject *type2 = &PyLong_Type;
     binaryfunc slot2 = NULL;
@@ -1543,7 +1584,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_LONG(PyObject *operand1, PyObject *operand2
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = PyLong_Type.tp_as_number->nb_subtract;
+        slot2 = PyLong_Type.tp_as_number->nb_floor_divide;
 
         if (0) {
             slot2 = NULL;
@@ -1551,7 +1592,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_LONG(PyObject *operand1, PyObject *operand2
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_FLOAT_FLOAT(operand1, operand2);
+        return SLOT_nb_floor_divide_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1617,7 +1658,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_LONG(PyObject *operand1, PyObject *operand2
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -1655,7 +1696,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_LONG(PyObject *operand1, PyObject *operand2
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -1679,12 +1720,12 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_LONG(PyObject *operand1, PyObject *operand2
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'float' and 'long'");
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'float' and 'long'");
     return NULL;
 }
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
-PyObject *BINARY_OPERATION_SUB_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_FLOORDIV_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -1697,7 +1738,7 @@ PyObject *BINARY_OPERATION_SUB_LONG_FLOAT(PyObject *operand1, PyObject *operand2
 #endif
 
     PyTypeObject *type1 = &PyLong_Type;
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_subtract;
+    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_floor_divide;
 
     PyTypeObject *type2 = &PyFloat_Type;
     binaryfunc slot2 = NULL;
@@ -1706,7 +1747,7 @@ PyObject *BINARY_OPERATION_SUB_LONG_FLOAT(PyObject *operand1, PyObject *operand2
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = PyFloat_Type.tp_as_number->nb_subtract;
+        slot2 = PyFloat_Type.tp_as_number->nb_floor_divide;
 
         if (0) {
             slot2 = NULL;
@@ -1714,7 +1755,7 @@ PyObject *BINARY_OPERATION_SUB_LONG_FLOAT(PyObject *operand1, PyObject *operand2
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_LONG_LONG(operand1, operand2);
+        return SLOT_nb_floor_divide_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1780,7 +1821,7 @@ PyObject *BINARY_OPERATION_SUB_LONG_FLOAT(PyObject *operand1, PyObject *operand2
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -1818,7 +1859,7 @@ PyObject *BINARY_OPERATION_SUB_LONG_FLOAT(PyObject *operand1, PyObject *operand2
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -1842,13 +1883,13 @@ PyObject *BINARY_OPERATION_SUB_LONG_FLOAT(PyObject *operand1, PyObject *operand2
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'long' and 'float'");
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'long' and 'float'");
     return NULL;
 }
 
 #if PYTHON_VERSION < 300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
-PyObject *BINARY_OPERATION_SUB_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_FLOORDIV_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -1861,7 +1902,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_INT(PyObject *operand1, PyObject *operand2)
 #endif
 
     PyTypeObject *type1 = &PyFloat_Type;
-    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_subtract;
+    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_floor_divide;
 
     PyTypeObject *type2 = &PyInt_Type;
     binaryfunc slot2 = NULL;
@@ -1870,7 +1911,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_INT(PyObject *operand1, PyObject *operand2)
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = PyInt_Type.tp_as_number->nb_subtract;
+        slot2 = PyInt_Type.tp_as_number->nb_floor_divide;
 
         if (0) {
             slot2 = NULL;
@@ -1878,7 +1919,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_INT(PyObject *operand1, PyObject *operand2)
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_FLOAT_FLOAT(operand1, operand2);
+        return SLOT_nb_floor_divide_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1944,7 +1985,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_INT(PyObject *operand1, PyObject *operand2)
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -1982,7 +2023,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_INT(PyObject *operand1, PyObject *operand2)
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -2006,14 +2047,14 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_INT(PyObject *operand1, PyObject *operand2)
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'float' and 'int'");
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'float' and 'int'");
     return NULL;
 }
 #endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
-PyObject *BINARY_OPERATION_SUB_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_FLOORDIV_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -2026,7 +2067,7 @@ PyObject *BINARY_OPERATION_SUB_INT_FLOAT(PyObject *operand1, PyObject *operand2)
 #endif
 
     PyTypeObject *type1 = &PyInt_Type;
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_subtract;
+    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_floor_divide;
 
     PyTypeObject *type2 = &PyFloat_Type;
     binaryfunc slot2 = NULL;
@@ -2035,7 +2076,7 @@ PyObject *BINARY_OPERATION_SUB_INT_FLOAT(PyObject *operand1, PyObject *operand2)
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = PyFloat_Type.tp_as_number->nb_subtract;
+        slot2 = PyFloat_Type.tp_as_number->nb_floor_divide;
 
         if (0) {
             slot2 = NULL;
@@ -2043,7 +2084,7 @@ PyObject *BINARY_OPERATION_SUB_INT_FLOAT(PyObject *operand1, PyObject *operand2)
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_INT_INT(operand1, operand2);
+        return SLOT_nb_floor_divide_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2109,7 +2150,7 @@ PyObject *BINARY_OPERATION_SUB_INT_FLOAT(PyObject *operand1, PyObject *operand2)
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -2147,7 +2188,7 @@ PyObject *BINARY_OPERATION_SUB_INT_FLOAT(PyObject *operand1, PyObject *operand2)
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -2171,14 +2212,14 @@ PyObject *BINARY_OPERATION_SUB_INT_FLOAT(PyObject *operand1, PyObject *operand2)
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'int' and 'float'");
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'int' and 'float'");
     return NULL;
 }
 #endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-PyObject *BINARY_OPERATION_SUB_LONG_INT(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_FLOORDIV_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -2191,7 +2232,7 @@ PyObject *BINARY_OPERATION_SUB_LONG_INT(PyObject *operand1, PyObject *operand2) 
 #endif
 
     PyTypeObject *type1 = &PyLong_Type;
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_subtract;
+    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_floor_divide;
 
     PyTypeObject *type2 = &PyInt_Type;
     binaryfunc slot2 = NULL;
@@ -2200,7 +2241,7 @@ PyObject *BINARY_OPERATION_SUB_LONG_INT(PyObject *operand1, PyObject *operand2) 
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = PyInt_Type.tp_as_number->nb_subtract;
+        slot2 = PyInt_Type.tp_as_number->nb_floor_divide;
 
         if (0) {
             slot2 = NULL;
@@ -2208,7 +2249,7 @@ PyObject *BINARY_OPERATION_SUB_LONG_INT(PyObject *operand1, PyObject *operand2) 
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_LONG_LONG(operand1, operand2);
+        return SLOT_nb_floor_divide_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2274,7 +2315,7 @@ PyObject *BINARY_OPERATION_SUB_LONG_INT(PyObject *operand1, PyObject *operand2) 
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -2312,7 +2353,7 @@ PyObject *BINARY_OPERATION_SUB_LONG_INT(PyObject *operand1, PyObject *operand2) 
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -2336,14 +2377,14 @@ PyObject *BINARY_OPERATION_SUB_LONG_INT(PyObject *operand1, PyObject *operand2) 
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'long' and 'int'");
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'long' and 'int'");
     return NULL;
 }
 #endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-PyObject *BINARY_OPERATION_SUB_INT_LONG(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_FLOORDIV_INT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -2356,7 +2397,7 @@ PyObject *BINARY_OPERATION_SUB_INT_LONG(PyObject *operand1, PyObject *operand2) 
 #endif
 
     PyTypeObject *type1 = &PyInt_Type;
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_subtract;
+    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_floor_divide;
 
     PyTypeObject *type2 = &PyLong_Type;
     binaryfunc slot2 = NULL;
@@ -2365,7 +2406,7 @@ PyObject *BINARY_OPERATION_SUB_INT_LONG(PyObject *operand1, PyObject *operand2) 
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = PyLong_Type.tp_as_number->nb_subtract;
+        slot2 = PyLong_Type.tp_as_number->nb_floor_divide;
 
         if (0) {
             slot2 = NULL;
@@ -2373,7 +2414,7 @@ PyObject *BINARY_OPERATION_SUB_INT_LONG(PyObject *operand1, PyObject *operand2) 
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_INT_INT(operand1, operand2);
+        return SLOT_nb_floor_divide_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2439,7 +2480,7 @@ PyObject *BINARY_OPERATION_SUB_INT_LONG(PyObject *operand1, PyObject *operand2) 
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -2477,7 +2518,7 @@ PyObject *BINARY_OPERATION_SUB_INT_LONG(PyObject *operand1, PyObject *operand2) 
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -2501,19 +2542,19 @@ PyObject *BINARY_OPERATION_SUB_INT_LONG(PyObject *operand1, PyObject *operand2) 
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'int' and 'long'");
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'int' and 'long'");
     return NULL;
 }
 #endif
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
-PyObject *BINARY_OPERATION_SUB_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = Py_TYPE(operand1);
     binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_subtract : NULL;
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_floor_divide : NULL;
 
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
@@ -2522,7 +2563,8 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_OBJECT(PyObject *operand1, PyObject *opera
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_subtract : NULL;
+        slot2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
 
         if (slot1 == slot2) {
             slot2 = NULL;
@@ -2595,7 +2637,7 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_OBJECT(PyObject *operand1, PyObject *opera
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -2633,7 +2675,7 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_OBJECT(PyObject *operand1, PyObject *opera
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
+                    binaryfunc slot = mv->nb_floor_divide;
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -2657,6 +2699,6 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_OBJECT(PyObject *operand1, PyObject *opera
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: '%s' and '%s'", type1->tp_name, type2->tp_name);
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: '%s' and '%s'", type1->tp_name, type2->tp_name);
     return NULL;
 }
