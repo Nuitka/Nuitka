@@ -471,7 +471,7 @@ def buildClassNode3(provider, node, source_ref):
         source_ref=source_ref,
     )
 
-    if python_version >= 360:
+    if python_version >= 364:
         call_prepare = makeStatementsSequenceFromStatements(
             call_prepare,
             makeStatementConditional(
