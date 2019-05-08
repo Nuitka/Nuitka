@@ -15,13 +15,15 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 from __future__ import print_function
-import sys, os
+
+import os
+import sys
 
 original_import = __import__
 
 _indentation = 0
+
 
 def _normalizePath(path):
     path = os.path.abspath(path)
@@ -38,6 +40,7 @@ def _normalizePath(path):
 
     return path
 
+
 def _moduleRepr(module):
     try:
         module_file = module.__file__
@@ -46,29 +49,34 @@ def _moduleRepr(module):
         if module_file.endswith(".so"):
             module_file = os.path.join(
                 os.path.dirname(module_file),
-                os.path.basename(module_file).split(".")[0] + ".so"
+                os.path.basename(module_file).split(".")[0] + ".so",
             )
 
         file_desc = "file " + _normalizePath(module_file).replace(".pyc", ".py")
     except AttributeError:
         file_desc = "built-in"
 
-    return "<module %s %s>" % (
-        module.__name__,
-        file_desc
-    )
+    return "<module %s %s>" % (module.__name__, file_desc)
 
-def enableImportTracing(normalize_paths = True, show_source = False):
 
-    def _ourimport(name, globals = None, locals = None, fromlist = None,  # @ReservedAssignment
-                   level = -1 if sys.version_info[0] < 2 else 0):
+def enableImportTracing(normalize_paths=True, show_source=False):
+    def _ourimport(
+        name,
+        globals=None,
+        locals=None,
+        fromlist=None,  # @ReservedAssignment
+        level=-1 if sys.version_info[0] < 3 else 0,
+    ):
         builtins.__import__ = original_import
 
         global _indentation
         try:
             _indentation += 1
 
-            print(_indentation * " " + "called with: name=%r level=%d fromlist=%s" % (name, level, fromlist))
+            print(
+                _indentation * " "
+                + "called with: name=%r level=%d fromlist=%s" % (name, level, fromlist)
+            )
 
             for entry in traceback.extract_stack()[:-1]:
                 if entry[2] == "_ourimport":
@@ -104,10 +112,12 @@ def enableImportTracing(normalize_paths = True, show_source = False):
             return result
         finally:
             _indentation -= 1
+
     try:
         import __builtin__ as builtins
     except ImportError:
         import builtins
 
     import traceback
+
     builtins.__import__ = _ourimport
