@@ -89,3 +89,11 @@ class OrderedSet(MutableSet):
         if isinstance(other, OrderedSet):
             return len(self) == len(other) and list(self) == list(other)
         return set(self) == set(other)
+
+    def union(self, iterable):
+        result = OrderedSet(self)
+
+        for key in iterable:
+            result.add(key)
+
+        return result

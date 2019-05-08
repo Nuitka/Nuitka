@@ -409,16 +409,6 @@ def hasDebugPython():
     return False
 
 
-def getArchitecture():
-    if os.name == "nt":
-        if "AMD64" in sys.version:
-            return "x86_64"
-        else:
-            return "x86"
-    else:
-        return os.uname()[4]  # @UndefinedVariable
-
-
 def getDependsExePath():
     if "APPDATA" not in os.environ:
         sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
@@ -606,7 +596,7 @@ Error, needs 'strace' on your system to scan used libraries."""
             if "?" in line[: line.find("]")]:
                 continue
 
-            dll_filename = line[line.find("]") + 2 : -1]
+            dll_filename = line[line.find("]") + 2 :].rstrip()
             assert os.path.isfile(dll_filename), dll_filename
 
             # The executable itself is of course exempted.

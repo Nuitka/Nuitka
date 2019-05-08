@@ -23,10 +23,16 @@
 
 from __future__ import print_function
 
+import os
 import sys
 from optparse import OptionParser
 
+from nuitka.freezer.Standalone import (
+    detectBinaryPathDLLsWindowsDependencyWalker,
+    detectBinaryPathDLLsWindowsPE,
+)
 from nuitka.utils.SharedLibraries import getPEFileInformation, getWindowsDLLVersion
+from nuitka.utils.Timing import TimerReport
 
 
 def main():
@@ -41,16 +47,68 @@ def main():
 Be verbose in output. Default is %default.""",
     )
 
-    # TODO: Make use of options, so fa
-    _options, positional_args = parser.parse_args()
+    parser.add_option(
+        "--pefile",
+        action="store_true",
+        dest="pefile",
+        default=False,
+        help="""\
+Use pefile depedencies. Default is %default.""",
+    )
+
+    options, positional_args = parser.parse_args()
 
     if not positional_args:
         sys.exit("No DLLs given.")
 
     for filename in positional_args:
-        print(filename)
-        print(getWindowsDLLVersion(filename))
-        print(getPEFileInformation(filename))
+        print("Filename:", filename)
+        print("Version Information:", getWindowsDLLVersion(filename))
+        print("DLLs directly dependended (pefile):", getPEFileInformation(filename))
+
+        print("DLLs recursively dependended (pefile):")
+
+        if options.pefile:
+            with TimerReport(
+                "Finding dependencies for %s took %%.2f seconds" % filename
+            ):
+                from nuitka import Options
+
+                Options.enableExperimental("use_pefile")
+
+                r = detectBinaryPathDLLsWindowsPE(
+                    is_main_executable=False,
+                    source_dir="notexist",
+                    original_dir=os.path.dirname(filename),
+                    binary_filename=filename,
+                    package_name=None,
+                    use_cache=False,
+                    update_cache=True,
+                )
+                Options.disableExperimental("use_pefile")
+
+                for dll_filename in sorted(r):
+                    print("  ", dll_filename)
+
+                print("Total: %d" % len(r))
+
+        print("DLLs recursively dependended (depends.exe):")
+
+        with TimerReport("Finding dependencies for %s took %%.2f seconds" % filename):
+            r = detectBinaryPathDLLsWindowsDependencyWalker(
+                is_main_executable=False,
+                source_dir="notexist",
+                original_dir=os.path.dirname(filename),
+                binary_filename=filename,
+                package_name=None,
+                use_cache=False,
+                update_cache=True,
+            )
+
+            for dll_filename in sorted(r):
+                print("  ", dll_filename)
+
+            print("Total: %d" % len(r))
 
 
 if __name__ == "__main__":
