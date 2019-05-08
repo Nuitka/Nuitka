@@ -84,31 +84,6 @@ class TorchPlugin(UserPluginBase):
         self.files_copied = False
         return None
 
-    def onModuleEncounter(
-        self, module_filename, module_name, module_package, module_kind
-    ):
-        """ Help decide whether to include a module.
-
-        Notes:
-            'torchvision.transforms' always imports its 'functional' module,
-            which in turn imports several PIL modules. Here we maintain a list
-            of these modules and request their inclusion.
-        """
-        if module_package == "torchvision.transforms":
-            # accept everything under this package
-            return True, "Basic torchvision module"
-
-        if module_package == "PIL" and module_name in (
-            "Image",
-            "ImageColor",
-            "ImageOps",
-            "ImageEnhance",
-            "ImageStat",
-            "ImageFilter",
-        ):  # these are imported directly or indirectly by 'functional.py'.
-            return True, "Required by torchvision"
-        return None  # we have no opinion about other stuff
-
     def considerExtraDlls(self, dist_dir, module):
         """ Copy extra files from torch/lib.
 
@@ -142,7 +117,7 @@ class TorchPlugin(UserPluginBase):
                 shutil.copy(bin_file, tar_file)
 
             msg = " Copied %i %s."
-            msg = msg % (bin_total, "binary" if bin_total < 2 else "binaries")
+            msg = msg % (bin_total, "file" if bin_total < 2 else "files")
             info(msg)
         return ()
 

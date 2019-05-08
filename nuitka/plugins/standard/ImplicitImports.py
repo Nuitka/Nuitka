@@ -258,6 +258,92 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "apt_inst":
             yield "apt_pkg", True
 
+        # -----------------------------------------------------------
+        # start gevent
+        # -----------------------------------------------------------
+        elif full_name == "gevent":
+            yield "gevent._compat", True
+            yield "gevent._config", True
+            yield "gevent.greenlet", True
+            yield "gevent.timeout", True
+            yield "gevent.events", True
+            yield "gevent.libuv", True
+            yield "gevent.libuv.loop", True
+
+        elif full_name == "gevent.hub":
+            yield "gevent._hub_primitives", True
+            yield "gevent._greenlet_primitives", True
+            yield "gevent._hub_local", True
+            yield "gevent._waiter", True
+            yield "gevent._util", True
+            yield "gevent._ident", True
+            yield "gevent.exceptions", True
+
+        elif full_name == "gevent._config":
+            yield "gevent.libuv", True
+            yield "gevent.libev", True
+
+        elif full_name == "gevent.libuv":
+            yield "gevent.libuv._corecffi", True
+            yield "gevent._interfaces", True
+            yield "gevent._ffi", True
+            yield "gevent._util", True
+            yield "gevent.libuv.loop", True
+            yield "gevent.libuv.watcher", True
+
+        elif full_name == "gevent.libuv._corecffi":
+            yield "gevent.libuv._corecffi._cffi_backend", True
+
+        elif full_name == "gevent._ffi":
+            yield "gevent._ffi.loop", True
+
+        elif full_name == "gevent._waiter":
+            yield "gevent.__waiter", True
+
+        elif full_name == "gevent._hub_local":
+            yield "gevent.__hub_local", True
+            yield "gevent.__greenlet_primitives", True
+
+        elif full_name == "gevent._hub_primitives":
+            yield "gevent.__hub_primitives", True
+
+        elif full_name == "gevent.greenlet":
+            yield "gevent._hub_local", True
+            yield "gevent._greenlet", True
+
+        elif full_name == "gevent._greenlet":
+            yield "gevent.__ident", True
+
+        elif full_name == "gevent.monkey":
+            yield "gevent.builtins", True
+            yield "gevent.time", True
+            yield "gevent.local", True
+            yield "gevent.ssl", True
+
+        elif full_name == "gevent._semaphore":
+            yield "gevent._abstract_linkable", True
+            yield "gevent.__semaphore", True
+
+        elif full_name == "gevent._abstract_linkable":
+            yield "gevent.__abstract_linkable", True
+
+        elif full_name == "gevent.local":
+            yield "gevent._local", True
+
+        elif full_name == "gevent.event":
+            yield "gevent._event", True
+
+        elif full_name == "gevent.queue":
+            yield "gevent._queue", True
+
+        elif full_name == "gevent.pool":
+            yield "gevent._imap", True
+
+        elif full_name == "gevent._imap":
+            yield "gevent.__imap", True
+
+        # end gevent ------------------------------------------------
+
         elif full_name == "numpy.core":
             yield "numpy.core._dtype_ctypes", True
 
@@ -279,6 +365,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "sklearn.utils.lgamma", True
             yield "sklearn.utils.weight_vector", True
             yield "sklearn.utils._unittest_backport", True
+
+        elif full_name == "tensorflow.python":
+            yield "tensorflow.python._pywrap_tensorflow_internal", True
+        elif full_name == "tensorflow":
+            yield "tensorflow._api", True
 
         elif full_name == "PIL._imagingtk":
             yield "PIL._tkinter_finder", True
@@ -525,7 +616,10 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         return source_code
 
     def suppressBuiltinImportWarning(self, module, source_ref):
-        if module.getFullName() in ("setuptools", "six"):
+        if module.getFullName() in ("setuptools",):
+            return True
+
+        if module.getName() == "six":
             return True
 
         return False
@@ -562,6 +656,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "pyximport",
         "IPython",  # Mostly unused, and a lot of modules.
         "wx._core",  # Too large generated code
+        "pyVmomi.ServerObjects",  # Too large generated code
     )
 
     def decideCompilation(self, module_name, source_ref):

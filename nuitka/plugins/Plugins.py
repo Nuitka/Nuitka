@@ -35,6 +35,10 @@ from logging import info
 
 from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
+from nuitka.plugins.standard.EnumPlugin import (
+    NuitkaPluginDetectorEnumWorkarounds,
+    NuitkaPluginEnumWorkarounds,
+)
 from nuitka.PythonVersions import python_version
 
 from .PluginBase import UserPluginBase, post_modules, pre_modules
@@ -50,7 +54,9 @@ from .standard.MultiprocessingPlugin import (
 )
 from .standard.NumpyPlugin import NumpyPlugin, NumpyPluginDetector
 from .standard.TorchPlugin import TorchPlugin, TorchPluginDetector
+from .standard.GeventPlugin import GeventPlugin, GeventPluginDetector
 from .standard.SklearnPlugin import SklearnPlugin, SklearnPluginDetector
+from .standard.TensorflowPlugin import TensorflowPlugin, TensorflowPluginDetector
 from .standard.PmwPlugin import NuitkaPluginDetectorPmw, NuitkaPluginPmw
 from .standard.PySidePyQtPlugin import (
     NuitkaPluginDetectorPyQtPySidePlugins,
@@ -82,8 +88,11 @@ optional_plugin_classes = (
     (NuitkaPluginPmw, NuitkaPluginDetectorPmw),
     (TkinterPlugin, TkinterPluginDetector),
     (NumpyPlugin, NumpyPluginDetector),
+    (NuitkaPluginEnumWorkarounds, NuitkaPluginDetectorEnumWorkarounds),
     (TorchPlugin, TorchPluginDetector),
+    (GeventPlugin, GeventPluginDetector),
     (SklearnPlugin, SklearnPluginDetector),
+    (TensorflowPlugin, TensorflowPluginDetector),
 )
 
 plugin_name2plugin_classes = dict(
@@ -407,6 +416,8 @@ def initPlugins():
         Several checks are made, see below.
         The final result is 'active_plugin_list' which contains all enabled
         plugins.
+        User plugins are enabled as a first step, because they themselves may
+        enable standard plugins.
 
     Returns:
         None
