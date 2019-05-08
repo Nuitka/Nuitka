@@ -44,49 +44,16 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
      * signs correctly unlike standard CPython code, which does heavy lifting
      * to avoid the issue.
      */
-    long result = a / b;
+    long result = (long)(a / b);
 
     return PyInt_FromLong(result);
 {%elif operand == "/" %}
     if (b == 0.0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "float divmod()");
+        PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
         return NULL;
     }
 
-    double mod = NUITKA_fmod(a, b);
-    double div = (a - mod) / b;
-
-    /* Proper rounding and sign management. */
-    if (mod) {
-        // TODO: Python3 uses copysign for this.
-
-        if ((b < 0) != (mod < 0)) {
-            mod += a;
-            div -= 1.0;
-        }
-    } else {
-        mod *= mod;
-
-        if (a < 0.0) {
-            mod = -mod;
-        }
-    }
-
-    if (div) {
-        double result = floor(div);
-
-        if (div - result > 0.5) {
-            result += 1.0;
-        }
-
-        return PyFloat_FromDouble(result);
-    } else {
-        div *= div;
-
-        double result = div * a / b;
-
-        return PyFloat_FromDouble(result);
-    }
+    return PyFloat_FromDouble(a {{operand}} b);
 {% else %}
 #error Operand {{operand}} not implemented in {{name}}
 {% endif %}

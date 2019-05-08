@@ -1054,42 +1054,11 @@ static PyObject *SLOT_nb_true_divide_FLOAT_FLOAT(PyObject *operand1, PyObject *o
     double b = PyFloat_AS_DOUBLE(operand2);
 
     if (b == 0.0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "float divmod()");
+        PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
         return NULL;
     }
 
-    double mod = NUITKA_fmod(a, b);
-    double div = (a - mod) / b;
-
-    /* Proper rounding and sign management. */
-    if (mod) {
-        if ((b < 0) != (mod < 0)) {
-            mod += a;
-            div -= 1.0;
-        }
-    } else {
-        mod *= mod;
-
-        if (a < 0.0) {
-            mod = -mod;
-        }
-    }
-
-    if (div) {
-        double result = floor(div);
-
-        if (div - result > 0.5) {
-            result += 1.0;
-        }
-
-        return PyFloat_FromDouble(result);
-    } else {
-        div *= div;
-
-        double result = div * a / b;
-
-        return PyFloat_FromDouble(result);
-    }
+    return PyFloat_FromDouble(a / b);
 }
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {

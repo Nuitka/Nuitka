@@ -77,7 +77,13 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
 
     # TODO: Make this unnecessary by specializing for all operations.
     def computeExpression(self, trace_collection):
-        assert self.operator not in ("Mult", "Add", "Sub")
+        assert self.operator not in (
+            "Mult",
+            "Add",
+            "Sub",
+            "FloorDiv",
+            "TrueDiv",
+        ), self.operator
 
         left = self.subnode_left
         right = self.subnode_right
@@ -395,6 +401,30 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinaryConcreteBase):
         return ExpressionOperationBinaryBase.extractSideEffects(self)
 
 
+class ExpressionOperationBinaryFloorDiv(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_FLOOR_DIV"
+
+    operator = "FloorDiv"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryFloorDivShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationBinaryTrueDiv(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_TRUE_DIV"
+
+    operator = "TrueDiv"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryTrueDivShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
 class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_DIVMOD"
 
@@ -424,6 +454,14 @@ def makeBinaryOperationNode(operator, left, right, source_ref):
         )
     elif operator == "Mult":
         return ExpressionOperationBinaryMult(
+            left=left, right=right, source_ref=source_ref
+        )
+    elif operator == "FloorDiv":
+        return ExpressionOperationBinaryFloorDiv(
+            left=left, right=right, source_ref=source_ref
+        )
+    elif operator == "TrueDiv":
+        return ExpressionOperationBinaryTrueDiv(
             left=left, right=right, source_ref=source_ref
         )
     else:

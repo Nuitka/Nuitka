@@ -96,11 +96,11 @@ class ShapeBase(object):
                 return right_shape.getOperationBinaryAddLShape(cls)
 
             if right_shape_type is ShapeLoopInitialAlternative:
-                return ShapeUnknown, ControlFlowDescriptionFullEscape
+                return operation_result_unknown
 
             onMissingOperation("Add", cls, right_shape)
 
-            return ShapeUnknown, ControlFlowDescriptionFullEscape
+            return operation_result_unknown
 
     sub_shapes = {}
 
@@ -116,11 +116,11 @@ class ShapeBase(object):
                 return right_shape.getOperationBinarySubLShape(cls)
 
             if right_shape_type is ShapeLoopInitialAlternative:
-                return ShapeUnknown, ControlFlowDescriptionFullEscape
+                return operation_result_unknown
 
             onMissingOperation("Sub", cls, right_shape)
 
-            return ShapeUnknown, ControlFlowDescriptionFullEscape
+            return operation_result_unknown
 
     mul_shapes = {}
 
@@ -136,17 +136,59 @@ class ShapeBase(object):
                 return right_shape.getOperationBinaryMultLShape(cls)
 
             if right_shape_type is ShapeLoopInitialAlternative:
-                return ShapeUnknown, ControlFlowDescriptionFullEscape
+                return operation_result_unknown
 
             onMissingOperation("Mult", cls, right_shape)
 
-            return ShapeUnknown, ControlFlowDescriptionFullEscape
+            return operation_result_unknown
+
+    floordiv_shapes = {}
+
+    @classmethod
+    def getOperationBinaryFloorDivShape(cls, right_shape):
+        result = cls.floordiv_shapes.get(right_shape)
+
+        if result is not None:
+            return result
+        else:
+            right_shape_type = type(right_shape)
+            if right_shape_type is ShapeLoopCompleteAlternative:
+                return right_shape.getOperationBinaryFloorDivLShape(cls)
+
+            if right_shape_type is ShapeLoopInitialAlternative:
+                return operation_result_unknown
+
+            # TODO: Not yet there.
+            # onMissingOperation("FloorDiv", cls, right_shape)
+
+            return operation_result_unknown
+
+    truediv_shapes = {}
+
+    @classmethod
+    def getOperationBinaryTrueDivShape(cls, right_shape):
+        result = cls.truediv_shapes.get(right_shape)
+
+        if result is not None:
+            return result
+        else:
+            right_shape_type = type(right_shape)
+            if right_shape_type is ShapeLoopCompleteAlternative:
+                return right_shape.getOperationBinaryTrueDivLShape(cls)
+
+            if right_shape_type is ShapeLoopInitialAlternative:
+                return operation_result_unknown
+
+            # TODO: Not yet there.
+            # onMissingOperation("FloorDiv", cls, right_shape)
+
+            return operation_result_unknown
 
     @classmethod
     def getComparisonLtShape(cls, right_shape):
         onMissingOperation("Lt", cls, right_shape)
 
-        return ShapeUnknown, ControlFlowDescriptionFullEscape
+        return operation_result_unknown
 
     @classmethod
     def getComparisonLteShape(cls, right_shape):
@@ -176,19 +218,27 @@ class ShapeBase(object):
 class ShapeUnknown(ShapeBase):
     @classmethod
     def getOperationBinaryAddShape(cls, right_shape):
-        return ShapeUnknown, ControlFlowDescriptionFullEscape
+        return operation_result_unknown
 
     @classmethod
     def getOperationBinarySubShape(cls, right_shape):
-        return ShapeUnknown, ControlFlowDescriptionFullEscape
+        return operation_result_unknown
 
     @classmethod
     def getOperationBinaryMultShape(cls, right_shape):
-        return ShapeUnknown, ControlFlowDescriptionFullEscape
+        return operation_result_unknown
+
+    @classmethod
+    def getOperationBinaryFloorDivShape(cls, right_shape):
+        return operation_result_unknown
+
+    @classmethod
+    def getOperationBinaryTrueDivShape(cls, right_shape):
+        return operation_result_unknown
 
     @classmethod
     def getComparisonLtShape(cls, right_shape):
-        return ShapeUnknown, ControlFlowDescriptionFullEscape
+        return operation_result_unknown
 
 
 class ValueShapeBase(object):
@@ -315,7 +365,7 @@ class ShapeLoopInitialAlternative(ShapeBase):
 
     def getOperationBinaryAddShape(self, right_shape):
         if right_shape is ShapeUnknown:
-            return ShapeUnknown, ControlFlowDescriptionFullEscape
+            return operation_result_unknown
         else:
             return (
                 self._collectInitialShape(
@@ -328,7 +378,7 @@ class ShapeLoopInitialAlternative(ShapeBase):
 
     def getOperationBinarySubShape(self, right_shape):
         if right_shape is ShapeUnknown:
-            return ShapeUnknown, ControlFlowDescriptionFullEscape
+            return operation_result_unknown
         else:
             return (
                 self._collectInitialShape(
@@ -341,7 +391,7 @@ class ShapeLoopInitialAlternative(ShapeBase):
 
     def getOperationBinaryMultShape(self, right_shape):
         if right_shape is ShapeUnknown:
-            return ShapeUnknown, ControlFlowDescriptionFullEscape
+            return operation_result_unknown
         else:
             return (
                 self._collectInitialShape(
@@ -354,7 +404,7 @@ class ShapeLoopInitialAlternative(ShapeBase):
 
     def getComparisonLtShape(self, right_shape):
         if right_shape is ShapeUnknown:
-            return ShapeUnknown, ControlFlowDescriptionFullEscape
+            return operation_result_unknown
         else:
             return (
                 self._collectInitialShape(
@@ -412,7 +462,7 @@ class ShapeLoopCompleteAlternative(ShapeBase):
             entry, description = operation(type_shape)
 
             if entry is ShapeUnknown:
-                return ShapeUnknown, ControlFlowDescriptionFullEscape
+                return operation_result_unknown
 
             if single:
                 if result is None:
@@ -446,7 +496,7 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
     def getOperationBinaryAddShape(self, right_shape):
         if right_shape is ShapeUnknown:
-            return ShapeUnknown, ControlFlowDescriptionFullEscape
+            return operation_result_unknown
 
         return self._collectShapeOperation(
             operation=lambda left_shape: left_shape.getOperationBinaryAddShape(
@@ -456,7 +506,7 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
     def getOperationBinarySubShape(self, right_shape):
         if right_shape is ShapeUnknown:
-            return ShapeUnknown, ControlFlowDescriptionFullEscape
+            return operation_result_unknown
 
         return self._collectShapeOperation(
             operation=lambda left_shape: left_shape.getOperationBinarySubShape(
@@ -466,7 +516,7 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
     def getOperationBinaryMultShape(self, right_shape):
         if right_shape is ShapeUnknown:
-            return ShapeUnknown, ControlFlowDescriptionFullEscape
+            return operation_result_unknown
 
         return self._collectShapeOperation(
             operation=lambda left_shape: left_shape.getOperationBinaryMultShape(
@@ -499,9 +549,23 @@ class ShapeLoopCompleteAlternative(ShapeBase):
             operation=left_shape.getOperationBinaryMultShape
         )
 
+    def getOperationBinaryFloorDivLShape(self, left_shape):
+        assert left_shape is not ShapeUnknown
+
+        return self._collectShapeOperation(
+            operation=left_shape.getOperationBinaryFloorDivShape
+        )
+
+    def getOperationBinaryTrueDivLShape(self, left_shape):
+        assert left_shape is not ShapeUnknown
+
+        return self._collectShapeOperation(
+            operation=left_shape.getOperationBinaryTrueDivShape
+        )
+
     def getComparisonLtShape(self, right_shape):
         if right_shape is ShapeUnknown:
-            return ShapeUnknown, ControlFlowDescriptionFullEscape
+            return operation_result_unknown
 
         return self._collectShapeOperation(
             operation=lambda left_shape: left_shape.getComparisonLtShape(right_shape)
@@ -582,3 +646,6 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
     def hasShapeModule(self):
         return self._delegatedCheck(lambda x: x.hasShapeModule())
+
+
+operation_result_unknown = ShapeUnknown, ControlFlowDescriptionFullEscape

@@ -29,10 +29,11 @@ from .ControlFlowEscapeDescriptions import (
     ControlFlowDescriptionAddUnsupported,
     ControlFlowDescriptionComparisonUnorderable,
     ControlFlowDescriptionElementBasedEscape,
-    ControlFlowDescriptionFullEscape,
+    ControlFlowDescriptionFloorDivUnsupported,
     ControlFlowDescriptionMulUnsupported,
     ControlFlowDescriptionNoEscape,
     ControlFlowDescriptionSubUnsupported,
+    ControlFlowDescriptionTrueDivUnsupported,
 )
 from .StandardShapes import (
     ShapeBase,
@@ -40,6 +41,7 @@ from .StandardShapes import (
     ShapeLoopCompleteAlternative,
     ShapeLoopInitialAlternative,
     ShapeUnknown,
+    operation_result_unknown,
 )
 
 # Updated later only, due to cyclic dependencies, make the dictionary
@@ -47,6 +49,8 @@ from .StandardShapes import (
 add_shapes_none = {}
 sub_shapes_none = {}
 mul_shapes_none = {}
+floordiv_shapes_none = {}
+truediv_shapes_none = {}
 add_shapes_bool = {}
 sub_shapes_bool = {}
 mul_shapes_bool = {}
@@ -149,6 +153,8 @@ class ShapeTypeNoneType(ShapeBase):
     add_shapes = add_shapes_none
     sub_shapes = sub_shapes_none
     mul_shapes = mul_shapes_none
+    floordiv_shapes = floordiv_shapes_none
+    truediv_shapes = truediv_shapes_none
 
     if python_version < 300:
 
@@ -1719,7 +1725,6 @@ class ShapeTypeClassmethod(ShapeBase):
 
 
 # Precanned tuples to save creating return value tuples:
-operation_result_unknown = ShapeUnknown, ControlFlowDescriptionFullEscape
 operation_result_bool_noescape = ShapeTypeBool, ControlFlowDescriptionNoEscape
 operation_result_float_noescape = ShapeTypeFloat, ControlFlowDescriptionNoEscape
 operation_result_int_noescape = ShapeTypeInt, ControlFlowDescriptionNoEscape
@@ -1751,6 +1756,14 @@ operation_result_unorderable_comparison = (
 operation_result_unsupported_add = ShapeUnknown, ControlFlowDescriptionAddUnsupported
 operation_result_unsupported_sub = ShapeUnknown, ControlFlowDescriptionSubUnsupported
 operation_result_unsupported_mul = ShapeUnknown, ControlFlowDescriptionMulUnsupported
+operation_result_unsupported_floordiv = (
+    ShapeUnknown,
+    ControlFlowDescriptionFloorDivUnsupported,
+)
+operation_result_unsupported_truediv = (
+    ShapeUnknown,
+    ControlFlowDescriptionTrueDivUnsupported,
+)
 
 add_shapes_none.update(
     {
@@ -1781,62 +1794,30 @@ add_shapes_none.update(
     }
 )
 
-sub_shapes_none.update(
-    {
-        # Standard
-        ShapeUnknown: operation_result_unknown,
-        ShapeTypeLongDerived: operation_result_unknown,
-        ShapeTypeIntOrLongDerived: operation_result_unknown,
-        ShapeTypeStrDerived: operation_result_unknown,
-        ShapeTypeUnicodeDerived: operation_result_unknown,
-        ShapeTypeBytesDerived: operation_result_unknown,
-        # None really hates everything conrete for all operations.
-        ShapeTypeInt: operation_result_unsupported_sub,
-        ShapeTypeLong: operation_result_unsupported_sub,
-        ShapeTypeIntOrLong: operation_result_unsupported_sub,
-        ShapeTypeBool: operation_result_unsupported_sub,
-        ShapeTypeLong: operation_result_unsupported_sub,
-        # Sequence repeat:
-        ShapeTypeStr: operation_result_unsupported_sub,
-        ShapeTypeBytes: operation_result_unsupported_sub,
-        ShapeTypeBytearray: operation_result_unsupported_sub,
-        ShapeTypeUnicode: operation_result_unsupported_sub,
-        ShapeTypeTuple: operation_result_unsupported_sub,
-        ShapeTypeList: operation_result_unsupported_sub,
-        # Unsupported:
-        ShapeTypeSet: operation_result_unsupported_sub,
-        ShapeTypeDict: operation_result_unsupported_sub,
-        ShapeTypeNoneType: operation_result_unsupported_sub,
-    }
-)
 
+def cloneWithUnsupportedChange(op_shapes, operation_result_unsupported):
+    r = {}
+
+    for key, value in op_shapes.items():
+        if value[1].getExceptionExit() is TypeError:
+            value = operation_result_unsupported
+
+        r[key] = value
+
+    return r
+
+
+sub_shapes_none.update(
+    cloneWithUnsupportedChange(add_shapes_none, operation_result_unsupported_sub)
+)
 mul_shapes_none.update(
-    {
-        # Standard
-        ShapeUnknown: operation_result_unknown,
-        ShapeTypeLongDerived: operation_result_unknown,
-        ShapeTypeIntOrLongDerived: operation_result_unknown,
-        ShapeTypeStrDerived: operation_result_unknown,
-        ShapeTypeUnicodeDerived: operation_result_unknown,
-        ShapeTypeBytesDerived: operation_result_unknown,
-        # None really hates everything conrete for all operations.
-        ShapeTypeInt: operation_result_unsupported_mul,
-        ShapeTypeLong: operation_result_unsupported_mul,
-        ShapeTypeIntOrLong: operation_result_unsupported_mul,
-        ShapeTypeBool: operation_result_unsupported_mul,
-        ShapeTypeLong: operation_result_unsupported_mul,
-        # Sequence repeat:
-        ShapeTypeStr: operation_result_unsupported_mul,
-        ShapeTypeBytes: operation_result_unsupported_mul,
-        ShapeTypeBytearray: operation_result_unsupported_mul,
-        ShapeTypeUnicode: operation_result_unsupported_mul,
-        ShapeTypeTuple: operation_result_unsupported_mul,
-        ShapeTypeList: operation_result_unsupported_mul,
-        # Unsupported:
-        ShapeTypeSet: operation_result_unsupported_mul,
-        ShapeTypeDict: operation_result_unsupported_mul,
-        ShapeTypeNoneType: operation_result_unsupported_mul,
-    }
+    cloneWithUnsupportedChange(add_shapes_none, operation_result_unsupported_mul)
+)
+floordiv_shapes_none.update(
+    cloneWithUnsupportedChange(add_shapes_none, operation_result_unsupported_floordiv)
+)
+truediv_shapes_none.update(
+    cloneWithUnsupportedChange(add_shapes_none, operation_result_unsupported_truediv)
 )
 
 add_shapes_bool.update(

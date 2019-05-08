@@ -95,3 +95,15 @@ class ControlFlowDescriptionMulUnsupported(
     ControlFlowDescriptionOperationUnsupportedBase
 ):
     pass
+
+
+class ControlFlowDescriptionFloorDivUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionTrueDivUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass

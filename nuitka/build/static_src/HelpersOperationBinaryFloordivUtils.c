@@ -23,18 +23,6 @@
 /* This is from pyport.h */
 #define WIDTH_OF_ULONG (CHAR_BIT * SIZEOF_LONG)
 
-/* helper for div functions, where no check for 0 is necessary
- * but a modulo value is sought. This avoids using fmod from
- * the math library.
- */
-static double NUITKA_fmod(double x, double div) {
-    // handle nan
-    if (div != div || x != x) {
-        return x;
-    }
-    return x - (long)(x / div) * div;
-}
-
 // TODO: Move to truediv utils
 
 extern PyObject *const_float_minus_0_0, *const_float_0_0;

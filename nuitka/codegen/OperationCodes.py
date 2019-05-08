@@ -332,9 +332,21 @@ def _getBinaryOperationCode(
     elif operator == "Div":
         helper = "BINARY_OPERATION_DIV"
     elif operator == "FloorDiv":
-        helper = "BINARY_OPERATION_FLOORDIV"
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_FLOORDIV",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_floordiv_helpers_set,
+        )
     elif operator == "TrueDiv":
-        helper = "BINARY_OPERATION_TRUEDIV"
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_TRUEDIV",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_truediv_helpers_set,
+        )
     elif operator == "Mult":
         helper = pickCodeHelper(
             prefix="BINARY_OPERATION_MUL",
@@ -343,6 +355,7 @@ def _getBinaryOperationCode(
             right_shape=expression.getRight().getTypeShape(),
             helpers=specialized_mul_helpers_set,
         )
+
     elif operator == "Mod":
         helper = "BINARY_OPERATION_REMAINDER"
     elif operator == "Divmod":
