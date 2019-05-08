@@ -107,10 +107,7 @@ def get_package_paths(package):
 
 
 def get_scipy_core_binaries():
-    """ Return binaries from the extra-dlls folder.
-
-    Notes:
-        Extra binaries exist for Windows platform only.
+    """ Return binaries from the extra-dlls folder (Windows only).
     """
     binaries = []
 
@@ -318,22 +315,6 @@ class NumpyPlugin(NuitkaPluginBase):
             msg = "Copied 'mpl-data' from 'matplotlib' installation."
             info(msg)
             return ()
-
-    def suppressBuiltinImportWarning(self, module, source_ref):
-        """ Whether to suppress import warnings for modules.
-
-        Notes:
-            Suppress messages "Unresolved '__import__' at ..."
-        Args:
-            module: the module object
-            source_ref: source of module with line number
-        Returns:
-            True or False
-        """
-        if module.getFullName().startswith(("numpy", "scipy")):
-            return True
-
-        return False
 
     def onModuleEncounter(
         self, module_filename, module_name, module_package, module_kind

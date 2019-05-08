@@ -448,6 +448,8 @@ def initPlugins():
         Several checks are made, see below.
         The final result is 'active_plugin_list' which contains all enabled
         plugins.
+        User plugins are enabled as a first step, because they themselves may
+        enable standard plugins.
 
     Returns:
         None

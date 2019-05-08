@@ -31,6 +31,12 @@ class GeventPlugin(NuitkaPluginBase):
     plugin_name = "gevent"
     plugin_desc = "Required by the gevent package"
 
+    def __init__(self):
+        """ Maintain any switches etc.
+        """
+        self.files_copied = False
+        return None
+
     def onModuleEncounter(
         self, module_filename, module_name, module_package, module_kind
     ):
@@ -67,11 +73,11 @@ class GeventPluginDetector(NuitkaPluginBase):
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    plugin_name = "gevent"
+    plugin_name = "gevent"  # Nuitka knows us by this name
 
     @staticmethod
     def isRelevant():
-        """ One time only check: may this plugin be required?
+        """ This method is called one time only to check, whether the plugin might make sense at all.
 
         Returns:
             True if this is a standalone compilation.

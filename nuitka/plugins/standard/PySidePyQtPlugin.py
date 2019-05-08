@@ -35,6 +35,7 @@ from nuitka.utils.FileOperations import (
     getSubDirectories,
     removeDirectory,
 )
+from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import isWin32Windows
 
 
@@ -122,8 +123,11 @@ if os.path.exists(guess_path):
             if os.path.isdir(qt_bin_dir):
                 yield qt_bin_dir
 
+            if os.path.isdir(qt_bin_dir):
+                yield qt_bin_dir
+
     def considerExtraDlls(self, dist_dir, module):
-        # pylint: disable=too-many-branches,too-many-locals
+        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
         full_name = module.getFullName()
 
         if full_name in ("PyQt4", "PyQt5"):
@@ -174,7 +178,7 @@ if os.path.exists(guess_path):
             )
 
             for plugin_dir in plugin_dirs:
-                copyTree(plugin_dir, target_plugin_dir)
+                shutil.copytree(plugin_dir, target_plugin_dir)
 
             if "all" not in plugin_options:
                 for plugin_candidate in getSubDirectories(target_plugin_dir):
@@ -288,6 +292,19 @@ if os.path.exists(guess_path):
                             shutil.copy(filename, os.path.join(dist_dir, basename))
 
             return result
+        elif full_name == "PyQt5.QtNetwork":
+            if not isWin32Windows():
+                dll_path = locateDLL("crypto")
+
+                if dll_path is None:
+                    dist_dll_path = os.path.join(dist_dir, os.path.basename(dll_path))
+                    shutil.copy(dll_path, dist_dll_path)
+
+                dll_path = locateDLL("ssl")
+                if dll_path is not None:
+                    dist_dll_path = os.path.join(dist_dir, os.path.basename(dll_path))
+
+                    shutil.copy(dll_path, dist_dll_path)
 
         return ()
 
