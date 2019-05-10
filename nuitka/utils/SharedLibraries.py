@@ -19,7 +19,6 @@
 
 """
 
-import array
 import os
 from sys import getfilesystemencoding
 
@@ -45,6 +44,9 @@ def locateDLL(dll_name):
     import ctypes.util
 
     dll_name = ctypes.util.find_library(dll_name)
+
+    if dll_name is None:
+        return None
 
     if os.path.sep in dll_name:
         # Use this from ctypes instead of rolling our own.
@@ -129,10 +131,16 @@ def getWindowsDLLVersion(filename):
         a tuple of 4 numbers.
     """
     # Get size needed for buffer (0 if no info)
-    import ctypes
+    import ctypes.wintypes
 
     if type(filename) is unicode:
-        size = ctypes.windll.version.GetFileVersionInfoSizeW(filename, None)
+        GetFileVersionInfoSizeW = ctypes.windll.version.GetFileVersionInfoSizeW
+        GetFileVersionInfoSizeW.argtypes = [
+            ctypes.wintypes.LPCWSTR,
+            ctypes.wintypes.LPDWORD,  # @UndefinedVariable
+        ]
+        GetFileVersionInfoSizeW.restype = ctypes.wintypes.HANDLE
+        size = GetFileVersionInfoSizeW(filename, None)
     else:
         size = ctypes.windll.version.GetFileVersionInfoSizeA(filename, None)
 
@@ -144,36 +152,62 @@ def getWindowsDLLVersion(filename):
     # Load file informations into buffer res
 
     if type(filename) is unicode:
-        ctypes.windll.version.GetFileVersionInfoW(filename, None, size, res)
-    else:
-        ctypes.windll.version.GetFileVersionInfoA(filename, None, size, res)
+        # Python3 needs our help here.
+        GetFileVersionInfo = ctypes.windll.version.GetFileVersionInfoW
+        GetFileVersionInfo.argtypes = [
+            ctypes.wintypes.LPCWSTR,
+            ctypes.wintypes.DWORD,
+            ctypes.wintypes.DWORD,
+            ctypes.wintypes.LPVOID,
+        ]
+        GetFileVersionInfo.restype = ctypes.wintypes.BOOL
 
-    r = ctypes.c_uint()
-    l = ctypes.c_uint()
+    else:
+        # Python2 just works.
+        GetFileVersionInfo = ctypes.windll.version.GetFileVersionInfoA
+
+    success = GetFileVersionInfo(filename, 0, size, res)
+    # This cannot really fail anymore.
+    assert success
 
     # Look for codepages
-    ctypes.windll.version.VerQueryValueA(
-        res, br"\VarFileInfo\Translation", ctypes.byref(r), ctypes.byref(l)
-    )
+    VerQueryValueA = ctypes.windll.version.VerQueryValueA
+    VerQueryValueA.argtypes = [
+        ctypes.wintypes.LPCVOID,
+        ctypes.wintypes.LPCSTR,
+        ctypes.wintypes.LPVOID,
+        ctypes.POINTER(ctypes.c_uint32),
+    ]
+    VerQueryValueA.restype = ctypes.wintypes.BOOL
 
-    if not l.value:
+    class VsFixedFileInfoStructure(ctypes.Structure):
+        _fields_ = [
+            ("dwSignature", ctypes.c_uint32),  # 0xFEEF04BD
+            ("dwStructVersion", ctypes.c_uint32),
+            ("dwFileVersionMS", ctypes.c_uint32),
+            ("dwFileVersionLS", ctypes.c_uint32),
+            ("dwProductVersionMS", ctypes.c_uint32),
+            ("dwProductVersionLS", ctypes.c_uint32),
+            ("dwFileFlagsMask", ctypes.c_uint32),
+            ("dwFileFlags", ctypes.c_uint32),
+            ("dwFileOS", ctypes.c_uint32),
+            ("dwFileType", ctypes.c_uint32),
+            ("dwFileSubtype", ctypes.c_uint32),
+            ("dwFileDateMS", ctypes.c_uint32),
+            ("dwFileDateLS", ctypes.c_uint32),
+        ]
+
+    file_info = ctypes.POINTER(VsFixedFileInfoStructure)()
+    uLen = ctypes.c_uint32(ctypes.sizeof(file_info))
+
+    b = VerQueryValueA(res, br"\\", ctypes.byref(file_info), ctypes.byref(uLen))
+    if not b:
         return (0, 0, 0, 0)
 
-    codepages = array.array("H", ctypes.string_at(r.value, l.value))
-    codepage = tuple(codepages[:2].tolist())
+    if not file_info.contents.dwSignature == 0xFEEF04BD:
+        return (0, 0, 0, 0)
 
-    # Extract information
-    ctypes.windll.version.VerQueryValueA(
-        res,
-        r"\StringFileInfo\%04x%04x\FileVersion" % codepage,
-        ctypes.byref(r),
-        ctypes.byref(l),
-    )
+    ms = file_info.contents.dwFileVersionMS
+    ls = file_info.contents.dwFileVersionLS
 
-    data = ctypes.string_at(r.value, l.value)[4 * 2 :]
-
-    import struct
-
-    data = struct.unpack("HHHH", data[: 4 * 2])
-
-    return data[1], data[0], data[3], data[2]
+    return (ms >> 16) & 0xFFFF, ms & 0xFFFF, (ls >> 16) & 0xFFFF, ls & 0xFFFF

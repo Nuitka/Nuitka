@@ -15,18 +15,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Nuitka version related stuff.
-
-"""
-
-version_string = """\
-Nuitka V0.6.4rc3
-Copyright (C) 2019 Kay Hayen."""
-
-
-def getNuitkaVersion():
-    return version_string.split()[1][1:]
-
-
-def getNuitkaVersionYear():
-    return int(version_string.split()[4])
+""" Dummy file to make this directory a package. """

@@ -1759,6 +1759,10 @@ if gcc_mode:
     with open(tmp_linker_filename, "w") as tmpfile:
         for filename in source_files:
             filename = ".".join(filename.split(".")[:-1]) + ".o"
+
+            if os.name == "nt":
+                filename = filename.replace(os.path.sep, "/")
+
             tmpfile.write('"%s"\n' % filename)
 
         tmpfile.write(env.subst("$SOURCES"))

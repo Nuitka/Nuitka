@@ -12,3 +12,6 @@ baron == 0.9 ; python_version >= '2.7'
 
 # API doc, doxygen helper for Python
 doxypypy == 0.8.8.6 ; python_version >= '2.7'
+
+# Code and test generation tools
+Jinja2 == 2.10.1; python_version >= '2.7'

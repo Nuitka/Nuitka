@@ -51,6 +51,10 @@ class ShapeBase(object):
         return None
 
     @staticmethod
+    def hasShapeSlotBool():
+        return None
+
+    @staticmethod
     def hasShapeSlotLen():
         return None
 
@@ -172,6 +176,10 @@ class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
 
 
 class ShapeIterator(ShapeBase):
+    @staticmethod
+    def hasShapeSlotBool():
+        return None
+
     @staticmethod
     def hasShapeSlotLen():
         return None
@@ -417,6 +425,9 @@ class ShapeLoopCompleteAlternative(ShapeBase):
                     result = False
 
         return result
+
+    def hasShapeSlotBool(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotBool())
 
     def hasShapeSlotLen(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotLen())

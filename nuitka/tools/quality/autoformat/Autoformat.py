@@ -248,12 +248,18 @@ def _cleanupImportSortOrder(filename):
 warned_clang_format = False
 
 
-def _cleanupClangFormat(filename):
+def cleanupClangFormat(filename):
+    """ Call clang-format on a given filename to format C code.
+
+    Args:
+        filename: What file to re-format.
+    """
+
     # Using global here, as this is really a singleton, in
     # the form of a module, pylint: disable=global-statement
     global warned_clang_format
 
-    clang_format_path = getExecutablePath("clang-format")
+    clang_format_path = getExecutablePath("clang-format-6.0")
 
     # Extra ball on Windows, check default installation PATH too.
     if not clang_format_path and getOS() == "Windows":
@@ -282,7 +288,7 @@ def _shouldNotFormatCode(filename):
     if "inline_copy" in parts:
         return True
     elif "tests" in parts:
-        return "run_all.py" not in parts
+        return "run_all.py" not in parts and "compile_itself.py" not in parts
     else:
         return False
 
@@ -318,7 +324,9 @@ def autoformat(filename, git_stage, abort):
 
     is_c = filename.endswith((".c", ".h"))
 
-    is_txt = filename.endswith((".txt", ".rst", ".sh", ".in", ".md", ".stylesheet"))
+    is_txt = filename.endswith(
+        (".txt", ".rst", ".sh", ".in", ".md", ".stylesheet", ".j2")
+    )
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
@@ -352,7 +360,7 @@ def autoformat(filename, git_stage, abort):
 
         elif is_c:
             _cleanupWindowsNewlines(tmp_filename)
-            _cleanupClangFormat(filename)
+            cleanupClangFormat(filename)
             _cleanupWindowsNewlines(tmp_filename)
         elif is_txt:
             _cleanupWindowsNewlines(tmp_filename)

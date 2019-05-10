@@ -21,7 +21,6 @@
 
 import os
 import sys
-import subprocess
 
 # Find nuitka package relative to us. The replacement is for POSIX python
 # and Windows paths on command line.
@@ -36,10 +35,13 @@ sys.path.insert(
 
 # isort:start
 
+import subprocess
+
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
     decideFilenameVersionSkip,
+    getPythonVendor,
     getRuntimeTraceOfLoadedFiles,
     hasModule,
     my_print,
@@ -375,11 +377,18 @@ for filename in sorted(os.listdir(".")):
             reportSkip("irrelevant Python version", ".", filename)
             continue
 
-        if "Plugins" in filename:
-            extra_flags.append("plugin_enable:qt-plugins")
-
-        # For the plug-in used or not used information.
+        extra_flags.append("plugin_enable:enum-compat")
+        # For the plug-in information.
         extra_flags.append("ignore_infos")
+
+        if getPythonVendor() != "Anaconda" and (
+            "Plugins" in filename or "SSL" in filename
+        ):
+            extra_flags.append("plugin_enable:qt-plugins")
+            # extra_flags.append("ignore_infos")
+        else:
+            # For the plug-in not used information.
+            extra_flags.append("ignore_warnings")
 
     my_print("Consider output of recursively compiled program:", filename)
 
@@ -494,11 +503,14 @@ for filename in sorted(os.listdir(".")):
             "/usr/local/lib",
             "/usr/share",
             "/usr/local/share",
+            "/usr/lib64",
         ):
             continue
 
         # TCL/tk for tkinter for non-Windows is OK.
-        if loaded_filename.startswith(("/usr/lib/tcltk/", "/usr/share/tcltk/")):
+        if loaded_filename.startswith(
+            ("/usr/lib/tcltk/", "/usr/share/tcltk/", "/usr/lib64/tcl/")
+        ):
             continue
         if loaded_filename in ("/usr/lib/tcltk", "/usr/share/tcltk"):
             continue
@@ -613,6 +625,8 @@ for filename in sorted(os.listdir(".")):
             continue
         if loaded_basename.startswith("libicu"):
             continue
+        if loaded_filename.startswith("/usr/share/icu/"):
+            continue
 
         # Loading from caches is OK.
         if loaded_filename.startswith("/var/cache/"):
@@ -649,6 +663,8 @@ for filename in sorted(os.listdir(".")):
 
         # PyQt5 seems to do this, but won't use contents then.
         if loaded_filename in (
+            "/usr/lib/qt5/plugins",
+            "/usr/lib/qt5",
             "/usr/lib/x86_64-linux-gnu/qt5/plugins",
             "/usr/lib/x86_64-linux-gnu/qt5",
             "/usr/lib/x86_64-linux-gnu",
