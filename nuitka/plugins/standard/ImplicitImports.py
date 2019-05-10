@@ -258,17 +258,23 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "apt_inst":
             yield "apt_pkg", True
 
-        # -----------------------------------------------------------
-        # start gevent
-        # -----------------------------------------------------------
+        # start: imports for gevent -------------------------------------------
         elif full_name == "gevent":
-            yield "gevent._compat", True
+            yield "_cffi_backend", True
             yield "gevent._config", True
-            yield "gevent.greenlet", True
-            yield "gevent.timeout", True
-            yield "gevent.events", True
-            yield "gevent.libuv", True
-            yield "gevent.libuv.loop", True
+            yield "gevent.core", True
+            yield "gevent.resolver_thread", True
+            yield "gevent.resolver_ares", True
+            yield "gevent.socket", True
+            yield "gevent.threadpool", True
+            yield "gevent.thread", True
+            yield "gevent.threading", True
+            yield "gevent.select", True
+            yield "gevent.subprocess", True
+            if getOS() == "Windows":
+                yield "gevent.libuv", True
+            else:
+                yield "gevent.libev", True
 
         elif full_name == "gevent.hub":
             yield "gevent._hub_primitives", True
@@ -279,20 +285,20 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "gevent._ident", True
             yield "gevent.exceptions", True
 
-        elif full_name == "gevent._config":
-            yield "gevent.libuv", True
-            yield "gevent.libev", True
+        elif full_name == "gevent.libev":
+            yield "gevent.libev.corecext", True
+            yield "gevent.libev.corecffi", True
+            yield "gevent.libev.watcher", True
 
         elif full_name == "gevent.libuv":
-            yield "gevent.libuv._corecffi", True
             yield "gevent._interfaces", True
             yield "gevent._ffi", True
-            yield "gevent._util", True
             yield "gevent.libuv.loop", True
             yield "gevent.libuv.watcher", True
 
-        elif full_name == "gevent.libuv._corecffi":
-            yield "gevent.libuv._corecffi._cffi_backend", True
+        elif full_name == "gevent.libuv.loop":
+            yield "gevent.libuv._corecffi", True
+            yield "gevent._interfaces", True
 
         elif full_name == "gevent._ffi":
             yield "gevent._ffi.loop", True
@@ -319,6 +325,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "gevent.time", True
             yield "gevent.local", True
             yield "gevent.ssl", True
+            yield "gevent.events", True
 
         elif full_name == "gevent._semaphore":
             yield "gevent._abstract_linkable", True
@@ -341,8 +348,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         elif full_name == "gevent._imap":
             yield "gevent.__imap", True
-
-        # end gevent ------------------------------------------------
+        # end: imports for gevent ---------------------------------------------
 
         elif full_name == "numpy.core":
             yield "numpy.core._dtype_ctypes", True
