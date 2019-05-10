@@ -31,12 +31,6 @@ class GeventPlugin(NuitkaPluginBase):
     plugin_name = "gevent"
     plugin_desc = "Required by the gevent package"
 
-    def __init__(self):
-        """ Maintain any switches etc.
-        """
-        self.files_copied = False
-        return None
-
     def onModuleEncounter(
         self, module_filename, module_name, module_package, module_kind
     ):
@@ -51,8 +45,11 @@ class GeventPlugin(NuitkaPluginBase):
         return None
 
     def onModuleSourceCode(self, module_name, source_code):
-        """ Append a statement to gevent/_config.py.
+        """ Modify gevent configuration.
 
+        Notes:
+            We need to disable frame tree tracking in the Greenlet module.
+            This is achieved by setting a parameter in gevent config.
         """
         if module_name != "gevent._config":
             return source_code
@@ -62,12 +59,18 @@ class GeventPlugin(NuitkaPluginBase):
         return "\n".join(source_lines)
 
     def decideCompilation(self, module_name, source_ref):
+        """ Decide whether certain modules should be compiled.
+
+        Notes:
+            gevent will run into issues if compiled on Windows, so we just
+            include the byte code.
+        """
         if module_name.startswith("gevent") and getOS() == "Windows":
             return "bytecode"
 
 
 class GeventPluginDetector(NuitkaPluginBase):
-    """ Only used if plugin is NOT activated.
+    """ Detect our relevance
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
