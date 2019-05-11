@@ -41,7 +41,7 @@ def get_module_file_attribute(package):
 
 
 def get_torch_core_binaries():
-    """ Return required files from the torch/lib folder.
+    """ Return required files from the torch folders.
 
     Notes:
         So far only tested for Windows. Requirements for other platforms
@@ -49,17 +49,36 @@ def get_torch_core_binaries():
     """
     binaries = []
 
-    extra_dll = os.path.join(os.path.dirname(get_module_file_attribute("torch")), "lib")
-    if not os.path.isdir(extra_dll):
-        return binaries
+    extras = os.path.join(os.path.dirname(get_module_file_attribute("torch")), "lib")
 
-    netto_bins = os.listdir(extra_dll)
+    if os.path.isdir(extras):
+        for f in os.listdir(extras):
+            # apart from shared libs, also the C header files are required!
+            if f.endswith((".dll", ".so", ".h")) or ".so." in f:
+                item = os.path.join(extras, f)
+                if os.path.isfile(item):
+                    binaries.append((item, "."))
 
-    for f in netto_bins:
-        # apart from DLLs, also the C header files are required!
-        if not f.endswith((".dll", ".so", ".dylib", ".h")):
-            continue
-        binaries.append((os.path.join(extra_dll, f), "."))
+    # this folder exists in the Linux version
+    extras = os.path.join(os.path.dirname(get_module_file_attribute("torch")), "bin")
+
+    if os.path.isdir(extras):
+        for f in os.listdir(extras):
+            item = os.path.join(extras, f)
+            if os.path.isfile(item):
+                binaries.append((item, "."))
+
+    # this folder exists in the Linux version
+    extras = os.path.join(
+        os.path.dirname(get_module_file_attribute("torch")), "include"
+    )
+
+    if os.path.isdir(extras):
+        for root, _, files in os.walk(extras):
+            for f in files:
+                item = os.path.join(root, f)
+                if os.path.isfile(item):
+                    binaries.append((item, "."))
 
     return binaries
 
@@ -103,9 +122,9 @@ class TorchPlugin(UserPluginBase):
             if bin_total == 0:
                 return ()
             info("")
-            info(" Copying files from 'torch/lib':")
+            info(" Copying files from 'torch' installation:")
             for f in binaries:
-                bin_file = f[0].lower()  # full binary file name
+                bin_file = f[0]  # full binary file name
                 idx = bin_file.find("torch")  # this will always work (idx > 0)
                 back_end = bin_file[idx:]  # tail of the string
                 tar_file = os.path.join(dist_dir, back_end)
