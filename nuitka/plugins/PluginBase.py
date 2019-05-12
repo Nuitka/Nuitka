@@ -65,14 +65,14 @@ class NuitkaPluginBase(object):
     What they are can be displayed using "nuitka --plugin-list file.py" (filename
     required but ignored).
 
-    User plugins may be specified (and implicitely enabled) using their Python
+    User plugins may be specified (and implicitly enabled) using their Python
     script pathname.
     """
 
     # Standard plugins must provide this as a unique string which Nuitka
     # then uses to identify them.
     #
-    # User plugins are identified by their path and implicitely activated.
+    # User plugins are identified by their path and implicitly activated.
     # They however still need to specify some arbitrary non-blank string here,
     # which does not equal the name of an inactivated standard plugin.
     # For working with options, user plugins must set this variable to
@@ -140,7 +140,7 @@ class NuitkaPluginBase(object):
         return Options.getPluginOptions(self.plugin_name)
 
     def considerImplicitImports(self, module, signal_change):
-        """ Provide additional modules to import implicitely when encountering the module.
+        """ Provide additional modules to import implicitly when encountering the module.
 
         Notes:
             Better do not overload this method.
@@ -200,10 +200,10 @@ class NuitkaPluginBase(object):
                 )
 
     def isRequiredImplicitImport(self, module, full_name):
-        """ Indicate whether an implicitely imported module should be accepted.
+        """ Indicate whether an implicitly imported module should be accepted.
 
         Notes:
-            You may negate importing a module specified as "implcit import",
+            You may negate importing a module specified as "implicit import",
             although this is an unexpected event.
 
         Args:

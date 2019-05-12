@@ -53,7 +53,7 @@ Be verbose in output. Default is %default.""",
         dest="pefile",
         default=False,
         help="""\
-Use pefile depedencies. Default is %default.""",
+Use pefile dependencies. Default is %default.""",
     )
 
     options, positional_args = parser.parse_args()

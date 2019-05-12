@@ -147,7 +147,7 @@ def getWindowsDLLVersion(filename):
 
     # Create buffer
     res = ctypes.create_string_buffer(size)
-    # Load file informations into buffer res
+    # Load file information into buffer res
 
     if type(filename) is unicode:
         # Python3 needs our help here.

@@ -892,7 +892,7 @@ static PyObject *_path_unfreezer_iter_modules(PyObject *self, PyObject *args, Py
         return NULL;
     }
 
-    // Search relativ to us only.
+    // Search relative to us only.
     PyObject *asked_name = LOOKUP_ATTRIBUTE(self, const_str_plain_name);
 
     PyObject *result = PyList_New(0);

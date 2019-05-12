@@ -718,7 +718,7 @@ if gcc_mode:
     if c11_mode:
         env.Append(CCFLAGS=["-std=c11"])
 
-    # Make it clear how to handle integer overflows, namely by wraping around
+    # Make it clear how to handle integer overflows, namely by wrapping around
     # to negative values.
     env.Append(CCFLAGS=["-fwrapv"])
 

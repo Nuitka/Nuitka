@@ -184,7 +184,7 @@ exceeded while calling a Python object' in \
         ):
             continue
 
-        # Ignore spurios clcache warning.
+        # Ignore spurious clcache warning.
         if "clcache: persistent json file" in line:
             continue
 
