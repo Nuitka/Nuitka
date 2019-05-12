@@ -25,7 +25,7 @@ from nuitka.codegen.Reports import onMissingOperation
 from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
 
-from .ControlFlowEscapeDescriptions import (
+from .ControlFlowDescriptions import (
     ControlFlowDescriptionAddUnsupported,
     ControlFlowDescriptionComparisonUnorderable,
     ControlFlowDescriptionElementBasedEscape,
@@ -110,6 +110,8 @@ def _getComparisonLtShapeGeneric(cls, right_shape):
 
 
 class ShapeTypeNoneType(ShapeBase):
+    typical_value = None
+
     @staticmethod
     def getTypeName():
         return "NoneType"
@@ -186,6 +188,8 @@ class ShapeTypeNoneType(ShapeBase):
 
 
 class ShapeTypeBool(ShapeBase):
+    typical_value = True
+
     @staticmethod
     def getTypeName():
         return "bool"
@@ -255,6 +259,8 @@ class ShapeTypeBool(ShapeBase):
 
 
 class ShapeTypeInt(ShapeBase):
+    typical_value = 7
+
     @staticmethod
     def getTypeName():
         return "int"
@@ -321,80 +327,80 @@ class ShapeTypeInt(ShapeBase):
         return _getComparisonLtShapeGeneric(cls, right_shape)
 
 
-class ShapeTypeLong(ShapeBase):
-    @staticmethod
-    def getTypeName():
-        return "long"
-
-    helper_code = "LONG" if python_version < 300 else "INVALID"
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return True
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return True
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return True
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return False
-
-    add_shapes = add_shapes_long
-    sub_shapes = sub_shapes_long
-    mul_shapes = mul_shapes_long
-
-    @classmethod
-    def getComparisonLtShape(cls, right_shape):
-        if right_shape is ShapeUnknown:
-            return operation_result_unknown
-
-        if right_shape in (
-            ShapeTypeInt,
-            ShapeTypeLong,
-            ShapeTypeIntOrLong,
-            ShapeTypeBool,
-            ShapeTypeFloat,
-        ):
-            return operation_result_bool_noescape
-
-        if right_shape in (ShapeTypeLongDerived, ShapeTypeIntOrLongDerived):
-            return operation_result_unknown
-
-        return _getComparisonLtShapeGeneric(cls, right_shape)
-
-
-class ShapeTypeLongDerived(ShapeUnknown):
-    @staticmethod
-    def getTypeName():
-        return None
-
-
 if python_version < 300:
+
+    class ShapeTypeLong(ShapeBase):
+        typical_value = long(7)  # pylint: disable=I0021,undefined-variable
+
+        @staticmethod
+        def getTypeName():
+            return "long"
+
+        helper_code = "LONG" if python_version < 300 else "INVALID"
+
+        @staticmethod
+        def hasShapeSlotBool():
+            return True
+
+        @staticmethod
+        def hasShapeSlotLen():
+            return False
+
+        @staticmethod
+        def hasShapeSlotInt():
+            return True
+
+        @staticmethod
+        def hasShapeSlotLong():
+            return True
+
+        @staticmethod
+        def hasShapeSlotFloat():
+            return True
+
+        @staticmethod
+        def hasShapeSlotComplex():
+            return True
+
+        @staticmethod
+        def hasShapeSlotIter():
+            return False
+
+        @staticmethod
+        def hasShapeSlotNext():
+            return False
+
+        @staticmethod
+        def hasShapeSlotContains():
+            return False
+
+        add_shapes = add_shapes_long
+        sub_shapes = sub_shapes_long
+        mul_shapes = mul_shapes_long
+
+        @classmethod
+        def getComparisonLtShape(cls, right_shape):
+            if right_shape is ShapeUnknown:
+                return operation_result_unknown
+
+            if right_shape in (
+                ShapeTypeInt,
+                ShapeTypeLong,
+                ShapeTypeIntOrLong,
+                ShapeTypeBool,
+                ShapeTypeFloat,
+            ):
+                return operation_result_bool_noescape
+
+            if right_shape in (ShapeTypeLongDerived, ShapeTypeIntOrLongDerived):
+                return operation_result_unknown
+
+            return _getComparisonLtShapeGeneric(cls, right_shape)
+
+    class ShapeTypeLongDerived(ShapeUnknown):
+        @staticmethod
+        def getTypeName():
+            return None
 
     class ShapeTypeIntOrLong(ShapeBase):
         if isExperimental("nuitka_ilong"):
@@ -464,6 +470,8 @@ if python_version < 300:
 
 
 else:
+    ShapeTypeLong = None
+    ShapeTypeLongDerived = None
     ShapeTypeIntOrLong = ShapeTypeInt
 
 
@@ -472,6 +480,8 @@ class ShapeTypeIntOrLongDerived(ShapeUnknown):
 
 
 class ShapeTypeFloat(ShapeBase):
+    typical_value = 0.1
+
     @staticmethod
     def getTypeName():
         return "float"
@@ -543,6 +553,8 @@ class ShapeTypeFloatDerived(ShapeUnknown):
 
 
 class ShapeTypeComplex(ShapeBase):
+    typical_value = 0j
+
     @staticmethod
     def getTypeName():
         return "complex"
@@ -591,6 +603,8 @@ class ShapeTypeComplex(ShapeBase):
 
 
 class ShapeTypeTuple(ShapeBase):
+    typical_value = ()
+
     @staticmethod
     def getTypeName():
         return "tuple"
@@ -648,6 +662,8 @@ class ShapeTypeTuple(ShapeBase):
 
 
 class ShapeTypeTupleIterator(ShapeIterator):
+    typical_value = iter(ShapeTypeTuple.typical_value)
+
     @staticmethod
     def getTypeName():
         return "tupleiterator" if python_version < 300 else "tuple_iterator"
@@ -662,6 +678,8 @@ class ShapeTypeTupleIterator(ShapeIterator):
 
 
 class ShapeTypeList(ShapeBase):
+    typical_value = []
+
     @staticmethod
     def getTypeName():
         return "list"
@@ -733,6 +751,8 @@ class ShapeTypeList(ShapeBase):
 
 
 class ShapeTypeListIterator(ShapeIterator):
+    typical_value = iter(ShapeTypeList.typical_value)
+
     @staticmethod
     def getTypeName():
         return "listiterator" if python_version < 300 else "list_iterator"
@@ -747,6 +767,8 @@ class ShapeTypeListIterator(ShapeIterator):
 
 
 class ShapeTypeSet(ShapeBase):
+    typical_value = set()
+
     @staticmethod
     def getTypeName():
         return "set"
@@ -802,6 +824,8 @@ class ShapeTypeSet(ShapeBase):
 
 
 class ShapeTypeSetIterator(ShapeIterator):
+    typical_value = iter(ShapeTypeSet.typical_value)
+
     @staticmethod
     def getTypeName():
         return "setiterator" if python_version < 300 else "set_iterator"
@@ -816,6 +840,8 @@ class ShapeTypeSetIterator(ShapeIterator):
 
 
 class ShapeTypeFrozenset(ShapeBase):
+    typical_value = frozenset()
+
     @staticmethod
     def getTypeName():
         return "frozenset"
@@ -862,6 +888,8 @@ class ShapeTypeFrozenset(ShapeBase):
 
 
 class ShapeTypeDict(ShapeBase):
+    typical_value = {}
+
     @staticmethod
     def getTypeName():
         return "dict"
@@ -920,6 +948,8 @@ class ShapeTypeDict(ShapeBase):
 
 
 class ShapeTypeDictIterator(ShapeIterator):
+    typical_value = iter(ShapeTypeDict.typical_value)
+
     @staticmethod
     def getTypeName():
         return "dictionary-keyiterator" if python_version < 300 else "dictkey_iterator"
@@ -934,6 +964,8 @@ class ShapeTypeDictIterator(ShapeIterator):
 
 
 class ShapeTypeStr(ShapeBase):
+    typical_value = "a"
+
     @staticmethod
     def getTypeName():
         return "str"
@@ -1009,6 +1041,8 @@ class ShapeTypeStrDerived(ShapeUnknown):
 
 
 class ShapeTypeStrIterator(ShapeIterator):
+    tyical_value = iter(ShapeTypeStr.typical_value)
+
     @staticmethod
     def getTypeName():
         return "iterator" if python_version < 300 else "str_iterator"
@@ -1025,6 +1059,8 @@ class ShapeTypeStrIterator(ShapeIterator):
 if python_version < 300:
 
     class ShapeTypeUnicode(ShapeBase):
+        typical_value = u"a"
+
         @staticmethod
         def getTypeName():
             return "unicode"
@@ -1092,6 +1128,8 @@ if python_version < 300:
         pass
 
     class ShapeTypeUnicodeIterator(ShapeIterator):
+        typical_value = iter(ShapeTypeUnicode.typical_value)
+
         @staticmethod
         def getTypeName():
             return "iterator"
@@ -1162,6 +1200,8 @@ else:
 if python_version >= 300:
 
     class ShapeTypeBytes(ShapeBase):
+        typical_value = b"b"
+
         @staticmethod
         def getTypeName():
             return "bytes"
@@ -1229,6 +1269,8 @@ if python_version >= 300:
         pass
 
     class ShapeTypeBytesIterator(ShapeIterator):
+        typical_value = iter(ShapeTypeBytes.typical_value)
+
         @staticmethod
         def getTypeName():
             return "bytes_iterator"
@@ -1243,14 +1285,16 @@ if python_version >= 300:
 
 
 else:
-    ShapeTypeBytes = ShapeTypeStr
-    ShapeTypeBytesIterator = ShapeTypeStrIterator
-
     # Shoudln't happen with Python2
+    ShapeTypeBytes = None
+    ShapeTypeBytesIterator = None
+
     ShapeTypeBytesDerived = None
 
 
 class ShapeTypeBytearray(ShapeBase):
+    typical_value = bytearray(b"b")
+
     @staticmethod
     def getTypeName():
         return "bytearray"
@@ -1318,6 +1362,8 @@ class ShapeTypeBytearray(ShapeBase):
 
 
 class ShapeTypeBytearrayIterator(ShapeIterator):
+    typical_value = iter(ShapeTypeBytearray.typical_value)
+
     @staticmethod
     def getTypeName():
         return "bytearray_iterator"
@@ -1332,6 +1378,8 @@ class ShapeTypeBytearrayIterator(ShapeIterator):
 
 
 class ShapeTypeEllipsisType(ShapeBase):
+    typical_value = Ellipsis
+
     @staticmethod
     def getTypeName():
         return "ellipsis"
@@ -1374,6 +1422,8 @@ class ShapeTypeEllipsisType(ShapeBase):
 
 
 class ShapeTypeSlice(ShapeBase):
+    typical_value = slice(7)
+
     @staticmethod
     def getTypeName():
         return "slice"
@@ -1416,6 +1466,12 @@ class ShapeTypeSlice(ShapeBase):
 
 
 class ShapeTypeXrange(ShapeBase):
+    typical_value = (
+        xrange(1)  # pylint: disable=I0021,undefined-variable
+        if python_version < 300
+        else range(1)
+    )
+
     @staticmethod
     def getTypeName():
         return "xrange" if python_version < 300 else "range"
@@ -1483,6 +1539,8 @@ class ShapeTypeXrange(ShapeBase):
 
 
 class ShapeTypeXrangeIterator(ShapeIterator):
+    typical_value = iter(ShapeTypeXrange.typical_value)
+
     @staticmethod
     def getTypeName():
         return "rangeiterator" if python_version < 300 else "range_iterator"
@@ -1497,6 +1555,8 @@ class ShapeTypeXrangeIterator(ShapeIterator):
 
 
 class ShapeTypeType(ShapeBase):
+    typical_value = int
+
     @staticmethod
     def getTypeName():
         return "type"
@@ -1549,6 +1609,8 @@ class ShapeTypeType(ShapeBase):
 
 
 class ShapeTypeModule(ShapeBase):
+    typical_value = __import__("sys")
+
     @staticmethod
     def getTypeName():
         return "module"
@@ -1595,10 +1657,12 @@ class ShapeTypeModule(ShapeBase):
 
 
 class ShapeTypeBuiltinModule(ShapeTypeModule):
-    pass
+    typical_value = __import__("_ctypes")
 
 
 class ShapeTypeFile(ShapeBase):
+    typical_value = __import__("sys").stdout
+
     @staticmethod
     def getTypeName():
         return "file"
@@ -1641,6 +1705,8 @@ class ShapeTypeFile(ShapeBase):
 
 
 class ShapeTypeStaticmethod(ShapeBase):
+    # TODO: Add typical value.
+
     @staticmethod
     def getTypeName():
         return "staticmethod"
@@ -1683,6 +1749,8 @@ class ShapeTypeStaticmethod(ShapeBase):
 
 
 class ShapeTypeClassmethod(ShapeBase):
+    # TODO: Add typical value.
+
     @staticmethod
     def getTypeName():
         return "classmethod"
@@ -2434,6 +2502,40 @@ sub_shapes_list.update(
     }
 )
 
+# These multiply with nothing really.
+nothing_multiplicants = (
+    ShapeTypeNoneType,
+    ShapeTypeDict,
+    ShapeTypeSet,
+    ShapeTypeListIterator,
+    ShapeTypeDictIterator,
+    ShapeTypeSetIterator,
+    ShapeTypeTupleIterator,
+)
+
+
+def updateNonMultiplicants(op_shapes):
+    for shape in nothing_multiplicants:
+        op_shapes[shape] = operation_result_unsupported_mul
+
+
+sequence_non_multiplicants = (
+    ShapeTypeFloat,
+    ShapeTypeStr,
+    ShapeTypeBytes,
+    ShapeTypeBytearray,
+    ShapeTypeUnicode,
+    ShapeTypeTuple,
+    ShapeTypeList,
+)
+
+
+def updateSequenceNonMultiplicants(op_shapes):
+    updateNonMultiplicants(op_shapes)
+
+    for shape in sequence_non_multiplicants:
+        op_shapes[shape] = operation_result_unsupported_mul
+
 
 mul_shapes_list.update(
     {
@@ -2449,20 +2551,11 @@ mul_shapes_list.update(
         ShapeTypeLong: operation_result_list_noescape,
         ShapeTypeIntOrLong: operation_result_list_noescape,
         ShapeTypeBool: operation_result_list_noescape,
-        ShapeTypeFloat: operation_result_unsupported_mul,
-        # Sequence repeat is not allowed
-        ShapeTypeStr: operation_result_unsupported_mul,
-        ShapeTypeBytes: operation_result_unsupported_mul,
-        ShapeTypeBytearray: operation_result_unsupported_mul,
-        ShapeTypeUnicode: operation_result_unsupported_mul,
-        ShapeTypeTuple: operation_result_unsupported_mul,
-        ShapeTypeList: operation_result_unsupported_mul,
-        # Unsupported:
-        ShapeTypeSet: operation_result_unsupported_mul,
-        ShapeTypeDict: operation_result_unsupported_mul,
-        ShapeTypeNoneType: operation_result_unsupported_mul,
     }
 )
+
+# Sequence repeat is not allowed
+updateSequenceNonMultiplicants(mul_shapes_list)
 
 add_shapes_set.update(
     {

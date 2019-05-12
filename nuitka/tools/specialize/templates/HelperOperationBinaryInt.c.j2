@@ -44,7 +44,7 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
     if (likely(32.0 * absdiff <= absprod)) {
         return PyInt_FromLong(longprod);
     }
-{% elif operand == "//" %}
+{% elif operand == "//" or nb_slot == "nb_divide" %}
     if (unlikely(b == 0)) {
         PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
         return NULL;
@@ -77,7 +77,6 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
 
         return result;
     }
-
 
 /* May need to resort to LONG code, which we currently do not
  * specialize yet. TODO: Once we do that, call it here.

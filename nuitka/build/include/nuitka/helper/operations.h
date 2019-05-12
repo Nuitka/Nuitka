@@ -75,6 +75,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION(binary_api api, PyObject 
 #include "nuitka/helper/operations_binary_sub.h"
 #include "nuitka/helper/operations_binary_truediv.h"
 
+#if PYTHON_VERSION < 300
+// Classical division is Python2 only.
+#include "nuitka/helper/operations_binary_olddiv.h"
+#endif
+
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_INPLACE(binary_api api, PyObject **operand1, PyObject *operand2) {
     assert(operand1);
     CHECK_OBJECT(*operand1);

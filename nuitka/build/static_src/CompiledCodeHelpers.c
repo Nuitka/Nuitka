@@ -1995,6 +1995,10 @@ void _initSlotIternext() {
 #include "HelpersOperationBinarySub.c"
 #include "HelpersOperationBinaryTruediv.c"
 
+#if PYTHON_VERSION < 300
+#include "HelpersOperationBinaryOlddiv.c"
+#endif
+
 #include "HelpersOperationBinaryInplaceAdd.c"
 
 #include "HelpersConstantsBlob.c"

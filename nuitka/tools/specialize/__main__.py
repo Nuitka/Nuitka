@@ -26,6 +26,7 @@ from abc import ABCMeta, abstractmethod
 
 import jinja2
 
+import nuitka.codegen.OperationCodes
 from nuitka.tools.quality.autoformat.Autoformat import autoformat
 
 
@@ -567,7 +568,7 @@ add_codes = set()
 
 
 def makeNbSlotCode(operand, op_code, left, emit):
-    key = operand, left
+    key = operand, op_code, left
     if key in add_codes:
         return
 
@@ -622,8 +623,7 @@ def _getNbSlotFromOperand(operand, op_code):
         if op_code == "TRUEDIV":
             return "nb_true_divide"
         else:
-            return "nb_div"
-
+            return "nb_divide"
     else:
         assert False, operand
 
@@ -703,8 +703,6 @@ def makeHelperOperations(template, helpers_set, operand, op_code, emit_h, emit_c
 
 
 def makeHelpersBinaryOperation(operand, op_code):
-    # We need to create exactly those:
-    import nuitka.codegen.OperationCodes
 
     specialized_add_helpers_set = getattr(
         nuitka.codegen.OperationCodes, "specialized_%s_helpers_set" % op_code.lower()
@@ -771,9 +769,9 @@ def main():
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MUL")
-    #    makeHelpersBinaryOperation("/", "TRUEDIV")
     makeHelpersBinaryOperation("//", "FLOORDIV")
     makeHelpersBinaryOperation("/", "TRUEDIV")
+    makeHelpersBinaryOperation("/", "OLDDIV")
 
 
 if __name__ == "__main__":

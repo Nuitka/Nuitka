@@ -25,8 +25,14 @@ import math
 from abc import abstractmethod
 
 from nuitka import PythonOperators
+from nuitka.Errors import NuitkaAssumptionError
+from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
+from .NodeMakingHelpers import (
+    makeRaiseExceptionReplacementExpressionFromInstance,
+    wrapExpressionWithSideEffects,
+)
 from .shapes.BuiltinTypeShapes import ShapeTypeBool, ShapeTypeIntOrLong, ShapeTypeTuple
 from .shapes.StandardShapes import (
     ShapeLargeConstantValue,
@@ -83,6 +89,7 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
             "Sub",
             "FloorDiv",
             "TrueDiv",
+            "Div",
         ), self.operator
 
         left = self.subnode_left
@@ -181,11 +188,33 @@ class ExpressionOperationBinaryConcreteBase(ExpressionOperationBinaryBase):
     def _onTooLarge():
         pass
 
-    def computeExpression(self, trace_collection):
-        # TODO: May go down to MemoryError for compile time constant overflow
-        # ones.
-        trace_collection.onExceptionRaiseExit(BaseException)
+    def canCreateUnsupportedException(self):
+        return hasattr(self.subnode_left.getTypeShape(), "typical_value") and hasattr(
+            self.subnode_right.getTypeShape(), "typical_value"
+        )
 
+    def createUnsupportedException(self):
+        left = self.subnode_left.getTypeShape().typical_value
+        right = self.subnode_right.getTypeShape().typical_value
+
+        try:
+            self.simulator(left, right)
+        except TypeError as e:
+            return e
+        else:
+            raise NuitkaAssumptionError(
+                "Unexpected no-exception doing operation simulation",
+                self.operator,
+                self.subnode_left.getTypeShape(),
+                self.subnode_right.getTypeShape(),
+                repr(left),
+                repr(right),
+            )
+
+    def extractSideEffectsPreOperation(self):
+        return self.subnode_left, self.subnode_right
+
+    def computeExpression(self, trace_collection):
         # Nothing to do anymore for large constants.
         if self.shape is not None and self.shape.isConstant():
             return self, None, None
@@ -210,6 +239,30 @@ class ExpressionOperationBinaryConcreteBase(ExpressionOperationBinaryBase):
         exception_raise_exit = self.escape_desc.getExceptionExit()
         if exception_raise_exit is not None:
             trace_collection.onExceptionRaiseExit(exception_raise_exit)
+
+            if (
+                self.escape_desc.isUnsupported()
+                and self.canCreateUnsupportedException()
+            ):
+
+                result = wrapExpressionWithSideEffects(
+                    new_node=makeRaiseExceptionReplacementExpressionFromInstance(
+                        expression=self, exception=self.createUnsupportedException()
+                    ),
+                    old_node=self,
+                    side_effects=self.extractSideEffectsPreOperation(),
+                )
+
+                return (
+                    result,
+                    "new_raise",  # TODO: More appropriate tag maybe.
+                    """Replaced operator '%s%s%s' arguments that cannot work."""
+                    % (
+                        self.operator,
+                        self.subnode_left.getTypeShape(),
+                        self.subnode_right.getTypeShape(),
+                    ),
+                )
 
         if self.escape_desc.isValueEscaping():
             # The value of these nodes escaped and could change its contents.
@@ -413,6 +466,20 @@ class ExpressionOperationBinaryFloorDiv(ExpressionOperationBinaryConcreteBase):
         )
 
 
+if python_version < 300:
+
+    class ExpressionOperationBinaryOldDiv(ExpressionOperationBinaryConcreteBase):
+        kind = "EXPRESSION_OPERATION_BINARY_OLD_DIV"
+
+        operator = "Div"
+        simulator = PythonOperators.binary_operator_functions[operator]
+
+        def _getOperationShape(self):
+            return self.subnode_left.getTypeShape().getOperationBinaryOldDivShape(
+                self.subnode_right.getTypeShape()
+            )
+
+
 class ExpressionOperationBinaryTrueDiv(ExpressionOperationBinaryConcreteBase):
     kind = "EXPRESSION_OPERATION_BINARY_TRUE_DIV"
 
@@ -443,30 +510,26 @@ class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
         return ShapeTypeTuple
 
 
-def makeBinaryOperationNode(operator, left, right, source_ref):
-    if operator == "Add":
-        return ExpressionOperationBinaryAdd(
-            left=left, right=right, source_ref=source_ref
-        )
-    elif operator == "Sub":
-        return ExpressionOperationBinarySub(
-            left=left, right=right, source_ref=source_ref
-        )
-    elif operator == "Mult":
-        return ExpressionOperationBinaryMult(
-            left=left, right=right, source_ref=source_ref
-        )
-    elif operator == "FloorDiv":
-        return ExpressionOperationBinaryFloorDiv(
-            left=left, right=right, source_ref=source_ref
-        )
-    elif operator == "TrueDiv":
-        return ExpressionOperationBinaryTrueDiv(
-            left=left, right=right, source_ref=source_ref
-        )
-    else:
-        # TODO: Add more specializations for common operators.
+_operator2nodeclass = {
+    "Add": ExpressionOperationBinaryAdd,
+    "Sub": ExpressionOperationBinarySub,
+    "Mult": ExpressionOperationBinaryMult,
+    "FloorDiv": ExpressionOperationBinaryFloorDiv,
+    "TrueDiv": ExpressionOperationBinaryTrueDiv,
+}
 
+if python_version < 300:
+    _operator2nodeclass["Div"] = ExpressionOperationBinaryOldDiv
+
+
+def makeBinaryOperationNode(operator, left, right, source_ref):
+    node_class = _operator2nodeclass.get(operator)
+
+    if node_class is not None:
+        return node_class(left=left, right=right, source_ref=source_ref)
+    else:
+        # TODO: Add more specializations for common operators until this
+        # becomes unused.
         return ExpressionOperationBinary(
             operator=operator, left=left, right=right, source_ref=source_ref
         )

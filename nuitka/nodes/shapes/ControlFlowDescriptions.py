@@ -24,7 +24,9 @@ have happened.
 
 
 class ControlFlowDescriptionBase(object):
-    pass
+    @staticmethod
+    def isUnsupported():
+        return False
 
 
 class ControlFlowDescriptionElementBasedEscape(ControlFlowDescriptionBase):
@@ -77,6 +79,10 @@ class ControlFlowDescriptionOperationUnsupportedBase(ControlFlowDescriptionFullE
     @staticmethod
     def getExceptionExit():
         return TypeError
+
+    @staticmethod
+    def isUnsupported():
+        return True
 
 
 class ControlFlowDescriptionAddUnsupported(

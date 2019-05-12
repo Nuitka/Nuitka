@@ -280,7 +280,7 @@ def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, con
 
 
 def pickCodeHelper(
-    prefix, suffix, left_shape, right_shape, helpers, nonhelpers=(), warn_missing=True
+    prefix, suffix, left_shape, right_shape, helpers, nonhelpers, source_ref
 ):
     left_part = left_shape.helper_code
     right_part = right_shape.helper_code
@@ -293,8 +293,8 @@ def pickCodeHelper(
     if ideal_helper in helpers:
         return ideal_helper
 
-    if warn_missing and ideal_helper not in nonhelpers:
-        onMissingHelper(ideal_helper)
+    if source_ref is not None and ideal_helper not in nonhelpers:
+        onMissingHelper(ideal_helper, source_ref)
 
     fallback_helper = "%s_%s_%s%s" % (prefix, "OBJECT", "OBJECT", suffix)
 

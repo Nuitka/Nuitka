@@ -137,6 +137,8 @@ specialized_add_helpers_set = OrderedSet(
     )
 )
 
+nonspecialized_add_helpers_set = set()
+
 specialized_sub_helpers_set = OrderedSet(
     (
         "BINARY_OPERATION_SUB_OBJECT_INT",
@@ -225,6 +227,8 @@ specialized_mul_helpers_set = OrderedSet(
     )
 )
 
+nonspecialized_mul_helpers_set = set()
+
 specialized_truediv_helpers_set = OrderedSet(
     (
         "BINARY_OPERATION_TRUEDIV_OBJECT_INT",
@@ -248,10 +252,26 @@ specialized_truediv_helpers_set = OrderedSet(
     )
 )
 
+nonspecialized_truediv_helpers_set = set(
+    (
+        # e.g. pathlib defines objects that do this.
+        "BINARY_OPERATION_TRUEDIV_OBJECT_UNICODE",
+        "BINARY_OPERATION_TRUEDIV_UNICODE_OBJECT",
+    )
+)
+
+specialized_olddiv_helpers_set = OrderedSet(
+    helper.replace("TRUEDIV", "OLDDIV") for helper in specialized_truediv_helpers_set
+)
+
+nonspecialized_olddiv_helpers_set = set()
+
+
 specialized_floordiv_helpers_set = OrderedSet(
     helper.replace("TRUEDIV", "FLOORDIV") for helper in specialized_truediv_helpers_set
 )
 
+nonspecialized_floordiv_helpers_set = set()
 
 _iadd_helpers_set = OrderedSet(
     (
@@ -309,6 +329,8 @@ def _getBinaryOperationCode(
             left_shape=left.getTypeShape(),
             right_shape=expression.getRight().getTypeShape(),
             helpers=specialized_add_helpers_set,
+            nonhelpers=nonspecialized_add_helpers_set,
+            source_ref=expression.source_ref,
         )
     elif operator == "Sub":
         helper = pickCodeHelper(
@@ -318,6 +340,7 @@ def _getBinaryOperationCode(
             right_shape=expression.getRight().getTypeShape(),
             helpers=specialized_sub_helpers_set,
             nonhelpers=nonspecialized_sub_helpers_set,
+            source_ref=expression.source_ref,
         )
     elif operator == "IAdd" and in_place:
         helper = pickCodeHelper(
@@ -326,11 +349,22 @@ def _getBinaryOperationCode(
             left_shape=left.getTypeShape(),
             right_shape=expression.getRight().getTypeShape(),
             helpers=_iadd_helpers_set,
+            # TODO: Add this once generated.
+            nonhelpers=(),
+            source_ref=False,
         )
     elif operator == "IMult" and in_place:
         helper = "BINARY_OPERATION_MUL_INPLACE"
     elif operator == "Div":
-        helper = "BINARY_OPERATION_DIV"
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_OLDDIV",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_olddiv_helpers_set,
+            nonhelpers=nonspecialized_olddiv_helpers_set,
+            source_ref=expression.source_ref,
+        )
     elif operator == "FloorDiv":
         helper = pickCodeHelper(
             prefix="BINARY_OPERATION_FLOORDIV",
@@ -338,6 +372,8 @@ def _getBinaryOperationCode(
             left_shape=left.getTypeShape(),
             right_shape=expression.getRight().getTypeShape(),
             helpers=specialized_floordiv_helpers_set,
+            nonhelpers=nonspecialized_floordiv_helpers_set,
+            source_ref=expression.source_ref,
         )
     elif operator == "TrueDiv":
         helper = pickCodeHelper(
@@ -346,6 +382,8 @@ def _getBinaryOperationCode(
             left_shape=left.getTypeShape(),
             right_shape=expression.getRight().getTypeShape(),
             helpers=specialized_truediv_helpers_set,
+            nonhelpers=nonspecialized_truediv_helpers_set,
+            source_ref=expression.source_ref,
         )
     elif operator == "Mult":
         helper = pickCodeHelper(
@@ -354,8 +392,9 @@ def _getBinaryOperationCode(
             left_shape=left.getTypeShape(),
             right_shape=expression.getRight().getTypeShape(),
             helpers=specialized_mul_helpers_set,
+            nonhelpers=nonspecialized_mul_helpers_set,
+            source_ref=expression.source_ref,
         )
-
     elif operator == "Mod":
         helper = "BINARY_OPERATION_REMAINDER"
     elif operator == "Divmod":
