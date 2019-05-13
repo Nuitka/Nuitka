@@ -326,7 +326,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             for opengl_plugin in self.opengl_plugins:
                 yield opengl_plugin, True
                 # Support for both pycryotodome (module name Crypto) and pycyptodomex (module name Cryptodome)
-        elif full_name.split('.')[0] == "Crypto" or full_name.split('.')[0] == "Cryptodome":
+        elif full_name.split('.')[0] in ("Crypto", "Cryptodome"):
             crypto_module_name = full_name.split('.')[0]
             if full_name == crypto_module_name + ".Util._raw_api":
                 for module_name in (
