@@ -325,40 +325,44 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
             for opengl_plugin in self.opengl_plugins:
                 yield opengl_plugin, True
-        elif full_name == "Cryptodome.Util._raw_api":
-            for module_name in (
-                "_raw_aes",
-                "_raw_aesni",
-                "_raw_arc2",
-                "_raw_blowfish",
-                "_raw_cast",
-                "_raw_cbc",
-                "_raw_cfb",
-                "_raw_ctr",
-                "_raw_des",
-                "_raw_des3",
-                "_raw_ecb",
-                "_raw_ocb",
-                "_raw_ofb",
-            ):
-                yield "Cryptodome.Cipher." + module_name, True
-        elif full_name == "Cryptodome.Util.strxor":
-            yield "Cryptodome.Util._strxor", True
-        elif full_name == "Cryptodome.Util._cpu_features":
-            yield "Cryptodome.Util._cpuid_c", True
-        elif full_name == "Cryptodome.Hash.BLAKE2s":
-            yield "Cryptodome.Hash._BLAKE2s", True
-        elif full_name == "Cryptodome.Hash.SHA1":
-            yield "Cryptodome.Hash._SHA1", True
-        elif full_name == "Cryptodome.Hash.SHA256":
-            yield "Cryptodome.Hash._SHA256", True
-        elif full_name == "Cryptodome.Hash.MD5":
-            yield "Cryptodome.Hash._MD5", True
-        elif full_name == "Cryptodome.Protocol.KDF":
-            yield "Cryptodome.Cipher._Salsa20", True
-            yield "Cryptodome.Protocol._scrypt", True
-        elif full_name == "Cryptodome.Cipher._mode_gcm":
-            yield "Cryptodome.Hash._ghash_portable", True
+                # Support for both pycryotodome (module name Crypto) and pycyptodomex (module name Cryptodome)
+        elif full_name.split('.')[0] == "Crypto" or full_name.split('.')[0] == "Cryptodome":
+            crypto_module_name = full_name.split('.')[0]
+            if full_name == crypto_module_name + ".Util._raw_api":
+                for module_name in (
+                    "_raw_aes",
+                    "_raw_aesni",
+                    "_raw_arc2",
+                    "_raw_blowfish",
+                    "_raw_cast",
+                    "_raw_cbc",
+                    "_raw_cfb",
+                    "_raw_ctr",
+                    "_raw_des",
+                    "_raw_des3",
+                    "_raw_ecb",
+                    "_raw_ocb",
+                    "_raw_ofb",
+                ):
+                    if full_name == crypto_module_name + ".Util._raw_api":
+                        yield crypto_module_name + ".Cipher." + module_name, True
+            elif full_name == crypto_module_name + ".Util.strxor":
+                yield crypto_module_name + ".Util._strxor", True
+            elif full_name == crypto_module_name + ".Util._cpu_features":
+                yield crypto_module_name + ".Util._cpuid_c", True
+            elif full_name == crypto_module_name + ".Hash.BLAKE2s":
+                yield crypto_module_name + ".Hash._BLAKE2s", True
+            elif full_name == crypto_module_name + ".Hash.SHA1":
+                yield crypto_module_name + ".Hash._SHA1", True
+            elif full_name == crypto_module_name + ".Hash.SHA256":
+                yield crypto_module_name + ".Hash._SHA256", True
+            elif full_name == crypto_module_name + ".Hash.MD5":
+                yield crypto_module_name + ".Hash._MD5", True
+            elif full_name == crypto_module_name + ".Protocol.KDF":
+                yield crypto_module_name + ".Cipher._Salsa20", True
+                yield crypto_module_name + ".Protocol._scrypt", True
+            elif full_name == crypto_module_name + ".Cipher._mode_gcm":
+                yield crypto_module_name + ".Hash._ghash_portable", True
         elif full_name == "pycparser.c_parser":
             yield "pycparser.yacctab", True
             yield "pycparser.lextab", True
