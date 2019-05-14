@@ -721,9 +721,9 @@ def _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filen
 
     cache_dir = os.path.join(
         getCacheDir(),
-        "library_deps_pefile"
+        "library_deps2_pefile"
         if Options.isExperimental("use_pefile")
-        else "library_deps",
+        else "library_deps2",
     )
 
     makePath(cache_dir)
@@ -775,6 +775,12 @@ def _parseDependsExeOutput2(lines, result):
 
         dll_filename = os.path.abspath(dll_filename)
 
+        dll_name = os.path.basename(dll_filename)
+
+        # Ignore this runtime DLL of Python2.
+        if dll_name in ("msvcr90.dll",):
+            continue
+
         # The executable itself is of course exempted. We cannot check its path
         # because depends.exe mistreats unicode paths.
         if first:
@@ -799,7 +805,15 @@ def _parseDependsExeOutput(filename, result):
     _parseDependsExeOutput2(getFileContentByLine(filename), result)
 
 
+_scan_dir_cache = {}
+
+
 def getScanDirectories(package_name, original_dir):
+    cache_key = package_name, original_dir
+
+    if cache_key in _scan_dir_cache:
+        return _scan_dir_cache[cache_key]
+
     scan_dirs = [sys.prefix]
 
     if package_name is not None:
@@ -819,6 +833,8 @@ def getScanDirectories(package_name, original_dir):
         if not os.path.isdir(path_dir):
             continue
 
+        if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"])):
+            continue
         if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"], "System32")):
             continue
         if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"], "SysWOW64")):
@@ -842,6 +858,7 @@ def getScanDirectories(package_name, original_dir):
 
         result.append(scan_dir)
 
+    _scan_dir_cache[cache_key] = result
     return result
 
 
