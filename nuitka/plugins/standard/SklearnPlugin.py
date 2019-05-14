@@ -22,7 +22,7 @@ import pkgutil
 import shutil
 from logging import info
 from nuitka import Options
-from nuitka.plugins.PluginBase import UserPluginBase
+from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.Utils import isWin32Windows
 
 
@@ -41,7 +41,7 @@ def get_module_file_attribute(package):
     return os.path.dirname(attr)
 
 
-class SklearnPlugin(UserPluginBase):
+class SklearnPlugin(NuitkaPluginBase):
     """ This class represents the main logic of the plugin.
 
     This is a plugin to ensure sklearn scripts compile and work well in
@@ -50,10 +50,11 @@ class SklearnPlugin(UserPluginBase):
     This plugin copies any files required by sklearn installations.
 
     Args:
-        UserPluginBase: plugin template class we are inheriting.
+        NuitkaPluginBase: plugin template class we are inheriting.
     """
 
     plugin_name = "sklearn"
+    plugin_desc = "Required by the scikit-learn package"
 
     def __init__(self):
         """ Maintain switch to ensure once-only copy of sklearn files.
@@ -157,7 +158,7 @@ class SklearnPlugin(UserPluginBase):
         return False
 
 
-class SklearnPluginDetector(UserPluginBase):
+class SklearnPluginDetector(NuitkaPluginBase):
     """ Only used if plugin is NOT activated.
 
     Notes:

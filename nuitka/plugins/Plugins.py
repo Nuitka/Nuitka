@@ -32,72 +32,71 @@ from __future__ import print_function
 import os
 import sys
 from logging import info
-
 from nuitka import Options
-from nuitka.ModuleRegistry import addUsedModule
-from nuitka.plugins.standard.EnumPlugin import (
-    NuitkaPluginDetectorEnumWorkarounds,
-    NuitkaPluginEnumWorkarounds,
-)
 from nuitka.PythonVersions import python_version
+from nuitka.ModuleRegistry import addUsedModule
+from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
 
-from .PluginBase import UserPluginBase, post_modules, pre_modules
-from .standard.ConsiderPyLintAnnotationsPlugin import (
-    NuitkaPluginDetectorPylintEclipseAnnotations,
-    NuitkaPluginPylintEclipseAnnotations,
-)
-from .standard.DataFileCollectorPlugin import NuitkaPluginDataFileCollector
-from .standard.ImplicitImports import NuitkaPluginPopularImplicitImports
-from .standard.MultiprocessingPlugin import (
-    NuitkaPluginDetectorMultiprocessingWorkarounds,
-    NuitkaPluginMultiprocessingWorkarounds,
-)
-from .standard.NumpyPlugin import NumpyPlugin, NumpyPluginDetector
-from .standard.TorchPlugin import TorchPlugin, TorchPluginDetector
-from .standard.GeventPlugin import GeventPlugin, GeventPluginDetector
-from .standard.SklearnPlugin import SklearnPlugin, SklearnPluginDetector
-from .standard.TensorflowPlugin import TensorflowPlugin, TensorflowPluginDetector
-from .standard.PmwPlugin import NuitkaPluginDetectorPmw, NuitkaPluginPmw
-from .standard.PySidePyQtPlugin import (
-    NuitkaPluginDetectorPyQtPySidePlugins,
-    NuitkaPluginPyQtPySidePlugins,
-)
-from .standard.TkinterPlugin import TkinterPlugin, TkinterPluginDetector
+active_plugin_list = []
+plugin_name2plugin_classes = {}
 
-# The standard plug-ins have their list hard-coded here. User plug-ins will
-# be scanned later.
 
-active_plugin_list = [
-    NuitkaPluginPopularImplicitImports(),
-    NuitkaPluginDataFileCollector(),
-]
+def loadStandardPlugins():
+    """ Load plugin files located in 'standard' folder.
 
-# List of optional plug-in classes. Until we have the meta class to do it, just
-# add your class here. The second one is a detector, which is supposed to give
-# a missing plug-in message, should it find the condition to make it useful.
-optional_plugin_classes = (
-    (
-        NuitkaPluginMultiprocessingWorkarounds,
-        NuitkaPluginDetectorMultiprocessingWorkarounds,
-    ),
-    (NuitkaPluginPyQtPySidePlugins, NuitkaPluginDetectorPyQtPySidePlugins),
-    (
-        NuitkaPluginPylintEclipseAnnotations,
-        NuitkaPluginDetectorPylintEclipseAnnotations,
-    ),
-    (NuitkaPluginPmw, NuitkaPluginDetectorPmw),
-    (TkinterPlugin, TkinterPluginDetector),
-    (NumpyPlugin, NumpyPluginDetector),
-    (NuitkaPluginEnumWorkarounds, NuitkaPluginDetectorEnumWorkarounds),
-    (TorchPlugin, TorchPluginDetector),
-    (GeventPlugin, GeventPluginDetector),
-    (SklearnPlugin, SklearnPluginDetector),
-    (TensorflowPlugin, TensorflowPluginDetector),
-)
+    Notes:
 
-plugin_name2plugin_classes = dict(
-    (plugin[0].plugin_name, plugin) for plugin in optional_plugin_classes
-)
+    """
+
+    this_dir = os.path.dirname(os.path.abspath(__file__))
+    std_dir = os.path.join(this_dir, "standard")
+    plugin_filenames = os.listdir(std_dir)
+    for plugin_filename in plugin_filenames:
+        if plugin_filename.startswith("__"):
+            continue
+        plugin_module = importFile(os.path.join(std_dir, plugin_filename))
+
+        plugin_objects = [None, None]  # plugin and optional detector
+
+        for key in dir(plugin_module):  # scan for plugin classes
+            obj = getattr(plugin_module, key)
+            if not isObjectAUserPluginBaseClass(obj):
+                continue
+
+            always_enable = obj.setAlwaysEnabled()
+            if not hasattr(obj, "isRelevant"):
+                is_relevant = None
+            else:
+                try:
+                    is_relevant = obj.isRelevant()
+                except:  # will only happen in plugin-list request
+                    is_relevant = True
+
+            if always_enable:  # should this always be enabled?
+                if is_relevant in (True, None):
+                    plugin_objects[0] = obj
+                    plugin_objects[1] = None  # detector makes no sense!
+                else:
+                    plugin_objects = None
+                break
+
+            # this is an optional plugin
+            if is_relevant is not None:  # must be the detector!
+                plugin_objects[1] = obj
+            else:
+                plugin_objects[0] = obj
+
+        if plugin_objects is None:  # skip enabling irrelevant plugins
+            continue
+
+        plugin_objects = tuple(plugin_objects)
+        plugin = plugin_objects[0]
+        if plugin is None:
+            sys.exit("Plugin file '%s' has no standard class." % plugin_filename)
+        if always_enable:  # mandatory, relevant plugin: enable it
+            active_plugin_list.append(plugin())
+        else:  # optional plugin: make it searchable by plugin_name
+            plugin_name2plugin_classes[plugin.plugin_name] = plugin_objects
 
 
 class Plugins(object):
@@ -315,8 +314,19 @@ class Plugins(object):
 def listPlugins():
     """ Print available standard plugins.
     """
+    print("The following optional standard plugins are available in Nuitka".center(80))
+    print("-" * 80)
+    plist = []
+    name_len = 0
     for plugin_name in sorted(plugin_name2plugin_classes):
-        print(plugin_name)
+        plugin = plugin_name2plugin_classes[plugin_name][0]
+        if hasattr(plugin, "plugin_desc"):
+            plist.append((plugin_name, plugin.plugin_desc))
+        else:
+            plist.append((plugin_name, ""))
+        name_len = max(len(plugin_name) + 1, name_len)
+    for line in plist:
+        print(" " + line[0].ljust(name_len), line[1])
 
     sys.exit(0)
 
@@ -325,7 +335,7 @@ def isObjectAUserPluginBaseClass(obj):
     """ Verify that a user plugin inherits from UserPluginBase.
     """
     try:
-        return obj is not UserPluginBase and issubclass(obj, UserPluginBase)
+        return obj is not NuitkaPluginBase and issubclass(obj, NuitkaPluginBase)
     except TypeError:
         return False
 
@@ -416,8 +426,6 @@ def initPlugins():
         Several checks are made, see below.
         The final result is 'active_plugin_list' which contains all enabled
         plugins.
-        User plugins are enabled as a first step, because they themselves may
-        enable standard plugins.
 
     Returns:
         None
@@ -426,7 +434,9 @@ def initPlugins():
     # load user plugins first to allow any preparative action
     importUserPlugins()
 
-    # now load standard plugins
+    # now enable standard plugins
+    loadStandardPlugins()
+
     # ensure plugin is known and not both, enabled and disabled
     for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
         if plugin_name not in plugin_name2plugin_classes:

@@ -33,11 +33,17 @@ from nuitka.utils.Utils import getOS
 
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
+    plugin_name = "implicit-imports"
+
     def __init__(self):
         NuitkaPluginBase.__init__(self)
 
         self.pkg_utils_externals = None
         self.opengl_plugins = None
+
+    @staticmethod
+    def setAlwaysEnabled():
+        return True
 
     def getImplicitImports(self, module):
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
@@ -258,7 +264,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "apt_inst":
             yield "apt_pkg", True
 
-        # start: imports for gevent -------------------------------------------
+        # start of gevent imports --------------------------------------------
         elif full_name == "gevent":
             yield "_cffi_backend", True
             yield "gevent._config", True
@@ -348,7 +354,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         elif full_name == "gevent._imap":
             yield "gevent.__imap", True
-        # end: imports for gevent ---------------------------------------------
+        # end of gevent imports ----------------------------------------------
 
         elif full_name == "numpy.core":
             yield "numpy.core._dtype_ctypes", True
@@ -371,11 +377,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "sklearn.utils.lgamma", True
             yield "sklearn.utils.weight_vector", True
             yield "sklearn.utils._unittest_backport", True
-
-        elif full_name == "tensorflow.python":
-            yield "tensorflow.python._pywrap_tensorflow_internal", True
-        elif full_name == "tensorflow":
-            yield "tensorflow._api", True
 
         elif full_name == "PIL._imagingtk":
             yield "PIL._tkinter_finder", True

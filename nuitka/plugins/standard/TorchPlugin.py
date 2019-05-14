@@ -22,7 +22,7 @@ import pkgutil
 import shutil
 from logging import info
 from nuitka import Options
-from nuitka.plugins.PluginBase import UserPluginBase
+from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
 def get_module_file_attribute(package):
@@ -83,7 +83,7 @@ def get_torch_core_binaries():
     return binaries
 
 
-class TorchPlugin(UserPluginBase):
+class TorchPlugin(NuitkaPluginBase):
     """ This class represents the main logic of the plugin.
 
     This is a plugin to ensure torch scripts compile and work well in
@@ -92,10 +92,11 @@ class TorchPlugin(UserPluginBase):
     This plugin copies any files required by torch installations.
 
     Args:
-        UserPluginBase: plugin template class we are inheriting.
+        NuitkaPluginBase: plugin template class we are inheriting.
     """
 
     plugin_name = "torch"
+    plugin_desc = "Required by the torch / torchvision packages"
 
     def __init__(self):
         """ Maintain switch to ensure once-only copy of torch/lib files.
@@ -122,9 +123,9 @@ class TorchPlugin(UserPluginBase):
             if bin_total == 0:
                 return ()
             info("")
-            info(" Copying files from 'torch' installation:")
+            info(" Copying files from 'torch/lib' and 'torch/bin':")
             for f in binaries:
-                bin_file = f[0]  # full binary file name
+                bin_file = f[0].lower()  # full binary file name
                 idx = bin_file.find("torch")  # this will always work (idx > 0)
                 back_end = bin_file[idx:]  # tail of the string
                 tar_file = os.path.join(dist_dir, back_end)
@@ -141,7 +142,7 @@ class TorchPlugin(UserPluginBase):
         return ()
 
 
-class TorchPluginDetector(UserPluginBase):
+class TorchPluginDetector(NuitkaPluginBase):
     """ Only used if plugin is NOT activated.
 
     Notes:

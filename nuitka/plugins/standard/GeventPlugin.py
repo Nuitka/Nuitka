@@ -20,15 +20,16 @@
 import os
 from logging import info
 from nuitka import Options
-from nuitka.plugins.PluginBase import UserPluginBase
+from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.Utils import getOS
 
 
-class GeventPlugin(UserPluginBase):
+class GeventPlugin(NuitkaPluginBase):
     """ This class represents the main logic of the plugin.
     """
 
     plugin_name = "gevent"
+    plugin_desc = "Required by the gevent package"
 
     def onModuleEncounter(
         self, module_filename, module_name, module_package, module_kind
@@ -59,14 +60,14 @@ class GeventPlugin(UserPluginBase):
             return "bytecode"
 
 
-class GeventPluginDetector(UserPluginBase):
+class GeventPluginDetector(NuitkaPluginBase):
     """ Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    plugin_name = "gevent"  # Nuitka knows us by this name
+    plugin_name = "gevent"
 
     @staticmethod
     def isRelevant():

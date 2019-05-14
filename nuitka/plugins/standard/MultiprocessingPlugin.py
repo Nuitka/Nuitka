@@ -42,6 +42,7 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     """
 
     plugin_name = "multiprocessing"
+    plugin_desc = "Required by Python's multiprocessing module"
 
     def __init__(self):
         self.multiprocessing_added = False

@@ -15,50 +15,48 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Standard plug-in to make enum module work when compiled.
+""" Standard plug-in to make pbr module work when compiled.
 
-The enum module provides a free function __new__ in class dictionaries to
-manual metaclass calls. These become then unbound methods instead of static
-methods, due to CPython only checking for plain uncompiled functions.
+The pbr module needs to find a version number in compiled mode. The value
+itself seems less important than the fact that some value does exist.
 """
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.PythonVersions import python_version
+from nuitka import Options
 
 
-class NuitkaPluginEnumWorkarounds(NuitkaPluginBase):
-    """ This is to make enum module work when compiled with Nuitka.
+class NuitkaPluginPbrWorkarounds(NuitkaPluginBase):
+    """ This is to make pbr module work when compiled with Nuitka.
 
     """
 
-    plugin_name = "enum-compat"
+    plugin_name = "pbr-compat"
 
     @staticmethod
     def isRelevant():
-        return python_version < 300
+        return Options.isStandaloneMode()
 
     @staticmethod
     def setAlwaysEnabled():
         return True
 
     @staticmethod
-    def createPostModuleLoadCode(module):
+    def createPreModuleLoadCode(module):
         full_name = module.getFullName()
 
-        if full_name == "enum":
+        if full_name == "pbr.packaging":
             code = """\
-from __future__ import absolute_import
-import enum
-try:
-    enum.Enum.__new__ = staticmethod(enum.Enum.__new__.__func__)
-    enum.IntEnum.__new__ = staticmethod(enum.IntEnum.__new__.__func__)
-except AttributeError:
-    pass
+import os
+version = os.environ.get(
+        "PBR_VERSION",
+        os.environ.get("OSLO_PACKAGE_VERSION", None))
+if not version:
+    os.environ["OSLO_PACKAGE_VERSION"] = "1.0"
 """
             return (
                 code,
                 """\
-Monkey patching "enum" for compiled '__new__' methods.""",
+Monkey patching "pbr" version number.""",
             )
 
         return None, None

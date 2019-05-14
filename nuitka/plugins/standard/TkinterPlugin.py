@@ -23,7 +23,7 @@ import sys
 from logging import info
 
 from nuitka import Options
-from nuitka.plugins.PluginBase import UserPluginBase
+from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Utils import isWin32Windows
 
@@ -33,7 +33,7 @@ def _isTkInterModule(module):
     return full_name in ("Tkinter", "tkinter", "PySimpleGUI", "PySimpleGUI27")
 
 
-class TkinterPlugin(UserPluginBase):
+class TkinterPlugin(NuitkaPluginBase):
     """ This class represents the main logic of the plugin.
 
     This is a plug-in to make programs work well in standalone mode which are using tkinter.
@@ -49,10 +49,11 @@ class TkinterPlugin(UserPluginBase):
     sure, that the TCL environment variables are correctly set.
 
     Args:
-        UserPluginBase: the plugin template class we are inheriting.
+        NuitkaPluginBase: the plugin template class we are inheriting.
     """
 
     plugin_name = "tk-inter"  # Nuitka knows us by this name
+    plugin_desc = "Required by Python's Tk modules on Windows"
 
     def __init__(self):
         self.files_copied = False  # ensure one-time action
@@ -148,7 +149,7 @@ if not os.environ.get("TCL_LIBRARY", None):
         return ()
 
 
-class TkinterPluginDetector(UserPluginBase):
+class TkinterPluginDetector(NuitkaPluginBase):
     """ Used only if plugin is not activated.
 
     Notes:
