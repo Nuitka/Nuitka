@@ -38,7 +38,7 @@ class NuitkaPluginEnumWorkarounds(NuitkaPluginBase):
         return python_version < 300
 
     @staticmethod
-    def setAlwaysEnabled():
+    def isAlwaysEnabled():
         return True
 
     @staticmethod

@@ -42,7 +42,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         self.opengl_plugins = None
 
     @staticmethod
-    def setAlwaysEnabled():
+    def isAlwaysEnabled():
         return True
 
     def getImplicitImports(self, module):
@@ -356,6 +356,40 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "gevent.__imap", True
         # end of gevent imports ----------------------------------------------
 
+        # start of tensorflow imports --------------------------------------------
+        elif full_name == "tensorflow":
+            yield "tensorflow._api", True
+            yield "tensorflow.python", True
+            yield "tensorflow.core", True
+            yield "tensorflow.lite.python.lite", True
+            yield "tensorflow_estimator.python.estimator.api", False
+
+        elif full_name == "tensorflow.lite.python":
+            yield "tensorflow.python.framework.importer", True
+
+        elif full_name == "tensorflow.lite.python.optimize":
+            yield "tensorflow.lite.python.optimize._tensorflow_lite_wrap_calibration_wrapper", True
+
+        elif full_name == "tensorflow.lite.toco.python":
+            yield "tensorflow.lite.toco.python._tensorflow_wrap_toco", True
+
+        elif full_name == "tensorflow.lite.python.interpreter_wrapper":
+            yield "tensorflow.lite.python.interpreter_wrapper._tensorflow_wrap_interpreter_wrapper", True
+
+        elif full_name == "tensorflow.python":
+            yield "tensorflow.python.pywrap_tensorflow", True
+            yield "tensorflow.python._pywrap_tensorflow_internal", True
+            yield "tensorflow.python.tools", True
+            yield "tensorflow.python.compat", True
+            yield "tensorflow.python.framework", True
+            yield "tensorflow.python.module", True
+            yield "tensorflow.python.ops", True
+            yield "tensorflow.python.platform", True
+            yield "tensorflow.python.lib.io", True
+            yield "tensorflow.python.util", True
+            yield "tensorflow.python.keras.api", False
+
+        # end of tensorflow imports --------------------------------------------
         elif full_name == "numpy.core":
             yield "numpy.core._dtype_ctypes", True
 

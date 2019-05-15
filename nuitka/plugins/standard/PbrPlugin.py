@@ -37,7 +37,7 @@ class NuitkaPluginPbrWorkarounds(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     @staticmethod
-    def setAlwaysEnabled():
+    def isAlwaysEnabled():
         return True
 
     @staticmethod

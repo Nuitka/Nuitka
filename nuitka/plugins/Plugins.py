@@ -63,7 +63,7 @@ def loadStandardPlugins():
             if not isObjectAUserPluginBaseClass(obj):
                 continue
 
-            always_enable = obj.setAlwaysEnabled()
+            always_enable = obj.isAlwaysEnabled()
             if not hasattr(obj, "isRelevant"):
                 is_relevant = None
             else:

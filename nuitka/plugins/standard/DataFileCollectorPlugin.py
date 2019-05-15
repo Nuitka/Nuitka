@@ -58,7 +58,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     @staticmethod
-    def setAlwaysEnabled():
+    def isAlwaysEnabled():
         return True
 
     def considerDataFiles(self, module):

@@ -80,7 +80,7 @@ class NuitkaPluginBase(object):
     plugin_name = None
 
     @staticmethod
-    def setAlwaysEnabled():
+    def isAlwaysEnabled():
         """ Request to be always enabled.
 
         Notes:

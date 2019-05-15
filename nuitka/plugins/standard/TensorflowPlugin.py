@@ -23,7 +23,6 @@ import shutil
 from logging import info
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.Utils import isWin32Windows
 
 
 def get_module_file_attribute(package):
@@ -70,7 +69,7 @@ class TensorflowPlugin(NuitkaPluginBase):
         else:
             full_name = module_name
 
-        if full_name.startswith("tensor"):
+        if full_name.startswith(("tensor", "google")):
             return True, "accept everything"
 
     def considerExtraDlls(self, dist_dir, module):
@@ -94,78 +93,43 @@ class TensorflowPlugin(NuitkaPluginBase):
 
         return ()
 
+    def onModuleSourceCode(self, module_name, source_code):
+        """ Neutralize some path magic in tensorflow.
+
+        Notes:
+            Make sure tensorflow understands, we are not running as a PIP
+            installed application.
+        """
+        if module_name != "tensorflow":
+            return source_code
+        source_lines = source_code.splitlines()
+        found_insert = False
+        for i, l in enumerate(source_lines):
+            if l.startswith("def ") and "_running_from_pip_package():" in l:
+                source_lines.insert(i, "_site_packages_dirs = []")
+                found_insert = True
+                break
+
+        if found_insert is True:
+            info(
+                " '%s' plugin: Disabled 'running-from-pip' path magic."
+                % self.plugin_name
+            )
+        else:
+            sys.exit("'%s' plugin did not find path magic." % self.plugin_name)
+
+        return "\n".join(source_lines)
+
     def decideCompilation(self, module_name, source_ref):
-        if module_name.startswith(("tensor", "boto")):
+        """ Include major packages as bytecode.
+
+        Notes:
+            Tensorflow is a very large package and mainly used to interactively
+            create the actual application. Therefore, compilation makes no
+            sense for it and some of the included packages.
+        """
+        if module_name.startswith(("tensor", "boto", "google", "keras")):
             return "bytecode"
-
-    def getImplicitImports(self, module):
-        full_name = module.getFullName()
-
-        if full_name == "tensorflow":
-            yield "tensorflow._api", True
-            yield "tensorflow.python", True
-
-        elif full_name == "tensorflow._api":
-            yield "tensorflow._api.v1.app", True
-            yield "tensorflow._api.v1.audio", True
-            yield "tensorflow._api.v1.autograph", True
-            yield "tensorflow._api.v1.bitwise", True
-            yield "tensorflow._api.v1.compat", True
-            yield "tensorflow._api.v1.config", True
-            yield "tensorflow._api.v1.data", True
-            yield "tensorflow._api.v1.debugging", True
-            yield "tensorflow._api.v1.distribute", True
-            yield "tensorflow._api.v1.distributions", True
-            yield "tensorflow._api.v1.dtypes", True
-            yield "tensorflow._api.v1.errors", True
-            yield "tensorflow._api.v1.experimental", True
-            yield "tensorflow._api.v1.feature_column", True
-            yield "tensorflow._api.v1.gfile", True
-            yield "tensorflow._api.v1.graph_util", True
-            yield "tensorflow._api.v1.image", True
-            yield "tensorflow._api.v1.initializers", True
-            yield "tensorflow._api.v1.io", True
-            yield "tensorflow._api.v1.layers", True
-            yield "tensorflow._api.v1.linalg", True
-            yield "tensorflow._api.v1.lite", True
-            yield "tensorflow._api.v1.logging", True
-            yield "tensorflow._api.v1.lookup", True
-            yield "tensorflow._api.v1.losses", True
-            yield "tensorflow._api.v1.manip", True
-            yield "tensorflow._api.v1.math", True
-            yield "tensorflow._api.v1.metrics", True
-            yield "tensorflow._api.v1.nest", True
-            yield "tensorflow._api.v1.nn", True
-            yield "tensorflow._api.v1.profiler", True
-            yield "tensorflow._api.v1.python_io", True
-            yield "tensorflow._api.v1.quantization", True
-            yield "tensorflow._api.v1.queue", True
-            yield "tensorflow._api.v1.ragged", True
-            yield "tensorflow._api.v1.random", True
-            yield "tensorflow._api.v1.raw_ops", True
-            yield "tensorflow._api.v1.resource_loader", True
-            yield "tensorflow._api.v1.saved_model", True
-            yield "tensorflow._api.v1.sets", True
-            yield "tensorflow._api.v1.signal", True
-            yield "tensorflow._api.v1.sparse", True
-            yield "tensorflow._api.v1.spectral", True
-            yield "tensorflow._api.v1.strings", True
-            yield "tensorflow._api.v1.summary", True
-            yield "tensorflow._api.v1.sysconfig", True
-            yield "tensorflow._api.v1.test", True
-            yield "tensorflow._api.v1.tpu", True
-            yield "tensorflow._api.v1.train", True
-            yield "tensorflow._api.v1.user_ops", True
-            yield "tensorflow._api.v1.version", True
-            yield "tensorflow._api.v1.xla", True
-
-        elif full_name == "tensorflow.lite.python.lite":
-            yield "tensorflow.python.framework.importer", True
-
-        elif full_name == "tensorflow.python":
-            yield "tensorflow.python.pywrap_tensorflow", True
-            yield "tensorflow.python._pywrap_tensorflow_internal", True
-            yield "tensorflow.python.tools.module_util", True
 
 
 class TensorflowPluginDetector(NuitkaPluginBase):
