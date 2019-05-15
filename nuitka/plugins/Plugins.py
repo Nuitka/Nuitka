@@ -45,14 +45,17 @@ def loadStandardPlugins():
     """ Load plugin files located in 'standard' folder.
 
     Notes:
-
+        Scan through the 'standard' sub-folder of the folder where this script
+        resides. Import each valid Python script and process it as a plugin.
+    Returns:
+        None
     """
 
     this_dir = os.path.dirname(os.path.abspath(__file__))
     std_dir = os.path.join(this_dir, "standard")
     plugin_filenames = os.listdir(std_dir)
     for plugin_filename in plugin_filenames:
-        if plugin_filename.startswith("__"):
+        if plugin_filename.startswith("__") or not plugin_filename.endswith(".py"):
             continue
         plugin_module = importFile(os.path.join(std_dir, plugin_filename))
 
@@ -69,7 +72,7 @@ def loadStandardPlugins():
             else:
                 try:
                     is_relevant = obj.isRelevant()
-                except:  # will only happen in plugin-list request
+                except AttributeError:  # will only happen with --plugin-list
                     is_relevant = True
 
             if always_enable:  # should this always be enabled?
