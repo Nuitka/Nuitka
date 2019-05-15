@@ -31,7 +31,11 @@ from nuitka.freezer.Standalone import (
     detectBinaryPathDLLsWindowsDependencyWalker,
     detectBinaryPathDLLsWindowsPE,
 )
-from nuitka.utils.SharedLibraries import getPEFileInformation, getWindowsDLLVersion
+from nuitka.utils.SharedLibraries import (
+    getPEFileInformation,
+    getSxsFromDLL,
+    getWindowsDLLVersion,
+)
 from nuitka.utils.Timing import TimerReport
 
 
@@ -65,6 +69,11 @@ Use pefile dependencies. Default is %default.""",
         print("Filename:", filename)
         print("Version Information:", getWindowsDLLVersion(filename))
         print("DLLs directly dependended (pefile):", getPEFileInformation(filename))
+
+        print("SXS information (manifests):")
+        sxs = getSxsFromDLL(filename=filename, with_data=True)
+        if sxs:
+            print(sxs)
 
         print("DLLs recursively dependended (pefile):")
 
@@ -102,7 +111,7 @@ Use pefile dependencies. Default is %default.""",
                 binary_filename=filename,
                 package_name=None,
                 use_cache=False,
-                update_cache=True,
+                update_cache=False,
             )
 
             for dll_filename in sorted(r):

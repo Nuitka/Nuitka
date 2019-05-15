@@ -211,7 +211,9 @@ def deleteWindowsResources(filename, resource_kind, res_names):
 
 
 def copyResourcesFromFileToFile(source_filename, target_filename, resource_kind):
-    res_data = getResourcesFromDLL(source_filename, resource_kind, True)
+    res_data = getResourcesFromDLL(
+        filename=source_filename, resource_kind=resource_kind, with_data=True
+    )
 
     if res_data:
         update_handle = _openFileWindowsResources(target_filename)

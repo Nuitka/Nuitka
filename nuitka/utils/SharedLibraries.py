@@ -87,7 +87,7 @@ def locateDLL(dll_name):
     return dll_map[dll_name]
 
 
-def getSxsFromDLL(filename):
+def getSxsFromDLL(filename, with_data=False):
     """ List the SxS manifests of a Windows DLL.
 
     Args:
@@ -98,7 +98,9 @@ def getSxsFromDLL(filename):
 
     """
 
-    return getResourcesFromDLL(filename, RT_MANIFEST)
+    return getResourcesFromDLL(
+        filename=filename, resource_kind=RT_MANIFEST, with_data=with_data
+    )
 
 
 def removeSxsFromDLL(filename):
