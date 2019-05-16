@@ -25,7 +25,6 @@ import hashlib
 import os
 import sys
 
-from nuitka.Tracing import my_print
 from nuitka.utils.FileOperations import areSamePaths
 
 
