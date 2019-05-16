@@ -20,52 +20,46 @@
 import os
 import sys
 
+from nuitka.tools.testing.Common import (
+    compareWithCPython,
+    createSearchMode,
+    decideFilenameVersionSkip,
+    my_print,
+    setup,
+)
+
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
-)
-from nuitka.tools.testing.Common import (
-    my_print,
-    setup,
-    compareWithCPython,
-    createSearchMode,
-    decideFilenameVersionSkip
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
 
-python_version = setup(needs_io_encoding = True)
+python_version = setup(needs_io_encoding=True)
 
 search_mode = createSearchMode()
 
-for filename in sorted(os.listdir('.')):
+for filename in sorted(os.listdir(".")):
     if not filename.endswith(".py"):
         continue
 
     if not decideFilenameVersionSkip(filename):
         continue
 
-    active = search_mode.consider(
-        dirname  = None,
-        filename = filename
-    )
+    active = search_mode.consider(dirname=None, filename=filename)
 
     if active:
         extra_flags = ["expect_failure", "remove_output", "syntax_errors"]
 
         compareWithCPython(
-            dirname     = None,
-            filename    = filename,
-            extra_flags = extra_flags,
-            search_mode = search_mode,
-            needs_2to3  = False
+            dirname=None,
+            filename=filename,
+            extra_flags=extra_flags,
+            search_mode=search_mode,
+            needs_2to3=False,
         )
-        
+
     if search_mode.abortIfExecuted():
         break
     else:

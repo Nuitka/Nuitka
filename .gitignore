@@ -33,3 +33,4 @@ Changelog.html
 doc/*.1
 doc/man-*.html
 doxygen-warnings.log
+venv_cpython/

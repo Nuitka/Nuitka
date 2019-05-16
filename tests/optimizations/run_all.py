@@ -22,6 +22,9 @@
 import os
 import sys
 
+from nuitka.tools.testing.SearchModes import SearchModeAll
+from nuitka.TreeXML import toString
+
 # The test runner needs "lxml" itself.
 try:
     import lxml.etree
@@ -33,12 +36,8 @@ except ImportError:
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
 
 from nuitka.tools.testing.Common import (  # isort:skip
@@ -48,10 +47,8 @@ from nuitka.tools.testing.Common import (  # isort:skip
     decideFilenameVersionSkip,
     hasModule,
     my_print,
-    setup
+    setup,
 )
-from nuitka.tools.testing.SearchModes import SearchModeAll
-from nuitka.TreeXML import toString
 
 python_version = setup()
 
@@ -64,7 +61,7 @@ search_mode = createSearchMode()
 
 
 def getKind(node):
-    result = node.attrib[ "kind" ]
+    result = node.attrib["kind"]
 
     result = result.replace("Statements", "")
     result = result.replace("Statement", "")
@@ -84,20 +81,19 @@ def getRole(node, role):
 def getSourceRef(node):
     global filename
 
-    return "%s:%s" % (
-        filename,
-        node.attrib["line"]
-    )
+    return "%s:%s" % (filename, node.attrib["line"])
 
 
 def isConstantExpression(expression):
     kind = getKind(expression)
 
-    return kind.startswith("Constant") or \
-           kind in ("ImportModuleHard",
-                    "ImportName",
-                    "ModuleAttributeFileRef",
-                    "ModuleLoaderRef")
+    return kind.startswith("Constant") or kind in (
+        "ImportModuleHard",
+        "ImportName",
+        "ModuleAttributeFileRef",
+        "ModuleLoaderRef",
+    )
+
 
 def checkSequence(statements):
     for statement in statements:
@@ -108,15 +104,10 @@ def checkSequence(statements):
             print_arg, = getRole(statement, "value")
 
             if not isConstantExpression(print_arg):
-                if isinstance(search_mode, SearchModeAll):
-                    search_mode.updateTotalErrors()
-                else:
-                    sys.exit(
-                        "%s: Error, print of non-constant '%s'." % (
-                            getSourceRef(statement),
-                            getKind(print_arg)
-                        )
-                    )
+                search_mode.onErrorDetected(
+                    "%s: Error, print of non-constant '%s'."
+                    % (getSourceRef(statement), getKind(print_arg))
+                )
 
             continue
 
@@ -166,11 +157,9 @@ def checkSequence(statements):
                 continue
 
             elif not isConstantExpression(assign_source):
-                if isinstance(search_mode, SearchModeAll):
-                    search_mode.updateTotalErrors()
-                else:
-                    sys.exit("Error, assignment from non-constant '%s'." % getKind(assign_source))
-
+                search_mode.onErrorDetected(
+                    "Error, assignment from non-constant '%s'." % getKind(assign_source)
+                )
             continue
 
         if kind == "AssignmentAttribute":
@@ -179,67 +168,58 @@ def checkSequence(statements):
             if getKind(assign_source) == "ModuleAttributeSpecRef":
                 continue
             else:
-                if isinstance(search_mode, SearchModeAll):
-                    search_mode.updateTotalErrors()
-                else:            
-                    sys.exit("Error, attribute assignment to '%s'." % getKind(assign_source))
-
+                search_mode.onErrorDetected(
+                    "Error, attribute assignment to '%s'." % getKind(assign_source)
+                )
 
         if kind in ("ReturnNone", "ReturnConstant"):
             continue
 
-
         print(toString(statement))
-        if isinstance(search_mode, SearchModeAll):
-            search_mode.updateTotalErrors()
-        else:        
-            sys.exit("Error, non-print statement of unknown kind '%s'." % kind)
+        search_mode.onErrorDetected(
+            "Error, non-print statement of unknown kind '%s'." % kind
+        )
 
 
-for filename in sorted(os.listdir('.')):
+for filename in sorted(os.listdir(".")):
     if not filename.endswith(".py") or filename.startswith("run_"):
         continue
 
     if not decideFilenameVersionSkip(filename):
         continue
 
-    active = search_mode.consider(
-        dirname  = None,
-        filename = filename
-    )
+    active = search_mode.consider(dirname=None, filename=filename)
 
     extra_flags = ["expect_success"]
 
     if active:
         # Apply 2to3 conversion if necessary.
-        if python_version.startswith('3'):
+        if python_version.startswith("3"):
             filename, changed = convertUsing2to3(filename)
         else:
             changed = False
 
-        my_print("Consider", filename, end = ' ')
+        my_print("Consider", filename, end=" ")
 
         command = [
             os.environ["PYTHON"],
             os.path.abspath(os.path.join("..", "..", "bin", "nuitka")),
             "--xml",
             "--module",
-            filename
+            filename,
         ]
-
 
         if search_mode.isCoverage():
             # To avoid re-execution, which is not acceptable to coverage.
             if "PYTHONHASHSEED" not in os.environ:
-                os.environ["PYTHONHASHSEED"] = '0'
+                os.environ["PYTHONHASHSEED"] = "0"
 
             # Coverage modules hates Nuitka to re-execute, and so we must avoid
             # that.
             python_path = check_output(
                 [
                     os.environ["PYTHON"],
-                    "-c"
-                    "import sys, os; print(os.pathsep.join(sys.path))"
+                    "-c" "import sys, os; print(os.pathsep.join(sys.path))",
                 ]
             )
 
@@ -248,21 +228,15 @@ for filename in sorted(os.listdir('.')):
 
             os.environ["PYTHONPATH"] = python_path.strip()
 
-
             command.insert(2, "--must-not-re-execute")
 
-            command = command[0:1] + [
-                "-S",
-                "-m",
-                "coverage",
-                "run",
-                "--rcfile", os.devnull,
-                "-a",
-            ] + command[1:]
+            command = (
+                command[0:1]
+                + ["-S", "-m", "coverage", "run", "--rcfile", os.devnull, "-a"]
+                + command[1:]
+            )
 
-        result = check_output(
-            command
-        )
+        result = check_output(command)
 
         # Parse the result into XML and check it.
         try:
@@ -272,13 +246,12 @@ for filename in sorted(os.listdir('.')):
             print(result)
             raise
 
-
         module_body = root[0]
         module_statements_sequence = module_body[0]
 
         assert len(module_statements_sequence) == 1
         module_statements = next(iter(module_statements_sequence))
-        
+
         try:
             checkSequence(module_statements)
 
@@ -297,7 +270,7 @@ for filename in sorted(os.listdir('.')):
             raise
 
         my_print("OK.")
-        
+
         if search_mode.abortIfExecuted():
             break
     else:

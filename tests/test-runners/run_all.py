@@ -22,6 +22,8 @@
 import os
 import sys
 
+from nuitka.tools.testing.SearchModes import SearchModeAll
+
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
@@ -42,6 +44,8 @@ from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
 from nuitka.tools.testing.SearchModes import SearchModeAll
 
 def main():
+    search_mode = createSearchMode()
+
     python_version = setup()
 
     os.chdir("subject")
@@ -66,10 +70,7 @@ def main():
     result = subprocess.call(command)
 
     if result != 0:
-        if isinstance(search_mode, SearchModeAll):
-            search_mode.updateTotalErrors()
-        else:
-            sys.exit(result)
+        search_mode.onErrorDetected(result)
 
     os.makedirs(os.path.join(tmp_dir, "package.ext"))
     copyTree("package", os.path.join(tmp_dir, "package.ext/package"))

@@ -19,35 +19,33 @@
 #     limitations under the License.
 #
 
-import os, sys
+import os
+import sys
+
+from nuitka.tools.testing.Common import (
+    compareWithCPython,
+    createSearchMode,
+    getTempDir,
+    my_print,
+    setup,
+    withExtendedExtraOptions,
+)
+from nuitka.tools.testing.SearchModes import SearchModeAll
 
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
-)
-from nuitka.tools.testing.Common import (
-    my_print,
-    setup,
-    createSearchMode,
-    compareWithCPython,
-    withExtendedExtraOptions,
-    getTempDir
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
 
-from nuitka.tools.testing.SearchModes import SearchModeAll
 
 python_version = setup()
 
 search_mode = createSearchMode()
 
-for filename in sorted(os.listdir('.')):
+for filename in sorted(os.listdir(".")):
     if not os.path.isdir(filename) or filename.endswith(".build"):
         continue
 
@@ -55,17 +53,14 @@ for filename in sorted(os.listdir('.')):
         "expect_success",
         "remove_output",
         "module_mode",
-        "two_step_execution"
+        "two_step_execution",
     ]
 
     # The use of "__main__" in the test package gives a warning.
     if filename == "sub_package":
         extra_flags.append("ignore_warnings")
 
-    active = search_mode.consider(
-        dirname  = None,
-        filename = filename
-    )
+    active = search_mode.consider(dirname=None, filename=filename)
 
     if active:
         my_print("Consider output of recursively compiled program:", filename)
@@ -74,35 +69,31 @@ for filename in sorted(os.listdir('.')):
             if not os.path.isdir(os.path.join(filename, filename_main)):
                 continue
 
-            if filename_main not in ("..", '.'):
+            if filename_main not in ("..", "."):
                 break
         else:
-            if isinstance(search_mode, SearchModeAll):
-                search_mode.updateTotalErrors()
-            else:
-                sys.exit(
-                    """\
-    Error, no package in dir '%s' found, incomplete test case.""" % filename
-                )
+            search_mode.onErrorDetected(
+                """\
+    Error, no package in dir '%s' found, incomplete test case."""
+                % filename
+            )
 
-        extensions = [
-            "--include-package=%s" % os.path.basename(filename_main)
-        ]
+        extensions = ["--include-package=%s" % os.path.basename(filename_main)]
 
         if not "--output-dir" in os.environ.get("NUITKA_EXTRA_OPTIONS", ""):
             extensions.append("--output-dir=%s" % getTempDir())
 
         with withExtendedExtraOptions(*extensions):
             compareWithCPython(
-                dirname     = filename,
-                filename    = filename_main,
-                extra_flags = extra_flags,
-                search_mode = search_mode,
-                needs_2to3  = False
+                dirname=filename,
+                filename=filename_main,
+                extra_flags=extra_flags,
+                search_mode=search_mode,
+                needs_2to3=False,
             )
-            
+
         if search_mode.abortIfExecuted():
-            break    
+            break
     else:
         my_print("Skipping", filename)
 

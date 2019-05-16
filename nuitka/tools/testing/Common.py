@@ -349,11 +349,13 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
     _removeCPythonTestSuiteDir()
 
     if result != 0 and result != 2 and search_mode.abortOnFinding(dirname, filename):
-        if isinstance(search_mode, SearchModeAll):
-            search_mode.updateTotalErrors()
-        else:
-            my_print("Error exit!", result)
-            sys.exit(result)
+        # if search_mode.isSearchModeAll():
+        #     search_mode.updateTotalErrors()
+        # else:
+        #     message = "Error exit!" + str(result)
+        #     search_mode.exit(message)
+        message = "Error exit!" + str(result)
+        search_mode.onErrorDetected(message)
 
     if converted:
         os.unlink(path)

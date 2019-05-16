@@ -544,11 +544,8 @@ for filename in sorted(os.listdir(".")):
 
             my_print("strace:")
             os.system("strace -s4096 -e file %s" % binary_filename)
-        
-        if isinstance(search_mode, SearchModeAll):
-            search_mode.updateTotalErrors()
-        else:
-            sys.exit(1)
+
+        search_mode.onErrorDetected(1)
 
     removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
 
