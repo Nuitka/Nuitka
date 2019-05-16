@@ -354,8 +354,7 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
         # else:
         #     message = "Error exit!" + str(result)
         #     search_mode.exit(message)
-        message = "Error exit!" + str(result)
-        search_mode.onErrorDetected(message)
+        search_mode.onErrorDetected("Error exit! %s" % result)
 
     if converted:
         os.unlink(path)
