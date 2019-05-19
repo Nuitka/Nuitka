@@ -357,67 +357,24 @@ Iteration over constant %s changed to tuple."""
 
         return iter_node, None, None
 
-    def computeExpressionAny(self, any_node, trace_collection):
 
-        if not isIterableConstant(self.constant):
-            # An exception may be raised.
-            trace_collection.onExceptionRaiseExit(TypeError)
+class ConstantSetAndDictIterationHandle:
+    def __init__(self, constant_node):
+        self.constant = constant_node.constant
+        self.constant_node = constant_node
+        self.iter = iter(self.constant)
+        assert type(self.constant) in (set, dict)
 
-            return getComputationResult(
-                node=any_node,
-                computation=lambda: any_node.simulator(self.constant),
-                description="Iteration of non-iterable constant.",
+    def __repr__(self):
+        return "<ConstantSetAndDictIterationHandle of %r>" % self.constant_node
+
+    def getNextValueExpression(self):
+        try:
+            return makeConstantRefNode(
+                constant=next(self.iter), source_ref=self.constant_node.source_ref
             )
-
-        value = any_node.getValue()
-
-        iteration_length = value.getIterationLength()
-
-        if (
-            iteration_length is not None
-            and iteration_length < 256
-            and value.canPredictIterationValues()
-        ):
-            all_false = True
-            for i in range(iteration_length):
-                truth_value = value.getIterationValue(i).getTruthValue()
-
-                if truth_value is True:
-                    result = wrapExpressionWithSideEffects(
-                        side_effects=self.extractSideEffects(),
-                        old_node=value,
-                        new_node=makeConstantRefNode(
-                            constant=True,
-                            user_provided=self.user_provided,
-                            source_ref=self.getSourceReference(),
-                        ),
-                    )
-
-                    return (
-                        result,
-                        "new_constant",
-                        "Predicted truth value of built-in any argument",
-                    )
-                elif truth_value is None:
-                    all_false = False
-            if all_false is True:
-                result = wrapExpressionWithSideEffects(
-                    side_effects=self.extractSideEffects(),
-                    old_node=value,
-                    new_node=makeConstantRefNode(
-                        constant=False,
-                        user_provided=self.user_provided,
-                        source_ref=self.getSourceReference(),
-                    ),
-                )
-
-                return (
-                    result,
-                    "new_constant",
-                    "Predicted truth value of built-in any argument",
-                )
-
-        return any_node, None, None
+        except StopIteration:
+            return None
 
 
 class ExpressionConstantNoneRef(ExpressionConstantRefBase):
@@ -509,6 +466,9 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
 
     def hasShapeDictionaryExact(self):
         return True
+
+    def getIterationHandle(self):
+        return ConstantSetAndDictIterationHandle(self)
 
 
 class ExpressionConstantTupleRef(ExpressionConstantRefBase):
@@ -603,6 +563,9 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
 
     def getTypeShape(self):
         return ShapeTypeSet
+
+    def getIterationHandle(self):
+        return ConstantSetAndDictIterationHandle(self)
 
 
 the_empty_set = set()
@@ -890,7 +853,6 @@ class ExpressionConstantDictEmptyRef(ExpressionConstantDictRef):
 def makeConstantRefNode(constant, source_ref, user_provided=False):
     # This is dispatching per constant value and types, every case
     # to be a return statement, pylint: disable=too-many-branches,too-many-return-statements
-
     # Dispatch based on constants first.
     if constant is None:
         return ExpressionConstantNoneRef(

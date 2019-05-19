@@ -385,16 +385,19 @@ class ExpressionBase(NodeBase):
                 value_node=value,
             )
 
-        iteration_length = value.getIterationLength()
+        iteration_handle = value.getIterationHandle()
 
-        if (
-            iteration_length is not None
-            and iteration_length < 256
-            and value.canPredictIterationValues()
-        ):
+        if iteration_handle is not None:
             all_false = True
-            for i in range(iteration_length):
-                truth_value = value.getIterationValue(i).getTruthValue()
+            count = 0
+            while True:
+                iteration_value = iteration_handle.getNextValueExpression()
+                if iteration_value is None:
+                    break
+                if count > 256:
+                    all_false = False
+                    break
+                truth_value = iteration_value.getTruthValue()
 
                 if truth_value is True:
                     result = wrapExpressionWithNodeSideEffects(
@@ -409,6 +412,9 @@ class ExpressionBase(NodeBase):
                     )
                 elif truth_value is None:
                     all_false = False
+
+                count += 1
+
             if all_false is True:
                 result = wrapExpressionWithNodeSideEffects(
                     new_node=makeConstantReplacementNode(constant=False, node=self),
