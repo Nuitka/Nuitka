@@ -34,8 +34,8 @@ import signal
 import subprocess
 import sys
 
-import SCons  # @UnresolvedImport @UnusedImport
-import SCons.Tool.gcc  # @UnresolvedImport @UnusedImport
+import SCons  # @UnresolvedImport @UnusedImport pylint: disable=import-error
+import SCons.Tool.gcc  # @UnresolvedImport @UnusedImport pylint: disable=import-error
 
 
 def getArguments():
@@ -210,7 +210,10 @@ def printCompilerVersionOutput(*args):
 
 
 # Amount of jobs to use.
-job_count = GetOption("num_jobs")  # @UndefinedVariable
+job_count = GetOption(  # @UndefinedVariable pylint: disable=undefined-variable
+    "num_jobs"
+)
+
 
 # Add environment specified compilers to the PATH variable.
 if "CC" in os.environ:
@@ -278,7 +281,9 @@ def getExecutablePath(filename, initial):
 
 # Patch the compiler detection.
 
-orig_detect = Environment.Detect  # @UndefinedVariable
+orig_detect = (
+    Environment.Detect  # @UndefinedVariable pylint: disable=undefined-variable
+)
 found_gcc = False
 gcc_version = None
 
@@ -432,7 +437,7 @@ def myDetect(self, progs):
     return result
 
 
-Environment.Detect = myDetect  # @UndefinedVariable
+Environment.Detect = myDetect  # @UndefinedVariable pylint: disable=undefined-variable
 
 
 def createEnvironment(compiler_tools):
@@ -451,7 +456,7 @@ def createEnvironment(compiler_tools):
 
         args["MSVC_USE_SCRIPT"] = False
 
-    return Environment(  # @UndefinedVariable
+    return Environment(  # @UndefinedVariable pylint: disable=undefined-variable
         # We want the outside environment to be passed through.
         ENV=os.environ,
         # Extra tools configuration for scons.
@@ -625,6 +630,7 @@ gcc_mode = (
     or clang_mode
 )
 
+# Only use MSVC if not already clear, we are using MinGW.
 msvc_mode = win_target and not gcc_mode
 mingw_mode = win_target and gcc_mode
 
@@ -675,7 +681,7 @@ no_import_lib = False
 if msvc_mode:
 
     def getMsvcVersionString():
-        import SCons.Tool.MSCommon.vc  # @UnresolvedImport
+        import SCons.Tool.MSCommon.vc  # @UnresolvedImport pylint: disable=import-error
 
         return SCons.Tool.MSCommon.vc.get_default_version(env)
 
@@ -1190,7 +1196,13 @@ if win_target:
     )
 
     if gcc_mode and static_libpython and os.path.exists(static_lib_filename):
-        env.Append(LIBS=[File(static_lib_filename)])  # @UndefinedVariable
+        env.Append(
+            LIBS=[
+                File(  # @UndefinedVariable pylint: disable=undefined-variable
+                    static_lib_filename
+                )
+            ]
+        )
     else:
         # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
         if python_debug:
@@ -1223,14 +1235,21 @@ elif not module_mode or (macosx_target and not static_libpython):
     )
 
     if not module_mode and static_libpython and os.path.exists(static_lib_filename):
-        env.Append(LIBS=[File(static_lib_filename)])  # @UndefinedVariable
+        env.Append(
+            LIBS=[
+                File(  # @UndefinedVariable pylint: disable=undefined-variable
+                    static_lib_filename
+                )
+            ]
+        )
     else:
         # Debian and Ubuntu distinguish the system libraries like this.
         if (
             python_debug
             and python_prefix == "/usr"
             and not python_version.startswith("3")
-            and platform.dist()[0].lower() in ("debian", "ubuntu")
+            and platform.dist()[0].lower()  # pylint: disable=no-member
+            in ("debian", "ubuntu")
         ):
             env.Append(LIBS=["python" + python_abi_version + "_d"])
         else:
@@ -1407,8 +1426,7 @@ if show_scons_mode:
     print("Scons: Using resource mode:", resource_mode)
 
 if resource_mode == "win_resource":
-    # On Windows constants are accesses as a resource, except in shared
-    # libraries, where that option is not available.
+    # On Windows constants are accesses as a resource by Nuitka afterwards.
     constants_generated_filename = None
 
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
@@ -1608,7 +1626,9 @@ if win_target:
         res_target = env.RES(rc_filename)
 
         for rc_file_dependency in rc_file_dependencies:
-            Depends(res_target, rc_file_dependency)  # @UndefinedVariable
+            Depends(  # @UndefinedVariable pylint: disable=undefined-variable
+                res_target, rc_file_dependency
+            )
 
         source_targets.append(res_target)
 
@@ -1713,10 +1733,10 @@ if cache_mode:
     if show_scons_mode:
         print("scons: Using scons cache inside build directory.")
 
-    CacheDir(  # @UndefinedVariable
+    CacheDir(  # @UndefinedVariable pylint: disable=undefined-variable
         os.path.join(source_dir, "cache-" + target_arch + "-" + python_abi_version)
     )
-    Decider("MD5-timestamp")  # @UndefinedVariable
+    Decider("MD5-timestamp")  # @UndefinedVariable pylint: disable=undefined-variable
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit.
 
@@ -1775,7 +1795,7 @@ if gcc_mode:
 
         tmpfile.write(env.subst("$SOURCES"))
 
-Default(target)  # @UndefinedVariable
+Default(target)  # @UndefinedVariable pylint: disable=undefined-variable
 
 
 # Copy the Python DLL to the target directory, so the executable can be run.
