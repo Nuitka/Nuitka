@@ -215,12 +215,21 @@ job_count = GetOption(  # @UndefinedVariable pylint: disable=undefined-variable
 )
 
 
+def isGccName(cc_name):
+    return "gcc" in cc_name or "g++" in cc_name or "gnu-cc" in cc_name
+
+
 # Add environment specified compilers to the PATH variable.
 if "CC" in os.environ:
+    os.environ["CC"] = os.path.normpath(os.environ["CC"])
+
     if os.path.isdir(os.environ["CC"]):
         sys.exit("Error, the CC variable must point to file, not directory.")
 
     cc_dirname = os.path.dirname(os.environ["CC"])
+
+    if win_target and isGccName(os.path.basename(os.environ["CC"])):
+        mingw_mode = True
 
     if os.path.isdir(cc_dirname):
         os.environ["PATH"] = os.pathsep.join(
@@ -230,10 +239,15 @@ if "CC" in os.environ:
     printCompilerVersionOutput("CC=%r" % os.environ["CC"])
 
 if "CXX" in os.environ:
+    os.environ["CXX"] = os.path.normpath(os.environ["CXX"])
+
     if os.path.isdir(os.environ["CXX"]):
         sys.exit("Error, the CXX variable must point to file, not directory.")
 
     cxx_dirname = os.path.dirname(os.environ["CXX"])
+
+    if win_target and isGccName(os.path.basename(os.environ["CXX"])):
+        mingw_mode = True
 
     if os.path.isdir(cxx_dirname):
         os.environ["PATH"] = os.pathsep.join(
@@ -348,7 +362,7 @@ def detectVersion(env, cc):
 
     clvar0 = os.path.basename(clvar[0])
 
-    if "gcc" in clvar0 or "g++" in clvar0 or "gnu-cc" in clvar0 or "clang" in clvar0:
+    if isGccName(clvar0) or "clang" in clvar0:
         command = list(clvar) + ["-dumpversion"]
     else:
         command = list(clvar) + ["--version"]
@@ -623,12 +637,7 @@ if "clang" in the_cc_name and "-cl" not in the_cc_name:
 
 # We consider clang to be a form of gcc for the most things, they strive to
 # be compatible.
-gcc_mode = (
-    "gcc" in the_cc_name
-    or "g++" in the_cc_name
-    or "gnu-cc" in the_cc_name
-    or clang_mode
-)
+gcc_mode = isGccName(the_cc_name) or clang_mode
 
 # Only use MSVC if not already clear, we are using MinGW.
 msvc_mode = win_target and not gcc_mode
