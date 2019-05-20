@@ -347,7 +347,7 @@ def makeSourceDirectory(main_module):
             if module.getFullName() == any_case_module:
                 break
         else:
-            warning("Didn't recurse to '%s', apparently not used." % any_case_module)
+            warning("Not recursing to unused '%s'." % any_case_module)
 
     # Prepare code generation, i.e. execute finalization for it.
     for module in ModuleRegistry.getDoneModules():
