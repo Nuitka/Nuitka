@@ -19,7 +19,6 @@
 
 """
 
-from abc import ABCMeta, abstractmethod
 from logging import warning
 
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
@@ -46,6 +45,10 @@ from nuitka.Constants import (
 from nuitka.Options import isDebug
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
+from .IterationHandles import (
+    ConstantIndexableIterationHandle,
+    ConstantSetAndDictIterationHandle,
+)
 from .NodeMakingHelpers import (
     getComputationResult,
     makeRaiseExceptionReplacementExpression,
@@ -363,84 +366,6 @@ Iteration over constant %s changed to tuple."""
             )
 
         return iter_node, None, None
-
-
-class IterationHandleMetaClass(ABCMeta):
-    pass
-
-
-# For Python2/3 compatible source, we create a base class that has the metaclass
-# used and doesn't require making a choice.
-# TODO: Provide a general factory function in Nuitka for MetaClass
-IterationHandleMetaClassBase = IterationHandleMetaClass(
-    "IterationHandleMetaClassBase", (object,), {}
-)
-
-
-class IterationHandleBase(IterationHandleMetaClassBase):
-    @abstractmethod
-    def getNextValueExpression(self):
-        pass
-
-    @abstractmethod
-    def getIterationValueWithIndex(self, value_index):
-        pass
-
-    def getNextValueTruth(self):
-        iteration_value = self.getNextValueExpression()
-        if iteration_value is None:
-            return StopIteration
-        return iteration_value.getTruthValue()
-
-
-class ConstantIterationHandleBase(IterationHandleBase):
-    def __init__(self, constant_node):
-        assert constant_node.isIterableConstant()
-        self.constant = constant_node.constant
-        self.constant_node = constant_node
-        self.iter = iter(self.constant)
-
-    def __repr__(self):
-        return "<%s of %r>" % (self.__class__.__name__, self.constant_node)
-
-    def getNextValueExpression(self):
-        try:
-            return makeConstantRefNode(
-                constant=next(self.iter), source_ref=self.constant_node.source_ref
-            )
-        except StopIteration:
-            return None
-
-    def getNextValueTruth(self):
-        try:
-            iteration_value = next(self.iter)
-        except StopIteration:
-            return StopIteration
-        return bool(iteration_value)
-
-
-class ConstantIndexableIterationHandle(ConstantIterationHandleBase):
-    def __init__(self, constant_node):
-        ConstantIterationHandleBase.__init__(self, constant_node)
-        assert type(self.constant) not in (set, dict)
-
-    def getIterationValueWithIndex(self, value_index):
-        try:
-            return makeConstantRefNode(
-                constant=self.constant[value_index],
-                source_ref=self.constant_node.source_ref,
-            )
-        except IndexError:
-            return None
-
-
-class ConstantSetAndDictIterationHandle(ConstantIterationHandleBase):
-    def __init__(self, constant_node):
-        ConstantIterationHandleBase.__init__(self, constant_node)
-        assert type(self.constant) in (set, dict)
-
-    def getIterationValueWithIndex(self, value_index):
-        return None
 
 
 class ExpressionConstantNoneRef(ExpressionConstantRefBase):
