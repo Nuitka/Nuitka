@@ -145,6 +145,7 @@ class ExpressionBase(NodeBase):
         )
 
     def getIterationHandle(self):
+        # Virtual method, pylint: disable=no-self-use
         return None
 
     def isKnownToBeHashable(self):

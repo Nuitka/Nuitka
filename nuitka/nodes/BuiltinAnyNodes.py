@@ -24,11 +24,9 @@ from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionBuiltinSingleArgBase
 from .NodeMakingHelpers import (
-    getComputationResult,
     makeConstantReplacementNode,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithNodeSideEffects,
-    wrapExpressionWithSideEffects,
 )
 from .shapes.BuiltinTypeShapes import ShapeTypeBool
 
