@@ -24,7 +24,9 @@ have happened.
 
 
 class ControlFlowDescriptionBase(object):
-    pass
+    @staticmethod
+    def isUnsupported():
+        return False
 
 
 class ControlFlowDescriptionElementBasedEscape(ControlFlowDescriptionBase):
@@ -73,5 +75,41 @@ class ControlFlowDescriptionComparisonUnorderable(ControlFlowDescriptionFullEsca
     pass
 
 
-class ControlFlowDescriptionAddUnsupported(ControlFlowDescriptionFullEscape):
+class ControlFlowDescriptionOperationUnsupportedBase(ControlFlowDescriptionFullEscape):
+    @staticmethod
+    def getExceptionExit():
+        return TypeError
+
+    @staticmethod
+    def isUnsupported():
+        return True
+
+
+class ControlFlowDescriptionAddUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionSubUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionMulUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionFloorDivUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionTrueDivUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
     pass

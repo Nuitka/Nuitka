@@ -15,14 +15,12 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
-PyObject *BINARY_OPERATION_ADD_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
     {{left.getCheckValueCode("operand1")|indent}}
     {{right.getCheckValueCode("operand2")|indent}}
 
-{# This makes sure, that INT_INT is clean, but everything else
-   needs more work and comes here. #}
     PyTypeObject *type1 = {{left.getTypeValueExpression("operand1")}};
-    binaryfunc slot1 = {{left.getSlotValueExpression("type1", "nb_add")}};
+    binaryfunc slot1 = {{left.getSlotValueExpression("type1", nb_slot)}};
 
     PyTypeObject *type2 = {{right.getTypeValueExpression("operand2")}};
     binaryfunc slot2 = NULL;
@@ -31,16 +29,16 @@ PyObject *BINARY_OPERATION_ADD_{{left.getHelperCodeName()}}_{{right.getHelperCod
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = {{right.getSlotValueExpression("type2", "nb_add")}};
+        slot2 = {{right.getSlotValueExpression("type2", nb_slot)}};
 
-        if (slot1 == slot2) {
+        if ({{left.getSlotComparisonEqualExpression(right, "slot1", "slot2")}}) {
             slot2 = NULL;
         }
     } else {
         assert(type1 == type2);
 
         {# There may be a special code for same types. #}
-        {{left.getSameTypeSpecializationCode(right, "nb_add", "operand1", "operand2")|indent}}
+        {{left.getSameTypeSpecializationCode(right, nb_slot, sq_slot1, "operand1", "operand2")|indent}}
     }
 
     if (slot1 != NULL) {
@@ -108,7 +106,7 @@ PyObject *BINARY_OPERATION_ADD_{{left.getHelperCodeName()}}_{{right.getHelperCod
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_add;
+                    binaryfunc slot = mv->{{nb_slot}};
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -147,7 +145,7 @@ PyObject *BINARY_OPERATION_ADD_{{left.getHelperCodeName()}}_{{right.getHelperCod
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_add;
+                    binaryfunc slot = mv->{{nb_slot}};
 
                     if (likely(slot != NULL)) {
                         PyObject *x = slot(coerced1, coerced2);
@@ -171,14 +169,21 @@ PyObject *BINARY_OPERATION_ADD_{{left.getHelperCodeName()}}_{{right.getHelperCod
 
     }
 #endif
-    {# There might be a sq_lot specialization. #}
-    {{left.getSqConcatSlotSpecializationCode(right, "sq_concat", "operand1", "operand2")|indent}}
 
-    // Special case for "+", also works as sequence concat.
-    binaryfunc slot3 = {{left.getSlotValueExpression("type1", "sq_concat")}};
+{# There might be a sq_slot specialization that saves the day. #}
+{% if operand in "+*" %}
+{% if left.getSqConcatSlotSpecializationCode(right, "sq_concat" if operand == "+" else "sq_repeat", "operand1", "operand2") %}
+    {{left.getSqConcatSlotSpecializationCode(right, "sq_concat" if operand == "+" else "sq_repeat", "operand1", "operand2")|indent}}
+{% else %}
+    // Special case for "+" and "*", also works as sequence concat/repeat.
+    {{"binaryfunc" if operand == "+" else "ssizeargfunc"}} sq_slot = {{left.getSlotValueExpression("type1", "sq_concat" if operand == "+" else "sq_repeat")}};
 
-    if (slot3 != NULL) {
-        PyObject *result = slot3(operand1, operand2);
+    if (sq_slot != NULL) {
+{% if operand == "+" %}
+        PyObject *result = sq_slot(operand1, operand2);
+{% else %}
+        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+{% endif %}
 
         if (unlikely(result == NULL)) {
             return NULL;
@@ -186,6 +191,27 @@ PyObject *BINARY_OPERATION_ADD_{{left.getHelperCodeName()}}_{{right.getHelperCod
 
         return result;
     }
+{% if operand == "*" %}
+{% if right.getSqConcatSlotSpecializationCode(left, "sq_repeat", "operand2", "operand1") %}
+    {{right.getSqConcatSlotSpecializationCode(left, "sq_repeat", "operand2", "operand1")|indent}}
+{% else %}
+    // Special case for "+" and "*", also works as sequence concat/repeat.
+    sq_slot = {{right.getSlotValueExpression("type2", "sq_repeat")}};
 
-    {{left.getRaiseUnsupportedTypeError("+", right, "type1", "type2")|indent}}
+    if (sq_slot != NULL) {
+        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        return result;
+    }
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}
+
+
+    {{left.getRaiseUnsupportedTypeError(operand, right, "type1", "type2")|indent}}
 }

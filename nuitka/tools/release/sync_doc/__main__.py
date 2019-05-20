@@ -30,7 +30,7 @@ from nuitka.utils.FileOperations import getFileContentByLine
 
 def main():
     quote_start_re = re.compile("[Qq]uoting the ``(.*)`` documentation")
-    quote_end_re = re.compile("[Ed]nd quoting the ``(.*)`` documentation")
+    quote_end_re = re.compile("(End|end) quoting the ``(.*)`` documentation")
 
     quoting = False
 

@@ -211,15 +211,21 @@ def deleteWindowsResources(filename, resource_kind, res_names):
 
 
 def copyResourcesFromFileToFile(source_filename, target_filename, resource_kind):
-    res_data = getResourcesFromDLL(source_filename, resource_kind, True)
+    res_data = getResourcesFromDLL(
+        filename=source_filename, resource_kind=resource_kind, with_data=True
+    )
 
     if res_data:
         update_handle = _openFileWindowsResources(target_filename)
 
-        for kind, res_name, lang, data in res_data:
+        for kind, res_name, lang_id, data in res_data:
             assert kind == resource_kind
 
-            _updateWindowsResource(update_handle, resource_kind, res_name, lang, data)
+            lang_id = 0
+
+            _updateWindowsResource(
+                update_handle, resource_kind, res_name, lang_id, data
+            )
 
         _closeFileWindowsResources(update_handle)
 

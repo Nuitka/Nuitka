@@ -28,24 +28,35 @@ import tempfile
 import time
 from contextlib import contextmanager
 
-from .ThreadedExecutor import Lock
+from nuitka.Tracing import my_print
+
+from .ThreadedExecutor import RLock, getThreadIdent
 from .Utils import getOS
 
-# Locking seems to be only required for Windows currently, expressed that in the
-# lock name.
+# Locking seems to be only required for Windows mostly, but we can keep
+# it for all.
 file_lock = None
+
+# Use this in case of dead locks or even to see file operations being done.
+_lock_tracing = False
 
 
 @contextmanager
-def _with_file_Lock():
+def withFileLock(reason="unknown"):
     # This is a singleton, pylint: disable=global-statement
     global file_lock
 
     if file_lock is None:
-        file_lock = Lock()
+        file_lock = RLock()
 
+    if _lock_tracing:
+        my_print(getThreadIdent(), "Want file lock for %s" % reason)
     file_lock.acquire()
+    if _lock_tracing:
+        my_print(getThreadIdent(), "Acquired file lock for %s" % reason)
     yield
+    if _lock_tracing:
+        my_print(getThreadIdent(), "Released file lock for %s" % reason)
     if file_lock is not None:
         file_lock.release()
 
@@ -113,7 +124,7 @@ def makePath(path):
 
     """
 
-    with _with_file_Lock():
+    with withFileLock("creating directory %s" % path):
         if not os.path.isdir(path):
             os.makedirs(path)
 
@@ -202,9 +213,15 @@ def deleteFile(path, must_exist):
         This also is thread safe on Windows, i.e. no race is
         possible.
     """
-    with _with_file_Lock():
-        if must_exist or os.path.isfile(path):
-            os.unlink(path)
+    with withFileLock("deleting file %s" % path):
+        if os.path.isfile(path):
+            try:
+                os.unlink(path)
+            except OSError:
+                if must_exist:
+                    raise
+        elif must_exist:
+            raise OSError("Does not exist", path)
 
 
 def splitPath(path):
@@ -238,7 +255,7 @@ def removeDirectory(path, ignore_errors):
 
         func(path)
 
-    with _with_file_Lock():
+    with withFileLock("removing directory %s" % path):
         if os.path.exists(path):
             try:
                 shutil.rmtree(path, ignore_errors=False, onerror=onError)
@@ -258,13 +275,22 @@ def withTemporaryFile(suffix="", mode="w", delete=True):
 
 
 def getFileContentByLine(filename, mode="r"):
-    with open(filename, mode) as f:
-        return f.readlines()
+    # We read the whole, to keep lock times minimal. We only deal with small
+    # files like this normally.
+    return getFileContents(filename, mode).splitlines()
 
 
 def getFileContents(filename, mode="r"):
-    with open(filename, mode) as f:
-        return f.read()
+    with withFileLock("reading file %s" % filename):
+        with open(filename, mode) as f:
+            return f.read()
+
+
+@contextmanager
+def withPreserveFileMode(filename):
+    old_mode = os.stat(filename).st_mode
+    yield
+    os.chmod(filename, old_mode)
 
 
 def renameFile(source_filename, dest_filename):

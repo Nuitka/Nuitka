@@ -19,27 +19,27 @@
 #     limitations under the License.
 #
 
-import difflib
 import os
-import shutil
-import subprocess
 import sys
-import time
 
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
 
-from nuitka.tools.testing.Common import getTempDir, my_print, setup # isort:skip
-from nuitka.utils.FileOperations import removeDirectory, listDir # isort:skip
+# isort:start
+
+import difflib
+import shutil
+import subprocess
+import time
+
+from nuitka.tools.testing.Common import getTempDir, my_print, setup
+from nuitka.utils.FileOperations import listDir, removeDirectory
+
 
 def main():
     python_version = setup()
@@ -60,22 +60,16 @@ def main():
         "--python-flag=-v",
         "--debug",
         "--module",
-        "package"
+        "package",
     ]
 
-    result = subprocess.call(
-        command
-    )
+    result = subprocess.call(command)
 
     if result != 0:
         sys.exit(result)
 
     os.makedirs(os.path.join(tmp_dir, "package.ext"))
-    shutil.copytree(
-        "package",
-        os.path.join(tmp_dir, "package.ext/package")
-    )
-
+    shutil.copytree("package", os.path.join(tmp_dir, "package.ext/package"))
 
     os.chdir(tmp_dir)
 
@@ -85,7 +79,8 @@ def main():
         # TODO: Maybe assert that the type name of a local function and one from
         # the package are not the same, i.e. we are running inside the compiled
         # package.
-        output.write("""
+        output.write(
+            """
 from __future__ import print_function
 
 import package
@@ -129,16 +124,33 @@ print("__file__:",    package.sub_package1.tests.__file__)
         with open(os.path.join("./package.ext/package", module_path), "w") as output:
             output.write("assert False")
 
-
     # Check the compiled package is functional for importing.
     my_print("Running package as basic test:")
-    assert os.system(os.environ["PYTHON"] + " -c 'import package'" ) == 0
+    command = [os.environ["PYTHON"], "-c", "import package"]
+
+    result = subprocess.call(command)
+
+    if result != 0:
+        sys.exit(result)
 
     my_print("Running nose tests:")
     # assert os.system(os.environ["PYTHON"] + " -m nose --first-package-wins -s package.sub_package1.tests" ) == 0
 
     my_print("Running py.test tests:")
-    assert os.system(os.environ["PYTHON"] + " -m pytest --pyargs package.sub_package1.tests" ) == 0
+    command = [
+        os.environ["PYTHON"],
+        "-m",
+        "pytest",
+        "-v",
+        "--pyargs",
+        "package.sub_package1.tests",
+    ]
+
+    result = subprocess.call(command)
+
+    if result != 0:
+        sys.exit(result)
+
 
 if __name__ == "__main__":
     main()

@@ -48,7 +48,11 @@ from nuitka.tools.testing.Common import (
     reportSkip,
     setup,
 )
-from nuitka.utils.FileOperations import getFileContentByLine, removeDirectory
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    getFileContentByLine,
+    removeDirectory,
+)
 
 python_version = setup(needs_io_encoding=True)
 
@@ -58,213 +62,6 @@ search_mode.mayFailFor(
     # Do not expect PySide to work yet, because it has that bug still
     # where it won't call compiled functions as slots.
     "PySideUsing.py"
-)
-
-
-_win_dll_whitelist = (
-    "SHELL32.DLL",
-    "USER32.DLL",
-    "KERNEL32.DLL",
-    "NTDLL.DLL",
-    "NETUTILS.DLL",
-    "LOGONCLI.DLL",
-    "GDI32.DLL",
-    "RPCRT4.DLL",
-    "ADVAPI32.DLL",
-    "SSPICLI.DLL",
-    "SECUR32.DLL",
-    "KERNELBASE.DLL",
-    "WINBRAND.DLL",
-    "DSROLE.DLL",
-    "DNSAPI.DLL",
-    "SAMCLI.DLL",
-    "WKSCLI.DLL",
-    "SAMLIB.DLL",
-    "WLDAP32.DLL",
-    "NTDSAPI.DLL",
-    "CRYPTBASE.DLL",
-    "W32TOPL",
-    "WS2_32.DLL",
-    "SPPC.DLL",
-    "MSSIGN32.DLL",
-    "CERTCLI.DLL",
-    "WEBSERVICES.DLL",
-    "AUTHZ.DLL",
-    "CERTENROLL.DLL",
-    "VAULTCLI.DLL",
-    "REGAPI.DLL",
-    "BROWCLI.DLL",
-    "WINNSI.DLL",
-    "DHCPCSVC6.DLL",
-    "PCWUM.DLL",
-    "CLBCATQ.DLL",
-    "IMAGEHLP.DLL",
-    "MSASN1.DLL",
-    "DBGHELP.DLL",
-    "DEVOBJ.DLL",
-    "DRVSTORE.DLL",
-    "CABINET.DLL",
-    "SCECLI.DLL",
-    "SPINF.DLL",
-    "SPFILEQ.DLL",
-    "GPAPI.DLL",
-    "NETJOIN.DLL",
-    "W32TOPL.DLL",
-    "NETBIOS.DLL",
-    "DXGI.DLL",
-    "DWRITE.DLL",
-    "D3D11.DLL",
-    "D3D11ON12.DLL",
-    "WLANAPI.DLL",
-    "WLANUTIL.DLL",
-    "ONEX.DLL",
-    "EAPPPRXY.DLL",
-    "MFPLAT.DLL",
-    "AVRT.DLL",
-    "ELSCORE.DLL",
-    "INETCOMM.DLL",
-    "MSOERT2.DLL",
-    "IEUI.DLL",
-    "MSCTF.DLL",
-    "MSFEEDS.DLL",
-    "UIAUTOMATIONCORE.DLL",
-    "PSAPI.DLL",
-    "EFSADU.DLL",
-    "MFC42U.DLL",
-    "ODBC32.DLL",
-    "OLEDLG.DLL",
-    "NETAPI32.DLL",
-    "LINKINFO.DLL",
-    "DUI70.DLL",
-    "ADVPACK.DLL",
-    "NTSHRUI.DLL",
-    "WINSPOOL.DRV",
-    "EFSUTIL.DLL",
-    "WINSCARD.DLL",
-    "SHDOCVW.DLL",
-    "IEFRAME.DLL",
-    "D2D1.DLL",
-    "GDIPLUS.DLL",
-    "OCCACHE.DLL",
-    "IEADVPACK.DLL",
-    "MLANG.DLL",
-    "MSI.DLL",
-    "MSHTML.DLL",
-    "COMDLG32.DLL",
-    "PRINTUI.DLL",
-    "PUIAPI.DLL",
-    "ACLUI.DLL",
-    "WTSAPI32.DLL",
-    "FMS.DLL",
-    "DFSCLI.DLL",
-    "HLINK.DLL",
-    "MSRATING.DLL",
-    "PRNTVPT.DLL",
-    "IMGUTIL.DLL",
-    "MSLS31.DLL",
-    "VERSION.DLL",
-    "NORMALIZ.DLL",
-    "IERTUTIL.DLL",
-    "WININET.DLL",
-    "WINTRUST.DLL",
-    "XMLLITE.DLL",
-    "APPHELP.DLL",
-    "PROPSYS.DLL",
-    "RSTRTMGR.DLL",
-    "NCRYPT.DLL",
-    "BCRYPT.DLL",
-    "MMDEVAPI.DLL",
-    "MSILTCFG.DLL",
-    "DEVMGR.DLL",
-    "DEVRTL.DLL",
-    "NEWDEV.DLL",
-    "VPNIKEAPI.DLL",
-    "WINHTTP.DLL",
-    "WEBIO.DLL",
-    "NSI.DLL",
-    "DHCPCSVC.DLL",
-    "CRYPTUI.DLL",
-    "ESENT.DLL",
-    "DAVHLPR.DLL",
-    "CSCAPI.DLL",
-    "ATL.DLL",
-    "OLEAUT32.DLL",
-    "SRVCLI.DLL",
-    "RASDLG.DLL",
-    "MPRAPI.DLL",
-    "RTUTILS.DLL",
-    "RASMAN.DLL",
-    "MPRMSG.DLL",
-    "SLC.DLL",
-    "CRYPTSP.DLL",
-    "RASAPI32.DLL",
-    "TAPI32.DLL",
-    "EAPPCFG.DLL",
-    "NDFAPI.DLL",
-    "WDI.DLL",
-    "COMCTL32.DLL",
-    "UXTHEME.DLL",
-    "IMM32.DLL",
-    "OLEACC.DLL",
-    "WINMM.DLL",
-    "WINDOWSCODECS.DLL",
-    "DWMAPI.DLL",
-    "DUSER.DLL",
-    "PROFAPI.DLL",
-    "URLMON.DLL",
-    "SHLWAPI.DLL",
-    "LPK.DLL",
-    "USP10.DLL",
-    "CFGMGR32.DLL",
-    "MSIMG32.DLL",
-    "POWRPROF.DLL",
-    "SETUPAPI.DLL",
-    "WINSTA.DLL",
-    "CRYPT32.DLL",
-    "IPHLPAPI.DLL",
-    "MPR.DLL",
-    "CREDUI.DLL",
-    "NETPLWIZ.DLL",
-    "OLE32.DLL",
-    "ACTIVEDS.DLL",
-    "ADSLDPC.DLL",
-    "USERENV.DLL",
-    "APPREPAPI.DLL",
-    "BCP47LANGS.DLL",
-    "BCRYPTPRIMITIVES.DLL",
-    "CERTCA.DLL",
-    "CHARTV.DLL",
-    "COMBASE.DLL",
-    "COML2.DLL",
-    "DCOMP.DLL",
-    "DPAPI.DLL",
-    "DSPARSE.DLL",
-    "FECLIENT.DLL",
-    "FIREWALLAPI.DLL",
-    "FLTLIB.DLL",
-    "MRMCORER.DLL",
-    "NTASN1.DLL",
-    "SECHOST.DLL",
-    "SETTINGSYNCPOLICY.DLL",
-    "SHCORE.DLL",
-    "TBS.DLL",
-    "TWINAPI.APPCORE.DLL",
-    "TWINAPI.DLL",
-    "VIRTDISK.DLL",
-    "WEBSOCKET.DLL",
-    "WEVTAPI.DLL",
-    "WINMMBASE.DLL",
-    "WMICLNT.DLL",
-    "UCRTBASE.DLL",
-    "TOKENBINDING.DLL",
-    "ICUUC.DLL",
-    "DRVSETUP.DLL",
-    "HTTPAPI.DLL",
-    "WDSCORE.DLL",
-    "ICUIN.DLL",
-    "WFDSCONMGR.DLL",
-    "MFC140U.DLL",
-    "MFCM140U.DLL",
 )
 
 # checks requirements needed to run each test module, according to the specified special comment
@@ -460,6 +257,21 @@ for filename in sorted(os.listdir(".")):
         loaded_filename = os.path.normpath(loaded_filename)
         loaded_filename = os.path.normcase(loaded_filename)
         loaded_basename = os.path.basename(loaded_filename)
+
+        if os.name == "nt":
+            if areSamePaths(
+                os.path.dirname(loaded_filename),
+                os.path.normpath(os.path.join(os.environ["SYSTEMROOT"], "System32")),
+            ):
+                continue
+            if areSamePaths(
+                os.path.dirname(loaded_filename),
+                os.path.normpath(os.path.join(os.environ["SYSTEMROOT"], "SysWOW64")),
+            ):
+                continue
+
+            if r"windows\winsxs" in loaded_filename:
+                continue
 
         if loaded_filename.startswith(current_dir):
             continue
@@ -665,6 +477,8 @@ for filename in sorted(os.listdir(".")):
         if loaded_filename in (
             "/usr/lib/qt5/plugins",
             "/usr/lib/qt5",
+            "/usr/lib64/qt5/plugins",
+            "/usr/lib64/qt5",
             "/usr/lib/x86_64-linux-gnu/qt5/plugins",
             "/usr/lib/x86_64-linux-gnu/qt5",
             "/usr/lib/x86_64-linux-gnu",
@@ -701,21 +515,12 @@ for filename in sorted(os.listdir(".")):
         if loaded_filename.endswith(("site-packages", "dist-packages")):
             continue
 
-        # Windows baseline DLLs
-        if loaded_basename.upper() in _win_dll_whitelist:
+        # QtNetwork insist on doing this it seems.
+        if loaded_basename.startswith(("libcrypto.so", "libssl.so")):
             continue
 
-        # Win API can be assumed.
-        if loaded_basename.upper().startswith("API-MS-WIN"):
-            continue
-
-        # MSVC run time DLLs, seem to sometimes come from system. TODO:
-        # clarify if that means we did it wrong.
+        # MSVC run time DLLs, seem to sometimes come from system.
         if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
-            continue
-
-        # These stopped being loaded by system on Windows 10.
-        if loaded_basename.upper() in ("MSVCP_WIN.DLL", "WIN32U.DLL"):
             continue
 
         my_print("Should not access '%s'." % loaded_filename)

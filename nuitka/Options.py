@@ -391,7 +391,7 @@ def isFullCompat():
 def isShowProgress():
     """ *bool* = "--show-progress"
     """
-    return options.show_progress
+    return options is not None and options.show_progress
 
 
 def isShowMemory():
@@ -418,6 +418,9 @@ def getIntendedPythonArch():
     return options.python_arch
 
 
+experimental = set()
+
+
 def isExperimental(indication):
     """ Check whether a given experimental feature is enabled.
 
@@ -426,7 +429,19 @@ def isExperimental(indication):
     Returns:
         bool
     """
-    return hasattr(options, "experimental") and indication in options.experimental
+    return (
+        indication in experimental
+        or hasattr(options, "experimental")
+        and indication in options.experimental
+    )
+
+
+def enableExperimental(indication):
+    experimental.add(indication)
+
+
+def disableExperimental(indication):
+    experimental.remove(indication)
 
 
 def getExperimentalIndications():
@@ -500,13 +515,15 @@ def shallFreezeAllStdlib():
 def shallNotUseDependsExeCachedResults():
     """ *bool* = "--disable-dll-dependency-cache" or "--force-dll-dependency-cache-update"
     """
-    return options.no_dependency_cache or options.update_dependency_cache
+    return shallNotStoreDependsExeCachedResults() or getattr(
+        options, "update_dependency_cache", False
+    )
 
 
 def shallNotStoreDependsExeCachedResults():
     """ *bool* = "--disable-dll-dependency-cache"
     """
-    return options.no_dependency_cache
+    return getattr(options, "no_dependency_cache", False)
 
 
 def getPluginsEnabled():

@@ -17,31 +17,37 @@
 #
 """ Threaded pool execution.
 
-This can use Python3 native, Python2.7 backport, or has a Python2.6 stub that
-does not thread at all.
+This can use Python3 native, or even Python2.7 backport, or has a Python2.6
+stub that does not thread at all.
 """
 
-from threading import Lock
+from threading import RLock, current_thread
+
+_use_threaded_executor = False
 
 try:
-    from concurrent.futures import (
-        ThreadPoolExecutor,
-        wait,
-        as_completed,
-        FIRST_EXCEPTION,
-    )  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module,unused-import
+    if _use_threaded_executor:
+        from concurrent.futures import (
+            ThreadPoolExecutor,
+            wait,
+            as_completed,
+            FIRST_EXCEPTION,
+        )  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module,unused-import
 
-    def waitWorkers(workers):
-        wait(workers, return_when=FIRST_EXCEPTION)
+        def waitWorkers(workers):
+            wait(workers, return_when=FIRST_EXCEPTION)
 
-        for future in as_completed(workers):
-            yield future.result()
+            for future in as_completed(workers):
+                yield future.result()
 
 
 except ImportError:
+    _use_threaded_executor = False
+
+if not _use_threaded_executor:
     # No backport installed, use stub for at least Python 2.6, and potentially
     # also Python 2.7, we might want to tell the user about it though, that
-    # we think it should be installed.
+    # we think it should be installed. pylint:disable=function-redefined
     class ThreadPoolExecutor(object):
         def __init__(self, max_workers=None):
             # This stub ignores max_workers, pylint: disable=unused-argument
@@ -65,5 +71,9 @@ except ImportError:
             return iter(workers[0].results)
 
 
-assert Lock
+def getThreadIdent():
+    return current_thread()
+
+
+assert RLock
 assert ThreadPoolExecutor

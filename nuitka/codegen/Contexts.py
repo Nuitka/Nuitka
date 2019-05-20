@@ -571,6 +571,9 @@ def _getConstantDefaultPopulation():
         False,
         0,
         1,
+        # Some math operations shortcut to these
+        0.0,
+        -0.0,
         # For Python3 empty bytes, no effect for Python2, same as "", used for
         # code objects.
         b"",

@@ -35,7 +35,11 @@ from nuitka.tools.quality.Git import (
 )
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
-from nuitka.utils.FileOperations import getFileContents, renameFile
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    renameFile,
+    withPreserveFileMode,
+)
 from nuitka.utils.Shebang import getShebangFromFile
 from nuitka.utils.Utils import getOS
 
@@ -163,11 +167,10 @@ def _cleanupPyLintComments(filename, abort):
 
 
 def _cleanupImportRelative(filename):
-    package_name = os.path.dirname(filename)
+    package_name = os.path.dirname(filename).replace(os.path.sep, ".")
 
     # Make imports local if possible.
-    if package_name.startswith("nuitka" + os.path.sep):
-        package_name = package_name.replace(os.path.sep, ".")
+    if package_name.startswith("nuitka."):
 
         source_code = getFileContents(filename)
         updated_code = re.sub(
@@ -206,6 +209,8 @@ def _getPythonBinaryCall(binary_name):
 
 
 def _cleanupImportSortOrder(filename):
+    _cleanupImportRelative(filename)
+
     isort_call = _getPythonBinaryCall("isort")
 
     contents = getFileContents(filename)
@@ -365,17 +370,19 @@ def autoformat(filename, git_stage, abort):
         elif is_txt:
             _cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)
+            _cleanupWindowsNewlines(tmp_filename)
 
         changed = False
         if old_code != getFileContents(tmp_filename, "rb"):
             my_print("Updated.")
 
-            if git_stage:
-                new_hash_value = putFileHashContent(tmp_filename)
-                updateFileIndex(git_stage, new_hash_value)
-                updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
-            else:
-                renameFile(tmp_filename, filename)
+            with withPreserveFileMode(filename):
+                if git_stage:
+                    new_hash_value = putFileHashContent(tmp_filename)
+                    updateFileIndex(git_stage, new_hash_value)
+                    updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
+                else:
+                    renameFile(tmp_filename, filename)
 
             changed = True
         else:

@@ -140,6 +140,9 @@ class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
         # we know the result will be a long.
         return self, None, None
 
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseException(exception_type)
+
     def getIntValue(self):
         return self
 
