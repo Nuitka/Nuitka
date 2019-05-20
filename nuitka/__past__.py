@@ -111,6 +111,22 @@ if str is bytes:
 else:
     intern = sys.intern  # @ReservedAssignment @UndefinedVariable
 
+
+def getMetaClassBase(meta_class_prefix):
+    """ For Python2/3 compatible source, we create a base class that has the metaclass
+    used and doesn't require making a choice.
+    """
+
+    from abc import ABCMeta
+
+    class MetaClass(ABCMeta):
+        pass
+
+    MetaClassBase = MetaClass("%sMetaClassBase" % meta_class_prefix, (object,), {})
+
+    return MetaClassBase
+
+
 # For PyLint to be happy.
 assert long
 assert unicode

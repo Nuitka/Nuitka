@@ -15,30 +15,22 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" This tool is generating code variants for helper codes from Jinka templates.
+""" This tool is generating code variants for helper codes from Jinja templates.
 
 """
 
 from __future__ import print_function
 
 import os
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 
 import jinja2
 
+from nuitka.__past__ import getMetaClassBase
 from nuitka.tools.quality.autoformat.Autoformat import cleanupClangFormat
 
 
-class TypeMetaClass(ABCMeta):
-    pass
-
-
-# For Python2/3 compatible source, we create a base class that has the metaclass
-# used and doesn't require making a choice.
-TypeMetaClassBase = TypeMetaClass("TypeMetaClassBase", (object,), {})
-
-
-class TypeDescBase(TypeMetaClassBase):
+class TypeDescBase(getMetaClassBase("Type")):
     # To be overloaded
     type_name = None
     type_desc = None
