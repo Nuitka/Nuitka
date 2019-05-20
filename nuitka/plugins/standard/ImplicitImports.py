@@ -263,13 +263,155 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "yaml", True
         elif full_name == "apt_inst":
             yield "apt_pkg", True
+
+        # start of gevent imports --------------------------------------------
+        elif full_name == "gevent":
+            yield "_cffi_backend", True
+            yield "gevent._config", True
+            yield "gevent.core", True
+            yield "gevent.resolver_thread", True
+            yield "gevent.resolver_ares", True
+            yield "gevent.socket", True
+            yield "gevent.threadpool", True
+            yield "gevent.thread", True
+            yield "gevent.threading", True
+            yield "gevent.select", True
+            yield "gevent.subprocess", True
+            if getOS() == "Windows":
+                yield "gevent.libuv", True
+            else:
+                yield "gevent.libev", True
+
+        elif full_name == "gevent.hub":
+            yield "gevent._hub_primitives", True
+            yield "gevent._greenlet_primitives", True
+            yield "gevent._hub_local", True
+            yield "gevent._waiter", True
+            yield "gevent._util", True
+            yield "gevent._ident", True
+            yield "gevent.exceptions", True
+
+        elif full_name == "gevent.libev":
+            yield "gevent.libev.corecext", True
+            yield "gevent.libev.corecffi", True
+            yield "gevent.libev.watcher", True
+
+        elif full_name == "gevent.libuv":
+            yield "gevent._interfaces", True
+            yield "gevent._ffi", True
+            yield "gevent.libuv.loop", True
+            yield "gevent.libuv.watcher", True
+
+        elif full_name == "gevent.libuv.loop":
+            yield "gevent.libuv._corecffi", True
+            yield "gevent._interfaces", True
+
+        elif full_name == "gevent._ffi":
+            yield "gevent._ffi.loop", True
+
+        elif full_name == "gevent._waiter":
+            yield "gevent.__waiter", True
+
+        elif full_name == "gevent._hub_local":
+            yield "gevent.__hub_local", True
+            yield "gevent.__greenlet_primitives", True
+
+        elif full_name == "gevent._hub_primitives":
+            yield "gevent.__hub_primitives", True
+
+        elif full_name == "gevent.greenlet":
+            yield "gevent._hub_local", True
+            yield "gevent._greenlet", True
+
+        elif full_name == "gevent._greenlet":
+            yield "gevent.__ident", True
+
+        elif full_name == "gevent.monkey":
+            yield "gevent.builtins", True
+            yield "gevent.time", True
+            yield "gevent.local", True
+            yield "gevent.ssl", True
+            yield "gevent.events", True
+
+        elif full_name == "gevent._semaphore":
+            yield "gevent._abstract_linkable", True
+            yield "gevent.__semaphore", True
+
+        elif full_name == "gevent._abstract_linkable":
+            yield "gevent.__abstract_linkable", True
+
+        elif full_name == "gevent.local":
+            yield "gevent._local", True
+
+        elif full_name == "gevent.event":
+            yield "gevent._event", True
+
+        elif full_name == "gevent.queue":
+            yield "gevent._queue", True
+
+        elif full_name == "gevent.pool":
+            yield "gevent._imap", True
+
+        elif full_name == "gevent._imap":
+            yield "gevent.__imap", True
+        # end of gevent imports ----------------------------------------------
+
+        # start of tensorflow imports --------------------------------------------
+        elif full_name == "tensorflow":
+            yield "tensorflow._api", True
+            yield "tensorflow.python", True
+            yield "tensorflow.core", True
+            yield "tensorflow.lite.python.lite", True
+            yield "tensorflow_estimator.python.estimator.api", False
+
+        elif full_name == "tensorflow.lite.python":
+            yield "tensorflow.python.framework.importer", True
+
+        elif full_name == "tensorflow.lite.python.optimize":
+            yield "tensorflow.lite.python.optimize._tensorflow_lite_wrap_calibration_wrapper", True
+
+        elif full_name == "tensorflow.lite.toco.python":
+            yield "tensorflow.lite.toco.python._tensorflow_wrap_toco", True
+
+        elif full_name == "tensorflow.lite.python.interpreter_wrapper":
+            yield "tensorflow.lite.python.interpreter_wrapper._tensorflow_wrap_interpreter_wrapper", True
+
+        elif full_name == "tensorflow.python":
+            yield "tensorflow.python.pywrap_tensorflow", True
+            yield "tensorflow.python._pywrap_tensorflow_internal", True
+            yield "tensorflow.python.tools", True
+            yield "tensorflow.python.compat", True
+            yield "tensorflow.python.framework", True
+            yield "tensorflow.python.module", True
+            yield "tensorflow.python.ops", True
+            yield "tensorflow.python.platform", True
+            yield "tensorflow.python.lib.io", True
+            yield "tensorflow.python.util", True
+            yield "tensorflow.python.keras.api", False
+
+        # end of tensorflow imports --------------------------------------------
         elif full_name == "numpy.core":
-            yield "numpy.core._dtype_ctypes", False
+            yield "numpy.core._dtype_ctypes", True
+
         elif full_name == "scipy.special":
-            yield "scipy.special._ufuncs_cxx", False
+            yield "scipy.special._ufuncs_cxx", True
         elif full_name == "scipy.linalg":
-            yield "scipy.linalg.cython_blas", False
-            yield "scipy.linalg.cython_lapack", False
+            yield "scipy.linalg.cython_blas", True
+            yield "scipy.linalg.cython_lapack", True
+        elif full_name == "scipy.sparse.csgraph":
+            yield "scipy.sparse.csgraph._validation", True
+        elif full_name == "scipy._lib":
+            yield "scipy._lib.messagestream", True
+
+        elif full_name == "sklearn.utils.sparsetools":
+            yield "sklearn.utils.sparsetools._graph_validation", True
+            yield "sklearn.utils.sparsetools._graph_tools", True
+
+        elif full_name == "sklearn.utils":
+            yield "sklearn.utils.lgamma", True
+            yield "sklearn.utils.weight_vector", True
+            yield "sklearn.utils._unittest_backport", True
+
         elif full_name == "PIL._imagingtk":
             yield "PIL._tkinter_finder", True
         elif full_name == "pkg_resources.extern":
