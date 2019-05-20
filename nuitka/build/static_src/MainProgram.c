@@ -77,7 +77,7 @@ static void prepareStandaloneEnvironment() {
      * the provided binary directory as the place to look for DLLs and for
      * extension modules.
      */
-#if defined(_WIN32) && defined(_MSC_VER)
+#if defined(_WIN32)
     SetDllDirectoryW(getBinaryDirectoryWideChars());
 #endif
 
