@@ -531,6 +531,7 @@ print(any([None, 4, None]))
 print(any([]))
 print(any(range(20)))
 print(any([0] * 20000))
+print(any([0] * 255))
 
 S = [40, 60, 30]
 print(any(x > 42 for x in S))
@@ -550,6 +551,5 @@ try:
 except Exception as e:
     print("Object not iterable")
 
-#print(any(set([0, 1, 2, 3, 3])))
-#print(any({1:"One", 2:"Two"}))
-
+print(any(set([0, 1, 2, 3, 3])))
+print(any({1:"One", 2:"Two"}))

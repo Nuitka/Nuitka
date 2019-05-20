@@ -23,6 +23,13 @@
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionBuiltinSingleArgBase
+from .NodeMakingHelpers import (
+    getComputationResult,
+    makeConstantReplacementNode,
+    makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
+    wrapExpressionWithNodeSideEffects,
+    wrapExpressionWithSideEffects,
+)
 from .shapes.BuiltinTypeShapes import ShapeTypeBool
 
 
@@ -42,9 +49,66 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
     builtin_spec = BuiltinParameterSpecs.builtin_any_spec
 
     def computeExpression(self, trace_collection):
-        return self.getValue().computeExpressionAny(
-            any_node=self, trace_collection=trace_collection
-        )
+        value = self.getValue()
+        shape = value.getTypeShape()
+        if shape.hasShapeSlotIter() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template="'%s' object is not iterable",
+                operation="any",
+                original_node=value,
+                value_node=value,
+            )
+
+        iteration_handle = value.getIterationHandle()
+
+        if iteration_handle is not None:
+            all_false = True
+            count = 0
+            while True:
+                truth_value = iteration_handle.getNextValueTruth()
+                if truth_value is StopIteration:
+                    break
+                if count > 256:
+                    all_false = False
+                    break
+
+                if truth_value is True:
+                    result = wrapExpressionWithNodeSideEffects(
+                        new_node=makeConstantReplacementNode(constant=True, node=self),
+                        old_node=value,
+                    )
+
+                    return (
+                        result,
+                        "new_constant",
+                        "Predicted truth value of built-in any argument",
+                    )
+                elif truth_value is None:
+                    all_false = False
+
+                count += 1
+
+            if all_false is True:
+                result = wrapExpressionWithNodeSideEffects(
+                    new_node=makeConstantReplacementNode(constant=False, node=self),
+                    old_node=value,
+                )
+
+                return (
+                    result,
+                    "new_constant",
+                    "Predicted truth value of built-in any argument",
+                )
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
 
     def getTypeShape(self):
         """ returns type shape of the 'any' node

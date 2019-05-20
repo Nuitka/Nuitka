@@ -144,6 +144,9 @@ class ExpressionBase(NodeBase):
             value=self.makeClone(), source_ref=self.getSourceReference()
         )
 
+    def getIterationHandle(self):
+        return None
+
     def isKnownToBeHashable(self):
         """ Is the value hashable, i.e. suitable for dictionary/set keying."""
 
@@ -373,69 +376,6 @@ class ExpressionBase(NodeBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return len_node, None, None
-
-    def computeExpressionAny(self, any_node, trace_collection):
-        value = any_node.getValue()
-        shape = value.getTypeShape()
-        if shape.hasShapeSlotIter() is False:
-            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                template="'%s' object is not iterable",
-                operation="any",
-                original_node=value,
-                value_node=value,
-            )
-
-        iteration_handle = value.getIterationHandle()
-
-        if iteration_handle is not None:
-            all_false = True
-            count = 0
-            while True:
-                iteration_value = iteration_handle.getNextValueExpression()
-                if iteration_value is None:
-                    break
-                if count > 256:
-                    all_false = False
-                    break
-                truth_value = iteration_value.getTruthValue()
-
-                if truth_value is True:
-                    result = wrapExpressionWithNodeSideEffects(
-                        new_node=makeConstantReplacementNode(constant=True, node=self),
-                        old_node=value,
-                    )
-
-                    return (
-                        result,
-                        "new_constant",
-                        "Predicted truth value of built-in any argument",
-                    )
-                elif truth_value is None:
-                    all_false = False
-
-                count += 1
-
-            if all_false is True:
-                result = wrapExpressionWithNodeSideEffects(
-                    new_node=makeConstantReplacementNode(constant=False, node=self),
-                    old_node=value,
-                )
-
-                return (
-                    result,
-                    "new_constant",
-                    "Predicted truth value of built-in any argument",
-                )
-
-        any_node.onContentEscapes(trace_collection)
-
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(any_node)
-
-        # Any exception may be raised.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return any_node, None, None
 
     def computeExpressionInt(self, int_node, trace_collection):
         shape = self.getTypeShape()
