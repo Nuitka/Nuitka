@@ -60,6 +60,10 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     def isRelevant():
         return Options.isStandaloneMode()
 
+    @staticmethod
+    def isAlwaysEnabled():
+        return True
+
     def considerDataFiles(self, module):
         if module.getFullName() in known_data_files:
             for target_dir, filename in known_data_files[module.getFullName()]:

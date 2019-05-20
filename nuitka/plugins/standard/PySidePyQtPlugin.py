@@ -41,6 +41,7 @@ class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
     """
 
     plugin_name = "qt-plugins"
+    plugin_desc = "Required by the PyQt and PySide packages"
 
     def __init__(self):
         self.qt_dirs = {}

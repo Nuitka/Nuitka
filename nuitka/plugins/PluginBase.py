@@ -79,6 +79,22 @@ class NuitkaPluginBase(object):
     # the script's path (use __file__, __module__ or __name__).
     plugin_name = None
 
+    @staticmethod
+    def isAlwaysEnabled():
+        """ Request to be always enabled.
+
+        Notes:
+            Setting this to true is only applicable to standard plugins. In
+            this case, the plugin will be enabled upon Nuitka start-up. Any
+            plugin detector class will then be ignored. Method isRelevant() may
+            also be present and can be used to fine-control enabling the
+            plugin: A to-be-enabled, but irrelevant plugin will still not be
+            activated.
+        Returns:
+            True or False
+        """
+        return False
+
     def getPluginOptionBool(self, option_name, default_value):
         """ Check whether an option is switched on or off.
 
@@ -585,15 +601,3 @@ class NuitkaPluginBase(object):
             warned_unused_plugins.add(self.plugin_name)
 
             warning("Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message))
-
-
-class UserPluginBase(NuitkaPluginBase):
-    """ Use this class to inherit from NuitkaPluginBase.
-
-    Args:
-        NuitkaPluginBase: the base class we inherit from
-    """
-
-    # You must provide this as a string which identifies your plugin.
-    # Arbitrary for standard plugins, filename for user plugins.
-    plugin_name = None

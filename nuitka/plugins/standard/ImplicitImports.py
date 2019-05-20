@@ -33,11 +33,17 @@ from nuitka.utils.Utils import getOS
 
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
+    plugin_name = "implicit-imports"
+
     def __init__(self):
         NuitkaPluginBase.__init__(self)
 
         self.pkg_utils_externals = None
         self.opengl_plugins = None
+
+    @staticmethod
+    def isAlwaysEnabled():
+        return True
 
     def getImplicitImports(self, module):
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements

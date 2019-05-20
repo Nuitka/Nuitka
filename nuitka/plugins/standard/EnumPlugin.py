@@ -34,6 +34,14 @@ class NuitkaPluginEnumWorkarounds(NuitkaPluginBase):
     plugin_name = "enum-compat"
 
     @staticmethod
+    def isRelevant():
+        return python_version < 300
+
+    @staticmethod
+    def isAlwaysEnabled():
+        return True
+
+    @staticmethod
     def createPostModuleLoadCode(module):
         full_name = module.getFullName()
 
@@ -54,18 +62,3 @@ Monkey patching "enum" for compiled '__new__' methods.""",
             )
 
         return None, None
-
-
-class NuitkaPluginDetectorEnumWorkarounds(NuitkaPluginBase):
-    plugin_name = "enum-compat"
-
-    @staticmethod
-    def isRelevant():
-        return python_version < 300
-
-    def onModuleSourceCode(self, module_name, source_code):
-        if module_name == "enum":
-            if "temp_enum_dict['__new__'] = __new__" in source_code:
-                self.warnUnusedPlugin("Enum workarounds for compiled code.")
-
-        return source_code
