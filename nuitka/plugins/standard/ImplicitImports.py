@@ -391,7 +391,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         # end of tensorflow imports --------------------------------------------
         elif full_name == "numpy.core":
-            yield "numpy.core._dtype_ctypes", True
+            yield "numpy.core._dtype_ctypes", False
 
         elif full_name == "scipy.special":
             yield "scipy.special._ufuncs_cxx", True
@@ -474,8 +474,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             for opengl_plugin in self.opengl_plugins:
                 yield opengl_plugin, True
         # Support for both pycryotodome (module name Crypto) and pycyptodomex (module name Cryptodome)
-        elif full_name.split('.')[0] in ("Crypto", "Cryptodome"):
-            crypto_module_name = full_name.split('.')[0]
+        elif full_name.split(".")[0] in ("Crypto", "Cryptodome"):
+            crypto_module_name = full_name.split(".")[0]
             if full_name == crypto_module_name + ".Util._raw_api":
                 for module_name in (
                     "_raw_aes",
