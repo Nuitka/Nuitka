@@ -533,8 +533,15 @@ print(any(range(20)))
 print(any([0] * 20000))
 print(any([0] * 255))
 
-S = [40, 60, 30]
-print(any(x > 42 for x in S))
+def S():
+    print("Yielding 40")
+    yield 40
+    print("Yielding 60")
+    yield 60
+    print("Yielding 30")
+    yield 30
+
+print(any(x > 42 for x in S()))
 
 try:
     print(any())
