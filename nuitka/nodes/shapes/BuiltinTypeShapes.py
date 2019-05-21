@@ -78,6 +78,9 @@ mul_shapes_list = {}
 add_shapes_set = {}
 sub_shapes_set = {}
 mul_shapes_set = {}
+add_shapes_frozenset = {}
+sub_shapes_frozenset = {}
+mul_shapes_frozenset = {}
 add_shapes_dict = {}
 sub_shapes_dict = {}
 mul_shapes_dict = mul_shapes_set  # Dicts do not multiply either
@@ -885,6 +888,10 @@ class ShapeTypeFrozenset(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return True
+
+    add_shapes = add_shapes_frozenset
+    sub_shapes = sub_shapes_frozenset
+    mul_shapes = mul_shapes_frozenset
 
 
 class ShapeTypeDict(ShapeBase):
@@ -1802,6 +1809,7 @@ operation_result_complex_noescape = ShapeTypeComplex, ControlFlowDescriptionNoEs
 operation_result_tuple_noescape = ShapeTypeTuple, ControlFlowDescriptionNoEscape
 operation_result_list_noescape = ShapeTypeList, ControlFlowDescriptionNoEscape
 operation_result_set_noescape = ShapeTypeSet, ControlFlowDescriptionNoEscape
+operation_result_frozenset_noescape = ShapeTypeFrozenset, ControlFlowDescriptionNoEscape
 operation_result_str_noescape = ShapeTypeStr, ControlFlowDescriptionNoEscape
 operation_result_unicode_noescape = ShapeTypeUnicode, ControlFlowDescriptionNoEscape
 operation_result_strorunicode_noescape = (
@@ -2527,6 +2535,9 @@ sequence_non_multiplicants = (
     ShapeTypeUnicode,
     ShapeTypeTuple,
     ShapeTypeList,
+    ShapeTypeSet,
+    ShapeTypeFrozenset,
+    ShapeTypeDict,
 )
 
 
@@ -2579,7 +2590,8 @@ add_shapes_set.update(
         ShapeTypeUnicode: operation_result_unsupported_add,
         ShapeTypeTuple: operation_result_unsupported_add,
         ShapeTypeList: operation_result_unsupported_add,
-        ShapeTypeSet: operation_result_set_noescape,
+        ShapeTypeSet: operation_result_unsupported_add,
+        ShapeTypeFrozenset: operation_result_unsupported_add,
         # Unsupported:
         ShapeTypeDict: operation_result_unsupported_add,
         ShapeTypeNoneType: operation_result_unsupported_add,
@@ -2639,6 +2651,96 @@ mul_shapes_set.update(
         ShapeTypeList: operation_result_unsupported_mul,
         # Unsupported:
         ShapeTypeSet: operation_result_unsupported_mul,
+        ShapeTypeDict: operation_result_unsupported_mul,
+        ShapeTypeNoneType: operation_result_unsupported_mul,
+    }
+)
+
+add_shapes_frozenset.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # Sets to do not multiply
+        ShapeTypeInt: operation_result_unsupported_add,
+        ShapeTypeLong: operation_result_unsupported_add,
+        ShapeTypeIntOrLong: operation_result_unsupported_add,
+        ShapeTypeBool: operation_result_unsupported_add,
+        ShapeTypeFloat: operation_result_unsupported_add,
+        # Sequence repeat is not allowed
+        ShapeTypeStr: operation_result_unsupported_add,
+        ShapeTypeBytes: operation_result_unsupported_add,
+        ShapeTypeBytearray: operation_result_unsupported_add,
+        ShapeTypeUnicode: operation_result_unsupported_add,
+        ShapeTypeTuple: operation_result_unsupported_add,
+        ShapeTypeList: operation_result_unsupported_add,
+        ShapeTypeSet: operation_result_unsupported_add,
+        ShapeTypeFrozenset: operation_result_unsupported_add,
+        # Unsupported:
+        ShapeTypeDict: operation_result_unsupported_add,
+        ShapeTypeNoneType: operation_result_unsupported_add,
+    }
+)
+
+sub_shapes_frozenset.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # Sets to do not multiply
+        ShapeTypeInt: operation_result_unsupported_sub,
+        ShapeTypeLong: operation_result_unsupported_sub,
+        ShapeTypeIntOrLong: operation_result_unsupported_sub,
+        ShapeTypeBool: operation_result_unsupported_sub,
+        ShapeTypeFloat: operation_result_unsupported_sub,
+        # Sequence repeat is not allowed
+        ShapeTypeStr: operation_result_unsupported_sub,
+        ShapeTypeBytes: operation_result_unsupported_sub,
+        ShapeTypeBytearray: operation_result_unsupported_sub,
+        ShapeTypeUnicode: operation_result_unsupported_sub,
+        ShapeTypeTuple: operation_result_unsupported_sub,
+        ShapeTypeList: operation_result_unsupported_sub,
+        ShapeTypeSet: operation_result_frozenset_noescape,
+        ShapeTypeFrozenset: operation_result_frozenset_noescape,
+        # Unsupported:
+        ShapeTypeDict: operation_result_unsupported_sub,
+        ShapeTypeNoneType: operation_result_unsupported_sub,
+    }
+)
+
+mul_shapes_frozenset.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # Sets to do not multiply
+        ShapeTypeInt: operation_result_unsupported_mul,
+        ShapeTypeLong: operation_result_unsupported_mul,
+        ShapeTypeIntOrLong: operation_result_unsupported_mul,
+        ShapeTypeBool: operation_result_unsupported_mul,
+        ShapeTypeFloat: operation_result_unsupported_mul,
+        # Sequence repeat is not allowed
+        ShapeTypeStr: operation_result_unsupported_mul,
+        ShapeTypeBytes: operation_result_unsupported_mul,
+        ShapeTypeBytearray: operation_result_unsupported_mul,
+        ShapeTypeUnicode: operation_result_unsupported_mul,
+        ShapeTypeTuple: operation_result_unsupported_mul,
+        ShapeTypeList: operation_result_unsupported_mul,
+        # Unsupported:
+        ShapeTypeSet: operation_result_unsupported_mul,
+        ShapeTypeFrozenset: operation_result_unsupported_mul,
         ShapeTypeDict: operation_result_unsupported_mul,
         ShapeTypeNoneType: operation_result_unsupported_mul,
     }
