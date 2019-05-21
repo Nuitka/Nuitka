@@ -604,4 +604,3 @@ class NuitkaPluginBase(object):
             warned_unused_plugins.add(self.plugin_name)
 
             warning("Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message))
-

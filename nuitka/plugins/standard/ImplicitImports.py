@@ -54,7 +54,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             obtain results, which cannot provide a Nuitka module object.
         """
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
-        
+
         elements = full_name.split(".")
         if elements[0] in ("PyQt4", "PyQt5"):
             if python_version < 300:
@@ -387,10 +387,16 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         # the remaining entries are relevant non-Windows platforms only
         elif getOS() != "Windows":
-            if full_name == "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal":
+            if (
+                full_name
+                == "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal"
+            ):
                 yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal._api_implementation", True
 
-            elif full_name == "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext":
+            elif (
+                full_name
+                == "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext"
+            ):
                 yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext._message", True
 
             elif full_name == "tensorflow.python.framework":

@@ -21,6 +21,7 @@ import os
 import pkgutil
 import shutil
 from logging import info
+
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 

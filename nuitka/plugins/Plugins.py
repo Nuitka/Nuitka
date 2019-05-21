@@ -32,9 +32,11 @@ from __future__ import print_function
 import os
 import sys
 from logging import info
+
 from nuitka import Options
-from nuitka.PythonVersions import python_version
 from nuitka.ModuleRegistry import addUsedModule
+from nuitka.PythonVersions import python_version
+
 from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
 
 active_plugin_list = []

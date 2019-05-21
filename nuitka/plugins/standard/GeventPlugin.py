@@ -19,6 +19,7 @@
 """
 import os
 from logging import info
+
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import active_plugin_list

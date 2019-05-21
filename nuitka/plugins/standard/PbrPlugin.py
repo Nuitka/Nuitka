@@ -21,8 +21,8 @@ The pbr module needs to find a version number in compiled mode. The value
 itself seems less important than the fact that some value does exist.
 """
 
-from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka import Options
+from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
 class NuitkaPluginPbrWorkarounds(NuitkaPluginBase):
