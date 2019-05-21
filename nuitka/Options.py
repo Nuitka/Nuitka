@@ -512,6 +512,12 @@ def shallFreezeAllStdlib():
     return not shallFollowStandardLibrary()
 
 
+def getWindowsDependencyTool():
+    """ *str*, value of "--windows-dependency-tool="
+    """
+    return options.dependency_tool
+
+
 def shallNotUseDependsExeCachedResults():
     """ *bool* = "--disable-dll-dependency-cache" or "--force-dll-dependency-cache-update"
     """

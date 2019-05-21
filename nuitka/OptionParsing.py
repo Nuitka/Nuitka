@@ -409,9 +409,6 @@ Defaults to off.""",
 parser.add_option_group(output_group)
 
 
-windows_group = OptionGroup(parser, "Windows specific output control")
-
-
 debug_group = OptionGroup(parser, "Debug features")
 
 debug_group.add_option(
@@ -652,6 +649,18 @@ Defaults to off.""",
 )
 
 parser.add_option_group(tracing_group)
+
+windows_group = OptionGroup(parser, "Windows specific controls")
+
+windows_group.add_option(
+    "--windows-dependency-tool",
+    action="store",
+    dest="dependency_tool",
+    default="depends.exe",
+    help="""\
+When compiling for Windows, use this dependency tool. Defaults to %default,
+other allowed value is 'pefile'.""",
+)
 
 windows_group.add_option(
     "--windows-disable-console",

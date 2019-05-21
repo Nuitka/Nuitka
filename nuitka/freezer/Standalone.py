@@ -701,7 +701,9 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
     return result
 
 
-def _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filename):
+def _getCacheFilename(
+    dependency_tool, is_main_executable, source_dir, original_dir, binary_filename
+):
     original_filename = os.path.join(original_dir, os.path.basename(binary_filename))
     original_filename = os.path.normcase(original_filename)
 
@@ -719,12 +721,7 @@ def _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filen
     if str is not bytes:
         hashed_value = hashed_value.encode("utf8")
 
-    cache_dir = os.path.join(
-        getCacheDir(),
-        "library_deps2_pefile"
-        if Options.isExperimental("use_pefile")
-        else "library_deps2",
-    )
+    cache_dir = os.path.join(getCacheDir(), "library_deps", dependency_tool)
 
     makePath(cache_dir)
 
@@ -787,7 +784,7 @@ def _parseDependsExeOutput2(lines, result):
             first = False
             continue
 
-        assert os.path.isfile(dll_filename), dll_filename
+        assert os.path.isfile(dll_filename), (dll_filename, line)
 
         # Allow plugins to prevent inclusion. TODO: This should be called with
         # only the new ones.
@@ -875,17 +872,27 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
     # pylint: disable=too-many-locals
     result = set()
 
-    cache_filename = _getCacheFilename(
-        is_main_executable, source_dir, original_dir, binary_filename
-    )
+    if use_cache or update_cache:
+        cache_filename = _getCacheFilename(
+            dependency_tool="depends.exe",
+            is_main_executable=is_main_executable,
+            source_dir=source_dir,
+            original_dir=original_dir,
+            binary_filename=binary_filename,
+        )
 
-    if os.path.exists(cache_filename) and use_cache:
-        for line in getFileContentByLine(cache_filename):
-            line = line.strip()
+        if use_cache:
+            with withFileLock():
+                if not os.path.exists(cache_filename):
+                    use_cache = False
 
-            result.add(line)
+        if use_cache:
+            for line in getFileContentByLine(cache_filename):
+                line = line.strip()
 
-        return result
+                result.add(line)
+
+            return result
 
     if Options.isShowProgress():
         info("Analysing dependencies of '%s'." % binary_filename)
@@ -970,6 +977,7 @@ def _parsePEFileOutput(
 
     if use_cache or update_cache:
         cache_filename = _getCacheFilename(
+            dependency_tool="pefile",
             is_main_executable=is_main_executable,
             source_dir=source_dir,
             original_dir=original_dir,
@@ -1104,7 +1112,7 @@ def detectBinaryDLLs(
 
     if Utils.getOS() in ("Linux", "NetBSD", "FreeBSD") or Utils.isPosixWindows():
         return _detectBinaryPathDLLsPosix(dll_filename=original_filename)
-    elif Utils.isWin32Windows() and Options.isExperimental("use_pefile"):
+    elif Utils.isWin32Windows() and Options.getWindowsDependencyTool() == "pefile":
         with TimerReport(
             "Finding dependencies for %s took %%.2f seconds" % binary_filename
         ):
@@ -1289,8 +1297,10 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
     used_dlls = detectUsedDLLs(
         source_dir=source_dir,
         standalone_entry_points=standalone_entry_points,
-        use_cache=not Options.shallNotUseDependsExeCachedResults(),
-        update_cache=not Options.shallNotStoreDependsExeCachedResults(),
+        use_cache=not Options.shallNotUseDependsExeCachedResults()
+        and not Options.getWindowsDependencyTool() == "depends.exe",
+        update_cache=not Options.shallNotStoreDependsExeCachedResults()
+        and not Options.getWindowsDependencyTool() == "depends.exe",
     )
 
     removed_dlls = set()
