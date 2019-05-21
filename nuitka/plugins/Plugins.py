@@ -91,7 +91,6 @@ def loadStandardPlugins():
             # this is an optional plugin, do not load if not relevant
             if is_relevant is not None:  # must be the detector class!
                 if not obj.isRelevant():  # re-evaluate
-                    info("Not enabling irrelevant plugin '%s'." % obj.plugin_name)
                     plugin_objects = None
                     break
                 plugin_objects[1] = obj
