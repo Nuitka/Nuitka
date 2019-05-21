@@ -128,7 +128,7 @@ class TensorflowPlugin(NuitkaPluginBase):
             create the actual application. Therefore, compilation makes no
             sense for it and some of the included packages.
         """
-        if module_name.startswith(("tensor", "boto", "google", "keras")):
+        if module_name.startswith(("tensor", "boto", "google", "keras", "sklearn")):
             return "bytecode"
 
 

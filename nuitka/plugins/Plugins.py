@@ -46,7 +46,7 @@ def loadStandardPlugins():
 
     Notes:
         Scan through the 'standard' sub-folder of the folder where this script
-        resides. Import each valid Python script and process it as a plugin.
+        lives. Import each valid Python script and process it as a plugin.
     Returns:
         None
     """
@@ -55,8 +55,11 @@ def loadStandardPlugins():
     std_dir = os.path.join(this_dir, "standard")
     plugin_filenames = os.listdir(std_dir)
     for plugin_filename in plugin_filenames:
+
         if plugin_filename.startswith("__") or not plugin_filename.endswith(".py"):
+            # skip any irrelevant files or folders
             continue
+
         plugin_module = importFile(os.path.join(std_dir, plugin_filename))
 
         plugin_objects = [None, None]  # plugin and optional detector
@@ -73,7 +76,7 @@ def loadStandardPlugins():
                 try:
                     is_relevant = obj.isRelevant()
                 except AttributeError:  # will only happen with --plugin-list
-                    is_relevant = True
+                    is_relevant = True  # enforce nice behavior for the list
 
             if always_enable:  # should this always be enabled?
                 if is_relevant in (True, None):
@@ -81,10 +84,14 @@ def loadStandardPlugins():
                     plugin_objects[1] = None  # detector makes no sense!
                 else:
                     plugin_objects = None
-                break
+                break  # skip the rest for mandatory plugins
 
-            # this is an optional plugin
-            if is_relevant is not None:  # must be the detector!
+            # this is an optional plugin, do not load if not relevant
+            if is_relevant is not None:  # must be the detector class!
+                if not obj.isRelevant():  # re-evaluate
+                    info("Not enabling irrelevant plugin '%s'." % obj.plugin_name)
+                    plugin_objects = None
+                    break
                 plugin_objects[1] = obj
             else:
                 plugin_objects[0] = obj
@@ -96,6 +103,7 @@ def loadStandardPlugins():
         plugin = plugin_objects[0]
         if plugin is None:
             sys.exit("Plugin file '%s' has no standard class." % plugin_filename)
+
         if always_enable:  # mandatory, relevant plugin: enable it
             active_plugin_list.append(plugin())
         else:  # optional plugin: make it searchable by plugin_name
@@ -257,7 +265,7 @@ class Plugins(object):
 
         Args:
             module: the module object
-            source_ref: ???
+            source_ref: source reference object
         Returns:
             True or False
         """
@@ -409,6 +417,7 @@ def importUserPlugins():
             sys.exit("Error, cannot find '%s'." % plugin_filename)
 
         user_plugin_module = importFile(plugin_filename)
+        valid_file = False
         for key in dir(user_plugin_module):
             obj = getattr(user_plugin_module, key)
             if not isObjectAUserPluginBaseClass(obj):
@@ -416,8 +425,13 @@ def importUserPlugins():
 
             plugin_name = getattr(obj, "plugin_name", None)
             if plugin_name and plugin_name not in Options.getPluginsDisabled():
+                info("User plugin '%s' is being loaded." % plugin_name)
                 active_plugin_list.append(obj())
-                info("User plugin '%s' loaded." % plugin_filename)
+                valid_file = True
+                break  # do not look for more in that module
+
+        if valid_file is False:  # this is not a plugin file ...
+            sys.exit("Error, '%s' is not a plugin file." % plugin_filename)
 
 
 def initPlugins():

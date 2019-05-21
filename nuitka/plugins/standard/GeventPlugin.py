@@ -21,6 +21,7 @@ import os
 from logging import info
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.plugins.Plugins import active_plugin_list
 from nuitka.utils.Utils import getOS
 
 
@@ -31,6 +32,9 @@ class GeventPlugin(NuitkaPluginBase):
     plugin_name = "gevent"
     plugin_desc = "Required by the gevent package"
 
+    def __init__(self):
+        return None
+
     def onModuleEncounter(
         self, module_filename, module_name, module_package, module_kind
     ):
@@ -39,10 +43,10 @@ class GeventPlugin(NuitkaPluginBase):
         else:
             full_name = module_package + "." + module_name
 
-        if full_name.startswith("gevent"):
-            return True, "everything from gevent"
+        if not full_name.startswith("gevent"):  # no opinion about other stuff
+            return None
 
-        return None
+        return True, "needed for gevent"
 
     def onModuleSourceCode(self, module_name, source_code):
         """ Append a statement to gevent/_config.py.
@@ -52,7 +56,7 @@ class GeventPlugin(NuitkaPluginBase):
             return source_code
         source_lines = source_code.splitlines()
         source_lines.append("config.track_greenlet_tree = False")
-        info(" gevent-plugin: Greenlet tree tracking switched off")
+        info(" '%s' plugin: Greenlet tree tracking switched off" % self.plugin_name)
         return "\n".join(source_lines)
 
     def decideCompilation(self, module_name, source_ref):

@@ -36,6 +36,7 @@ from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.utils.FileOperations import relpath
+from nuitka.utils.Utils import getOS
 
 pre_modules = {}
 post_modules = {}
@@ -192,7 +193,9 @@ class NuitkaPluginBase(object):
                 module_kind = "py"
             elif module_filename.endswith(".py"):
                 module_kind = "py"
-            elif module_filename.endswith(".so") or module_filename.endswith(".pyd"):
+            elif (module_filename.endswith(".so") and getOS() != "Windows") or (
+                module_filename.endswith(".pyd") and getOS() == "Windows"
+            ):
                 module_kind = "shlib"
             else:
                 assert False, module_filename

@@ -22,7 +22,7 @@ import pkgutil
 import re
 import shutil
 import sys
-from logging import info
+from logging import info, warning
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -119,6 +119,18 @@ def get_scipy_core_binaries():
     return binaries
 
 
+def get_matplotlib_data():
+    """ Return 'mpl-data' folder name for matplotlib.
+    """
+    mpl_data = os.path.join(
+        os.path.dirname(get_module_file_attribute("matplotlib")), "mpl-data"
+    )
+    if not os.path.isdir(mpl_data):
+        return None
+
+    return mpl_data
+
+
 def get_numpy_core_binaries():
     """ Return any binaries in numpy/core and/or numpy/.libs, whether or not actually used by our script.
 
@@ -197,7 +209,10 @@ class NumpyPlugin(NuitkaPluginBase):
     """
 
     plugin_name = "numpy"  # Nuitka knows us by this name
-    plugin_desc = "Required for numpy, scipy, pandas and other packages"
+    plugin_desc = "Required for numpy, scipy, pandas, matplotlib, etc."
+
+    def __init__(self):
+        self.enabled_plugins = None
 
     def considerExtraDlls(self, dist_dir, module):
         """ Copy extra shared libraries for this numpy / scipy installation.
@@ -209,7 +224,7 @@ class NumpyPlugin(NuitkaPluginBase):
             empty tuple
         """
         full_name = module.getFullName()
-        if full_name not in ("numpy", "scipy"):
+        if full_name not in ("numpy", "scipy", "matplotlib"):
             return ()
 
         if full_name == "numpy":
@@ -217,8 +232,7 @@ class NumpyPlugin(NuitkaPluginBase):
             bin_total = len(binaries)  # anything there at all?
             if bin_total == 0:
                 return ()
-            info("")
-            info(" Copying extra binaries from 'numpy' installation:")
+
             for f in binaries:
                 bin_file = f[0].lower()  # full binary file name
                 idx = bin_file.find("numpy")  # this will always work (idx > 0)
@@ -231,8 +245,10 @@ class NumpyPlugin(NuitkaPluginBase):
 
                 shutil.copy(bin_file, tar_file)
 
-            msg = " Copied %i %s."
-            msg = msg % (bin_total, "binary" if bin_total < 2 else "binaries")
+            msg = " Copied %i %s from 'numpy' installation." % (
+                bin_total,
+                "binary" if bin_total < 2 else "binaries",
+            )
             info(msg)
             return ()
 
@@ -243,8 +259,7 @@ class NumpyPlugin(NuitkaPluginBase):
             bin_total = len(binaries)
             if bin_total == 0:
                 return ()
-            info("")
-            info(" Copying extra binaries from 'scipy' installation:")
+
             for f in binaries:
                 bin_file = f[0].lower()  # full binary file name
                 idx = bin_file.find("scipy")  # this will always work (idx > 0)
@@ -257,8 +272,26 @@ class NumpyPlugin(NuitkaPluginBase):
 
                 shutil.copy(bin_file, tar_file)
 
-            msg = " Copied %i %s."
-            msg = msg % (bin_total, "binary" if bin_total < 2 else "binaries")
+            msg = " Copied %i %s from 'scipy' installation." % (
+                bin_total,
+                "binary" if bin_total < 2 else "binaries",
+            )
+            info(msg)
+            return ()
+
+        if full_name == "matplotlib":
+            if not self.getPluginOptionBool("matplotlib", False):
+                return ()
+            mpl_data = get_matplotlib_data()
+            if mpl_data is None:
+                warning("'mpl-data' folder not found for matplotlib.")
+                return ()
+            idx = mpl_data.find("matplotlib")  # yields idx > 0
+            back_end = mpl_data[idx:]
+            tar_dir = os.path.join(dist_dir, "matplotlib", "mpl-data")
+            shutil.copytree(mpl_data, tar_dir)
+
+            msg = " Copied 'mpl-data' from 'matplotlib' installation."
             info(msg)
             return ()
 
@@ -267,6 +300,27 @@ class NumpyPlugin(NuitkaPluginBase):
     ):
         if module_package == "scipy.sparse.csgraph" and module_name == "_validation":
             return True, "Replicate implicit import"
+
+        if module_package is None:
+            return None
+        if module_package == module_name:
+            full_name = module_package
+        else:
+            full_name = module_package + "." + module_name
+
+        if full_name in ("cv2", "cv2.cv2", "cv2.data"):
+            return True, "needed for OpenCV"
+
+        if self.enabled_plugins is None:
+            self.enabled_plugins = [p for p in Options.getPluginsEnabled()]
+
+        if module_package == "matplotlib.backends":
+            if "tk-inter" in self.enabled_plugins and (
+                "backend_tk" in module_name or "tkagg" in module_name
+            ):
+                return True, "needed for tkinter interaction"
+            if "qt-plugins" in self.enabled_plugins and "backend_qt" in module_name:
+                return True, "needed for Qt interaction"
 
 
 class NumpyPluginDetector(NuitkaPluginBase):
