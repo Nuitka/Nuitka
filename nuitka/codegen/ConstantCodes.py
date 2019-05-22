@@ -48,6 +48,7 @@ from nuitka.Version import getNuitkaVersion
 
 from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
+from .ErrorCodes import getReleaseCode
 from .Indentation import indented
 from .templates.CodeTemplatesConstants import template_constants_reading
 
@@ -973,9 +974,6 @@ def getConstantAccess(to_name, constant, emit, context):
 
     emit("%s = %s;" % (value_name, code))
 
-    if ref_count:
-        context.addCleanupTempName(value_name)
-
     if to_name is not value_name:
         to_name.getCType().emitAssignConversionCode(
             to_name=to_name,
@@ -984,6 +982,13 @@ def getConstantAccess(to_name, constant, emit, context):
             emit=emit,
             context=context,
         )
+
+        # Above is supposed to transfer ownership.
+        if ref_count:
+            getReleaseCode(value_name, emit, context)
+    else:
+        if ref_count:
+            context.addCleanupTempName(value_name)
 
 
 def getModuleConstantCode(constant):
