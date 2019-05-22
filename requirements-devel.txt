@@ -2,7 +2,7 @@
 
 pylint == 1.9.4 ; python_version == '2.7'
 pylint == 2.3.1 ; python_version >= '3.6'
-astroid == 2.2.3 ; python_version >= '3.6'
+astroid == 2.2.5 ; python_version >= '3.6'
 
 # Autoformat needs
 black == 18.9b0 ; python_version >= '3.6'
