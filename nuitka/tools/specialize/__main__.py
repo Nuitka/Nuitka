@@ -214,6 +214,17 @@ return NULL;""" % (
             operand2,
         )
 
+    def getTypeSpecializationCode(self, other, nb_slot, sq_slot, operand1, operand2):
+        if self is object_desc or other is object_desc:
+            return ""
+
+        if self is other:
+            return self.getSameTypeSpecializationCode(
+                other, nb_slot, sq_slot, operand1, operand2
+            )
+
+        return ""
+
     @abstractmethod
     def getSqConcatSlotSpecializationCode(self, other, slot, operand1, operand2):
         pass
@@ -531,7 +542,7 @@ class CLongDesc(TypeDescBase):
         return False
 
     def getSqConcatSlotSpecializationCode(self, other, slot, operand1, operand2):
-        assert False
+        return ""
 
 
 clong_desc = CLongDesc()
@@ -554,6 +565,7 @@ types = (
     list_desc,
     bytes_desc,
     long_desc,
+    clong_desc,
     object_desc,
 )
 

@@ -19,6 +19,9 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
     {{left.getCheckValueCode("operand1")|indent}}
     {{right.getCheckValueCode("operand2")|indent}}
 
+{%if left.getTypeSpecializationCode(right, nb_slot, sq_slot1, "operand1", "operand2") %}
+    {{left.getTypeSpecializationCode(right, nb_slot, sq_slot1, "operand1", "operand2"|indent)}}
+{%else %}
     PyTypeObject *type1 = {{left.getTypeValueExpression("operand1")}};
     binaryfunc slot1 = {{left.getSlotValueExpression("type1", nb_slot)}};
 
@@ -214,4 +217,5 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
 
 
     {{left.getRaiseUnsupportedTypeError(operand, right, "type1", "type2")|indent}}
+{% endif %}
 }
