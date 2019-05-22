@@ -219,7 +219,7 @@ class NumpyPlugin(UserPluginBase):
             info("")
             info(" Copying extra binaries from 'numpy' installation:")
             for f in binaries:
-                bin_file = f[0].lower()  # full binary file name
+                bin_file = os.path.dirname(f[0]) + os.path.sep + os.path.basename(f[0]).lower()  # full binary file name
                 idx = bin_file.find("numpy")  # this will always work (idx > 0)
                 back_end = bin_file[idx:]  # => like 'numpy/core/file.so'
                 tar_file = os.path.join(dist_dir, back_end)
