@@ -679,6 +679,17 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             shutil.copy(uuid_dll_path, dist_dll_path)
 
             return ((uuid_dll_path, dist_dll_path, None),)
+        elif full_name == "iptc" and getOS() == "Linux":
+            import iptc.util  # pylint:disable=I0021,import-error
+
+            xtwrapper_dll = iptc.util.find_library("xtwrapper")[0]
+            xtwrapper_dll_path = xtwrapper_dll._name  # pylint: disable=protected-access
+
+            dist_dll_path = os.path.join(dist_dir, os.path.basename(xtwrapper_dll_path))
+
+            shutil.copy(xtwrapper_dll_path, dist_dll_path)
+
+            return ((xtwrapper_dll_path, dist_dll_path, None),)
 
         return ()
 
