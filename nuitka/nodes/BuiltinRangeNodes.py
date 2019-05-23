@@ -462,6 +462,7 @@ class ExpressionBuiltinXrange1(ExpressionBuiltinXrangeBase):
     def computeExpression(self, trace_collection):
         low = self.getLow()
 
+        # TODO: Optimize this if self.getLow().getIntegerValue() is Not None
         return self.computeBuiltinSpec(
             trace_collection=trace_collection, given_values=(low,)
         )

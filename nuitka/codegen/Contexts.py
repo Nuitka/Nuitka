@@ -512,7 +512,7 @@ class PythonContextBase(getMetaClassBase("Context")):
 
 
 class PythonChildContextBase(PythonContextBase):
-    # Base classes can be abstract, pylint: disable=abstract-method
+    # Base classes can be abstract, pylint: disable=I0021,abstract-method
 
     def __init__(self, parent):
         PythonContextBase.__init__(self)
