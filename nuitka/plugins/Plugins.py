@@ -37,7 +37,7 @@ from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.PythonVersions import python_version
 
-from .PluginBase import UserPluginBase, post_modules, pre_modules
+from .PluginBase import NuitkaPluginBase, UserPluginBase, post_modules, pre_modules
 from .standard.ConsiderPyLintAnnotationsPlugin import (
     NuitkaPluginDetectorPylintEclipseAnnotations,
     NuitkaPluginPylintEclipseAnnotations,
@@ -317,7 +317,7 @@ def isObjectAUserPluginBaseClass(obj):
     """ Verify that a user plugin inherits from UserPluginBase.
     """
     try:
-        return obj is not UserPluginBase and issubclass(obj, UserPluginBase)
+        return obj is not UserPluginBase and (issubclass(obj, UserPluginBase) or issubclass(obj, NuitkaPluginBase))
     except TypeError:
         return False
 
