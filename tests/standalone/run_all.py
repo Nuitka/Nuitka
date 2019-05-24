@@ -174,7 +174,6 @@ for filename in sorted(os.listdir(".")):
             reportSkip("irrelevant Python version", ".", filename)
             continue
 
-        extra_flags.append("plugin_enable:enum-compat")
         # For the plug-in information.
         extra_flags.append("ignore_infos")
 
