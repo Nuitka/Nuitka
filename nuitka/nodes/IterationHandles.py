@@ -25,15 +25,22 @@ from nuitka.__past__ import getMetaClassBase
 
 
 class IterationHandleBase(getMetaClassBase("IterationHandle")):
+    """Base class for Iteration Handles."""
+
     @abstractmethod
     def getNextValueExpression(self):
+        """Abstract method to get next iteration value."""
         pass
 
     @abstractmethod
     def getIterationValueWithIndex(self, value_index):
+        """Abstract method for random access of the expression."""
         pass
 
     def getNextValueTruth(self):
+        """Returns truth value of the next expression or Stops the
+        iteration handle if end is reached.
+        """
         iteration_value = self.getNextValueExpression()
         if iteration_value is None:
             return StopIteration
@@ -41,6 +48,24 @@ class IterationHandleBase(getMetaClassBase("IterationHandle")):
 
 
 class ConstantIterationHandleBase(IterationHandleBase):
+    """Base class for the Constant Iteration Handles.
+
+    Attributes
+    ----------
+    constant_node : node_object
+        Instance of the calling node.
+
+    Methods
+    -------
+    __repr__()
+        Prints representation of the ConstantIterationHandleBase
+        and it's children objects
+    getNextValueExpression()
+        Returns the next iteration value
+    getNextValueTruth()
+        Returns the boolean value of the next handle
+    """
+
     def __init__(self, constant_node):
         assert constant_node.isIterableConstant()
         self.constant = constant_node.constant
@@ -51,6 +76,9 @@ class ConstantIterationHandleBase(IterationHandleBase):
         return "<%s of %r>" % (self.__class__.__name__, self.constant_node)
 
     def getNextValueExpression(self):
+        """Return the next iteration value or StopIteration exception
+        if the iteration has reached the end
+        """
         try:
             from .ConstantRefNodes import makeConstantRefNode
 
@@ -61,6 +89,7 @@ class ConstantIterationHandleBase(IterationHandleBase):
             return None
 
     def getNextValueTruth(self):
+        """Return the boolean value of the next iteration handle."""
         try:
             iteration_value = next(self.iter)
         except StopIteration:
@@ -72,11 +101,31 @@ class ConstantIterationHandleBase(IterationHandleBase):
 
 
 class ConstantIndexableIterationHandle(ConstantIterationHandleBase):
+    """Class for the constants that are indexable.
+
+    Attributes
+    ----------
+    constant_node : node_object
+        Instance of the calling node.
+
+    Methods
+    -------
+    getIterationValueWithIndex(value_index)
+        Sequential access of the constants
+    """
+
     def __init__(self, constant_node):
         ConstantIterationHandleBase.__init__(self, constant_node)
         assert type(self.constant) not in (set, dict)
 
     def getIterationValueWithIndex(self, value_index):
+        """Tries to return constant value at the given index.
+
+        Parameters
+        ----------
+        value_index : int
+            Index value of the element to be returned
+        """
         try:
             from .ConstantRefNodes import makeConstantRefNode
 
@@ -89,6 +138,9 @@ class ConstantIndexableIterationHandle(ConstantIterationHandleBase):
 
 
 class ConstantSetAndDictIterationHandle(ConstantIterationHandleBase):
+    """Class for the set and dictionary constants.
+    """
+
     def __init__(self, constant_node):
         ConstantIterationHandleBase.__init__(self, constant_node)
         assert type(self.constant) in (set, dict)
