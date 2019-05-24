@@ -224,10 +224,12 @@ Install the C compiler
 
  - Download and install mingw64 from
    `https://sourceforge.net/projects/mingw-w64/ <https://sourceforge.net/projects/mingw-w64/>`_
+ - in Architecture: choose i686 if you want use 32bit or x86_64 if you want 64 bit version python
  - Select destination folder to **c:\\MinGW64**
  - verify using command  **gcc.exe --version**
  - Set a environment variable pointing to **gcc.exe**
-   **CC=c:\\mingw64\bin\\gcc.exe**
+   **CC=C:\MinGW64\mingw64\bin\gcc.exe** if 64 bit version
+   **CC=C:\MinGW64\mingw32\bin\gcc.exe** if 32 bit version
 
 Install Python 3.7 (64 Bits)
 ++++++++++++++++++++++++++++
@@ -242,7 +244,8 @@ Install Nuitka
 ++++++++++++++
 
  - **pip install nuitka**
- - verify using command **nuitka --version**
+ - if you use anaconda:
+ - **conda install -c conda-forge nuitka**
 
 Write some code and test
 ------------------------
