@@ -23,21 +23,17 @@ import sys
 from logging import info
 
 from nuitka import Options
-from nuitka.plugins.PluginBase import UserPluginBase
+from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Utils import isWin32Windows
 
 
 def _isTkInterModule(module):
     full_name = module.getFullName()
-
-    if python_version < 300:
-        return full_name == "Tkinter"
-    else:
-        return full_name == "tkinter"
+    return full_name in ("Tkinter", "tkinter", "PySimpleGUI", "PySimpleGUI27")
 
 
-class TkinterPlugin(UserPluginBase):
+class TkinterPlugin(NuitkaPluginBase):
     """ This class represents the main logic of the plugin.
 
     This is a plug-in to make programs work well in standalone mode which are using tkinter.
@@ -53,10 +49,15 @@ class TkinterPlugin(UserPluginBase):
     sure, that the TCL environment variables are correctly set.
 
     Args:
-        UserPluginBase: the plugin template class we are inheriting.
+        NuitkaPluginBase: the plugin template class we are inheriting.
     """
 
     plugin_name = "tk-inter"  # Nuitka knows us by this name
+    plugin_desc = "Required by Python's Tk modules on Windows"
+
+    def __init__(self):
+        self.files_copied = False  # ensure one-time action
+        return None
 
     @staticmethod
     def createPreModuleLoadCode(module):
@@ -104,6 +105,9 @@ if not os.environ.get("TCL_LIBRARY", None):
         """
         if not _isTkInterModule(module):
             return ()
+        if self.files_copied:
+            return ()
+        self.files_copied = True
 
         if not isWin32Windows():  # if not Windows notify wrong usage once
             info("tkinter plugin supported on Windows only")
@@ -145,7 +149,7 @@ if not os.environ.get("TCL_LIBRARY", None):
         return ()
 
 
-class TkinterPluginDetector(UserPluginBase):
+class TkinterPluginDetector(NuitkaPluginBase):
     """ Used only if plugin is not activated.
 
     Notes:

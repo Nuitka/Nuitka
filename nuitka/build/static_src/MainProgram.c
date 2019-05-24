@@ -77,7 +77,7 @@ static void prepareStandaloneEnvironment() {
      * the provided binary directory as the place to look for DLLs and for
      * extension modules.
      */
-#if defined(_WIN32) && defined(_MSC_VER)
+#if defined(_WIN32)
     SetDllDirectoryW(getBinaryDirectoryWideChars());
 #endif
 
@@ -149,12 +149,12 @@ static argv_type_t convertCommandLineParameters(int argc, char **argv) {
     setlocale(LC_ALL, "");
 
     for (int i = 0; i < argc; i++) {
-#ifdef __APPLE__
-        argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
-#elif PYTHON_VERSION < 350
-        argv_copy[i] = _Py_char2wchar(argv[i], NULL);
-#else
+#if PYTHON_VERSION >= 350
         argv_copy[i] = Py_DecodeLocale(argv[i], NULL);
+#elif defined(__APPLE__) && PYTHON_VERSION >= 320
+        argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
+#else
+        argv_copy[i] = _Py_char2wchar(argv[i], NULL);
 #endif
 
         assert(argv_copy[i]);

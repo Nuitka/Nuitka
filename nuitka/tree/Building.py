@@ -653,7 +653,8 @@ setBuildingDispatchers(
         "FormattedValue": buildFormattedValueNode,
     },
     path_args2={
-        "NameConstant": buildNamedConstantNode,
+        "Constant": buildNamedConstantNode,  # Python3.8
+        "NameConstant": buildNamedConstantNode,  # Python3.8 or below
         "Str": buildStringNode,
         "Num": buildNumberNode,
         "Bytes": buildBytesNode,
@@ -676,6 +677,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         filename=source_ref.getFilename(),
         line_offset=source_ref.getLineNumber() - 1,
     )
+
     body, doc = extractDocFromBody(body)
 
     if is_module and is_main and python_version >= 360:

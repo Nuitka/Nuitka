@@ -56,11 +56,11 @@ PyObject *callPythonFunction(PyObject *func, PyObject **args, int count) {
     }
 
     PyObject **defaults = NULL;
-    int nd = 0;
+    int num_defaults = 0;
 
     if (argdefs != NULL) {
         defaults = &PyTuple_GET_ITEM(argdefs, 0);
-        nd = (int)(Py_SIZE(argdefs));
+        num_defaults = (int)(Py_SIZE(argdefs));
     }
 
     PyObject *result = PyEval_EvalCodeEx(
@@ -69,14 +69,14 @@ PyObject *callPythonFunction(PyObject *func, PyObject **args, int count) {
 #else
         co, // code object
 #endif
-        globals,  // globals
-        NULL,     // no locals
-        args,     // args
-        count,    // argcount
-        NULL,     // kwds
-        0,        // kwcount
-        defaults, // defaults
-        nd,       // defcount
+        globals,      // globals
+        NULL,         // no locals
+        args,         // args
+        count,        // argcount
+        NULL,         // kwds
+        0,            // kwcount
+        defaults,     // defaults
+        num_defaults, // defcount
 #if PYTHON_VERSION >= 300
         kwdefs,
 #endif
@@ -120,11 +120,11 @@ static PyObject *_fast_function_noargs(PyObject *func) {
     }
 
     PyObject **defaults = NULL;
-    int nd = 0;
+    int num_defaults = 0;
 
     if (argdefs != NULL) {
         defaults = &PyTuple_GET_ITEM(argdefs, 0);
-        nd = (int)(Py_SIZE(argdefs));
+        num_defaults = (int)(Py_SIZE(argdefs));
     }
 
     PyObject *result = PyEval_EvalCodeEx(
@@ -133,14 +133,14 @@ static PyObject *_fast_function_noargs(PyObject *func) {
 #else
         co, // code object
 #endif
-        globals,  // globals
-        NULL,     // no locals
-        NULL,     // args
-        0,        // argcount
-        NULL,     // kwds
-        0,        // kwcount
-        defaults, // defaults
-        nd,       // defcount
+        globals,      // globals
+        NULL,         // no locals
+        NULL,         // args
+        0,            // argcount
+        NULL,         // kwds
+        0,            // kwcount
+        defaults,     // defaults
+        num_defaults, // defcount
 #if PYTHON_VERSION >= 300
         kwdefs,
 #endif

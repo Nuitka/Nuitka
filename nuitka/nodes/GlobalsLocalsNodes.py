@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Globals/locals/singe arg dir nodes
+""" Globals/locals/single arg dir nodes
 
 These nodes give access to variables, highly problematic, because using them,
 the code may change or access anything about them, so nothing can be trusted

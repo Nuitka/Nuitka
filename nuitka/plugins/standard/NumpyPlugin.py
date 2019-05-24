@@ -25,7 +25,7 @@ import sys
 from logging import info
 
 from nuitka import Options
-from nuitka.plugins.PluginBase import UserPluginBase
+from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.Utils import isWin32Windows
 
 # ------------------------------------------------------------------------------
@@ -176,7 +176,7 @@ def get_numpy_core_binaries():
 # ------------------------------------------------------------------------------
 
 
-class NumpyPlugin(UserPluginBase):
+class NumpyPlugin(NuitkaPluginBase):
     """ This class represents the main logic of the plugin.
 
     This is a plugin to ensure numpy and scipy scripts compile and work well in standalone mode.
@@ -193,10 +193,11 @@ class NumpyPlugin(UserPluginBase):
     and this is why this plugin may be required.
 
     Args:
-        UserPluginBase: plugin template class we are inheriting.
+        NuitkaPluginBase: plugin template class we are inheriting.
     """
 
     plugin_name = "numpy"  # Nuitka knows us by this name
+    plugin_desc = "Required for numpy, scipy, pandas and other packages"
 
     def considerExtraDlls(self, dist_dir, module):
         """ Copy extra shared libraries for this numpy / scipy installation.
@@ -261,8 +262,14 @@ class NumpyPlugin(UserPluginBase):
             info(msg)
             return ()
 
+    def onModuleEncounter(
+        self, module_filename, module_name, module_package, module_kind
+    ):
+        if module_package == "scipy.sparse.csgraph" and module_name == "_validation":
+            return True, "Replicate implicit import"
 
-class NumpyPluginDetector(UserPluginBase):
+
+class NumpyPluginDetector(NuitkaPluginBase):
     """ Only used if plugin is NOT activated.
 
     Notes:

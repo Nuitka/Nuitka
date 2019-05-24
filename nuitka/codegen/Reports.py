@@ -23,9 +23,10 @@ real stuff.
 
 from logging import error, info
 
+from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
 
-_missing_helpers = OrderedSet()
+_missing_helpers = OrderedDict()
 
 _missing_operations = OrderedSet()
 
@@ -36,15 +37,21 @@ _error_for_missing = False
 def doMissingOptimizationReport():
     level = error if _error_for_missing else info
 
-    for helper in _missing_helpers:
+    for helper, source_refs in _missing_helpers.items():
         level("Missing C helper code variant, used fallback: %s", helper)
+        for source_ref in source_refs:
+
+            level("Occurred at %s." % source_ref.getAsString())
 
     for desc in _missing_operations:
         level("Missing optimization, used fallback: %s", desc)
 
 
-def onMissingHelper(helper_name):
-    _missing_helpers.add(helper_name)
+def onMissingHelper(helper_name, source_ref):
+    if helper_name not in _missing_helpers:
+        _missing_helpers[helper_name] = []
+
+    _missing_helpers[helper_name].append(source_ref)
 
 
 def onMissingOperation(*args):

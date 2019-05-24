@@ -73,6 +73,7 @@ files = [
 
 class NuitkaPluginPmw(NuitkaPluginBase):
     plugin_name = "pmw-freezer"
+    plugin_desc = "Required by the Pmw package"
 
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "Pmw":

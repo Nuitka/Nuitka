@@ -65,19 +65,35 @@ class NuitkaPluginBase(object):
     What they are can be displayed using "nuitka --plugin-list file.py" (filename
     required but ignored).
 
-    User plugins may be specified (and implicitely enabled) using their Python
+    User plugins may be specified (and implicitly enabled) using their Python
     script pathname.
     """
 
     # Standard plugins must provide this as a unique string which Nuitka
     # then uses to identify them.
     #
-    # User plugins are identified by their path and implicitely activated.
+    # User plugins are identified by their path and implicitly activated.
     # They however still need to specify some arbitrary non-blank string here,
     # which does not equal the name of an inactivated standard plugin.
     # For working with options, user plugins must set this variable to
     # the script's path (use __file__, __module__ or __name__).
     plugin_name = None
+
+    @staticmethod
+    def isAlwaysEnabled():
+        """ Request to be always enabled.
+
+        Notes:
+            Setting this to true is only applicable to standard plugins. In
+            this case, the plugin will be enabled upon Nuitka start-up. Any
+            plugin detector class will then be ignored. Method isRelevant() may
+            also be present and can be used to fine-control enabling the
+            plugin: A to-be-enabled, but irrelevant plugin will still not be
+            activated.
+        Returns:
+            True or False
+        """
+        return False
 
     def getPluginOptionBool(self, option_name, default_value):
         """ Check whether an option is switched on or off.
@@ -140,7 +156,7 @@ class NuitkaPluginBase(object):
         return Options.getPluginOptions(self.plugin_name)
 
     def considerImplicitImports(self, module, signal_change):
-        """ Provide additional modules to import implicitely when encountering the module.
+        """ Provide additional modules to import implicitly when encountering the module.
 
         Notes:
             Better do not overload this method.
@@ -200,10 +216,10 @@ class NuitkaPluginBase(object):
                 )
 
     def isRequiredImplicitImport(self, module, full_name):
-        """ Indicate whether an implicitely imported module should be accepted.
+        """ Indicate whether an implicitly imported module should be accepted.
 
         Notes:
-            You may negate importing a module specified as "implcit import",
+            You may negate importing a module specified as "implicit import",
             although this is an unexpected event.
 
         Args:
@@ -585,15 +601,3 @@ class NuitkaPluginBase(object):
             warned_unused_plugins.add(self.plugin_name)
 
             warning("Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message))
-
-
-class UserPluginBase(NuitkaPluginBase):
-    """ Use this class to inherit from NuitkaPluginBase.
-
-    Args:
-        NuitkaPluginBase: the base class we inherit from
-    """
-
-    # You must provide this as a string which identifies your plugin.
-    # Arbitrary for standard plugins, filename for user plugins.
-    plugin_name = None

@@ -263,7 +263,11 @@ def sum_extractor(node):
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
             expression=node,
-            exception=TypeError("sum expected at least 1 arguments, got 0"),
+            exception=TypeError(
+                "sum expected at least 1 arguments, got 0"
+                if python_version < 380
+                else "sum() takes at least 1 positional argument (0 given)"
+            ),
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
@@ -431,14 +435,15 @@ def xrange_extractor(node):
 
     def makeXrange0(source_ref):
         # pylint: disable=unused-argument
+        if python_version < 300:
+            exception_message = "xrange requires 1-3 int arguments"
+        elif python_version < 380:
+            exception_message = "range expected 1 arguments, got 0"
+        else:
+            exception_message = "range expected 1 argument, got 0"
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression=node,
-            exception=TypeError(
-                "xrange requires 1-3 int arguments"
-                if python_version < 300
-                else "range expected 1 arguments, got 0"
-            ),
+            expression=node, exception=TypeError(exception_message)
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(

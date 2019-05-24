@@ -46,6 +46,9 @@ def _createEmptyDirText(filename):
 generated_data_files = {
     "Cryptodome.Util._raw_api": (
         ("Cryptodome/Util", ".keep_dir.txt", _createEmptyDirText),
+    ),
+    "Crypto.Util._raw_api": (
+        ("Crypto/Util", ".keep_dir.txt", _createEmptyDirText),
     )
 }
 
@@ -56,6 +59,10 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     @staticmethod
     def isRelevant():
         return Options.isStandaloneMode()
+
+    @staticmethod
+    def isAlwaysEnabled():
+        return True
 
     def considerDataFiles(self, module):
         if module.getFullName() in known_data_files:

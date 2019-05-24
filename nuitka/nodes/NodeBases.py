@@ -485,6 +485,9 @@ class CodeNodeMixin(object):
             else:
                 name = uid
 
+            if str is not bytes:
+                name = name.encode("ascii", "c_identifier").decode()
+
             self.code_name = "%s$$$%s%s" % (parent_name, self.code_prefix, name)
 
         return self.code_name

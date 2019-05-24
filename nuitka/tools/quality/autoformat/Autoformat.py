@@ -35,7 +35,11 @@ from nuitka.tools.quality.Git import (
 )
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
-from nuitka.utils.FileOperations import getFileContents, renameFile
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    renameFile,
+    withPreserveFileMode,
+)
 from nuitka.utils.Shebang import getShebangFromFile
 from nuitka.utils.Utils import getOS
 
@@ -163,11 +167,10 @@ def _cleanupPyLintComments(filename, abort):
 
 
 def _cleanupImportRelative(filename):
-    package_name = os.path.dirname(filename)
+    package_name = os.path.dirname(filename).replace(os.path.sep, ".")
 
     # Make imports local if possible.
-    if package_name.startswith("nuitka" + os.path.sep):
-        package_name = package_name.replace(os.path.sep, ".")
+    if package_name.startswith("nuitka."):
 
         source_code = getFileContents(filename)
         updated_code = re.sub(
@@ -206,6 +209,8 @@ def _getPythonBinaryCall(binary_name):
 
 
 def _cleanupImportSortOrder(filename):
+    _cleanupImportRelative(filename)
+
     isort_call = _getPythonBinaryCall("isort")
 
     contents = getFileContents(filename)
@@ -248,12 +253,18 @@ def _cleanupImportSortOrder(filename):
 warned_clang_format = False
 
 
-def _cleanupClangFormat(filename):
+def cleanupClangFormat(filename):
+    """ Call clang-format on a given filename to format C code.
+
+    Args:
+        filename: What file to re-format.
+    """
+
     # Using global here, as this is really a singleton, in
     # the form of a module, pylint: disable=global-statement
     global warned_clang_format
 
-    clang_format_path = getExecutablePath("clang-format")
+    clang_format_path = getExecutablePath("clang-format-6.0")
 
     # Extra ball on Windows, check default installation PATH too.
     if not clang_format_path and getOS() == "Windows":
@@ -282,7 +293,7 @@ def _shouldNotFormatCode(filename):
     if "inline_copy" in parts:
         return True
     elif "tests" in parts:
-        return "run_all.py" not in parts
+        return "run_all.py" not in parts and "compile_itself.py" not in parts
     else:
         return False
 
@@ -318,7 +329,9 @@ def autoformat(filename, git_stage, abort):
 
     is_c = filename.endswith((".c", ".h"))
 
-    is_txt = filename.endswith((".txt", ".rst", ".sh", ".in", ".md", ".stylesheet"))
+    is_txt = filename.endswith(
+        (".txt", ".rst", ".sh", ".in", ".md", ".stylesheet", ".j2")
+    )
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
@@ -352,22 +365,24 @@ def autoformat(filename, git_stage, abort):
 
         elif is_c:
             _cleanupWindowsNewlines(tmp_filename)
-            _cleanupClangFormat(filename)
+            cleanupClangFormat(filename)
             _cleanupWindowsNewlines(tmp_filename)
         elif is_txt:
             _cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)
+            _cleanupWindowsNewlines(tmp_filename)
 
         changed = False
         if old_code != getFileContents(tmp_filename, "rb"):
             my_print("Updated.")
 
-            if git_stage:
-                new_hash_value = putFileHashContent(tmp_filename)
-                updateFileIndex(git_stage, new_hash_value)
-                updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
-            else:
-                renameFile(tmp_filename, filename)
+            with withPreserveFileMode(filename):
+                if git_stage:
+                    new_hash_value = putFileHashContent(tmp_filename)
+                    updateFileIndex(git_stage, new_hash_value)
+                    updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
+                else:
+                    renameFile(tmp_filename, filename)
 
             changed = True
         else:

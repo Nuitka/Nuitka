@@ -18,40 +18,37 @@
 #
 
 import os
-import shutil
-import subprocess
 import sys
 
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
-sys.path.insert(
-    0,
-    os.path.normpath(
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-        )
-    )
-)
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
+
+# isort:start
+
+import shutil
+import subprocess
 
 from nuitka.tools.release.Release import checkAtHome, checkBranchName
 from nuitka.utils.Execution import check_output
 
 checkAtHome()
 
-nuitka_version = check_output(
-    "./bin/nuitka --version", shell = True
-).strip()
+nuitka_version = check_output("./bin/nuitka --version", shell=True).strip()
 
 branch_name = checkBranchName()
 
 if branch_name == "factory":
     for remote in "origin", "github":
-        assert 0 == os.system("git push --recurse-submodules=no --force-with-lease %s factory" % remote)
+        assert 0 == os.system(
+            "git push --recurse-submodules=no --force-with-lease %s factory" % remote
+        )
 
     sys.exit(0)
 
-assert 0 == os.system("rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/")
+assert 0 == os.system(
+    "rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/"
+)
 
 for filename in ("README.pdf", "Changelog.pdf", "Developer_Manual.pdf"):
     assert 0 == os.system("rsync %s root@nuitka.net:/var/www/doc/" % filename)
@@ -60,8 +57,11 @@ for filename in ("README.pdf", "Changelog.pdf", "Developer_Manual.pdf"):
 if branch_name.startswith("release") or branch_name == "master":
     pass
 elif branch_name == "develop":
-    for remote in "origin", "bitbucket", "github", "gitlab":
-        assert 0 == os.system("git push --recurse-submodules=no --tags --force-with-lease %s develop" % remote)
+    for remote in "origin", "github":
+        assert 0 == os.system(
+            "git push --recurse-submodules=no --tags --force-with-lease %s develop"
+            % remote
+        )
         assert 0 == os.system("git push %s master" % remote)
 else:
     sys.stdout.write("Skipping for branch '%s'" % branch_name)

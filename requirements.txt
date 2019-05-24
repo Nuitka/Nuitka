@@ -6,4 +6,4 @@ appdirs == 1.4.3
 scons == 3.0.4
 
 # PEFile is needed by Windows internal dependency walker
-pefile == 2018.8.8
+pefile == 2019.4.18

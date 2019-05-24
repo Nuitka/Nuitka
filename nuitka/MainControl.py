@@ -347,7 +347,7 @@ def makeSourceDirectory(main_module):
             if module.getFullName() == any_case_module:
                 break
         else:
-            warning("Didn't recurse to '%s', apparently not used." % any_case_module)
+            warning("Not recursing to unused '%s'." % any_case_module)
 
     # Prepare code generation, i.e. execute finalization for it.
     for module in ModuleRegistry.getDoneModules():
@@ -521,6 +521,9 @@ def runScons(main_module, quiet):
 
         options["msvc_version"] = msvc_version
 
+    if Utils.getOS() == "Windows":
+        options["noelf_mode"] = "true"
+
     if Options.isClang():
         options["clang_mode"] = "true"
 
@@ -636,6 +639,12 @@ def compileTree(main_module):
     source_dir = getSourceDirectoryPath(main_module)
 
     if not Options.shallOnlyExecCCompilerCall():
+        if Options.isShowProgress() or Options.isShowMemory():
+            info(
+                "Total memory usage before generating C code: {memory}:".format(
+                    memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
+                )
+            )
         # Now build the target language code for the whole tree.
         makeSourceDirectory(main_module=main_module)
 

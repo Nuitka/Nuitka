@@ -60,16 +60,16 @@ def extractDocFromBody(node):
     doc = None
 
     # Work around ast.get_docstring breakage.
-    if (
-        node.body
-        and getKind(node.body[0]) == "Expr"
-        and getKind(node.body[0].value) == "Str"
-    ):
-
-        if "no_docstrings" not in Options.getPythonFlags():
+    if node.body and getKind(body[0]) == "Expr":
+        if getKind(body[0].value) == "Str":  # python3.7 or earlier
             doc = body[0].value.s
+            body = body[1:]
+        elif getKind(body[0].value) == "Constant":  # python3.8
+            doc = body[0].value.value
+            body = body[1:]
 
-        body = body[1:]
+        if "no_docstrings" in Options.getPythonFlags():
+            doc = None
 
     return body, doc
 
@@ -174,6 +174,9 @@ def detectFunctionBodyKind(nodes, start_value=None):
                 elif name == "returns":
                     if field is not None:
                         _check(field)
+                elif name == "type_comment":
+                    # Python3.8: We don't have structure here.
+                    assert field is None or type(field) is str
                 else:
                     assert False, (name, field, ast.dump(node))
         elif node_class is ast.GeneratorExp:

@@ -31,7 +31,7 @@ from threading import Thread
 
 import urllib3  # @UnresolvedImport
 
-# nuitka-skip-unless-imports: urllib3
+# nuitka-skip-unless-imports: urllib3,http.server
 
 # running on python2
 if version_info[0] < 3:
