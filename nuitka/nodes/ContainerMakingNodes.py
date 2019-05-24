@@ -24,6 +24,7 @@ import functools
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
 from .ExpressionBases import ExpressionChildrenHavingBase
+from .IterationHandles import ConstantIndexableIterationHandle
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
     getComputationResult,
@@ -110,6 +111,9 @@ class ExpressionMakeSequenceBase(
 
     def getIterationValues(self):
         return self.getElements()
+
+    def getIterationHandle(self):
+        return ConstantIndexableIterationHandle(self)
 
     def getTruthValue(self):
         return self.getIterationLength() > 0

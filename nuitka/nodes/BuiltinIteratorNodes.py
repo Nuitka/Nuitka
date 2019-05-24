@@ -110,6 +110,9 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     def getIterationValue(self, element_index):
         return self.getValue().getIterationValue(element_index)
 
+    def getIterationHandle(self):
+        return self.getValue().getIterationHandle()
+
     def extractSideEffects(self):
         # Iterator making is the side effect itself.
         value = self.getValue()
