@@ -28,6 +28,12 @@ class IterationHandleBase(getMetaClassBase("IterationHandle")):
     """Base class for Iteration Handles."""
 
     @abstractmethod
+    def __repr__(self):
+        """Returns a printable representation of the IterationHandle
+        and it's children object."""
+        pass
+
+    @abstractmethod
     def getNextValueExpression(self):
         """Abstract method to get next iteration value."""
         pass
@@ -144,3 +150,55 @@ class ConstantSetAndDictIterationHandle(ConstantIterationHandleBase):
     def __init__(self, constant_node):
         ConstantIterationHandleBase.__init__(self, constant_node)
         assert type(self.constant) in (set, dict)
+
+
+class ListAndTupleContainerMakingIterationHandle(IterationHandleBase):
+    """Class for list and tuple container making expression
+
+    Attributes
+    ----------
+    constant_node : node_object
+        Instance of the calling node.
+
+    Methods
+    -------
+    __repr__()
+        Prints representation of the ListAndTupleContainerMakingIterationHandle
+        object
+    getNextValueExpression()
+        Returns the next iteration value
+    getNextValueTruth()
+        Returns the boolean value of the next handle
+    getIterationValueWithIndex(value_index)
+        Sequential access of the expression
+    """
+
+    def __init__(self, constant_node):
+        assert type(constant_node) in (list, tuple)
+        self.constant_node = constant_node
+        self.iter = iter(constant_node)
+
+    def __repr__(self):
+        return "<%s of %r>" % (self.__class__.__name__, self.constant_node)
+
+    def getNextValueExpression(self):
+        """Return the next iteration value or StopIteration exception
+        if the iteration has reached the end
+        """
+        try:
+            return next(self.iter)
+        except StopIteration:
+            return None
+
+    def getIterationValueWithIndex(self, value_index):
+        """Tries to return constant value at the given index.
+
+        Parameters
+        ----------
+        value_index : int
+            Index value of the element to be returned
+        """
+        try:
+            self.constant_node[value_index]
+        except IndexError:
+            return None
