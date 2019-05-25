@@ -248,6 +248,7 @@ Install Nuitka
  - **pip install nuitka**
  - if you use anaconda:
  - **conda install -c conda-forge nuitka**
+ - verify using command **nuitka --version**
 
 Write some code and test
 ------------------------
