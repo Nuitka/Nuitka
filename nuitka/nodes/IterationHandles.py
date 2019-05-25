@@ -31,17 +31,17 @@ class IterationHandleBase(getMetaClassBase("IterationHandle")):
     def __repr__(self):
         """Returns a printable representation of the IterationHandle
         and it's children object."""
-        pass
+        return
 
     @abstractmethod
     def getNextValueExpression(self):
         """Abstract method to get next iteration value."""
-        pass
+        return
 
     @abstractmethod
     def getIterationValueWithIndex(self, value_index):
         """Abstract method for random access of the expression."""
-        pass
+        return
 
     def getNextValueTruth(self):
         """Returns truth value of the next expression or Stops the
