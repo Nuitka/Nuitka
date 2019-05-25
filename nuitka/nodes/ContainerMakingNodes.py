@@ -113,9 +113,6 @@ class ExpressionMakeSequenceBase(
         return self.getElements()
 
     def getIterationHandle(self):
-        import ipdb
-
-        ipdb.set_trace()
         return ListAndTupleContainerMakingIterationHandle(self.getElements())
 
     def getTruthValue(self):

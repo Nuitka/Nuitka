@@ -199,6 +199,14 @@ class ListAndTupleContainerMakingIterationHandle(IterationHandleBase):
             Index value of the element to be returned
         """
         try:
-            self.constant_node[value_index]
+            return self.constant_node[value_index]
         except IndexError:
             return None
+
+    def getNextValueTruth(self):
+        """Return the boolean value of the next iteration handle."""
+        try:
+            iteration_value = next(self.iter)
+        except StopIteration:
+            return StopIteration
+        return bool(iteration_value)
