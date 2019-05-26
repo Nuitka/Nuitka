@@ -226,6 +226,7 @@ class ConstantRangeIterationHandleBase(IterationHandleBase):
     """
 
     def __init__(self, constant_value):
+        assert constant_value.getIterationLength < 10000
         self.constant_value = constant_value
         self.low = self.constant_value.getLow()
         self.high = self.constant_value.getHigh()
