@@ -29,6 +29,11 @@ from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionChildrenHavingBase
+from .IterationHandles import (
+    ConstantIterationHandleRange1,
+    ConstantIterationHandleRange2,
+    ConstantIterationHandleRange3,
+)
 from .NodeMakingHelpers import makeConstantReplacementNode
 from .shapes.BuiltinTypeShapes import ShapeTypeList, ShapeTypeXrange
 
@@ -170,7 +175,6 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
 
     def computeExpression(self, trace_collection):
         assert python_version < 300
-
         low = self.getLow()
 
         return self.computeBuiltinSpec(
@@ -184,6 +188,9 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
             return None
 
         return max(0, low)
+
+    def getIterationHandle(self):
+        return ConstantIterationHandleRange1(self)
 
     def getIterationValue(self, element_index):
         length = self.getIterationLength()
@@ -242,6 +249,9 @@ class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
             return None
 
         return max(0, high - low)
+
+    def getIterationHandle(self):
+        return ConstantIterationHandleRange2(self)
 
     def getIterationValue(self, element_index):
         low = self.getLow()
@@ -338,6 +348,9 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
 
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None
+
+    def getIterationHandle(self):
+        return ConstantIterationHandleRange3(self)
 
     def getIterationValue(self, element_index):
         low = self.getLow().getIntegerValue()

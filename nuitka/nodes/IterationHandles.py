@@ -210,3 +210,100 @@ class ListAndTupleContainerMakingIterationHandle(IterationHandleBase):
         except StopIteration:
             return StopIteration
         return bool(iteration_value)
+
+
+class ConstantRangeIterationHandleBase(IterationHandleBase):
+    """Iteration handle class for range nodes
+
+    Attributes
+    ----------
+    low : int
+        Optional. An integer number specifying at which position to start. Default is 0
+    high : int
+        Optional. An integer number specifying at which position to end.
+    step : int
+        Optional. An integer number specifying the incrementation. Default is 1
+    """
+
+    def __init__(self, constant_value):
+        self.constant_value = constant_value
+        self.low = self.constant_value.getLow()
+        self.high = self.constant_value.getHigh()
+        self.step = self.constant_value.getStep()
+
+    def __repr__(self):
+        return "<%s of %r>" % (self.__class__.__name__, self.constant_value.getLow())
+
+    def getNextValueExpression(self):
+        """Return the next iteration value or StopIteration exception
+        if the iteration has reached the end
+        """
+        try:
+            return next(self.iter)
+        except StopIteration:
+            return None
+
+    def getIterationValueWithIndex(self, value_index):
+        """Tries to return constant value at the given index.
+
+        Parameters
+        ----------
+        value_index : int
+            Index value of the element to be returned
+        """
+        if value_index < self.constant_value.getIterationLength():
+            return value_index
+        else:
+            return IndexError
+
+    def getNextValueTruth(self):
+        """Return the boolean value of the next iteration handle."""
+        try:
+            iteration_value = next(self.iter)
+        except StopIteration:
+            return StopIteration
+        return bool(iteration_value)
+
+
+class ConstantIterationHandleRange1(ConstantRangeIterationHandleBase):
+    """Iteration handle for range(low,)"""
+
+    def __init__(self, constant_value):
+        ConstantRangeIterationHandleBase.__init__(self, constant_value)
+        assert self.constant_value.isExpressionBuiltinRange1()
+        self.constant = range(self.low)
+        self.iter = iter(self.constant)
+
+
+class ConstantIterationHandleRange2(ConstantRangeIterationHandleBase):
+    """Iteration handle for ranges(low, high)"""
+
+    def __init__(self, constant_value):
+        ConstantRangeIterationHandleBase.__init__(self, constant_value)
+        assert self.constant_value.isExpressionBuiltinRange2()
+        self.constant = range(self.low, self.high)
+        self.iter = iter(self.constant)
+
+
+class ConstantIterationHandleRange3(ConstantRangeIterationHandleBase):
+    """Iteration handle for ranges(low, high, step)"""
+
+    def __init__(self, constant_value):
+        ConstantRangeIterationHandleBase.__init__(self, constant_value)
+        assert self.constant_value.isExpressionBuiltinRange3()
+        self.constant = range(self.low, self.high, self.step)
+        self.iter = iter(self.constant)
+
+    def getIterationValueWithIndex(self, value_index):
+        """Tries to return constant value at the given index.
+
+        Parameters
+        ----------
+        value_index : int
+            Index value of the element to be returned
+        """
+        index_value = value_index * self.step
+        if index_value < self.constant_value.getIterationLength():
+            return index_value
+        else:
+            return IndexError
