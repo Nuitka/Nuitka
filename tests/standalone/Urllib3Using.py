@@ -18,7 +18,6 @@
 #     limitations under the License.
 #
 from __future__ import print_function
-from sys import version_info
 
 # testing JSON content
 import json
@@ -31,10 +30,10 @@ from threading import Thread
 
 import urllib3  # @UnresolvedImport
 
-# nuitka-skip-unless-imports: urllib3,http.server
+# nuitka-skip-unless-imports: urllib3
 
 # running on python2
-if version_info[0] < 3:
+if str is bytes:
 	from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 #running on python3
 else:
