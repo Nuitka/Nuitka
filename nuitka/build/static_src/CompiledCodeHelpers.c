@@ -541,6 +541,48 @@ PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step) {
 #endif
 }
 
+PyObject *BUILTIN_ALL(PyObject *value) {
+    CHECK_OBJECT(value);
+
+    PyObject *it = PyObject_GetIter(value);
+
+    if (unlikely((it == NULL)))
+    {
+        return NULL;
+    }
+
+    iternextfunc iternext = Py_TYPE(it)->tp_iternext;
+    for (;;)
+    {
+        PyObject *item = iternext(it);
+
+        if (unlikely((item == NULL)))
+            break;
+        int cmp = PyObject_IsTrue(item);
+        Py_DECREF(item);
+        if (unlikely(cmp < 0))
+        {
+            Py_DECREF(it);
+            return NULL;
+        }
+        if (cmp == 0)
+        {
+            Py_DECREF(it);
+            Py_INCREF(Py_False);
+            return Py_False;
+        }
+    }
+
+    Py_DECREF(it);
+    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED()))
+    {
+        return NULL;
+    }
+
+    Py_INCREF(Py_True);
+    return Py_True;
+}
+
 PyObject *BUILTIN_LEN(PyObject *value) {
     CHECK_OBJECT(value);
 

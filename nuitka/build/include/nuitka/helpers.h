@@ -253,6 +253,9 @@ extern PyObject *BUILTIN_ANY(PyObject *value);
 // For built-in built-in super() functionality.
 extern PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object);
 
+// For built-in built-in all() functionality.
+extern PyObject *BUILTIN_ALL(PyObject *value);
+
 // The patched isinstance() functionality used for the built-in.
 extern int Nuitka_IsInstance(PyObject *inst, PyObject *cls);
 
