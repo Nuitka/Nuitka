@@ -373,6 +373,10 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         # start of tensorflow imports --------------------------------------------
 
+        elif full_name == "tensorflow":
+            yield "tensorflow.python", True
+            yield "tensorflow.python.keras", True
+
         elif full_name == "tensorflow.python":
             yield "tensorflow.python._pywrap_tensorflow_internal", True
 
