@@ -21,7 +21,10 @@
 
 from abc import abstractmethod
 
-from nuitka.__past__ import getMetaClassBase
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    getMetaClassBase,
+    xrange,
+)
 
 
 class IterationHandleBase(getMetaClassBase("IterationHandle")):
@@ -31,17 +34,14 @@ class IterationHandleBase(getMetaClassBase("IterationHandle")):
     def __repr__(self):
         """Returns a printable representation of the IterationHandle
         and it's children object."""
-        return
 
     @abstractmethod
     def getNextValueExpression(self):
         """Abstract method to get next iteration value."""
-        return
 
     @abstractmethod
     def getIterationValueWithIndex(self, value_index):
         """Abstract method for random access of the expression."""
-        return
 
     def getNextValueTruth(self):
         """Returns truth value of the next expression or Stops the
@@ -82,8 +82,8 @@ class ConstantIterationHandleBase(IterationHandleBase):
         return "<%s of %r>" % (self.__class__.__name__, self.constant_node)
 
     def getNextValueExpression(self):
-        """Return the next iteration value or StopIteration exception
-        if the iteration has reached the end
+        """Returns truth value of the next expression or Stops the iteration handle
+        and returns None if end is reached.
         """
         try:
             from .ConstantRefNodes import makeConstantRefNode
@@ -173,13 +173,13 @@ class ListAndTupleContainerMakingIterationHandle(IterationHandleBase):
         Sequential access of the expression
     """
 
-    def __init__(self, constant_node):
-        assert type(constant_node) in (list, tuple)
-        self.constant_node = constant_node
-        self.iter = iter(constant_node)
+    def __init__(self, constant_list):
+        assert type(constant_list) in (list, tuple)
+        self.constant_list = constant_list
+        self.iter = iter(self.constant_list)
 
     def __repr__(self):
-        return "<%s of %r>" % (self.__class__.__name__, self.constant_node)
+        return "<%s of %r>" % (self.__class__.__name__, self.constant_list)
 
     def getNextValueExpression(self):
         """Return the next iteration value or StopIteration exception
@@ -199,17 +199,9 @@ class ListAndTupleContainerMakingIterationHandle(IterationHandleBase):
             Index value of the element to be returned
         """
         try:
-            return self.constant_node[value_index]
+            return self.constant_list[value_index]
         except IndexError:
             return None
-
-    def getNextValueTruth(self):
-        """Return the boolean value of the next iteration handle."""
-        try:
-            iteration_value = next(self.iter)
-        except StopIteration:
-            return StopIteration
-        return bool(iteration_value)
 
 
 class ConstantRangeIterationHandleBase(IterationHandleBase):
@@ -226,11 +218,14 @@ class ConstantRangeIterationHandleBase(IterationHandleBase):
     """
 
     def __init__(self, constant_value):
-        assert constant_value.getIterationLength < 10000
+        assert constant_value.getIterationLength() < 256
         self.constant_value = constant_value
-        self.low = self.constant_value.getLow()
-        self.high = self.constant_value.getHigh()
-        self.step = self.constant_value.getStep()
+        try:
+            self.low = self.constant_value.getLow().constant
+            self.high = self.constant_value.getHigh().constant
+            self.step = self.constant_value.getStep().constant
+        except AttributeError:
+            pass
 
     def __repr__(self):
         return "<%s of %r>" % (self.__class__.__name__, self.constant_value.getLow())
@@ -272,7 +267,7 @@ class ConstantIterationHandleRange1(ConstantRangeIterationHandleBase):
     def __init__(self, constant_value):
         ConstantRangeIterationHandleBase.__init__(self, constant_value)
         assert self.constant_value.isExpressionBuiltinRange1()
-        self.constant = range(self.low)
+        self.constant = xrange(self.low)
         self.iter = iter(self.constant)
 
 
@@ -282,7 +277,7 @@ class ConstantIterationHandleRange2(ConstantRangeIterationHandleBase):
     def __init__(self, constant_value):
         ConstantRangeIterationHandleBase.__init__(self, constant_value)
         assert self.constant_value.isExpressionBuiltinRange2()
-        self.constant = range(self.low, self.high)
+        self.constant = xrange(self.low, self.high)
         self.iter = iter(self.constant)
 
 
@@ -292,7 +287,7 @@ class ConstantIterationHandleRange3(ConstantRangeIterationHandleBase):
     def __init__(self, constant_value):
         ConstantRangeIterationHandleBase.__init__(self, constant_value)
         assert self.constant_value.isExpressionBuiltinRange3()
-        self.constant = range(self.low, self.high, self.step)
+        self.constant = xrange(self.low, self.high, self.step)
         self.iter = iter(self.constant)
 
     def getIterationValueWithIndex(self, value_index):

@@ -529,7 +529,9 @@ else:
 print(any([None, None, None]))
 print(any([None, 4, None]))
 print(any([]))
-print(any(range(20)))
+print(any(range(260)))
+print(any(range(1, 270)))
+print(any(range(2, 1024, 5)))
 print(any([0] * 20000))
 print(any([0] * 255))
 
