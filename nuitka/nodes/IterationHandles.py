@@ -218,14 +218,7 @@ class ConstantRangeIterationHandleBase(IterationHandleBase):
     """
 
     def __init__(self, constant_value):
-        assert constant_value.getIterationLength() < 256
         self.constant_value = constant_value
-        try:
-            self.low = self.constant_value.getLow().constant
-            self.high = self.constant_value.getHigh().constant
-            self.step = self.constant_value.getStep().constant
-        except AttributeError:
-            pass
 
     def __repr__(self):
         return "<%s of %r>" % (self.__class__.__name__, self.constant_value.getLow())
@@ -267,6 +260,8 @@ class ConstantIterationHandleRange1(ConstantRangeIterationHandleBase):
     def __init__(self, constant_value):
         ConstantRangeIterationHandleBase.__init__(self, constant_value)
         assert self.constant_value.isExpressionBuiltinRange1()
+        if self.constant_value.getLow().getIntegerValue() is not None:
+            self.low = self.constant_value.getLow().getIntegerValue()
         self.constant = xrange(self.low)
         self.iter = iter(self.constant)
 
@@ -277,6 +272,10 @@ class ConstantIterationHandleRange2(ConstantRangeIterationHandleBase):
     def __init__(self, constant_value):
         ConstantRangeIterationHandleBase.__init__(self, constant_value)
         assert self.constant_value.isExpressionBuiltinRange2()
+        if self.constant_value.getLow().getIntegerValue() is not None:
+            self.low = self.constant_value.getLow().getIntegerValue()
+        if self.constant_value.getHigh().getIntegerValue() is not None:
+            self.high = self.constant_value.getHigh().getIntegerValue()
         self.constant = xrange(self.low, self.high)
         self.iter = iter(self.constant)
 
@@ -287,6 +286,12 @@ class ConstantIterationHandleRange3(ConstantRangeIterationHandleBase):
     def __init__(self, constant_value):
         ConstantRangeIterationHandleBase.__init__(self, constant_value)
         assert self.constant_value.isExpressionBuiltinRange3()
+        if self.constant_value.getLow().getIntegerValue() is not None:
+            self.low = self.constant_value.getLow().getIntegerValue()
+        if self.constant_value.getHigh().getIntegerValue() is not None:
+            self.high = self.constant_value.getHigh().getIntegerValue()
+        if self.constant_value.getStep().getIntegerValue() is not None:
+            self.step = self.constant_value.getStep().getIntegerValue()
         self.constant = xrange(self.low, self.high, self.step)
         self.iter = iter(self.constant)
 
