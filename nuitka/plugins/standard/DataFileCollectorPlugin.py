@@ -35,6 +35,8 @@ known_data_files = {
     "scrapy": ((None, "VERSION"),),
     "requests": (("certifi", "../certifi/cacert.pem"),),
     "importlib_resources": ((None, "version.txt"),),
+    "boto": ((None,"./endpoints.json"),),
+    "moto": ((None,"./ec2/resources/instance_types.json"),(None,"./ec2/resources/amis.json"),),
 }
 
 
