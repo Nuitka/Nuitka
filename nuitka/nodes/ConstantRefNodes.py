@@ -844,6 +844,7 @@ class ExpressionConstantDictEmptyRef(ExpressionConstantDictRef):
 def makeConstantRefNode(constant, source_ref, user_provided=False):
     # This is dispatching per constant value and types, every case
     # to be a return statement, pylint: disable=too-many-branches,too-many-return-statements
+
     # Dispatch based on constants first.
     if constant is None:
         return ExpressionConstantNoneRef(
