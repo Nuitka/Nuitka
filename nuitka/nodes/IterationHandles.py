@@ -219,6 +219,14 @@ class ConstantRangeIterationHandleBase(IterationHandleBase):
 
     def __init__(self, constant_value):
         self.constant_value = constant_value
+        self.step = constant_value.getStep().getIntegerValue()
+        self.iter = iter(
+            xrange(
+                constant_value.getLow().getIntegerValue(),
+                constant_value.getHigh().getIntegerValue(),
+                self.step,
+            )
+        )
 
     def __repr__(self):
         return "<%s of %r>" % (self.__class__.__name__, self.constant_value.getLow())
@@ -260,10 +268,6 @@ class ConstantIterationHandleRange1(ConstantRangeIterationHandleBase):
     def __init__(self, constant_value):
         ConstantRangeIterationHandleBase.__init__(self, constant_value)
         assert self.constant_value.isExpressionBuiltinRange1()
-        if self.constant_value.getLow().getIntegerValue() is not None:
-            self.low = self.constant_value.getLow().getIntegerValue()
-        self.constant = xrange(self.low)
-        self.iter = iter(self.constant)
 
 
 class ConstantIterationHandleRange2(ConstantRangeIterationHandleBase):
@@ -272,12 +276,6 @@ class ConstantIterationHandleRange2(ConstantRangeIterationHandleBase):
     def __init__(self, constant_value):
         ConstantRangeIterationHandleBase.__init__(self, constant_value)
         assert self.constant_value.isExpressionBuiltinRange2()
-        if self.constant_value.getLow().getIntegerValue() is not None:
-            self.low = self.constant_value.getLow().getIntegerValue()
-        if self.constant_value.getHigh().getIntegerValue() is not None:
-            self.high = self.constant_value.getHigh().getIntegerValue()
-        self.constant = xrange(self.low, self.high)
-        self.iter = iter(self.constant)
 
 
 class ConstantIterationHandleRange3(ConstantRangeIterationHandleBase):
@@ -286,14 +284,6 @@ class ConstantIterationHandleRange3(ConstantRangeIterationHandleBase):
     def __init__(self, constant_value):
         ConstantRangeIterationHandleBase.__init__(self, constant_value)
         assert self.constant_value.isExpressionBuiltinRange3()
-        if self.constant_value.getLow().getIntegerValue() is not None:
-            self.low = self.constant_value.getLow().getIntegerValue()
-        if self.constant_value.getHigh().getIntegerValue() is not None:
-            self.high = self.constant_value.getHigh().getIntegerValue()
-        if self.constant_value.getStep().getIntegerValue() is not None:
-            self.step = self.constant_value.getStep().getIntegerValue()
-        self.constant = xrange(self.low, self.high, self.step)
-        self.iter = iter(self.constant)
 
     def getIterationValueWithIndex(self, value_index):
         """Tries to return constant value at the given index.
