@@ -545,20 +545,24 @@ def S():
 
 print(any(x > 42 for x in S()))
 
+print("Disallowed any() without args:")
 try:
     print(any())
 except Exception as e:
-    print("Disallowed without args")
+    print("caught ", repr(e))
 
+print("any() with float not iterable:")
 try:
     print(any(1.0))
 except Exception as e:
-    print("Object not iterable")
+    print("caught ", repr(e))
 
+print("any() with float type not iterable:")
 try:
     print(any(float))
 except Exception as e:
-    print("Object not iterable")
+    print("caught ", repr(e))
 
+print("any() with sets:")
 print(any(set([0, 1, 2, 3, 3])))
 print(any({1:"One", 2:"Two"}))

@@ -190,7 +190,11 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
         return max(0, low)
 
     def getIterationHandle(self):
-        return ConstantIterationHandleRange1(self)
+        low = self.getLow().getIntegerValue()
+        if low is None:
+            return None
+
+        return ConstantIterationHandleRange1(low, self.source_ref)
 
     def getIterationValue(self, element_index):
         length = self.getIterationLength()
@@ -251,7 +255,15 @@ class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
         return max(0, high - low)
 
     def getIterationHandle(self):
-        return ConstantIterationHandleRange2(self)
+        low = self.getLow().getIntegerValue()
+        if low is None:
+            return None
+
+        high = self.getHigh().getIntegerValue()
+        if high is None:
+            return None
+
+        return ConstantIterationHandleRange2(low, high, self.source_ref)
 
     def getIterationValue(self, element_index):
         low = self.getLow()
@@ -350,7 +362,23 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
         return self.getIterationLength() is not None
 
     def getIterationHandle(self):
-        return ConstantIterationHandleRange3(self)
+        low = self.getLow().getIntegerValue()
+        if low is None:
+            return None
+
+        high = self.getHigh().getIntegerValue()
+        if high is None:
+            return None
+
+        step = self.getStep().getIntegerValue()
+        if step is None:
+            return None
+
+        # Give up on this, will raise ValueError.
+        if step == 0:
+            return None
+
+        return ConstantIterationHandleRange3(low, high, step, self.source_ref)
 
     def getIterationValue(self, element_index):
         low = self.getLow().getIntegerValue()
@@ -364,6 +392,8 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
             return None
 
         step = self.getStep().getIntegerValue()
+
+        result = low + step * element_index
 
         result = low + step * element_index
 
