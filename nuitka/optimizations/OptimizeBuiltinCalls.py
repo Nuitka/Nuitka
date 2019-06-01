@@ -464,6 +464,7 @@ def len_extractor(node):
 
 
 def any_extractor(node):
+    # pylint: disable=unused-argument
     def makeAny0(source_ref):
         exception_message = "any() takes exactly one argument (0 given)"
 
