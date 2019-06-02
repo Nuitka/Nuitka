@@ -3,6 +3,9 @@ from moto import mock_s3
 
 # nuitka-skip-unless-imports: boto3,moto
 
+# TODO
+# mocking is incompatbile with nuitka
+
 def getClient():
     """
     returns the boto3 client

@@ -125,7 +125,8 @@ for filename in sorted(os.listdir(".")):
 
     # catch error
     elif filename == "Boto3Using.py":
-        extra_flags.append("ignore_stderr")
+        reportSkip("boto3 test not fully working yet", ".", filename)
+        continue
 
     elif "Idna" in filename:
         # For the warnings of Python2.
