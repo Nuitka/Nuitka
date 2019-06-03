@@ -26,18 +26,20 @@ import os
 # test ssl
 import socket
 import ssl
-
-# TODO: This is not Python2 compatible.
-
-from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 
 import urllib3  # @UnresolvedImport
 
-# nuitka-skip-unless-imports: urllib3,http.server
+# nuitka-skip-unless-imports: urllib3
+
+# running on python2
+if str is bytes:
+	from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+#running on python3
+else:
+	from http.server import HTTPServer, BaseHTTPRequestHandler
 
 started = False
-
 
 def runHTTPServer():
     class myServer(BaseHTTPRequestHandler):
