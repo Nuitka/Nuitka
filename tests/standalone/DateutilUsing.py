@@ -30,7 +30,7 @@ from dateutil.rrule import *
 
 # test parse
 # use static time to avoid time differences in output
-now = parse("Thu Sep 25 10:36:28 BRST 2003", tzinfos={"BRST": -10800})
+now = parse("Thu Sep 25 10:00:00 2003")
 print(now)
 
 
