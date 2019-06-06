@@ -566,3 +566,9 @@ except Exception as e:
 print("any() with sets:")
 print(any(set([0, 1, 2, 3, 3])))
 print(any({1:"One", 2:"Two"}))
+
+print("Tests for abs():")
+print(abs(-1000000**10))
+print(abs(len([1, 2, 3])))
+print(abs(-100))
+print(abs(bool([1]*1000)))
