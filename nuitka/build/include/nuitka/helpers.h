@@ -273,6 +273,9 @@ extern PyObject *BUILTIN_HASH(PyObject *value);
 extern PyObject *BUILTIN_SUM1(PyObject *sequence);
 extern PyObject *BUILTIN_SUM2(PyObject *sequence, PyObject *start);
 
+// For built-in built-in abs() functionality.
+extern PyObject *BUILTIN_ABS(PyObject *o);
+
 // For built-in bytes() functionality.
 #if PYTHON_VERSION >= 300
 extern PyObject *BUILTIN_BYTES1(PyObject *value);
