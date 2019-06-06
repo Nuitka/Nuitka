@@ -1,0 +1,3 @@
+[console_scripts]
+runner = package1.main:main
+

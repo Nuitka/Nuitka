@@ -1,0 +1,16 @@
+setup.py
+bdist_nuitka_test_2.egg-info/PKG-INFO
+bdist_nuitka_test_2.egg-info/SOURCES.txt
+bdist_nuitka_test_2.egg-info/dependency_links.txt
+bdist_nuitka_test_2.egg-info/entry_points.txt
+bdist_nuitka_test_2.egg-info/not-zip-safe
+bdist_nuitka_test_2.egg-info/top_level.txt
+package1/__init__.py
+package1/main.py
+package1/module1.py
+package1/module2.py
+package1/subpackage1/__init__.py
+package1/subpackage1/data.txt
+package1/subpackage1/submodule11.py
+package1/subpackage2/__init__.py
+package1/subpackage2/submodule21.py

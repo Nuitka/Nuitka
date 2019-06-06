@@ -1,0 +1,20 @@
+# PyLint wouldn't be installable on 2.6 and not work with 3.3
+
+pylint == 1.9.4 ; python_version == '2.7'
+pylint == 2.3.1 ; python_version >= '3.6'
+astroid == 2.2.5 ; python_version >= '3.6'
+
+# Autoformat needs
+black == 18.9b0 ; python_version >= '3.6'
+isort == 4.3.4 ; python_version == '2.7'
+redbaron == 0.9.1 ; python_version >= '2.7'
+baron == 0.9 ; python_version >= '2.7'
+
+# API doc, doxygen helper for Python
+doxypypy == 0.8.8.6 ; python_version >= '2.7'
+
+# Code and test generation tools
+Jinja2 == 2.10.1; python_version >= '2.7'
+
+# Codespell can be used as well, no need to fix version
+codespell; python_version >= '2.7'

@@ -1,0 +1,1 @@
+addFilter("nuitka.* devel-file-in-non-devel-package")

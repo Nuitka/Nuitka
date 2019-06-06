@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: bdist-nuitka-test-2
+Version: 0.1
+Summary: nuitka bdist_nuitka test-case compiling interdependent python packages, and printing a data file
+Home-page: UNKNOWN
+Author: Some Two
+Author-email: some2@sum.e
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN

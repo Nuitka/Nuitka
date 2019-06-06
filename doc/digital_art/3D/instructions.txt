@@ -1,0 +1,3 @@
+1) Install Blender ( http://www.blender.org/download ).
+2) Double click the .blend file to open it with Blender.
+3) When opened, press F12 to Render the Image, that's it (you can google more info on Blender usage).

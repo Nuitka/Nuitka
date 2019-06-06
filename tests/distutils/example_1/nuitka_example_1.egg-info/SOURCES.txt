@@ -1,0 +1,9 @@
+runner
+setup.py
+data_files/some_datafile.txt
+example1_package/__init__.py
+example1_package/data/package_data.txt
+nuitka_example_1.egg-info/PKG-INFO
+nuitka_example_1.egg-info/SOURCES.txt
+nuitka_example_1.egg-info/dependency_links.txt
+nuitka_example_1.egg-info/top_level.txt
