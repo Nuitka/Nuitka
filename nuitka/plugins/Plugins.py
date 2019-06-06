@@ -103,7 +103,7 @@ def loadStandardPlugins():
 
         if always_enable:  # mandatory, relevant plugin: enable it
             active_plugin_list.append(
-                (plugin or plugin)() # TODO: pylint: disable=I0021,not-callable
+                (plugin or plugin)()  # TODO: pylint: disable=I0021,not-callable
             )
         else:  # optional plugin: make it searchable by plugin_name
             plugin_name2plugin_classes[plugin.plugin_name] = plugin_objects

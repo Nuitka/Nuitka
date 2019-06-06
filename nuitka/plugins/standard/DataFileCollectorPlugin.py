@@ -35,8 +35,11 @@ known_data_files = {
     "scrapy": ((None, "VERSION"),),
     "requests": (("certifi", "../certifi/cacert.pem"),),
     "importlib_resources": ((None, "version.txt"),),
-    "boto": ((None,"./endpoints.json"),),
-    "moto": ((None,"./ec2/resources/instance_types.json"),(None,"./ec2/resources/amis.json"),),
+    "boto": ((None, "./endpoints.json"),),
+    "moto": (
+        (None, "./ec2/resources/instance_types.json"),
+        (None, "./ec2/resources/amis.json"),
+    ),
 }
 
 
@@ -49,9 +52,7 @@ generated_data_files = {
     "Cryptodome.Util._raw_api": (
         ("Cryptodome/Util", ".keep_dir.txt", _createEmptyDirText),
     ),
-    "Crypto.Util._raw_api": (
-        ("Crypto/Util", ".keep_dir.txt", _createEmptyDirText),
-    )
+    "Crypto.Util._raw_api": (("Crypto/Util", ".keep_dir.txt", _createEmptyDirText),),
 }
 
 
