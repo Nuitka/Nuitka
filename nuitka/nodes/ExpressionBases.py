@@ -805,6 +805,14 @@ Compile time constant negation truth value pre-computed.""",
 Compile time constant len value pre-computed.""",
         )
 
+    def computeExpressionAbs(self, abs_node, trace_collection):
+        return trace_collection.getCompileTimeComputationResult(
+            node=abs_node,
+            computation=lambda: abs(self.getCompileTimeConstant()),
+            description="""\
+Compile time constant abs value pre-computed.""",
+        )
+
     def computeExpressionInt(self, int_node, trace_collection):
         return trace_collection.getCompileTimeComputationResult(
             node=int_node,
