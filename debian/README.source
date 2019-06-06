@@ -1,0 +1,10 @@
+
+The source used to build Nuitka has modifications compared to normal releases:
+
+- The benchmark programs are not included. They are not really useful and can
+  be used from other sources in a better way.
+
+- The inline copy of Scons is removed. It is not needed as the dependency on
+  scons leads to an installed scons in the system. The original package uses
+  the installed scons in preference, so the inline copy would (at best) only
+  be dead code.

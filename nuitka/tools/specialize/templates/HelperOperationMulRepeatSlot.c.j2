@@ -1,0 +1,68 @@
+{#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+static PyObject *SLOT_sq_repeat_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    {{left.getCheckValueCode("operand1")|indent}}
+    {{right.getCheckValueCode("operand2")|indent}}
+
+{# This is SEQUENCE_REPEAT specialized #}
+    if (unlikely(!{{right.getIndexCheckExpression("operand2")}})) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
+
+        return NULL;
+    }
+
+    {% if right.needsIndexConversion() %}
+    PyObject *index_value = PyNumber_Index(operand2);
+
+    if (unlikely(index_value == NULL)) {
+        return NULL;
+    }
+    {% else %}
+    PyObject *index_value = operand2;
+    {% endif %}
+
+    {% if right.type_name == "int" %}
+    Py_ssize_t count = PyInt_AS_LONG(index_value);
+    {% else %}
+    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+    {% if right.needsIndexConversion() %}
+    Py_DECREF(index_value);
+    {% endif %}
+
+    /* Above conversion indicates an error as -1 */
+    if (unlikely(count == -1))
+    {
+        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(operand2)->tp_name);
+        return NULL;
+    }
+
+    {% endif %}
+
+    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = {{left.getTypeValueExpression("operand1")}};
+    ssizeargfunc repeatfunc = {{left.getSlotValueExpression("type1", "sq_repeat")}};
+
+    PyObject *result = (*repeatfunc)(operand1, count);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    return result;
+
+}

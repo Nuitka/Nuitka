@@ -1,0 +1,28 @@
+# Python project, check against all supported things.
+language: python
+python:
+#  - "2.6"
+  - "2.7"
+#  - "3.3"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+matrix:
+  include:
+    - python: 3.7
+      dist: xenial    # required for Python 3.7 (travis-ci/travis-ci#9069)
+      sudo: required  # required for Python 3.7 (travis-ci/travis-ci#9069)
+# disable submodules from git
+git:
+  submodules: false
+# commands to install dependencies
+install:
+  - "sudo apt-get install scons chrpath"
+  # This will install PyLint but not where it does not work. It will fail
+  # to install 2.6 and be buggy for 3.3
+  - "pip install -r requirements-devel.txt"
+  - "pip install ."
+# commands to run tests
+script:
+  - ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+  - ./bin/check-nuitka-with-pylint --not-installed-is-no-error

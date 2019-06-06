@@ -1,0 +1,60 @@
+{#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    {{left.getCheckValueCode("operand1")|indent}}
+    {{right.getCheckValueCode("operand2")|indent}}
+
+    double a = PyFloat_AS_DOUBLE(operand1);
+    double b = PyFloat_AS_DOUBLE(operand2);
+
+{%if operand in "+-*" %}
+    return PyFloat_FromDouble(a {{operand}} b);
+{%elif operand == "//" %}
+    if (unlikely(b == 0)) {
+        PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        return NULL;
+    }
+
+    /* TODO: Isn't this a very specific value only, of which we could
+     * hardcode the constant result. Not sure how well the C compiler
+     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+     * -1 has to be rare anyway.
+     */
+
+    if (unlikely(b == -1 && UNARY_NEG_WOULD_OVERFLOW(a))) {
+        return PyLong_Type.tp_as_number->nb_true_divide(operand1, operand2);
+    }
+
+    /* We use C11 or C++03 which have no trouble doing floor with
+     * signs correctly unlike standard CPython code, which does heavy lifting
+     * to avoid the issue.
+     */
+    long result = (long)(a / b);
+
+    return PyInt_FromLong(result);
+{%elif operand == "/" %}
+    if (b == 0.0) {
+        PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+        return NULL;
+    }
+
+    return PyFloat_FromDouble(a {{operand}} b);
+{% else %}
+#error Operand {{operand}} not implemented in {{name}}
+{% endif %}
+}

@@ -1,0 +1,12 @@
+# The build dependency on python-dev stems from the running of tests which
+# will build extensions or programs that embed CPython. Only the builder
+# arch needs to be installed.
+nuitka source: build-depends-on-python-dev-with-no-arch-any
+
+# I am doing test builds on Debian stable, while the upload target is
+# unstable. For these, ignore the too new standards version.
+nuitka source: newer-standards-version
+
+# We continue to support very old distributions and therefore allow
+# the relatively ancient Python releases.
+nuitka source: ancient-python-version-field
