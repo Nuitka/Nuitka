@@ -44,6 +44,7 @@ from .AttributeCodes import (
 )
 from .BranchCodes import generateBranchCode
 from .BuiltinCodes import (
+    generateBuiltinAbsCode,
     generateBuiltinAnonymousRefCode,
     generateBuiltinBinCode,
     generateBuiltinBoolCode,
@@ -550,6 +551,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_REF": generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_EXCEPTION_REF": generateExceptionRefCode,
         "EXPRESSION_BUILTIN_ANONYMOUS_REF": generateBuiltinAnonymousRefCode,
+        "EXPRESSION_BUILTIN_ABS_REF": generateBuiltinAbsCode,
         "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF": generateExceptionCaughtTypeCode,
         "EXPRESSION_CAUGHT_EXCEPTION_VALUE_REF": generateExceptionCaughtValueCode,
         "EXPRESSION_CAUGHT_EXCEPTION_TRACEBACK_REF": generateExceptionCaughtTracebackCode,

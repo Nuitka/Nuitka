@@ -598,7 +598,7 @@ PyObject *BUILTIN_ABS(PyObject *o) {
         return m->nb_absolute(o);
 
     PyErr_Format(PyExc_TypeError, "bad operand type for abs(): '%.200s'", o);
-    return NULL
+    return NULL;
 }
 
 NUITKA_DEFINE_BUILTIN(format);
