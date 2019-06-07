@@ -118,7 +118,7 @@ Default is %default.""",
     if options.upload:
         assert (
             os.system(
-                "rsync -avz --delete html/ --chown www-data git@nuitka.net:/var/www/apidoc/"
+                "rsync -avz --delete html/ --chown www-data root@nuitka.net:/var/www/apidoc/"
             )
             == 0
         )

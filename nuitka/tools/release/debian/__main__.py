@@ -212,7 +212,7 @@ SignWith: 2912B99C
     # build only.
     assert (
         os.system(
-            "ssh git@nuitka.net mkdir -p /var/www/deb/%s/%s/" % (category, codename)
+            "ssh root@nuitka.net mkdir -p /var/www/deb/%s/%s/" % (category, codename)
         )
         == 0
     )
@@ -220,7 +220,7 @@ SignWith: 2912B99C
     # Update the repository on the web site.
     assert (
         os.system(
-            "rsync -avz --delete dists pool --chown www-data git@nuitka.net:/var/www/deb/%s/%s/"
+            "rsync -avz --delete dists pool --chown www-data root@nuitka.net:/var/www/deb/%s/%s/"
             % (category, codename)
         )
         == 0
