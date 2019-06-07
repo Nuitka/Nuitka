@@ -36,7 +36,7 @@ def generateBuiltinAbsCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_ABS",
-        arg_desc=(("abs_arg", expression.getValue()),),
+        arg_desc=(("abs_arg", expression.getOperand()),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),

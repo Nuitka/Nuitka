@@ -551,7 +551,6 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_REF": generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_EXCEPTION_REF": generateExceptionRefCode,
         "EXPRESSION_BUILTIN_ANONYMOUS_REF": generateBuiltinAnonymousRefCode,
-        "EXPRESSION_BUILTIN_ABS_REF": generateBuiltinAbsCode,
         "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF": generateExceptionCaughtTypeCode,
         "EXPRESSION_CAUGHT_EXCEPTION_VALUE_REF": generateExceptionCaughtValueCode,
         "EXPRESSION_CAUGHT_EXCEPTION_TRACEBACK_REF": generateExceptionCaughtTracebackCode,
@@ -633,6 +632,7 @@ setExpressionDispatchDict(
         "EXPRESSION_OPERATION_BINARY_INPLACE": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_UNARY": generateOperationUnaryCode,
         "EXPRESSION_OPERATION_NOT": generateOperationNotCode,
+        "EXPRESSION_OPERATION_ABS": generateBuiltinAbsCode,
         "EXPRESSION_OUTLINE_BODY": generateFunctionOutlineCode,
         "EXPRESSION_OUTLINE_FUNCTION": generateFunctionOutlineCode,
         # TODO: Rename to make more clear it is an outline

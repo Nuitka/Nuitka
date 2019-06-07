@@ -660,6 +660,28 @@ class ExpressionOperationNOT(ExpressionOperationUnaryBase):
         return (self,)
 
 
+class ExpressionOperationAbs(ExpressionOperationUnaryBase):
+    kind = "EXPRESSION_OPERATION_ABS"
+
+    def __init__(self, operand, source_ref):
+        ExpressionOperationUnaryBase.__init__(
+            self, operator="Abs", operand=operand, source_ref=source_ref
+        )
+
+    def computeExpression(self, trace_collection):
+        return self.getOperand().computeExpressionAbs(
+            abs_node=self, trace_collection=trace_collection
+        )
+
+    def mayRaiseException(self, exception_type):
+        value = self.getOperand()
+
+        if value.mayRaiseException(exception_type):
+            return True
+
+        return not value.getTypeShape().hasShapeSlotAbs()
+
+
 class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
     kind = "EXPRESSION_OPERATION_BINARY_INPLACE"
 

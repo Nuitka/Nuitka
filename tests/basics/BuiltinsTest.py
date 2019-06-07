@@ -571,6 +571,7 @@ print("Tests for abs():")
 print(abs(-1000000**10))
 print(abs(len([1, 2, 3])))
 print(abs(-100))
+print(abs(float("nan")))
 print("abs() with list:")
 try:
     print(abs([1,2]))
