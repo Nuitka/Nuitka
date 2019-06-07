@@ -326,10 +326,15 @@ for filename in sorted(os.listdir(".")):
 
         # TCL/tk for tkinter for non-Windows is OK.
         if loaded_filename.startswith(
-            ("/usr/lib/tcltk/", "/usr/share/tcltk/", "/usr/lib64/tcl/")
+            ("/usr/lib/tcltk/", "/usr/share/tcltk/", "/usr/lib/tcl/", "/usr/lib64/tcl/")
         ):
             continue
-        if loaded_filename in ("/usr/lib/tcltk", "/usr/share/tcltk"):
+        if loaded_filename in (
+            "/usr/lib/tcltk",
+            "/usr/share/tcltk",
+            "/usr/lib64/tcl",
+            "/usr/lib64/tcl",
+        ):
             continue
         if loaded_filename in ("/usr/share/tcl8.6", "/usr/share/tcl8.5"):
             continue
