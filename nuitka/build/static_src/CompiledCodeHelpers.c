@@ -594,11 +594,11 @@ PyObject *BUILTIN_ABS(PyObject *o) {
     CHECK_OBJECT(o)
 
     PyNumberMethods *m = o->ob_type->tp_as_number;
-    if (likely(m && m->nb_absolute))
+    if (likely(m && m->nb_absolute)) {
         return m->nb_absolute(o);
+    }
 
-    PyErr_Format(PyExc_TypeError, "bad operand type for abs(): '%.200s'", o);
-    return NULL;
+    return PyErr_Format(PyExc_TypeError, "bad operand type for abs(): '%.200s'", Py_TYPE(o));
 }
 
 NUITKA_DEFINE_BUILTIN(format);

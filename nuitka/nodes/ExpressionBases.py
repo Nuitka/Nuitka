@@ -378,6 +378,27 @@ class ExpressionBase(NodeBase):
 
         return len_node, None, None
 
+    def computeExpressionAbs(self, abs_node, trace_collection):
+        shape = self.getTypeShape()
+
+        if shape.hasShapeSlotAbs() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template="bad operand type for abs(): '%s'",
+                operation="abs",
+                original_node=abs_node,
+                value_node=self,
+            )
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return abs_node, None, None
+
     def computeExpressionInt(self, int_node, trace_collection):
         shape = self.getTypeShape()
 
