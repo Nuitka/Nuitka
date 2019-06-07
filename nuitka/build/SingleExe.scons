@@ -34,8 +34,8 @@ import signal
 import subprocess
 import sys
 
-import SCons  # @UnresolvedImport @UnusedImport
-import SCons.Tool.gcc  # @UnresolvedImport @UnusedImport
+import SCons  # @UnresolvedImport @UnusedImport pylint: disable=import-error
+import SCons.Tool.gcc  # @UnresolvedImport @UnusedImport pylint: disable=import-error
 
 
 def getArguments():
@@ -127,6 +127,8 @@ static_libpython = getBoolOption("static_libpython", False)
 # no longer cross compile this way.
 win_target = os.name == "nt"
 
+noelf_mode = getBoolOption("noelf_mode", False)
+
 macosx_target = sys.platform == "darwin"
 
 # Windows subsystem mode: Disable console for windows builds.
@@ -138,9 +140,13 @@ uninstalled_python = getBoolOption("uninstalled_python", False)
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getBoolOption("unstripped_mode", False)
 
+# Target arch, uses for compiler choice and quick linking of constants binary
+# data.
+target_arch = ARGUMENTS["target_arch"]
+
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
-if macosx_target or ("freebsd" in sys.platform and os.uname()[4] != "powerpc"):  # @UndefinedVariable
+if macosx_target or ("freebsd" in sys.platform and target_arch != "powerpc"):
     clang_mode = True
 
 # MinGW compiler mode, optional and interesting to Windows only.
@@ -163,10 +169,6 @@ show_scons_mode = getBoolOption("show_scons", False)
 # Home of Python to be compiled against, used to find include files and
 # libraries to link against.
 python_prefix = ARGUMENTS["python_prefix"]
-
-# Target arch, uses for compiler choice and quick linking of constants binary
-# data.
-target_arch = ARGUMENTS["target_arch"]
 
 # Icon for executable (windows-only)
 icon_path = ARGUMENTS.get("icon_path", None)
@@ -208,14 +210,26 @@ def printCompilerVersionOutput(*args):
 
 
 # Amount of jobs to use.
-job_count = GetOption("num_jobs")  # @UndefinedVariable
+job_count = GetOption(  # @UndefinedVariable pylint: disable=undefined-variable
+    "num_jobs"
+)
+
+
+def isGccName(cc_name):
+    return "gcc" in cc_name or "g++" in cc_name or "gnu-cc" in cc_name
+
 
 # Add environment specified compilers to the PATH variable.
 if "CC" in os.environ:
+    os.environ["CC"] = os.path.normpath(os.environ["CC"])
+
     if os.path.isdir(os.environ["CC"]):
         sys.exit("Error, the CC variable must point to file, not directory.")
 
     cc_dirname = os.path.dirname(os.environ["CC"])
+
+    if win_target and isGccName(os.path.basename(os.environ["CC"])):
+        mingw_mode = True
 
     if os.path.isdir(cc_dirname):
         os.environ["PATH"] = os.pathsep.join(
@@ -225,10 +239,15 @@ if "CC" in os.environ:
     printCompilerVersionOutput("CC=%r" % os.environ["CC"])
 
 if "CXX" in os.environ:
+    os.environ["CXX"] = os.path.normpath(os.environ["CXX"])
+
     if os.path.isdir(os.environ["CXX"]):
         sys.exit("Error, the CXX variable must point to file, not directory.")
 
     cxx_dirname = os.path.dirname(os.environ["CXX"])
+
+    if win_target and isGccName(os.path.basename(os.environ["CXX"])):
+        mingw_mode = True
 
     if os.path.isdir(cxx_dirname):
         os.environ["PATH"] = os.pathsep.join(
@@ -276,7 +295,9 @@ def getExecutablePath(filename, initial):
 
 # Patch the compiler detection.
 
-orig_detect = Environment.Detect  # @UndefinedVariable
+orig_detect = (
+    Environment.Detect  # @UndefinedVariable pylint: disable=undefined-variable
+)
 found_gcc = False
 gcc_version = None
 
@@ -339,7 +360,9 @@ def detectVersion(env, cc):
     if show_scons_mode:
         print("Scons CC %r version check:" % cc)
 
-    if clvar[0] in ("gcc", "g++", "clang"):
+    clvar0 = os.path.basename(clvar[0])
+
+    if isGccName(clvar0) or "clang" in clvar0:
         command = list(clvar) + ["-dumpversion"]
     else:
         command = list(clvar) + ["--version"]
@@ -428,7 +451,7 @@ def myDetect(self, progs):
     return result
 
 
-Environment.Detect = myDetect  # @UndefinedVariable
+Environment.Detect = myDetect  # @UndefinedVariable pylint: disable=undefined-variable
 
 
 def createEnvironment(compiler_tools):
@@ -447,7 +470,7 @@ def createEnvironment(compiler_tools):
 
         args["MSVC_USE_SCRIPT"] = False
 
-    return Environment(  # @UndefinedVariable
+    return Environment(  # @UndefinedVariable pylint: disable=undefined-variable
         # We want the outside environment to be passed through.
         ENV=os.environ,
         # Extra tools configuration for scons.
@@ -602,10 +625,10 @@ def setupSpawn(env):
 
 
 the_compiler = env["CC"] or env["CXX"]
-printCompilerVersionOutput("Picked compiler=", the_compiler)
+printCompilerVersionOutput("Picked compiler:", the_compiler)
 
 the_cc_name = os.path.normcase(os.path.basename(the_compiler))
-printCompilerVersionOutput("Picked name=", the_cc_name)
+printCompilerVersionOutput("Picked name:", the_cc_name)
 
 # Requested or user provided, detect if it's clang even from environment
 if "clang" in the_cc_name and "-cl" not in the_cc_name:
@@ -614,8 +637,9 @@ if "clang" in the_cc_name and "-cl" not in the_cc_name:
 
 # We consider clang to be a form of gcc for the most things, they strive to
 # be compatible.
-gcc_mode = "gcc" in the_cc_name or "g++" in the_cc_name or clang_mode
+gcc_mode = isGccName(the_cc_name) or clang_mode
 
+# Only use MSVC if not already clear, we are using MinGW.
 msvc_mode = win_target and not gcc_mode
 mingw_mode = win_target and gcc_mode
 
@@ -666,7 +690,7 @@ no_import_lib = False
 if msvc_mode:
 
     def getMsvcVersionString():
-        import SCons.Tool.MSCommon.vc  # @UnresolvedImport
+        import SCons.Tool.MSCommon.vc  # @UnresolvedImport pylint: disable=import-error
 
         return SCons.Tool.MSCommon.vc.get_default_version(env)
 
@@ -709,7 +733,7 @@ if gcc_mode:
     if c11_mode:
         env.Append(CCFLAGS=["-std=c11"])
 
-    # Make it clear how to handle integer overflows, namely by wraping around
+    # Make it clear how to handle integer overflows, namely by wrapping around
     # to negative values.
     env.Append(CCFLAGS=["-fwrapv"])
 
@@ -814,6 +838,9 @@ version for lto mode (>= 4.6)."""
     # can enable it. TODO: Does this cause a performance loss?
     env.Append(CCFLAGS=["-fno-var-tracking"])
 
+if gcc_mode and not noelf_mode and not clang_mode:
+    env.Append(LINKFLAGS=["-z", "noexecstack"])
+
 if msvc_mode:
     # With Clang on Windows, there is also an linker to use.
     if "clang" in the_cc_name and "-cl" in the_cc_name:
@@ -848,7 +875,7 @@ if mingw_mode:
     env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])
 
 # At least older MinGW64 has issues with this, so disable it.
-if mingw_mode and gcc_version < "6":
+if mingw_mode and gcc_version < "6" and not clang_mode:
     env.Append(LINKFLAGS=["-Wl,--no-gc-sections"])
 
 if debug_mode:
@@ -916,6 +943,9 @@ if standalone_mode:
     if "linux" in sys.platform:
         env.Append(LIBS=["dl"])
 
+if not msvc_mode:
+    env.Append(LIBS=["m"])
+
 if no_python_warnings:
     env.Append(CPPDEFINES=["_NUITKA_NO_PYTHON_WARNINGS"])
 
@@ -963,7 +993,8 @@ if win_target:
     # For MinGW and cross compilation, we need to tell the subsystem
     # to target as well as to automatically import everything used.
     if gcc_mode:
-        env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
+        if not clang_mode:
+            env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
 
         if win_disable_console:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
@@ -1174,7 +1205,13 @@ if win_target:
     )
 
     if gcc_mode and static_libpython and os.path.exists(static_lib_filename):
-        env.Append(LIBS=[File(static_lib_filename)])  # @UndefinedVariable
+        env.Append(
+            LIBS=[
+                File(  # @UndefinedVariable pylint: disable=undefined-variable
+                    static_lib_filename
+                )
+            ]
+        )
     else:
         # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
         if python_debug:
@@ -1207,21 +1244,28 @@ elif not module_mode or (macosx_target and not static_libpython):
     )
 
     if not module_mode and static_libpython and os.path.exists(static_lib_filename):
-        env.Append(LIBS=[File(static_lib_filename)])  # @UndefinedVariable
+        env.Append(
+            LIBS=[
+                File(  # @UndefinedVariable pylint: disable=undefined-variable
+                    static_lib_filename
+                )
+            ]
+        )
     else:
         # Debian and Ubuntu distinguish the system libraries like this.
         if (
             python_debug
             and python_prefix == "/usr"
             and not python_version.startswith("3")
-            and platform.dist()[0].lower() in ("debian", "ubuntu")
+            and platform.dist()[0].lower()  # pylint: disable=no-member
+            in ("debian", "ubuntu")
         ):
             env.Append(LIBS=["python" + python_abi_version + "_d"])
         else:
             env.Append(LIBS=["python" + python_abi_version])
 
     if python_prefix != "/usr" and "linux" in sys.platform:
-        env.Append(LIBS=["dl", "pthread", "util", "rt", "m"])
+        env.Append(LIBS=["dl", "pthread", "util", "rt"])
 
         if gcc_mode and not clang_mode:
             env.Append(LINKFLAGS=["-export-dynamic"])
@@ -1258,7 +1302,7 @@ else:
     if gcc_mode:
         if macosx_target:
             env.Append(LINKFLAGS=["-Wno-deprecated-declarations"])
-        else:
+        elif not clang_mode:
             env.Append(LINKFLAGS=["-s"])
 
 # When debugging, optimize less than when optimizing, when not remove
@@ -1299,15 +1343,14 @@ if gcc_mode and not macosx_target and not win_target and not module_mode:
         env.Append(LINKFLAGS=["-Wl,--disable-new-dtags"])
 
 
-def _getLinkerArch():
-    if "linux" in sys.platform:
-        python_exe = os.environ["NUITKA_PYTHON_EXE_PATH"]
-        assert os.path.exists(python_exe), python_exe
+def _getBinaryArch(binary):
+    if "linux" in sys.platform or mingw_mode:
+        assert os.path.exists(binary), binary
 
-        command = ["objdump", "-f", python_exe]
+        command = ["objdump", "-f", binary]
 
         if show_scons_mode:
-            print("Scons: Detecting Linux target arch with :", command)
+            print("Scons: Detecting arch with :", command)
 
         try:
             proc = subprocess.Popen(
@@ -1345,21 +1388,58 @@ def getLinkerArch():
     global _linker_arch_determined, _linker_arch
 
     if not _linker_arch_determined:
-        _linker_arch = _getLinkerArch()
+        _linker_arch = _getBinaryArch(os.environ["NUITKA_PYTHON_EXE_PATH"])
         _linker_arch_determined = True
 
     return _linker_arch
 
 
+_compiler_arch_determined = False
+_compiler_arch = None
+
+
+def getCompilerArch():
+    global _compiler_arch_determined, _compiler_arch
+
+    if not _compiler_arch_determined:
+        _compiler_arch = _getBinaryArch(getExecutablePath(the_compiler, initial=False))
+        _compiler_arch_determined = True
+
+    return _compiler_arch
+
+
+if win_target and mingw_mode:
+    # Check most common user error related to MinGW64. People install 32 and
+    # 64 variants and do not consider that MinGW64 could be 32 bits too.
+
+    if getLinkerArch() != getCompilerArch():
+        sys.exit(
+            "Error, mismatch between Python %s and MinGW64 ('%s') arches."
+            % (
+                "%s" % (getLinkerArch() or "unknown, but likely 'pei-x86-64'"),
+                getCompilerArch(),
+            )
+        )
+
+
 constants_bin_filename = os.path.join(source_dir, "__constants.bin")
 
-if win_target and not module_mode:
-    # On Windows constants are accesses as a resource, except in shared
-    # libraries, where that option is not available.
+if win_target:
+    resource_mode = "win_resource"
+elif gcc_mode and getLinkerArch() is not None:
+    resource_mode = "linker"
+else:
+    resource_mode = "code"
+
+if show_scons_mode:
+    print("Scons: Using resource mode:", resource_mode)
+
+if resource_mode == "win_resource":
+    # On Windows constants are accesses as a resource by Nuitka afterwards.
     constants_generated_filename = None
 
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
-elif gcc_mode and getLinkerArch() is not None:
+elif resource_mode == "linker":
     env.Append(
         LINKFLAGS=[
             "-Wl,-b",
@@ -1537,10 +1617,6 @@ if win_target:
     rc_file_dependencies = []
 
     if not module_mode:
-        rc_content.append('3 RCDATA "%s"' % constants_bin_filename.replace("\\", "/"))
-
-        rc_file_dependencies.append(constants_bin_filename)
-
         if icon_path:
             rc_content.append(
                 '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"'
@@ -1559,7 +1635,9 @@ if win_target:
         res_target = env.RES(rc_filename)
 
         for rc_file_dependency in rc_file_dependencies:
-            Depends(res_target, rc_file_dependency)  # @UndefinedVariable
+            Depends(  # @UndefinedVariable pylint: disable=undefined-variable
+                res_target, rc_file_dependency
+            )
 
         source_targets.append(res_target)
 
@@ -1591,7 +1669,7 @@ else:
     target = env.Program(result_exe, source_files + source_targets)
 
 # Avoid dependency on MinGW libraries.
-if win_target and gcc_mode:
+if win_target and gcc_mode and not clang_mode:
     env.Append(LINKFLAGS=["-static-libgcc"])
 
 # Avoid IO for compilation as much as possible, this should make the
@@ -1664,10 +1742,10 @@ if cache_mode:
     if show_scons_mode:
         print("scons: Using scons cache inside build directory.")
 
-    CacheDir( # @UndefinedVariable
+    CacheDir(  # @UndefinedVariable pylint: disable=undefined-variable
         os.path.join(source_dir, "cache-" + target_arch + "-" + python_abi_version)
     )
-    Decider("MD5-timestamp")  # @UndefinedVariable
+    Decider("MD5-timestamp")  # @UndefinedVariable pylint: disable=undefined-variable
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit.
 
@@ -1707,7 +1785,27 @@ createBuildDefinitionsFile()
 if show_scons_mode:
     print("Scons: Launching target:", target)
 
-Default(target)  # @UndefinedVariable
+# Hack to make Scons use tempfile for gcc linking.
+if gcc_mode:
+    tmp_linker_filename = os.path.join(source_dir, "@sources.tmp")
+
+    env["LINKCOM"] = env["LINKCOM"].replace(
+        "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
+    )
+
+    with open(tmp_linker_filename, "w") as tmpfile:
+        for filename in source_files:
+            filename = ".".join(filename.split(".")[:-1]) + ".o"
+
+            if os.name == "nt":
+                filename = filename.replace(os.path.sep, "/")
+
+            tmpfile.write('"%s"\n' % filename)
+
+        tmpfile.write(env.subst("$SOURCES"))
+
+Default(target)  # @UndefinedVariable pylint: disable=undefined-variable
+
 
 # Copy the Python DLL to the target directory, so the executable can be run.
 if uninstalled_python:

@@ -34,7 +34,7 @@ def getOS():
         result = os.uname()[0]  # @UndefinedVariable
 
         # Handle msys2 posix nature still meaning it's Windows.
-        if result.startswith("MSYS_NT-"):
+        if result.startswith(("MSYS_NT-", "MINGW64_NT-")):
             result = "Windows"
 
         return result

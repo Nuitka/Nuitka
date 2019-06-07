@@ -199,7 +199,7 @@ class CollectionStartpointMixin(object):
             )
 
     def onExceptionRaiseExit(self, raisable_exceptions, collection=None):
-        """ Indicate to the trace collection what exceptions may have occured.
+        """ Indicate to the trace collection what exceptions may have occurred.
 
         Args:
             raisable_exception: Currently ignored, one or more exceptions that

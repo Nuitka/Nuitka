@@ -24,32 +24,33 @@ import sys
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
-)
-from nuitka.tools.testing.Common import (
-    my_print,
-    setup,
-    createSearchMode,
-    compareWithCPython,
-    reportSkip,
-    withPythonPathChange
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
 
-python_version = setup(needs_io_encoding = True)
+# isort:start
+
+from nuitka.tools.testing.Common import (
+    compareWithCPython,
+    createSearchMode,
+    my_print,
+    reportSkip,
+    setup,
+    withPythonPathChange,
+)
+
+python_version = setup(needs_io_encoding=True)
 
 search_mode = createSearchMode()
 
-extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS","")
+extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
 
-for filename in sorted(os.listdir('.')):
-    if not os.path.isdir(filename) or \
-       filename.endswith(".build") or \
-       filename.endswith(".dist"):
+for filename in sorted(os.listdir(".")):
+    if (
+        not os.path.isdir(filename)
+        or filename.endswith(".build")
+        or filename.endswith(".dist")
+    ):
         continue
 
     filename = os.path.relpath(filename)
@@ -59,8 +60,7 @@ for filename in sorted(os.listdir('.')):
         "module_exits",
         "main_raises",
         "main_raises2",
-        "package_contains_main"
-
+        "package_contains_main",
     ]
 
     # After Python3 those have been made to work.
@@ -71,15 +71,25 @@ for filename in sorted(os.listdir('.')):
     if python_version < "3":
         expected_errors.append("package_missing_init")
 
+    # Allowed with Python3 only:
+    if python_version < "3.5":
+        expected_errors.append("package_init_issue")
+
     if filename not in expected_errors:
         extra_flags = ["expect_success"]
     else:
         extra_flags = ["expect_failure"]
 
-    if filename in ("reimport_main_static", "package_missing_init",
-                    "dash_import", "package_contains_main", "case_imports3",
-                    "import_variants", "package_init_import",
-                    "pkgutil_itermodules"):
+    if filename in (
+        "reimport_main_static",
+        "package_missing_init",
+        "dash_import",
+        "package_contains_main",
+        "case_imports3",
+        "import_variants",
+        "package_init_import",
+        "pkgutil_itermodules",
+    ):
         extra_flags.append("ignore_warnings")
 
     extra_flags.append("remove_output")
@@ -108,34 +118,29 @@ for filename in sorted(os.listdir('.')):
         extra_flags.append("binary_python_path")
 
     if filename == "plugin_import":
-        os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
-          " --include-package=some_package"
+        os.environ["NUITKA_EXTRA_OPTIONS"] = (
+            extra_options + " --include-package=some_package"
+        )
     elif filename == "reimport_main_dynamic":
-        if python_version < '3':
-            os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
-              " --include-plugin-directory=%s" % (
-                  os.path.abspath(filename)
-              )
+        if python_version < "3":
+            os.environ["NUITKA_EXTRA_OPTIONS"] = (
+                extra_options
+                + " --include-plugin-directory=%s" % (os.path.abspath(filename))
+            )
         else:
-            os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
-              " --include-plugin-files=%s/*.py" % (
-                  os.path.abspath(filename)
-              )
+            os.environ["NUITKA_EXTRA_OPTIONS"] = (
+                extra_options
+                + " --include-plugin-files=%s/*.py" % (os.path.abspath(filename))
+            )
 
         extra_flags.append("ignore_warnings")
     elif filename == "multiprocessing_using":
         if os.name == "nt":
-            extra_flags += [
-                "plugin_enable:multiprocessing",
-                "ignore_infos"
-            ]
+            extra_flags += ["plugin_enable:multiprocessing", "ignore_infos"]
     else:
         os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options
 
-    active = search_mode.consider(
-        dirname  = None,
-        filename = filename
-    )
+    active = search_mode.consider(dirname=None, filename=filename)
 
     if active:
         my_print("Consider output of recursively compiled program:", filename)
@@ -149,26 +154,27 @@ for filename in sorted(os.listdir('.')):
         else:
             sys.exit(
                 """\
-Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case.""" % (
-                    filename
-                )
+Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case."""
+                % (filename)
             )
 
         extra_python_path = [
             os.path.abspath(os.path.join(filename, entry))
-            for entry in
-            os.listdir(filename)
+            for entry in os.listdir(filename)
             if entry.startswith("path")
         ]
 
         with withPythonPathChange(extra_python_path):
             compareWithCPython(
-                dirname     = filename,
-                filename    = filename_main,
-                extra_flags = extra_flags,
-                search_mode = search_mode,
-                needs_2to3  = False
+                dirname=filename,
+                filename=filename_main,
+                extra_flags=extra_flags,
+                search_mode=search_mode,
+                needs_2to3=False,
             )
+
+        if search_mode.abortIfExecuted():
+            break
     else:
         my_print("Skipping", filename)
 

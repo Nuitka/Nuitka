@@ -1416,7 +1416,7 @@ PyObject *BUILTIN_SUM1(PyObject *sequence) {
 
         CHECK_OBJECT(item);
 
-        // For Python2 int objects:
+// For Python2 int objects:
 #if PYTHON_VERSION < 300
         if (PyInt_CheckExact(item)) {
             long b = PyInt_AS_LONG(item);
@@ -1431,7 +1431,7 @@ PyObject *BUILTIN_SUM1(PyObject *sequence) {
         }
 #endif
 
-        // For Python2 long, Python3 int objects
+// For Python2 long, Python3 int objects
 #if PYTHON_VERSION >= 270
         if (PyLong_CheckExact(item)) {
             int overflow;
@@ -1473,7 +1473,7 @@ PyObject *BUILTIN_SUM1(PyObject *sequence) {
         break;
     }
 
-    /* Switch over to objects, and redo last step. */
+/* Switch over to objects, and redo last step. */
 #if PYTHON_VERSION < 300
     result = PyInt_FromLong(int_result);
 #else
@@ -1746,11 +1746,13 @@ static PyObject *getBinaryDirectoryObject() {
     static PyObject *binary_directory = NULL;
 
     if (binary_directory != NULL) {
+        CHECK_OBJECT(binary_directory);
+
         return binary_directory;
     }
 
-    // On Python3, this must be a unicode object, it cannot be on Python2,
-    // there e.g. code objects expect Python2 strings.
+// On Python3, this must be a unicode object, it cannot be on Python2,
+// there e.g. code objects expect Python2 strings.
 #if PYTHON_VERSION >= 300
 #if defined(_WIN32)
     binary_directory = PyUnicode_FromWideChar(getBinaryDirectoryWideChars(), -1);
@@ -1766,10 +1768,31 @@ static PyObject *getBinaryDirectoryObject() {
         abort();
     }
 
+    // Make sure it's usable for caching.
+    Py_INCREF(binary_directory);
+
     return binary_directory;
 }
 
 #else
+
+#if defined(_WIN32)
+/* Small helper function to get current DLL handle. */
+static HMODULE getDllModuleHandle() {
+    static HMODULE hm = NULL;
+
+    if (hm == NULL) {
+        int res =
+            GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                               (LPCSTR)&getDllModuleHandle, &hm);
+        assert(res != 0);
+    }
+
+    assert(hm != NULL);
+    return hm;
+}
+#endif
+
 static char *getDllDirectory() {
 #if defined(_WIN32)
     static char path[MAXPATHLEN + 1];
@@ -1780,21 +1803,13 @@ static char *getDllDirectory() {
     WCHAR path2[MAXPATHLEN + 1];
     path2[0] = 0;
 
-    int res = GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                                 (LPCSTR)&getDllDirectory, &hm);
-    assert(res != 0);
-
-    res = GetModuleFileNameW(hm, path2, MAXPATHLEN + 1);
+    int res = GetModuleFileNameW(getDllModuleHandle(), path2, MAXPATHLEN + 1);
     assert(res != 0);
 
     int res2 = WideCharToMultiByte(CP_UTF8, 0, path2, -1, path, MAXPATHLEN + 1, NULL, NULL);
     assert(res2 != 0);
 #else
-    int res = GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                                 (LPCSTR)&getDllDirectory, &hm);
-    assert(res != 0);
-
-    res = GetModuleFileNameA(hm, path, MAXPATHLEN + 1);
+    int res = GetModuleFileNameA(getDllModuleHandle(), path, MAXPATHLEN + 1);
     assert(res != 0);
 #endif
     PathRemoveFileSpec(path);
@@ -1834,7 +1849,7 @@ void _initBuiltinModule() {
     assert(res == 0);
 #endif
 
-    // init Nuitka_BuiltinModule_Type, PyType_Ready wont copy all member from
+    // init Nuitka_BuiltinModule_Type, PyType_Ready won't copy all member from
     // base type, so we need copy all members from PyModule_Type manual for
     // safety.  PyType_Ready will change tp_flags, we need define it again. Set
     // tp_setattro to Nuitka_BuiltinModule_SetAttr and we can detect value
@@ -1864,6 +1879,8 @@ void _initBuiltinModule() {
 #include "HelpersCalling.c"
 
 PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
+    CHECK_OBJECT(relative);
+
     static PyObject *our_path_object = NULL;
 
     if (our_path_object == NULL) {
@@ -1875,7 +1892,6 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
 #else
         our_path_object = PyString_FromString(getDllDirectory());
 #endif
-
 #endif
     }
 
@@ -1887,7 +1903,7 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
     PyObject *result = PyNumber_Add(our_path_object, PyUnicode_FromString(sep));
 #endif
 
-    assert(result);
+    CHECK_OBJECT(result);
 
 #if PYTHON_VERSION < 300
     result = PyNumber_InPlaceAdd(result, relative);
@@ -1895,7 +1911,7 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
     result = PyNumber_InPlaceAdd(result, relative);
 #endif
 
-    assert(result);
+    CHECK_OBJECT(result);
 
     return result;
 }
@@ -1974,7 +1990,18 @@ void _initSlotIternext() {
 #include "HelpersAttributes.c"
 
 #include "HelpersOperationBinaryAdd.c"
+#include "HelpersOperationBinaryFloordiv.c"
+#include "HelpersOperationBinaryMul.c"
+#include "HelpersOperationBinarySub.c"
+#include "HelpersOperationBinaryTruediv.c"
+
+#if PYTHON_VERSION < 300
+#include "HelpersOperationBinaryOlddiv.c"
+#endif
+
 #include "HelpersOperationBinaryInplaceAdd.c"
+
+#include "HelpersConstantsBlob.c"
 
 #if _NUITKA_PROFILE
 #include "HelpersProfiling.c"

@@ -17,7 +17,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import os, ctypes
+import ctypes
+import os
 
 if os.name == "nt":
     # adapted from http://code.activestate.com/recipes/578513
@@ -52,7 +53,7 @@ if os.name == "nt":
     rv = GetProcessMemoryInfo(
         ctypes.windll.kernel32.GetCurrentProcess(),
         ctypes.byref(counters),
-        ctypes.sizeof(counters)
+        ctypes.sizeof(counters),
     )
 
     if not rv:

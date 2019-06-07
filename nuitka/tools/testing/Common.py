@@ -33,12 +33,19 @@ from contextlib import contextmanager
 from nuitka.Tracing import my_print
 from nuitka.utils.AppDirs import getAppDir, getCacheDir
 from nuitka.utils.Execution import check_output, withEnvironmentVarOverriden
-from nuitka.utils.FileOperations import getFileContentByLine, makePath, removeDirectory
+from nuitka.utils.FileOperations import (
+    getFileContentByLine,
+    getFileContents,
+    getFileList,
+    makePath,
+    removeDirectory,
+)
 
 from .SearchModes import (
     SearchModeBase,
     SearchModeByPattern,
     SearchModeCoverage,
+    SearchModeOnly,
     SearchModeResume,
 )
 
@@ -65,6 +72,7 @@ def goMainDir():
 _python_version = None
 _python_arch = None
 _python_executable = None
+_python_vendor = None
 
 
 def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
@@ -101,21 +109,24 @@ import sys, os;\
 print(".".join(str(s) for s in list(sys.version_info)[:3]));\
 print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os.uname()[4]);\
 print(sys.executable);\
+print("Anaconda" if "Anaconda" in sys.version else "Unknown")\
 """,
         ),
         stderr=subprocess.STDOUT,
     )
 
-    global _python_version, _python_arch, _python_executable  # singleton, pylint: disable=global-statement
+    global _python_version, _python_arch, _python_executable, _python_vendor  # singleton, pylint: disable=global-statement
 
     _python_version = version_output.split(b"\n")[0].strip()
     _python_arch = version_output.split(b"\n")[1].strip()
     _python_executable = version_output.split(b"\n")[2].strip()
+    _python_vendor = version_output.split(b"\n")[3].strip()
 
     if sys.version.startswith("3"):
         _python_arch = _python_arch.decode("utf-8")
         _python_version = _python_version.decode("utf-8")
         _python_executable = _python_executable.decode("utf-8")
+        _python_vendor = _python_vendor.decode("utf-8")
 
     if not silent:
         my_print("Using concrete python", _python_version, "on", _python_arch)
@@ -130,6 +141,10 @@ print(sys.executable);\
         )
 
     return _python_version
+
+
+def getPythonVendor():
+    return _python_vendor
 
 
 tmp_dir = None
@@ -394,16 +409,6 @@ def hasDebugPython():
     return False
 
 
-def getArchitecture():
-    if os.name == "nt":
-        if "AMD64" in sys.version:
-            return "x86_64"
-        else:
-            return "x86"
-    else:
-        return os.uname()[4]  # @UndefinedVariable
-
-
 def getDependsExePath():
     if "APPDATA" not in os.environ:
         sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
@@ -591,7 +596,7 @@ Error, needs 'strace' on your system to scan used libraries."""
             if "?" in line[: line.find("]")]:
                 continue
 
-            dll_filename = line[line.find("]") + 2 : -1]
+            dll_filename = line[line.find("]") + 2 :].rstrip()
             assert os.path.isfile(dll_filename), dll_filename
 
             # The executable itself is of course exempted.
@@ -834,6 +839,7 @@ def checkReferenceCount(checked_function, max_rounds=10):
 def createSearchMode():
     search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
     resume_mode = len(sys.argv) > 1 and sys.argv[1] == "resume"
+    only_mode = len(sys.argv) > 1 and sys.argv[1] == "only"
     start_at = sys.argv[2] if len(sys.argv) > 2 else None
     coverage_mode = len(sys.argv) > 1 and sys.argv[1] == "coverage"
 
@@ -845,6 +851,9 @@ def createSearchMode():
     elif search_mode and start_at:
         start_at = start_at.replace("/", os.path.sep)
         return SearchModeByPattern(start_at)
+    elif only_mode and start_at:
+        only_at = start_at.replace("/", os.path.sep)
+        return SearchModeOnly(only_at)
     else:
 
         class SearchModeImmediate(SearchModeBase):
@@ -1249,16 +1258,25 @@ def withDirectoryChange(path, allow_none=False):
 def setupCacheHashSalt(test_code_path):
     assert os.path.exists(test_code_path)
 
-    git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
+    if os.path.exists(os.path.join(test_code_path, ".git")):
+        git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
 
-    process = subprocess.Popen(
-        args=git_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+        process = subprocess.Popen(
+            args=git_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
 
-    stdout_git, stderr_git = process.communicate()
-    assert process.returncode == 0, stderr_git
+        stdout_git, stderr_git = process.communicate()
+        assert process.returncode == 0, stderr_git
 
-    os.environ["NUITKA_HASH_SALT"] = hashlib.md5(stdout_git).hexdigest()
+        salt_value = hashlib.md5(stdout_git)
+    else:
+        salt_value = hashlib.md5()
+
+        for filename in getFileList(test_code_path):
+            if filename.endswith(".py"):
+                salt_value.update(getFileContents(filename, mode="rb"))
+
+    os.environ["NUITKA_HASH_SALT"] = salt_value.hexdigest()
 
 
 def someGenerator():

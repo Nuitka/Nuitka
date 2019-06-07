@@ -264,7 +264,7 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
 
         assert self.comparator in ("Is", "IsNot")
 
-        # TODO: Forward propage this one.
+        # TODO: Forward propagate this one.
         self.match_value = self.comparator == "Is"
 
     def getDetails(self):

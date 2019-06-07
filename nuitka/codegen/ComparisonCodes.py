@@ -177,8 +177,9 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
                 left_shape=left.getTypeShape(),
                 right_shape=expression.getRight().getTypeShape(),
                 helpers=_cmp_obj_result_helpers_set,
+                nonhelpers=(),
                 # TODO: Too many for now, so disable it
-                warn_missing=False,
+                source_ref=None,
             )
         else:
             helper = pickCodeHelper(
@@ -187,8 +188,9 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
                 left_shape=left.getTypeShape(),
                 right_shape=expression.getRight().getTypeShape(),
                 helpers=_cmp_bool_result_helpers_set,
+                nonhelpers=(),
                 # TODO: Too many for now, so disable it
-                warn_missing=False,
+                source_ref=None,
             )
 
         # Lets patch this up here, instead of having one set per operation.

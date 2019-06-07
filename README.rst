@@ -224,10 +224,14 @@ Install the C compiler
 
  - Download and install mingw64 from
    `https://sourceforge.net/projects/mingw-w64/ <https://sourceforge.net/projects/mingw-w64/>`_
+ - in Architecture: choose i686 if you want use 32bit or x86_64 if you want 64 bit version python
  - Select destination folder to **c:\\MinGW64**
  - verify using command  **gcc.exe --version**
  - Set a environment variable pointing to **gcc.exe**
-   **CC=c:\\mingw64\bin\\gcc.exe**
+
+   **CC=C:\\MinGW64\\mingw64\\bin\\gcc.exe** if 64 bit version
+
+   **CC=C:\\MinGW64\\mingw32\\bin\\gcc.exe** if 32 bit version
 
 Install Python 3.7 (64 Bits)
 ++++++++++++++++++++++++++++
@@ -242,10 +246,12 @@ Install Nuitka
 ++++++++++++++
 
  - **pip install nuitka**
+ - if you use anaconda:
+ - **conda install -c conda-forge nuitka**
  - verify using command **nuitka --version**
 
 Write some code and test
--------------------------
+------------------------
 
 Create a folder for the Python code
 +++++++++++++++++++++++++++++++++++
@@ -374,6 +380,16 @@ feasible, use Nuitka like this:
    otherwise, the package is empty. Data files located inside the package will
    not be embedded yet.
 
+Typical Problems
+================
+
+Dynamic ``sys.path``
+--------------------
+
+If your script modifies ``sys.path`` to e.g. insert directories with source code
+relative to it, Nuitka will currently not be able to see those. However, if you
+set the ``PYTHONPATH`` to the resulting value, you will be able to compile it
+
 Tips
 ====
 
@@ -438,18 +454,21 @@ Anaconda Python on non-Windows.
 Windows Standalone executables and dependencies
 -----------------------------------------------
 
-The process of making Standalone executables for Windows traditionally involves
+The process of making standalone executables for Windows traditionally involves
 using an external dependency walker in order to copy necessary libraries along
 with the compiled executables to the distribution folder.
+
 Using the external dependency walker is quite a time consuming, and may copy
 some unnecessary libraries along the way (better have too much than missing).
+
 Since Nuitka 0.6.2, there's an experimental alternative internal dependency
 walker that relies on pefile which analyses PE imports of executables/libraries.
+
 This implementation shall create smaller Standalone distributions since it won't
 include Windows' equivalent of the standard library, and will speed-up first
 Nuitka compilations by an order of magnitude.
-In order to use it, make sure you have pefile installed via ```python -m pip install pefile```
-Once installed, you may enable the internal dependency walker by using the
+
+In order to use it, you may enable the internal dependency walker by using the
 following switch:
 
 .. code-block:: bash

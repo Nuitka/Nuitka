@@ -18,15 +18,18 @@
 #     limitations under the License.
 #
 from flask import Flask
+
+# nuitka-skip-unless-imports: flask
+
 app = Flask(__name__)
+
 
 @app.route("/")
 def main():
     return "Welcome!"
 
+
 if __name__ == "__main__":
     pass
     # TODO: Find something other meaningful to do.
     # app.run()
-
-

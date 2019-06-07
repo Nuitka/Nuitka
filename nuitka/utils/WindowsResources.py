@@ -31,6 +31,12 @@ multiple resources proved to be not possible.
 
 # SxS manifest files resource kind
 RT_MANIFEST = 24
+# Data resource kind
+RT_RCDATA = 10
+# Icon group resource kind
+RT_GROUP_ICON = 14
+# Icon resource kind
+RT_ICON = 3
 
 
 def getResourcesFromDLL(filename, resource_kind, with_data=False):
@@ -40,6 +46,8 @@ def getResourcesFromDLL(filename, resource_kind, with_data=False):
         List of resource names in the DLL.
 
     """
+    # Quite complex stuff, pylint: disable=too-many-locals
+
     import ctypes.wintypes
 
     if type(filename) is str and str is not bytes:
@@ -48,6 +56,9 @@ def getResourcesFromDLL(filename, resource_kind, with_data=False):
         LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExA  # @UndefinedVariable
 
     EnumResourceNames = ctypes.windll.kernel32.EnumResourceNamesA  # @UndefinedVariable
+    EnumResourceLanguages = (
+        ctypes.windll.kernel32.EnumResourceLanguagesA  # @UndefinedVariable
+    )
     FreeLibrary = ctypes.windll.kernel32.FreeLibrary  # @UndefinedVariable
 
     EnumResourceNameCallback = ctypes.WINFUNCTYPE(
@@ -73,9 +84,35 @@ def getResourcesFromDLL(filename, resource_kind, with_data=False):
     if hmodule == 0:
         raise ctypes.WinError()
 
+    EnumResourceLanguagesCallback = ctypes.WINFUNCTYPE(
+        ctypes.wintypes.BOOL,
+        ctypes.wintypes.HMODULE,
+        ctypes.wintypes.LONG,
+        ctypes.wintypes.LONG,
+        ctypes.wintypes.WORD,
+        ctypes.wintypes.LONG,
+    )
+
     result = []
 
     def callback(hModule, lpType, lpName, _lParam):
+        langs = []
+
+        def callback2(hModule2, lpType2, lpName2, wLang, _lParam):
+            assert hModule2 == hModule
+            assert lpType2 == lpType
+            assert lpName2 == lpName
+
+            langs.append(wLang)
+
+            return True
+
+        EnumResourceLanguages(
+            hModule, lpType, lpName, EnumResourceLanguagesCallback(callback2), 0
+        )
+        # Always pick first one, we should get away with that.
+        lang_id = langs[0]
+
         if with_data:
             hResource = ctypes.windll.kernel32.FindResourceA(  # @UndefinedVariable
                 hModule, lpName, lpType
@@ -86,13 +123,14 @@ def getResourcesFromDLL(filename, resource_kind, with_data=False):
             hData = ctypes.windll.kernel32.LoadResource(  # @UndefinedVariable
                 hModule, hResource
             )
+
             try:
                 ptr = ctypes.windll.kernel32.LockResource(hData)  # @UndefinedVariable
-                result.append((lpType, lpName, ctypes.string_at(ptr, size)))
+                result.append((lpType, lpName, lang_id, ctypes.string_at(ptr, size)))
             finally:
                 ctypes.windll.kernel32.FreeResource(hData)  # @UndefinedVariable
         else:
-            result.append(lpName)
+            result.append((lpName, lang_id))
 
         return True
 
@@ -105,9 +143,17 @@ def getResourcesFromDLL(filename, resource_kind, with_data=False):
 def _openFileWindowsResources(filename):
     import ctypes
 
-    update_handle = ctypes.windll.kernel32.BeginUpdateResourceA(  # @UndefinedVariable
-        filename, False
-    )
+    if type(filename) is str and str is not bytes:
+        BeginUpdateResource = (
+            ctypes.windll.kernel32.BeginUpdateResourceW  # @UndefinedVariable
+        )
+    else:
+        BeginUpdateResource = (
+            ctypes.windll.kernel32.BeginUpdateResourceA  # @UndefinedVariable
+        )
+
+    BeginUpdateResource.restype = ctypes.wintypes.HANDLE
+    update_handle = BeginUpdateResource(filename, False)
 
     if not update_handle:
         raise ctypes.WinError()
@@ -118,6 +164,10 @@ def _openFileWindowsResources(filename):
 def _closeFileWindowsResources(update_handle):
     import ctypes
 
+    ctypes.windll.kernel32.EndUpdateResourceA.argtypes = [
+        ctypes.wintypes.HANDLE,
+        ctypes.wintypes.BOOL,
+    ]
     ret = ctypes.windll.kernel32.EndUpdateResourceA(  # @UndefinedVariable
         update_handle, False
     )
@@ -126,38 +176,63 @@ def _closeFileWindowsResources(update_handle):
         raise ctypes.WinError()
 
 
-def deleteWindowsResources(filename, resource_kind, res_names):
+def _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, data):
     import ctypes
 
+    if data is None:
+        size = 0
+    else:
+        size = len(data)
+
+    UpdateResourceA = ctypes.windll.kernel32.UpdateResourceA  # @UndefinedVariable
+
+    UpdateResourceA.argtypes = [
+        ctypes.wintypes.HANDLE,
+        ctypes.wintypes.LPVOID,
+        ctypes.wintypes.LPVOID,
+        ctypes.wintypes.WORD,
+        ctypes.wintypes.LPVOID,
+        ctypes.wintypes.DWORD,
+    ]
+
+    ret = UpdateResourceA(update_handle, resource_kind, res_name, lang_id, data, size)
+
+    if not ret:
+        raise ctypes.WinError()
+
+
+def deleteWindowsResources(filename, resource_kind, res_names):
     update_handle = _openFileWindowsResources(filename)
 
-    for res_name in res_names:
-        ret = ctypes.windll.kernel32.UpdateResource(  # @UndefinedVariable
-            update_handle, resource_kind, res_name, 0, None, 0
-        )
-
-        if not ret:
-            raise ctypes.WinError()
+    for res_name, lang_id in res_names:
+        _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, None)
 
     _closeFileWindowsResources(update_handle)
 
 
 def copyResourcesFromFileToFile(source_filename, target_filename, resource_kind):
-    import ctypes
-
-    res_data = getResourcesFromDLL(source_filename, resource_kind, True)
+    res_data = getResourcesFromDLL(
+        filename=source_filename, resource_kind=resource_kind, with_data=True
+    )
 
     if res_data:
         update_handle = _openFileWindowsResources(target_filename)
 
-        for kind, res_name, data in res_data:
+        for kind, res_name, lang_id, data in res_data:
             assert kind == resource_kind
 
-            ret = ctypes.windll.kernel32.UpdateResourceA(  # @UndefinedVariable
-                update_handle, resource_kind, res_name, 0, data, len(data)
+            lang_id = 0
+
+            _updateWindowsResource(
+                update_handle, resource_kind, res_name, lang_id, data
             )
 
-            if not ret:
-                raise ctypes.WinError()
-
         _closeFileWindowsResources(update_handle)
+
+
+def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name):
+    update_handle = _openFileWindowsResources(target_filename)
+
+    _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, data)
+
+    _closeFileWindowsResources(update_handle)

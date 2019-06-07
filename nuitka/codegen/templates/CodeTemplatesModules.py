@@ -166,6 +166,11 @@ MOD_INIT_DECL( %(module_identifier)s )
     // the init here because that's the first and only time we are going to get
     // called here.
 
+    // May have to activate constants blob.
+#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
+    loadConstantsResource();
+#endif
+
     // Initialize the constant values used.
     _initBuiltinModule();
     createGlobalConstants();

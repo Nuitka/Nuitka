@@ -250,7 +250,7 @@ if ( PyModule_Check( %(from_arg_name)s ) )
 {
    %(to_name)s = IMPORT_NAME_OR_MODULE(
         %(from_arg_name)s,
-        (PyObject *)MODULE_DICT(%(from_arg_name)s),
+        (PyObject *)moduledict_%(module_identifier)s,
         %(import_name)s,
         %(import_level)s
     );
@@ -269,6 +269,7 @@ else
                     "import_level": context.getConstantCode(
                         constant=expression.getImportLevel()
                     ),
+                    "module_identifier": context.getModuleCodeName(),
                 }
             )
         else:

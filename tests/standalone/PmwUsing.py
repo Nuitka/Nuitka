@@ -17,31 +17,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import Pmw  # @UnresolvedImport
 
-# This test is using signals and will only work if PySide properly accepts
-# compiled functions as callables.
-
-from __future__ import print_function
-
-from PyQt4.QtCore import pyqtSlot, pyqtSignal, QObject, QMetaObject
-
-class Communicate(QObject):
-    speak = pyqtSignal(int)
-    def __init__(self,name = "",parent = None):
-        QObject.__init__(self,parent)
-        self.setObjectName(name)
-
-class Speaker(QObject):
-    @pyqtSlot(int)
-    def on_communicator_speak(self, stuff):
-        print(stuff)
-
-speaker = Speaker()
-someone = Communicate(name = "communicator",parent = speaker)
-
-QMetaObject.connectSlotsByName(speaker)
-
-print("The answer is:",end = "")
-# emit  'speak' signal
-someone.speak.emit(42)
-print("Slot should have made output by now.")
+# nuitka-skip-unless-imports: Pmw

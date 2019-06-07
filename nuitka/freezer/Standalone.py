@@ -24,7 +24,6 @@ very welcome.
 
 from __future__ import print_function
 
-import contextlib
 import hashlib
 import inspect
 import marshal
@@ -37,6 +36,7 @@ from logging import debug, info, warning
 from nuitka import Options, SourceCodeReferences, Tracing
 from nuitka.__past__ import iterItems
 from nuitka.containers.odict import OrderedDict
+from nuitka.containers.oset import OrderedSet
 from nuitka.importing import ImportCache
 from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
@@ -58,22 +58,18 @@ from nuitka.utils.FileOperations import (
     isPathBelow,
     listDir,
     makePath,
+    withFileLock,
 )
-from nuitka.utils.SharedLibraries import getWindowsDLLVersion, removeSxsFromDLL
-from nuitka.utils.ThreadedExecutor import Lock, ThreadPoolExecutor, waitWorkers
+from nuitka.utils.SharedLibraries import (
+    getPEFileInformation,
+    getWindowsDLLVersion,
+    removeSxsFromDLL,
+)
+from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import getArchitecture
 
 from .DependsExe import getDependsExePath
-
-# Use PE file analysis only on Win32
-if Utils.isWin32Windows() and Options.isExperimental("use_pefile"):
-    import pefile  # @UnresolvedImport pylint: disable=I0021,import-error
-
-    # Finding site-packages directory when recursive internal dependency walker is used
-    from distutils.sysconfig import (  # pylint: disable=I0021,import-error
-        get_python_lib,  # @UnresolvedImport
-    )
 
 
 def loadCodeObjectData(precompiled_filename):
@@ -548,7 +544,7 @@ _detected_python_rpath = None
 ldd_result_cache = {}
 
 
-def _detectBinaryPathDLLsLinuxBSD(dll_filename):
+def _detectBinaryPathDLLsPosix(dll_filename):
     # This is complex, as it also includes the caching mechanism
     # pylint: disable=too-many-branches
 
@@ -663,7 +659,7 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
     sub_result = set(result)
 
     for sub_dll_filename in result:
-        sub_result = sub_result.union(_detectBinaryPathDLLsLinuxBSD(sub_dll_filename))
+        sub_result = sub_result.union(_detectBinaryPathDLLsPosix(sub_dll_filename))
 
     return sub_result
 
@@ -705,15 +701,16 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
     return result
 
 
-def _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filename):
+def _getCacheFilename(
+    dependency_tool, is_main_executable, source_dir, original_dir, binary_filename
+):
     original_filename = os.path.join(original_dir, os.path.basename(binary_filename))
-
     original_filename = os.path.normcase(original_filename)
 
     if is_main_executable:
         # Normalize main program name for caching as well, but need to use the
-        # scons information to distinguish different Python and arches, and
-        # compilers, so we use different libs there.
+        # scons information to distinguish different compilers, so we use
+        # different libs there.
         hashed_value = getFileContents(os.path.join(source_dir, "scons-report.txt"))
     else:
         hashed_value = original_filename
@@ -724,248 +721,21 @@ def _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filen
     if str is not bytes:
         hashed_value = hashed_value.encode("utf8")
 
-    cache_dir = os.path.join(
-        getCacheDir(),
-        "library_deps_pefile"
-        if Options.isExperimental("use_pefile")
-        else "library_deps",
-    )
+    cache_dir = os.path.join(getCacheDir(), "library_deps", dependency_tool)
 
     makePath(cache_dir)
 
     return os.path.join(cache_dir, hashlib.md5(hashed_value).hexdigest())
 
 
-# Locking seems to be only required for Windows currently, expressed that in the
-# lock name.
-windows_lock = None
+_withLock = withFileLock
 
 
-@contextlib.contextmanager
-def _withLock():
-    # This is a singleton, pylint: disable=global-statement
-    global windows_lock
-
-    if windows_lock is None:
-        windows_lock = Lock()
-
-    windows_lock.acquire()
-    yield
-    windows_lock.release()
-
-
-_win_dll_whitelist = (
-    "SHELL32.DLL",
-    "USER32.DLL",
-    "KERNEL32.DLL",
-    "NTDLL.DLL",
-    "NETUTILS.DLL",
-    "LOGONCLI.DLL",
-    "GDI32.DLL",
-    "RPCRT4.DLL",
-    "ADVAPI32.DLL",
-    "SSPICLI.DLL",
-    "SECUR32.DLL",
-    "KERNELBASE.DLL",
-    "WINBRAND.DLL",
-    "DSROLE.DLL",
-    "DNSAPI.DLL",
-    "SAMCLI.DLL",
-    "WKSCLI.DLL",
-    "SAMLIB.DLL",
-    "WLDAP32.DLL",
-    "NTDSAPI.DLL",
-    "CRYPTBASE.DLL",
-    "W32TOPL",
-    "WS2_32.DLL",
-    "SPPC.DLL",
-    "MSSIGN32.DLL",
-    "CERTCLI.DLL",
-    "WEBSERVICES.DLL",
-    "AUTHZ.DLL",
-    "CERTENROLL.DLL",
-    "VAULTCLI.DLL",
-    "REGAPI.DLL",
-    "BROWCLI.DLL",
-    "WINNSI.DLL",
-    "DHCPCSVC6.DLL",
-    "PCWUM.DLL",
-    "CLBCATQ.DLL",
-    "IMAGEHLP.DLL",
-    "MSASN1.DLL",
-    "DBGHELP.DLL",
-    "DEVOBJ.DLL",
-    "DRVSTORE.DLL",
-    "CABINET.DLL",
-    "SCECLI.DLL",
-    "SPINF.DLL",
-    "SPFILEQ.DLL",
-    "GPAPI.DLL",
-    "NETJOIN.DLL",
-    "W32TOPL.DLL",
-    "NETBIOS.DLL",
-    "DXGI.DLL",
-    "DWRITE.DLL",
-    "D3D11.DLL",
-    "D3D11ON12.DLL",
-    "WLANAPI.DLL",
-    "WLANUTIL.DLL",
-    "ONEX.DLL",
-    "EAPPPRXY.DLL",
-    "MFPLAT.DLL",
-    "AVRT.DLL",
-    "ELSCORE.DLL",
-    "INETCOMM.DLL",
-    "MSOERT2.DLL",
-    "IEUI.DLL",
-    "MSCTF.DLL",
-    "MSFEEDS.DLL",
-    "UIAUTOMATIONCORE.DLL",
-    "PSAPI.DLL",
-    "EFSADU.DLL",
-    "MFC42U.DLL",
-    "ODBC32.DLL",
-    "OLEDLG.DLL",
-    "NETAPI32.DLL",
-    "LINKINFO.DLL",
-    "DUI70.DLL",
-    "ADVPACK.DLL",
-    "NTSHRUI.DLL",
-    "WINSPOOL.DRV",
-    "EFSUTIL.DLL",
-    "WINSCARD.DLL",
-    "SHDOCVW.DLL",
-    "IEFRAME.DLL",
-    "D2D1.DLL",
-    "GDIPLUS.DLL",
-    "OCCACHE.DLL",
-    "IEADVPACK.DLL",
-    "MLANG.DLL",
-    "MSI.DLL",
-    "MSHTML.DLL",
-    "COMDLG32.DLL",
-    "PRINTUI.DLL",
-    "PUIAPI.DLL",
-    "ACLUI.DLL",
-    "WTSAPI32.DLL",
-    "FMS.DLL",
-    "DFSCLI.DLL",
-    "HLINK.DLL",
-    "MSRATING.DLL",
-    "PRNTVPT.DLL",
-    "IMGUTIL.DLL",
-    "MSLS31.DLL",
-    "VERSION.DLL",
-    "NORMALIZ.DLL",
-    "IERTUTIL.DLL",
-    "WININET.DLL",
-    "WINTRUST.DLL",
-    "XMLLITE.DLL",
-    "APPHELP.DLL",
-    "PROPSYS.DLL",
-    "RSTRTMGR.DLL",
-    "NCRYPT.DLL",
-    "BCRYPT.DLL",
-    "MMDEVAPI.DLL",
-    "MSILTCFG.DLL",
-    "DEVMGR.DLL",
-    "DEVRTL.DLL",
-    "NEWDEV.DLL",
-    "VPNIKEAPI.DLL",
-    "WINHTTP.DLL",
-    "WEBIO.DLL",
-    "NSI.DLL",
-    "DHCPCSVC.DLL",
-    "CRYPTUI.DLL",
-    "ESENT.DLL",
-    "DAVHLPR.DLL",
-    "CSCAPI.DLL",
-    "ATL.DLL",
-    "OLEAUT32.DLL",
-    "SRVCLI.DLL",
-    "RASDLG.DLL",
-    "MPRAPI.DLL",
-    "RTUTILS.DLL",
-    "RASMAN.DLL",
-    "MPRMSG.DLL",
-    "SLC.DLL",
-    "CRYPTSP.DLL",
-    "RASAPI32.DLL",
-    "TAPI32.DLL",
-    "EAPPCFG.DLL",
-    "NDFAPI.DLL",
-    "WDI.DLL",
-    "COMCTL32.DLL",
-    "UXTHEME.DLL",
-    "IMM32.DLL",
-    "OLEACC.DLL",
-    "WINMM.DLL",
-    "WINDOWSCODECS.DLL",
-    "DWMAPI.DLL",
-    "DUSER.DLL",
-    "PROFAPI.DLL",
-    "URLMON.DLL",
-    "SHLWAPI.DLL",
-    "LPK.DLL",
-    "USP10.DLL",
-    "CFGMGR32.DLL",
-    "MSIMG32.DLL",
-    "POWRPROF.DLL",
-    "SETUPAPI.DLL",
-    "WINSTA.DLL",
-    "CRYPT32.DLL",
-    "IPHLPAPI.DLL",
-    "MPR.DLL",
-    "CREDUI.DLL",
-    "NETPLWIZ.DLL",
-    "OLE32.DLL",
-    "ACTIVEDS.DLL",
-    "ADSLDPC.DLL",
-    "USERENV.DLL",
-    "APPREPAPI.DLL",
-    "BCP47LANGS.DLL",
-    "BCRYPTPRIMITIVES.DLL",
-    "CERTCA.DLL",
-    "CHARTV.DLL",
-    "COMBASE.DLL",
-    "COML2.DLL",
-    "DCOMP.DLL",
-    "DPAPI.DLL",
-    "DSPARSE.DLL",
-    "FECLIENT.DLL",
-    "FIREWALLAPI.DLL",
-    "FLTLIB.DLL",
-    "MRMCORER.DLL",
-    "NTASN1.DLL",
-    "SECHOST.DLL",
-    "SETTINGSYNCPOLICY.DLL",
-    "SHCORE.DLL",
-    "TBS.DLL",
-    "TWINAPI.APPCORE.DLL",
-    "TWINAPI.DLL",
-    "VIRTDISK.DLL",
-    "WEBSOCKET.DLL",
-    "WEVTAPI.DLL",
-    "WINMMBASE.DLL",
-    "WMICLNT.DLL",
-    "ICUUC.DLL",
-    "DRVSETUP.DLL",
-    "HTTPAPI.DLL",
-    "WDSCORE.DLL",
-    "ICUIN.DLL",
-    "WFDSCONMGR.DLL",
-    # MFC140U.DLL, MFCM140U.DLL may be excluded too since it comes with VC2015 redist, which we can assume
-    # is installed on target machine anyway, even if pythonwin distributes it's own copies of those DLLs
-    "MFC140U.DLL",
-    "MFCM140U.DLL",
-)
-
-
-def _parseDependsExeOutput(filename, result):
+def _parseDependsExeOutput2(lines, result):
     inside = False
     first = False
 
-    for line in getFileContentByLine(filename):
+    for line in lines:
         if "| Module Dependency Tree |" in line:
             inside = True
             first = True
@@ -980,15 +750,33 @@ def _parseDependsExeOutput(filename, result):
         if "]" not in line:
             continue
 
-        # Skip missing DLLs, apparently not needed anyway.
-        if "?" in line[: line.find("]")]:
-            continue
+        dll_filename = line[line.find("]") + 2 :].rstrip()
+        dll_filename = os.path.normcase(dll_filename)
 
         # Skip DLLs that failed to load, apparently not needed anyway.
         if "E" in line[: line.find("]")]:
             continue
 
-        dll_filename = line[line.find("]") + 2 : -1]
+        # Skip missing DLLs, apparently not needed anyway.
+        if "?" in line[: line.find("]")]:
+            # One exception are PythonXY.DLL
+            if dll_filename.startswith("python") and dll_filename.endswith(".dll"):
+                dll_filename = os.path.join(
+                    os.environ["SYSTEMROOT"],
+                    "SysWOW64" if getArchitecture() == "x86_64" else "System32",
+                    dll_filename,
+                )
+                dll_filename = os.path.normcase(dll_filename)
+            else:
+                continue
+
+        dll_filename = os.path.abspath(dll_filename)
+
+        dll_name = os.path.basename(dll_filename)
+
+        # Ignore this runtime DLL of Python2.
+        if dll_name in ("msvcr90.dll",):
+            continue
 
         # The executable itself is of course exempted. We cannot check its path
         # because depends.exe mistreats unicode paths.
@@ -996,46 +784,32 @@ def _parseDependsExeOutput(filename, result):
             first = False
             continue
 
-        assert os.path.isfile(dll_filename), dll_filename
+        assert os.path.isfile(dll_filename), (dll_filename, line)
 
-        dll_name = os.path.basename(dll_filename).upper()
+        # Allow plugins to prevent inclusion. TODO: This should be called with
+        # only the new ones.
+        blocked = Plugins.removeDllDependencies(
+            dll_filename=dll_filename, dll_filenames=result
+        )
 
-        # Win API can be assumed.
-        if dll_name.startswith("API-MS-WIN-") or dll_name.startswith("EXT-MS-WIN-"):
-            continue
-
-        if dll_name in _win_dll_whitelist:
-            continue
+        for to_remove in blocked:
+            result.discard(to_remove)
 
         result.add(os.path.normcase(os.path.abspath(dll_filename)))
 
 
-def _detectBinaryPathDLLsWindows(
-    is_main_executable, source_dir, original_dir, binary_filename, package_name
-):
-    # This is complex, as it also includes the caching mechanism
-    # pylint: disable=too-many-locals
+def _parseDependsExeOutput(filename, result):
+    _parseDependsExeOutput2(getFileContentByLine(filename), result)
 
-    result = set()
 
-    cache_filename = _getCacheFilename(
-        is_main_executable, source_dir, original_dir, binary_filename
-    )
+_scan_dir_cache = {}
 
-    if (
-        os.path.exists(cache_filename)
-        and not Options.shallNotUseDependsExeCachedResults()
-    ):
-        for line in getFileContentByLine(cache_filename):
-            line = line.strip()
 
-            result.add(line)
+def getScanDirectories(package_name, original_dir):
+    cache_key = package_name, original_dir
 
-        return result
-
-    # User query should only happen once if at all.
-    with _withLock():
-        depends_exe = getDependsExePath()
+    if cache_key in _scan_dir_cache:
+        return _scan_dir_cache[cache_key]
 
     scan_dirs = [sys.prefix]
 
@@ -1052,59 +826,134 @@ def _detectBinaryPathDLLsWindows(
         scan_dirs.append(original_dir)
         scan_dirs.extend(getSubDirectories(original_dir))
 
-    with _withLock():
-        # The search order by default prefers the system directory, where a
-        # wrong "PythonXX.dll" might be living.
-        with open(binary_filename + ".dwp", "w") as dwp_file:
+    for path_dir in os.environ["PATH"].split(";"):
+        if not os.path.isdir(path_dir):
+            continue
+
+        if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"])):
+            continue
+        if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"], "System32")):
+            continue
+        if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"], "SysWOW64")):
+            continue
+
+        scan_dirs.append(path_dir)
+
+    result = []
+
+    # Remove directories that hold no DLLs.
+    for scan_dir in scan_dirs:
+        sys.stdout.flush()
+
+        # These are useless, but plenty.
+        if os.path.basename(scan_dir) == "__pycache__":
+            continue
+
+        # No DLLs, no use.
+        if not any(entry[1].lower().endswith(".dll") for entry in listDir(scan_dir)):
+            continue
+
+        result.append(scan_dir)
+
+    _scan_dir_cache[cache_key] = result
+    return result
+
+
+def detectBinaryPathDLLsWindowsDependencyWalker(
+    is_main_executable,
+    source_dir,
+    original_dir,
+    binary_filename,
+    package_name,
+    use_cache,
+    update_cache,
+):
+    # This is complex, as it also includes the caching mechanism
+    # pylint: disable=too-many-locals
+    result = set()
+
+    if use_cache or update_cache:
+        cache_filename = _getCacheFilename(
+            dependency_tool="depends.exe",
+            is_main_executable=is_main_executable,
+            source_dir=source_dir,
+            original_dir=original_dir,
+            binary_filename=binary_filename,
+        )
+
+        if use_cache:
+            with withFileLock():
+                if not os.path.exists(cache_filename):
+                    use_cache = False
+
+        if use_cache:
+            for line in getFileContentByLine(cache_filename):
+                line = line.strip()
+
+                result.add(line)
+
+            return result
+
+    if Options.isShowProgress():
+        info("Analysing dependencies of '%s'." % binary_filename)
+
+    scan_dirs = getScanDirectories(package_name, original_dir)
+
+    dwp_filename = binary_filename + ".dwp"
+    output_filename = binary_filename + ".depends"
+
+    # User query should only happen once if at all.
+    with _withLock(
+        "Finding out dependency walker path and creating DWP file for %s"
+        % binary_filename
+    ):
+        depends_exe = getDependsExePath()
+
+        # Note: Do this under lock to avoid forked processes to hold
+        # a copy of the file handle on Windows.
+        with open(dwp_filename, "w") as dwp_file:
             dwp_file.write(
                 """\
-KnownDLLs
-%(original_dirs)s
-SysPath
-32BitSysDir
-16BitSysDir
-OSDir
-AppPath
-SxS
-"""
+    %(scan_dirs)s
+    SxS
+    """
                 % {
-                    "original_dirs": "\n".join(
-                        "UserDir %s" % dirname
-                        for dirname in scan_dirs
-                        if not os.path.basename(dirname) == "__pycache__"
-                        if any(
-                            entry[1].lower().endswith(".dll")
-                            for entry in listDir(dirname)
-                        )
+                    "scan_dirs": "\n".join(
+                        "UserDir %s" % dirname for dirname in scan_dirs
                     )
                 }
             )
 
-        # Starting the process while locked, so file handles are not duplicated.
-        depends_exe_process = subprocess.Popen(
-            (
-                depends_exe,
-                "-c",
-                "-ot%s" % binary_filename + ".depends",
-                "-d:%s" % binary_filename + ".dwp",
-                "-f1",
-                "-pa1",
-                "-ps1",
-                binary_filename,
-            )
+    # Starting the process while locked, so file handles are not duplicated.
+    depends_exe_process = subprocess.Popen(
+        (
+            depends_exe,
+            "-c",
+            "-ot%s" % output_filename,
+            "-d:%s" % dwp_filename,
+            "-f1",
+            "-pa1",
+            "-ps1",
+            binary_filename,
         )
+    )
 
     # TODO: Exit code should be checked.
     depends_exe_process.wait()
 
+    if not os.path.exists(output_filename):
+        sys.exit("Error, depends.exe failed to product output.")
+
     # Opening the result under lock, so it is not getting locked by new processes.
-    with _withLock():
-        _parseDependsExeOutput(binary_filename + ".depends", result)
 
-    deleteFile(binary_filename + ".depends", must_exist=True)
-    deleteFile(binary_filename + ".dwp", must_exist=True)
+    # Note: Do this under lock to avoid forked processes to hold
+    # a copy of the file handle on Windows.
+    _parseDependsExeOutput(output_filename, result)
 
-    if not Options.shallNotStoreDependsExeCachedResults():
+    deleteFile(output_filename, must_exist=True)
+    deleteFile(dwp_filename, must_exist=True)
+
+    if update_cache:
         with open(cache_filename, "w") as cache_file:
             for dll_filename in result:
                 print(dll_filename, file=cache_file)
@@ -1112,202 +961,183 @@ SxS
     return result
 
 
-def _getPEFile(binary_filename):
-    try:
-        pe = pefile.PE(binary_filename)
-        return pe
-    except AttributeError:
-        assert False, "Bogus PE header in " + binary_filename
-
-
-def _isPE64(pe_file):
-    pe = _getPEFile(pe_file)
-    arch = {
-        pefile.OPTIONAL_HEADER_MAGIC_PE: False,
-        pefile.OPTIONAL_HEADER_MAGIC_PE_PLUS: True,
-    }
-    try:
-        return arch[pe.PE_TYPE]
-    except KeyError:
-        # Support your architecture.
-        assert False, "Unknown PE file architecture"
-
-
-def _parsePEFileOutput(binary_filename, scan_dirs, result):
-    pe = _getPEFile(binary_filename)
-
-    # Some DLLs (eg numpy) don't have imports
-    if not hasattr(pe, "DIRECTORY_ENTRY_IMPORT"):
-        info(
-            "Warning: no DIRECTORY_ENTRY_IMPORT PE section for library '%s'!"
-            % binary_filename
-        )
-        return
-
-    # Get DLL imports from PE file
-    for imported_module in pe.DIRECTORY_ENTRY_IMPORT:
-        dll_filename = imported_module.dll.decode()
-
-        # Try to guess DLL path from scan dirs
-        for scan_dir in scan_dirs:
-            try:
-                guessed_path = os.path.join(scan_dir, dll_filename)
-                if os.path.isfile(guessed_path):
-                    dll_filename = guessed_path
-                    break
-            except TypeError:
-                pass
-
-        dll_name = os.path.basename(dll_filename).upper()
-
-        # Win API can be assumed.
-        if dll_name.startswith("API-MS-WIN-") or dll_name.startswith("EXT-MS-WIN-"):
-            continue
-
-        if dll_name in _win_dll_whitelist:
-            continue
-
-        # Allow plugins to prevent inclusion.
-        blocked = Plugins.removeDllDependencies(
-            dll_filename=dll_filename, dll_filenames=result
-        )
-
-        for to_remove in blocked:
-            result.discard(to_remove)
-
-        result.add(os.path.normcase(os.path.abspath(dll_filename)))
-
-
-def _detectBinaryPathDLLsWindowsPE(
-    is_main_executable, source_dir, original_dir, binary_filename, package_name
+def _parsePEFileOutput(
+    binary_filename,
+    scan_dirs,
+    is_main_executable,
+    source_dir,
+    original_dir,
+    use_cache,
+    update_cache,
 ):
     # This is complex, as it also includes the caching mechanism
     # pylint: disable=too-many-branches,too-many-locals
 
-    result = set()
+    result = OrderedSet()
 
-    cache_filename = _getCacheFilename(
-        is_main_executable, source_dir, original_dir, binary_filename
-    )
+    if use_cache or update_cache:
+        cache_filename = _getCacheFilename(
+            dependency_tool="pefile",
+            is_main_executable=is_main_executable,
+            source_dir=source_dir,
+            original_dir=original_dir,
+            binary_filename=binary_filename,
+        )
 
-    if (
-        os.path.exists(cache_filename)
-        and not Options.shallNotUseDependsExeCachedResults()
-    ):
-        for line in getFileContentByLine(cache_filename):
-            line = line.strip()
+        if use_cache:
+            with withFileLock():
+                if not os.path.exists(cache_filename):
+                    use_cache = False
 
-            result.add(line)
+    if use_cache:
 
-        return result
-
-    scan_dirs = [sys.prefix]
-
-    if package_name is not None:
-        from nuitka.importing.Importing import findModule
-
-        package_dir = findModule(None, package_name, None, 0, False)[1]
-
-        if os.path.isdir(package_dir):
-            scan_dirs.append(package_dir)
-            scan_dirs.extend(getSubDirectories(package_dir))
-
-    if os.path.isdir(original_dir):
-        scan_dirs.append(original_dir)
-        scan_dirs.extend(getSubDirectories(original_dir))
-
-    if Options.isExperimental("use_pefile_fullrecurse"):
-        try:
-            scan_dirs.extend(getSubDirectories(get_python_lib()))
-        except OSError:
-            print("Cannot recurse into site-packages for dependencies. Path not found.")
+        # TODO: We are lazy with the format, pylint: disable=eval-used
+        extracted = eval(getFileContents(cache_filename))
     else:
-        # Fix for missing pywin32 inclusion when using pythonwin library, no way to detect that automagically
-        # Since there are more than one dependencies on pywintypes37.dll, let's include this anyway
-        # In recursive mode, using dirname(original_dir) won't always work, hence get_python_lib
-        try:
-            scan_dirs.append(os.path.join(get_python_lib(), "pywin32_system32"))
-        except OSError:
-            pass
+        if Options.isShowProgress():
+            info("Analysing dependencies of '%s'." % binary_filename)
+
+        extracted = getPEFileInformation(binary_filename)
+
+    if update_cache:
+        with withFileLock():
+            with open(cache_filename, "w") as cache_file:
+                print(repr(extracted), file=cache_file)
 
     # Add native system directory based on pe file architecture and os architecture
     # Python 32: system32 = syswow64 = 32 bits systemdirectory
     # Python 64: system32 = 64 bits systemdirectory, syswow64 = 32 bits systemdirectory
-    binary_file_is_64bit = _isPE64(binary_filename)
-    python_is_64bit = getArchitecture() == "x86_64"
-    if binary_file_is_64bit is not python_is_64bit:
-        print(
-            "Warning: Using Python x64=%s with x64=%s binary dependencies"
-            % (binary_file_is_64bit, python_is_64bit)
-        )
 
-    if binary_file_is_64bit:
-        # This is actually not useful as of today since we don't compile 32 bits on 64 bits
-        if python_is_64bit:
-            scan_dirs.append(os.path.join(os.environ["SYSTEMROOT"], "System32"))
+    # Get DLL imports from PE file
+    for dll_name in extracted["DLLs"]:
+        dll_name = dll_name.upper()
+
+        # Try determine DLL path from scan dirs
+        for scan_dir in scan_dirs:
+            dll_filename = os.path.normcase(
+                os.path.abspath(os.path.join(scan_dir, dll_name))
+            )
+
+            if os.path.isfile(dll_filename):
+                break
         else:
-            scan_dirs.append(os.path.join(os.environ["SYSTEMROOT"], "SysWOW64"))
-    else:
-        scan_dirs.append(os.path.join(os.environ["SYSTEMROOT"], "System32"))
+            if dll_name.startswith("API-MS-WIN-") or dll_name.startswith("EXT-MS-WIN-"):
+                continue
+            # Found via RC_MANIFEST as copied from Python.
+            if dll_name == "MSVCR90.DLL":
+                continue
 
-    if Options.isExperimental("use_pefile_recurse"):
-        # Recursive one level scanning of all .pyd and .dll in the original_dir too
-        # This shall fix a massive list of missing dependencies that may come with included libraries which themselves
-        # need to be scanned for inclusions
-        for root, _, filenames in os.walk(original_dir):
-            for optional_libary in filenames:
-                if optional_libary.endswith(".dll") or optional_libary.endswith(".pyd"):
-                    _parsePEFileOutput(
-                        os.path.join(root, optional_libary), scan_dirs, result
-                    )
+            if dll_name.startswith("python") and dll_name.endswith(".dll"):
+                dll_filename = os.path.join(
+                    os.environ["SYSTEMROOT"],
+                    "SysWOW64" if getArchitecture() == "x86_64" else "System32",
+                    dll_name,
+                )
+                dll_filename = os.path.normcase(dll_filename)
+            else:
+                continue
 
-    _parsePEFileOutput(binary_filename, scan_dirs, result)
+        if dll_filename not in result:
+            result.add(dll_filename)
 
-    if not Options.shallNotStoreDependsExeCachedResults():
-        with open(cache_filename, "w") as cache_file:
-            for dll_filename in result:
-                print(dll_filename, file=cache_file)
+    # TODO: Shouldn't be here.
+    blocked = Plugins.removeDllDependencies(
+        dll_filename=binary_filename, dll_filenames=result
+    )
+
+    for to_remove in blocked:
+        result.discard(to_remove)
+
+    return result
+
+
+def detectBinaryPathDLLsWindowsPE(
+    is_main_executable,
+    source_dir,
+    original_dir,
+    binary_filename,
+    package_name,
+    use_cache,
+    update_cache,
+):
+
+    scan_dirs = getScanDirectories(package_name, original_dir)
+
+    result = _parsePEFileOutput(
+        binary_filename,
+        scan_dirs,
+        is_main_executable=is_main_executable,
+        source_dir=source_dir,
+        original_dir=original_dir,
+        use_cache=use_cache,
+        update_cache=update_cache,
+    )
+
+    def recurseDependencies(dll_filenames, initial):
+        for dll_filename in dll_filenames:
+            if initial or dll_filename not in result:
+                result.add(dll_filename)
+
+                sub_result = _parsePEFileOutput(
+                    dll_filename,
+                    scan_dirs,
+                    is_main_executable=False,
+                    source_dir=source_dir,
+                    original_dir=original_dir,
+                    use_cache=use_cache,
+                    update_cache=update_cache,
+                )
+
+                recurseDependencies(sub_result, False)
+
+    recurseDependencies(result, True)
 
     return result
 
 
 def detectBinaryDLLs(
-    is_main_executable, source_dir, original_filename, binary_filename, package_name
+    is_main_executable,
+    source_dir,
+    original_filename,
+    binary_filename,
+    package_name,
+    use_cache,
+    update_cache,
 ):
     """ Detect the DLLs used by a binary.
 
-        Using "ldd" (Linux), "depends.exe" (Windows), or "otool" (macOS) the list
-        of used DLLs is retrieved.
+        Using "ldd" (Linux), "pefile" or "depends.exe" (Windows), or
+        "otool" (macOS) the list of used DLLs is retrieved.
     """
 
-    if Utils.getOS() in ("Linux", "NetBSD", "FreeBSD"):
-        return _detectBinaryPathDLLsLinuxBSD(dll_filename=original_filename)
-    elif Utils.isPosixWindows():
-        return _detectBinaryPathDLLsLinuxBSD(dll_filename=original_filename)
+    if Utils.getOS() in ("Linux", "NetBSD", "FreeBSD") or Utils.isPosixWindows():
+        return _detectBinaryPathDLLsPosix(dll_filename=original_filename)
+    elif Utils.isWin32Windows() and Options.getWindowsDependencyTool() == "pefile":
+        with TimerReport(
+            "Finding dependencies for %s took %%.2f seconds" % binary_filename
+        ):
+            return detectBinaryPathDLLsWindowsPE(
+                is_main_executable=is_main_executable,
+                source_dir=source_dir,
+                original_dir=os.path.dirname(original_filename),
+                binary_filename=binary_filename,
+                package_name=package_name,
+                use_cache=use_cache,
+                update_cache=update_cache,
+            )
     elif Utils.isWin32Windows():
-        if Options.isExperimental("use_pefile"):
-            with TimerReport(
-                "Running internal dependency walker for %s took %%.2f seconds"
-                % binary_filename
-            ):
-                return _detectBinaryPathDLLsWindowsPE(
-                    is_main_executable=is_main_executable,
-                    source_dir=source_dir,
-                    original_dir=os.path.dirname(original_filename),
-                    binary_filename=binary_filename,
-                    package_name=package_name,
-                )
-        else:
-            with TimerReport(
-                "Running depends.exe for %s took %%.2f seconds" % binary_filename
-            ):
-                return _detectBinaryPathDLLsWindows(
-                    is_main_executable=is_main_executable,
-                    source_dir=source_dir,
-                    original_dir=os.path.dirname(original_filename),
-                    binary_filename=binary_filename,
-                    package_name=package_name,
-                )
+        with TimerReport(
+            "Running depends.exe for %s took %%.2f seconds" % binary_filename
+        ):
+            return detectBinaryPathDLLsWindowsDependencyWalker(
+                is_main_executable=is_main_executable,
+                source_dir=source_dir,
+                original_dir=os.path.dirname(original_filename),
+                binary_filename=binary_filename,
+                package_name=package_name,
+                use_cache=use_cache,
+                update_cache=update_cache,
+            )
     elif Utils.getOS() == "Darwin":
         return _detectBinaryPathDLLsMacOS(
             original_dir=os.path.dirname(original_filename),
@@ -1321,7 +1151,7 @@ def detectBinaryDLLs(
 _unfound_dlls = set()
 
 
-def detectUsedDLLs(source_dir, standalone_entry_points):
+def detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache):
     def addDLLInfo(count, source_dir, original_filename, binary_filename, package_name):
         used_dlls = detectBinaryDLLs(
             is_main_executable=count == 0,
@@ -1329,6 +1159,8 @@ def detectUsedDLLs(source_dir, standalone_entry_points):
             original_filename=original_filename,
             binary_filename=binary_filename,
             package_name=package_name,
+            use_cache=use_cache,
+            update_cache=update_cache,
         )
 
         for dll_filename in sorted(tuple(used_dlls)):
@@ -1462,7 +1294,14 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
     # we also need to handle OS specifics.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    used_dlls = detectUsedDLLs(source_dir, standalone_entry_points)
+    used_dlls = detectUsedDLLs(
+        source_dir=source_dir,
+        standalone_entry_points=standalone_entry_points,
+        use_cache=not Options.shallNotUseDependsExeCachedResults()
+        and not Options.getWindowsDependencyTool() == "depends.exe",
+        update_cache=not Options.shallNotStoreDependsExeCachedResults()
+        and not Options.getWindowsDependencyTool() == "depends.exe",
+    )
 
     removed_dlls = set()
 

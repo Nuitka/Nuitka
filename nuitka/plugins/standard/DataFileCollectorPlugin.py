@@ -35,6 +35,11 @@ known_data_files = {
     "scrapy": ((None, "VERSION"),),
     "requests": (("certifi", "../certifi/cacert.pem"),),
     "importlib_resources": ((None, "version.txt"),),
+    "boto": ((None, "./endpoints.json"),),
+    "moto": (
+        (None, "./ec2/resources/instance_types.json"),
+        (None, "./ec2/resources/amis.json"),
+    ),
 }
 
 
@@ -46,7 +51,8 @@ def _createEmptyDirText(filename):
 generated_data_files = {
     "Cryptodome.Util._raw_api": (
         ("Cryptodome/Util", ".keep_dir.txt", _createEmptyDirText),
-    )
+    ),
+    "Crypto.Util._raw_api": (("Crypto/Util", ".keep_dir.txt", _createEmptyDirText),),
 }
 
 
@@ -56,6 +62,10 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     @staticmethod
     def isRelevant():
         return Options.isStandaloneMode()
+
+    @staticmethod
+    def isAlwaysEnabled():
+        return True
 
     def considerDataFiles(self, module):
         if module.getFullName() in known_data_files:

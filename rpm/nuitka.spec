@@ -59,7 +59,11 @@ env
 
 %install
 rm -rf %{buildroot}
+%if 0%{?fedora} >= 30
+%{__python2} setup.py install --skip-build --prefix %{_prefix} --root=%{buildroot}
+%else
 %{__python} setup.py install --skip-build --prefix %{_prefix} --root=%{buildroot}
+%endif
 %if 0%{?fedora} >= 27
 %{__python3} setup.py install --skip-build --prefix %{_prefix} --root=%{buildroot}
 %endif
@@ -86,6 +90,9 @@ rm -rf %{buildroot}
 %endif
 
 %changelog
+* Fri Jun 07 2019 Kay Hayen<kay.hayen@gmail.com> - 0.6.4
+- adapted for Fedora30
+
 * Mon Mar 26 2018 Kay Hayen<kay.hayen@gmail.com> - 0.5.29
 - added Python3 packaging
 

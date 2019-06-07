@@ -39,7 +39,11 @@ from .shapes.BuiltinTypeShapes import (
     ShapeTypeBytes,
     ShapeTypeBytesDerived,
     ShapeTypeFloatDerived,
+    ShapeTypeFrozenset,
+    ShapeTypeList,
+    ShapeTypeSet,
     ShapeTypeStrDerived,
+    ShapeTypeTuple,
     ShapeTypeUnicodeDerived,
 )
 
@@ -86,11 +90,17 @@ class ExpressionBuiltinTuple(ExpressionBuiltinContainerBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_tuple_spec
 
+    def getTypeShape(self):
+        return ShapeTypeTuple
+
 
 class ExpressionBuiltinList(ExpressionBuiltinContainerBase):
     kind = "EXPRESSION_BUILTIN_LIST"
 
     builtin_spec = BuiltinParameterSpecs.builtin_list_spec
+
+    def getTypeShape(self):
+        return ShapeTypeList
 
 
 class ExpressionBuiltinSet(ExpressionBuiltinContainerBase):
@@ -98,11 +108,17 @@ class ExpressionBuiltinSet(ExpressionBuiltinContainerBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_set_spec
 
+    def getTypeShape(self):
+        return ShapeTypeSet
+
 
 class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
     kind = "EXPRESSION_BUILTIN_FROZENSET"
 
     builtin_spec = BuiltinParameterSpecs.builtin_frozenset_spec
+
+    def getTypeShape(self):
+        return ShapeTypeFrozenset
 
 
 class ExpressionBuiltinFloat(ExpressionChildrenHavingBase):

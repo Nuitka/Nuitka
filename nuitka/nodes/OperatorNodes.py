@@ -22,14 +22,21 @@ no real difference.
 """
 
 import math
+from abc import abstractmethod
 
 from nuitka import PythonOperators
+from nuitka.Errors import NuitkaAssumptionError
+from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
-from .shapes.BuiltinTypeShapes import ShapeTypeBool, ShapeTypeTuple
+from .NodeMakingHelpers import (
+    makeRaiseExceptionReplacementExpressionFromInstance,
+    wrapExpressionWithSideEffects,
+)
+from .shapes.BuiltinTypeShapes import ShapeTypeBool, ShapeTypeIntOrLong, ShapeTypeTuple
 from .shapes.StandardShapes import (
+    ShapeLargeConstantValue,
     ShapeLargeConstantValuePredictable,
-    ShapeUnknown,
     vshape_unknown,
 )
 
@@ -45,14 +52,10 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
     named_children = ("left", "right")
     nice_children = tuple(child_name + " operand" for child_name in named_children)
 
-    def __init__(self, operator, left, right, source_ref):
+    def __init__(self, left, right, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self, values={"left": left, "right": right}, source_ref=source_ref
         )
-
-        self.operator = operator
-
-        self.simulator = PythonOperators.binary_operator_functions[operator]
 
     @staticmethod
     def isExpressionOperationBinary():
@@ -67,9 +70,6 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
     def getOperator(self):
         return self.operator
 
-    def getSimulator(self):
-        return self.simulator
-
     inplace_suspect = False
 
     def markAsInplaceSuspect(self):
@@ -83,9 +83,14 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
 
     # TODO: Make this unnecessary by specializing for all operations.
     def computeExpression(self, trace_collection):
-        operator = self.getOperator()
-
-        assert operator not in ("Mult", "Add")
+        assert self.operator not in (
+            "Mult",
+            "Add",
+            "Sub",
+            "FloorDiv",
+            "TrueDiv",
+            "Div",
+        ), self.operator
 
         left = self.subnode_left
         right = self.subnode_right
@@ -96,8 +101,8 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
 
             return trace_collection.getCompileTimeComputationResult(
                 node=self,
-                computation=lambda: self.getSimulator()(left_value, right_value),
-                description="Operator '%s' with constant arguments." % operator,
+                computation=lambda: self.simulator(left_value, right_value),
+                description="Operator '%s' with constant arguments." % self.operator,
             )
 
         # TODO: May go down to MemoryError for compile time constant overflow
@@ -137,17 +142,23 @@ class ExpressionOperationBinary(ExpressionOperationBinaryBase):
     def __init__(self, operator, left, right, source_ref):
         assert left.isExpression() and right.isExpression, (left, right)
 
+        self.operator = operator
+
+        self.simulator = PythonOperators.binary_operator_functions[self.operator]
+
         ExpressionOperationBinaryBase.__init__(
-            self, operator=operator, left=left, right=right, source_ref=source_ref
+            self, left=left, right=right, source_ref=source_ref
         )
 
 
-class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
-    kind = "EXPRESSION_OPERATION_BINARY_ADD"
+# TODO: Only while ExpressionOperationBinaryBase is still taken.
+class ExpressionOperationBinaryConcreteBase(ExpressionOperationBinaryBase):
+
+    shape = None
 
     def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryBase.__init__(
-            self, operator="Add", left=left, right=right, source_ref=source_ref
+            self, left=left, right=right, source_ref=source_ref
         )
 
         self.type_shape = None
@@ -159,39 +170,99 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
     def getTypeShape(self):
         return self.type_shape
 
+    def getValueShape(self):
+        if self.shape is not None:
+            return self.shape
+        else:
+            return vshape_unknown
+
+    @abstractmethod
+    def _getOperationShape(self):
+        pass
+
+    @staticmethod
+    def _isTooLarge():
+        return False
+
+    @staticmethod
+    def _onTooLarge():
+        pass
+
+    def canCreateUnsupportedException(self):
+        return hasattr(self.subnode_left.getTypeShape(), "typical_value") and hasattr(
+            self.subnode_right.getTypeShape(), "typical_value"
+        )
+
+    def createUnsupportedException(self):
+        left = self.subnode_left.getTypeShape().typical_value
+        right = self.subnode_right.getTypeShape().typical_value
+
+        try:
+            self.simulator(left, right)
+        except TypeError as e:
+            return e
+        else:
+            raise NuitkaAssumptionError(
+                "Unexpected no-exception doing operation simulation",
+                self.operator,
+                self.subnode_left.getTypeShape(),
+                self.subnode_right.getTypeShape(),
+                repr(left),
+                repr(right),
+            )
+
+    def extractSideEffectsPreOperation(self):
+        return self.subnode_left, self.subnode_right
+
     def computeExpression(self, trace_collection):
-        operator = self.getOperator()
+        # Nothing to do anymore for large constants.
+        if self.shape is not None and self.shape.isConstant():
+            return self, None, None
 
         left = self.subnode_left
         right = self.subnode_right
 
-        left_shape = left.getTypeShape()
-        right_shape = right.getTypeShape()
-
-        self.type_shape, self.escape_desc = left_shape.getOperationBinaryAddShape(
-            right_shape
-        )
+        self.type_shape, self.escape_desc = self._getOperationShape()
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            left_value = left.getCompileTimeConstant()
-            right_value = right.getCompileTimeConstant()
+            if not self._isTooLarge():
+                left_value = left.getCompileTimeConstant()
+                right_value = right.getCompileTimeConstant()
 
-            if left.isKnownToBeIterable(None) and right.isKnownToBeIterable(None):
-
-                iter_length = left.getIterationLength() + right.getIterationLength()
-
-                if iter_length > 256:
-                    return self, None, None
-
-            return trace_collection.getCompileTimeComputationResult(
-                node=self,
-                computation=lambda: self.getSimulator()(left_value, right_value),
-                description="Operator '%s' with constant arguments." % operator,
-            )
+                return trace_collection.getCompileTimeComputationResult(
+                    node=self,
+                    computation=lambda: self.simulator(left_value, right_value),
+                    description="Operator '%s' with constant arguments."
+                    % self.operator,
+                )
 
         exception_raise_exit = self.escape_desc.getExceptionExit()
         if exception_raise_exit is not None:
             trace_collection.onExceptionRaiseExit(exception_raise_exit)
+
+            if (
+                self.escape_desc.isUnsupported()
+                and self.canCreateUnsupportedException()
+            ):
+
+                result = wrapExpressionWithSideEffects(
+                    new_node=makeRaiseExceptionReplacementExpressionFromInstance(
+                        expression=self, exception=self.createUnsupportedException()
+                    ),
+                    old_node=self,
+                    side_effects=self.extractSideEffectsPreOperation(),
+                )
+
+                return (
+                    result,
+                    "new_raise",  # TODO: More appropriate tag maybe.
+                    """Replaced operator '%s%s%s' arguments that cannot work."""
+                    % (
+                        self.operator,
+                        self.subnode_left.getTypeShape(),
+                        self.subnode_right.getTypeShape(),
+                    ),
+                )
 
         if self.escape_desc.isValueEscaping():
             # The value of these nodes escaped and could change its contents.
@@ -204,6 +275,11 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
 
         return self, None, None
 
+    def mayRaiseExceptionOperation(self):
+        return (
+            self.escape_desc is None or self.escape_desc.getExceptionExit() is not None
+        )
+
     def mayRaiseException(self, exception_type):
         # TODO: Match more precisely
         return (
@@ -213,36 +289,125 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
             or self.subnode_right.mayRaiseException(exception_type)
         )
 
-    def mayRaiseExceptionOperation(self):
-        return (
-            self.escape_desc is None or self.escape_desc.getExceptionExit() is not None
+    def canPredictIterationValues(self):
+        # TODO: Actually we could very well, esp. for sequence repeats.
+        # pylint: disable=no-self-use
+        return False
+
+
+class ExpressionOperationBinaryAdd(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_ADD"
+
+    operator = "Add"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryAddShape(
+            self.subnode_right.getTypeShape()
+        )
+
+    def _isTooLarge(self):
+        if self.subnode_left.isKnownToBeIterable(
+            None
+        ) and self.subnode_right.isKnownToBeIterable(None):
+            size = (
+                self.subnode_left.getIterationLength()
+                + self.subnode_right.getIterationLength()
+            )
+
+            # TODO: Actually could make a predictor, but we don't use it yet.
+            self.shape = ShapeLargeConstantValuePredictable(
+                size=size,
+                predictor=None,  # predictValuesFromRightAndLeftValue,
+                shape=self.subnode_left.getTypeShape(),
+            )
+
+            return size > 256
+        else:
+            return False
+
+
+class ExpressionOperationBinarySub(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_SUB"
+
+    operator = "Sub"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinarySubShape(
+            self.subnode_right.getTypeShape()
         )
 
 
-class ExpressionOperationBinaryMult(ExpressionOperationBinaryBase):
+class ExpressionOperationBinaryMult(ExpressionOperationBinaryConcreteBase):
     kind = "EXPRESSION_OPERATION_BINARY_MULT"
 
-    def __init__(self, left, right, source_ref):
-        ExpressionOperationBinaryBase.__init__(
-            self, operator="Mult", left=left, right=right, source_ref=source_ref
+    operator = "Mult"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryMultShape(
+            self.subnode_right.getTypeShape()
         )
 
-        self.shape = None
+    def _isTooLarge(self):
+        if self.subnode_right.isNumberConstant():
+            iter_length = self.subnode_left.getIterationLength()
 
-    def getDetails(self):
-        return {}
+            if iter_length is not None:
+                size = iter_length * self.subnode_right.getCompileTimeConstant()
+                if size > 256:
+                    self.shape = ShapeLargeConstantValuePredictable(
+                        size=size,
+                        predictor=None,  # predictValuesFromRightAndLeftValue,
+                        shape=self.subnode_left.getTypeShape(),
+                    )
 
-    def getValueShape(self):
-        if self.shape is not None:
-            return self.shape
-        else:
-            return vshape_unknown
+                    return True
 
-    def getTypeShape(self):
-        if self.shape is not None:
-            return self.shape.getTypeShape()
-        else:
-            return ShapeUnknown
+            if self.subnode_left.isNumberConstant():
+                if (
+                    self.subnode_left.isIndexConstant()
+                    and self.subnode_right.isIndexConstant()
+                ):
+                    # Estimate with logarithm, if the result of number
+                    # calculations is computable with acceptable effort,
+                    # otherwise, we will have to do it at runtime.
+                    left_value = self.subnode_left.getCompileTimeConstant()
+
+                    if left_value != 0:
+                        right_value = self.subnode_right.getCompileTimeConstant()
+
+                        # TODO: Is this really useful, can this be really slow.
+                        if right_value != 0:
+                            if (
+                                math.log10(abs(left_value))
+                                + math.log10(abs(right_value))
+                                > 20
+                            ):
+                                self.shape = ShapeLargeConstantValue(
+                                    size=None, shape=ShapeTypeIntOrLong
+                                )
+
+                                return True
+
+        elif self.subnode_left.isNumberConstant():
+            iter_length = self.subnode_right.getIterationLength()
+
+            if iter_length is not None:
+                left_value = self.subnode_left.getCompileTimeConstant()
+
+                size = iter_length * left_value
+                if iter_length * left_value > 256:
+                    self.shape = ShapeLargeConstantValuePredictable(
+                        size=size,
+                        predictor=None,  # predictValuesFromRightAndLeftValue,
+                        shape=self.subnode_right.getTypeShape(),
+                    )
+
+                    return True
+
+        return False
 
     def getIterationLength(self):
         left_length = self.getLeft().getIterationLength()
@@ -262,79 +427,6 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinaryBase):
                 return right_length * left_value
 
         return ExpressionOperationBinaryBase.getIterationLength(self)
-
-    def computeExpression(self, trace_collection):
-        # TODO: May go down to MemoryError for compile time constant overflow
-        # ones.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Nothing to do anymore for large constants.
-        if self.shape is not None and self.shape.isConstant():
-            return self, None, None
-
-        left = self.subnode_left
-        right = self.subnode_right
-
-        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            left_value = left.getCompileTimeConstant()
-            right_value = right.getCompileTimeConstant()
-
-            if right.isNumberConstant():
-                iter_length = left.getIterationLength()
-
-                if iter_length is not None:
-                    size = iter_length * right_value
-                    if size > 256:
-                        self.shape = ShapeLargeConstantValuePredictable(
-                            size=size,
-                            predictor=None,  # predictValuesFromRightAndLeftValue,
-                            shape=left.getTypeShape(),
-                        )
-
-                        return self, None, None
-
-                if left.isNumberConstant():
-                    if left.isIndexConstant() and right.isIndexConstant():
-                        # Estimate with logarithm, if the result of number
-                        # calculations is computable with acceptable effort,
-                        # otherwise, we will have to do it at runtime.
-
-                        if left_value != 0 and right_value != 0:
-                            if (
-                                math.log10(abs(left_value))
-                                + math.log10(abs(right_value))
-                                > 20
-                            ):
-                                return self, None, None
-
-            elif left.isNumberConstant():
-                iter_length = right.getIterationLength()
-
-                if iter_length is not None:
-                    size = iter_length * left_value
-                    if iter_length * left_value > 256:
-                        self.shape = ShapeLargeConstantValuePredictable(
-                            size=size,
-                            predictor=None,  # predictValuesFromRightAndLeftValue,
-                            shape=right.getTypeShape(),
-                        )
-
-                        return self, None, None
-
-            return trace_collection.getCompileTimeComputationResult(
-                node=self,
-                computation=lambda: self.getSimulator()(left_value, right_value),
-                description="Operator '*' with constant arguments.",
-            )
-
-        # The value of these nodes escaped and could change its contents.
-        trace_collection.removeKnowledge(left)
-        trace_collection.removeKnowledge(right)
-
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
-
-        return self, None, None
 
     def extractSideEffects(self):
         left_length = self.getLeft().getIterationLength()
@@ -362,12 +454,53 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinaryBase):
         return ExpressionOperationBinaryBase.extractSideEffects(self)
 
 
+class ExpressionOperationBinaryFloorDiv(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_FLOOR_DIV"
+
+    operator = "FloorDiv"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryFloorDivShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+if python_version < 300:
+
+    class ExpressionOperationBinaryOldDiv(ExpressionOperationBinaryConcreteBase):
+        kind = "EXPRESSION_OPERATION_BINARY_OLD_DIV"
+
+        operator = "Div"
+        simulator = PythonOperators.binary_operator_functions[operator]
+
+        def _getOperationShape(self):
+            return self.subnode_left.getTypeShape().getOperationBinaryOldDivShape(
+                self.subnode_right.getTypeShape()
+            )
+
+
+class ExpressionOperationBinaryTrueDiv(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_TRUE_DIV"
+
+    operator = "TrueDiv"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryTrueDivShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
 class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_DIVMOD"
 
+    operator = "Divmod"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
     def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryBase.__init__(
-            self, operator="Divmod", left=left, right=right, source_ref=source_ref
+            self, left=left, right=right, source_ref=source_ref
         )
 
         self.shape = None
@@ -377,18 +510,26 @@ class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
         return ShapeTypeTuple
 
 
-def makeBinaryOperationNode(operator, left, right, source_ref):
-    if operator == "Add":
-        return ExpressionOperationBinaryAdd(
-            left=left, right=right, source_ref=source_ref
-        )
-    elif operator == "Mult":
-        return ExpressionOperationBinaryMult(
-            left=left, right=right, source_ref=source_ref
-        )
-    else:
-        # TODO: Add more specializations for common operators.
+_operator2nodeclass = {
+    "Add": ExpressionOperationBinaryAdd,
+    "Sub": ExpressionOperationBinarySub,
+    "Mult": ExpressionOperationBinaryMult,
+    "FloorDiv": ExpressionOperationBinaryFloorDiv,
+    "TrueDiv": ExpressionOperationBinaryTrueDiv,
+}
 
+if python_version < 300:
+    _operator2nodeclass["Div"] = ExpressionOperationBinaryOldDiv
+
+
+def makeBinaryOperationNode(operator, left, right, source_ref):
+    node_class = _operator2nodeclass.get(operator)
+
+    if node_class is not None:
+        return node_class(left=left, right=right, source_ref=source_ref)
+    else:
+        # TODO: Add more specializations for common operators until this
+        # becomes unused.
         return ExpressionOperationBinary(
             operator=operator, left=left, right=right, source_ref=source_ref
         )
@@ -415,9 +556,6 @@ class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
     def getOperator(self):
         return self.operator
 
-    def getSimulator(self):
-        return self.simulator
-
     def computeExpression(self, trace_collection):
         operator = self.getOperator()
         operand = self.subnode_operand
@@ -427,7 +565,7 @@ class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
 
             return trace_collection.getCompileTimeComputationResult(
                 node=self,
-                computation=lambda: self.getSimulator()(operand_value),
+                computation=lambda: self.simulator(operand_value),
                 description="Operator '%s' with constant argument." % operator,
             )
         else:

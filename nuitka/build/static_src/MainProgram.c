@@ -77,7 +77,7 @@ static void prepareStandaloneEnvironment() {
      * the provided binary directory as the place to look for DLLs and for
      * extension modules.
      */
-#if defined(_WIN32) && defined(_MSC_VER)
+#if defined(_WIN32)
     SetDllDirectoryW(getBinaryDirectoryWideChars());
 #endif
 
@@ -127,10 +127,6 @@ extern void _initCompiledCoroutineTypes();
 extern void _initCompiledAsyncgenTypes();
 #endif
 
-#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-unsigned char const *constant_bin = NULL;
-#endif
-
 #include <locale.h>
 
 // Types of command line arguments are different between Python2/3.
@@ -153,12 +149,12 @@ static argv_type_t convertCommandLineParameters(int argc, char **argv) {
     setlocale(LC_ALL, "");
 
     for (int i = 0; i < argc; i++) {
-#ifdef __APPLE__
-        argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
-#elif PYTHON_VERSION < 350
-        argv_copy[i] = _Py_char2wchar(argv[i], NULL);
-#else
+#if PYTHON_VERSION >= 350
         argv_copy[i] = Py_DecodeLocale(argv[i], NULL);
+#elif defined(__APPLE__) && PYTHON_VERSION >= 320
+        argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
+#else
+        argv_copy[i] = _Py_char2wchar(argv[i], NULL);
 #endif
 
         assert(argv_copy[i]);
@@ -246,10 +242,7 @@ int main(int argc, char **argv) {
 #if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
     NUITKA_PRINT_TRACE("main(): Loading constants blob from Windows resource.");
 
-    constant_bin =
-        (const unsigned char *)LockResource(LoadResource(NULL, FindResource(NULL, MAKEINTRESOURCE(3), RT_RCDATA)));
-
-    assert(constant_bin);
+    loadConstantsResource();
 #endif
 
 #ifdef _NUITKA_STANDALONE
@@ -317,7 +310,7 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TRACE("main(): Prepare run environment '" PYTHON_HOME_PATH "'.");
     Py_SetPythonHome(PYTHON_HOME_PATH);
 #else
-    NUITKA_PRINTF_TRACE("main(): Prepare run environment '%S'.\n", L"" PYTHON_HOME_PATH );
+    NUITKA_PRINTF_TRACE("main(): Prepare run environment '%S'.\n", L"" PYTHON_HOME_PATH);
     Py_SetPythonHome(L"" PYTHON_HOME_PATH);
     // Make sure the above Py_SetPythonHome call has effect already.
     Py_GetPath();
