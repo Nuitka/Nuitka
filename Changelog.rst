@@ -1,7 +1,8 @@
 Nuitka Release 0.6.4 (Draft)
 ============================
 
-This release is not done yet.
+This release contains many bug fixes all across the board. There is also
+new optimization and many organisational improvements.
 
 Bug Fixes
 ---------
@@ -91,6 +92,8 @@ Organisational
 - Removed mirroring from Bitbucket and Gitlab, as we use the Github organisation
   features.
 
+- Added support for Ubuntu Disco, removed support for Ubuntu Artful packages.
+
 Optimization
 ------------
 
@@ -124,6 +127,10 @@ Cleanups
 - Apply automatic formatting to more test runner code, these were previouly
   not done.
 
+- Avoid using ``shuti.copytree`` which fails to work when directory already
+  exists, instead provide ``nuitka.util.FileOperations.copyTree`` and use that
+  exclusively.
+
 Tests
 -----
 
@@ -151,7 +158,21 @@ Tests
 Summary
 -------
 
-This release is not done yet.
+Again this release is a sign of increasing adoption of Nuitka. The GSoC
+2019 is also showing effects, definitely will in the next release.
+
+This release has a lot of new optimization, called specialization, but for
+it to really used, in many instances, we need to get away from working on
+C types for variables only, and get to them beig used for expressions more
+often. Otherwise much of the new special code is not used for most code.
+
+The focus of this release has been again to open up development further
+and to incorporate findings from users. The number of fixes or new use
+cases working is astounding.
+
+In upcoming releases, new built-ins will be optimized, and specialization
+of operations will hit more and more code now that the infrastructure for
+it is in place.
 
 
 Nuitka Release 0.6.3
