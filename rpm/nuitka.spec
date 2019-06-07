@@ -59,7 +59,11 @@ env
 
 %install
 rm -rf %{buildroot}
+%if 0%{?fedora} >= 30
+%{__python2} setup.py install --skip-build --prefix %{_prefix} --root=%{buildroot}
+%else
 %{__python} setup.py install --skip-build --prefix %{_prefix} --root=%{buildroot}
+%endif
 %if 0%{?fedora} >= 27
 %{__python3} setup.py install --skip-build --prefix %{_prefix} --root=%{buildroot}
 %endif
