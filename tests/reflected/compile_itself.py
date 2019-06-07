@@ -42,7 +42,7 @@ sys.path.insert(
 # isort:start
 
 from nuitka.tools.testing.Common import getTempDir, my_print, setup
-from nuitka.utils.FileOperations import listDir, removeDirectory
+from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
 
 python_version = setup()
 
@@ -213,19 +213,17 @@ def executePASS1():
     scons_inline_copy_path = os.path.join(base_dir, "nuitka", "build", "inline_copy")
 
     if os.path.exists(scons_inline_copy_path):
-        shutil.copytree(
-            scons_inline_copy_path, os.path.join("nuitka", "build", "inline_copy")
-        )
+        copyTree(scons_inline_copy_path, os.path.join("nuitka", "build", "inline_copy"))
 
     shutil.copyfile(
         os.path.join(base_dir, "nuitka", "build", "SingleExe.scons"),
         os.path.join("nuitka", "build", "SingleExe.scons"),
     )
-    shutil.copytree(
+    copyTree(
         os.path.join(base_dir, "nuitka", "build", "static_src"),
         os.path.join("nuitka", "build", "static_src"),
     )
-    shutil.copytree(
+    copyTree(
         os.path.join(base_dir, "nuitka", "build", "include"),
         os.path.join("nuitka", "build", "include"),
     )

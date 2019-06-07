@@ -19,11 +19,11 @@
 """
 import os
 import pkgutil
-import shutil
 from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.utils.FileOperations import copyTree
 from nuitka.utils.Utils import isWin32Windows
 
 
@@ -136,9 +136,9 @@ class SklearnPlugin(NuitkaPluginBase):
         target_descr = os.path.join(dist_dir, "sklearn", "datasets", "descr")
         info("")
         info(" Copying folder sklearn/datasets/data")
-        shutil.copytree(source_data, target_data)
+        copyTree(source_data, target_data)
         info(" Copying folder sklearn/datasets/descr")
-        shutil.copytree(source_descr, target_descr)
+        copyTree(source_descr, target_descr)
 
         return ()
 

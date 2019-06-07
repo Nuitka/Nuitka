@@ -29,7 +29,12 @@ from logging import info
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils import Execution
-from nuitka.utils.FileOperations import getFileList, getSubDirectories, removeDirectory
+from nuitka.utils.FileOperations import (
+    copyTree,
+    getFileList,
+    getSubDirectories,
+    removeDirectory,
+)
 from nuitka.utils.Utils import isWin32Windows
 
 
@@ -169,7 +174,7 @@ if os.path.exists(guess_path):
             )
 
             for plugin_dir in plugin_dirs:
-                shutil.copytree(plugin_dir, target_plugin_dir)
+                copyTree(plugin_dir, target_plugin_dir)
 
             if "all" not in plugin_options:
                 for plugin_candidate in getSubDirectories(target_plugin_dir):
@@ -240,7 +245,7 @@ if os.path.exists(guess_path):
 
                 info("Copying Qt plug-ins 'xml' to '%s'." % (qml_target_dir))
 
-                shutil.copytree(qml_plugin_dir, qml_target_dir)
+                copyTree(qml_plugin_dir, qml_target_dir)
 
                 # We try to filter here, not for DLLs.
                 result += [

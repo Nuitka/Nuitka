@@ -38,7 +38,7 @@ import subprocess
 import time
 
 from nuitka.tools.testing.Common import getTempDir, my_print, setup
-from nuitka.utils.FileOperations import listDir, removeDirectory
+from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
 
 
 def main():
@@ -69,7 +69,7 @@ def main():
         sys.exit(result)
 
     os.makedirs(os.path.join(tmp_dir, "package.ext"))
-    shutil.copytree("package", os.path.join(tmp_dir, "package.ext/package"))
+    copyTree("package", os.path.join(tmp_dir, "package.ext/package"))
 
     os.chdir(tmp_dir)
 

@@ -307,6 +307,22 @@ def renameFile(source_filename, dest_filename):
     os.chmod(dest_filename, old_stat.st_mode)
 
 
+def copyTree(source_path, dest_path):
+    """ Copy whole directory tree, preserving attributes.
+
+    Args:
+        source_path: where to copy from
+        dest_path: where to copy to, may already exist
+
+    Notes:
+        This must be used over `shutil.copytree` which as troubles
+        with existing directories.
+    """
+    from distutils.dir_util import copy_tree
+
+    copy_tree(source_path, dest_path)
+
+
 def isPathBelow(path, filename):
     path = os.path.abspath(path)
     filename = os.path.abspath(filename)

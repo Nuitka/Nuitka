@@ -25,6 +25,7 @@ from logging import info
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
+from nuitka.utils.FileOperations import copyTree
 from nuitka.utils.Utils import isWin32Windows
 
 
@@ -138,9 +139,9 @@ if not os.environ.get("TCL_LIBRARY", None):
         tar_tcl = os.path.join(dist_dir, "tcl")
 
         info(" Now copying tk libraries from %r." % tk)  # just to entertain
-        shutil.copytree(tk, tar_tk)
+        copyTree(tk, tar_tk)
         info(" Now copying tkinter libraries from %r." % tcl)  # just to entertain
-        shutil.copytree(tcl, tar_tcl)
+        copyTree(tcl, tar_tcl)
 
         # Definitely don't need the demos, so remove them again.
         # TODO: Anything else?
