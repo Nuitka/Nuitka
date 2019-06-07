@@ -90,7 +90,7 @@ rm -rf %{buildroot}
 %endif
 
 %changelog
-* Mon Fri 07 2019 Kay Hayen<kay.hayen@gmail.com> - 0.6.4
+* Fri Jun 07 2019 Kay Hayen<kay.hayen@gmail.com> - 0.6.4
 - adapted for Fedora30
 
 * Mon Mar 26 2018 Kay Hayen<kay.hayen@gmail.com> - 0.5.29
