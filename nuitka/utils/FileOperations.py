@@ -318,6 +318,8 @@ def copyTree(source_path, dest_path):
         This must be used over `shutil.copytree` which as troubles
         with existing directories.
     """
+
+    # False alarm on travis, pylint: disable=I0021,import-error,no-name-in-module
     from distutils.dir_util import copy_tree
 
     copy_tree(source_path, dest_path)
