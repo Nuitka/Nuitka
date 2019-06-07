@@ -838,7 +838,7 @@ version for lto mode (>= 4.6)."""
     # can enable it. TODO: Does this cause a performance loss?
     env.Append(CCFLAGS=["-fno-var-tracking"])
 
-if gcc_mode and not noelf_mode:
+if gcc_mode and not noelf_mode and not clang_mode:
     env.Append(LINKFLAGS=["-z", "noexecstack"])
 
 if msvc_mode:
