@@ -130,13 +130,13 @@ class NuitkaPluginPmw(NuitkaPluginBase):
 
         # Code to import the Color module.
         colorCode = """
-import PmwColor
+from . import PmwColor
 Color = PmwColor
 del PmwColor
 """
         # Code to import the Blt module.
         bltCode = """
-import PmwBlt
+from . import PmwBlt
 Blt = PmwBlt
 del PmwBlt
 """
@@ -154,11 +154,11 @@ _VERSION = '%s'
 
 def setversion(version):
     if version != _VERSION:
-        raise ValueError, 'Dynamic versioning not available'
+        raise ValueError('Dynamic versioning not available')
 
 def setalphaversions(*alpha_versions):
     if alpha_versions != ():
-        raise ValueError, 'Dynamic versioning not available'
+        raise ValueError('Dynamic versioning not available')
 
 def version(alpha = 0):
     if alpha:
@@ -191,6 +191,7 @@ def installedversions(alpha = 0):
 
         # Specially handle PmwBase.py filename:
         text = mungeFile("Base")
+        text = re.sub("from . import PmwLogicalFont", "", text)
         text = re.sub("import PmwLogicalFont", "", text)
         text = re.sub("PmwLogicalFont._font_initialise", "_font_initialise", text)
         outfile.write(text)
