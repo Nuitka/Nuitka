@@ -337,6 +337,19 @@ for filename in sorted(os.listdir(".")):
             "/usr/lib64/tcl",
         ):
             continue
+
+        if loaded_filename in (
+            "/lib",
+            "/lib64",
+            "/lib/sse2",
+            "/lib/tls",
+            "/lib64/tls",
+            "/usr/lib/sse2",
+            "/usr/lib/tls",
+            "/usr/lib64/tls",
+        ):
+            continue
+
         if loaded_filename in ("/usr/share/tcl8.6", "/usr/share/tcl8.5"):
             continue
         if loaded_filename in (
