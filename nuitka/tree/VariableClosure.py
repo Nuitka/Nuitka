@@ -167,11 +167,10 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             if self._shouldUseLocalsDict(provider, variable_name):
                 # Classes always assign to locals dictionary except for closure
                 # variables taken.
-
-                # TODO: This is losing the "tolerant" annotation.
                 new_node = StatementLocalsDictOperationDel(
                     locals_scope=provider.getFunctionLocalsScope(),
                     variable_name=variable_name,
+                    tolerant=node.tolerant,
                     source_ref=node.source_ref,
                 )
             else:
