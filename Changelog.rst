@@ -64,7 +64,7 @@ Bug Fixes
 New Features
 ------------
 
-- Windows: Catch most common user error of using compiler from one architecure
+- Windows: Catch most common user error of using compiler from one architecture
   against Python from another. We now check those and compare it, and if they
   do not match, inform the user directly. Previously the compilation could
   fail, or the linking, with cryptic errors.
@@ -130,10 +130,10 @@ Cleanups
 
 - Fixed many kinds of typos in the code base with ``codespell``.
 
-- Apply automatic formatting to more test runner code, these were previouly
+- Apply automatic formatting to more test runner code, these were previously
   not done.
 
-- Avoid using ``shuti.copytree`` which fails to work when directory already
+- Avoid using ``shutil.copytree`` which fails to work when directory already
   exists, instead provide ``nuitka.util.FileOperations.copyTree`` and use that
   exclusively.
 
@@ -204,7 +204,7 @@ Bug Fixes
 
 - Standalone: Added support for OpenGL support with QML in PyQt on Windows.
 
-- Standalone: Added support fot SciPy and extended the ``ǹumpy`` plugin to also
+- Standalone: Added support for SciPy and extended the NumPy plugin to also
   handle it.
 
 - UI: The option ``--plugin-list`` still needed a positional argument to work.
@@ -342,7 +342,7 @@ Bug Fixes
   on some platforms they can also contain code that fails to import without
   error.
 
-- Standalone: Added missing implicit dependency needed for newer numpy versions.
+- Standalone: Added missing implicit dependency needed for newer NumPy versions.
 
 New Features
 ------------
@@ -1010,7 +1010,7 @@ Tests
 -----
 
 - Finally the asyncgen tests can be enabled in the CPython 3.6 test suite as
-  the corrupting crasher has been identified.
+  the corrupting crash has been identified.
 
 - Cover ever more cases of spurious permission problems on Windows.
 
@@ -2930,7 +2930,7 @@ Nuitka Release 0.5.22
 =====================
 
 This release is mostly an intermediate release on the way to the large goal
-of having per module compilation that is cachable and requires far less memory
+of having per module compilation that is cacheable and requires far less memory
 for large programs. This is currently in progress, but required many changes
 that are in this release, more will be needed.
 
