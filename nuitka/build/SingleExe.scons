@@ -38,13 +38,25 @@ import SCons  # @UnresolvedImport @UnusedImport pylint: disable=import-error
 import SCons.Tool.gcc  # @UnresolvedImport @UnusedImport pylint: disable=import-error
 
 
+def _decode(data):
+    """ Our own decode tries to workaround MSVC misbehavior.
+
+    """
+    try:
+        return data.decode(sys.stdout.encoding)
+    except UnicodeDecodeError:
+        import locale
+
+        return data.decode(locale.getpreferredencoding())
+
+
 def getArguments():
     arg_encoding = ARGUMENTS.get("argument_encoding")
 
     result = {}
     for key, value in ARGUMENTS.items():  # @UndefinedVariable
         if arg_encoding is not None:
-            value = value.decode(arg_encoding)
+            value = _decode(value)
         result[key] = value
 
     return result
@@ -375,7 +387,7 @@ def detectVersion(env, cc):
     line = pipe.stdout.readline()
 
     if str is not bytes and type(line) is bytes:
-        line = line.decode(sys.stdout.encoding)
+        line = _decode(line)
 
     line = line.strip()
 
@@ -609,13 +621,13 @@ def setupSpawn(env):
                 print(cmdline)
 
             if str is not bytes:
-                data = data.decode(sys.stdout.encoding)
+                data = _decode(data)
 
             print(data, end="")
 
         if err:
             if str is not bytes:
-                err = err.decode(sys.stdout.encoding)
+                err = _decode(err)
 
             print(err, end="")
 
@@ -1171,7 +1183,7 @@ def makeWindowsMingGW64Lib(win_lib_path):
         sys.exit('Error, unexpected error from "gendef.exe" %s.' % stderr)
 
     if str is not bytes:
-        defs = defs.decode(sys.stdout.encoding)
+        defs = _decode(defs)
 
     defs_filename = os.path.join(
         new_win_lib_path, "python%s.defs" % python_abi_version.replace(".", "")
@@ -1370,7 +1382,7 @@ def _getBinaryArch(binary):
             return None
 
         if str is not bytes:
-            data = data.decode(sys.stdout.encoding)
+            data = _decode(data)
 
         for line in data.splitlines():
             if " file format " in line:
