@@ -95,10 +95,7 @@ class SearchModeBase(object):
         return False
 
     def onErrorDetected(self, message):
-        if self.isSearchModeAll():
-            self.updateTotalErrors()
-        else:
-            self.exit(message)
+        self.exit(message)
 
 
 class SearchModeByPattern(SearchModeBase):
@@ -196,6 +193,9 @@ class SearchModeAll(SearchModeBase):
 
     def updateTotalErrors(self):
         self.total_errors += 1
+
+    def onErrorDetected(self, message):
+        self.updateTotalErrors()
 
     def finish(self):
         self.exit("Total " + str(self.total_errors) + " error(s) found.")

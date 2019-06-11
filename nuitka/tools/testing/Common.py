@@ -349,11 +349,6 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
     _removeCPythonTestSuiteDir()
 
     if result != 0 and result != 2 and search_mode.abortOnFinding(dirname, filename):
-        # if search_mode.isSearchModeAll():
-        #     search_mode.updateTotalErrors()
-        # else:
-        #     message = "Error exit!" + str(result)
-        #     search_mode.exit(message)
         search_mode.onErrorDetected("Error exit! %s" % result)
 
     if converted:
@@ -378,11 +373,7 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
         result = 2
 
     if result != 1 and result != 2 and search_mode.abortOnFinding(dirname, filename):
-        if isinstance(search_mode, SearchModeAll):
-            search_mode.updateTotalErrors()
-        else:
-            my_print("Error exit!", result)
-            sys.exit(result)
+        search_mode.onErrorDetected("Error exit! %s" % result)
 
 
 def checkSucceedsWithCPython(filename):

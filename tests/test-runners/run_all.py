@@ -40,12 +40,11 @@ import subprocess
 import time
 
 from nuitka.tools.testing.Common import getTempDir, my_print, setup
-from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
 from nuitka.tools.testing.SearchModes import SearchModeAll
+from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
+
 
 def main():
-    search_mode = createSearchMode()
-
     python_version = setup()
 
     os.chdir("subject")
@@ -70,7 +69,7 @@ def main():
     result = subprocess.call(command)
 
     if result != 0:
-        search_mode.onErrorDetected(result)
+        sys.exit(result)
 
     os.makedirs(os.path.join(tmp_dir, "package.ext"))
     copyTree("package", os.path.join(tmp_dir, "package.ext/package"))

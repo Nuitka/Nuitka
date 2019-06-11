@@ -40,6 +40,8 @@ sys.path.insert(
     ),
 )
 
+# isort:start
+
 from nuitka.tools.testing.Common import (  # isort:skip
     check_output,
     convertUsing2to3,
