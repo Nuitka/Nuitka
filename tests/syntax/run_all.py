@@ -20,20 +20,22 @@
 import os
 import sys
 
-from nuitka.tools.testing.Common import (
-    compareWithCPython,
-    createSearchMode,
-    decideFilenameVersionSkip,
-    my_print,
-    setup,
-)
-
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
     ),
+)
+
+# isort:start
+
+from nuitka.tools.testing.Common import (
+    compareWithCPython,
+    createSearchMode,
+    decideFilenameVersionSkip,
+    my_print,
+    setup,
 )
 
 python_version = setup(needs_io_encoding=True)

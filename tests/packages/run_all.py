@@ -22,6 +22,16 @@
 import os
 import sys
 
+# Find nuitka package relative to us.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
+)
+
+# isort:start
+
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
@@ -31,15 +41,6 @@ from nuitka.tools.testing.Common import (
     withExtendedExtraOptions,
 )
 from nuitka.tools.testing.SearchModes import SearchModeAll
-
-# Find nuitka package relative to us.
-sys.path.insert(
-    0,
-    os.path.normpath(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-    ),
-)
-
 
 python_version = setup()
 

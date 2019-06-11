@@ -86,10 +86,6 @@ class SearchModeBase(object):
         # Virtual method, pylint: disable=no-self-use
         sys.exit(message)
 
-    def isSearchModeAll(self):
-        # Virtual method, pylint: disable=no-self-use
-        return False
-
     def isCoverage(self):
         # Virtual method, pylint: disable=no-self-use
         return False
@@ -199,6 +195,3 @@ class SearchModeAll(SearchModeBase):
 
     def finish(self):
         self.exit("Total " + str(self.total_errors) + " error(s) found.")
-
-    def isSearchModeAll(self):
-        return True
