@@ -17,7 +17,12 @@
 #
 """ Code generation for standard CPython/API calls.
 
-This is generic stuff.
+This is generic stuff, geared at calling functions that accept Python objects
+and return Python objects. As these all work in a similar way, it makes sense
+to concentrate the best way to do to make those calls here.
+
+Also, many Nuitka helper codes turn out to be very similar to Python C/API
+and then can use the same code.
 """
 
 from .CodeHelpers import generateExpressionCode
