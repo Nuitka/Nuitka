@@ -333,7 +333,7 @@ for filename in sorted(os.listdir(".")):
         if loaded_filename in (
             "/usr/lib/tcltk",
             "/usr/share/tcltk",
-            "/usr/lib64/tcl",
+            "/usr/lib/tcl",
             "/usr/lib64/tcl",
         ):
             continue
