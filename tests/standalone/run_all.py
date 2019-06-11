@@ -59,12 +59,6 @@ python_version = setup(needs_io_encoding=True)
 
 search_mode = createSearchMode()
 
-search_mode.mayFailFor(
-    # Do not expect PySide to work yet, because it has that bug still
-    # where it won't call compiled functions as slots.
-    "PySideUsing.py"
-)
-
 # checks requirements needed to run each test module, according to the specified special comment
 # special comments are in the following formats:
 #     "# nuitka-skip-unless-expression: expression to be evaluated"
@@ -175,6 +169,10 @@ for filename in sorted(os.listdir(".")):
     elif filename == "PasslibUsing.py":
         # For the warnings.
         extra_flags.append("ignore_warnings")
+    elif filename == "PySideUsing.py":
+        # TODO: Disabled due to lack of upstream support.
+        reportSkip("PySide not supported yet", ".", filename)
+        continue
 
     if filename.startswith(("PySide", "PyQt")):
         if python_version.startswith("2.6"):
