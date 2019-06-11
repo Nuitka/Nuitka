@@ -596,6 +596,20 @@ static void loadTriggeredModule(char const *name, char const *trigger_name) {
 #if PYTHON_VERSION >= 340
 extern PyObject *const_str_plain___spec__;
 extern PyObject *const_str_plain__initializing;
+
+static void _fixupSpecAttribute(PyObject *module_name) {
+    PyObject *result = LOOKUP_SUBSCRIPT(PyImport_GetModuleDict(), module_name);
+
+    if (result != NULL) {
+        PyObject *spec_value = LOOKUP_ATTRIBUTE(result, const_str_plain___spec__);
+
+        if (spec_value && spec_value != Py_None) {
+            if (PyObject_HasAttr(spec_value, const_str_plain__initializing)) {
+                SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_False);
+            }
+        }
+    }
+}
 #endif
 
 static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLoaderEntry *entry) {
@@ -645,23 +659,16 @@ static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLo
         PyTracebackObject *exception_tb = NULL;
         FETCH_ERROR_OCCURRED(&exception_type, &exception_value, &exception_tb);
 
-        PyObject *result = LOOKUP_SUBSCRIPT(PyImport_GetModuleDict(), module_name);
-        CHECK_OBJECT(result);
-
 #if PYTHON_VERSION >= 340
-        PyObject *spec_value = LOOKUP_ATTRIBUTE(result, const_str_plain___spec__);
-
-        if (spec_value && spec_value != Py_None) {
-            if (PyObject_HasAttr(spec_value, const_str_plain__initializing)) {
-                SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_False);
-            }
-        }
+        _fixupSpecAttribute(module_name);
 #endif
 
 #if _NUITKA_EXPERIMENTAL_PKGUTIL_ITERMODULES
+        PyObject *result = LOOKUP_SUBSCRIPT(PyImport_GetModuleDict(), module_name);
+
         // For use by "pkgutil.walk_modules" add the runtime path to the
         // "sys.path_importer_cache" dictionary.
-        if (entry->flags & NUITKA_PACKAGE_FLAG) {
+        if (result != NULL && entry->flags & NUITKA_PACKAGE_FLAG) {
             PyObject *path_value = LOOKUP_ATTRIBUTE(result, const_str_plain___path__);
 
             if (path_value && PyList_CheckExact(path_value) && PyList_Size(path_value) > 0) {
