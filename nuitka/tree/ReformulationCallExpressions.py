@@ -211,14 +211,16 @@ def _makeCallNode(
             source_ref=source_ref,
         )
 
-        if values:
-            result.setCompatibleSourceReference(
-                source_ref=values[-1].getCompatibleSourceReference()
-            )
-        elif positional_args:
-            result.setCompatibleSourceReference(
-                source_ref=positional_args[-1].getCompatibleSourceReference()
-            )
+        # Bug compatible line numbers before Python 3.8
+        if python_version < 380:
+            if values:
+                result.setCompatibleSourceReference(
+                    source_ref=values[-1].getCompatibleSourceReference()
+                )
+            elif positional_args:
+                result.setCompatibleSourceReference(
+                    source_ref=positional_args[-1].getCompatibleSourceReference()
+                )
 
         return result
     else:
@@ -292,8 +294,10 @@ def _makeCallNode(
             source_ref=source_ref,
         )
 
-        result.setCompatibleSourceReference(
-            source_ref=helper_args[-1].getCompatibleSourceReference()
-        )
+        # Bug compatible line numbers before Python 3.8
+        if python_version < 380:
+            result.setCompatibleSourceReference(
+                source_ref=helper_args[-1].getCompatibleSourceReference()
+            )
 
         return result
