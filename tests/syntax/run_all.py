@@ -20,6 +20,7 @@
 import os
 import sys
 
+
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
@@ -49,6 +50,9 @@ for filename in sorted(os.listdir(".")):
     if not decideFilenameVersionSkip(filename):
         continue
 
+    if filename == "TryFinallyContinue.py" and python_version >= "3.8":
+        continue
+
     active = search_mode.consider(dirname=None, filename=filename)
 
     if active:
@@ -62,8 +66,8 @@ for filename in sorted(os.listdir(".")):
             needs_2to3=False,
         )
 
-    if search_mode.abortIfExecuted():
-        break
+        if search_mode.abortIfExecuted():
+            break
     else:
         my_print("Skipping", filename)
 
