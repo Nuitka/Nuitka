@@ -19,6 +19,7 @@
 
 """
 
+import collections
 import hashlib
 import sys
 from abc import ABCMeta, abstractmethod
@@ -291,6 +292,27 @@ class TempMixin(object):
         del self.cleanup_names[-1]
 
 
+CodeObjectHandle = collections.namedtuple(
+    "CodeObjectHandle",
+    (
+        "co_name",
+        "co_kind",
+        "co_varnames",
+        "co_argcount",
+        "co_posonlyargcount",
+        "co_kwonlyargcount",
+        "co_has_starlist",
+        "co_has_stardict",
+        "co_filename",
+        "line_number",
+        "future_flags",
+        "co_new_locals",
+        "has_closure",
+        "is_optimized",
+    ),
+)
+
+
 class CodeObjectsMixin(object):
     def __init__(self):
         # Code objects needed made unique by a key.
@@ -300,20 +322,21 @@ class CodeObjectsMixin(object):
         return sorted(iterItems(self.code_objects))
 
     def getCodeObjectHandle(self, code_object):
-        key = (
-            code_object.getFilename(),
-            code_object.getCodeObjectName(),
-            code_object.getLineNumber(),
-            code_object.getVarNames(),
-            code_object.getArgumentCount(),
-            code_object.getKwOnlyParameterCount(),
-            code_object.getCodeObjectKind(),
-            code_object.getFlagIsOptimizedValue(),
-            code_object.getFlagNewLocalsValue(),
-            code_object.hasStarListArg(),
-            code_object.hasStarDictArg(),
-            code_object.getFlagHasClosureValue(),
-            code_object.getFutureSpec().asFlags(),
+        key = CodeObjectHandle(
+            co_filename=code_object.getFilename(),
+            co_name=code_object.getCodeObjectName(),
+            line_number=code_object.getLineNumber(),
+            co_varnames=code_object.getVarNames(),
+            co_argcount=code_object.getArgumentCount(),
+            co_posonlyargcount=code_object.getPosOnlyParameterCount(),
+            co_kwonlyargcount=code_object.getKwOnlyParameterCount(),
+            co_kind=code_object.getCodeObjectKind(),
+            is_optimized=code_object.getFlagIsOptimizedValue(),
+            co_new_locals=code_object.getFlagNewLocalsValue(),
+            co_has_starlist=code_object.hasStarListArg(),
+            co_has_stardict=code_object.hasStarDictArg(),
+            has_closure=code_object.getFlagHasClosureValue(),
+            future_flags=code_object.getFutureSpec().asFlags(),
         )
 
         if key not in self.code_objects:
@@ -324,16 +347,14 @@ class CodeObjectsMixin(object):
     if python_version < 300:
 
         def _calcHash(self, key):
-            hash_value = hashlib.md5("%s-%s-%d-%s-%d-%d-%s-%s-%s-%s-%s-%s-%s" % key)
+            hash_value = hashlib.md5("-".join(str(s) for s in key))
 
             return hash_value.hexdigest()
 
     else:
 
         def _calcHash(self, key):
-            hash_value = hashlib.md5(
-                ("%s-%s-%d-%s-%d-%d-%s-%s-%s-%s-%s-%s-%s" % key).encode("utf-8")
-            )
+            hash_value = hashlib.md5("-".join(str(s) for s in key).encode("utf-8"))
 
             return hash_value.hexdigest()
 
