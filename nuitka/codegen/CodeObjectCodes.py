@@ -73,55 +73,67 @@ def getCodeObjectsInitCode(context):
         co_flags = []
 
         # Make sure the filename is always identical.
-        assert code_object_key[0] == module_filename
+        assert code_object_key.co_filename == module_filename, code_object_key
 
-        if code_object_key[6] in ("Module", "Class", "Function"):
+        if code_object_key.co_kind in ("Module", "Class", "Function"):
             pass
-        elif code_object_key[6] == "Generator":
+        elif code_object_key.co_kind == "Generator":
             co_flags.append("CO_GENERATOR")
-        elif code_object_key[6] == "Coroutine":
+        elif code_object_key.co_kind == "Coroutine":
             co_flags.append("CO_COROUTINE")
-        elif code_object_key[6] == "Asyncgen":
+        elif code_object_key.co_kind == "Asyncgen":
             co_flags.append("CO_ASYNC_GENERATOR")
         else:
-            assert False, code_object_key[6]
+            assert False, code_object_key.co_kind
 
-        if code_object_key[7]:
+        if code_object_key.is_optimized:
             co_flags.append("CO_OPTIMIZED")
 
-        if code_object_key[8]:
+        if code_object_key.co_new_locals:
             co_flags.append("CO_NEWLOCALS")
 
-        if code_object_key[9]:
+        if code_object_key.co_has_starlist:
             co_flags.append("CO_VARARGS")
 
-        if code_object_key[10]:
+        if code_object_key.co_has_stardict:
             co_flags.append("CO_VARKEYWORDS")
 
-        if not code_object_key[11]:
+        if not code_object_key.has_closure:
             co_flags.append("CO_NOFREE")
 
-        co_flags.extend(code_object_key[12])
+        co_flags.extend(code_object_key.future_flags)
 
         if python_version < 300:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
                 code_identifier,
                 filename_code,
-                context.getConstantCode(constant=code_object_key[1]),
-                code_object_key[2],
-                context.getConstantCode(constant=code_object_key[3]),
-                code_object_key[4],
+                context.getConstantCode(constant=code_object_key.co_name),
+                code_object_key.line_number,
+                context.getConstantCode(constant=code_object_key.co_varnames),
+                code_object_key.co_argcount,
                 " | ".join(co_flags) or "0",
             )
-        else:
+        elif python_version < 380:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %d, %s );" % (
                 code_identifier,
                 filename_code,
-                context.getConstantCode(constant=code_object_key[1]),
-                code_object_key[2],
-                context.getConstantCode(constant=code_object_key[3]),
-                code_object_key[4],
-                code_object_key[5],
+                context.getConstantCode(constant=code_object_key.co_name),
+                code_object_key.line_number,
+                context.getConstantCode(constant=code_object_key.co_varnames),
+                code_object_key.co_argcount,
+                code_object_key.co_kwonlyargcount,
+                " | ".join(co_flags) or "0",
+            )
+        else:
+            code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %d, %s, %s );" % (
+                code_identifier,
+                filename_code,
+                context.getConstantCode(constant=code_object_key.co_name),
+                code_object_key.line_number,
+                context.getConstantCode(constant=code_object_key.co_varnames),
+                code_object_key.co_argcount,
+                code_object_key.co_posonlyargcount,
+                code_object_key.co_kwonlyargcount,
                 " | ".join(co_flags) or "0",
             )
 

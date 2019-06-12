@@ -33,6 +33,7 @@ class CodeObjectSpec(object):
         "co_kind",
         "co_varnames",
         "co_argcount",
+        "co_posonlyargcount",
         "co_kwonlyargcount",
         "co_has_starlist",
         "co_has_stardict",
@@ -51,6 +52,7 @@ class CodeObjectSpec(object):
         co_kind,
         co_varnames,
         co_argcount,
+        co_posonlyargcount,
         co_kwonlyargcount,
         co_has_starlist,
         co_has_stardict,
@@ -61,6 +63,7 @@ class CodeObjectSpec(object):
         co_has_closure=None,
         co_is_optimized=None,
     ):
+        # pylint: disable=I0021,too-many-locals
 
         self.co_name = co_name
         self.co_kind = co_kind
@@ -83,6 +86,8 @@ class CodeObjectSpec(object):
         self.co_varnames = tuple(co_varnames)
 
         self.co_argcount = int(co_argcount)
+
+        self.co_posonlyargcount = int(co_posonlyargcount)
         self.co_kwonlyargcount = int(co_kwonlyargcount)
 
         self.co_has_starlist = co_has_starlist
@@ -117,6 +122,7 @@ class CodeObjectSpec(object):
             "co_kind": self.co_kind,
             "co_varnames": ",".join(self.co_varnames),
             "co_argcount": self.co_argcount,
+            "co_posonlyargcount": self.co_posonlyargcount,
             "co_kwonlyargcount": self.co_kwonlyargcount,
             "co_has_starlist": self.co_has_starlist,
             "co_has_stardict": self.co_has_stardict,
@@ -167,6 +173,9 @@ class CodeObjectSpec(object):
 
     def getArgumentCount(self):
         return self.co_argcount
+
+    def getPosOnlyParameterCount(self):
+        return self.co_posonlyargcount
 
     def getKwOnlyParameterCount(self):
         return self.co_kwonlyargcount

@@ -707,6 +707,7 @@ def buildFunctionWithParsing(
         co_kind=function_kind,
         co_varnames=parameters.getParameterNames(),
         co_argcount=parameters.getArgumentCount(),
+        co_posonlyargcount=parameters.getPosOnlyParameterCount(),
         co_kwonlyargcount=parameters.getKwOnlyParameterCount(),
         co_has_starlist=parameters.getStarListArgumentName() is not None,
         co_has_stardict=parameters.getStarDictArgumentName() is not None,

@@ -266,6 +266,10 @@ class ParameterSpec(object):
     def getKwOnlyParameterNames(self):
         return self.kw_only_args
 
+    def getPosOnlyParameterCount(self):
+        # TODO: Add support for new Python3.8 feature, pylint: disable=no-self-use
+        return 0
+
     def getKwOnlyParameterCount(self):
         return len(self.kw_only_args)
 
