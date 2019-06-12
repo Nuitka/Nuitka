@@ -506,6 +506,10 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield crypto_module_name + ".Hash._SHA224", True
             elif full_name == crypto_module_name + ".Hash.SHA256":
                 yield crypto_module_name + ".Hash._SHA256", True
+            elif full_name == crypto_module_name + ".Hash.SHA384":
+                yield crypto_module_name + ".Hash._SHA384", True
+            elif full_name == crypto_module_name + ".Hash.SHA512":
+                yield crypto_module_name + ".Hash._SHA512", True
             elif full_name == crypto_module_name + ".Hash.MD5":
                 yield crypto_module_name + ".Hash._MD5", True
             elif full_name == crypto_module_name + ".Protocol.KDF":
@@ -518,6 +522,10 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pycparser.lextab", True
         elif full_name == "passlib.hash":
             yield "passlib.handlers.sha2_crypt", True
+
+        #Support for coincurve
+        elif full_name == "coincurve":
+            yield "coincurve._libsecp256k1._dll", True
 
     # We don't care about line length here, pylint: disable=line-too-long
 

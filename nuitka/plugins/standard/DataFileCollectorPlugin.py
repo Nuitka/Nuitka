@@ -35,6 +35,7 @@ known_data_files = {
     "scrapy": ((None, "VERSION"),),
     "requests": (("certifi", "../certifi/cacert.pem"),),
     "importlib_resources": ((None, "version.txt"),),
+    "coincurve": ((None, "./libsecp256k1.dll"),),
     "boto": ((None, "./endpoints.json"),),
     "moto": (
         (None, "./ec2/resources/instance_types.json"),
