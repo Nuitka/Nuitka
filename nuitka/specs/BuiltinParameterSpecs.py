@@ -506,6 +506,8 @@ builtin_divmod_spec = BuiltinParameterSpecNoKeywords("divmod", ("left", "right")
 
 
 def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=None):
+    # Many cases to deal with, pylint: disable=too-many-branches
+
     try:
         kw = node.getCallKw()
 
@@ -572,6 +574,8 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
 
     # Using list reference for passing the arguments without names,
     result = builtin_class(*args_list, source_ref=node.getSourceReference())
-    result.setCompatibleSourceReference(node.getCompatibleSourceReference())
+
+    if python_version < 380:
+        result.setCompatibleSourceReference(node.getCompatibleSourceReference())
 
     return result
