@@ -284,6 +284,14 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("36.py") and _python_version < "3.6":
         return False
 
+    # Skip tests that require Python 3.7 at least.
+    if filename.endswith("37.py") and _python_version < "3.7":
+        return False
+
+    # Skip tests that require Python 3.8 at least.
+    if filename.endswith("38.py") and _python_version < "3.8":
+        return False
+
     return True
 
 

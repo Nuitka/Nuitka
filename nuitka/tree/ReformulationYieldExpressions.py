@@ -49,6 +49,17 @@ def _checkInsideGenerator(provider, node, source_ref):
             source_ref.atColumnNumber(node.col_offset),
         )
 
+    if (
+        python_version >= 380
+        and provider.isExpressionGeneratorObjectBody()
+        and provider.name == "<genexpr>"
+    ):
+        raiseSyntaxError(
+            "'%s' inside generator expression"
+            % ("yield" if node.__class__ is ast.Yield else "yield from",),
+            source_ref.atColumnNumber(node.col_offset),
+        )
+
     assert (
         provider.isExpressionGeneratorObjectBody()
         or provider.isExpressionAsyncgenObjectBody()

@@ -16,5 +16,4 @@
 #     limitations under the License.
 #
 
-x = (i for i in
-(yield from range(7)) if (yield from range(2)))
+x = (yield from range(8))

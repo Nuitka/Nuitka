@@ -426,7 +426,7 @@ def buildStatementLoopContinue(node, source_ref):
 
     # Python forbids this, although technically it's probably not much of
     # an issue.
-    if getBuildContext() == "finally":
+    if getBuildContext() == "finally" and python_version < 380:
         SyntaxErrors.raiseSyntaxError(
             "'continue' not supported inside 'finally' clause", source_ref
         )
