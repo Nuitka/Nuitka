@@ -15,6 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+
 """ Common test infrastructure functions. To be used by test runners. """
 
 from __future__ import print_function
@@ -42,6 +43,7 @@ from nuitka.utils.FileOperations import (
 )
 
 from .SearchModes import (
+    SearchModeAll,
     SearchModeBase,
     SearchModeByPattern,
     SearchModeCoverage,
@@ -347,8 +349,7 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
     _removeCPythonTestSuiteDir()
 
     if result != 0 and result != 2 and search_mode.abortOnFinding(dirname, filename):
-        my_print("Error exit!", result)
-        sys.exit(result)
+        search_mode.onErrorDetected("Error exit! %s" % result)
 
     if converted:
         os.unlink(path)
@@ -372,8 +373,7 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
         result = 2
 
     if result != 1 and result != 2 and search_mode.abortOnFinding(dirname, filename):
-        my_print("Error exit!", result)
-        sys.exit(result)
+        search_mode.onErrorDetected("Error exit! %s" % result)
 
 
 def checkSucceedsWithCPython(filename):
@@ -837,6 +837,7 @@ def checkReferenceCount(checked_function, max_rounds=10):
 
 
 def createSearchMode():
+    all_mode = len(sys.argv) > 1 and sys.argv[1] == "all"
     search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
     resume_mode = len(sys.argv) > 1 and sys.argv[1] == "resume"
     only_mode = len(sys.argv) > 1 and sys.argv[1] == "only"
@@ -844,8 +845,9 @@ def createSearchMode():
     coverage_mode = len(sys.argv) > 1 and sys.argv[1] == "coverage"
 
     if coverage_mode:
-
         return SearchModeCoverage()
+    elif all_mode:
+        return SearchModeAll()
     elif resume_mode:
         return SearchModeResume(sys.modules["__main__"].__file__)
     elif search_mode and start_at:
