@@ -42,7 +42,7 @@ from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
 
 
 def main():
-    python_version = setup()
+    _python_version = setup()
 
     os.chdir("subject")
 
