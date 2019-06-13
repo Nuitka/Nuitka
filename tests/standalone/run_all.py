@@ -53,7 +53,6 @@ from nuitka.utils.FileOperations import (
     getFileContentByLine,
     removeDirectory,
 )
-from nuitka.tools.testing.SearchModes import SearchModeAll
 
 python_version = setup(needs_io_encoding=True)
 

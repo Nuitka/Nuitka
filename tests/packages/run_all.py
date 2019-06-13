@@ -40,7 +40,6 @@ from nuitka.tools.testing.Common import (
     setup,
     withExtendedExtraOptions,
 )
-from nuitka.tools.testing.SearchModes import SearchModeAll
 
 python_version = setup()
 
@@ -75,7 +74,7 @@ for filename in sorted(os.listdir(".")):
         else:
             search_mode.onErrorDetected(
                 """\
-    Error, no package in dir '%s' found, incomplete test case."""
+Error, no package in dir '%s' found, incomplete test case."""
                 % filename
             )
 

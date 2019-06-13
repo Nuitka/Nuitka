@@ -28,14 +28,15 @@ sys.path.insert(
     ),
 )
 
+# isort:start
 
 from nuitka.tools.testing.Common import (
+    compareWithCPython,
+    createSearchMode,
+    decideFilenameVersionSkip,
+    hasDebugPython,
     my_print,
     setup,
-    decideFilenameVersionSkip,
-    compareWithCPython,
-    hasDebugPython,
-    createSearchMode
 )
 
 python_version = setup(suite="basics", needs_io_encoding=True)
@@ -121,7 +122,7 @@ for filename in sorted(os.listdir(".")):
             search_mode=search_mode,
             needs_2to3=needs_2to3,
         )
-        
+
         if search_mode.abortIfExecuted():
             break
     else:
