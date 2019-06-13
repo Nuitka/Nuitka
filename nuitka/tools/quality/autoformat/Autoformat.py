@@ -70,6 +70,9 @@ def _cleanupTrailingWhitespace(filename):
 
     clean_lines = [line.rstrip() for line in source_lines]
 
+    while clean_lines and clean_lines[-1] == "":
+        del clean_lines[-1]
+
     if clean_lines != source_lines:
         with open(filename, "w") as out_file:
             out_file.write("\n".join(clean_lines) + "\n")
@@ -330,7 +333,7 @@ def autoformat(filename, git_stage, abort):
     is_c = filename.endswith((".c", ".h"))
 
     is_txt = filename.endswith(
-        (".txt", ".rst", ".sh", ".in", ".md", ".stylesheet", ".j2")
+        (".txt", ".rst", ".sh", ".in", ".md", ".stylesheet", ".j2", ".gitignore")
     )
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
