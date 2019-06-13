@@ -220,7 +220,8 @@ for filename in sorted(os.listdir(".")):
             python_path = check_output(
                 [
                     os.environ["PYTHON"],
-                    "-c" "import sys, os; print(os.pathsep.join(sys.path))",
+                    "-c",
+                    "import sys, os; print(os.pathsep.join(sys.path))",
                 ]
             )
 
