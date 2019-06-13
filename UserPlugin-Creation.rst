@@ -154,4 +154,3 @@ shallTraceExecution                   *bool* = ``--trace-execution``
 shallWarnImplicitRaises               *bool* = ``--warn-implicit-exceptions``
 shallWarnUnusualCode                  *bool* = ``--warn-unusual-code``
 ===================================== ======================================================================================
-
