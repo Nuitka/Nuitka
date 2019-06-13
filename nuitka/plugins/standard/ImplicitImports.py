@@ -506,6 +506,10 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield crypto_module_name + ".Hash._SHA224", True
             elif full_name == crypto_module_name + ".Hash.SHA256":
                 yield crypto_module_name + ".Hash._SHA256", True
+            elif full_name == crypto_module_name + ".Hash.SHA384":
+                yield crypto_module_name + ".Hash._SHA384", True
+            elif full_name == crypto_module_name + ".Hash.SHA512":
+                yield crypto_module_name + ".Hash._SHA512", True
             elif full_name == crypto_module_name + ".Hash.MD5":
                 yield crypto_module_name + ".Hash._MD5", True
             elif full_name == crypto_module_name + ".Protocol.KDF":
