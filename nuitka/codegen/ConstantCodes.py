@@ -66,7 +66,10 @@ def generateConstantNoneReferenceCode(to_name, expression, emit, context):
 
     # No context or other knowledge needed, pylint: disable=unused-argument
 
-    emit("%s = Py_None;" % to_name)
+    if to_name.c_type == "nuitka_bool":
+        emit("%s = NUITKA_BOOL_FALSE;" % to_name)
+    else:
+        emit("%s = Py_None;" % to_name)
 
 
 def generateConstantTrueReferenceCode(to_name, expression, emit, context):
@@ -96,7 +99,10 @@ def generateConstantEllipsisReferenceCode(to_name, expression, emit, context):
 
     # No context or other knowledge needed, pylint: disable=unused-argument
 
-    emit("%s = Py_Ellipsis;" % to_name)
+    if to_name.c_type == "nuitka_bool":
+        emit("%s = NUITKA_BOOL_FALSE;" % to_name)
+    else:
+        emit("%s = Py_Ellipsis;" % to_name)
 
 
 # One global stream of constant information. In the future it might make
