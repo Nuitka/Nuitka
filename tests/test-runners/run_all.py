@@ -19,6 +19,13 @@
 #     limitations under the License.
 #
 
+""" Test runners test
+
+This shows that typical test runners like nose and py.test can be used with
+compiled packages.
+
+"""
+
 import os
 import sys
 
@@ -32,13 +39,10 @@ sys.path.insert(
 
 # isort:start
 
-import difflib
-import shutil
 import subprocess
-import time
 
 from nuitka.tools.testing.Common import getTempDir, my_print, setup
-from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
+from nuitka.utils.FileOperations import copyTree
 
 
 def main():

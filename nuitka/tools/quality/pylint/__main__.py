@@ -23,6 +23,7 @@
 
 from __future__ import print_function
 
+import glob
 import os
 import sys
 from optparse import OptionParser
@@ -32,6 +33,10 @@ from nuitka.tools.Basics import addPYTHONPATH, goHome, setupPATH
 from nuitka.tools.quality.pylint import PyLint
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.tools.testing.Common import hasModule, setup
+
+
+def resolveShellPatternToFilenames(pattern):
+    return glob.glob(pattern)
 
 
 def main():
@@ -88,11 +93,19 @@ Insist on PyLint to be installed. Default is %default.""",
         sys.exit(0)
 
     if not positional_args:
-        positional_args = ["bin", "nuitka"]
+        positional_args = ["bin", "nuitka", "tests/*/run_all.py"]
+
+    positional_args = sum(
+        (
+            resolveShellPatternToFilenames(positional_arg)
+            for positional_arg in positional_args
+        ),
+        [],
+    )
 
     print("Working on:", positional_args)
 
-    blacklist = ["oset.py", "odict.py", "SyntaxHighlighting.py"]
+    blacklist = ["oset.py", "odict.py"]
 
     # Avoid checking the Python2 runner with Python3, it has name collisions.
     if python_version >= 300:
