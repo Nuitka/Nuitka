@@ -19,6 +19,16 @@
 #     limitations under the License.
 #
 
+""" Test runners test
+
+This shows that known good existing static optimization works and produces
+constant results. This should be used to preserve successful optimization
+at compile time against later changes breaking them undetected.
+
+"""
+
+from __future__ import print_function
+
 import os
 import sys
 
@@ -38,7 +48,6 @@ sys.path.insert(
 )
 
 # isort:start
-from nuitka.tools.testing.SearchModes import SearchModeAll
 from nuitka.TreeXML import toString
 
 from nuitka.tools.testing.Common import (  # isort:skip
@@ -46,17 +55,11 @@ from nuitka.tools.testing.Common import (  # isort:skip
     convertUsing2to3,
     createSearchMode,
     decideFilenameVersionSkip,
-    hasModule,
     my_print,
     setup,
 )
 
 python_version = setup()
-
-# The Python version used by Nuitka needs "lxml" too.
-if not hasModule("lxml.etree"):
-    print("Warning, no 'lxml' module installed, cannot run XML based tests.")
-    sys.exit(0)
 
 search_mode = createSearchMode()
 
@@ -75,13 +78,10 @@ def getRole(node, role):
     for child in node:
         if child.tag == "role" and child.attrib["name"] == role:
             return child
-    else:
-        return None
+    return None
 
 
-def getSourceRef(node):
-    global filename
-
+def getSourceRef(filename, node):
     return "%s:%s" % (filename, node.attrib["line"])
 
 
@@ -96,7 +96,9 @@ def isConstantExpression(expression):
     )
 
 
-def checkSequence(statements):
+def checkSequence(filename, statements):
+    # Complex stuff, pylint: disable=too-many-branches
+
     for statement in statements:
         kind = getKind(statement)
 
@@ -107,7 +109,7 @@ def checkSequence(statements):
             if not isConstantExpression(print_arg):
                 search_mode.onErrorDetected(
                     "%s: Error, print of non-constant '%s'."
-                    % (getSourceRef(statement), getKind(print_arg))
+                    % (getSourceRef(filename, statement), getKind(print_arg))
                 )
 
             continue
@@ -130,17 +132,17 @@ def checkSequence(statements):
         if kind == "Try" and False:
             tried = getRole(statement, "tried")
 
-            checkSequence(getRole(tried[0], "statements"))
+            checkSequence(filename, getRole(tried[0], "statements"))
 
             continue
 
         if kind == "FrameModule":
-            checkSequence(getRole(statement, "statements"))
+            checkSequence(filename, getRole(statement, "statements"))
 
             continue
 
         if kind == "FrameFunction":
-            checkSequence(getRole(statement, "statements"))
+            checkSequence(filename, getRole(statement, "statements"))
 
             continue
 
@@ -182,100 +184,105 @@ def checkSequence(statements):
         )
 
 
-for filename in sorted(os.listdir(".")):
-    if not filename.endswith(".py") or filename.startswith("run_"):
-        continue
+def main():
+    # Complex stuff, pylint: disable=too-many-branches,too-many-statements
 
-    if not decideFilenameVersionSkip(filename):
-        continue
+    for filename in sorted(os.listdir(".")):
+        if not filename.endswith(".py") or filename.startswith("run_"):
+            continue
 
-    active = search_mode.consider(dirname=None, filename=filename)
+        if not decideFilenameVersionSkip(filename):
+            continue
 
-    extra_flags = ["expect_success"]
+        active = search_mode.consider(dirname=None, filename=filename)
 
-    if active:
-        # Apply 2to3 conversion if necessary.
-        if python_version.startswith("3"):
-            filename, changed = convertUsing2to3(filename)
+        if active:
+            # Apply 2to3 conversion if necessary.
+            if python_version.startswith("3"):
+                filename, changed = convertUsing2to3(filename)
+            else:
+                changed = False
+
+            my_print("Consider", filename, end=" ")
+
+            command = [
+                os.environ["PYTHON"],
+                os.path.abspath(os.path.join("..", "..", "bin", "nuitka")),
+                "--xml",
+                "--module",
+                filename,
+            ]
+
+            if search_mode.isCoverage():
+                # To avoid re-execution, which is not acceptable to coverage.
+                if "PYTHONHASHSEED" not in os.environ:
+                    os.environ["PYTHONHASHSEED"] = "0"
+
+                # Coverage modules hates Nuitka to re-execute, and so we must avoid
+                # that.
+                python_path = check_output(
+                    [
+                        os.environ["PYTHON"],
+                        "-c",
+                        "import sys, os; print(os.pathsep.join(sys.path))",
+                    ]
+                )
+
+                if sys.version_info >= (3,):
+                    python_path = python_path.decode("utf8")
+
+                os.environ["PYTHONPATH"] = python_path.strip()
+
+                command.insert(2, "--must-not-re-execute")
+
+                command = (
+                    command[0:1]
+                    + ["-S", "-m", "coverage", "run", "--rcfile", os.devnull, "-a"]
+                    + command[1:]
+                )
+
+            result = check_output(command)
+
+            # Parse the result into XML and check it.
+            try:
+                root = lxml.etree.fromstring(result)
+            except lxml.etree.XMLSyntaxError:
+                my_print("Problematic XML output:")
+                my_print(result)
+                raise
+
+            module_body = root[0]
+            module_statements_sequence = module_body[0]
+
+            assert len(module_statements_sequence) == 1
+            module_statements = next(iter(module_statements_sequence))
+
+            try:
+                checkSequence(filename, module_statements)
+
+                for function in root.xpath('role[@name="functions"]/node'):
+                    function_body, = function.xpath('role[@name="body"]')
+                    function_statements_sequence = function_body[0]
+                    assert len(function_statements_sequence) == 1
+                    function_statements = next(iter(function_statements_sequence))
+
+                    checkSequence(filename, function_statements)
+
+                if changed:
+                    os.unlink(filename)
+            except SystemExit:
+                my_print("FAIL.")
+                raise
+
+            my_print("OK.")
+
+            if search_mode.abortIfExecuted():
+                break
         else:
-            changed = False
+            my_print("Skipping", filename)
 
-        my_print("Consider", filename, end=" ")
+    search_mode.finish()
 
-        command = [
-            os.environ["PYTHON"],
-            os.path.abspath(os.path.join("..", "..", "bin", "nuitka")),
-            "--xml",
-            "--module",
-            filename,
-        ]
 
-        if search_mode.isCoverage():
-            # To avoid re-execution, which is not acceptable to coverage.
-            if "PYTHONHASHSEED" not in os.environ:
-                os.environ["PYTHONHASHSEED"] = "0"
-
-            # Coverage modules hates Nuitka to re-execute, and so we must avoid
-            # that.
-            python_path = check_output(
-                [
-                    os.environ["PYTHON"],
-                    "-c",
-                    "import sys, os; print(os.pathsep.join(sys.path))",
-                ]
-            )
-
-            if sys.version_info >= (3,):
-                python_path = python_path.decode("utf8")
-
-            os.environ["PYTHONPATH"] = python_path.strip()
-
-            command.insert(2, "--must-not-re-execute")
-
-            command = (
-                command[0:1]
-                + ["-S", "-m", "coverage", "run", "--rcfile", os.devnull, "-a"]
-                + command[1:]
-            )
-
-        result = check_output(command)
-
-        # Parse the result into XML and check it.
-        try:
-            root = lxml.etree.fromstring(result)
-        except lxml.etree.XMLSyntaxError:
-            print("Problematic XML output:")
-            print(result)
-            raise
-
-        module_body = root[0]
-        module_statements_sequence = module_body[0]
-
-        assert len(module_statements_sequence) == 1
-        module_statements = next(iter(module_statements_sequence))
-
-        try:
-            checkSequence(module_statements)
-
-            for function in root.xpath('role[@name="functions"]/node'):
-                function_body, = function.xpath('role[@name="body"]')
-                function_statements_sequence = function_body[0]
-                assert len(function_statements_sequence) == 1
-                function_statements = next(iter(function_statements_sequence))
-
-                checkSequence(function_statements)
-
-            if changed:
-                os.unlink(filename)
-        except SystemExit:
-            my_print("FAIL.")
-            raise
-
-        my_print("OK.")
-
-        if search_mode.abortIfExecuted():
-            break
-    else:
-        my_print("Skipping", filename)
-
-search_mode.finish()
+if __name__ == "__main__":
+    main()
