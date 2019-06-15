@@ -18,6 +18,10 @@ up to here:
 *  How did you install Nuitka and Python (pip, anaconda, deb, rpm, from source,
    what is a virtualenv ...), this is very important usually.
 
+*  Many times when you get an error from Nuitka, your setup may be so special
+   that even a "hello world" program will not work, please try that and report
+   it instead.
+
 *  If possible please supply a [Short, Self Contained, Correct, Example](http://sscce.org/)
    that demonstrates the issue i.e a small piece of code which reproduces
    the issue and can be run with out any other (or as few as possible)
