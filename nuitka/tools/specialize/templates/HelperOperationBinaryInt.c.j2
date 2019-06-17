@@ -90,8 +90,15 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
 #error Operand {{operand}} not implemented in {{name}}
 {% endif %}
 
-    // TODO: Could in-line and specialize this as well.
-    PyObject *o = PyLong_Type.tp_as_number->{{nb_slot}}(operand1, operand2);
+    PyObject *op1 = {{left.getAsObjectValueExpression("operand1")}};
+    PyObject *op2 = {{right.getAsObjectValueExpression("operand2")}};
+
+    // TODO: Could in-line and specialize these as well.
+    PyObject *o = PyLong_Type.tp_as_number->{{nb_slot}}(op1, op2);
     assert(o != Py_NotImplemented);
+
+    {{left.releaseAsObjectValueStatement("op1")}}
+    {{right.releaseAsObjectValueStatement("op2")}}
+
     return o;
 }

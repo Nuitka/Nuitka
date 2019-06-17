@@ -36,6 +36,19 @@ extern PyObject *BINARY_OPERATION_MUL_INT_INT(PyObject *operand1, PyObject *oper
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *BINARY_OPERATION_MUL_OBJECT_LONG(PyObject *operand1, PyObject *operand2);
 
+/* Code referring to "CLONG" corresponds to C platform long value and "CLONG" to C platform long value. */
+extern PyObject *BINARY_OPERATION_MUL_CLONG_CLONG(long operand1, long operand2);
+
+#if PYTHON_VERSION < 300
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+extern PyObject *BINARY_OPERATION_MUL_INT_CLONG(PyObject *operand1, long operand2);
+#endif
+
+#if PYTHON_VERSION < 300
+/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_MUL_CLONG_INT(long operand1, PyObject *operand2);
+#endif
+
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 extern PyObject *BINARY_OPERATION_MUL_LONG_OBJECT(PyObject *operand1, PyObject *operand2);
 
