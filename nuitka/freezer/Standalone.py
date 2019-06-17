@@ -361,7 +361,7 @@ if os.name != "nt":
 
 def scanStandardLibraryPath(stdlib_dir):
     # There is a lot of black-listing here, done in branches, so there
-    # is many of them, but that's acceptable, pylint: disable=too-many-branches
+    # is many of them, but that's acceptable, pylint: disable=too-many-branches,too-many-statements
 
     for root, dirs, filenames in os.walk(stdlib_dir):
         import_path = root[len(stdlib_dir) :].strip("/\\")
@@ -419,6 +419,10 @@ def scanStandardLibraryPath(stdlib_dir):
                 filenames.remove("popen_fork.py")
                 filenames.remove("popen_forkserver.py")
                 filenames.remove("popen_spawn_posix.py")
+
+        if python_version >= 300 and Utils.isPosixWindows():
+            if import_path == "curses":
+                filenames.remove("has_key.py")
 
         if Utils.getOS() == "NetBSD":
             if import_path == "xml.sax":
