@@ -39,9 +39,13 @@ static PyObject *SLOT_nb_subtract_INT_INT(PyObject *operand1, PyObject *operand2
         return PyInt_FromLong(x);
     }
 
-    // TODO: Could in-line and specialize this as well.
-    PyObject *o = PyLong_Type.tp_as_number->nb_subtract(operand1, operand2);
+    PyObject *op1 = operand1;
+    PyObject *op2 = operand2;
+
+    // TODO: Could in-line and specialize these as well.
+    PyObject *o = PyLong_Type.tp_as_number->nb_subtract(op1, op2);
     assert(o != Py_NotImplemented);
+
     return o;
 }
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */

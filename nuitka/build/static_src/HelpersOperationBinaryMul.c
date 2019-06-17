@@ -51,9 +51,13 @@ static PyObject *SLOT_nb_multiply_INT_INT(PyObject *operand1, PyObject *operand2
         return PyInt_FromLong(longprod);
     }
 
-    // TODO: Could in-line and specialize this as well.
-    PyObject *o = PyLong_Type.tp_as_number->nb_multiply(operand1, operand2);
+    PyObject *op1 = operand1;
+    PyObject *op2 = operand2;
+
+    // TODO: Could in-line and specialize these as well.
+    PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
     assert(o != Py_NotImplemented);
+
     return o;
 }
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
@@ -637,6 +641,147 @@ PyObject *BINARY_OPERATION_MUL_OBJECT_LONG(PyObject *operand1, PyObject *operand
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'long'", type1->tp_name);
     return NULL;
 }
+
+static PyObject *SLOT_nb_multiply_CLONG_CLONG(long operand1, long operand2) {
+
+    const long a = operand1;
+    const long b = operand2;
+
+    const long longprod = (long)((unsigned long)a * b);
+    const double doubleprod = (double)a * (double)b;
+    const double doubled_longprod = (double)longprod;
+
+    if (likely(doubled_longprod == doubleprod)) {
+        return PyInt_FromLong(longprod);
+    }
+
+    const double diff = doubled_longprod - doubleprod;
+    const double absdiff = diff >= 0.0 ? diff : -diff;
+    const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+    if (likely(32.0 * absdiff <= absprod)) {
+        return PyInt_FromLong(longprod);
+    }
+
+    PyObject *op1 = PyLong_FromLong(operand1);
+    PyObject *op2 = PyLong_FromLong(operand2);
+
+    // TODO: Could in-line and specialize these as well.
+    PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
+    assert(o != Py_NotImplemented);
+
+    Py_DECREF(op1);
+    Py_DECREF(op2);
+
+    return o;
+}
+/* Code referring to "CLONG" corresponds to C platform long value and "CLONG" to C platform long value. */
+PyObject *BINARY_OPERATION_MUL_CLONG_CLONG(long operand1, long operand2) {
+
+    return SLOT_nb_multiply_CLONG_CLONG(operand1, operand2);
+}
+
+#if PYTHON_VERSION < 300
+static PyObject *SLOT_nb_multiply_INT_CLONG(PyObject *operand1, long operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+
+    const long a = PyInt_AS_LONG(operand1);
+    const long b = operand2;
+
+    const long longprod = (long)((unsigned long)a * b);
+    const double doubleprod = (double)a * (double)b;
+    const double doubled_longprod = (double)longprod;
+
+    if (likely(doubled_longprod == doubleprod)) {
+        return PyInt_FromLong(longprod);
+    }
+
+    const double diff = doubled_longprod - doubleprod;
+    const double absdiff = diff >= 0.0 ? diff : -diff;
+    const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+    if (likely(32.0 * absdiff <= absprod)) {
+        return PyInt_FromLong(longprod);
+    }
+
+    PyObject *op1 = operand1;
+    PyObject *op2 = PyLong_FromLong(operand2);
+
+    // TODO: Could in-line and specialize these as well.
+    PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
+    assert(o != Py_NotImplemented);
+
+    Py_DECREF(op2);
+
+    return o;
+}
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+PyObject *BINARY_OPERATION_MUL_INT_CLONG(PyObject *operand1, long operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+
+    return SLOT_nb_multiply_INT_CLONG(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 300
+static PyObject *SLOT_nb_multiply_CLONG_INT(long operand1, PyObject *operand2) {
+
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    const long a = operand1;
+    const long b = PyInt_AS_LONG(operand2);
+
+    const long longprod = (long)((unsigned long)a * b);
+    const double doubleprod = (double)a * (double)b;
+    const double doubled_longprod = (double)longprod;
+
+    if (likely(doubled_longprod == doubleprod)) {
+        return PyInt_FromLong(longprod);
+    }
+
+    const double diff = doubled_longprod - doubleprod;
+    const double absdiff = diff >= 0.0 ? diff : -diff;
+    const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+    if (likely(32.0 * absdiff <= absprod)) {
+        return PyInt_FromLong(longprod);
+    }
+
+    PyObject *op1 = PyLong_FromLong(operand1);
+    PyObject *op2 = operand2;
+
+    // TODO: Could in-line and specialize these as well.
+    PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
+    assert(o != Py_NotImplemented);
+
+    Py_DECREF(op1);
+
+    return o;
+}
+/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
+PyObject *BINARY_OPERATION_MUL_CLONG_INT(long operand1, PyObject *operand2) {
+
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    return SLOT_nb_multiply_CLONG_INT(operand1, operand2);
+}
+#endif
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 PyObject *BINARY_OPERATION_MUL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
