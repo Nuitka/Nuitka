@@ -1180,16 +1180,6 @@ PyObject *ASYNC_AWAIT(PyObject *awaitable, int await_kind) {
         return NULL;
     }
 
-#if PYTHON_VERSION >= 366
-    if (await_kind != await_normal && Py_TYPE(awaitable_iter) != &Nuitka_CoroutineWrapper_Type) {
-        if (unlikely(Py_TYPE(awaitable_iter)->tp_as_async == NULL ||
-                     Py_TYPE(awaitable_iter)->tp_as_async->am_await == NULL)) {
-            FORMAT_AWAIT_ERROR(awaitable_iter, await_kind);
-            return NULL;
-        }
-    }
-#endif
-
 #if PYTHON_VERSION >= 352 || !defined(_NUITKA_FULL_COMPAT)
     /* This check got added in Python 3.5.2 only. It's good to do it, but
      * not fully compatible, therefore guard it.
