@@ -47,7 +47,7 @@ except ImportError:
 if not _use_threaded_executor:
     # No backport installed, use stub for at least Python 2.6, and potentially
     # also Python 2.7, we might want to tell the user about it though, that
-    # we think it should be installed. pylint:disable=function-redefined
+    # we think it should be installed. pylint: disable=function-redefined
     class ThreadPoolExecutor(object):
         def __init__(self, max_workers=None):
             # This stub ignores max_workers, pylint: disable=unused-argument
