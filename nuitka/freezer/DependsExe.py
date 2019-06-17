@@ -94,7 +94,7 @@ Contents should manually be extracted to '%s'."""
         try:
             depends_zip = zipfile.ZipFile(nuitka_depends_zip)
             depends_zip.extractall(nuitka_depends_dir)
-        except Exception:  # Catching anything zip throws, pylint:disable=W0703
+        except Exception:  # Catching anything zip throws, pylint: disable=broad-except
             info("Problem with the downloaded zip file, deleting it.")
 
             deleteFile(depends_exe, must_exist=False)

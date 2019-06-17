@@ -862,7 +862,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
             return ((uuid_dll_path, dist_dll_path, None),)
         elif full_name == "iptc" and getOS() == "Linux":
-            import iptc.util  # pylint:disable=I0021,import-error
+            import iptc.util  # pylint: disable=I0021,import-error
 
             xtwrapper_dll = iptc.util.find_library("xtwrapper")[0]
             xtwrapper_dll_path = xtwrapper_dll._name  # pylint: disable=protected-access
