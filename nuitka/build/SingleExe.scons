@@ -1039,8 +1039,8 @@ def detectHostMultiarch():
 
         if line.startswith("DEB_HOST_MULTIARCH="):
             return line.split("=", 1)[1]
-    else:
-        return None
+
+    return None
 
 
 if gcc_mode and "linux" in sys.platform:
@@ -1138,7 +1138,7 @@ def getWindowsPythonDLLPath():
     return os.environ["NUITKA_PYTHON_DLL_PATH"]
 
 
-def makeWindowsMingGW64Lib(win_lib_path):
+def makeWindowsMingGW64Lib():
     python_dll_filename = getWindowsPythonDLLPath()
     with open(python_dll_filename, "rb") as f:
         checksum = hashlib.md5(f.read()).hexdigest()
@@ -1173,7 +1173,7 @@ def makeWindowsMingGW64Lib(win_lib_path):
             stderr=subprocess.PIPE,
             shell=False,
         )
-    except WindowsError:  # @UndefinedVariable
+    except WindowsError:  # @UndefinedVariable pylint: disable=undefined-variable
         sys.exit('Error, cannot find "gendef.exe" which is required though.')
 
     defs, stderr = proc.communicate()
@@ -1240,9 +1240,9 @@ if win_target:
             sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
 
         if target_arch == "x86_64" and gcc_mode:
-            win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+            win_lib_path = makeWindowsMingGW64Lib()
         elif target_arch == "x86" and python_debug and gcc_mode:
-            win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+            win_lib_path = makeWindowsMingGW64Lib()
 
         env.Append(LIBPATH=[win_lib_path])
         env.Append(LIBS=[win_lib_name])
@@ -1397,6 +1397,7 @@ _linker_arch = None
 
 
 def getLinkerArch():
+    # Singleton, pylint: disable=global-statement
     global _linker_arch_determined, _linker_arch
 
     if not _linker_arch_determined:
@@ -1411,6 +1412,7 @@ _compiler_arch = None
 
 
 def getCompilerArch():
+    # Singleton, pylint: disable=global-statement
     global _compiler_arch_determined, _compiler_arch
 
     if not _compiler_arch_determined:
@@ -1849,6 +1851,7 @@ if uninstalled_python:
 
 
 with open(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
+    # We are friends to get at this debug info, pylint: disable=protected-access
     for key, value in sorted(env._dict.items()):
         if type(value) is not str:
             continue
