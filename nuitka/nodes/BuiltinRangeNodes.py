@@ -395,8 +395,6 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
 
         result = low + step * element_index
 
-        result = low + step * element_index
-
         if result >= high:
             return None
         else:
