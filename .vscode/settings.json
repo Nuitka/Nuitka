@@ -1,3 +1,5 @@
 {
+    "files.trimTrailingWhitespace": true,
+    "files.trimFinalNewlines": true,
     "C_Cpp.dimInactiveRegions": false
 }
