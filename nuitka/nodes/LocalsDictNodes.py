@@ -176,7 +176,7 @@ class ExpressionLocalsVariableRefORFallback(ExpressionChildrenHavingBase):
             return (
                 result,
                 "new_expression",
-                "Moved call of uncertain dict variable to inside.",
+                "Moved call of uncertain dict variable '%s' to inside." % variable_name,
             )
 
         return call_node, None, None
@@ -416,12 +416,18 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
 class StatementLocalsDictOperationDel(StatementBase):
     kind = "STATEMENT_LOCALS_DICT_OPERATION_DEL"
 
-    __slots__ = "variable", "variable_version", "previous_trace", "locals_scope"
+    __slots__ = (
+        "variable",
+        "variable_version",
+        "previous_trace",
+        "locals_scope",
+        "tolerant",
+    )
 
     # TODO: Specialize for Python3 maybe to save attribute for Python2.
     may_raise_del = python_version >= 300
 
-    def __init__(self, locals_scope, variable_name, source_ref):
+    def __init__(self, locals_scope, variable_name, tolerant, source_ref):
         assert type(variable_name) is str
 
         StatementBase.__init__(self, source_ref=source_ref)
@@ -432,6 +438,8 @@ class StatementLocalsDictOperationDel(StatementBase):
 
         self.variable = locals_scope.getLocalsDictVariable(variable_name)
         self.variable_version = self.variable.allocateTargetNumber()
+
+        self.tolerant = tolerant
 
         self.previous_trace = None
 
@@ -500,7 +508,7 @@ class StatementLocalsDictOperationDel(StatementBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        return self.may_raise_del
+        return self.may_raise_del and not self.tolerant
 
     def getStatementNiceName(self):
         return "locals dictionary value del statement"

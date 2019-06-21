@@ -1849,7 +1849,7 @@ void _initBuiltinModule() {
     assert(res == 0);
 #endif
 
-    // init Nuitka_BuiltinModule_Type, PyType_Ready wont copy all member from
+    // init Nuitka_BuiltinModule_Type, PyType_Ready won't copy all member from
     // base type, so we need copy all members from PyModule_Type manual for
     // safety.  PyType_Ready will change tp_flags, we need define it again. Set
     // tp_setattro to Nuitka_BuiltinModule_SetAttr and we can detect value
@@ -1990,6 +1990,14 @@ void _initSlotIternext() {
 #include "HelpersAttributes.c"
 
 #include "HelpersOperationBinaryAdd.c"
+#include "HelpersOperationBinaryFloordiv.c"
+#include "HelpersOperationBinaryMul.c"
+#include "HelpersOperationBinarySub.c"
+#include "HelpersOperationBinaryTruediv.c"
+
+#if PYTHON_VERSION < 300
+#include "HelpersOperationBinaryOlddiv.c"
+#endif
 
 #include "HelpersOperationBinaryInplaceAdd.c"
 

@@ -96,7 +96,7 @@ def namifyConstant(constant):
             )
 
         return "float_%s" % repr(constant).replace(".", "_").replace(
-            "-", "_minus_"
+            "-", "minus_"
         ).replace("+", "")
     elif type(constant) is complex:
         value = "%s__%s" % (constant.real, constant.imag)

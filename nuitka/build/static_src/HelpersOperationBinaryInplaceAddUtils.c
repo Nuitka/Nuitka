@@ -143,9 +143,7 @@ static bool FLOAT_ADD_INCREMENTAL(PyObject **operand1, PyObject *operand2) {
     assert(PyFloat_CheckExact(*operand1));
     assert(PyFloat_CheckExact(operand2));
 
-    PyFPE_START_PROTECT("add", return false);
     PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
-    PyFPE_END_PROTECT(*operand1);
 
     return true;
 }

@@ -581,9 +581,12 @@ extern PyObject *const_bytes_empty;
 #if PYTHON_VERSION < 300
 PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count,
                            int flags)
-#else
+#elif PYTHON_VERSION < 380
 PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count,
                            int kw_only_count, int flags)
+#else
+PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count,
+                           int pos_only_count, int kw_only_count, int flags)
 #endif
 {
     CHECK_OBJECT(filename);
@@ -604,6 +607,9 @@ PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line
     // and is not available for Python2.
     PyCodeObject *result = PyCode_New(arg_count, // argcount
 #if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 380
+                                      pos_only_count, // kw-only count
+#endif
                                       kw_only_count, // kw-only count
 #endif
                                       0,     // nlocals

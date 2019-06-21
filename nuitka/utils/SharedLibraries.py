@@ -20,17 +20,15 @@
 """
 
 import os
-from sys import getfilesystemencoding
+import sys
+from logging import warning
 
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
-from nuitka.utils.WindowsResources import (
-    RT_MANIFEST,
-    deleteWindowsResources,
-    getResourcesFromDLL,
-)
 
-from .Utils import isAlpineLinux
+from .Utils import getArchitecture, isAlpineLinux
+from .WindowsResources import RT_MANIFEST, deleteWindowsResources, getResourcesFromDLL
 
 
 def localDLLFromFilesystem(name, paths):
@@ -80,8 +78,8 @@ def locateDLL(dll_name):
         left = left[: left.rfind(b" (")]
 
         if python_version >= 300:
-            left = left.decode(getfilesystemencoding())
-            right = right.decode(getfilesystemencoding())
+            left = left.decode(sys.getfilesystemencoding())
+            right = right.decode(sys.getfilesystemencoding())
 
         if left not in dll_map:
             dll_map[left] = right
@@ -89,7 +87,7 @@ def locateDLL(dll_name):
     return dll_map[dll_name]
 
 
-def getSxsFromDLL(filename):
+def getSxsFromDLL(filename, with_data=False):
     """ List the SxS manifests of a Windows DLL.
 
     Args:
@@ -100,7 +98,9 @@ def getSxsFromDLL(filename):
 
     """
 
-    return getResourcesFromDLL(filename, RT_MANIFEST)
+    return getResourcesFromDLL(
+        filename=filename, resource_kind=RT_MANIFEST, with_data=with_data
+    )
 
 
 def removeSxsFromDLL(filename):
@@ -149,7 +149,7 @@ def getWindowsDLLVersion(filename):
 
     # Create buffer
     res = ctypes.create_string_buffer(size)
-    # Load file informations into buffer res
+    # Load file information into buffer res
 
     if type(filename) is unicode:
         # Python3 needs our help here.
@@ -211,3 +211,65 @@ def getWindowsDLLVersion(filename):
     ls = file_info.contents.dwFileVersionLS
 
     return (ms >> 16) & 0xFFFF, ms & 0xFFFF, (ls >> 16) & 0xFFFF, ls & 0xFFFF
+
+
+# TODO: Relocate this to nuitka.freezer maybe.
+def getPEFileInformation(filename):
+    """ Return the PE file information of a Windows EXE or DLL
+
+        Args:
+            filename - The file to be investigated.
+
+        Notes:
+            Use of this is obviously only for Windows, although the module
+            will exist on other platforms too. We use the system version
+            of pefile in preference, but have an inline copy as a fallback
+            too.
+    """
+
+    try:
+        import pefile  # pylint: disable=I0021,import-error
+    except ImportError:
+        # Temporarily add the inline copy of appdir to the import path.
+        sys.path.append(
+            os.path.join(
+                os.path.dirname(__file__), "..", "build", "inline_copy", "pefile"
+            )
+        )
+
+        # Handle case without inline copy too.
+        import pefile  # pylint: disable=I0021,import-error
+
+        # Do not forget to remove it again.
+        del sys.path[-1]
+
+    pe = pefile.PE(filename)
+
+    # This is the information we use from the file.
+    extracted = {}
+    extracted["DLLs"] = []
+
+    for imported_module in getattr(pe, "DIRECTORY_ENTRY_IMPORT", ()):
+        extracted["DLLs"].append(imported_module.dll.decode())
+
+    pe_type2arch = {
+        pefile.OPTIONAL_HEADER_MAGIC_PE: False,
+        pefile.OPTIONAL_HEADER_MAGIC_PE_PLUS: True,
+    }
+
+    if pe.PE_TYPE not in pe_type2arch:
+        # Support your architecture, e.g. ARM if necessary.
+        raise NuitkaAssumptionError(
+            "Unknown PE file architecture", filename, pe.PE_TYPE, pe_type2arch
+        )
+
+    extracted["AMD64"] = pe_type2arch[pe.PE_TYPE]
+
+    python_is_64bit = getArchitecture() == "x86_64"
+    if extracted["AMD64"] is not python_is_64bit:
+        warning(
+            "Python %s bits with %s bits dependencies in '%s'"
+            % ("64" if python_is_64bit else "32" "32" if python_is_64bit else "64")
+        )
+
+    return extracted

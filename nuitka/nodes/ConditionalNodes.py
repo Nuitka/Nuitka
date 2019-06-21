@@ -224,6 +224,15 @@ Convert conditional expression with unused result into conditional statement."""
 
         return False
 
+    def getIntegerValue(self):
+        result_yes = self.getExpressionYes().getIntegerValue()
+        result_no = self.getExpressionNo().getIntegerValue()
+
+        if result_yes == result_no:
+            return result_yes
+        else:
+            return None
+
 
 class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
     named_children = ("left", "right")

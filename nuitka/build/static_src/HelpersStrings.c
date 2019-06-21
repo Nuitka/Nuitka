@@ -43,8 +43,17 @@ PyObject *STRING_FROM_CHAR(unsigned char c) {
 PyObject *BUILTIN_CHR(PyObject *value) {
     long x = PyInt_AsLong(value);
 
+    if (unlikely(x == -1 && ERROR_OCCURRED())) {
+#if PYTHON_VERSION < 300 && defined(_NUITKA_FULL_COMPAT)
+        PyErr_Format(PyExc_TypeError, "an integer is required");
+#else
+        PyErr_Format(PyExc_TypeError, "an integer is required (got type %s)", Py_TYPE(value)->tp_name);
+#endif
+        return NULL;
+    }
+
 #if PYTHON_VERSION < 300
-    if (x < 0 || x >= 256) {
+    if (unlikely(x < 0 || x >= 256)) {
         PyErr_Format(PyExc_ValueError, "chr() arg not in range(256)");
         return NULL;
     }

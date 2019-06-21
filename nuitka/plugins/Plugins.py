@@ -30,9 +30,11 @@ The base class in PluginBase will serve as documentation of available.
 from __future__ import print_function
 
 import os
+import pkgutil
 import sys
 from logging import info
 
+import nuitka.plugins.standard
 from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.PythonVersions import python_version
@@ -48,21 +50,18 @@ def loadStandardPlugins():
 
     Notes:
         Scan through the 'standard' sub-folder of the folder where this script
-        lives. Import each valid Python script and process it as a plugin.
+        resides. Import each valid Python script and process it as a plugin.
     Returns:
         None
     """
 
-    this_dir = os.path.dirname(os.path.abspath(__file__))
-    std_dir = os.path.join(this_dir, "standard")
-    plugin_filenames = os.listdir(std_dir)
-    for plugin_filename in plugin_filenames:
+    # Complex stuff, pylint: disable=too-many-branches
 
-        if plugin_filename.startswith("__") or not plugin_filename.endswith(".py"):
-            # skip any irrelevant files or folders
+    for loader, name, is_pkg in pkgutil.iter_modules(nuitka.plugins.standard.__path__):
+        if is_pkg:
             continue
 
-        plugin_module = importFile(os.path.join(std_dir, plugin_filename))
+        plugin_module = loader.find_module(name).load_module(name)
 
         plugin_objects = [None, None]  # plugin and optional detector
 
@@ -78,7 +77,7 @@ def loadStandardPlugins():
                 try:
                     is_relevant = obj.isRelevant()
                 except AttributeError:  # will only happen with --plugin-list
-                    is_relevant = True  # enforce nice behavior for the list
+                    is_relevant = True
 
             if always_enable:  # should this always be enabled?
                 if is_relevant in (True, None):
@@ -86,13 +85,10 @@ def loadStandardPlugins():
                     plugin_objects[1] = None  # detector makes no sense!
                 else:
                     plugin_objects = None
-                break  # skip the rest for mandatory plugins
+                break
 
-            # this is an optional plugin, do not load if not relevant
-            if is_relevant is not None:  # must be the detector class!
-                if not obj.isRelevant():  # re-evaluate
-                    plugin_objects = None
-                    break
+            # this is an optional plugin
+            if is_relevant is not None:  # must be the detector!
                 plugin_objects[1] = obj
             else:
                 plugin_objects[0] = obj
@@ -103,10 +99,12 @@ def loadStandardPlugins():
         plugin_objects = tuple(plugin_objects)
         plugin = plugin_objects[0]
         if plugin is None:
-            sys.exit("Plugin file '%s' has no standard class." % plugin_filename)
+            sys.exit("Plugin '%s' has no standard class." % plugin_module)
 
         if always_enable:  # mandatory, relevant plugin: enable it
-            active_plugin_list.append(plugin())
+            active_plugin_list.append(
+                (plugin or plugin)()  # TODO: pylint: disable=I0021,not-callable
+            )
         else:  # optional plugin: make it searchable by plugin_name
             plugin_name2plugin_classes[plugin.plugin_name] = plugin_objects
 
@@ -379,7 +377,13 @@ def importFilePy2(filename):
     """
     import imp
 
-    return imp.load_source(filename, filename)
+    basename = os.path.splitext(filename)[0]
+
+    name = os.path.join(
+        "nuitka", os.path.relpath(basename, os.path.dirname(nuitka.__file__))
+    ).replace(os.sep, ".")
+
+    return imp.load_source(name, filename)
 
 
 def importFile(filename):

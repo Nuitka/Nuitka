@@ -33,9 +33,16 @@ from contextlib import contextmanager
 from nuitka.Tracing import my_print
 from nuitka.utils.AppDirs import getAppDir, getCacheDir
 from nuitka.utils.Execution import check_output, withEnvironmentVarOverriden
-from nuitka.utils.FileOperations import getFileContentByLine, makePath, removeDirectory
+from nuitka.utils.FileOperations import (
+    getFileContentByLine,
+    getFileContents,
+    getFileList,
+    makePath,
+    removeDirectory,
+)
 
 from .SearchModes import (
+    SearchModeAll,
     SearchModeBase,
     SearchModeByPattern,
     SearchModeCoverage,
@@ -276,6 +283,14 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("36.py") and _python_version < "3.6":
         return False
 
+    # Skip tests that require Python 3.7 at least.
+    if filename.endswith("37.py") and _python_version < "3.7":
+        return False
+
+    # Skip tests that require Python 3.8 at least.
+    if filename.endswith("38.py") and _python_version < "3.8":
+        return False
+
     return True
 
 
@@ -341,8 +356,7 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
     _removeCPythonTestSuiteDir()
 
     if result != 0 and result != 2 and search_mode.abortOnFinding(dirname, filename):
-        my_print("Error exit!", result)
-        sys.exit(result)
+        search_mode.onErrorDetected("Error exit! %s" % result)
 
     if converted:
         os.unlink(path)
@@ -366,8 +380,7 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
         result = 2
 
     if result != 1 and result != 2 and search_mode.abortOnFinding(dirname, filename):
-        my_print("Error exit!", result)
-        sys.exit(result)
+        search_mode.onErrorDetected("Error exit! %s" % result)
 
 
 def checkSucceedsWithCPython(filename):
@@ -401,16 +414,6 @@ def hasDebugPython():
 
     # Otherwise no.
     return False
-
-
-def getArchitecture():
-    if os.name == "nt":
-        if "AMD64" in sys.version:
-            return "x86_64"
-        else:
-            return "x86"
-    else:
-        return os.uname()[4]  # @UndefinedVariable
 
 
 def getDependsExePath():
@@ -600,7 +603,7 @@ Error, needs 'strace' on your system to scan used libraries."""
             if "?" in line[: line.find("]")]:
                 continue
 
-            dll_filename = line[line.find("]") + 2 : -1]
+            dll_filename = line[line.find("]") + 2 :].rstrip()
             assert os.path.isfile(dll_filename), dll_filename
 
             # The executable itself is of course exempted.
@@ -841,6 +844,7 @@ def checkReferenceCount(checked_function, max_rounds=10):
 
 
 def createSearchMode():
+    all_mode = len(sys.argv) > 1 and sys.argv[1] == "all"
     search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
     resume_mode = len(sys.argv) > 1 and sys.argv[1] == "resume"
     only_mode = len(sys.argv) > 1 and sys.argv[1] == "only"
@@ -848,8 +852,9 @@ def createSearchMode():
     coverage_mode = len(sys.argv) > 1 and sys.argv[1] == "coverage"
 
     if coverage_mode:
-
         return SearchModeCoverage()
+    elif all_mode:
+        return SearchModeAll()
     elif resume_mode:
         return SearchModeResume(sys.modules["__main__"].__file__)
     elif search_mode and start_at:
@@ -1262,16 +1267,25 @@ def withDirectoryChange(path, allow_none=False):
 def setupCacheHashSalt(test_code_path):
     assert os.path.exists(test_code_path)
 
-    git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
+    if os.path.exists(os.path.join(test_code_path, ".git")):
+        git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
 
-    process = subprocess.Popen(
-        args=git_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+        process = subprocess.Popen(
+            args=git_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
 
-    stdout_git, stderr_git = process.communicate()
-    assert process.returncode == 0, stderr_git
+        stdout_git, stderr_git = process.communicate()
+        assert process.returncode == 0, stderr_git
 
-    os.environ["NUITKA_HASH_SALT"] = hashlib.md5(stdout_git).hexdigest()
+        salt_value = hashlib.md5(stdout_git)
+    else:
+        salt_value = hashlib.md5()
+
+        for filename in getFileList(test_code_path):
+            if filename.endswith(".py"):
+                salt_value.update(getFileContents(filename, mode="rb"))
+
+    os.environ["NUITKA_HASH_SALT"] = salt_value.hexdigest()
 
 
 def someGenerator():

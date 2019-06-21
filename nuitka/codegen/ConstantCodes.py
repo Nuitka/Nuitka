@@ -48,6 +48,7 @@ from nuitka.Version import getNuitkaVersion
 
 from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
+from .ErrorCodes import getReleaseCode
 from .Indentation import indented
 from .templates.CodeTemplatesConstants import template_constants_reading
 
@@ -65,7 +66,10 @@ def generateConstantNoneReferenceCode(to_name, expression, emit, context):
 
     # No context or other knowledge needed, pylint: disable=unused-argument
 
-    emit("%s = Py_None;" % to_name)
+    if to_name.c_type == "nuitka_bool":
+        emit("%s = NUITKA_BOOL_FALSE;" % to_name)
+    else:
+        emit("%s = Py_None;" % to_name)
 
 
 def generateConstantTrueReferenceCode(to_name, expression, emit, context):
@@ -95,7 +99,10 @@ def generateConstantEllipsisReferenceCode(to_name, expression, emit, context):
 
     # No context or other knowledge needed, pylint: disable=unused-argument
 
-    emit("%s = Py_Ellipsis;" % to_name)
+    if to_name.c_type == "nuitka_bool":
+        emit("%s = NUITKA_BOOL_FALSE;" % to_name)
+    else:
+        emit("%s = Py_Ellipsis;" % to_name)
 
 
 # One global stream of constant information. In the future it might make
@@ -973,9 +980,6 @@ def getConstantAccess(to_name, constant, emit, context):
 
     emit("%s = %s;" % (value_name, code))
 
-    if ref_count:
-        context.addCleanupTempName(value_name)
-
     if to_name is not value_name:
         to_name.getCType().emitAssignConversionCode(
             to_name=to_name,
@@ -984,6 +988,13 @@ def getConstantAccess(to_name, constant, emit, context):
             emit=emit,
             context=context,
         )
+
+        # Above is supposed to transfer ownership.
+        if ref_count:
+            getReleaseCode(value_name, emit, context)
+    else:
+        if ref_count:
+            context.addCleanupTempName(value_name)
 
 
 def getModuleConstantCode(constant):
@@ -1115,7 +1126,7 @@ def getConstantsDefinitionCode(context):
                 sys.base_exec_prefix  # @UndefinedVariable
             )
 
-    major, minor, micro = getNuitkaVersion().split(".")
+    major, minor, micro = getNuitkaVersion().split(".")[:3]
 
     if "rc" in micro:
         micro = micro[: micro.find("rc")]

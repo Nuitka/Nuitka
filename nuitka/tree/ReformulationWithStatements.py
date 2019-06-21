@@ -56,19 +56,16 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
-    getKind,
     makeReraiseExceptionStatement,
     makeStatementsSequence,
 )
 
 
-def _buildWithNode(
-    provider, context_expr, assign_target, body, body_lineno, sync, source_ref
-):
+def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref):
     # Many details, pylint: disable=too-many-locals
     with_source = buildNode(provider, context_expr, source_ref)
 
-    if Options.isFullCompat():
+    if python_version < 380 and Options.isFullCompat():
         source_ref = with_source.getCompatibleSourceReference()
 
     temp_scope = provider.allocateTempScope("with")
@@ -103,14 +100,16 @@ def _buildWithNode(
         statements=statements, allow_none=True, source_ref=source_ref
     )
 
-    if Options.isFullCompat():
-        if body:
-            deepest = body
+    if body:
+        deepest = body
 
-            while deepest.getVisitableNodes():
-                deepest = deepest.getVisitableNodes()[-1]
+        while deepest.getVisitableNodes():
+            deepest = deepest.getVisitableNodes()[-1]
 
+        if python_version < 370:
             body_lineno = deepest.getCompatibleSourceReference().getLineNumber()
+        else:
+            body_lineno = deepest.getSourceReference().getLineNumber()
 
         with_exit_source_ref = source_ref.atLineNumber(body_lineno)
     else:
@@ -311,18 +310,10 @@ def buildWithNode(provider, node, source_ref):
     context_exprs.reverse()
     assign_targets.reverse()
 
-    # For compatibility, we need to gather a line number for the body here
-    # already, but only the full compatibility mode will use it.
-    terminal_statement = node.body[-1]
-    while getKind(terminal_statement) in ("With", "AsyncWith"):
-        terminal_statement = terminal_statement.body[-1]
-    body_lineno = terminal_statement.lineno
-
     for context_expr, assign_target in zip(context_exprs, assign_targets):
         body = _buildWithNode(
             provider=provider,
             body=body,
-            body_lineno=body_lineno,
             context_expr=context_expr,
             assign_target=assign_target,
             sync=True,
@@ -350,18 +341,10 @@ def buildAsyncWithNode(provider, node, source_ref):
     context_exprs.reverse()
     assign_targets.reverse()
 
-    # For compatibility, we need to gather a line number for the body here
-    # already, but only the full compatibility mode will use it.
-    terminal_statement = node.body[-1]
-    while getKind(terminal_statement) in ("With", "AsyncWith"):
-        terminal_statement = terminal_statement.body[-1]
-    body_lineno = terminal_statement.lineno
-
     for context_expr, assign_target in zip(context_exprs, assign_targets):
         body = _buildWithNode(
             provider=provider,
             body=body,
-            body_lineno=body_lineno,
             context_expr=context_expr,
             assign_target=assign_target,
             sync=False,

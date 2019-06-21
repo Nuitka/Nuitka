@@ -60,16 +60,16 @@ def extractDocFromBody(node):
     doc = None
 
     # Work around ast.get_docstring breakage.
-    if (
-        node.body
-        and getKind(node.body[0]) == "Expr"
-        and getKind(node.body[0].value) == "Str"
-    ):
-
-        if "no_docstrings" not in Options.getPythonFlags():
+    if node.body and getKind(body[0]) == "Expr":
+        if getKind(body[0].value) == "Str":  # python3.7 or earlier
             doc = body[0].value.s
+            body = body[1:]
+        elif getKind(body[0].value) == "Constant":  # python3.8
+            doc = body[0].value.value
+            body = body[1:]
 
-        body = body[1:]
+        if "no_docstrings" in Options.getPythonFlags():
+            doc = None
 
     return body, doc
 
@@ -124,13 +124,13 @@ def detectFunctionBodyKind(nodes, start_value=None):
         if node_class is ast.Yield:
             indications.add("Generator")
         elif (
-            python_version >= 300 and node_class is ast.YieldFrom
-        ):  # @UndefinedVariable
+            python_version >= 300 and node_class is ast.YieldFrom  # @UndefinedVariable
+        ):
             indications.add("Generator")
         elif python_version >= 350 and node_class in (
-            ast.Await,
-            ast.AsyncWith,
-        ):  # @UndefinedVariable
+            ast.Await,  # @UndefinedVariable
+            ast.AsyncWith,  # @UndefinedVariable
+        ):
             indications.add("Coroutine")
 
         # Recurse to children, but do not cross scope boundary doing so.
@@ -150,8 +150,9 @@ def detectFunctionBodyKind(nodes, start_value=None):
                 else:
                     assert False, (name, field, ast.dump(node))
         elif node_class in (ast.FunctionDef, ast.Lambda) or (
-            python_version >= 350 and node_class is ast.AsyncFunctionDef
-        ):  # @UndefinedVariable
+            python_version >= 350
+            and node_class is ast.AsyncFunctionDef  # @UndefinedVariable
+        ):
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body"):
                     pass
@@ -174,6 +175,9 @@ def detectFunctionBodyKind(nodes, start_value=None):
                 elif name == "returns":
                     if field is not None:
                         _check(field)
+                elif name == "type_comment":
+                    # Python3.8: We don't have structure here.
+                    assert field is None or type(field) is str
                 else:
                     assert False, (name, field, ast.dump(node))
         elif node_class is ast.GeneratorExp:
@@ -227,7 +231,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
         elif node_class is ast.Name:
             if python_version >= 300 and node.id == "super":
                 flags.add("has_super")
-        elif python_version < 300 and node_class is ast.Exec:
+        elif python_version < 300 and node_class is ast.Exec:  # @UndefinedVariable
             flags.add("has_exec")
 
             if node.globals is None:
@@ -390,6 +394,7 @@ def makeModuleFrame(module, statements, source_ref):
             co_kind="Module",
             co_varnames=(),
             co_argcount=0,
+            co_posonlyargcount=0,
             co_kwonlyargcount=0,
             co_has_starlist=False,
             co_has_stardict=False,

@@ -20,6 +20,10 @@
 These provide only the optparse options to use, and the mechanic to actually
 do it, but updating and checking module "nuitka.Options" values is not in
 the scope, to make sure it can be used without.
+
+Note: This is using "optparse", because "argparse" is only Python 2.7 and
+higher, and we still support Python 2.6 due to the RHELs still being used,
+and despite the long deprecation, it's in every later release.
 """
 
 import os
@@ -405,9 +409,6 @@ Defaults to off.""",
 parser.add_option_group(output_group)
 
 
-windows_group = OptionGroup(parser, "Windows specific output control")
-
-
 debug_group = OptionGroup(parser, "Debug features")
 
 debug_group.add_option(
@@ -648,6 +649,18 @@ Defaults to off.""",
 )
 
 parser.add_option_group(tracing_group)
+
+windows_group = OptionGroup(parser, "Windows specific controls")
+
+windows_group.add_option(
+    "--windows-dependency-tool",
+    action="store",
+    dest="dependency_tool",
+    default="depends.exe",
+    help="""\
+When compiling for Windows, use this dependency tool. Defaults to %default,
+other allowed value is 'pefile'.""",
+)
 
 windows_group.add_option(
     "--windows-disable-console",

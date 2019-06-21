@@ -349,15 +349,22 @@ static PyObject *Nuitka_Method_tp_richcompare(struct Nuitka_MethodObject *a, str
     // If the underlying function objects are the same, check the objects, which
     // may be NULL in case of unbound methods, which would be the same again.
     if (b_res) {
+#if PYTHON_VERSION < 380
         if (a->m_object == NULL) {
             b_res = b->m_object == NULL;
         } else if (b->m_object == NULL) {
             b_res = false;
         } else {
             int res = PyObject_RichCompareBool(a->m_object, b->m_object, Py_EQ);
+            if (unlikely(res < 0)) {
+                return NULL;
+            }
 
             b_res = res != 0;
         }
+#else
+        b_res = a->m_object == b->m_object;
+#endif
     }
 
     PyObject *result;

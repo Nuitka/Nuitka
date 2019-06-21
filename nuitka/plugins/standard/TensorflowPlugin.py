@@ -19,7 +19,7 @@
 """
 import os
 import pkgutil
-import shutil
+import sys
 from logging import info
 
 from nuitka import Options
@@ -73,27 +73,6 @@ class TensorflowPlugin(NuitkaPluginBase):
         if full_name.startswith(("tensor", "google")):
             return True, "accept everything"
 
-    def considerExtraDlls(self, dist_dir, module):
-        """ Copy tensorflow.datasets folders to the dist folder.
-
-        Notes:
-
-        Args:
-            dist_dir: the name of the program's dist folder
-            module: the module object (not used here)
-
-        Returns:
-            None
-        """
-        if self.files_copied:
-            return ()
-        if not module.getFullName() == "tensorflow.datasets":
-            return ()
-        self.files_copied = True
-        info(" ***** tensorflow datasets need to be copied ...!")
-
-        return ()
-
     def onModuleSourceCode(self, module_name, source_code):
         """ Neutralize some path magic in tensorflow.
 
@@ -108,13 +87,13 @@ class TensorflowPlugin(NuitkaPluginBase):
         for i, l in enumerate(source_lines):
             if l.startswith("def ") and "_running_from_pip_package():" in l:
                 source_lines.insert(i, "_site_packages_dirs = []")
+                source_lines.insert(i, "from tensorflow.python import keras")
                 found_insert = True
                 break
 
         if found_insert is True:
             info(
-                " '%s' plugin: Disabled 'running-from-pip' path magic."
-                % self.plugin_name
+                "'%s' plugin: Patched 'running-from-pip' path magic." % self.plugin_name
             )
         else:
             sys.exit("'%s' plugin did not find path magic." % self.plugin_name)
@@ -127,9 +106,11 @@ class TensorflowPlugin(NuitkaPluginBase):
         Notes:
             Tensorflow is a very large package and mainly used to interactively
             create the actual application. Therefore, compilation makes no
-            sense for it and some of the included packages.
+            sense for it and the packages it references.
         """
-        if module_name.startswith(("tensor", "boto", "google", "keras", "sklearn")):
+        if module_name.startswith(
+            ("tensor", "boto", "google", "keras", "sklearn", "pandas", "matplotlib")
+        ):
             return "bytecode"
 
 

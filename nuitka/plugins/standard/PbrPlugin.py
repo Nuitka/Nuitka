@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

@@ -374,20 +374,22 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         # start of tensorflow imports --------------------------------------------
 
         elif full_name == "tensorflow":
-            yield "tensorflow.python", True
-            yield "tensorflow.python.keras", True
+            yield "tensorboard", False
+            yield "tensorflow_estimator", False
 
         elif full_name == "tensorflow.python":
             yield "tensorflow.python._pywrap_tensorflow_internal", True
+            yield "tensorflow.python.ops", False
+            yield "tensorflow.python.ops.cond_v2", False
 
         elif full_name == "tensorflow.lite.python.interpreter_wrapper":
-            yield "tensorflow.lite.python.interpreter_wrapper._tensorflow_wrap_interpreter_wrapper", True
+            yield "tensorflow.lite.python.interpreter_wrapper._tensorflow_wrap_interpreter_wrapper", False
 
         elif full_name == "tensorflow.lite.python.optimize":
-            yield "tensorflow.lite.python.optimize._tensorflow_lite_wrap_calibration_wrapper", True
+            yield "tensorflow.lite.python.optimize._tensorflow_lite_wrap_calibration_wrapper", False
 
         elif full_name == "tensorflow.lite.toco.python":
-            yield "tensorflow.lite.toco.python._tensorflow_wrap_toco", True
+            yield "tensorflow.lite.toco.python._tensorflow_wrap_toco", False
 
         # the remaining entries are relevant non-Windows platforms only
         elif getOS() != "Windows":
@@ -395,108 +397,108 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 full_name
                 == "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal"
             ):
-                yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal._api_implementation", True
+                yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal._api_implementation", False
 
             elif (
                 full_name
                 == "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext"
             ):
-                yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext._message", True
+                yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext._message", False
 
             elif full_name == "tensorflow.python.framework":
-                yield "tensorflow.python.framework.fast_tensor_util", True
+                yield "tensorflow.python.framework.fast_tensor_util", False
 
             elif full_name == "tensorflow.compiler.tf2tensorrt":
-                yield "tensorflow.compiler.tf2tensorrt._wrap_py_utils", True
+                yield "tensorflow.compiler.tf2tensorrt._wrap_py_utils", False
 
             elif full_name == "tensorflow.compiler.tf2tensorrt.python.ops":
-                yield "tensorflow.compiler.tf2tensorrt.python.ops.libtftrt", True
+                yield "tensorflow.compiler.tf2tensorrt.python.ops.libtftrt", False
 
             elif full_name == "tensorflow.compiler.tf2xla.ops":
-                yield "tensorflow.compiler.tf2xla.ops._xla_ops", True
+                yield "tensorflow.compiler.tf2xla.ops._xla_ops", False
 
             elif full_name == "tensorflow.contrib.tensor_forest":
-                yield "tensorflow.contrib.tensor_forest.libforestprotos", True
+                yield "tensorflow.contrib.tensor_forest.libforestprotos", False
 
             elif full_name == "tensorflow.contrib.tensor_forest.python.ops":
-                yield "tensorflow.contrib.tensor_forest.python.ops._model_ops", True
-                yield "tensorflow.contrib.tensor_forest.python.ops._stats_ops", True
-                yield "tensorflow.contrib.tensor_forest.python.ops._tensor_forest_ops", True
+                yield "tensorflow.contrib.tensor_forest.python.ops._model_ops", False
+                yield "tensorflow.contrib.tensor_forest.python.ops._stats_ops", False
+                yield "tensorflow.contrib.tensor_forest.python.ops._tensor_forest_ops", False
 
             elif full_name == "tensorflow.contrib.tensor_forest.hybrid.python.ops":
-                yield "tensorflow.contrib.tensor_forest.hybrid.python.ops._training.ops", True
+                yield "tensorflow.contrib.tensor_forest.hybrid.python.ops._training.ops", False
 
             elif full_name == "tensorflow.contrib.resampler.python.ops":
-                yield "tensorflow.contrib.resampler.python.ops._resampler_ops", True
+                yield "tensorflow.contrib.resampler.python.ops._resampler_ops", False
 
             elif full_name == "tensorflow.contrib.nearest_neighbor.python.ops":
-                yield "tensorflow.contrib.nearest_neighbor.python.ops._nearest_neighbor_ops", True
+                yield "tensorflow.contrib.nearest_neighbor.python.ops._nearest_neighbor_ops", False
 
             elif full_name == "tensorflow.contrib.ignite":
-                yield "tensorflow.contrib.ignite._ignite_ops", True
+                yield "tensorflow.contrib.ignite._ignite_ops", False
 
             elif full_name == "tensorflow.contrib.kinesis":
-                yield "tensorflow.contrib.kinesis._dataset_ops", True
+                yield "tensorflow.contrib.kinesis._dataset_ops", False
 
             elif full_name == "tensorflow.contrib.ffmpeg":
-                yield "tensorflow.contrib.ffmpeg.ffmpeg", True
+                yield "tensorflow.contrib.ffmpeg.ffmpeg", False
 
             elif full_name == "tensorflow.contrib.framework.python.ops":
-                yield "tensorflow.contrib.framework.python.ops._variable_ops", True
+                yield "tensorflow.contrib.framework.python.ops._variable_ops", False
 
             elif full_name == "tensorflow.contrib.text.python.ops":
-                yield "tensorflow.contrib.text.python.ops._skip_gram_ops", True
+                yield "tensorflow.contrib.text.python.ops._skip_gram_ops", False
 
             elif full_name == "tensorflow.contrib.reduce_slice_ops.python.ops":
-                yield "tensorflow.contrib.reduce_slice_ops.python.ops._reduce_slice_ops", True
+                yield "tensorflow.contrib.reduce_slice_ops.python.ops._reduce_slice_ops", False
 
             elif full_name == "tensorflow.contrib.periodic_resample.python.ops":
-                yield "tensorflow.contrib.periodic_resample.python.ops._periodic_resample_op", True
+                yield "tensorflow.contrib.periodic_resample.python.ops._periodic_resample_op", False
 
             elif full_name == "tensorflow.contrib.memory_stats.python.ops":
-                yield "tensorflow.contrib.memory_stats.python.ops._memory_stats_ops", True
+                yield "tensorflow.contrib.memory_stats.python.ops._memory_stats_ops", False
 
             elif full_name == "tensorflow.contrib.libsvm.python.ops":
-                yield "tensorflow.contrib.libsvm.python.ops._libsvm_ops", True
+                yield "tensorflow.contrib.libsvm.python.ops._libsvm_ops", False
 
             elif full_name == "tensorflow.contrib.fused_conv.python.ops":
-                yield "tensorflow.contrib.fused_conv.python.ops._fused_conv2d_bias_activation_op", True
+                yield "tensorflow.contrib.fused_conv.python.ops._fused_conv2d_bias_activation_op", False
 
             elif full_name == "tensorflow.contrib.kafka":
-                yield "tensorflow.contrib.kafka._dataset_ops", True
+                yield "tensorflow.contrib.kafka._dataset_ops", False
 
             elif full_name == "tensorflow.contrib.hadoop":
-                yield "tensorflow.contrib.hadoop._dataset_ops", True
+                yield "tensorflow.contrib.hadoop._dataset_ops", False
 
             elif full_name == "tensorflow.contrib.seq2seq.python.ops":
-                yield "tensorflow.contrib.seq2seq.python.ops._beam_search_ops", True
+                yield "tensorflow.contrib.seq2seq.python.ops._beam_search_ops", False
 
             elif full_name == "tensorflow.contrib.rpc.python.kernel_tests":
-                yield "tensorflow.contrib.rpc.python.kernel_tests.libtestexample", True
+                yield "tensorflow.contrib.rpc.python.kernel_tests.libtestexample", False
 
             elif full_name == "tensorflow.contrib.boosted_trees.python.ops":
-                yield "tensorflow.contrib.boosted_trees.python.ops._boosted_trees_ops", True
+                yield "tensorflow.contrib.boosted_trees.python.ops._boosted_trees_ops", False
 
             elif full_name == "tensorflow.contrib.layers.python.ops":
-                yield "tensorflow.contrib.layers.python.ops._sparse_feature_cross_op", True
+                yield "tensorflow.contrib.layers.python.ops._sparse_feature_cross_op", False
 
             elif full_name == "tensorflow.contrib.image.python.ops":
-                yield "tensorflow.contrib.image.python.ops._distort_image_ops", True
-                yield "tensorflow.contrib.image.python.ops._image_ops", True
-                yield "tensorflow.contrib.image.python.ops._single_image_random_dot_stereograms", True
+                yield "tensorflow.contrib.image.python.ops._distort_image_ops", False
+                yield "tensorflow.contrib.image.python.ops._image_ops", False
+                yield "tensorflow.contrib.image.python.ops._single_image_random_dot_stereograms", False
 
             elif full_name == "tensorflow.contrib.factorization.python.ops":
-                yield "tensorflow.contrib.factorization.python.ops._factorization_ops", True
+                yield "tensorflow.contrib.factorization.python.ops._factorization_ops", False
 
             elif full_name == "tensorflow.contrib.input_pipeline.python.ops":
-                yield "tensorflow.contrib.input_pipeline.python.ops._input_pipeline_ops", True
+                yield "tensorflow.contrib.input_pipeline.python.ops._input_pipeline_ops", False
 
             elif full_name == "tensorflow.contrib.rnn.python.ops":
-                yield "tensorflow.contrib.rnn.python.ops._gru_ops", True
-                yield "tensorflow.contrib.rnn.python.ops._lstm_ops", True
+                yield "tensorflow.contrib.rnn.python.ops._gru_ops", False
+                yield "tensorflow.contrib.rnn.python.ops._lstm_ops", False
 
             elif full_name == "tensorflow.contrib.bigtable.python.ops":
-                yield "tensorflow.contrib.bigtable.python.ops._bigtable", True
+                yield "tensorflow.contrib.bigtable.python.ops._bigtable", False
 
         # end of tensorflow imports -------------------------------------------
 
@@ -505,7 +507,14 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "numpy", True
             yield "numpy.core", True
 
+        # chainer imports -----------------------------------------------------
+        elif full_name == "chainer":
+            yield "chainer.distributions", True
+            yield "chainer.distributions.utils", True
+
         # numpy imports -------------------------------------------------------
+        elif full_name == "numpy":
+            yield "numpy._mklinit", False
         elif full_name == "numpy.core":
             yield "numpy.core._dtype_ctypes", True
 
@@ -530,6 +539,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "scipy._lib":
             yield "scipy._lib.messagestream", True
 
+        # scikit-learn imports ------------------------------------------------
         elif full_name == "sklearn.utils.sparsetools":
             yield "sklearn.utils.sparsetools._graph_validation", True
             yield "sklearn.utils.sparsetools._graph_tools", True
@@ -537,7 +547,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "sklearn.utils":
             yield "sklearn.utils.lgamma", True
             yield "sklearn.utils.weight_vector", True
-            yield "sklearn.utils._unittest_backport", True
+            yield "sklearn.utils._unittest_backport", False
 
         elif full_name == "PIL._imagingtk":
             yield "PIL._tkinter_finder", True
@@ -558,6 +568,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pandas._libs.skiplist", False
         elif full_name == "zmq.backend":
             yield "zmq.backend.cython", True
+
         elif full_name == "Cryptodome.Util._raw_api":
             for module_name in (
                 "_raw_aes",
@@ -592,6 +603,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "Cryptodome.Protocol._scrypt", True
         elif full_name == "Cryptodome.Cipher._mode_gcm":
             yield "Cryptodome.Hash._ghash_portable", True
+
         elif full_name == "pycparser.c_parser":
             yield "pycparser.yacctab", True
             yield "pycparser.lextab", True
@@ -675,6 +687,55 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             # create a flattend import set for full_name and yield from it
             for item in self.getImportsByFullname(full_name):
                 yield item
+        # Support for both pycryotodome (module name Crypto) and pycyptodomex (module name Cryptodome)
+        elif full_name.split(".")[0] in ("Crypto", "Cryptodome"):
+            crypto_module_name = full_name.split(".")[0]
+            if full_name == crypto_module_name + ".Util._raw_api":
+                for module_name in (
+                    "_raw_aes",
+                    "_raw_aesni",
+                    "_raw_arc2",
+                    "_raw_blowfish",
+                    "_raw_cast",
+                    "_raw_cbc",
+                    "_raw_cfb",
+                    "_raw_ctr",
+                    "_raw_des",
+                    "_raw_des3",
+                    "_raw_ecb",
+                    "_raw_ocb",
+                    "_raw_ofb",
+                ):
+                    if full_name == crypto_module_name + ".Util._raw_api":
+                        yield crypto_module_name + ".Cipher." + module_name, True
+            elif full_name == crypto_module_name + ".Util.strxor":
+                yield crypto_module_name + ".Util._strxor", True
+            elif full_name == crypto_module_name + ".Util._cpu_features":
+                yield crypto_module_name + ".Util._cpuid_c", True
+            elif full_name == crypto_module_name + ".Hash.BLAKE2s":
+                yield crypto_module_name + ".Hash._BLAKE2s", True
+            elif full_name == crypto_module_name + ".Hash.SHA1":
+                yield crypto_module_name + ".Hash._SHA1", True
+            elif full_name == crypto_module_name + ".Hash.SHA224":
+                yield crypto_module_name + ".Hash._SHA224", True
+            elif full_name == crypto_module_name + ".Hash.SHA256":
+                yield crypto_module_name + ".Hash._SHA256", True
+            elif full_name == crypto_module_name + ".Hash.SHA384":
+                yield crypto_module_name + ".Hash._SHA384", True
+            elif full_name == crypto_module_name + ".Hash.SHA512":
+                yield crypto_module_name + ".Hash._SHA512", True
+            elif full_name == crypto_module_name + ".Hash.MD5":
+                yield crypto_module_name + ".Hash._MD5", True
+            elif full_name == crypto_module_name + ".Protocol.KDF":
+                yield crypto_module_name + ".Cipher._Salsa20", True
+                yield crypto_module_name + ".Protocol._scrypt", True
+            elif full_name == crypto_module_name + ".Cipher._mode_gcm":
+                yield crypto_module_name + ".Hash._ghash_portable", True
+        elif full_name == "pycparser.c_parser":
+            yield "pycparser.yacctab", True
+            yield "pycparser.lextab", True
+        elif full_name == "passlib.hash":
+            yield "passlib.handlers.sha2_crypt", True
 
     # We don't care about line length here, pylint: disable=line-too-long
 
@@ -838,6 +899,17 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             shutil.copy(uuid_dll_path, dist_dll_path)
 
             return ((uuid_dll_path, dist_dll_path, None),)
+        elif full_name == "iptc" and getOS() == "Linux":
+            import iptc.util  # pylint:disable=I0021,import-error
+
+            xtwrapper_dll = iptc.util.find_library("xtwrapper")[0]
+            xtwrapper_dll_path = xtwrapper_dll._name  # pylint: disable=protected-access
+
+            dist_dll_path = os.path.join(dist_dir, os.path.basename(xtwrapper_dll_path))
+
+            shutil.copy(xtwrapper_dll_path, dist_dll_path)
+
+            return ((xtwrapper_dll_path, dist_dll_path, None),)
 
         return ()
 

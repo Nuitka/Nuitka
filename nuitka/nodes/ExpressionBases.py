@@ -949,16 +949,17 @@ Predicted '%s' on compiled time constant values."""
     def computeExpressionBool(self, trace_collection):
         constant = self.getCompileTimeConstant()
 
-        if type(constant) is not bool:
-            self.parent.replaceChild(
-                self, makeConstantReplacementNode(bool(constant), self)
-            )
+        assert type(constant) is not bool
 
-            trace_collection.signalChange(
-                tags="new_constant",
-                source_ref=self.source_ref,
-                message="Predicted compile time constant true value.",
-            )
+        self.parent.replaceChild(
+            self, makeConstantReplacementNode(bool(constant), self)
+        )
+
+        trace_collection.signalChange(
+            tags="new_constant",
+            source_ref=self.source_ref,
+            message="Predicted compile time constant true value.",
+        )
 
 
 class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
