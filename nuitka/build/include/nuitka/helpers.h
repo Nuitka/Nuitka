@@ -247,6 +247,9 @@ extern PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *
 // For built-in built-in len() functionality.
 extern PyObject *BUILTIN_LEN(PyObject *boundary);
 
+// For built-in built-in any() functionality.
+extern PyObject *BUILTIN_ANY(PyObject *value);
+
 // For built-in built-in super() functionality.
 extern PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object);
 

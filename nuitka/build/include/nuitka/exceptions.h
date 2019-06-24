@@ -441,8 +441,16 @@ NUITKA_MAY_BE_UNUSED static inline void ADD_EXCEPTION_CONTEXT(PyObject **excepti
 }
 #endif
 
-// Special helper that checks for StopIteration and if so clears it, only
-// indicating if it was set.
+/* Special helper that checks for StopIteration and if so clears it, only
+ indicating if it was set.
+
+   Equivalent to if(PyErr_ExceptionMatches(PyExc_StopIteration) PyErr_Clear();
+
+   If error is raised by built-in function next() and an iterator’s __next__()
+   method to signal that there are no further items produced by the iterator then
+   it resets the TSTATE to NULL and returns True else return False
+
+*/
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(void) {
     PyObject *error = GET_ERROR_OCCURRED();
 
