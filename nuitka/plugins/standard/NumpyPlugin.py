@@ -26,6 +26,7 @@ from logging import info, warning
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.utils.FileOperations import makePath, copyTree
 from nuitka.utils.Utils import isWin32Windows
 
 # ------------------------------------------------------------------------------
@@ -251,15 +252,13 @@ class NumpyPlugin(NuitkaPluginBase):
                 return ()
 
             for f in binaries:
-                bin_file, idx = f  # binary file name, len(sys.prefix) + 1
+                bin_file, idx = f  # (filename, pos. prefix + 1)
                 back_end = bin_file[idx:]
                 tar_file = os.path.join(dist_dir, back_end)
-
-                # create missing intermediate folders
-                if not os.path.exists(os.path.dirname(tar_file)):
-                    os.makedirs(os.path.dirname(tar_file))
-
-                shutil.copy(bin_file, tar_file)
+                makePath(  # create any missing intermediate folders
+                    os.path.dirname(tar_file)
+                )
+                shutil.copyfile(bin_file, tar_file)
 
             msg = "Copied %i %s from 'numpy' installation." % (
                 bin_total,
@@ -280,15 +279,13 @@ class NumpyPlugin(NuitkaPluginBase):
                 return ()
 
             for f in binaries:
-                bin_file, idx = f  # binary file name, len(sys.prefix) + 1
+                bin_file, idx = f  # (filename, pos. prefix + 1)
                 back_end = bin_file[idx:]
                 tar_file = os.path.join(dist_dir, back_end)
-
-                # create any missing intermediate folders
-                if not os.path.exists(os.path.dirname(tar_file)):
-                    os.makedirs(os.path.dirname(tar_file))
-
-                shutil.copy(bin_file, tar_file)
+                makePath(  # create any missing intermediate folders
+                    os.path.dirname(tar_file)
+                )
+                shutil.copyfile(bin_file, tar_file)
 
             msg = "Copied %i %s from 'scipy' installation." % (
                 bin_total,
@@ -307,10 +304,10 @@ class NumpyPlugin(NuitkaPluginBase):
             if not mpl_data:
                 warning("'mpl-data' folder not found in matplotlib.")
                 return ()
-            mpl_data, idx = mpl_data  # folder, start of string 'matplotlib'
+            mpl_data, idx = mpl_data  # (folder, pos. of 'matplotlib')
             back_end = mpl_data[idx:]
             tar_dir = os.path.join(dist_dir, back_end)
-            shutil.copytree(mpl_data, tar_dir)
+            copyTree(mpl_data, tar_dir)
 
             msg = "Copied 'mpl-data' from 'matplotlib' installation."
             info(msg)
