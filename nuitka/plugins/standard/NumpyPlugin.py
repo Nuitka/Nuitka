@@ -240,6 +240,7 @@ class NumpyPlugin(NuitkaPluginBase):
         Returns:
             empty tuple
         """
+        # pylint: disable=too-many-branches,too-many-statements,too-many-return-statements
         full_name = module.getFullName()
         if full_name not in ("numpy", "scipy", "matplotlib"):
             return ()

@@ -45,7 +45,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     def isAlwaysEnabled():
         return True
 
-    def _getImportsByFullname(self, full_name):
+    @staticmethod
+    def _getImportsByFullname(full_name):
         """ Provides names of modules to imported implicitely.
 
         Notes:
@@ -53,7 +54,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             accepts the search argument as a string. This allows callers to
             obtain results, which cannot provide a Nuitka module object.
         """
-        # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
+        # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements,line-too-long
 
         elements = full_name.split(".")
         if elements[0] in ("PyQt4", "PyQt5"):
