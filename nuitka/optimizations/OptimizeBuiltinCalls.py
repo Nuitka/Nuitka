@@ -814,9 +814,6 @@ def eval_extractor(node):
         source_variable = outline_body.allocateTempVariable(
             temp_scope=None, name="source"
         )
-        import ipdb
-
-        ipdb.set_trace()
 
         final.setStatements(
             final.getStatements()
@@ -969,10 +966,6 @@ def max_extractor(node):
                 ),
             )
         )
-
-        import ipdb
-
-        ipdb.set_trace()
 
         max_choice1 = makeConstantRefNode(
             constant=node.getCallArgs().constant[0], source_ref=source_ref
