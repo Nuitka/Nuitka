@@ -91,7 +91,7 @@ from nuitka.nodes.BuiltinTypeNodes import (
 from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import ExpressionBuiltinType3
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs, ExpressionComparisonLt
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional,
@@ -793,7 +793,6 @@ def eval_extractor(node):
             name="eval_call",
             source_ref=source_ref,
         )
-
         globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
             provider=provider,
             globals_node=globals_arg,
@@ -815,6 +814,9 @@ def eval_extractor(node):
         source_variable = outline_body.allocateTempVariable(
             temp_scope=None, name="source"
         )
+        import ipdb
+
+        ipdb.set_trace()
 
         final.setStatements(
             final.getStatements()
@@ -934,6 +936,98 @@ def eval_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
         builtin_class=wrapEvalBuiltin,
+        builtin_spec=BuiltinParameterSpecs.builtin_eval_spec,
+    )
+
+
+def max_extractor(node):
+    @calledWithBuiltinArgumentNamesDecorator
+    def wrapMaxBuiltin(source, globals_arg, locals_arg, source_ref):
+        provider = node.getParentVariableProvider()
+
+        outline_body = ExpressionOutlineBody(
+            provider=node.getParentVariableProvider(),
+            name="max_call",
+            source_ref=source_ref,
+        )
+
+        globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
+            provider=provider,
+            globals_node=globals_arg,
+            locals_node=locals_arg,
+            temp_scope=outline_body.getOutlineTempScope(),
+            source_ref=source_ref,
+        )
+
+        tmp_called = outline_body.allocateTempVariable(temp_scope=None, name="called")
+
+        final.setStatements(
+            final.getStatements()
+            + (
+                StatementDelVariable(
+                    variable=tmp_called, tolerant=True, source_ref=source_ref
+                ),
+            )
+        )
+
+        import ipdb
+
+        ipdb.set_trace()
+
+        max_choice1 = makeConstantRefNode(
+            constant=node.getCallArgs().constant[0], source_ref=source_ref
+        )
+
+        max_choice2 = makeConstantRefNode(
+            constant=node.getCallArgs().constant[1], source_ref=source_ref
+        )
+
+        if python_version >= 300:
+            max_choice = ExpressionConditional(
+                condition=ExpressionComparisonLt(
+                    left=ExpressionBuiltinType1(
+                        value=ExpressionTempVariableRef(
+                            variable=max_choice1, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    right=ExpressionBuiltinType1(
+                        value=ExpressionTempVariableRef(
+                            variable=max_choice2, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    source_ref=source_ref,
+                ),
+                expression_yes=max_choice1,
+                expression_no=max_choice2,
+                source_ref=source_ref,
+            )
+
+        statements = StatementAssignmentVariable(
+            variable=max_choice, source=source, source_ref=source_ref
+        )
+
+        tried = makeStatementsSequence(
+            statements=(tried,) + statements, allow_none=False, source_ref=source_ref
+        )
+
+        outline_body.setBody(
+            makeStatementsSequenceFromStatement(
+                statement=makeTryFinallyStatement(
+                    provider=outline_body,
+                    tried=tried,
+                    final=final,
+                    source_ref=source_ref,
+                )
+            )
+        )
+
+        return outline_body
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=wrapMaxBuiltin,
         builtin_spec=BuiltinParameterSpecs.builtin_eval_spec,
     )
 
@@ -1280,6 +1374,7 @@ _dispatch_dict = {
     "globals": globals_extractor,
     "locals": locals_extractor,
     "eval": eval_extractor,
+    "max": max_extractor,
     "dir": dir_extractor,
     "vars": vars_extractor,
     "__import__": import_extractor,
