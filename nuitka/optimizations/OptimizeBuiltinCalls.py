@@ -32,6 +32,7 @@ from nuitka.nodes.AttributeNodes import (
     ExpressionBuiltinHasattr,
     ExpressionBuiltinSetattr,
 )
+from nuitka.nodes.BuiltinAnyNodes import ExpressionBuiltinAny
 from nuitka.nodes.BuiltinComplexNodes import (
     ExpressionBuiltinComplex1,
     ExpressionBuiltinComplex2,
@@ -459,6 +460,23 @@ def len_extractor(node):
         node=node,
         builtin_class=ExpressionBuiltinLen,
         builtin_spec=BuiltinParameterSpecs.builtin_len_spec,
+    )
+
+
+def any_extractor(node):
+    # pylint: disable=unused-argument
+    def makeAny0(source_ref):
+        exception_message = "any() takes exactly one argument (0 given)"
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression=node, exception=TypeError(exception_message)
+        )
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=ExpressionBuiltinAny,
+        builtin_spec=BuiltinParameterSpecs.builtin_any_spec,
+        empty_special_class=makeAny0,
     )
 
 
@@ -1260,6 +1278,7 @@ _dispatch_dict = {
     "int": int_extractor,
     "repr": repr_extractor,
     "len": len_extractor,
+    "any": any_extractor,
     "super": super_extractor,
     "hasattr": hasattr_extractor,
     "getattr": getattr_extractor,

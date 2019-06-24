@@ -22,10 +22,10 @@
 import collections
 import hashlib
 import sys
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 
 from nuitka import Options
-from nuitka.__past__ import iterItems
+from nuitka.__past__ import getMetaClassBase, iterItems
 from nuitka.Builtins import (
     builtin_anon_codes,
     builtin_anon_values,
@@ -36,16 +36,6 @@ from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .Namify import namifyConstant
 from .VariableDeclarations import VariableDeclaration, VariableStorage
-
-
-class ContextMetaClass(ABCMeta):
-    pass
-
-
-# For Python2/3 compatible source, we create a base class that has the metaclass
-# used and doesn't require making a choice.
-ContextMetaClassBase = ContextMetaClass("ContextMetaClassBase", (object,), {})
-
 
 # Many methods won't use self, but it's the interface. pylint: disable=no-self-use
 
@@ -359,7 +349,7 @@ class CodeObjectsMixin(object):
             return hash_value.hexdigest()
 
 
-class PythonContextBase(ContextMetaClassBase):
+class PythonContextBase(getMetaClassBase("Context")):
     @counted_init
     def __init__(self):
         self.source_ref = None
@@ -543,7 +533,7 @@ class PythonContextBase(ContextMetaClassBase):
 
 
 class PythonChildContextBase(PythonContextBase):
-    # Base classes can be abstract, pylint: disable=abstract-method
+    # Base classes can be abstract, pylint: disable=I0021,abstract-method
 
     def __init__(self, parent):
         PythonContextBase.__init__(self)

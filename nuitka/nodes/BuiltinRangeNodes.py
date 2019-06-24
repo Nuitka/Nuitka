@@ -29,6 +29,11 @@ from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionChildrenHavingBase
+from .IterationHandles import (
+    ConstantIterationHandleRange1,
+    ConstantIterationHandleRange2,
+    ConstantIterationHandleRange3,
+)
 from .NodeMakingHelpers import makeConstantReplacementNode
 from .shapes.BuiltinTypeShapes import ShapeTypeList, ShapeTypeXrange
 
@@ -170,7 +175,6 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
 
     def computeExpression(self, trace_collection):
         assert python_version < 300
-
         low = self.getLow()
 
         return self.computeBuiltinSpec(
@@ -184,6 +188,13 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
             return None
 
         return max(0, low)
+
+    def getIterationHandle(self):
+        low = self.getLow().getIntegerValue()
+        if low is None:
+            return None
+
+        return ConstantIterationHandleRange1(low, self.source_ref)
 
     def getIterationValue(self, element_index):
         length = self.getIterationLength()
@@ -242,6 +253,17 @@ class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
             return None
 
         return max(0, high - low)
+
+    def getIterationHandle(self):
+        low = self.getLow().getIntegerValue()
+        if low is None:
+            return None
+
+        high = self.getHigh().getIntegerValue()
+        if high is None:
+            return None
+
+        return ConstantIterationHandleRange2(low, high, self.source_ref)
 
     def getIterationValue(self, element_index):
         low = self.getLow()
@@ -338,6 +360,25 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
 
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None
+
+    def getIterationHandle(self):
+        low = self.getLow().getIntegerValue()
+        if low is None:
+            return None
+
+        high = self.getHigh().getIntegerValue()
+        if high is None:
+            return None
+
+        step = self.getStep().getIntegerValue()
+        if step is None:
+            return None
+
+        # Give up on this, will raise ValueError.
+        if step == 0:
+            return None
+
+        return ConstantIterationHandleRange3(low, high, step, self.source_ref)
 
     def getIterationValue(self, element_index):
         low = self.getLow().getIntegerValue()
@@ -462,6 +503,7 @@ class ExpressionBuiltinXrange1(ExpressionBuiltinXrangeBase):
     def computeExpression(self, trace_collection):
         low = self.getLow()
 
+        # TODO: Optimize this if self.getLow().getIntegerValue() is Not None
         return self.computeBuiltinSpec(
             trace_collection=trace_collection, given_values=(low,)
         )

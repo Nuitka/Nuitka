@@ -26,6 +26,7 @@ be a "in (str, unicode)" rather than making useless version checks.
 """
 
 import sys
+from abc import ABCMeta
 
 # pylint: disable=I0021,invalid-name,redefined-builtin
 
@@ -110,6 +111,20 @@ if str is bytes:
     intern = intern  # @ReservedAssignment pylint: disable=I0021,undefined-variable
 else:
     intern = sys.intern  # @ReservedAssignment @UndefinedVariable
+
+
+def getMetaClassBase(meta_class_prefix):
+    """ For Python2/3 compatible source, we create a base class that has the metaclass
+    used and doesn't require making a choice.
+    """
+
+    class MetaClass(ABCMeta):
+        pass
+
+    MetaClassBase = MetaClass("%sMetaClassBase" % meta_class_prefix, (object,), {})
+
+    return MetaClassBase
+
 
 # For PyLint to be happy.
 assert long
