@@ -465,22 +465,6 @@ def len_extractor(node):
     )
 
 
-def any_extractor(node):
-    # pylint: disable=unused-argument
-    def makeAny0(source_ref):
-        exception_message = "any() takes exactly one argument (0 given)"
-
-        return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression=node, exception=TypeError(exception_message)
-        )
-
-    return BuiltinParameterSpecs.extractBuiltinArgs(
-        node=node,
-        builtin_class=ExpressionBuiltinAny,
-        builtin_spec=BuiltinParameterSpecs.builtin_any_spec,
-        empty_special_class=makeAny0,
-    )
-
 def all_extractor(node):
     # pylint: disable=unused-argument
     def makeAll0(source_ref):
