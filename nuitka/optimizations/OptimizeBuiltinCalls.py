@@ -32,8 +32,8 @@ from nuitka.nodes.AttributeNodes import (
     ExpressionBuiltinHasattr,
     ExpressionBuiltinSetattr,
 )
-from nuitka.nodes.BuiltinAnyNodes import ExpressionBuiltinAny
 from nuitka.nodes.BuiltinAllNodes import ExpressionBuiltinAll
+from nuitka.nodes.BuiltinAnyNodes import ExpressionBuiltinAny
 from nuitka.nodes.BuiltinComplexNodes import (
     ExpressionBuiltinComplex1,
     ExpressionBuiltinComplex2,
@@ -487,6 +487,23 @@ def abs_extractor(node):
         node=node,
         builtin_class=ExpressionOperationAbs,
         builtin_spec=BuiltinParameterSpecs.builtin_abs_spec,
+    )
+
+
+def any_extractor(node):
+    # pylint: disable=unused-argument
+    def makeAny0(source_ref):
+        exception_message = "any() takes exactly one argument (0 given)"
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression=node, exception=TypeError(exception_message)
+        )
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=ExpressionBuiltinAny,
+        builtin_spec=BuiltinParameterSpecs.builtin_any_spec,
+        empty_special_class=makeAny0,
     )
 
 
