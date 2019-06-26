@@ -86,8 +86,8 @@ pylint-warnings
 
 qt-plugins
 ~~~~~~~~~~~
-* Required by the *PyQtx* and *PySide* packages.
-* Options: ``sensible``, ``styles``, ``all``
+* Required by the *PyQt* and *PySide* packages.
+* Options: ``sensible``, ``styles``, ``all``, **???**
 
 sklearn
 ~~~~~~~~
