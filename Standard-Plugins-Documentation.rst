@@ -34,21 +34,19 @@ Where appropriate, the behaviour of optional |sps| (like with |ups|) can be cont
 
 List of Optional Standard Plugins
 -------------------------------------------
-Create a list of available optional |sps| giving their identifier together with a short description via ``--plugin-list``. 
+Create a list of available optional |sps| giving their identifier together with a short description via ``--plugin-list``::
 
-```
         The following optional standard plugins are available in Nuitka
---------------------------------------------------------------------------------
- gevent           Required by the gevent package
- multiprocessing  Required by Python's multiprocessing module
- numpy            Required for numpy, scipy, pandas, matplotlib, etc.
- pmw-freezer      Required by the Pmw package
- pylint-warnings  Support PyLint / PyDev linting source markers
- qt-plugins       Required by the PyQt and PySide packages
- sklearn          Required by the scikit-learn package
- tensorflow       Required by the tensorflow package
- tk-inter         Required by Python's Tk modules on Windows
- torch            Required by the torch / torchvision packages
+  --------------------------------------------------------------------------------
+   gevent           Required by the gevent package
+   multiprocessing  Required by Python's multiprocessing module
+   numpy            Required for numpy, scipy, pandas, matplotlib, etc.
+   pmw-freezer      Required by the Pmw package
+   pylint-warnings  Support PyLint / PyDev linting source markers
+   qt-plugins       Required by the PyQt and PySide packages
+   sklearn          Required by the scikit-learn package
+   tensorflow       Required by the tensorflow package
+   tk-inter         Required by Python's Tk modules on Windows
+   torch            Required by the torch / torchvision packages
 
-```
 
