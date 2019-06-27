@@ -25,7 +25,11 @@ from logging import warning
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.Errors import NuitkaAssumptionError
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable, StatementDelVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable,
+    StatementReleaseVariable,
+)
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
     ExpressionBuiltinGetattr,
@@ -948,69 +952,93 @@ def max_extractor(node):
             source_ref=source_ref,
         )
 
-        globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-            provider=provider,
-            globals_node=globals_arg,
-            locals_node=locals_arg,
-            temp_scope=outline_body.getOutlineTempScope(),
-            source_ref=source_ref,
+        # you cannot assume constants, please be general.
+        # check for length and do if len of call args >= 2
+
+        # to be derived from node.getCallArgs
+        call_args = node.getCallArgs()
+
+        assert call_args.getIterationLength() >= 2
+
+        max_arg_variables = [
+            provider.allocateTempVariable(temp_scope=None, name="max_arg_%d" % i)
+            for i in range(call_args.getIterationLength())
+        ]
+
+        max_result_variable = provider.allocateTempVariable(
+            temp_scope=None, name="max_result"
         )
 
-        tmp_called = outline_body.allocateTempVariable(temp_scope=None, name="called")
-
-        final.setStatements(
-            final.getStatements()
-            + (
-                StatementDelVariable(
-                    variable=tmp_called, tolerant=True, source_ref=source_ref
-                ),
+        # To be executed at beginning of outline body. These need
+        # to be released, or else we loose reference
+        statements = [
+            StatementAssignmentVariable(
+                variable=max_arg_variable, source=call_arg, source_ref=source_ref
             )
-        )
+            for call_arg, max_arg_variable in zip(
+                call_args.getElements(), max_arg_variables
+            )
+        ]
 
-        max_choice1 = makeConstantRefNode(
-            constant=node.getCallArgs().constant[0], source_ref=source_ref
-        )
-
-        max_choice2 = makeConstantRefNode(
-            constant=node.getCallArgs().constant[1], source_ref=source_ref
-        )
-
-        if python_version >= 300:
-            max_choice = ExpressionConditional(
-                condition=ExpressionComparisonLt(
-                    left=ExpressionBuiltinType1(
-                        value=ExpressionTempVariableRef(
-                            variable=max_choice1, source_ref=source_ref
-                        ),
-                        source_ref=source_ref,
-                    ),
-                    right=ExpressionBuiltinType1(
-                        value=ExpressionTempVariableRef(
-                            variable=max_choice2, source_ref=source_ref
-                        ),
-                        source_ref=source_ref,
-                    ),
-                    source_ref=source_ref,
+        statements.append(
+            StatementAssignmentVariable(
+                variable=max_result_variable,
+                source=ExpressionTempVariableRef(
+                    variable=max_arg_variables[0], source_ref=source_ref
                 ),
-                expression_yes=max_choice1,
-                expression_no=max_choice2,
                 source_ref=source_ref,
             )
-
-        statements = StatementAssignmentVariable(
-            variable=max_choice, source=source, source_ref=source_ref
         )
 
-        tried = makeStatementsSequence(
-            statements=(tried,) + statements, allow_none=False, source_ref=source_ref
+        for max_arg_variable in max_arg_variables[1:]:
+            statements.append(
+                makeStatementConditional(
+                    condition=ExpressionComparisonLt(
+                        left=ExpressionTempVariableRef(
+                            variable=max_result_variable, source_ref=source_ref
+                        ),
+                        right=ExpressionTempVariableRef(
+                            variable=max_arg_variable, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    yes_branch=StatementAssignmentVariable(
+                        variable=max_result_variable,
+                        source=ExpressionTempVariableRef(
+                            variable=max_arg_variable, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    no_branch=None,
+                    source_ref=source_ref,
+                )
+            )
+
+        statements.append(
+            StatementReturn(
+                expression=ExpressionTempVariableRef(
+                    variable=max_result_variable, source_ref=source_ref
+                ),
+                source_ref=source_ref,
+            )
+        )
+
+        final_statements = [
+            StatementReleaseVariable(variable=max_arg_variable, source_ref=source_ref)
+            for max_arg_variable in max_arg_variables
+        ]
+        final_statements.append(
+            StatementReleaseVariable(
+                variable=max_result_variable, source_ref=source_ref
+            )
         )
 
         outline_body.setBody(
             makeStatementsSequenceFromStatement(
                 statement=makeTryFinallyStatement(
                     provider=outline_body,
-                    tried=tried,
-                    final=final,
+                    tried=statements,
+                    final=final_statements,
                     source_ref=source_ref,
                 )
             )
@@ -1021,7 +1049,7 @@ def max_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
         builtin_class=wrapMaxBuiltin,
-        builtin_spec=BuiltinParameterSpecs.builtin_eval_spec,
+        builtin_spec=BuiltinParameterSpecs.builtin_max_spec,
     )
 
 

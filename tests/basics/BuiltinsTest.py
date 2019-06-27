@@ -677,3 +677,11 @@ print(all("Nuitka rocks!"))
 print(all("string"))
 print(all(u"unicode"))
 print(all(b"bytes"))
+print(any({1:"One", 2:"Two"}))
+def call():
+    return 3
+
+print(max(1, 2))
+print(max(1, 2, call()))
+print(max([0]*1000))
+print(max(1, 2, None))
