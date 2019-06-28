@@ -1138,76 +1138,6 @@ def getWindowsPythonDLLPath():
     return os.environ["NUITKA_PYTHON_DLL_PATH"]
 
 
-def makeWindowsMingGW64Lib():
-    python_dll_filename = getWindowsPythonDLLPath()
-    with open(python_dll_filename, "rb") as f:
-        checksum = hashlib.md5(f.read()).hexdigest()
-
-    # Create the LIB in the build directory.
-    new_win_lib_path = os.path.join(nuitka_cache, "win_libs", python_version, checksum)
-
-    if not os.path.exists(new_win_lib_path):
-        os.makedirs(new_win_lib_path)
-
-    lib_filename = os.path.join(
-        new_win_lib_path, "libpython%s.a" % python_abi_version.replace(".", "")
-    )
-
-    if os.path.exists(lib_filename):
-        return new_win_lib_path
-
-    gendef_tool = os.path.join(
-        os.path.dirname(getExecutablePath(env["CC"], initial=False)), "gendef"
-    )
-
-    command = [gendef_tool, "-", python_dll_filename]
-
-    if show_scons_mode:
-        print("Scons: Creating Python library defs with:", command)
-
-    try:
-        proc = subprocess.Popen(
-            command,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=False,
-        )
-    except WindowsError:  # @UndefinedVariable pylint: disable=undefined-variable
-        sys.exit('Error, cannot find "gendef.exe" which is required though.')
-
-    defs, stderr = proc.communicate()
-    rv = proc.wait()
-
-    if rv != 0:
-        sys.exit('Error, unexpected error from "gendef.exe" %s.' % stderr)
-
-    if str is not bytes:
-        defs = _decode(defs)
-
-    defs_filename = os.path.join(
-        new_win_lib_path, "python%s.defs" % python_abi_version.replace(".", "")
-    )
-
-    with open(defs_filename, "w") as defs_file:
-        defs_file.write(defs)
-
-    shutil.copy(getWindowsPythonDLLPath(), new_win_lib_path)
-
-    dll_tool = os.path.join(
-        os.path.dirname(getExecutablePath(env["CC"], initial=False)), "dlltool"
-    )
-
-    result = subprocess.call(
-        (dll_tool, "-d", defs_filename, "-l", lib_filename), stdout=subprocess.PIPE
-    )
-
-    if result != 0:
-        sys.exit("Error, call to 'dlltool.exe' failed.")
-
-    return new_win_lib_path
-
-
 if win_target:
     # Anaconda has this.
     static_lib_filename = os.path.join(
@@ -1225,7 +1155,8 @@ if win_target:
             ]
         )
     else:
-        # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
+        # Make sure to locate the Python link library from multiple potential
+        # locations (installed vs. self-built).
         if python_debug:
             win_lib_name = "python" + python_abi_version.replace(".", "") + "_d"
         else:
@@ -1238,11 +1169,6 @@ if win_target:
                 break
         else:
             sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
-
-        if target_arch == "x86_64" and gcc_mode:
-            win_lib_path = makeWindowsMingGW64Lib()
-        elif target_arch == "x86" and python_debug and gcc_mode:
-            win_lib_path = makeWindowsMingGW64Lib()
 
         env.Append(LIBPATH=[win_lib_path])
         env.Append(LIBS=[win_lib_name])
