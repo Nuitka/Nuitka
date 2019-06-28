@@ -25,6 +25,7 @@ to add to this and submit patches to make it more complete.
 import os
 import shutil
 
+from nuitka.containers.oset import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContentByLine
@@ -45,17 +46,18 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     def isAlwaysEnabled():
         return True
 
-    def getImplicitImports(self, module):
-        # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
-        full_name = module.getFullName()
+    @staticmethod
+    def _getImportsByFullname(full_name):
+        """ Provides names of modules to imported implicitely.
 
-        if module.isPythonShlibModule():
-            for used_module in module.getUsedModules():
-                yield used_module[0], False
+        Notes:
+            This methods works much like 'getImplicitImports', except that it
+            accepts the search argument as a string. This allows callers to
+            obtain results, which cannot provide a Nuitka module object.
+        """
+        # Many variables, branches, due to the many cases, pylint: disable=line-too-long,too-many-branches,too-many-statements
 
-        # TODO: Move this out to some kind of configuration format.
         elements = full_name.split(".")
-
         if elements[0] in ("PyQt4", "PyQt5"):
             if python_version < 300:
                 yield "atexit", True
@@ -183,8 +185,10 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield "PyQt5.QtMultimedia", True
                 yield "PyQt5.QtQml", False
                 yield "PyQt5.QtWidgets", True
+
         elif full_name == "sip" and python_version < 300:
             yield "enum", False
+
         elif full_name == "PySide.QtDeclarative":
             yield "PySide.QtGui", True
         elif full_name == "PySide.QtHelp":
@@ -276,6 +280,12 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "gevent.thread", True
             yield "gevent.threading", True
             yield "gevent.select", True
+            yield "gevent.hub", True
+            yield "gevent.greenlet", True
+            yield "gevent.local", True
+            yield "gevent.event", True
+            yield "gevent.queue", True
+            yield "gevent.resolver", True
             yield "gevent.subprocess", True
             if getOS() == "Windows":
                 yield "gevent.libuv", True
@@ -308,6 +318,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         elif full_name == "gevent._ffi":
             yield "gevent._ffi.loop", True
+            yield "gevent._ffi.callback", True
+            yield "gevent._ffi.watcher", True
 
         elif full_name == "gevent._waiter":
             yield "gevent.__waiter", True
@@ -333,6 +345,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "gevent.ssl", True
             yield "gevent.events", True
 
+        elif full_name == "gevent.resolver":
+            yield "gevent.resolver.blocking", True
+            yield "gevent.resolver.cares", True
+            yield "gevent.resolver.thread", True
+
         elif full_name == "gevent._semaphore":
             yield "gevent._abstract_linkable", True
             yield "gevent.__semaphore", True
@@ -357,42 +374,163 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         # end of gevent imports ----------------------------------------------
 
         # start of tensorflow imports --------------------------------------------
+
         elif full_name == "tensorflow":
-            yield "tensorflow._api", True
-            yield "tensorflow.python", True
-            yield "tensorflow.core", True
-            yield "tensorflow.lite.python.lite", True
-            yield "tensorflow_estimator.python.estimator.api", False
-
-        elif full_name == "tensorflow.lite.python":
-            yield "tensorflow.python.framework.importer", True
-
-        elif full_name == "tensorflow.lite.python.optimize":
-            yield "tensorflow.lite.python.optimize._tensorflow_lite_wrap_calibration_wrapper", True
-
-        elif full_name == "tensorflow.lite.toco.python":
-            yield "tensorflow.lite.toco.python._tensorflow_wrap_toco", True
-
-        elif full_name == "tensorflow.lite.python.interpreter_wrapper":
-            yield "tensorflow.lite.python.interpreter_wrapper._tensorflow_wrap_interpreter_wrapper", True
+            yield "tensorboard", False
+            yield "tensorflow_estimator", False
 
         elif full_name == "tensorflow.python":
-            yield "tensorflow.python.pywrap_tensorflow", True
             yield "tensorflow.python._pywrap_tensorflow_internal", True
-            yield "tensorflow.python.tools", True
-            yield "tensorflow.python.compat", True
-            yield "tensorflow.python.framework", True
-            yield "tensorflow.python.module", True
-            yield "tensorflow.python.ops", True
-            yield "tensorflow.python.platform", True
-            yield "tensorflow.python.lib.io", True
-            yield "tensorflow.python.util", True
-            yield "tensorflow.python.keras.api", False
+            yield "tensorflow.python.ops", False
+            yield "tensorflow.python.ops.cond_v2", False
 
-        # end of tensorflow imports --------------------------------------------
+        elif full_name == "tensorflow.lite.python.interpreter_wrapper":
+            yield "tensorflow.lite.python.interpreter_wrapper._tensorflow_wrap_interpreter_wrapper", False
+
+        elif full_name == "tensorflow.lite.python.optimize":
+            yield "tensorflow.lite.python.optimize._tensorflow_lite_wrap_calibration_wrapper", False
+
+        elif full_name == "tensorflow.lite.toco.python":
+            yield "tensorflow.lite.toco.python._tensorflow_wrap_toco", False
+
+        # the remaining entries are relevant non-Windows platforms only
+        elif getOS() != "Windows":
+            if (
+                full_name
+                == "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal"
+            ):
+                yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal._api_implementation", False
+
+            elif (
+                full_name
+                == "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext"
+            ):
+                yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext._message", False
+
+            elif full_name == "tensorflow.python.framework":
+                yield "tensorflow.python.framework.fast_tensor_util", False
+
+            elif full_name == "tensorflow.compiler.tf2tensorrt":
+                yield "tensorflow.compiler.tf2tensorrt._wrap_py_utils", False
+
+            elif full_name == "tensorflow.compiler.tf2tensorrt.python.ops":
+                yield "tensorflow.compiler.tf2tensorrt.python.ops.libtftrt", False
+
+            elif full_name == "tensorflow.compiler.tf2xla.ops":
+                yield "tensorflow.compiler.tf2xla.ops._xla_ops", False
+
+            elif full_name == "tensorflow.contrib.tensor_forest":
+                yield "tensorflow.contrib.tensor_forest.libforestprotos", False
+
+            elif full_name == "tensorflow.contrib.tensor_forest.python.ops":
+                yield "tensorflow.contrib.tensor_forest.python.ops._model_ops", False
+                yield "tensorflow.contrib.tensor_forest.python.ops._stats_ops", False
+                yield "tensorflow.contrib.tensor_forest.python.ops._tensor_forest_ops", False
+
+            elif full_name == "tensorflow.contrib.tensor_forest.hybrid.python.ops":
+                yield "tensorflow.contrib.tensor_forest.hybrid.python.ops._training.ops", False
+
+            elif full_name == "tensorflow.contrib.resampler.python.ops":
+                yield "tensorflow.contrib.resampler.python.ops._resampler_ops", False
+
+            elif full_name == "tensorflow.contrib.nearest_neighbor.python.ops":
+                yield "tensorflow.contrib.nearest_neighbor.python.ops._nearest_neighbor_ops", False
+
+            elif full_name == "tensorflow.contrib.ignite":
+                yield "tensorflow.contrib.ignite._ignite_ops", False
+
+            elif full_name == "tensorflow.contrib.kinesis":
+                yield "tensorflow.contrib.kinesis._dataset_ops", False
+
+            elif full_name == "tensorflow.contrib.ffmpeg":
+                yield "tensorflow.contrib.ffmpeg.ffmpeg", False
+
+            elif full_name == "tensorflow.contrib.framework.python.ops":
+                yield "tensorflow.contrib.framework.python.ops._variable_ops", False
+
+            elif full_name == "tensorflow.contrib.text.python.ops":
+                yield "tensorflow.contrib.text.python.ops._skip_gram_ops", False
+
+            elif full_name == "tensorflow.contrib.reduce_slice_ops.python.ops":
+                yield "tensorflow.contrib.reduce_slice_ops.python.ops._reduce_slice_ops", False
+
+            elif full_name == "tensorflow.contrib.periodic_resample.python.ops":
+                yield "tensorflow.contrib.periodic_resample.python.ops._periodic_resample_op", False
+
+            elif full_name == "tensorflow.contrib.memory_stats.python.ops":
+                yield "tensorflow.contrib.memory_stats.python.ops._memory_stats_ops", False
+
+            elif full_name == "tensorflow.contrib.libsvm.python.ops":
+                yield "tensorflow.contrib.libsvm.python.ops._libsvm_ops", False
+
+            elif full_name == "tensorflow.contrib.fused_conv.python.ops":
+                yield "tensorflow.contrib.fused_conv.python.ops._fused_conv2d_bias_activation_op", False
+
+            elif full_name == "tensorflow.contrib.kafka":
+                yield "tensorflow.contrib.kafka._dataset_ops", False
+
+            elif full_name == "tensorflow.contrib.hadoop":
+                yield "tensorflow.contrib.hadoop._dataset_ops", False
+
+            elif full_name == "tensorflow.contrib.seq2seq.python.ops":
+                yield "tensorflow.contrib.seq2seq.python.ops._beam_search_ops", False
+
+            elif full_name == "tensorflow.contrib.rpc.python.kernel_tests":
+                yield "tensorflow.contrib.rpc.python.kernel_tests.libtestexample", False
+
+            elif full_name == "tensorflow.contrib.boosted_trees.python.ops":
+                yield "tensorflow.contrib.boosted_trees.python.ops._boosted_trees_ops", False
+
+            elif full_name == "tensorflow.contrib.layers.python.ops":
+                yield "tensorflow.contrib.layers.python.ops._sparse_feature_cross_op", False
+
+            elif full_name == "tensorflow.contrib.image.python.ops":
+                yield "tensorflow.contrib.image.python.ops._distort_image_ops", False
+                yield "tensorflow.contrib.image.python.ops._image_ops", False
+                yield "tensorflow.contrib.image.python.ops._single_image_random_dot_stereograms", False
+
+            elif full_name == "tensorflow.contrib.factorization.python.ops":
+                yield "tensorflow.contrib.factorization.python.ops._factorization_ops", False
+
+            elif full_name == "tensorflow.contrib.input_pipeline.python.ops":
+                yield "tensorflow.contrib.input_pipeline.python.ops._input_pipeline_ops", False
+
+            elif full_name == "tensorflow.contrib.rnn.python.ops":
+                yield "tensorflow.contrib.rnn.python.ops._gru_ops", False
+                yield "tensorflow.contrib.rnn.python.ops._lstm_ops", False
+
+            elif full_name == "tensorflow.contrib.bigtable.python.ops":
+                yield "tensorflow.contrib.bigtable.python.ops._bigtable", False
+
+        # end of tensorflow imports -------------------------------------------
+
+        # OpenCV imports ------------------------------------------------------
+        elif full_name == "cv2":
+            yield "numpy", True
+            yield "numpy.core", True
+
+        # chainer imports -----------------------------------------------------
+        elif full_name == "chainer":
+            yield "chainer.distributions", True
+            yield "chainer.distributions.utils", True
+
+        # numpy imports -------------------------------------------------------
+        elif full_name == "numpy":
+            yield "numpy._mklinit", False
         elif full_name == "numpy.core":
-            yield "numpy.core._dtype_ctypes", False
+            yield "numpy.core._dtype_ctypes", True
 
+        # matplotlib imports --------------------------------------------------
+        elif full_name == "matplotlib":
+            yield "matplotlib.backend_managers", True
+            yield "matplotlib.backend_bases", True
+
+        elif full_name == "matplotlib.backends.backend_agg":
+            yield "matplotlib.backends._backend_agg", True
+            yield "matplotlib.backends._tkagg", True
+            yield "matplotlib.backends.backend_tkagg", True
+
+        # scipy imports -------------------------------------------------------
         elif full_name == "scipy.special":
             yield "scipy.special._ufuncs_cxx", True
         elif full_name == "scipy.linalg":
@@ -403,6 +541,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "scipy._lib":
             yield "scipy._lib.messagestream", True
 
+        # scikit-learn imports ------------------------------------------------
         elif full_name == "sklearn.utils.sparsetools":
             yield "sklearn.utils.sparsetools._graph_validation", True
             yield "sklearn.utils.sparsetools._graph_tools", True
@@ -410,29 +549,16 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "sklearn.utils":
             yield "sklearn.utils.lgamma", True
             yield "sklearn.utils.weight_vector", True
-            yield "sklearn.utils._unittest_backport", True
+            yield "sklearn.utils._unittest_backport", False
 
         elif full_name == "PIL._imagingtk":
             yield "PIL._tkinter_finder", True
-        elif full_name == "pkg_resources.extern":
-            if self.pkg_utils_externals is None:
-                for line in getFileContentByLine(module.getCompileTimeFilename()):
-                    if line.startswith("names"):
-                        line = line.split("=")[-1].strip()
-                        parts = line.split(",")
 
-                        self.pkg_utils_externals = [part.strip("' ") for part in parts]
-
-                        break
-                else:
-                    self.pkg_utils_externals = ()
-
-            for pkg_util_external in self.pkg_utils_externals:
-                yield "pkg_resources._vendor." + pkg_util_external, False
         elif full_name == "pkg_resources._vendor.packaging":
             yield "pkg_resources._vendor.packaging.version", True
             yield "pkg_resources._vendor.packaging.specifiers", True
             yield "pkg_resources._vendor.packaging.requirements", True
+
         elif full_name == "uvloop.loop":
             yield "uvloop._noop", True
         elif full_name == "fitz.fitz":
@@ -444,35 +570,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pandas._libs.skiplist", False
         elif full_name == "zmq.backend":
             yield "zmq.backend.cython", True
-        elif full_name == "OpenGL":
-            if self.opengl_plugins is None:
-                self.opengl_plugins = []
 
-                for line in getFileContentByLine(module.getCompileTimeFilename()):
-                    if line.startswith("PlatformPlugin("):
-                        os_part, plugin_name_part = line[15:-1].split(",")
-                        os_part = os_part.strip("' ")
-                        plugin_name_part = plugin_name_part.strip(") '")
-                        plugin_name_part = plugin_name_part[
-                            : plugin_name_part.rfind(".")
-                        ]
-                        if os_part == "nt":
-                            if getOS() == "Windows":
-                                self.opengl_plugins.append(plugin_name_part)
-                        elif os_part.startswith("linux"):
-                            if getOS() == "Linux":
-                                self.opengl_plugins.append(plugin_name_part)
-                        elif os_part.startswith("darwin"):
-                            if getOS() == "Darwin":
-                                self.opengl_plugins.append(plugin_name_part)
-                        elif os_part.startswith(("posix", "osmesa", "egl")):
-                            if getOS() != "Windows":
-                                self.opengl_plugins.append(plugin_name_part)
-                        else:
-                            assert False, os_part
-
-            for opengl_plugin in self.opengl_plugins:
-                yield opengl_plugin, True
         # Support for both pycryotodome (module name Crypto) and pycyptodomex (module name Cryptodome)
         elif full_name.split(".")[0] in ("Crypto", "Cryptodome"):
             crypto_module_name = full_name.split(".")[0]
@@ -522,6 +620,84 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pycparser.lextab", True
         elif full_name == "passlib.hash":
             yield "passlib.handlers.sha2_crypt", True
+
+    def getImportsByFullname(self, full_name):
+        """ Recursively create a set of imports for a fullname.
+
+        Notes:
+            If an imported item has imported kids, call me again with each kid,
+            resulting in a leaf-only set (no more consequential kids).
+        """
+        result = OrderedSet()
+
+        def checkImportsRecursive(module_name):
+            for item in self._getImportsByFullname(module_name):
+                if item not in result:
+                    result.add(item)
+                    checkImportsRecursive(item[0])
+
+        checkImportsRecursive(full_name)
+
+        return result
+
+    def getImplicitImports(self, module):
+        # Many variables, branches, due to the many cases, pylint: disable=too-many-branches
+        full_name = module.getFullName()
+
+        if module.isPythonShlibModule():
+            for used_module in module.getUsedModules():
+                yield used_module[0], False
+
+        if full_name == "pkg_resources.extern":
+            if self.pkg_utils_externals is None:
+                for line in getFileContentByLine(module.getCompileTimeFilename()):
+                    if line.startswith("names"):
+                        line = line.split("=")[-1].strip()
+                        parts = line.split(",")
+
+                        self.pkg_utils_externals = [part.strip("' ") for part in parts]
+
+                        break
+                else:
+                    self.pkg_utils_externals = ()
+
+            for pkg_util_external in self.pkg_utils_externals:
+                yield "pkg_resources._vendor." + pkg_util_external, False
+
+        elif full_name == "OpenGL":
+            if self.opengl_plugins is None:
+                self.opengl_plugins = []
+
+                for line in getFileContentByLine(module.getCompileTimeFilename()):
+                    if line.startswith("PlatformPlugin("):
+                        os_part, plugin_name_part = line[15:-1].split(",")
+                        os_part = os_part.strip("' ")
+                        plugin_name_part = plugin_name_part.strip(") '")
+                        plugin_name_part = plugin_name_part[
+                            : plugin_name_part.rfind(".")
+                        ]
+                        if os_part == "nt":
+                            if getOS() == "Windows":
+                                self.opengl_plugins.append(plugin_name_part)
+                        elif os_part.startswith("linux"):
+                            if getOS() == "Linux":
+                                self.opengl_plugins.append(plugin_name_part)
+                        elif os_part.startswith("darwin"):
+                            if getOS() == "Darwin":
+                                self.opengl_plugins.append(plugin_name_part)
+                        elif os_part.startswith(("posix", "osmesa", "egl")):
+                            if getOS() != "Windows":
+                                self.opengl_plugins.append(plugin_name_part)
+                        else:
+                            assert False, os_part
+
+            for opengl_plugin in self.opengl_plugins:
+                yield opengl_plugin, True
+
+        else:
+            # create a flattend import set for full_name and yield from it
+            for item in self.getImportsByFullname(full_name):
+                yield item
 
     # We don't care about line length here, pylint: disable=line-too-long
 

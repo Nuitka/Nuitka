@@ -22,10 +22,11 @@ import pkgutil
 import re
 import shutil
 import sys
-from logging import info
+from logging import info, warning
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.utils.FileOperations import copyTree, makePath
 from nuitka.utils.Utils import isWin32Windows
 
 # ------------------------------------------------------------------------------
@@ -53,6 +54,14 @@ def remove_suffix(string, suffix):
         return string[: -len(suffix)]
     else:
         return string
+
+
+def get_sys_prefix():
+    """ Return sys.prefix as guarantied abspath format.
+    """
+    sys_prefix = getattr(sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix))
+    sys_prefix = os.path.abspath(sys_prefix)
+    return sys_prefix
 
 
 def get_module_file_attribute(package):
@@ -101,8 +110,7 @@ def get_scipy_core_binaries():
     """ Return binaries from the extra-dlls folder (Windows only).
     """
     binaries = []
-    if not isWin32Windows():
-        return binaries
+
     extra_dll = os.path.join(
         os.path.dirname(get_module_file_attribute("scipy")), "extra-dll"
     )
@@ -110,13 +118,26 @@ def get_scipy_core_binaries():
         return binaries
 
     netto_bins = os.listdir(extra_dll)
+    suffix_start = len(extra_dll) + 1  # this will put the files in dist root
 
     for f in netto_bins:
         if not f.endswith(".dll"):
             continue
-        binaries.append((os.path.join(extra_dll, f), "."))
+        binaries.append((os.path.join(extra_dll, f), suffix_start))
 
     return binaries
+
+
+def get_matplotlib_data():
+    """ Return 'mpl-data' folder name for matplotlib.
+    """
+    mpl_data = os.path.join(
+        os.path.dirname(get_module_file_attribute("matplotlib")), "mpl-data"
+    )
+    if not os.path.isdir(mpl_data):
+        return None
+    suffix_start = mpl_data.find("matplotlib")
+    return mpl_data, suffix_start
 
 
 def get_numpy_core_binaries():
@@ -129,44 +150,49 @@ def get_numpy_core_binaries():
         tuple of abspaths of binaries
     """
 
-    # covers/unifies cases, where sys.base_prefix does not deliver
-    # everything we need and/or is not an abspath.
-    base_prefix = getattr(sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix))
-
-    base_prefix = os.path.abspath(base_prefix)
-
+    base_prefix = get_sys_prefix()
+    suffix_start = len(base_prefix) + 1
     binaries = []
 
     # first look in numpy/.libs for binaries
     _, pkg_dir = get_package_paths("numpy")
     libdir = os.path.join(pkg_dir, ".libs")
+    suffix_start = len(libdir) + 1
     if os.path.isdir(libdir):
         dlls_pkg = [f for f in os.listdir(libdir)]
-        binaries += [(os.path.join(libdir, f), ".") for f in dlls_pkg]
+        binaries += [[os.path.join(libdir, f), suffix_start] for f in dlls_pkg]
 
     # then look for libraries in numpy.core package path
-    # should already return the MKL DLLs in ordinary cases
+    # should already return the MKL files in ordinary cases
     _, pkg_dir = get_package_paths("numpy.core")
     re_anylib = re.compile(r"\w+\.(?:dll|so|dylib)", re.IGNORECASE)
     dlls_pkg = [f for f in os.listdir(pkg_dir) if re_anylib.match(f)]
-    binaries += [(os.path.join(pkg_dir, f), ".") for f in dlls_pkg]
+    binaries += [[os.path.join(pkg_dir, f), suffix_start] for f in dlls_pkg]
 
-    # Also look for MKL libraries in Python's lib directory if present.
-    # Anything found here will have to land in the dist folder, because there
-    # just is no logical other place, and hope for the best ...
-    # TODO: not supported yet!
+    # Also look for MKL libraries in folder "above" numpy.
+    # This should meet the layout of Anaconda installs.
+
     if isWin32Windows():
         lib_dir = os.path.join(base_prefix, "Library", "bin")
+        suffix_start = len(lib_dir) + 1
     else:
         lib_dir = os.path.join(base_prefix, "lib")
+        suffix_start = len(lib_dir) + 1
 
-    if os.path.isdir(lib_dir):
-        re_mkllib = re.compile(r"^(?:lib)?mkl\w+\.(?:dll|so|dylib)", re.IGNORECASE)
-        dlls_mkl = [f for f in os.listdir(lib_dir) if re_mkllib.match(f)]
-        if dlls_mkl:
-            info(" Additional MKL libraries found.")
-            info(" Not copying MKL binaries in '%s' for numpy!" % libdir)
-            # binaries += [(os.path.join(lib_dir, f), '.') for f in dlls_mkl]
+    if not os.path.isdir(lib_dir):
+        return binaries
+
+    re_mkllib = re.compile(r"^(?:lib)?mkl\w+\.(?:dll|so|dylib)", re.IGNORECASE)
+
+    for f in os.listdir(lib_dir):
+        if isWin32Windows():
+            if not (f.startswith(("libi", "libm", "mkl")) and f.endswith(".dll")):
+                continue
+        else:
+            if not re_mkllib.match(f):
+                continue
+
+        binaries.append([os.path.join(lib_dir, f), suffix_start])
 
     return binaries
 
@@ -183,82 +209,110 @@ class NumpyPlugin(NuitkaPluginBase):
 
     While there already are relevant entries in the "ImplicitImports.py" plugin,
     this plugin copies any additional binary files required by many installations.
-    Typically, these binaries are used for acceleration by replacing parts of the packages'
-    homegrown code with highly tuned routines.
+    Typically, these binaries are used for acceleration by replacing parts of
+    the packages' homegrown code with highly tuned routines.
 
     Typical examples are MKL (Intel's Math Kernel Library), OpenBlas, scipy
     extra-dll and others.
 
     Many of these special libraries are not detectable by dependency walkers,
-    and this is why this plugin may be required.
+    and this is where this plugin steps in.
 
     Args:
         NuitkaPluginBase: plugin template class we are inheriting.
     """
 
     plugin_name = "numpy"  # Nuitka knows us by this name
-    plugin_desc = "Required for numpy, scipy, pandas and other packages"
+    plugin_desc = "Required for numpy, scipy, pandas, matplotlib, etc."
+
+    def __init__(self):
+        self.enabled_plugins = None  # list of active standard plugins
+        self.numpy_copied = False  # indicator: numpy files have been copied
+        self.scipy_copied = False  # indicator: scipy files have been copied
+        self.mpl_copied = False  # indicator: mpl-data files have been copied
 
     def considerExtraDlls(self, dist_dir, module):
-        """ Copy extra shared libraries for this numpy / scipy installation.
+        """ Copy extra shared libraries for this installation.
 
         Args:
             dist_dir: the name of the program's dist folder
-            module: module object (not used here)
+            module: module object
         Returns:
             empty tuple
         """
+        # pylint: disable=too-many-branches,too-many-return-statements
         full_name = module.getFullName()
-        if full_name not in ("numpy", "scipy"):
+        if full_name not in ("numpy", "scipy", "matplotlib"):
             return ()
 
         if full_name == "numpy":
+            if self.numpy_copied:
+                return ()
+            self.numpy_copied = True
             binaries = get_numpy_core_binaries()
             bin_total = len(binaries)  # anything there at all?
             if bin_total == 0:
                 return ()
-            info("")
-            info(" Copying extra binaries from 'numpy' installation:")
+
             for f in binaries:
-                bin_file = os.path.normcase(f[0])  # full binary file name
-                idx = bin_file.find("numpy")  # this will always work (idx > 0)
-                back_end = bin_file[idx:]  # => like 'numpy/core/file.so'
+                bin_file, idx = f  # (filename, pos. prefix + 1)
+                back_end = bin_file[idx:]
                 tar_file = os.path.join(dist_dir, back_end)
+                makePath(  # create any missing intermediate folders
+                    os.path.dirname(tar_file)
+                )
+                shutil.copyfile(bin_file, tar_file)
 
-                # create any missing intermediate folders
-                if not os.path.exists(os.path.dirname(tar_file)):
-                    os.makedirs(os.path.dirname(tar_file))
-
-                shutil.copy(bin_file, tar_file)
-
-            msg = " Copied %i %s."
-            msg = msg % (bin_total, "binary" if bin_total < 2 else "binaries")
+            msg = "Copied %i %s from 'numpy' installation." % (
+                bin_total,
+                "file" if bin_total < 2 else "files",
+            )
             info(msg)
             return ()
 
         if full_name == "scipy":
+            if self.scipy_copied:
+                return ()
+            self.scipy_copied = True
             if not self.getPluginOptionBool("scipy", False):
                 return ()
             binaries = get_scipy_core_binaries()
             bin_total = len(binaries)
             if bin_total == 0:
                 return ()
-            info("")
-            info(" Copying extra binaries from 'scipy' installation:")
+
             for f in binaries:
-                bin_file = os.path.normcase(f[0])  # full binary file name
-                idx = bin_file.find("scipy")  # this will always work (idx > 0)
+                bin_file, idx = f  # (filename, pos. prefix + 1)
                 back_end = bin_file[idx:]
                 tar_file = os.path.join(dist_dir, back_end)
+                makePath(  # create any missing intermediate folders
+                    os.path.dirname(tar_file)
+                )
+                shutil.copyfile(bin_file, tar_file)
 
-                # create any missing intermediate folders
-                if not os.path.exists(os.path.dirname(tar_file)):
-                    os.makedirs(os.path.dirname(tar_file))
+            msg = "Copied %i %s from 'scipy' installation." % (
+                bin_total,
+                "file" if bin_total < 2 else "files",
+            )
+            info(msg)
+            return ()
 
-                shutil.copy(bin_file, tar_file)
+        if full_name == "matplotlib":
+            if self.mpl_copied:
+                return ()
+            self.mpl_copied = True
+            if not self.getPluginOptionBool("matplotlib", False):
+                return ()
+            mpl_data = get_matplotlib_data()
+            if not mpl_data:
+                warning("'mpl-data' folder not found in matplotlib.")
+                return ()
+            mpl_data, idx = mpl_data  # (folder, pos. of 'matplotlib')
+            back_end = mpl_data[idx:]
+            tar_dir = os.path.join(dist_dir, back_end)
+            copyTree(mpl_data, tar_dir)
 
-            msg = " Copied %i %s."
-            msg = msg % (bin_total, "binary" if bin_total < 2 else "binaries")
+            msg = "Copied 'mpl-data' from 'matplotlib' installation."
             info(msg)
             return ()
 
@@ -267,6 +321,31 @@ class NumpyPlugin(NuitkaPluginBase):
     ):
         if module_package == "scipy.sparse.csgraph" and module_name == "_validation":
             return True, "Replicate implicit import"
+
+        if module_package is None:
+            return None
+        if module_package == module_name:
+            full_name = module_package
+        else:
+            full_name = module_package + "." + module_name
+
+        if full_name in ("cv2", "cv2.cv2", "cv2.data"):
+            return True, "needed for OpenCV"
+
+        if self.enabled_plugins is None:
+            self.enabled_plugins = [p for p in Options.getPluginsEnabled()]
+
+        # some special handling for matplotlib:
+        # keep certain modules depending on whether Tk or Qt plugins are enabled
+        if module_package == "matplotlib.backends":
+            if "tk-inter" in self.enabled_plugins and (
+                "backend_tk" in module_name or "tkagg" in module_name
+            ):
+                return True, "needed for tkinter interaction"
+            if "qt-plugins" in self.enabled_plugins and "backend_qt" in module_name:
+                return True, "needed for Qt interaction"
+            if module_name == "backend_agg":
+                return True, "needed as standard backend"
 
 
 class NumpyPluginDetector(NuitkaPluginBase):

@@ -264,7 +264,7 @@ class Plugins(object):
 
         Args:
             module: the module object
-            source_ref: ???
+            source_ref: source reference object
         Returns:
             True or False
         """
@@ -422,6 +422,7 @@ def importUserPlugins():
             sys.exit("Error, cannot find '%s'." % plugin_filename)
 
         user_plugin_module = importFile(plugin_filename)
+        valid_file = False
         for key in dir(user_plugin_module):
             obj = getattr(user_plugin_module, key)
             if not isObjectAUserPluginBaseClass(obj):
@@ -429,8 +430,13 @@ def importUserPlugins():
 
             plugin_name = getattr(obj, "plugin_name", None)
             if plugin_name and plugin_name not in Options.getPluginsDisabled():
+                info("User plugin '%s' is being loaded." % plugin_name)
                 active_plugin_list.append(obj())
-                info("User plugin '%s' loaded." % plugin_filename)
+                valid_file = True
+                break  # do not look for more in that module
+
+        if valid_file is False:  # this is not a plugin file ...
+            sys.exit("Error, '%s' is not a plugin file." % plugin_filename)
 
 
 def initPlugins():
