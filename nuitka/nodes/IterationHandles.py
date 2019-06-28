@@ -294,7 +294,8 @@ class ConstantRangeIterationHandleBase(IterationHandleBase):
             return StopIteration
         return bool(iteration_value)
 
-    def getAllElementTruthValue(self):
+    @staticmethod
+    def getAllElementTruthValue():
         return True
 
 
