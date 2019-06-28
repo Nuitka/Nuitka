@@ -559,9 +559,8 @@ PyObject *BUILTIN_ANY(PyObject *value) {
     PyObject *it = PyObject_GetIter(value);
 
     if (unlikely((it == NULL))) {
-    	return NULL;
+        return NULL;
     }
-
 
     iternextfunc iternext = Py_TYPE(it)->tp_iternext;
     for (;;) {
@@ -584,7 +583,7 @@ PyObject *BUILTIN_ANY(PyObject *value) {
 
     Py_DECREF(it);
     if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED())) {
-    	return NULL;
+        return NULL;
     }
 
     Py_INCREF(Py_False);

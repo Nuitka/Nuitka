@@ -61,12 +61,10 @@ typedef struct {
     long ilong_value;
 } nuitka_ilong;
 
-NUITKA_MAY_BE_UNUSED static void ENFORCE_ILONG_OBJECT_VALUE(nuitka_ilong *value)
-{
-    assert( value->validity != NUITKA_ILONG_UNASSIGNED );
+NUITKA_MAY_BE_UNUSED static void ENFORCE_ILONG_OBJECT_VALUE(nuitka_ilong *value) {
+    assert(value->validity != NUITKA_ILONG_UNASSIGNED);
 
-    if ((value->validity & NUITKA_ILONG_OBJECT_VALID) == 0)
-    {
+    if ((value->validity & NUITKA_ILONG_OBJECT_VALID) == 0) {
         value->ilong_object = PyLong_FromLong(value->ilong_value);
 
         value->validity = NUITKA_ILONG_BOTH_VALID;
