@@ -333,7 +333,17 @@ def autoformat(filename, git_stage, abort):
     is_c = filename.endswith((".c", ".h"))
 
     is_txt = filename.endswith(
-        (".txt", ".rst", ".sh", ".in", ".md", ".stylesheet", ".j2", ".gitignore")
+        (
+            ".patch",
+            ".txt",
+            ".rst",
+            ".sh",
+            ".in",
+            ".md",
+            ".stylesheet",
+            ".j2",
+            ".gitignore",
+        )
     )
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
