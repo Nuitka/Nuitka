@@ -1269,7 +1269,7 @@ elif not module_mode or (macosx_target and not static_libpython):
             python_debug
             and python_prefix == "/usr"
             and not python_version.startswith("3")
-            and platform.dist()[0].lower()  # pylint: disable=no-member
+            and platform.dist()[0].lower()  # pylint: disable=I0021,no-member
             in ("debian", "ubuntu")
         ):
             env.Append(LIBS=["python" + python_abi_version + "_d"])
@@ -1300,7 +1300,7 @@ if debug_mode or unstripped_mode:
         env.Append(CCFLAGS=["-g"])
         env.Append(ASFLAGS=["-g"])
 
-        if "gcc" in the_cc_name or "g++" in the_cc_name:
+        if not clang_mode:
             env.Append(CCFLAGS=["-feliminate-unused-debug-types"])
     elif msvc_mode:
         env.Append(CCFLAGS=["/Z7"])

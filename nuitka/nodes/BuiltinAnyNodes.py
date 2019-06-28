@@ -1,5 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
-#                     Batakrishna Sahu, mailto:batakrishna.sahu@suiit.ac.in
+#     Copyright 2019, Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
