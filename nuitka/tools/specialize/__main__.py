@@ -27,8 +27,8 @@ from abc import abstractmethod
 import jinja2
 
 import nuitka.codegen.OperationCodes
-from nuitka.tools.quality.autoformat.Autoformat import autoformat
 from nuitka.__past__ import getMetaClassBase
+from nuitka.tools.quality.autoformat.Autoformat import autoformat
 
 
 class TypeDescBase(getMetaClassBase("Type")):
