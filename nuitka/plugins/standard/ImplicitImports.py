@@ -699,6 +699,84 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             for item in self.getImportsByFullname(full_name):
                 yield item
 
+    def getImportsByFullname(self, full_name):
+        """ Recursively create a set of imports for a fullname.
+
+        Notes:
+            If an imported item has imported kids, call me again with each kid,
+            resulting in a leaf-only set (no more consequential kids).
+        """
+        result = OrderedSet()
+
+        def checkImportsRecursive(module_name):
+            for item in self._getImportsByFullname(module_name):
+                if item not in result:
+                    result.add(item)
+                    checkImportsRecursive(item[0])
+
+        checkImportsRecursive(full_name)
+
+        return result
+
+    def getImplicitImports(self, module):
+        # Many variables, branches, due to the many cases, pylint: disable=too-many-branches
+        full_name = module.getFullName()
+
+        if module.isPythonShlibModule():
+            for used_module in module.getUsedModules():
+                yield used_module[0], False
+
+        if full_name == "pkg_resources.extern":
+            if self.pkg_utils_externals is None:
+                for line in getFileContentByLine(module.getCompileTimeFilename()):
+                    if line.startswith("names"):
+                        line = line.split("=")[-1].strip()
+                        parts = line.split(",")
+
+                        self.pkg_utils_externals = [part.strip("' ") for part in parts]
+
+                        break
+                else:
+                    self.pkg_utils_externals = ()
+
+            for pkg_util_external in self.pkg_utils_externals:
+                yield "pkg_resources._vendor." + pkg_util_external, False
+
+        elif full_name == "OpenGL":
+            if self.opengl_plugins is None:
+                self.opengl_plugins = []
+
+                for line in getFileContentByLine(module.getCompileTimeFilename()):
+                    if line.startswith("PlatformPlugin("):
+                        os_part, plugin_name_part = line[15:-1].split(",")
+                        os_part = os_part.strip("' ")
+                        plugin_name_part = plugin_name_part.strip(") '")
+                        plugin_name_part = plugin_name_part[
+                            : plugin_name_part.rfind(".")
+                        ]
+                        if os_part == "nt":
+                            if getOS() == "Windows":
+                                self.opengl_plugins.append(plugin_name_part)
+                        elif os_part.startswith("linux"):
+                            if getOS() == "Linux":
+                                self.opengl_plugins.append(plugin_name_part)
+                        elif os_part.startswith("darwin"):
+                            if getOS() == "Darwin":
+                                self.opengl_plugins.append(plugin_name_part)
+                        elif os_part.startswith(("posix", "osmesa", "egl")):
+                            if getOS() != "Windows":
+                                self.opengl_plugins.append(plugin_name_part)
+                        else:
+                            assert False, os_part
+
+            for opengl_plugin in self.opengl_plugins:
+                yield opengl_plugin, True
+
+        else:
+            # create a flattend import set for full_name and yield from it
+            for item in self.getImportsByFullname(full_name):
+                yield item
+
     # We don't care about line length here, pylint: disable=line-too-long
 
     module_aliases = {
