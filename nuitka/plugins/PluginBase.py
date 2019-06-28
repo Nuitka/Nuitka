@@ -26,8 +26,6 @@ The base class will serve as documentation. And it will point to examples of
 it being used.
 """
 
-import os
-
 # This is heavily WIP.
 import sys
 from logging import info, warning
@@ -169,6 +167,8 @@ class NuitkaPluginBase(object):
         Returns:
             None
         """
+        from nuitka.importing.Importing import getModuleNameAndKindFromFilename
+
         for full_name, required in self.getImplicitImports(module):
             module_name = full_name.split(".")[-1]
             module_package = ".".join(full_name.split(".")[:-1]) or None
@@ -188,14 +188,10 @@ class NuitkaPluginBase(object):
                     )
                 else:
                     continue
-            elif os.path.isdir(module_filename):
-                module_kind = "py"
-            elif module_filename.endswith(".py"):
-                module_kind = "py"
-            elif module_filename.endswith(".so") or module_filename.endswith(".pyd"):
-                module_kind = "shlib"
-            else:
-                assert False, module_filename
+
+            _module_name2, module_kind = getModuleNameAndKindFromFilename(
+                module_filename
+            )
 
             # TODO: This should get back to plug-ins, they should be allowed to
             # preempt or override the decision.
