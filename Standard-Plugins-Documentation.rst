@@ -108,4 +108,3 @@ torch
 ~~~~~~
 * Required by the *torch*  and *torchvision* packages. *Torchvision* requires *numpy*.
 * Options: none.
-
