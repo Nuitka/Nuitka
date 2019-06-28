@@ -28,7 +28,7 @@ from .NodeMakingHelpers import (
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithNodeSideEffects,
 )
-from .shapes.BuiltinTypeShapes import ShapeTypeBool
+from .shapes.BuiltinTypeShapes import ShapeTypeBool, ShapeTypeStr
 
 
 class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
@@ -57,38 +57,24 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
                 value_node=value,
             )
 
+        if shape is ShapeTypeStr:
+            return (
+                wrapExpressionWithNodeSideEffects(
+                    new_node=makeConstantReplacementNode(constant=True, node=self),
+                    old_node=value,
+                ),
+                "new_constant",
+                "Predicted truth value of built-in all string type argument",
+            )
+
         iteration_handle = value.getIterationHandle()
 
         if iteration_handle is not None:
-            all_true = True
-            count = 0
-            while True:
-                truth_value = iteration_handle.getNextValueTruth()
-                if truth_value is StopIteration:
-                    break
-                if count > 256:
-                    all_true = False
-                    break
+            all_true = iteration_handle.getAllElementTruthValue()
 
-                if truth_value is False:
-                    result = wrapExpressionWithNodeSideEffects(
-                        new_node=makeConstantReplacementNode(constant=False, node=self),
-                        old_node=value,
-                    )
-
-                    return (
-                        result,
-                        "new_constant",
-                        "Predicted truth value of built-in all argument",
-                    )
-                elif truth_value is None:
-                    all_true = False
-
-                count += 1
-
-            if all_true is True:
+            if all_true is not None:
                 result = wrapExpressionWithNodeSideEffects(
-                    new_node=makeConstantReplacementNode(constant=True, node=self),
+                    new_node=makeConstantReplacementNode(constant=all_true, node=self),
                     old_node=value,
                 )
 
