@@ -16,7 +16,6 @@
 //     limitations under the License.
 //
 
-
 #if PYTHON_VERSION < 300
 PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name) {
     CHECK_OBJECT(klass);
