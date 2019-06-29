@@ -476,6 +476,9 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return ShapeTypeTuple
 
+    def getElements(self):
+        return self.getConstant()
+
 
 the_empty_tuple = ()
 

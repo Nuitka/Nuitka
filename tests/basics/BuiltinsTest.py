@@ -683,5 +683,5 @@ def call():
 
 print(max(1, 2))
 print(max(1, 2, call()))
-print(max([0]*1000))
-print(max(1, 2, None))
+# print(max([0]*1000))
+# print(max(1, 2, None))

@@ -943,7 +943,7 @@ def eval_extractor(node):
 
 def max_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator
-    def wrapMaxBuiltin(source, globals_arg, locals_arg, source_ref):
+    def wrapMaxBuiltin(source, source_ref):
         provider = node.getParentVariableProvider()
 
         outline_body = ExpressionOutlineBody(
@@ -952,10 +952,6 @@ def max_extractor(node):
             source_ref=source_ref,
         )
 
-        # you cannot assume constants, please be general.
-        # check for length and do if len of call args >= 2
-
-        # to be derived from node.getCallArgs
         call_args = node.getCallArgs()
 
         assert call_args.getIterationLength() >= 2
