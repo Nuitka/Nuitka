@@ -957,15 +957,16 @@ def max_extractor(node):
         assert call_args.getIterationLength() >= 2
 
         max_arg_variables = [
-            provider.allocateTempVariable(temp_scope=None, name="max_arg_%d" % i)
+            outline_body.allocateTempVariable(temp_scope=None, name="max_arg_%d" % i)
             for i in range(call_args.getIterationLength())
         ]
 
-        max_result_variable = provider.allocateTempVariable(
+        max_result_variable = outline_body.allocateTempVariable(
             temp_scope=None, name="max_result"
         )
+        import ipdb
 
-        # import ipdb; ipdb.set_trace()
+        ipdb.set_trace()
 
         # To be executed at beginning of outline body. These need
         # to be released, or else we loose reference
