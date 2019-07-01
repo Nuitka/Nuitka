@@ -49,6 +49,37 @@ class IterationHandleBase(getMetaClassBase("IterationHandle")):
             return StopIteration
         return iteration_value.getTruthValue()
 
+    def getAllElementTruthValue(self):
+        all_true = True
+        count = 0
+        while True:
+            # This is a function that returns True, False, or None
+            # True -> definitely true value
+            # False -> definitely false value
+            # None -> I don't know, could be true, could be false
+            # StopIteration -> end of iteration over values
+            truth_value = self.getNextValueTruth()
+            if truth_value is StopIteration:
+                break
+
+            if count > 256:
+                return None
+
+            # If one value is definitely false -> result is false,
+            # end of story.
+            if truth_value is False:
+                return False
+
+            # If one value has unknown truth value, we cannot claim
+            # to know that all() with that contained to be true,
+            # but it might still become False!
+            if truth_value is None:
+                all_true = None
+
+            count += 1
+
+        return all_true
+
 
 class ConstantIterationHandleBase(IterationHandleBase):
     """Base class for the Constant Iteration Handles.
@@ -101,37 +132,6 @@ class ConstantIterationHandleBase(IterationHandleBase):
 
     def getIterationValueWithIndex(self, value_index):
         return None
-
-    def getAllElementTruthValue(self):
-        all_true = True
-        count = 0
-        while True:
-            # This is a function that returns True, False, or None
-            # True -> definitely true value
-            # False -> definitely false value
-            # None -> I don't know, could be true, could be false
-            # StopIteration -> end of iteration over values
-            truth_value = self.getNextValueTruth()
-            if truth_value is StopIteration:
-                break
-
-            if count > 256:
-                return None
-
-            # If one value is definitely false -> result is false,
-            # end of story.
-            if truth_value is False:
-                return False
-
-            # If one value has unknown truth value, we cannot claim
-            # to know that all() with that contained to be true,
-            # but it might still become False!
-            if truth_value is None:
-                all_true = None
-
-            count += 1
-
-        return all_true
 
 
 class ConstantIndexableIterationHandle(ConstantIterationHandleBase):
