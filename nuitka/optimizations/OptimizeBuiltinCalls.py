@@ -964,9 +964,6 @@ def max_extractor(node):
         max_result_variable = outline_body.allocateTempVariable(
             temp_scope=None, name="max_result"
         )
-        import ipdb
-
-        ipdb.set_trace()
 
         # To be executed at beginning of outline body. These need
         # to be released, or else we loose reference
