@@ -95,7 +95,11 @@ from nuitka.nodes.BuiltinTypeNodes import (
 from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import ExpressionBuiltinType3
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs, ExpressionComparisonLt
+from nuitka.nodes.ComparisonNodes import (
+    ExpressionComparisonGt,
+    ExpressionComparisonIs,
+    ExpressionComparisonLt,
+)
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional,
@@ -943,9 +947,8 @@ def eval_extractor(node):
 
 def max_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator
-    def wrapMaxBuiltin(source, source_ref):
-        provider = node.getParentVariableProvider()
-
+    def wrapMaxBuiltin(args, source_ref):
+        # pylint: disable=unused-argument
         outline_body = ExpressionOutlineBody(
             provider=node.getParentVariableProvider(),
             name="max_call",
@@ -1046,6 +1049,113 @@ def max_extractor(node):
         node=node,
         builtin_class=wrapMaxBuiltin,
         builtin_spec=BuiltinParameterSpecs.builtin_max_spec,
+    )
+
+
+def min_extractor(node):
+    @calledWithBuiltinArgumentNamesDecorator
+    def wrapMinBuiltin(args, source_ref):
+        # pylint: disable=unused-argument
+        outline_body = ExpressionOutlineBody(
+            provider=node.getParentVariableProvider(),
+            name="min_call",
+            source_ref=source_ref,
+        )
+
+        call_args = node.getCallArgs()
+
+        assert call_args.getIterationLength() >= 2
+
+        min_arg_variables = [
+            outline_body.allocateTempVariable(temp_scope=None, name="min_arg_%d" % i)
+            for i in range(call_args.getIterationLength())
+        ]
+
+        min_result_variable = outline_body.allocateTempVariable(
+            temp_scope=None, name="min_result"
+        )
+
+        # To be executed at beginning of outline body. These need
+        # to be released, or else we loose reference
+        statements = [
+            StatementAssignmentVariable(
+                variable=min_arg_variable, source=call_arg, source_ref=source_ref
+            )
+            for call_arg, min_arg_variable in zip(
+                call_args.getElements(), min_arg_variables
+            )
+        ]
+
+        statements.append(
+            StatementAssignmentVariable(
+                variable=min_result_variable,
+                source=ExpressionTempVariableRef(
+                    variable=min_arg_variables[0], source_ref=source_ref
+                ),
+                source_ref=source_ref,
+            )
+        )
+
+        for min_arg_variable in min_arg_variables[1:]:
+            statements.append(
+                makeStatementConditional(
+                    condition=ExpressionComparisonGt(
+                        left=ExpressionTempVariableRef(
+                            variable=min_result_variable, source_ref=source_ref
+                        ),
+                        right=ExpressionTempVariableRef(
+                            variable=min_arg_variable, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    yes_branch=StatementAssignmentVariable(
+                        variable=min_result_variable,
+                        source=ExpressionTempVariableRef(
+                            variable=min_arg_variable, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    no_branch=None,
+                    source_ref=source_ref,
+                )
+            )
+
+        statements.append(
+            StatementReturn(
+                expression=ExpressionTempVariableRef(
+                    variable=min_result_variable, source_ref=source_ref
+                ),
+                source_ref=source_ref,
+            )
+        )
+
+        final_statements = [
+            StatementReleaseVariable(variable=min_arg_variable, source_ref=source_ref)
+            for min_arg_variable in min_arg_variables
+        ]
+        final_statements.append(
+            StatementReleaseVariable(
+                variable=min_result_variable, source_ref=source_ref
+            )
+        )
+
+        outline_body.setBody(
+            makeStatementsSequenceFromStatement(
+                statement=makeTryFinallyStatement(
+                    provider=outline_body,
+                    tried=statements,
+                    final=final_statements,
+                    source_ref=source_ref,
+                )
+            )
+        )
+
+        return outline_body
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=wrapMinBuiltin,
+        builtin_spec=BuiltinParameterSpecs.builtin_min_spec,
     )
 
 
@@ -1392,6 +1502,7 @@ _dispatch_dict = {
     "locals": locals_extractor,
     "eval": eval_extractor,
     "max": max_extractor,
+    "min": min_extractor,
     "dir": dir_extractor,
     "vars": vars_extractor,
     "__import__": import_extractor,

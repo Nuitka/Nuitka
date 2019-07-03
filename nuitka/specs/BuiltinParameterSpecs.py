@@ -389,6 +389,7 @@ if python_version >= 300:
         "exec", ("source", "globals", "locals"), default_count=2
     )
 builtin_max_spec = BuiltinParameterSpec("max", (), 0, "args")
+builtin_min_spec = BuiltinParameterSpec("min", (), 0, "args")
 
 # Note: Iter in fact names its first argument if the default applies
 # "collection", fixed up in a wrapper.

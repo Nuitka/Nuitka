@@ -689,3 +689,14 @@ try:
     print(max(1, 2, None))
 except Exception as e:
     print("not supported between instances of 'NoneType' and 'int'")
+print(max(1.0, 1))
+
+
+print("tests for min()")
+print(min(1, 2))
+print(min(1, 2, call()))
+try:
+    print(min(1, 2, None))
+except Exception as e:
+    print("not supported between instances of 'NoneType' and 'int'")
+print(min(1.0, 1))
