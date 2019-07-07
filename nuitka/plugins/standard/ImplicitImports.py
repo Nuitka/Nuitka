@@ -881,6 +881,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "nose",  # Not performance relevant.
         "coverage",  # Not performance relevant.
         "docutils",  # Not performance relevant.
+        "pytest",  # Not performance relevant.
+        "_pytest",  # Not performance relevant.
+        "unittest",  # Not performance relevant.
         "pexpect",  # Not performance relevant.
         "Cython",  # Mostly unused, and a lot of modules.
         "cython",

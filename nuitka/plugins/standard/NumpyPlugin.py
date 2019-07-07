@@ -205,18 +205,12 @@ def get_numpy_core_binaries():
 class NumpyPlugin(NuitkaPluginBase):
     """ This class represents the main logic of the plugin.
 
-    This is a plugin to ensure numpy and scipy scripts compile and work well in standalone mode.
+    This is a plugin to ensure scripts using numpy, scipy, matplotlib, pandas,
+    scikit-learn, etc. work well in standalone mode.
 
     While there already are relevant entries in the "ImplicitImports.py" plugin,
-    this plugin copies any additional binary files required by many installations.
-    Typically, these binaries are used for acceleration by replacing parts of
-    the packages' homegrown code with highly tuned routines.
-
-    Typical examples are MKL (Intel's Math Kernel Library), OpenBlas, scipy
-    extra-dll and others.
-
-    Many of these special libraries are not detectable by dependency walkers,
-    and this is where this plugin steps in.
+    this plugin copies any additional binary or data files required by many
+    installations.
 
     Args:
         NuitkaPluginBase: plugin template class we are inheriting.
@@ -227,12 +221,13 @@ class NumpyPlugin(NuitkaPluginBase):
 
     def __init__(self):
         self.enabled_plugins = None  # list of active standard plugins
-        self.numpy_copied = False  # indicator: numpy files have been copied
-        self.scipy_copied = False  # indicator: scipy files have been copied
-        self.mpl_copied = False  # indicator: mpl-data files have been copied
+        self.numpy_copied = False  # indicator: numpy files copied
+        self.scipy_copied = False  # indicator: scipy files copied
+        self.mpl_copied = False  # indicator: mpl-data files copied
+        self.sklearn_copied = False  # indicator: sklearn files copied
 
     def considerExtraDlls(self, dist_dir, module):
-        """ Copy extra shared libraries for this installation.
+        """ Copy extra shared libraries or data for this installation.
 
         Args:
             dist_dir: the name of the program's dist folder
@@ -242,7 +237,7 @@ class NumpyPlugin(NuitkaPluginBase):
         """
         # pylint: disable=too-many-branches,too-many-return-statements
         full_name = module.getFullName()
-        if full_name not in ("numpy", "scipy", "matplotlib"):
+        if full_name not in ("numpy", "scipy", "matplotlib", "sklearn.datasets"):
             return ()
 
         if full_name == "numpy":
@@ -316,9 +311,27 @@ class NumpyPlugin(NuitkaPluginBase):
             info(msg)
             return ()
 
+        if full_name == "sklearn.datasets":
+            if self.sklearn_copied:
+                return ()
+            self.sklearn_copied = True
+            if not self.getPluginOptionBool("sklearn", False):
+                return ()
+            sklearn_dir = os.path.dirname(get_module_file_attribute("sklearn"))
+            source_data = os.path.join(sklearn_dir, "datasets", "data")
+            target_data = os.path.join(dist_dir, "sklearn", "datasets", "data")
+            source_descr = os.path.join(sklearn_dir, "datasets", "descr")
+            target_descr = os.path.join(dist_dir, "sklearn", "datasets", "descr")
+            copyTree(source_data, target_data)
+            info("Copied folder sklearn/datasets/data")
+            copyTree(source_descr, target_descr)
+            info("Copied folder sklearn/datasets/descr")
+            return ()
+
     def onModuleEncounter(
         self, module_filename, module_name, module_package, module_kind
     ):
+        # pylint: disable=too-many-branches,too-many-statements,too-many-return-statements
         if module_package == "scipy.sparse.csgraph" and module_name == "_validation":
             return True, "Replicate implicit import"
 
@@ -332,11 +345,56 @@ class NumpyPlugin(NuitkaPluginBase):
         if full_name in ("cv2", "cv2.cv2", "cv2.data"):
             return True, "needed for OpenCV"
 
-        if self.enabled_plugins is None:
-            self.enabled_plugins = [p for p in Options.getPluginsEnabled()]
+        if module_package == "sklearn.utils.sparsetools" and module_name in (
+            "_graph_validation",
+            "_graph_tools",
+        ):
+            return True, "Needed by sklearn"
+
+        if module_package == "sklearn.utils" and module_name in (
+            "lgamma",
+            "weight_vector",
+            "_unittest_backport",
+        ):
+            return True, "Needed by sklearn"
+
+        posix = (
+            "managers",
+            "synchronize",
+            "compat_posix",
+            "_posix_reduction",
+            "popen_loky_posix",
+        )
+        win32 = (
+            "managers",
+            "synchronize",
+            "_win_wait",
+            "_win_reduction",
+            "popen_loky_win32",
+        )
+
+        if isWin32Windows():
+            valid_list = win32
+        else:
+            valid_list = posix
+
+        if (
+            module_package == "sklearn.externals.joblib.externals.loky.backend"
+            and module_name in valid_list
+        ):
+            return True, "Needed by sklearn"
+
+        if (
+            module_package == "sklearn.externals.joblib.externals.cloudpickle"
+            and module_name == "dumps"
+        ):
+            return True, "Needed by sklearn"
 
         # some special handling for matplotlib:
         # keep certain modules depending on whether Tk or Qt plugins are enabled
+        if self.enabled_plugins is None:
+            self.enabled_plugins = [p for p in Options.getPluginsEnabled()]
+
         if module_package == "matplotlib.backends":
             if "tk-inter" in self.enabled_plugins and (
                 "backend_tk" in module_name or "tkagg" in module_name

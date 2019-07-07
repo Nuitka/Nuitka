@@ -52,6 +52,32 @@ class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
     def __init__(self):
         self.qt_dirs = {}
 
+    @staticmethod
+    def createPreModuleLoadCode(module):
+        """ Method called when a module is being imported.
+
+        Notes:
+            If full name equals "PyQt?" we insert code to include the dist
+            folder in the 'PATH' environment variable (on Windows only).
+
+        Args:
+            module: the module object
+        Returns:
+            Code to insert and descriptive text (tuple), or (None, None).
+        """
+        if not isWin32Windows():  # we are only relevant on Windows
+            return None, None
+
+        if module.getFullName() not in ("PyQt4", "PyQt5"):
+            return None, None  # not for us
+
+        code = """import os
+path = os.environ.get("PATH", "")
+if not path.startswith(__nuitka_binary_dir):
+    os.environ["PATH"] = __nuitka_binary_dir + ";" + path
+"""
+        return code, "Adding dist folder to 'PATH' environment variable."
+
     def getPyQtPluginDirs(self, qt_version):
         if qt_version in self.qt_dirs:
             return self.qt_dirs[qt_version]
