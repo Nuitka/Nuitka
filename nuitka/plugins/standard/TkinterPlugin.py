@@ -24,9 +24,7 @@ from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import copyTree
-from nuitka.utils.Utils import isWin32Windows
 
 
 def _isTkInterModule(module):
@@ -39,7 +37,8 @@ class TkinterPlugin(NuitkaPluginBase):
 
     This is a plug-in to make programs work well in standalone mode which are using tkinter.
     These programs require the presence of certain libraries written in the TCL language.
-    On Windows platforms, the existence of these libraries cannot be assumed. We therefore
+    On Windows platforms, and even on Linux, the existence of these libraries cannot be
+    assumed. We therefore
 
     1. Copy the TCL libraries as sub-folders to the program's dist folder
     2. Redirect the program's tkinter requests to these library copies. This is
@@ -51,10 +50,15 @@ class TkinterPlugin(NuitkaPluginBase):
 
     Args:
         NuitkaPluginBase: the plugin template class we are inheriting.
+
+    Notes:
+        You can enforce using a specific TCL folder by using TCL_LIBRARY
+        and a Tk folder by using TK_LIBRARY, but that ought to normally
+        not be necessary.
     """
 
     plugin_name = "tk-inter"  # Nuitka knows us by this name
-    plugin_desc = "Required by Python's Tk modules on Windows"
+    plugin_desc = "Required by Python's Tk modules"
 
     def __init__(self):
         self.files_copied = False  # ensure one-time action
@@ -73,9 +77,6 @@ class TkinterPlugin(NuitkaPluginBase):
         Returns:
             Code to insert and None (tuple)
         """
-        if not isWin32Windows():  # we are only relevant on Windows
-            return None, None
-
         # only insert code for tkinter related modules
         if not _isTkInterModule(module):
             return None, None
@@ -110,37 +111,48 @@ if not os.environ.get("TCL_LIBRARY", None):
             return ()
         self.files_copied = True
 
-        if not isWin32Windows():  # if not Windows notify wrong usage once
-            info("tkinter plugin supported on Windows only")
-            return ()
+        # Check typical locations of the dirs
+        candidates_tcl = (
+            os.environ.get("TCL_LIBRARY"),
+            os.path.join(sys.prefix, "tcl", "tcl8.5"),
+            os.path.join(sys.prefix, "tcl", "tcl8.6"),
+            "/usr/share/tcltk/tcl8.6",
+            "/usr/share/tcltk/tcl8.5",
+            "/usr/share/tcl8.6",
+            "/usr/share/tcl8.5",
+        )
+        candidates_tk = (
+            os.environ.get("TK_LIBRARY"),
+            os.path.join(sys.prefix, "tcl", "tk8.5"),
+            os.path.join(sys.prefix, "tcl", "tk8.6"),
+            "/usr/share/tcltk/tk8.6",
+            "/usr/share/tcltk/tk8.5",
+            "/usr/share/tk8.6",
+            "/usr/share/tk8.5",
+        )
 
-        if python_version < 340:  # last tk/tcl qualifyers Py 2
-            tk_lq = "tk8.5"
-            tcl_lq = "tcl8.5"
-        else:  # last tk/tcl qualifyers Py 3+
-            tk_lq = "tk8.6"
-            tcl_lq = "tcl8.6"
+        tcl = None
+        for tcl in candidates_tcl:
+            if tcl is not None and os.path.exists(tcl):
+                break
+        else:
+            sys.exit("Could not find Tcl. Aborting standalone generation.")
 
-        # check possible locations of the dirs
-        sys_tcl = os.path.join(os.path.dirname(sys.executable), "tcl")
-        tk = os.path.join(sys_tcl, tk_lq)
-        tcl = os.path.join(sys_tcl, tcl_lq)
-
-        # if this was not the right place, try this:
-        if not (os.path.exists(tk) and os.path.exists(tcl)):
-            tk = os.environ.get("TK_LIBRARY", None)
-            tcl = os.environ.get("TCL_LIBRARY", None)
-            if not (tk and tcl):
-                info(" Could not find TK / TCL libraries")
-                sys.exit("aborting standalone generation.")
+        tk = None
+        for tk in candidates_tk:
+            if tk is not None and os.path.exists(tk):
+                break
+        else:
+            sys.exit("Could not find Tk. Aborting standalone generation.")
 
         # survived the above, now do the copying to following locations
         tar_tk = os.path.join(dist_dir, "tk")
         tar_tcl = os.path.join(dist_dir, "tcl")
 
-        info(" Now copying tk libraries from %r." % tk)  # just to entertain
+        info(" Now copying Tk libraries from '%s'." % tk)  # just to entertain
         copyTree(tk, tar_tk)
-        info(" Now copying tkinter libraries from %r." % tcl)  # just to entertain
+
+        info(" Now copying TCL libraries from %r." % tcl)  # just to entertain
         copyTree(tcl, tar_tcl)
 
         # Definitely don't need the demos, so remove them again.
@@ -166,7 +178,7 @@ class TkinterPluginDetector(NuitkaPluginBase):
         Returns:
             True if this is a standalone compilation on Windows, else False.
         """
-        return Options.isStandaloneMode() and isWin32Windows()
+        return Options.isStandaloneMode()
 
     def onModuleSourceCode(self, module_name, source_code):
         """ This method passes the source code and expects it back - potentially modified.

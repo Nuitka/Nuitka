@@ -159,9 +159,7 @@ def main():
         elif filename == "TkInterUsing.py":
             # For the plug-in information.
             extra_flags.append("ignore_infos")
-
-            if os.name == "nt":
-                extra_flags.append("plugin_enable:tk-inter")
+            extra_flags.append("plugin_enable:tk-inter")
         elif filename == "FlaskUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
