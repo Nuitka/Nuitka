@@ -590,6 +590,156 @@ PyObject *BUILTIN_ANY(PyObject *value) {
     return Py_False;
 }
 
+#if PYTHON_VERSION < 300
+PyObject *BUILTIN_MAP(PyObject *self, PyObject *args) {
+    typedef struct {
+        PyObject *it;           /* the iterator object */
+        int saw_StopIteration;  /* bool:  did the iterator end? */
+    } sequence;
+
+    sequence *seqs = NULL, *sqp;
+    register int i, j;
+
+    Py_ssize_t n = PyTuple_Size(args);
+    if (n < 2) {
+        PyErr_SetString(PyExc_TypeError,
+                        "map() requires at least two args");
+        return NULL;
+    }
+
+    PyObject *func = PyTuple_GetItem(args, 0);
+    n--;
+
+    if (func == Py_None) {
+        if (PyErr_WarnPy3k("map(None, ...) not supported in 3.x; "
+                           "use list(...)", 1) < 0)
+            return NULL;
+        if (n == 1) {
+            /* map(None, S) is the same as list(S). */
+            return PySequence_List(PyTuple_GetItem(args, 1));
+        }
+    }
+
+    /* Get space for sequence descriptors.  Must NULL out the iterator
+     * pointers so that jumping to Fail_2 later doesn't see trash.
+     */
+    if ((seqs = PyMem_NEW(sequence, n)) == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+    for (i = 0; i < n; ++i) {
+        seqs[i].it = (PyObject*)NULL;
+        seqs[i].saw_StopIteration = 0;
+    }
+
+    /* Do a first pass to obtain iterators for the arguments, and set len
+     * to the largest of their lengths.
+     */
+    Py_ssize_t len = 0;
+    for (i = 0, sqp = seqs; i < n; ++i, ++sqp) {
+        /* Get iterator. */
+        PyObject *curseq = PyTuple_GetItem(args, i+1);
+
+        sqp->it = PyObject_GetIter(curseq);
+        if (sqp->it == NULL) {
+            static char errmsg[] =
+                "argument %d to map() must support iteration";
+            char errbuf[sizeof(errmsg) + 25];
+            PyOS_snprintf(errbuf, sizeof(errbuf), errmsg, i+2);
+            PyErr_SetString(PyExc_TypeError, errbuf);
+            goto Fail_2;
+        }
+
+        /* Update len. */
+        Py_ssize_t curlen = _PyObject_LengthHint(curseq, 8);
+        if (curlen > len)
+            len = curlen;
+    }
+
+    PyObject *result = (PyObject *) PyList_New(len);
+    /* Get space for the result list. */
+    if (result == NULL)
+        goto Fail_2;
+
+    /* Iterate over the sequences until all have stopped. */
+    for (i = 0; ; ++i) {
+        PyObject *alist, *item=NULL, *value;
+        int numactive = 0;
+
+        if (func == Py_None && n == 1)
+            alist = NULL;
+        else if ((alist = PyTuple_New(n)) == NULL)
+            goto Fail_1;
+
+        for (j = 0, sqp = seqs; j < n; ++j, ++sqp) {
+            if (sqp->saw_StopIteration) {
+                Py_INCREF(Py_None);
+                item = Py_None;
+            }
+            else {
+                item = PyIter_Next(sqp->it);
+                if (item)
+                    ++numactive;
+                else {
+                    if (PyErr_Occurred()) {
+                        Py_XDECREF(alist);
+                        goto Fail_1;
+                    }
+                    Py_INCREF(Py_None);
+                    item = Py_None;
+                    sqp->saw_StopIteration = 1;
+                }
+            }
+            if (alist)
+                PyTuple_SET_ITEM(alist, j, item);
+            else
+                break;
+        }
+
+        if (!alist)
+            alist = item;
+
+        if (numactive == 0) {
+            Py_DECREF(alist);
+            break;
+        }
+
+        if (func == Py_None)
+            value = alist;
+        else {
+            value = PyEval_CallObject(func, alist);
+            Py_DECREF(alist);
+            if (value == NULL)
+                goto Fail_1;
+        }
+        if (i >= len) {
+            int status = PyList_Append(result, value);
+            Py_DECREF(value);
+            if (status < 0)
+                goto Fail_1;
+        }
+        else if (PyList_SetItem(result, i, value) < 0)
+            goto Fail_1;
+    }
+
+    if (i < len && PyList_SetSlice(result, i, len, NULL) < 0)
+        goto Fail_1;
+
+    goto Succeed;
+
+Fail_1:
+    Py_DECREF(result);
+Fail_2:
+    result = NULL;
+Succeed:
+    assert(seqs);
+    for (i = 0; i < n; ++i)
+        Py_XDECREF(seqs[i].it);
+    PyMem_DEL(seqs);
+    return result;
+}
+#endif
+
 NUITKA_DEFINE_BUILTIN(format);
 
 PyObject *BUILTIN_FORMAT(PyObject *value, PyObject *format_spec) {
