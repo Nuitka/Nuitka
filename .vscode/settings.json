@@ -1,5 +1,10 @@
 {
     "files.trimTrailingWhitespace": true,
     "files.trimFinalNewlines": true,
-    "C_Cpp.dimInactiveRegions": false
+    "C_Cpp.dimInactiveRegions": false,
+    "files.exclude": {
+        "**/*.build": true,
+        "**/*.pyc": true,
+        "**/__pycache__": true
+    }
 }
