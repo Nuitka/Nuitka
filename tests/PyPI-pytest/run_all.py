@@ -28,7 +28,7 @@ from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.FileOperations import removeDirectory
 
 
-# currently trying to start automating with urllib3, 
+# currently trying to start automating with urllib3,
 #   will extend to other PyPI packages in the future
 
 packages = {
@@ -95,10 +95,12 @@ for package_name, details in packages.items():
                 ]
             )
 
+
     except Exception as exceptObj:
         print("Package", package_name, "ran into an exception during execution, traceback: ")
         print(exceptObj)
         continue
+
 
 
     # print statements for debugging
@@ -139,7 +141,7 @@ for package_name, details in packages.items():
         ignore_infos=True,
         syntax_errors=True,
     )
-    
+
     print("---------------------------------------------------------------------------------")
     print("exit_stdout:", exit_code_stdout, "exit_stderr:", exit_code_stderr)
 
