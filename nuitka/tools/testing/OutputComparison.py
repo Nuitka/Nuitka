@@ -202,7 +202,7 @@ def compareOutput(
     diff = difflib.unified_diff(
         makeDiffable(out_cpython, ignore_warnings, ignore_infos, syntax_errors),
         makeDiffable(out_nuitka, ignore_warnings, ignore_infos, syntax_errors),
-        "{program} ({detail})".format(program=os.environ["PYTHON"], detail=kind),
+        "{program} ({detail})".format(program=os.environ["PYTHON"] if "PYTHON" in os.environ else "python", detail=kind),
         "{program} ({detail})".format(program="nuitka", detail=kind),
         fromdate,
         todate,
