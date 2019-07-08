@@ -250,6 +250,9 @@ extern PyObject *BUILTIN_LEN(PyObject *boundary);
 // For built-in built-in any() functionality.
 extern PyObject *BUILTIN_ANY(PyObject *value);
 
+// For built-in built-in map() functionality.
+extern PyObject *BUILTIN_MAP(PyObject *self, PyObject *args);
+
 // For built-in built-in super() functionality.
 extern PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object);
 

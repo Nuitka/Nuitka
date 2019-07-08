@@ -601,7 +601,7 @@ PyObject *BUILTIN_MAP(PyObject *self, PyObject *args) {
     register int i, j;
 
     Py_ssize_t n = PyTuple_Size(args);
-    if (n < 2) {
+    if (unlikely(n < 2)) {
         PyErr_SetString(PyExc_TypeError,
                         "map() requires at least two args");
         return NULL;
@@ -610,7 +610,7 @@ PyObject *BUILTIN_MAP(PyObject *self, PyObject *args) {
     PyObject *func = PyTuple_GetItem(args, 0);
     n--;
 
-    if (func == Py_None) {
+    if (unlikely(func == Py_None)) {
         if (PyErr_WarnPy3k("map(None, ...) not supported in 3.x; "
                            "use list(...)", 1) < 0)
             return NULL;
@@ -623,7 +623,7 @@ PyObject *BUILTIN_MAP(PyObject *self, PyObject *args) {
     /* Get space for sequence descriptors.  Must NULL out the iterator
      * pointers so that jumping to Fail_2 later doesn't see trash.
      */
-    if ((seqs = PyMem_NEW(sequence, n)) == NULL) {
+    if (unlikely((seqs = PyMem_NEW(sequence, n)) == NULL)) {
         PyErr_NoMemory();
         return NULL;
     }
