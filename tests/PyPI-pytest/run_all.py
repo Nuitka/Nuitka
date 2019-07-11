@@ -29,23 +29,6 @@ from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.FileOperations import removeDirectory
 
 
-def removeTimeDiff(outputStr):
-    '''
-    use regular expression to remove the time output
-
-    e.g.
-    =================== 1059 passed, 8 warnings in 7.99 seconds ===================
-
-    becomes
-    =================== 1059 passed, 8 warnings  ===================
-    '''
-
-    matchObj = re.search(b"in [0-9]+.[0-9][0-9] seconds", outputStr)
-    if matchObj == None:
-        return outputStr
-    return outputStr[:matchObj.start()] + outputStr[matchObj.end():]
-
-
 
 packages = {
     "urllib3": {
@@ -149,8 +132,8 @@ for package_name, details in packages.items():
     # compare outputs
     exit_code_stdout = compareOutput(
         "stdout",
-        removeTimeDiff(uncompiled_stdout),
-        removeTimeDiff(compiled_stdout),
+        uncompiled_stdout,
+        compiled_stdout,
         ignore_warnings=True,
         ignore_infos=True,
         syntax_errors=True,
@@ -158,15 +141,15 @@ for package_name, details in packages.items():
 
     exit_code_stderr = compareOutput(
         "stderr",
-        removeTimeDiff(uncompiled_stderr),
-        removeTimeDiff(compiled_stderr),
+        uncompiled_stderr,
+        compiled_stderr,
         ignore_warnings=True,
         ignore_infos=True,
         syntax_errors=True,
     )
 
     print("---------------------------------------------------------------------------------")
-    print("Package %s ---" % package_name,"exit_stdout:", exit_code_stdout, "exit_stderr:", exit_code_stderr)
+    print("--- %s ---" % package_name,"exit_stdout:", exit_code_stdout, "exit_stderr:", exit_code_stderr)
 
     if exit_code_stdout or exit_code_stderr:
         print("Error, outputs differed for package %s." % package_name)
