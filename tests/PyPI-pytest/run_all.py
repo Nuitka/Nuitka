@@ -75,9 +75,6 @@ base_dir = os.getcwd()
 
 
 for package_name, details in packages.items():
-    print("---------------------------------------------------------------------------------")
-    print("Testing package %s" % package_name)
-
     try:
         with withVirtualenv("venv_%s" % package_name) as venv:
             # setup the virtualenv for pytest
@@ -169,7 +166,7 @@ for package_name, details in packages.items():
     )
 
     print("---------------------------------------------------------------------------------")
-    print("Package %s--" % package_name,"exit_stdout:", exit_code_stdout, "exit_stderr:", exit_code_stderr)
+    print("Package %s ---" % package_name,"exit_stdout:", exit_code_stdout, "exit_stderr:", exit_code_stderr)
 
     if exit_code_stdout or exit_code_stderr:
         print("Error, outputs differed for package %s." % package_name)
