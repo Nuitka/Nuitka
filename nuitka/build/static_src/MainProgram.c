@@ -24,6 +24,8 @@
 
 #include "nuitka/prelude.h"
 
+#include "build_definitions.h"
+
 #include "osdefs.h"
 #include "structseq.h"
 

@@ -18,8 +18,6 @@
 #ifndef __NUITKA_PRELUDE_H__
 #define __NUITKA_PRELUDE_H__
 
-#include "build_definitions.h"
-
 #ifdef __NUITKA_NO_ASSERT__
 #define NDEBUG
 #endif
