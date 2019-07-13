@@ -180,8 +180,8 @@ class TkinterPluginDetector(NuitkaPluginBase):
         """
         return Options.isStandaloneMode()
 
-    def onModuleSourceCode(self, module_name, source_code):
-        """ This method passes the source code and expects it back - potentially modified.
+    def checkModuleSourceCode(self, module_name, source_code):
+        """ This method checks the source code
 
         Notes:
             We only use it to check whether this is the main module, and whether
@@ -194,10 +194,14 @@ class TkinterPluginDetector(NuitkaPluginBase):
             source_code: the module's source code
 
         Returns:
-            source_code
+            None
         """
         if module_name == "__main__":
-            if "tkinter" in source_code or "Tkinter" in source_code:
-                self.warnUnusedPlugin("Tkinter needs TCL included.")
+            for line in source_code.splitlines():
+                # Ignore comments.
+                if "#" in line:
+                    line = line[: line.find("#")]
 
-        return source_code
+                if "tkinter" in line or "Tkinter" in line:
+                    self.warnUnusedPlugin("Tkinter needs TCL included.")
+                    break
