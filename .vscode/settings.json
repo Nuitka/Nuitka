@@ -5,6 +5,10 @@
     "files.exclude": {
         "**/*.build": true,
         "**/*.pyc": true,
-        "**/__pycache__": true
+        "**/__pycache__": true,
+        "**/*.orig": true
+    },
+    "files.associations": {
+        "*.scons" : "python"
     }
 }
