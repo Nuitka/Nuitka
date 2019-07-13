@@ -260,8 +260,20 @@ class NuitkaPluginBase(object):
         Returns:
             source_code (str)
         """
+        self.checkModuleSourceCode(module_name, source_code)
+
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return source_code
+
+    def checkModuleSourceCode(self, module_name, source_code):
+        """ Inspect source code.
+
+        Args:
+            module_name: (str) name of module
+            source_code: (str) its source code
+        Returns:
+            None
+        """
 
     def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
         """ Inspect or modify frozen module source code.
