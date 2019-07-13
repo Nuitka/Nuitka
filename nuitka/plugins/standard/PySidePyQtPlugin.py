@@ -149,9 +149,6 @@ if os.path.exists(guess_path):
             if os.path.isdir(qt_bin_dir):
                 yield qt_bin_dir
 
-            if os.path.isdir(qt_bin_dir):
-                yield qt_bin_dir
-
     def considerExtraDlls(self, dist_dir, module):
         # pylint: disable=too-many-branches,too-many-locals,too-many-statements
         full_name = module.getFullName()
@@ -204,7 +201,7 @@ if os.path.exists(guess_path):
             )
 
             for plugin_dir in plugin_dirs:
-                shutil.copytree(plugin_dir, target_plugin_dir)
+                copyTree(plugin_dir, target_plugin_dir)
 
             if "all" not in plugin_options:
                 for plugin_candidate in getSubDirectories(target_plugin_dir):

@@ -268,7 +268,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "apt_inst":
             yield "apt_pkg", True
 
-        # start: imports for gevent -------------------------------------------
+        # start of gevent imports --------------------------------------------
         elif full_name == "gevent":
             yield "_cffi_backend", True
             yield "gevent._config", True
@@ -280,6 +280,12 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "gevent.thread", True
             yield "gevent.threading", True
             yield "gevent.select", True
+            yield "gevent.hub", True
+            yield "gevent.greenlet", True
+            yield "gevent.local", True
+            yield "gevent.event", True
+            yield "gevent.queue", True
+            yield "gevent.resolver", True
             yield "gevent.subprocess", True
             if getOS() == "Windows":
                 yield "gevent.libuv", True
@@ -339,6 +345,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "gevent.ssl", True
             yield "gevent.events", True
 
+        elif full_name == "gevent.resolver":
+            yield "gevent.resolver.blocking", True
+            yield "gevent.resolver.cares", True
+            yield "gevent.resolver.thread", True
+
         elif full_name == "gevent._semaphore":
             yield "gevent._abstract_linkable", True
             yield "gevent.__semaphore", True
@@ -360,7 +371,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         elif full_name == "gevent._imap":
             yield "gevent.__imap", True
-        # end: imports for gevent ---------------------------------------------
+        # end of gevent imports ----------------------------------------------
 
         # start of tensorflow imports --------------------------------------------
 
@@ -530,14 +541,10 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "scipy._lib":
             yield "scipy._lib.messagestream", True
 
+        # scikit-learn imports ------------------------------------------------
         elif full_name == "sklearn.utils.sparsetools":
             yield "sklearn.utils.sparsetools._graph_validation", True
             yield "sklearn.utils.sparsetools._graph_tools", True
-
-        elif full_name == "sklearn.utils":
-            yield "sklearn.utils.lgamma", True
-            yield "sklearn.utils.weight_vector", True
-            yield "sklearn.utils._unittest_backport", True
 
         elif full_name == "sklearn.utils":
             yield "sklearn.utils.lgamma", True

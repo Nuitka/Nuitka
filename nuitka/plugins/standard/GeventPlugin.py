@@ -61,13 +61,13 @@ class GeventPlugin(NuitkaPluginBase):
 
 
 class GeventPluginDetector(NuitkaPluginBase):
-    """ Detect our relevance
+    """ Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    plugin_name = "gevent"  # Nuitka knows us by this name
+    plugin_name = "gevent"
 
     @staticmethod
     def isRelevant():

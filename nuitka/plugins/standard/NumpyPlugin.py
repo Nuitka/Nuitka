@@ -235,7 +235,7 @@ class NumpyPlugin(NuitkaPluginBase):
         Returns:
             empty tuple
         """
-        # pylint: disable=too-many-branches,too-many-return-statements
+        # pylint: disable=too-many-branches,too-many-return-statements,too-many-locals,too-many-statements
         full_name = module.getFullName()
         if full_name not in ("numpy", "scipy", "matplotlib", "sklearn.datasets"):
             return ()
@@ -331,7 +331,7 @@ class NumpyPlugin(NuitkaPluginBase):
     def onModuleEncounter(
         self, module_filename, module_name, module_package, module_kind
     ):
-        # pylint: disable=too-many-branches,too-many-statements,too-many-return-statements
+        # pylint: disable=too-many-branches,too-many-return-statements
         if module_package == "scipy.sparse.csgraph" and module_name == "_validation":
             return True, "Replicate implicit import"
 

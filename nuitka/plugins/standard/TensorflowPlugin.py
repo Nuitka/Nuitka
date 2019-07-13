@@ -65,16 +65,13 @@ class TensorflowPlugin(NuitkaPluginBase):
     def onModuleEncounter(
         self, module_filename, module_name, module_package, module_kind
     ):
-        if module_package is not None and module_package.startswith("tensorflow"):
-            return True, "accept everything"
-        if (
-            module_package == "tensorflow.python"
-            and module_name == "_pywrap_tensorflow_internal"
-        ):
-            return True, "Needed by tensorflow.python"
+        if module_package is not None:
+            full_name = module_package + "." + module_name
+        else:
+            full_name = module_name
 
-        if module_package == "tensorflow" and module_name == "_api":
-            return True, "Needed by tensorflow"
+        if full_name.startswith(("tensor", "google")):
+            return True, "accept everything"
 
     def onModuleSourceCode(self, module_name, source_code):
         """ Neutralize some path magic in tensorflow.
@@ -102,27 +99,6 @@ class TensorflowPlugin(NuitkaPluginBase):
             sys.exit("'%s' plugin did not find path magic." % self.plugin_name)
 
         return "\n".join(source_lines)
-
-    def considerExtraDlls(self, dist_dir, module):
-        """ Copy tensorflow.datasets folders to the dist folder.
-
-        Notes:
-
-        Args:
-            dist_dir: the name of the program's dist folder
-            module: the module object (not used here)
-
-        Returns:
-            None
-        """
-        if self.files_copied:
-            return ()
-        if not module.getFullName() == "tensorflow.datasets":
-            return ()
-        self.files_copied = True
-        info(" ***** tensorflow datasets need to be copied ...!")
-
-        return ()
 
     def decideCompilation(self, module_name, source_ref):
         """ Include major packages as bytecode.
