@@ -33,7 +33,6 @@ from nuitka.nodes.AttributeNodes import (
     ExpressionBuiltinSetattr,
 )
 from nuitka.nodes.BuiltinAnyNodes import ExpressionBuiltinAny
-from nuitka.nodes.BuiltinAbsNodes import ExpressionBuiltinAbs
 from nuitka.nodes.BuiltinComplexNodes import (
     ExpressionBuiltinComplex1,
     ExpressionBuiltinComplex2,
@@ -480,6 +479,7 @@ def any_extractor(node):
         builtin_spec=BuiltinParameterSpecs.builtin_any_spec,
         empty_special_class=makeAny0,
     )
+
 
 def abs_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
