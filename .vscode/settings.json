@@ -13,5 +13,6 @@
         "*.scons": "python",
         "*.h": "c",
         "*.c": "c",
-    }
+    },
+    "restructuredtext.confPath": ""
 }
