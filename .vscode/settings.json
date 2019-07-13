@@ -6,9 +6,12 @@
         "**/*.build": true,
         "**/*.pyc": true,
         "**/__pycache__": true,
-        "**/*.orig": true
+        "**/*.orig": true,
+        "**/*.tmp": true,
     },
     "files.associations": {
-        "*.scons" : "python"
+        "*.scons": "python",
+        "*.h": "c",
+        "*.c": "c",
     }
 }
