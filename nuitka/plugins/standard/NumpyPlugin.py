@@ -235,7 +235,7 @@ class NumpyPlugin(NuitkaPluginBase):
         Returns:
             empty tuple
         """
-        # pylint: disable=too-many-branches,too-many-return-statements,too-many-locals,too-many-statements
+        # pylint: disable=too-many-branches,too-many-locals,too-many-return-statements,too-many-statements
         full_name = module.getFullName()
         if full_name not in ("numpy", "scipy", "matplotlib", "sklearn.datasets"):
             return ()
