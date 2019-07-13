@@ -16,6 +16,23 @@
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "msvc-x64"
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/nuitka/build/include",
+                "/usr/include/python2.7"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.17134.0",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}"
         }
     ],
     "version": 4
