@@ -776,10 +776,12 @@ static PyObject *_path_unfreezer_load_module(PyObject *self, PyObject *args, PyO
     return IMPORT_EMBEDDED_MODULE(module_name, name);
 }
 
+static char *_kwlist_is_package[] = {(char *)"fullname", NULL};
+
 static PyObject *_path_unfreezer_is_package(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:is_package", _kwlist, &module_name);
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:is_package", _kwlist_is_package, &module_name);
 
     if (unlikely(res == 0)) {
         return NULL;
@@ -818,8 +820,6 @@ static PyObject *_path_unfreezer_repr_module(PyObject *self, PyObject *args, PyO
 
     return PyUnicode_FromFormat("<module '%s' from %R>", PyModule_GetName(module), PyModule_GetFilenameObject(module));
 }
-
-static char *_kwlist2[] = {(char *)"fullname", (char *)"is_package", (char *)"path", NULL};
 
 static PyObject *createModuleSpec(PyObject *module_name) {
     assert(module_name);
@@ -870,12 +870,15 @@ static PyObject *createModuleSpec(PyObject *module_name) {
     return result;
 }
 
+static char *_kwlist_find_spec[] = {(char *)"fullname", (char *)"is_package", (char *)"path", NULL};
+
 static PyObject *_path_unfreezer_find_spec(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
     PyObject *unused1;
     PyObject *unused2;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "OO|O:find_spec", _kwlist2, &module_name, &unused1, &unused2);
+    int res =
+        PyArg_ParseTupleAndKeywords(args, kwds, "OO|O:find_spec", _kwlist_find_spec, &module_name, &unused1, &unused2);
 
     if (unlikely(res == 0)) {
         return NULL;
