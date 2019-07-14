@@ -61,6 +61,10 @@ def loadStandardPlugins():
         if is_pkg:
             continue
 
+        # Ignore bytecode left overs.
+        if loader.find_module(name).get_filename().endswith(".pyc"):
+            continue
+
         plugin_module = loader.find_module(name).load_module(name)
 
         plugin_objects = [None, None]  # plugin and optional detector

@@ -259,10 +259,13 @@ class NuitkaPluginBase(object):
             source_code: (str) its source code
         Returns:
             source_code (str)
+        Notes:
+            Default implementation forwards to `checkModuleSourceCode` which is
+            going to allow simply checking the source code without the need to
+            pass it back.
         """
         self.checkModuleSourceCode(module_name, source_code)
 
-        # Virtual method, pylint: disable=no-self-use,unused-argument
         return source_code
 
     def checkModuleSourceCode(self, module_name, source_code):
