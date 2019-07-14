@@ -4,6 +4,8 @@
     "C_Cpp.dimInactiveRegions": false,
     "files.exclude": {
         "**/*.build": true,
+        "**/*.exe": true,
+        "**/*.bin": true,
         "**/*.pyc": true,
         "**/__pycache__": true,
         "**/*.orig": true,
