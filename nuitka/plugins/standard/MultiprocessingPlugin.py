@@ -111,7 +111,6 @@ Monkey patching "multiprocessing" for compiled methods.""",
         )
         from nuitka.ModuleRegistry import addRootModule
         from nuitka.plugins.Plugins import Plugins
-        from sys import hexversion
 
         # First, build the module node and then read again from the
         # source code.
@@ -175,12 +174,14 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
             else:
                 assert False
 
-        if module_package == "multiprocessing" and module_name in (
-            "forking",
-            "spawn",
-            "reduction",
-        ):
+        if module_package == "multiprocessing":
             return True, "Multiprocessing plugin needs this to monkey patch it."
+
+    def decideCompilation(self, module_name, source_ref):
+        if module_name == "multiprocessing" or module_name.startswith(
+            "multiprocessing."
+        ):
+            return "bytecode"
 
 
 class NuitkaPluginDetectorMultiprocessingWorkarounds(NuitkaPluginBase):
