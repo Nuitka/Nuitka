@@ -376,25 +376,6 @@ MOD_INIT_DECL( %(module_identifier)s )
     // Module code.
 %(module_code)s
 
-#if _NUITKA_EXPERIMENTAL_PKGUTIL_ITERMODULES
-#if %(is_package)s && %(is_top_module)s
-    {
-        PyObject *path_value = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___path__ );
-
-        if (path_value && PyList_CheckExact(path_value) && PyList_Size(path_value) > 0)
-        {
-            PyObject *path_element = PyList_GetItem( path_value, 0 );
-
-            PyObject *path_importer_cache = PySys_GetObject((char *)"path_importer_cache");
-            CHECK_OBJECT( path_importer_cache );
-
-            int res = PyDict_SetItem( path_importer_cache, path_element, (PyObject *)&Nuitka_Loader_Type );
-            assert( res == 0 );
-        }
-    }
-#endif
-#endif
-
     return MOD_RETURN_VALUE( module_%(module_identifier)s );
 %(module_exit)s
 """

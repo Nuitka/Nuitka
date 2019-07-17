@@ -44,6 +44,10 @@ extern char *getDirname(char *path);
 
 extern PyTypeObject Nuitka_Loader_Type;
 
+struct Nuitka_LoaderObject {
+    PyObject_HEAD PyObject *m_module_name; /* Module we are responsible for */
+};
+
 #ifdef _NUITKA_EXE
 static inline bool isVerbose(void) { return Py_VerboseFlag != 0; }
 #elif _NUITKA_SYSFLAG_VERBOSE
@@ -663,7 +667,6 @@ static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLo
         _fixupSpecAttribute(module_name);
 #endif
 
-#if _NUITKA_EXPERIMENTAL_PKGUTIL_ITERMODULES
         PyObject *result = LOOKUP_SUBSCRIPT(PyImport_GetModuleDict(), module_name);
 
         // For use by "pkgutil.walk_modules" add the runtime path to the
@@ -678,9 +681,8 @@ static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLo
                 PyObject *path_importer_cache = PySys_GetObject((char *)"path_importer_cache");
                 CHECK_OBJECT(path_importer_cache);
 
-                PyObject *loader = CALL_FUNCTION_WITH_SINGLE_ARG(
-
-                    (PyObject *)&Nuitka_Loader_Type, module_name);
+                PyObject *loader = Nuitka_Loader_New(module_name);
+                CHECK_OBJECT(loader);
 
                 if (loader) {
                     int res = PyDict_SetItem(path_importer_cache, path_element, loader);
@@ -688,7 +690,6 @@ static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLo
                 }
             }
         }
-#endif
 
         RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
     }
@@ -889,28 +890,25 @@ static PyObject *_path_unfreezer_find_spec(PyObject *self, PyObject *args, PyObj
 
 #endif
 
-static char *_kwlist_iter_modules[] = {(char *)"self", (char *)"package", NULL};
+static char *_kwlist_iter_modules[] = {(char *)"package", NULL};
 
 extern PyObject *const_str_plain_name;
 
-static PyObject *_path_unfreezer_iter_modules(PyObject *self, PyObject *args, PyObject *kwds) {
+static PyObject *_path_unfreezer_iter_modules(struct Nuitka_LoaderObject *self, PyObject *args, PyObject *kwds) {
     PyObject *prefix;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "OO:iter_modules", _kwlist_iter_modules, &self, &prefix);
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:iter_modules", _kwlist_iter_modules, &prefix);
 
     if (unlikely(res == 0)) {
         return NULL;
     }
-
-    // Search relative to us only.
-    PyObject *asked_name = LOOKUP_ATTRIBUTE(self, const_str_plain_name);
 
     PyObject *result = PyList_New(0);
 
     struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
     assert(current);
 
-    char const *s = Nuitka_String_AsString(asked_name);
+    char const *s = Nuitka_String_AsString(self->m_module_name);
 
     while (current->name != NULL) {
         int c = strncmp(s, current->name, strlen(s));
@@ -958,33 +956,8 @@ static PyObject *_path_unfreezer_iter_modules(PyObject *self, PyObject *args, Py
     return result;
 }
 
-static char *_kwlist_dunder_init[] = {(char *)"self", (char *)"module_name", NULL};
-
-static PyObject *_path_unfreezer_dunder_init(PyObject *self, PyObject *args, PyObject *kwds) {
-    PyObject *loader_object;
-    PyObject *module_name;
-
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "OO:__init__", _kwlist_dunder_init, &loader_object, &module_name);
-
-    if (unlikely(res == 0)) {
-        return NULL;
-    }
-
-    SET_ATTRIBUTE(loader_object, const_str_plain_name, module_name);
-
-    PyObject *result = Py_None;
-    Py_INCREF(result);
-    return result;
-}
-
-struct Nuitka_LoaderObject {
-    PyObject_HEAD PyObject *module_name; /* Module we are responsible for */
-};
-
 static PyMethodDef Nuitka_Loader_methods[] = {
-    {"__init__", (PyCFunction)_path_unfreezer_dunder_init, METH_VARARGS | METH_KEYWORDS, NULL},
     {"iter_modules", (PyCFunction)_path_unfreezer_iter_modules, METH_VARARGS | METH_KEYWORDS, NULL},
-
     {"get_data", (PyCFunction)_path_unfreezer_get_data, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"find_module", (PyCFunction)_path_unfreezer_find_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"load_module", (PyCFunction)_path_unfreezer_load_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
@@ -1002,20 +975,36 @@ static PyObject *Nuitka_Loader_tp_repr(struct Nuitka_LoaderObject *loader) {
 #else
     return PyUnicode_FromFormat(
 #endif
-        "<nuitka_module_loader for '%s'>", Nuitka_String_AsString(loader->module_name));
+        "<nuitka_module_loader for '%s'>", Nuitka_String_AsString(loader->m_module_name));
 }
 
 static int Nuitka_Loader_tp_traverse(struct Nuitka_LoaderObject *loader, visitproc visit, void *arg) {
-    Py_VISIT(loader->module_name);
+    Py_VISIT(loader->m_module_name);
 
     return 0;
 }
 
+#include "nuitka/freelists.h"
+
+// TODO: A freelist is not the right thing for those, they are probably living forever, but it's
+// no big harm too, but make it small.
+
+#define MAX_LOADER_FREE_LIST_COUNT 10
+static struct Nuitka_LoaderObject *free_list_loaders = NULL;
+static int free_list_loaders_count = 0;
+
+static void Nuitka_Loader_tp_dealloc(struct Nuitka_LoaderObject *loader) {
+    Nuitka_GC_UnTrack(loader);
+    Py_DECREF(loader->m_module_name);
+
+    releaseToFreeList(free_list_loaders, loader, MAX_LOADER_FREE_LIST_COUNT);
+}
+
 PyTypeObject Nuitka_Loader_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "nuitka_module_loader",
-    sizeof(struct Nuitka_LoaderObject),
-    0,
-    0,                                       /* tp_dealloc */
+    sizeof(struct Nuitka_LoaderObject),      /* tp_basicsize */
+    0,                                       /* tp_itemsize */
+    (destructor)Nuitka_Loader_tp_dealloc,    /* tp_dealloc */
     0,                                       /* tp_print */
     0,                                       /* tp_getattr */
     0,                                       /* tp_setattr */
@@ -1042,6 +1031,20 @@ PyTypeObject Nuitka_Loader_Type = {
     0,                                       /* tp_members */
     0,                                       /* tp_getset */
 };
+
+PyObject *Nuitka_Loader_New(PyObject *module_name) {
+    struct Nuitka_LoaderObject *result;
+
+    allocateFromFreeListFixed(free_list_loaders, struct Nuitka_LoaderObject, Nuitka_Loader_Type);
+    Nuitka_GC_Track(result);
+
+    CHECK_OBJECT(module_name);
+
+    result->m_module_name = module_name;
+    Py_INCREF(module_name);
+
+    return (PyObject *)result;
+}
 
 void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loader_entries) {
     // Do it only once.

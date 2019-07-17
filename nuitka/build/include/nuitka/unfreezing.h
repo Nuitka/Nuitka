@@ -51,4 +51,6 @@ struct Nuitka_MetaPathBasedLoaderEntry {
  */
 extern void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *loader_entries);
 
+extern PyObject *Nuitka_Loader_New(PyObject *module_name);
+
 #endif

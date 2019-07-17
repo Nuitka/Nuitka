@@ -53,7 +53,6 @@ def getModuleValues(
     outline_variables,
     temp_variables,
     is_main_module,
-    is_top_module,
     is_internal_module,
     is_package,
 ):
@@ -111,7 +110,6 @@ def getModuleValues(
         "module_name": module_name,
         "module_name_obj": context.getConstantCode(constant=module_name),
         "is_main_module": 1 if is_main_module else 0,
-        "is_top_module": 1 if is_top_module else 0,
         "is_package": 1 if is_package else 0,
         "module_identifier": module_identifier,
         "module_functions_decl": function_decl_codes,

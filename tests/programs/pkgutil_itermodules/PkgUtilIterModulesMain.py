@@ -25,6 +25,8 @@ import some_package.sub_package2.SomeModuleB
 print("Checking with 'pkg_util.iter_modules' what was included:")
 import pkgutil
 pkg = __import__("some_package")
+print("Package is", pkg)
+
 it = pkgutil.iter_modules(pkg.__path__)
 for r in it:
     print(r[1], r[2])

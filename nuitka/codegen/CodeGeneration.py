@@ -451,7 +451,6 @@ def prepareModuleCode(global_context, module, module_name):
         temp_variables=module.getTempVariables(),
         outline_variables=module.getOutlineLocalVariables(),
         is_main_module=module.isMainModule(),
-        is_top_module=module.isTopModule(),
         is_internal_module=module.isInternalModule(),
         is_package=module.isCompiledPythonPackage(),
         context=context,

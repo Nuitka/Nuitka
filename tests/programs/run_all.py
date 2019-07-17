@@ -43,7 +43,6 @@ from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
     my_print,
-    reportSkip,
     setup,
     withPythonPathChange,
 )
@@ -129,10 +128,6 @@ def main():
             extra_flags.append("original_file")
         else:
             extra_flags.append("runtime_file")
-
-            # TODO: Until this can be enabled again.
-            reportSkip("unsupported right now", ".", filename)
-            continue
 
         # Cannot include the files with syntax errors, these would then become
         # ImportError, but that's not the test. In all other cases, use two

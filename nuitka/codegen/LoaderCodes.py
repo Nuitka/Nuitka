@@ -30,30 +30,42 @@ from .templates.CodeTemplatesLoader import (
     template_metapath_loader_body,
     template_metapath_loader_bytecode_module_entry,
     template_metapath_loader_compiled_module_entry,
-    template_metapath_loader_compiled_package_entry,
     template_metapath_loader_shlib_module_entry,
 )
 
 
-def getModuleMetapathLoaderEntryCode(
-    module_name, module_identifier, is_shlib, is_package
-):
-    if is_shlib:
+def getModuleMetapathLoaderEntryCode(module):
+    module_name = module.getFullName()
+
+    if module.isUncompiledPythonModule():
+        code_data = module.getByteCode()
+        is_package = module.isUncompiledPythonPackage()
+
+        flags = ["NUITKA_BYTECODE_FLAG"]
+        if is_package:
+            flags.append("NUITKA_PACKAGE_FLAG")
+
+        return template_metapath_loader_bytecode_module_entry % {
+            "module_name": module.getFullName(),
+            "bytecode": stream_data.getStreamDataOffset(code_data),
+            "size": len(code_data),
+            "flags": " | ".join(flags),
+        }
+    elif module.isPythonShlibModule():
         assert module_name != "__main__"
-        assert not is_package
 
         return template_metapath_loader_shlib_module_entry % {
             "module_name": module_name
         }
-    elif is_package:
-        return template_metapath_loader_compiled_package_entry % {
-            "module_name": module_name,
-            "module_identifier": module_identifier,
-        }
     else:
+        flags = []
+        if module.isCompiledPythonPackage():
+            flags.append("NUITKA_PACKAGE_FLAG")
+
         return template_metapath_loader_compiled_module_entry % {
             "module_name": module_name,
-            "module_identifier": module_identifier,
+            "module_identifier": module.getCodeName(),
+            "flags": " | ".join(flags),
         }
 
 
@@ -84,12 +96,7 @@ def getMetapathLoaderBodyCode(other_modules):
             )
         else:
             metapath_loader_inittab.append(
-                getModuleMetapathLoaderEntryCode(
-                    module_name=other_module.getFullName(),
-                    module_identifier=other_module.getCodeName(),
-                    is_shlib=other_module.isPythonShlibModule(),
-                    is_package=other_module.isCompiledPythonPackage(),
-                )
+                getModuleMetapathLoaderEntryCode(module=other_module)
             )
 
         if other_module.isCompiledPythonModule():
