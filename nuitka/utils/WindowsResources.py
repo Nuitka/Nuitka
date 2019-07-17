@@ -211,6 +211,22 @@ def deleteWindowsResources(filename, resource_kind, res_names):
 
 
 def copyResourcesFromFileToFile(source_filename, target_filename, resource_kind):
+    """ Copy resources from one file to another.
+
+    Args:
+        source_filename - filename where the resources are taken from
+        target_filename - filename where the resources are added to
+        resource_kind - numeric value indicating which type of resource
+
+    Returns:
+        int - amount of resources copied, in case you want report
+
+    Notes:
+        Only windows resources are handled. Will not touch target filename
+        unless there are resources in the source.
+
+    """
+
     res_data = getResourcesFromDLL(
         filename=source_filename, resource_kind=resource_kind, with_data=True
     )
@@ -228,6 +244,8 @@ def copyResourcesFromFileToFile(source_filename, target_filename, resource_kind)
             )
 
         _closeFileWindowsResources(update_handle)
+
+    return len(res_data)
 
 
 def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name):
