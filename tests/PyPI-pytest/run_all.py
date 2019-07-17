@@ -41,6 +41,15 @@ from nuitka.utils.FileOperations import removeDirectory
 from nuitka.tools.testing.Common import createSearchMode
 import nuitka
 
+class bcolors:
+    PINK = '\033[95m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 # TODO: Have this in a def main():
 
@@ -50,7 +59,6 @@ import nuitka
 # normally will not update at all.
 
 # TODO: Get closer to 50 items :)
-# TODO: Add colors/decorations to output?
 
 packages = {
     "dateutil": {
@@ -105,7 +113,6 @@ for package_name, details in sorted(packages.items()):
 
             cmds = [
                 "python -m pip install pytest",
-                # "cd %s/.." % os.path.dirname(nuitka.__file__), # changed
                 "cd %s" % os.path.join(os.path.dirname(nuitka.__file__), ".."),
                 "python setup.py develop",
                 "cd %s" % os.path.join(venv.getVirtualenvDir(), package_name),
@@ -197,23 +204,35 @@ for package_name, details in sorted(packages.items()):
         syntax_errors=True,
     )
 
-    print("\n=================================================================================")
-    print("--- %s ---" % package_name,"exit_stdout:", stdout_diff, "exit_stderr:", stderr_diff)
+    exit_code = stdout_diff or stderr_diff
 
-    if stdout_diff or stderr_diff:
-    #    search_mode.onErrorDetected("Error exit! %s" % result)
+
+    print(
+        bcolors.RED if exit_code else bcolors.GREEN
+        + "\n================================================================================="
+    )
+
+    print(
+        "--- %s ---" % package_name,
+        "exit_stdout:",
+        stdout_diff,
+        "exit_stderr:",
+        stderr_diff,
+    )
+
+    if exit_code:
         print("Error, outputs differed for package %s." % package_name)
     else:
         print("No differences found for package %s." % package_name)
 
-    print("=================================================================================\n")
+    print(
+        "=================================================================================\n"
+        + bcolors.ENDC
+    )
 
 
-    # TODO: The search mode also gets informed about success and
-    # failure of a test case.
-    # if result != 0 and search_mode.abortOnFinding(dirname, filename):
-    #    break
-
+    if exit_code != 0 and search_mode.abortOnFinding(dirname=None, filename=package_name):
+        break
 
     if search_mode.abortIfExecuted():
         break
