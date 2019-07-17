@@ -56,7 +56,9 @@ class GeventPlugin(NuitkaPluginBase):
         return "\n".join(source_lines)
 
     def decideCompilation(self, module_name, source_ref):
-        if module_name.startswith("gevent") and getOS() == "Windows":
+        if (
+            module_name == "gevent" or module_name.startswith("gevent.")
+        ) and getOS() == "Windows":
             return "bytecode"
 
 
