@@ -1094,7 +1094,7 @@ class SideEffectsFromChildrenMixin(object):
             return (
                 makeStatementOnlyNodesFromExpressions(side_effects),
                 "new_statements",
-                "Reduced unused %s to side effects." % self.kind,
+                "Lowered unused expression %s to its side effects." % self.kind,
             )
         else:
             return (

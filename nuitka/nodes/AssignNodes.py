@@ -314,7 +314,7 @@ Assignment raises exception in assigned value, removed assignment.""",
                     result,
                     "new_statements",
                     """\
-Reduced assignment of %s from itself to mere access of it."""
+Lowered assignment of %s from itself to mere access of it."""
                     % variable.getDescription(),
                 )
             else:

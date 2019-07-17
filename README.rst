@@ -877,8 +877,8 @@ code:
     except ValueError, e:
         print e
 
-Which then can be reduced by avoiding the raise and catch of the exception,
-making it:
+Which then can be lowered in complexity by avoiding the raise and catch
+of the exception, making it:
 
 .. code-block:: python
 
