@@ -518,7 +518,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "numpy":
             yield "numpy._mklinit", False
         elif full_name == "numpy.core":
-            yield "numpy.core._dtype_ctypes", True
+            yield "numpy.core._dtype_ctypes", False
 
         # matplotlib imports --------------------------------------------------
         elif full_name == "matplotlib":
