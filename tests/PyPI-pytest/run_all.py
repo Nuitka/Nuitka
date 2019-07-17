@@ -67,6 +67,12 @@ packages = {
         "ignored_tests": None,
     },
 
+    "jmespath": {
+        "url": "https://github.com/jmespath/jmespath.py.git",
+        "requirements_file": "requirements.txt",
+        "ignored_tests": None,
+    },
+
     "pyasn1": {
         "url": "https://github.com/etingof/pyasn1.git",
         "requirements_file": "requirements.txt",
