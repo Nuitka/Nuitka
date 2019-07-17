@@ -53,26 +53,30 @@ import nuitka
 # TODO: Add colors/decorations to output?
 
 packages = {
-    # TODO: remove urllib3/tests/test_no_ssl.py from testing
-
     "dateutil": {
         "url": "https://github.com/dateutil/dateutil.git",
         "requirements_file": "requirements-dev.txt",
+        "ignored_tests": None,
     },
 
     "pyasn1": {
         "url": "https://github.com/etingof/pyasn1.git",
         "requirements_file": "requirements.txt",
+        "ignored_tests": None,
     },
 
     "requests": {
         "url": "https://github.com/kennethreitz/requests.git",
         "requirements_file": None,
+        "ignored_tests": None,
     },
 
     "urllib3": {
         "url": "https://github.com/urllib3/urllib3.git",
         "requirements_file": "dev-requirements.txt",
+        "ignored_tests": (
+            "test/test_no_ssl.py",
+        )
     },
 
 }
@@ -92,10 +96,17 @@ for package_name, details in sorted(packages.items()):
             dist_dir = os.path.join(venv.getVirtualenvDir(), package_name, "dist")
 
             # setup the virtualenv for testing
+            venv.runCommand("git clone %s %s" % (details["url"], package_name))
+
+            # delete ignored tests if any
+            if details["ignored_tests"]:
+                for test in details["ignored_tests"]:
+                    venv.runCommand("rm %s" % os.path.join(package_name, test))
+
             cmds = [
-                "git clone %s %s" % (details["url"], package_name),
                 "python -m pip install pytest",
-                "cd %s/.." % os.path.dirname(nuitka.__file__),
+                # "cd %s/.." % os.path.dirname(nuitka.__file__), # changed
+                "cd %s" % os.path.join(os.path.dirname(nuitka.__file__), ".."),
                 "python setup.py develop",
                 "cd %s" % os.path.join(venv.getVirtualenvDir(), package_name),
             ]
@@ -186,7 +197,7 @@ for package_name, details in sorted(packages.items()):
         syntax_errors=True,
     )
 
-    print("=================================================================================")
+    print("\n=================================================================================")
     print("--- %s ---" % package_name,"exit_stdout:", stdout_diff, "exit_stderr:", stderr_diff)
 
     if stdout_diff or stderr_diff:
@@ -195,7 +206,7 @@ for package_name, details in sorted(packages.items()):
     else:
         print("No differences found for package %s." % package_name)
 
-    print("=================================================================================\n\n")
+    print("=================================================================================\n")
 
 
     # TODO: The search mode also gets informed about success and
