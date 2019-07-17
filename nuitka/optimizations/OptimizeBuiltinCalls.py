@@ -103,6 +103,7 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
 )
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
+from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeExpressionBuiltinLocals,
@@ -131,6 +132,7 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
+from nuitka.tree.ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from nuitka.tree.ReformulationTryFinallyStatements import makeTryFinallyStatement
 from nuitka.tree.TreeHelpers import (
     makeCallNode,
@@ -1000,6 +1002,121 @@ if python_version >= 300:
         )
 
 
+if python_version < 300:
+
+    def zip_extractor(node):
+        @calledWithBuiltinArgumentNamesDecorator
+        def wrapZipBuiltin(args, source_ref):
+            # pylint: disable=unused-argument
+            outline_body = ExpressionOutlineBody(
+                provider=node.getParentVariableProvider(),
+                name="zip_call",
+                source_ref=source_ref,
+            )
+
+            call_args = node.getCallArgs()
+            provider = node.getParentVariableProvider()
+
+            empty_list = outline_body.allocateTempVariable(
+                temp_scope=None, name="empty_list"
+            )
+
+            statements = [
+                StatementAssignmentVariable(
+                    variable=empty_list,
+                    source=makeConstantRefNode(constant=list(), source_ref=source_ref),
+                    source_ref=source_ref,
+                )
+            ]
+
+            final_statements = [
+                StatementDelVariable(
+                    variable=empty_list, tolerant=True, source_ref=source_ref
+                )
+            ]
+
+            if call_args is not None:
+                zip_arg_variables = [
+                    outline_body.allocateTempVariable(
+                        temp_scope=None, name="zip_arg_%d" % i
+                    )
+                    for i in range(call_args.getIterationLength())
+                ]
+
+                zip_iter_variables = [
+                    outline_body.allocateTempVariable(
+                        temp_scope=None, name="zip_iter_%d" % i
+                    )
+                    for i in range(call_args.getIterationLength())
+                ]
+
+                statements.append(
+                    StatementAssignmentVariable(
+                        variable=zip_arg_variable,
+                        source=call_arg,
+                        source_ref=source_ref,
+                    )
+                    for call_arg, zip_arg_variable in zip(
+                        call_args.getElements(), zip_arg_variables
+                    )
+                )
+
+                statements.append(
+                    StatementAssignmentVariable(
+                        variable=zip_iter_variable,
+                        source=ExpressionBuiltinIter1(
+                            value=ExpressionVariableRef(
+                                variable=zip_arg_variable, source_ref=source_ref
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        source_ref=source_ref,
+                    )
+                    for zip_iter_variable, zip_arg_variable in zip(
+                        zip_iter_variables, zip_arg_variables
+                    )
+                )
+
+                import ipdb
+
+                ipdb.set_trace()
+
+                loop_body = makeTryExceptSingleHandlerNode(
+                    tried=StatementAssignmentVariable(
+                        variable=zip_iter_variables,
+                        source=ExpressionBuiltinNext1(
+                            value=ExpressionTempVariableRef(
+                                variable=zip_iter_variables, source_ref=source_ref
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    exception_name="StopIteration",
+                    handler_body=StatementLoopBreak(source_ref=source_ref),
+                    source_ref=source_ref,
+                )
+
+            outline_body.setBody(
+                makeStatementsSequenceFromStatement(
+                    statement=makeTryFinallyStatement(
+                        provider=outline_body,
+                        tried=statements,
+                        final=final_statements,
+                        source_ref=source_ref,
+                    )
+                )
+            )
+
+            return outline_body
+
+        return BuiltinParameterSpecs.extractBuiltinArgs(
+            node=node,
+            builtin_class=wrapZipBuiltin,
+            builtin_spec=BuiltinParameterSpecs.builtin_zip_spec,
+        )
+
+
 def compile_extractor(node):
     def wrapExpressionBuiltinCompileCreation(
         source_code, filename, mode, flags, dont_inherit, optimize=None, source_ref=None
@@ -1321,6 +1438,7 @@ _dispatch_dict = {
     "staticmethod": staticmethod_extractor,
     "classmethod": classmethod_extractor,
     "divmod": divmod_extractor,
+    "zip": zip_extractor,
 }
 
 if python_version < 300:

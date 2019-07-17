@@ -476,6 +476,12 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return ShapeTypeTuple
 
+    def getElements(self):
+        return (
+            makeConstantRefNode(constant=constant, source_ref=self.getSourceReference())
+            for constant in self.getConstant()
+        )
+
 
 the_empty_tuple = ()
 
