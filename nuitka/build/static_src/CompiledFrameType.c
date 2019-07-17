@@ -605,31 +605,35 @@ PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line
 
     // Not using PyCode_NewEmpty, it doesn't given us much beyond this
     // and is not available for Python2.
-    PyCodeObject *result = PyCode_New(arg_count, // argcount
+#if PYTHON_VERSION >= 380
+    PyCodeObject *result = PyCode_NewWithPosOnlyArgs(arg_count, // argcount
+#else
+    PyCodeObject *result = PyCode_New(arg_count,         // argcount
+#endif
 #if PYTHON_VERSION >= 300
 #if PYTHON_VERSION >= 380
-                                      pos_only_count, // kw-only count
+                                                     pos_only_count, // kw-only count
 #endif
-                                      kw_only_count, // kw-only count
+                                                     kw_only_count, // kw-only count
 #endif
-                                      0,     // nlocals
-                                      0,     // stacksize
-                                      flags, // flags
+                                                     0,     // nlocals
+                                                     0,     // stacksize
+                                                     flags, // flags
 #if PYTHON_VERSION < 300
-                                      const_str_empty, // code (bytecode)
+                                                     const_str_empty, // code (bytecode)
 #else
                                       const_bytes_empty, // code (bytecode)
 #endif
-                                      const_tuple_empty, // consts (we are not going to be compatible)
-                                      const_tuple_empty, // names (we are not going to be compatible)
-                                      argnames,          // varnames (we are not going to be compatible)
-                                      const_tuple_empty, // freevars (we are not going to be compatible)
-                                      const_tuple_empty, // cellvars (we are not going to be compatible)
-                                      filename,          // filename
-                                      function_name,     // name
-                                      line,              // firstlineno (offset of the code object)
+                                                     const_tuple_empty, // consts (we are not going to be compatible)
+                                                     const_tuple_empty, // names (we are not going to be compatible)
+                                                     argnames,          // varnames (we are not going to be compatible)
+                                                     const_tuple_empty, // freevars (we are not going to be compatible)
+                                                     const_tuple_empty, // cellvars (we are not going to be compatible)
+                                                     filename,          // filename
+                                                     function_name,     // name
+                                                     line,              // firstlineno (offset of the code object)
 #if PYTHON_VERSION < 300
-                                      const_str_empty // lnotab (table to translate code object)
+                                                     const_str_empty // lnotab (table to translate code object)
 #else
                                       const_bytes_empty  // lnotab (table to translate code object)
 #endif
