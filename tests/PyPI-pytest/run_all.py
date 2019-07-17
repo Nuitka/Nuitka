@@ -21,116 +21,154 @@
 
 import os
 import sys
+
+# Find nuitka package relative to us.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
+)
+
+# isort:start
+
 import subprocess
 import re
 
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.FileOperations import removeDirectory
+from nuitka.tools.testing.Common import createSearchMode
+import nuitka
 
 
+# TODO: Have this in a def main():
+
+# TODO: Put the source clones in os.path joined Appdirs.getCacheDir(), "pypi-git-clones" (AppDirs.py in nuitka/utils)
+# git clone if it does not exist
+# otherwise git fetch && git reset --hard origin
+# normally will not update at all.
+
+# TODO: Get closer to 50 items :)
+# TODO: Add colors/decorations to output?
 
 packages = {
-    "urllib3": {
-        "url": "https://github.com/urllib3/urllib3.git",
-        "requirements_file": "dev-requirements.txt",
-        "uncompiled_whl": "urllib3-1.25.3-py2.py3-none-any.whl",
-        "compiled_whl": "urllib3-1.25.3-cp37-cp37m-win32.whl",
-    },
+    # TODO: remove urllib3/tests/test_no_ssl.py from testing
 
     "dateutil": {
         "url": "https://github.com/dateutil/dateutil.git",
         "requirements_file": "requirements-dev.txt",
-        "uncompiled_whl": "python_dateutil-2.8.1.dev79+g29c80ec-py2.py3-none-any.whl",
-        "compiled_whl": "python_dateutil-2.8.1.dev79+g29c80ec-cp37-cp37m-win32.whl",
     },
 
     "pyasn1": {
         "url": "https://github.com/etingof/pyasn1.git",
         "requirements_file": "requirements.txt",
-        "uncompiled_whl": "pyasn1-0.4.6-py2.py3-none-any.whl",
-        "compiled_whl": "pyasn1-0.4.6-cp37-cp37m-win32.whl",
+    },
+
+    "requests": {
+        "url": "https://github.com/kennethreitz/requests.git",
+        "requirements_file": None,
+    },
+
+    "urllib3": {
+        "url": "https://github.com/urllib3/urllib3.git",
+        "requirements_file": "dev-requirements.txt",
     },
 
 }
 
 base_dir = os.getcwd()
 
+search_mode = createSearchMode()
 
-for package_name, details in packages.items():
+for package_name, details in sorted(packages.items()):
+    active = search_mode.consider(dirname=None, filename=package_name)
+
+    if not active:
+        continue
+
     try:
         with withVirtualenv("venv_%s" % package_name) as venv:
-            # setup the virtualenv for pytest
             dist_dir = os.path.join(venv.getVirtualenvDir(), package_name, "dist")
 
+            # setup the virtualenv for testing
+            cmds = [
+                "git clone %s %s" % (details["url"], package_name),
+                "python -m pip install pytest",
+                "cd %s/.." % os.path.dirname(nuitka.__file__),
+                "python setup.py develop",
+                "cd %s" % os.path.join(venv.getVirtualenvDir(), package_name),
+            ]
+
+            if details["requirements_file"]:
+                cmds += [
+                    "python -m pip install -r %s" % details["requirements_file"],
+                ]
+
+            # build uncompiled .whl
+            cmds += [
+                "python setup.py bdist_wheel",
+            ]
+
+            venv.runCommand(
+                commands=cmds
+            )
+
+            # install and print out if the active .whl is compiled or not
             venv.runCommand(
                 commands=[
-                    "git clone %s" % details["url"],
-                    "git clone https://github.com/nuitka/nuitka.git",
-                    "python -m pip install pytest",
-                    "cd nuitka",
-                    "python setup.py develop",
-                    "cd ../%s" % package_name,
-                    "python -m pip install -r %s" % details["requirements_file"],
-                    "python setup.py bdist_wheel",
-                    "python -m pip uninstall -y %s" % package_name,
-                    "python -m pip install %s" % os.path.join(dist_dir, details["uncompiled_whl"]),
+                    "python -m pip install -U %s" % os.path.join(dist_dir, os.listdir(dist_dir)[0]),
+                    "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" % package_name,
                 ]
             )
 
             # get uncompiled pytest results
             uncompiled_stdout, uncompiled_stderr = venv.runCommandWithOutput(
-                popen_args=[
+                commands=[
                     "cd %s" % package_name,
-                    "python -m pytest --disable-warnings",
+                    "python -m pytest --verbose",
                 ]
             )
 
-            # now get compiled pytest results
+            # build nuitka compiled .whl
             venv.runCommand(
                 commands=[
                     "cd %s" % package_name,
+                    "rm -rf dist",
                     "python setup.py bdist_nuitka",
-                    "python -m pip uninstall -y %s" % package_name,
-                    "python -m pip install %s" % os.path.join(dist_dir, details["compiled_whl"]),
                 ]
             )
 
+            # install and print out if the active .whl is compiled or not
+            venv.runCommand(
+                commands=[
+                    "python -m pip install -U %s" % os.path.join(dist_dir, os.listdir(dist_dir)[0]),
+                    "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" % package_name,
+                ]
+            )
+
+            # get compiled pytest results
             compiled_stdout, compiled_stderr = venv.runCommandWithOutput(
-                popen_args=[
+                commands=[
                     "cd %s" % package_name,
-                    "python -m pytest --disable-warnings",
+                    "python -m pytest --verbose",
                 ]
             )
 
-    except Exception as exceptObj:
+    except Exception as e:
         print("Package", package_name, "ran into an exception during execution, traceback: ")
-        print(exceptObj)
+        print(e)
         continue
 
 
-    # print statements for debugging
-    '''
-    print("uncompiled_stdout:")
-    print(uncompiled_stdout)
-    print("\nuncompiled_stderr:")
-    print(uncompiled_stderr)
-
-    print("---------------------------------------------------------------------------------")
-
-    print("compiled_stdout:")
-    print(compiled_stdout)
-    print("\ncompiled_stderr:")
-    print(compiled_stderr)
-    '''
 
     os.chdir(base_dir)
 
-    # TODO: remove venv directories
-    removeDirectory(os.path.join(base_dir, "venv_%s" % package_name), ignore_errors=False) # currently not working
+    # TODO: currently not working due to permission errors on removing .git files
+    removeDirectory(os.path.join(base_dir, "venv_%s" % package_name), ignore_errors=False)
 
     # compare outputs
-    exit_code_stdout = compareOutput(
+    stdout_diff = compareOutput(
         "stdout",
         uncompiled_stdout,
         compiled_stdout,
@@ -139,7 +177,7 @@ for package_name, details in packages.items():
         syntax_errors=True,
     )
 
-    exit_code_stderr = compareOutput(
+    stderr_diff = compareOutput(
         "stderr",
         uncompiled_stderr,
         compiled_stderr,
@@ -148,10 +186,25 @@ for package_name, details in packages.items():
         syntax_errors=True,
     )
 
-    print("---------------------------------------------------------------------------------")
-    print("--- %s ---" % package_name,"exit_stdout:", exit_code_stdout, "exit_stderr:", exit_code_stderr)
+    print("=================================================================================")
+    print("--- %s ---" % package_name,"exit_stdout:", stdout_diff, "exit_stderr:", stderr_diff)
 
-    if exit_code_stdout or exit_code_stderr:
+    if stdout_diff or stderr_diff:
+    #    search_mode.onErrorDetected("Error exit! %s" % result)
         print("Error, outputs differed for package %s." % package_name)
     else:
         print("No differences found for package %s." % package_name)
+
+    print("=================================================================================\n\n")
+
+
+    # TODO: The search mode also gets informed about success and
+    # failure of a test case.
+    # if result != 0 and search_mode.abortOnFinding(dirname, filename):
+    #    break
+
+
+    if search_mode.abortIfExecuted():
+        break
+
+search_mode.finish()

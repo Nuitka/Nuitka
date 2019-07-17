@@ -51,20 +51,20 @@ class Virtualenv(object):
             assert os.system(command) == 0, command
 
 
-    def runCommandWithOutput(self, popen_args):
+    def runCommandWithOutput(self, commands):
         '''
         Returns the stdout,stderr from process.communicate()
         '''
-        if type(popen_args) in (str, unicode):
-            popen_args = [popen_args]
+        if type(commands) in (str, unicode):
+            commands = [commands]
 
         with withDirectoryChange(self.env_dir):
             if os.name == "nt":
-                popen_args = [r"call scripts\activate.bat"] + popen_args
+                commands = [r"call scripts\activate.bat"] + commands
             else:
-                popen_args = [". bin/activate"] + popen_args
+                commands = [". bin/activate"] + commands
 
-            popen_arg = " && ".join(popen_args)
+            popen_arg = " && ".join(commands)
 
             # Use subprocess and also return outputs, stdout, stderr, result
             process = subprocess.Popen(
