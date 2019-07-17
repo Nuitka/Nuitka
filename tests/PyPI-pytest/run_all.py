@@ -38,7 +38,7 @@ import re
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.FileOperations import removeDirectory
-from nuitka.tools.testing.Common import createSearchMode
+from nuitka.tools.testing.Common import createSearchMode, my_print
 import nuitka
 
 class bcolors:
@@ -79,6 +79,12 @@ packages = {
         "ignored_tests": None,
     },
 
+    "pyyaml": {
+        "url": "https://github.com/yaml/pyyaml.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
     "requests": {
         "url": "https://github.com/kennethreitz/requests.git",
         "requirements_file": None,
@@ -103,6 +109,10 @@ for package_name, details in sorted(packages.items()):
     active = search_mode.consider(dirname=None, filename=package_name)
 
     if not active:
+        continue
+
+    # pyyaml: invalid command 'bdist_nuitka'
+    if package_name in ("pyyaml"):
         continue
 
     try:
@@ -150,7 +160,7 @@ for package_name, details in sorted(packages.items()):
             uncompiled_stdout, uncompiled_stderr = venv.runCommandWithOutput(
                 commands=[
                     "cd %s" % package_name,
-                    "python -m pytest --verbose",
+                    "python -m pytest --disable-warnings",
                 ]
             )
 
@@ -175,13 +185,15 @@ for package_name, details in sorted(packages.items()):
             compiled_stdout, compiled_stderr = venv.runCommandWithOutput(
                 commands=[
                     "cd %s" % package_name,
-                    "python -m pytest --verbose",
+                    "python -m pytest --disable-warnings",
                 ]
             )
 
     except Exception as e:
-        print("Package", package_name, "ran into an exception during execution, traceback: ")
-        print(e)
+        my_print("Package", package_name, "ran into an exception during execution, traceback: ")
+        my_print(e)
+        if search_mode.abortIfExecuted():
+            break
         continue
 
 
@@ -213,12 +225,12 @@ for package_name, details in sorted(packages.items()):
     exit_code = stdout_diff or stderr_diff
 
 
-    print(
+    my_print(
         bcolors.RED if exit_code else bcolors.GREEN
         + "\n================================================================================="
     )
 
-    print(
+    my_print(
         "--- %s ---" % package_name,
         "exit_stdout:",
         stdout_diff,
@@ -227,11 +239,11 @@ for package_name, details in sorted(packages.items()):
     )
 
     if exit_code:
-        print("Error, outputs differed for package %s." % package_name)
+        my_print("Error, outputs differed for package %s." % package_name)
     else:
-        print("No differences found for package %s." % package_name)
+        my_print("No differences found for package %s." % package_name)
 
-    print(
+    my_print(
         "=================================================================================\n"
         + bcolors.ENDC
     )
