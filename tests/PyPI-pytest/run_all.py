@@ -61,6 +61,12 @@ class bcolors:
 # TODO: Get closer to 50 items :)
 
 packages = {
+    "certifi": {
+        "url": "https://github.com/certifi/python-certifi.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
     "dateutil": {
         "url": "https://github.com/dateutil/dateutil.git",
         "requirements_file": "requirements-dev.txt",
@@ -104,6 +110,8 @@ packages = {
 base_dir = os.getcwd()
 
 search_mode = createSearchMode()
+
+results = []
 
 for package_name, details in sorted(packages.items()):
     active = search_mode.consider(dirname=None, filename=package_name)
@@ -222,30 +230,42 @@ for package_name, details in sorted(packages.items()):
         syntax_errors=True,
     )
 
+
+    results.append((package_name,stdout_diff,stderr_diff))
+
     exit_code = stdout_diff or stderr_diff
 
 
     my_print(
-        bcolors.RED if exit_code else bcolors.GREEN
-        + "\n================================================================================="
+        bcolors.RED if exit_code else bcolors.GREEN,
+        "\n=================================================================================",
+        bcolors.ENDC
     )
 
     my_print(
+        bcolors.RED if exit_code else bcolors.GREEN,
         "--- %s ---" % package_name,
         "exit_stdout:",
         stdout_diff,
         "exit_stderr:",
         stderr_diff,
+        bcolors.ENDC
     )
 
     if exit_code:
-        my_print("Error, outputs differed for package %s." % package_name)
+        my_print(
+            bcolors.RED,
+            "Error, outputs differed for package %s." % package_name
+        )
     else:
-        my_print("No differences found for package %s." % package_name)
+        my_print(
+            bcolors.GREEN,
+            "No differences found for package %s." % package_name
+        )
 
     my_print(
-        "=================================================================================\n"
-        + bcolors.ENDC
+        "=================================================================================\n",
+        bcolors.ENDC
     )
 
 
@@ -256,3 +276,31 @@ for package_name, details in sorted(packages.items()):
         break
 
 search_mode.finish()
+
+
+# give a summary of all packages
+
+my_print(
+    bcolors.YELLOW,
+    "\n\n=====================================SUMMARY=====================================",
+    bcolors.ENDC
+)
+
+for package_name, stdout_diff, stderr_diff in results:
+    my_print(
+        bcolors.RED if (stdout_diff or stderr_diff) else bcolors.GREEN,
+        bcolors.UNDERLINE + package_name + bcolors.ENDC,
+        "-",
+
+        bcolors.RED if stdout_diff else bcolors.GREEN,
+        "stdout:",
+        stdout_diff,
+        bcolors.ENDC,
+
+        bcolors.RED if stderr_diff else bcolors.GREEN,
+        "stderr:",
+        stderr_diff,
+        bcolors.ENDC,
+
+        "\n---------------------------------------------------------------------------------"
+    )
