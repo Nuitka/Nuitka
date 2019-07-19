@@ -32,13 +32,11 @@ sys.path.insert(
 
 # isort:start
 
-import subprocess
-import re
-
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.FileOperations import removeDirectory
 from nuitka.tools.testing.Common import createSearchMode, my_print
+from nuitka.utils.AppDirs import getCacheDir
 import nuitka
 
 class bcolors:
@@ -51,12 +49,6 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-# TODO: Have this in a def main():
-
-# TODO: Put the source clones in os.path joined Appdirs.getCacheDir(), "pypi-git-clones" (AppDirs.py in nuitka/utils)
-# git clone if it does not exist
-# otherwise git fetch && git reset --hard origin
-# normally will not update at all.
 
 # TODO: Get closer to 50 items :)
 
@@ -127,7 +119,12 @@ packages = {
 
 
 def main():
-    base_dir = os.getcwd()
+    cache_dir = os.path.join(getCacheDir(), "pypi-git-clones")
+
+    if not os.path.exists(cache_dir):
+        os.mkdir(cache_dir)
+
+    os.chdir(cache_dir)
 
     search_mode = createSearchMode()
 
@@ -146,23 +143,27 @@ def main():
                 break
             continue
 
+        # clone package if not there, else update it
+        if not package_name in os.listdir(cache_dir):
+            os.system("git clone %s %s" % (details["url"], package_name))
+        else:
+            os.system("cd %s && git fetch && git reset --hard origin" % package_name)
+
         try:
             with withVirtualenv("venv_%s" % package_name) as venv:
-                dist_dir = os.path.join(venv.getVirtualenvDir(), package_name, "dist")
-
-                # setup the virtualenv for testing
-                venv.runCommand("git clone %s %s" % (details["url"], package_name))
+                dist_dir = os.path.join(cache_dir, package_name, "dist")
 
                 # delete ignored tests if any
                 if details["ignored_tests"]:
                     for test in details["ignored_tests"]:
-                        venv.runCommand("rm %s" % os.path.join(package_name, test))
+                        venv.runCommand("rm -rf %s" % os.path.join(cache_dir, package_name, test))
 
+                # setup for pytest
                 cmds = [
                     "python -m pip install pytest",
                     "cd %s" % os.path.join(os.path.dirname(nuitka.__file__), ".."),
                     "python setup.py develop",
-                    "cd %s" % os.path.join(venv.getVirtualenvDir(), package_name),
+                    "cd %s" % os.path.join(cache_dir, package_name),
                 ]
 
                 if details["requirements_file"]:
@@ -190,7 +191,7 @@ def main():
                 # get uncompiled pytest results
                 uncompiled_stdout, uncompiled_stderr = venv.runCommandWithOutput(
                     commands=[
-                        "cd %s" % package_name,
+                        "cd %s" % os.path.join(cache_dir, package_name),
                         "python -m pytest --disable-warnings",
                     ]
                 )
@@ -198,7 +199,7 @@ def main():
                 # build nuitka compiled .whl
                 venv.runCommand(
                     commands=[
-                        "cd %s" % package_name,
+                        "cd %s" % os.path.join(cache_dir, package_name),
                         "rm -rf dist",
                         "python setup.py bdist_nuitka",
                     ]
@@ -215,24 +216,24 @@ def main():
                 # get compiled pytest results
                 compiled_stdout, compiled_stderr = venv.runCommandWithOutput(
                     commands=[
-                        "cd %s" % package_name,
+                        "cd %s" % os.path.join(cache_dir, package_name),
                         "python -m pytest --disable-warnings",
                     ]
                 )
 
+                venv.runCommand("rm -rf %s" % dist_dir)
+
+
         except Exception as e:
             my_print("Package", package_name, "ran into an exception during execution, traceback: ")
             my_print(e)
+            removeDirectory(getVirtualenvDir(), ignore_errors=False)
+
             if search_mode.abortIfExecuted():
                 break
             continue
 
 
-
-        os.chdir(base_dir)
-
-        # TODO: currently not working due to permission errors on removing .git files
-        removeDirectory(os.path.join(base_dir, "venv_%s" % package_name), ignore_errors=False)
 
         # compare outputs
         stdout_diff = compareOutput(
@@ -327,6 +328,26 @@ def main():
 
             "\n---------------------------------------------------------------------------------"
         )
+
+    my_print(
+        bcolors.YELLOW,
+        "TOTAL NUMBER OF PACKAGES TESTED: %s" % len(results),
+        bcolors.ENDC
+    )
+
+    num_failed = sum(y or z for _,y,z in results)
+
+    my_print(
+        bcolors.GREEN,
+        "TOTAL PASSED: %s" % (len(results) - num_failed),
+        bcolors.ENDC
+    )
+
+    my_print(
+        bcolors.RED,
+        "TOTAL FAILED: %s" % num_failed,
+        bcolors.ENDC
+    )
 
 
 if __name__ == "__main__":
