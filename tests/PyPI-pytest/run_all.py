@@ -83,6 +83,18 @@ packages = {
         "ignored_tests": None,
     },
 
+    "markupsafe": {
+        "url": "https://github.com/pallets/markupsafe.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
+    "numpy": {
+        "url": "https://github.com/numpy/numpy.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
     "pyasn1": {
         "url": "https://github.com/etingof/pyasn1.git",
         "requirements_file": "requirements.txt",
@@ -148,7 +160,9 @@ def main():
         if not active:
             continue
 
+        # skip these packages
         if package_name in (
+            "numpy",
             "pytz",
             "pyyaml", # invalid command 'bdist_nuitka'
         ):
