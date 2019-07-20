@@ -28,7 +28,12 @@ from .NodeMakingHelpers import makeConstantReplacementNode
 class ExpressionBuiltinZip(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_ZIP"
 
+    # TODO: Store "values" as a named child that is a list
+
     builtin_spec = BuiltinParameterSpecs.builtin_zip_spec
 
     def computeExpression(self, trace_collection):
+        # TODO: Can you tell if arguments are not iterable
+
+        # Notice: For C side, just call zip built-in
         pass
