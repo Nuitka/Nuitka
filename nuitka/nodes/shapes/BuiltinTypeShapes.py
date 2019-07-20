@@ -211,7 +211,7 @@ class ShapeTypeBool(ShapeBase):
 
     @staticmethod
     def hasShapeSlotAbs():
-        return False
+        return True
 
     @staticmethod
     def hasShapeSlotLen():
