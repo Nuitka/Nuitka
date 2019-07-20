@@ -96,7 +96,10 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional,
 )
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantListEmptyRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinCompile, ExpressionBuiltinEval
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinDir1,
@@ -1006,7 +1009,7 @@ if python_version < 300:
 
     def zip_extractor(node):
         @calledWithBuiltinArgumentNamesDecorator
-        def wrapZipBuiltin(args, source_ref):
+        def wrapZipBuiltin(source_ref, *call_args):
             # pylint: disable=unused-argument
             outline_body = ExpressionOutlineBody(
                 provider=node.getParentVariableProvider(),
@@ -1014,88 +1017,92 @@ if python_version < 300:
                 source_ref=source_ref,
             )
 
-            call_args = node.getCallArgs()
-            provider = node.getParentVariableProvider()
+            zip_arg_variables = [
+                outline_body.allocateTempVariable(
+                    temp_scope=None, name="zip_arg_%d" % (i + 1)
+                )
+                for i in range(len(call_args))
+            ]
 
-            empty_list = outline_body.allocateTempVariable(
-                temp_scope=None, name="empty_list"
-            )
-
+            # Assign arguments to temp variables. Always first thing
+            # for any re-formulation.
             statements = [
                 StatementAssignmentVariable(
-                    variable=empty_list,
-                    source=makeConstantRefNode(constant=list(), source_ref=source_ref),
-                    source_ref=source_ref,
+                    variable=zip_arg_variable, source=call_arg, source_ref=source_ref
                 )
+                for call_arg, zip_arg_variable in zip(call_args, zip_arg_variables)
             ]
 
-            final_statements = [
-                StatementDelVariable(
-                    variable=empty_list, tolerant=True, source_ref=source_ref
+            zip_iter_variables = [
+                outline_body.allocateTempVariable(
+                    temp_scope=None, name="zip_iter_%d" % (i + 1)
                 )
+                for i in range(len(call_args))
             ]
 
-            if call_args is not None:
-                zip_arg_variables = [
-                    outline_body.allocateTempVariable(
-                        temp_scope=None, name="zip_arg_%d" % i
-                    )
-                    for i in range(call_args.getIterationLength())
-                ]
-
-                zip_iter_variables = [
-                    outline_body.allocateTempVariable(
-                        temp_scope=None, name="zip_iter_%d" % i
-                    )
-                    for i in range(call_args.getIterationLength())
-                ]
-
-                statements.append(
-                    StatementAssignmentVariable(
-                        variable=zip_arg_variable,
-                        source=call_arg,
-                        source_ref=source_ref,
-                    )
-                    for call_arg, zip_arg_variable in zip(
-                        call_args.getElements(), zip_arg_variables
-                    )
-                )
-
-                statements.append(
-                    StatementAssignmentVariable(
-                        variable=zip_iter_variable,
-                        source=ExpressionBuiltinIter1(
-                            value=ExpressionVariableRef(
-                                variable=zip_arg_variable, source_ref=source_ref
-                            ),
-                            source_ref=source_ref,
-                        ),
-                        source_ref=source_ref,
-                    )
-                    for zip_iter_variable, zip_arg_variable in zip(
-                        zip_iter_variables, zip_arg_variables
-                    )
-                )
-
-                import ipdb
-
-                ipdb.set_trace()
-
-                loop_body = makeTryExceptSingleHandlerNode(
-                    tried=StatementAssignmentVariable(
-                        variable=zip_iter_variables,
-                        source=ExpressionBuiltinNext1(
-                            value=ExpressionTempVariableRef(
-                                variable=zip_iter_variables, source_ref=source_ref
-                            ),
-                            source_ref=source_ref,
+            # Create iterators of all zip arguments.
+            statements += [
+                # TODO: Error message for non-iterable
+                # should be "zip argument #x must support iteration"
+                StatementAssignmentVariable(
+                    variable=zip_iter_variable,
+                    source=ExpressionBuiltinIter1(
+                        value=ExpressionVariableRef(
+                            variable=zip_arg_variable, source_ref=source_ref
                         ),
                         source_ref=source_ref,
                     ),
-                    exception_name="StopIteration",
-                    handler_body=StatementLoopBreak(source_ref=source_ref),
                     source_ref=source_ref,
                 )
+                for zip_iter_variable, zip_arg_variable in zip(
+                    zip_iter_variables, zip_arg_variables
+                )
+            ]
+
+            # When we append all values at once, all we
+            # need to do is to check StopIteration for
+            # any of the next attempts, ExpressionMakeTuple
+            # takes care of all releasing.
+            append_statement = StatementListAppend(
+                source=ExpressionMakeTuple(
+                    elements=[
+                        ExpressionBuiltinNext1()
+                        for zip_iter_variable in zip_iter_variables
+                    ]
+                )
+            )
+
+            # Can check all next in once go.
+            loop_body = makeTryExceptSingleHandlerNode(
+                tried=append_statement,
+                exception_name="StopIteration",
+                handler_body=StatementLoopBreak(source_ref=source_ref),
+                source_ref=source_ref,
+            )
+
+            statements.append(StatementLoop(body=loop_body))
+
+            statements.append(
+                StatementReturn(
+                    ExpressionTempVariableRef(
+                        # TODO: Create that tmp_result
+                        # and assign from empty list
+                        # right before loop.
+                        variable=tmp_result
+                    ),
+                    source_ref=source_ref,
+                )
+            )
+
+            # TODO: Final statements
+            #
+            #  release of everything
+            final_statements = [
+                StatementReleaseVariable(
+                    variable=tmp_variable, source_ref=internal_source_ref
+                )
+                for tmp_variable in []  # TODO: All temps, make sure to not forget ones otherwise memory leaks!
+            ]
 
             outline_body.setBody(
                 makeStatementsSequenceFromStatement(
@@ -1114,6 +1121,7 @@ if python_version < 300:
             node=node,
             builtin_class=wrapZipBuiltin,
             builtin_spec=BuiltinParameterSpecs.builtin_zip_spec,
+            empty_special_class=ExpressionConstantListEmptyRef,
         )
 
 
