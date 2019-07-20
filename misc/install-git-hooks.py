@@ -89,11 +89,11 @@ please improve this script."""
                     hook_contents[10:],
                 )
 
-                # Also use sys.executable to make sure we find autoformat.
-                hook_contents = hook_contents.replace(
-                    "./bin/autoformat-nuitka-source",
-                    "'%s' ./bin/autoformat-nuitka-source" % sys.executable,
-                )
+            # Also use sys.executable to make sure we find autoformat.
+            hook_contents = hook_contents.replace(
+                "./bin/autoformat-nuitka-source",
+                "'%s' ./bin/autoformat-nuitka-source" % sys.executable,
+            )
         else:
             sys.exit("Error, unknown hook contents.")
 
