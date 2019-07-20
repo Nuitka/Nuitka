@@ -679,7 +679,7 @@ class ExpressionOperationAbs(ExpressionOperationUnaryBase):
         if value.mayRaiseException(exception_type):
             return True
 
-        return not value.getTypeShape().hasShapeSlotAbs()
+        return value.mayRaiseExceptionAbs(exception_type)
 
 
 class ExpressionOperationBinaryInplace(ExpressionOperationBinary):

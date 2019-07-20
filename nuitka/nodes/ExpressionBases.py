@@ -690,6 +690,15 @@ class ExpressionBase(NodeBase):
 
         return True
 
+    def mayHaveSideEffectsAbs(self):
+        """ Unless we are told otherwise, everything may have a side effect for abs check. """
+        # Virtual method, pylint: disable=no-self-use
+
+        # TODO: Bonus points for check type shapes that will be good
+        # for abs, i.e. number shapes like Int, Long, Float, Complex.
+
+        return True
+
     def hasShapeSlotLen(self):
         """ The type shape tells us, if "len" is available.
 
