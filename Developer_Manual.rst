@@ -2717,6 +2717,31 @@ Builtin ``max``
 
 See ``min`` just with ``>`` instead of ``<``.
 
+Builtin ``zip`` for Python2
+---------------------------
+
+.. code-block:: python
+
+    def _zip():
+    ...
+
+Builtin ``map`` for Python2
+---------------------------
+
+.. code-block:: python
+
+    def _map():
+    ...
+
+Builtin ``min``
+---------------
+
+.. code-block:: python
+
+    def _min():
+        ...
+
+
 Call to ``dir`` without arguments
 +++++++++++++++++++++++++++++++++
 
