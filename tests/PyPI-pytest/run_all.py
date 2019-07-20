@@ -89,6 +89,12 @@ packages = {
         "ignored_tests": None,
     },
 
+    "pytz": {
+        "url": "https://github.com/stub42/pytz.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
     "pyyaml": {
         "url": "https://github.com/yaml/pyyaml.git",
         "requirements_file": None,
@@ -103,6 +109,12 @@ packages = {
 
     "rsa": {
         "url": "https://github.com/sybrenstuvel/python-rsa.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
+    "simplejson": {
+        "url": "https://github.com/simplejson/simplejson.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
@@ -137,6 +149,7 @@ def main():
             continue
 
         if package_name in (
+            "pytz",
             "pyyaml", # invalid command 'bdist_nuitka'
         ):
             if search_mode.abortIfExecuted():
@@ -227,7 +240,7 @@ def main():
         except Exception as e:
             my_print("Package", package_name, "ran into an exception during execution, traceback: ")
             my_print(e)
-            removeDirectory(getVirtualenvDir(), ignore_errors=False)
+            removeDirectory(venv.getVirtualenvDir(), ignore_errors=False)
 
             if search_mode.abortIfExecuted():
                 break
