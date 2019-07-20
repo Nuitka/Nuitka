@@ -619,6 +619,12 @@ class ExpressionBase(NodeBase):
 
         return True
 
+    def mayRaiseExceptionAbs(self, exception_type):
+        """ Unless we are told otherwise, everything may raise in 'abs'. """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+
+        return True
+
     def mayRaiseExceptionInt(self, exception_type):
         """ Unless we are told otherwise, everything may raise in __int__. """
         # Virtual method, pylint: disable=no-self-use,unused-argument

@@ -674,12 +674,20 @@ class ExpressionOperationAbs(ExpressionOperationUnaryBase):
         )
 
     def mayRaiseException(self, exception_type):
-        value = self.getOperand()
+        operand = self.getOperand()
 
-        if value.mayRaiseException(exception_type):
+        if operand.mayRaiseException(exception_type):
             return True
 
-        return value.mayRaiseExceptionAbs(exception_type)
+        return operand.mayRaiseExceptionAbs(exception_type)
+
+    def mayHaveSideEffects(self):
+        operand = self.getOperand()
+
+        if operand.mayHaveSideEffects():
+            return True
+
+        return operand.mayHaveSideEffectsAbs()
 
 
 class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
