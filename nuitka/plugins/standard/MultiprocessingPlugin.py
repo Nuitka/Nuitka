@@ -26,6 +26,7 @@ The issue applies to accelerated and standalone mode alike.
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.PythonVersions import python_version
 from nuitka.utils import Utils
 
 
@@ -135,8 +136,8 @@ Monkey patching "multiprocessing" for compiled methods.""",
         # For the call stack, this may look bad or different to what
         # CPython does. Using the "__import__" built-in to not spoil
         # or use the module namespace. The forking module was split up
-        # into multiple modules in Python 3.4.0.a2
-        if hexversion >= 0x030400A2:
+        # into multiple modules in Python 3.4.
+        if python_version >= 340:
             source_code += """
 __import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
 __import__("multiprocessing.spawn").spawn.freeze_support()"""
