@@ -203,6 +203,7 @@ def executePASS1():
     ]
     command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
+    my_print("Command: ", " ".join(command))
     result = subprocess.call(command)
 
     if result != 0:
@@ -268,6 +269,7 @@ def compileAndCompareWith(nuitka):
                 ]
                 command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
+                my_print("Command: ", " ".join(command))
                 result = subprocess.call(command)
 
                 if result != 0:
