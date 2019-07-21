@@ -39,15 +39,6 @@ from nuitka.tools.testing.Common import createSearchMode, my_print
 from nuitka.utils.AppDirs import getCacheDir
 import nuitka
 
-class bcolors:
-    PINK = '\033[95m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 
 # TODO: Get closer to 50 items :)
@@ -145,7 +136,7 @@ packages = {
 def main():
     cache_dir = os.path.join(getCacheDir(), "pypi-git-clones")
 
-    if not os.path.exists(cache_dir):
+    if not os.path.isdir(cache_dir):
         os.mkdir(cache_dir)
 
     os.chdir(cache_dir)
@@ -170,27 +161,31 @@ def main():
                 break
             continue
 
-        # clone package if not there, else update it
-        if not package_name in os.listdir(cache_dir):
-            os.system("git clone %s %s" % (details["url"], package_name))
-        else:
-            os.system("cd %s && git fetch && git reset --hard origin" % package_name)
+        package_dir = os.path.join(cache_dir, package_name)
+
+        # update package if existing, else clone
+        try:
+            assert os.system("cd %s && git fetch && git reset --hard origin" % package_name) == 0
+        except AssertionError:
+            assert os.system("git clone %s %s --depth 1 --single-branch --no-tags" % (details["url"], package_name)) == 0, \
+                "Error while git cloning package %s, aborting..." % package_name
+
 
         try:
             with withVirtualenv("venv_%s" % package_name) as venv:
-                dist_dir = os.path.join(cache_dir, package_name, "dist")
+                dist_dir = os.path.join(package_dir, "dist")
 
                 # delete ignored tests if any
                 if details["ignored_tests"]:
                     for test in details["ignored_tests"]:
-                        venv.runCommand("rm -rf %s" % os.path.join(cache_dir, package_name, test))
+                        venv.runCommand("rm -rf %s" % os.path.join(package_dir, test))
 
                 # setup for pytest
                 cmds = [
                     "python -m pip install pytest",
                     "cd %s" % os.path.join(os.path.dirname(nuitka.__file__), ".."),
                     "python setup.py develop",
-                    "cd %s" % os.path.join(cache_dir, package_name),
+                    "cd %s" % package_dir,
                 ]
 
                 if details["requirements_file"]:
@@ -218,7 +213,7 @@ def main():
                 # get uncompiled pytest results
                 uncompiled_stdout, uncompiled_stderr = venv.runCommandWithOutput(
                     commands=[
-                        "cd %s" % os.path.join(cache_dir, package_name),
+                        "cd %s" % package_dir,
                         "python -m pytest --disable-warnings",
                     ]
                 )
@@ -226,7 +221,7 @@ def main():
                 # build nuitka compiled .whl
                 venv.runCommand(
                     commands=[
-                        "cd %s" % os.path.join(cache_dir, package_name),
+                        "cd %s" % package_dir,
                         "rm -rf dist",
                         "python setup.py bdist_nuitka",
                     ]
@@ -243,7 +238,7 @@ def main():
                 # get compiled pytest results
                 compiled_stdout, compiled_stderr = venv.runCommandWithOutput(
                     commands=[
-                        "cd %s" % os.path.join(cache_dir, package_name),
+                        "cd %s" % package_dir,
                         "python -m pytest --disable-warnings",
                     ]
                 )
@@ -288,35 +283,16 @@ def main():
 
 
         my_print(
-            bcolors.RED if exit_code else bcolors.GREEN,
             "\n=================================================================================",
-            bcolors.ENDC
-        )
-
-        my_print(
-            bcolors.RED if exit_code else bcolors.GREEN,
-            "--- %s ---" % package_name,
+            "\n--- %s ---" % package_name,
             "exit_stdout:",
             stdout_diff,
             "exit_stderr:",
             stderr_diff,
-            bcolors.ENDC
-        )
-
-        if exit_code:
-            my_print(
-                bcolors.RED,
-                "Error, outputs differed for package %s." % package_name
-            )
-        else:
-            my_print(
-                bcolors.GREEN,
-                "No differences found for package %s." % package_name
-            )
-
-        my_print(
-            "=================================================================================\n",
-            bcolors.ENDC
+            "\nError, outputs differed for package %s." % package_name if exit_code \
+                else "\nNo differences found for package %s." % package_name,
+            "\n=================================================================================\n",
+            style="red" if exit_code else "green"
         )
 
 
@@ -332,48 +308,50 @@ def main():
     # give a summary of all packages
 
     my_print(
-        bcolors.YELLOW,
         "\n\n=====================================SUMMARY=====================================",
-        bcolors.ENDC
+        style="yellow"
     )
 
     for package_name, stdout_diff, stderr_diff in results:
         my_print(
-            bcolors.RED if (stdout_diff or stderr_diff) else bcolors.GREEN,
-            bcolors.UNDERLINE + package_name + bcolors.ENDC,
+            package_name,
             "-",
-
-            bcolors.RED if stdout_diff else bcolors.GREEN,
-            "stdout:",
-            stdout_diff,
-            bcolors.ENDC,
-
-            bcolors.RED if stderr_diff else bcolors.GREEN,
-            "stderr:",
-            stderr_diff,
-            bcolors.ENDC,
-
-            "\n---------------------------------------------------------------------------------"
+            end=" ",
+            style="red" if (stdout_diff or stderr_diff) else "green"
         )
 
+        my_print(
+            "stdout:",
+            stdout_diff,
+            end=" ",
+            style="red" if stdout_diff else "green"
+        )
+
+        my_print(
+            "stderr:",
+            stderr_diff,
+            end="",
+            style="red" if stderr_diff else "green"
+        )
+
+        my_print("\n---------------------------------------------------------------------------------")
+
+
     my_print(
-        bcolors.YELLOW,
         "TOTAL NUMBER OF PACKAGES TESTED: %s" % len(results),
-        bcolors.ENDC
+        style="yellow"
     )
 
     num_failed = sum(y or z for _,y,z in results)
 
     my_print(
-        bcolors.GREEN,
         "TOTAL PASSED: %s" % (len(results) - num_failed),
-        bcolors.ENDC
+        style="green"
     )
 
     my_print(
-        bcolors.RED,
         "TOTAL FAILED: %s" % num_failed,
-        bcolors.ENDC
+        style="red"
     )
 
 

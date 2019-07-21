@@ -51,12 +51,45 @@ def flushStdout():
     sys.stdout.flush()
 
 
+class bcolors:
+    PINK = '\033[95m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 def my_print(*args, **kwargs):
     """ Make sure we flush after every print.
 
     Not even the "-u" option does more than that and this is easy enough.
     """
 
-    print(*args, **kwargs)
+    if "style" in kwargs:
+        if kwargs["style"] == "pink":
+            style = bcolors.PINK
+        elif kwargs["style"] == "blue":
+            style = bcolors.BLUE
+        elif kwargs["style"] == "green":
+            style = bcolors.GREEN
+        elif kwargs["style"] == "yellow":
+            style = bcolors.YELLOW
+        elif kwargs["style"] == "red":
+            style = bcolors.RED
+        elif kwargs["style"] == "bold":
+            style = bcolors.BOLD
+        elif kwargs["style"] == "underline":
+            style = bcolors.UNDERLINE
+        else:
+            raise ValueError("%s is an invalid value for keyword argument style" % kwargs["style"])
+
+        del kwargs["style"]
+
+        print(style, *args, bcolors.ENDC, **kwargs)
+
+    else:
+        print(*args, **kwargs)
 
     flushStdout()

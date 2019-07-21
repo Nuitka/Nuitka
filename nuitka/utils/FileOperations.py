@@ -248,11 +248,12 @@ def removeDirectory(path, ignore_errors):
 
     def onError(func, path, exc_info):
         # Try again immediately, ignore what happened, pylint: disable=unused-argument
-        for i in range(10):
-            try:
-                func(path)
-            except OSError:
-                time.sleep(0.1)
+        try:
+            func(path)
+        except OSError:
+            time.sleep(0.1)
+
+        func(path)
 
     with withFileLock("removing directory %s" % path):
         if os.path.exists(path):
