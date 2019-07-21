@@ -36,6 +36,10 @@ from nuitka.utils.WindowsResources import (
 
 
 def executePostProcessing(result_filename):
+    if not os.path.exists(result_filename):
+        sys.exit(
+            "Error, scons failed to create the expected file '%s'. " % result_filename
+        )
 
     if isWin32Windows():
         # Copy the Windows manifest from the CPython binary to the created
