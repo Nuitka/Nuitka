@@ -39,7 +39,7 @@ class GeventPlugin(NuitkaPluginBase):
         else:
             full_name = module_package + "." + module_name
 
-        if full_name.startswith("gevent"):
+        if full_name == "gevent" or full_name.startswith("gevent."):
             return True, "everything from gevent"
 
         return None

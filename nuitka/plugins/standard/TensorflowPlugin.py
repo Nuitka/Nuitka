@@ -70,8 +70,9 @@ class TensorflowPlugin(NuitkaPluginBase):
         else:
             full_name = module_name
 
-        if full_name.startswith(("tensor", "google")):
-            return True, "accept everything"
+        for candidate in ("tensor", "google"):
+            if full_name == candidate or full_name.startswith(candidate + "."):
+                return True, "accept everything from %s" % candidate
 
     def onModuleSourceCode(self, module_name, source_code):
         """ Neutralize some path magic in tensorflow.
@@ -108,10 +109,18 @@ class TensorflowPlugin(NuitkaPluginBase):
             create the actual application. Therefore, compilation makes no
             sense for it and the packages it references.
         """
-        if module_name.startswith(
-            ("tensor", "boto", "google", "keras", "sklearn", "pandas", "matplotlib")
+
+        for candidate in (
+            "tensor",
+            "boto",
+            "google",
+            "keras",
+            "sklearn",
+            "pandas",
+            "matplotlib",
         ):
-            return "bytecode"
+            if module_name == candidate or module_name.startswith(candidate + "."):
+                return "bytecode"
 
 
 class TensorflowPluginDetector(NuitkaPluginBase):
