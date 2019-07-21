@@ -48,10 +48,11 @@ def doMissingOptimizationReport():
 
 
 def onMissingHelper(helper_name, source_ref):
-    if helper_name not in _missing_helpers:
-        _missing_helpers[helper_name] = []
+    if source_ref:
+        if helper_name not in _missing_helpers:
+            _missing_helpers[helper_name] = []
 
-    _missing_helpers[helper_name].append(source_ref)
+        _missing_helpers[helper_name].append(source_ref)
 
 
 def onMissingOperation(*args):
