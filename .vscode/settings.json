@@ -10,6 +10,7 @@
         "**/__pycache__": true,
         "**/*.orig": true,
         "**/*.tmp": true,
+        "tests/reflected/nuitka": true
     },
     "files.associations": {
         "*.scons": "python",
