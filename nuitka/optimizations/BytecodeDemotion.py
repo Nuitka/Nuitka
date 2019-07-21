@@ -20,8 +20,9 @@
 """
 
 import marshal
-from logging import debug
+from logging import info
 
+from nuitka import Options
 from nuitka.importing.ImportCache import replaceImportedModule
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
@@ -37,7 +38,8 @@ def demoteCompiledModuleToBytecode(module):
     full_name = module.getFullName()
     filename = module.getCompileTimeFilename()
 
-    debug("Demoting module '%s' to bytecode from '%s'.", full_name, filename)
+    if Options.isShowProgress() or Options.isDebug():
+        info("Demoting module '%s' to bytecode from '%s'." % (full_name, filename))
 
     source_code = readSourceCodeFromFilename(full_name, filename)
 
