@@ -564,8 +564,6 @@ PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *coroutine, boo
                     return NULL;
                 }
 
-                assert(false);
-
                 CLEAR_ERROR_OCCURRED();
                 goto throw_here;
             }
