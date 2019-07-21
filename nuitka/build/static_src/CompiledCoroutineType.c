@@ -416,7 +416,7 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
 #endif
             PyErr_Format(PyExc_RuntimeError,
 #if !defined(_NUITKA_FULL_COMPAT)
-                         "cannot reuse already awaited compiled_coroutine"
+                         "cannot reuse already awaited compiled_coroutine %S", coroutine->m_qualname
 #else
                          "cannot reuse already awaited coroutine"
 #endif
@@ -678,7 +678,7 @@ throw_here:
 #endif
             PyErr_Format(PyExc_RuntimeError,
 #if !defined(_NUITKA_FULL_COMPAT)
-                         "cannot reuse already awaited compiled_coroutine"
+                         "cannot reuse already awaited compiled_coroutine %S", coroutine->m_qualname
 #else
                          "cannot reuse already awaited coroutine"
 #endif
