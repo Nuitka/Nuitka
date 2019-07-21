@@ -343,6 +343,7 @@ def autoformat(filename, git_stage, abort):
             ".stylesheet",
             ".j2",
             ".gitignore",
+            ".json",
         )
     )
 
