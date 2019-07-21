@@ -453,6 +453,7 @@ def prepareModuleCode(global_context, module, module_name):
         is_main_module=module.isMainModule(),
         is_internal_module=module.isInternalModule(),
         is_package=module.isCompiledPythonPackage(),
+        is_top=module.isTopModule(),
         context=context,
     )
 

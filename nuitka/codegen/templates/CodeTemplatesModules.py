@@ -141,11 +141,15 @@ extern void _initCompiledAsyncgenTypes();
 
 extern PyTypeObject Nuitka_Loader_Type;
 
+#if defined(_NUITKA_EXE) || !%(is_top)d
+// For executables or non top level modules, we need not export anything.
+MOD_ENTRY_DECL(%(module_identifier)s)
+#else
 // The exported interface to CPython. On import of the module, this function
 // gets called. It has to have an exact function name, in cases it's a shared
-// library export. This is hidden behind the MOD_INIT_DECL.
-
-MOD_INIT_DECL( %(module_identifier)s )
+// library export. This is hidden behind the MOD_INIT_DECL macro.
+MOD_INIT_DECL(%(module_identifier)s)
+#endif
 {
 #if defined(_NUITKA_EXE) || PYTHON_VERSION >= 300
     static bool _init_done = false;
