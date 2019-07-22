@@ -50,14 +50,15 @@ class IterationHandleBase(getMetaClassBase("IterationHandle")):
         return iteration_value.getTruthValue()
 
     def getAllElementTruthValue(self):
+        """Returns truth value for 'all' on 'lists'. It returns
+        True: if all the elements of the list are True,
+        False: if any element in the list is False,
+        None: if number of elements in the list is greater than
+        256 or any element is Unknown.
+        """
         all_true = True
         count = 0
         while True:
-            # This is a function that returns True, False, or None
-            # True -> definitely true value
-            # False -> definitely false value
-            # None -> I don't know, could be true, could be false
-            # StopIteration -> end of iteration over values
             truth_value = self.getNextValueTruth()
             if truth_value is StopIteration:
                 break
@@ -65,14 +66,9 @@ class IterationHandleBase(getMetaClassBase("IterationHandle")):
             if count > 256:
                 return None
 
-            # If one value is definitely false -> result is false,
-            # end of story.
             if truth_value is False:
                 return False
 
-            # If one value has unknown truth value, we cannot claim
-            # to know that all() with that contained to be true,
-            # but it might still become False!
             if truth_value is None:
                 all_true = None
 
@@ -309,6 +305,10 @@ class ConstantIterationHandleRange1(ConstantRangeIterationHandleBase):
 
     def getIterationLength(self):
         return max(0, self.low)
+
+    @staticmethod
+    def getAllElementTruthValue():
+        return False
 
 
 class ConstantIterationHandleRange2(ConstantRangeIterationHandleBase):

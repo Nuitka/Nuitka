@@ -28,7 +28,12 @@ from .NodeMakingHelpers import (
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithNodeSideEffects,
 )
-from .shapes.BuiltinTypeShapes import ShapeTypeBool, ShapeTypeStr
+from .shapes.BuiltinTypeShapes import (
+    ShapeTypeBool,
+    ShapeTypeBytes,
+    ShapeTypeStr,
+    ShapeTypeUnicode,
+)
 
 
 class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
@@ -57,14 +62,14 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
                 value_node=value,
             )
 
-        if shape is ShapeTypeStr:
+        if shape in (ShapeTypeStr, ShapeTypeBytes, ShapeTypeUnicode):
             return (
                 wrapExpressionWithNodeSideEffects(
                     new_node=makeConstantReplacementNode(constant=True, node=self),
                     old_node=value,
                 ),
                 "new_constant",
-                "Predicted truth value of built-in all string type argument",
+                "Predicted truth value of built-in 'all' string type argument",
             )
 
         iteration_handle = value.getIterationHandle()
@@ -81,7 +86,7 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
                 return (
                     result,
                     "new_constant",
-                    "Predicted truth value of built-in all argument",
+                    "Predicted truth value of built-in 'all' argument",
                 )
 
         self.onContentEscapes(trace_collection)
