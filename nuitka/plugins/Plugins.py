@@ -61,11 +61,18 @@ def loadStandardPlugins():
         if is_pkg:
             continue
 
-        # Ignore bytecode left overs.
-        if loader.find_module(name).get_filename().endswith(".pyc"):
-            continue
+        module_loader = loader.find_module(name)
 
-        plugin_module = loader.find_module(name).load_module(name)
+        # Ignore bytecode left overs.
+        try:
+            if module_loader.get_filename().endswith(".pyc"):
+                continue
+        except AttributeError:
+            # Not a bytecode loader, but e.g. extension module, which is OK in case
+            # it was compiled with Nuitka.
+            pass
+
+        plugin_module = module_loader.load_module(name)
 
         plugin_objects = [None, None]  # plugin and optional detector
 
