@@ -214,7 +214,7 @@ def deleteFile(path, must_exist):
         possible.
     """
     with withFileLock("deleting file %s" % path):
-        if os.path.isfile(path):
+        if os.path.islink(path) or os.path.isfile(path):
             try:
                 os.unlink(path)
             except OSError:
