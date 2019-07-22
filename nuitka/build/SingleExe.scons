@@ -1547,9 +1547,9 @@ def discoverSourceFiles():
 
 source_targets = []
 
-# Prepare the use of a custom specs file for windows targets. We change the used
-# specs for linking to avoid the use of the wrong (for CPython) run time
-# library.
+# Prepare the use of a resource file file for windows targets.
+rc_filename = None
+
 if win_target:
     rc_content = []
 
@@ -1734,6 +1734,9 @@ if gcc_mode:
     )
 
     with open(tmp_linker_filename, "w") as tmpfile:
+        if rc_filename is not None:
+            source_files.append(rc_filename)
+
         for filename in source_files:
             filename = ".".join(filename.split(".")[:-1]) + ".o"
 
