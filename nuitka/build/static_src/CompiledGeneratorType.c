@@ -149,9 +149,8 @@ static
     ) {
         PyGenObject *gen = (PyGenObject *)value;
 
-        PyObject *result = Nuitka_UncompiledGenerator_throw(gen,
-                                                            0, // ??
-                                                            exception_type, exception_value, (PyObject *)exception_tb);
+        PyObject *result =
+            Nuitka_UncompiledGenerator_throw(gen, 1, exception_type, exception_value, (PyObject *)exception_tb);
 
         Py_DECREF(exception_type);
         Py_XDECREF(exception_value);
