@@ -152,6 +152,8 @@ def _openFileWindowsResources(filename):
             ctypes.windll.kernel32.BeginUpdateResourceA  # @UndefinedVariable
         )
 
+    BeginUpdateResource.argtypes = [ctypes.wintypes.LPVOID, ctypes.wintypes.BOOL]
+
     BeginUpdateResource.restype = ctypes.wintypes.HANDLE
     update_handle = BeginUpdateResource(filename, False)
 
