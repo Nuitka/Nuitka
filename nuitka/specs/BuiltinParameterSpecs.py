@@ -336,8 +336,6 @@ builtin_import_spec = BuiltinParameterSpec(
     "__import__", ("name", "globals", "locals", "fromlist", "level"), default_count=4
 )
 
-builtin_zip_spec = BuiltinParameterSpecNoKeywords("zip", (), 0, "list_args")
-
 if python_version < 300:
     builtin_open_spec = BuiltinParameterSpec(
         "open", ("name", "mode", "buffering"), default_count=3
@@ -374,6 +372,8 @@ builtin_globals_spec = BuiltinParameterSpecNoKeywords("globals", (), default_cou
 builtin_eval_spec = BuiltinParameterSpecNoKeywords(
     "eval", ("source", "globals", "locals"), 2
 )
+builtin_zip_spec = BuiltinParameterSpecNoKeywords("zip", (), 0, "call_args")
+
 if python_version < 300:
     builtin_compile_spec = BuiltinParameterSpec(
         "compile",
