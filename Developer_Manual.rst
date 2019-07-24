@@ -10,10 +10,10 @@ Nuitka Developer Manual
    PageBreak oneColumn
    SetPageCounter 1
 
-The purpose of this developer manual is to present the current design of Nuitka,
-the project rules, and the motivations for choices made. It is intended to be a
-guide to the source code, and to give explanations that don't fit into the
-source code in comments form.
+The purpose of this developer manual is to present the current design of
+Nuitka, the project rules, and the motivations for choices made. It is intended
+to be a guide to the source code, and to give explanations that don't fit into
+the source code in comments form.
 
 It should be used as a reference for the process of planning and documenting
 decisions we made. Therefore we are e.g. presenting here the type inference
@@ -25,12 +25,13 @@ private conversations or discussions on the mailing list or bug tracker.
 Milestones
 ==========
 
-1. Feature parity with CPython, understand all the language construct and behave
-   absolutely compatible.
+1. Feature parity with CPython, understand all the language construct and
+   behave absolutely compatible.
 
-   Feature parity has been reached for CPython 2.6 and 2.7. We do not target any
-   older CPython release. For CPython 3.3 up to 3.7 it also has been reached. We
-   do not target the older and practically unused CPython 3.0 to 3.2 releases.
+   Feature parity has been reached for CPython 2.6 and 2.7. We do not target
+   any older CPython release. For CPython 3.3 up to 3.7 it also has been
+   reached. We do not target the older and practically unused CPython 3.0 to
+   3.2 releases.
 
    This milestone was reached. Dropping support for Python 2.6 and 3.3 is an
    option, should this prove to be any benefit. Currently it is not, as it
@@ -42,8 +43,8 @@ Milestones
    This milestone was reached, although of course, micro optimizations to this
    are happening all the time.
 
-3. Then do constant propagation, determine as many values and useful constraints
-   as possible at compile time and create more efficient code.
+3. Then do constant propagation, determine as many values and useful
+   constraints as possible at compile time and create more efficient code.
 
    This milestone is considered almost reached. We continue to discover new
    things, but the infrastructure is there, and these are easy to add.
@@ -68,8 +69,8 @@ Version Numbers
 ===============
 
 For Nuitka we use a defensive version numbering system to indicate that it is
-not yet ready for everything. We have defined milestones and the version numbers
-should express which of these, we consider done.
+not yet ready for everything. We have defined milestones and the version
+numbers should express which of these, we consider done.
 
 - So far:
 
@@ -90,9 +91,9 @@ should express which of these, we consider done.
 
 - Final:
 
-  We will then round it up and call it Nuitka ``1.0`` when this works as expected
-  for a bunch of people. The plan is to reach this goal during 2019. This is
-  based on positive assumptions that may not hold up though.
+  We will then round it up and call it Nuitka ``1.0`` when this works as
+  expected for a bunch of people. The plan is to reach this goal during 2019.
+  This is based on positive assumptions that may not hold up though.
 
 Of course, all of this may be subject to change.
 
@@ -155,8 +156,8 @@ that is the easiest way to install your plugins. Install these ones:
 
 - AnyEdit Tools
 
-  Proper whitespace handling for Eclipse, this strips trailing whitespace, which
-  Eclipse doesn't handle outside of Java.
+  Proper whitespace handling for Eclipse, this strips trailing whitespace,
+  which Eclipse doesn't handle outside of Java.
 
 - ReST Editor
 
@@ -239,11 +240,11 @@ arguments are lower case with ``_`` as a separator.
       def doSomething(some_parameter):
          some_var = ("foo", "bar")
 
-Base classes that are abstract have their name end with ``Base``, so that a meta
-class can use that convention, and readers immediately know.
+Base classes that are abstract have their name end with ``Base``, so that a
+meta class can use that convention, and readers immediately know.
 
-Function calls use keyword argument preferably. These are slower in CPython, but
-more readable:
+Function calls use keyword argument preferably. These are slower in CPython,
+but more readable:
 
 .. code-block:: python
 
@@ -271,13 +272,13 @@ better to add them.
 Module/Package Names
 --------------------
 
-Normal modules are named in camel case with leading upper case, because of their
-role as singleton classes. The difference between a module and a class is small
-enough and in the source code they are also used similarly.
+Normal modules are named in camel case with leading upper case, because of
+their role as singleton classes. The difference between a module and a class is
+small enough and in the source code they are also used similarly.
 
-For the packages, no real code is allowed in their ``__init__.py`` and they must
-be lower case, like e.g. ``nuitka`` or ``codegen``. This is to distinguish them
-from the modules.
+For the packages, no real code is allowed in their ``__init__.py`` and they
+must be lower case, like e.g. ``nuitka`` or ``codegen``. This is to distinguish
+them from the modules.
 
 Packages shall only be used to group things. In ``nuitka.codegen`` the code
 generation packages are located, while the main interface is
@@ -300,13 +301,13 @@ List contractions are a generalization for all of them. We love readability and
 with Nuitka as a compiler, there won't be any performance difference at all.
 
 There are cases where a list contraction is faster because you can avoid to
-make a function call. And there may be cases, where map is faster, if a function
-must be called. These calls can be very expensive in CPython, and if you
-introduce a function, just for ``map``, then it might be slower.
+make a function call. And there may be cases, where map is faster, if a
+function must be called. These calls can be very expensive in CPython, and if
+you introduce a function, just for ``map``, then it might be slower.
 
-But of course, Nuitka is the project to free us from what is faster and to allow
-us to use what is more readable, so whatever is faster, we don't care. We make
-all options equally fast and let people choose.
+But of course, Nuitka is the project to free us from what is faster and to
+allow us to use what is more readable, so whatever is faster, we don't care. We
+make all options equally fast and let people choose.
 
 For Nuitka the choice is list contractions as these are more easily changed and
 readable.
@@ -340,8 +341,8 @@ So, that's not likable about them. And then we are also for clarity in these
 internal APIs too. Properties try and hide the fact that code needs to run and
 may do things. So let's not use them.
 
-For an external API you may exactly want to hide things, but internally that has
-no use, and in Nuitka, every API is internal API. One exception may be the
+For an external API you may exactly want to hide things, but internally that
+has no use, and in Nuitka, every API is internal API. One exception may be the
 ``hints`` module, which will gladly use such tricks for an easier write syntax.
 
 Coding Rules C
@@ -359,9 +360,9 @@ The "git flow" model
 
 * The flow is used for releases and occasionally subsequent hot fixes.
 
-  A few feature branches were used so far. It allows for quick delivery of fixes
-  to both the stable and the development version, supported by a git plug-in,
-  that can be installed via "apt-get install git-flow".
+  A few feature branches were used so far. It allows for quick delivery of
+  fixes to both the stable and the development version, supported by a git
+  plug-in, that can be installed via "apt-get install git-flow".
 
 * Stable (master branch)
 
@@ -371,10 +372,10 @@ The "git flow" model
 
 * Development (develop branch)
 
-  The future release, supposedly in almost ready for release state at nearly all
-  times, but this is as strict. It is not officially supported, and may have
-  problems and at times inconsistencies. Normally this branch is supposed to not
-  be rebased. For severe problems it may be done though.
+  The future release, supposedly in almost ready for release state at nearly
+  all times, but this is as strict. It is not officially supported, and may
+  have problems and at times inconsistencies. Normally this branch is supposed
+  to not be rebased. For severe problems it may be done though.
 
 * Factory (default feature branch)
 
@@ -412,29 +413,37 @@ Special ``doxygen`` Anatomy of ``"__doc__"``
   enter a brief description or title of the class or method. This must be 1
   line and be followed by at least 1 empty line.
 
-* Depending on the item, choose from the following "sections" to describe what the
-  item is and does. Each section name is coded on its own line, aligned with the
-  leading ``"""`` and followed by a colon ":". Anything following the section,
-  must start on a new line and be indented by 4 spaces relative to the section.
-  Except for the first section (``Notes:``) after the title, sections need not
-  be preceeded by empty lines -- but it is good practice to still do that.
+* Depending on the item, choose from the following "sections" to describe what
+  the item is and does.
+
+  Each section name is coded on its own line, aligned with the leading ``"""``
+  and followed by a colon ":". Anything following the section, must start on a
+  new line and be indented by 4 spaces relative to the section. Except for the
+  first section (``Notes:``) after the title, sections need not be preceeded by
+  empty lines -- but it is good practice to still do that.
 
     - ``Notes:`` detailed description of the item, any length.
-      May contain line breaks with each new line starting aligned with previous one.
-      The text will automatically be joined across line breaks and be reformatted
-      in the browser.
+
+      May contain line breaks with each new line starting aligned with previous
+      one. The text will automatically be joined across line breaks and be
+      reformatted in the browser.
+
       If you describe details for a class, you can do so **without** using this
       section header and all formatting will still work fine.
       If you however omit the ``Notes:`` for methods, then the text will
       be interpreted **as code,** be shown in an ugly monospaced font, and no
       automatic line breaks will occur in the browser.
+
     - ``Args:`` positional arguments.
-      Each argument then follows, starting on a new
-      line and indented by 4 spaces. The argument name must be followed by a
-      colon ":" or double hash "--", followed by a description of arbitrary length.
+
+      Each argument then follows, starting on a new line and indented by 4
+      spaces. The argument name must be followed by a colon ``:`` or double
+      hash ``--``, followed by a description of arbitrary length.
+
       The description can be separated by line breaks.
     - ``Kwargs:`` keyword arguments. Same rules as for args.
-    - ``Returns:`` description of what will be returned if applicable (any length).
+    - ``Returns:`` description of what will be returned if applicable (any
+      length).
     - ``Yields:`` synonymous for ``Returns:``.
     - ``Raises:`` name any exceptions that may be raised.
     - ``Examples:`` specify any example code.
@@ -470,9 +479,9 @@ Special ``doxygen`` Anatomy of ``"__doc__"``
 Checking the Source
 ===================
 
-The static checking for errors is currently done with ``PyLint``. In the future,
-Nuitka itself will gain the ability to present its findings in a similar way,
-but this is not a priority, and we are not there yet.
+The static checking for errors is currently done with ``PyLint``. In the
+future, Nuitka itself will gain the ability to present its findings in a
+similar way, but this is not a priority, and we are not there yet.
 
 So, we currently use ``PyLint`` with options defined in a script.
 
@@ -482,10 +491,10 @@ So, we currently use ``PyLint`` with options defined in a script.
 
 Ideally, the above command gives no warnings. This is currently the case.
 
-If you submit a patch, it would be good if you checked that it doesn't introduce
-new warnings, but that is not strictly required. it will happen before release,
-and that is considered enough. You probably are already aware of the beneficial
-effects.
+If you submit a patch, it would be good if you checked that it doesn't
+introduce new warnings, but that is not strictly required. it will happen
+before release, and that is considered enough. You probably are already aware
+of the beneficial effects.
 
 Running the Tests
 =================
@@ -626,8 +635,8 @@ Program Tests
 -------------
 
 Then there are small "programs" tests, that e.g. exercise many kinds of import
-tricks and are designed to reveal problems with inter-module behavior. These can
-be run like this:
+tricks and are designed to reveal problems with inter-module behavior. These
+can be run like this:
 
 .. code-block:: sh
 
@@ -792,8 +801,9 @@ For C++03 initially spoke less explicit code generation:
 * Local objects could e.g. repair the stack frames
 
 For Ada would have spoken the time savings through run time checks, which would
-have shortened some debugging sessions quite some. But building the Python C-API
-bindings on our own, and potentially incorrectly, would have eaten that up.
+have shortened some debugging sessions quite some. But building the Python
+C-API bindings on our own, and potentially incorrectly, would have eaten that
+up.
 
 Later, it was found that using C++ for exceptions is tremendously inefficient,
 and must be avoided. In order to do this, a more C style code generation is
@@ -808,9 +818,9 @@ C++ features, just the allowances of C++ features that made it into C11.
 Use of Scons internally
 -----------------------
 
-Nuitka does not involve Scons in its user interface at all; Scons is purely used
-internally. Nuitka itself, being pure Python, will run without any build process
-just fine.
+Nuitka does not involve Scons in its user interface at all; Scons is purely
+used internally. Nuitka itself, being pure Python, will run without any build
+process just fine.
 
 Nuitka simply prepares ``<program>.build`` folders with lots of files and tasks
 scons to execute the final build, after which Nuitka again will take control
@@ -824,19 +834,19 @@ and do more work as necessary.
 
 For interfacing to Scons, there is the module ``nuitka.build.SconsInterface``
 that will support calling ``scons`` - potentially from one of two inline copies
-(one for before / one for Python 3.5 or later). These are mainly used on Windows
-or when using source releases - and passing arguments to it. These arguments are
-passed as ``key=value``, and decoded in the scons file of Nuitka.
+(one for before / one for Python 3.5 or later). These are mainly used on
+Windows or when using source releases - and passing arguments to it. These
+arguments are passed as ``key=value``, and decoded in the scons file of Nuitka.
 
-The scons file is named ``SingleExe.scons`` for lack of better name. It's really
-wrong now, but we have yet to find a better name. It once expressed the
+The scons file is named ``SingleExe.scons`` for lack of better name. It's
+really wrong now, but we have yet to find a better name. It once expressed the
 intention to be used to create executables, but the same works for modules too,
 as in terms of building, and to Scons, things really are the same.
 
-The scons file supports operation in multiple modes for many things, and modules
-is just one of them. It runs outside of Nuitka process scope, even with a
-different Python version potentially, so all the information must be passed on
-the command line.
+The scons file supports operation in multiple modes for many things, and
+modules is just one of them. It runs outside of Nuitka process scope, even with
+a different Python version potentially, so all the information must be passed
+on the command line.
 
 What follows is the (lengthy) list of arguments that the scons file processes:
 
@@ -863,17 +873,17 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
 * ``debug_mode``
 
-  Enable debug mode, which is a mode, where Nuitka tries to help identify errors
-  in itself, and will generate less optimal code. This also asks for warnings,
-  and makes the build fail if there are any. Scons will pass different compiler
-  options in this case.
+  Enable debug mode, which is a mode, where Nuitka tries to help identify
+  errors in itself, and will generate less optimal code. This also asks for
+  warnings, and makes the build fail if there are any. Scons will pass
+  different compiler options in this case.
 
 * ``python_debug``
 
   Compile and link against Python debug mode, which does assertions and extra
-  checks, to identify errors, mostly related to reference counting. May make the
-  build fail, if no debug build library of CPython is available. On Windows it
-  is possible to install it for CPython3.5 or higher.
+  checks, to identify errors, mostly related to reference counting. May make
+  the build fail, if no debug build library of CPython is available. On Windows
+  it is possible to install it for CPython3.5 or higher.
 
 * ``full_compat_mode``
 
@@ -887,8 +897,8 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
 * ``lto_mode``
 
-  Make use of link time optimization of gcc compiler if available and known good
-  with the compiler in question. So far, this was not found to make major
+  Make use of link time optimization of gcc compiler if available and known
+  good with the compiler in question. So far, this was not found to make major
   differences.
 
 * ``win_disable_console``
@@ -913,8 +923,8 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
 * ``show_scons``
 
-  Show scons mode, output information about Scons operation. This will e.g. also
-  output the actual compiler used, output from compilation process, and
+  Show scons mode, output information about Scons operation. This will e.g.
+  also output the actual compiler used, output from compilation process, and
   generally debug information relating to be build process.
 
 * ``python_prefix``
@@ -960,8 +970,8 @@ module.
   at import time.
 
   Therefore CPython exhibits the interfaces in an ``imp`` module in standard
-  library, which one can use those to know ahead of time, what file import would
-  load. For us unfortunately there is nothing in CPython that is easily
+  library, which one can use those to know ahead of time, what file import
+  would load. For us unfortunately there is nothing in CPython that is easily
   accessible and gives us this functionality for packages and search paths
   exactly like CPython does, so we implement here a multi step search process
   that is compatible.
@@ -980,16 +990,17 @@ module.
 
 The decision making and caching are located in the ``nuitka.tree`` package, in
 modules ``nuitka.tree.Recursion`` and ``nuitka.tree.ImportCache``. Each module
-is only considered once (then cached), and we need to obey lots of user choices,
-e.g. to compile a standard library or not.
+is only considered once (then cached), and we need to obey lots of user
+choices, e.g. to compile a standard library or not.
 
 
 Hooking for module ``import`` process
 -------------------------------------
 
 Currently, in generated code, for every ``import`` a normal ``__import__()``
-built-in call is executed. The ``nuitka/build/static_src/MetaPathBasedLoader.c``
-file provides the implementation of a ``sys.meta_path`` hook.
+built-in call is executed. The
+``nuitka/build/static_src/MetaPathBasedLoader.c`` file provides the
+implementation of a ``sys.meta_path`` hook.
 
 This meta path based importer allows us to have the Nuitka provided module
 imported even when imported by non-compiled code.
@@ -1048,11 +1059,12 @@ This left Nuitka with the strange problem, of how to emulate that.
 The solution is this:
 
 * Under Python3, usage of ``__class__`` as a reference in a child function body
-  is mandatory. It remains that way until all variable names have been resolved.
+  is mandatory. It remains that way until all variable names have been
+  resolved.
 
-* When recognizing calls to ``super`` without arguments, make the arguments into
-  variable reference to ``__class__`` and potentially ``self`` (actually first
-  argument name).
+* When recognizing calls to ``super`` without arguments, make the arguments
+    into variable reference to ``__class__`` and potentially ``self`` (actually
+    first argument name).
 
 * After all variables have been known, and no suspicious unresolved calls to
   anything named ``super`` are down, then unused references are optimized away
@@ -1063,9 +1075,9 @@ The solution is this:
   These are special direct function calls, ready to propagate also "bases" and
   "metaclass" values, which need to be calculated outside.
 
-  The function bodies used for classes will automatically store ``__class__`` as
-  a shared local variable, if anything uses it. And if it's not assigned by user
-  code, it doesn't show up in the "locals()" used for dictionary creation.
+  The function bodies used for classes will automatically store ``__class__``
+  as a shared local variable, if anything uses it. And if it's not assigned by
+  user code, it doesn't show up in the "locals()" used for dictionary creation.
 
   Existing ``__class__`` local variable values are in fact provided as closure,
   and overridden with the built class , but they should be used for the closure
@@ -1096,9 +1108,9 @@ Consider the following code.
        else:
            return None
 
-In this example, the frame is not needed for all the code, because the condition
-checked wouldn't possibly raise at all. The idea is the make the frame guard
-explicit and then to reduce its scope whenever possible.
+In this example, the frame is not needed for all the code, because the
+condition checked wouldn't possibly raise at all. The idea is the make the
+frame guard explicit and then to reduce its scope whenever possible.
 
 So we start out with code like this one:
 
@@ -1151,9 +1163,9 @@ arguments.
 Keyword dictionary
 ++++++++++++++++++
 
-The keyword argument dictionary is checked first. Anything in there, that cannot
-be associated, either raise an error, or is added to a potentially given star
-dict argument. So there are two major cases.
+The keyword argument dictionary is checked first. Anything in there, that
+cannot be associated, either raise an error, or is added to a potentially given
+star dict argument. So there are two major cases.
 
 * No star dict argument: Iterate over dictionary, and assign or raise errors.
 
@@ -1169,9 +1181,9 @@ What's noteworthy here, is that in comparison to the keywords, we can hope that
 they are the same value as we use. The interning of strings increases chances
 for non-compiled code to do that, esp. for short names.
 
-We then can do a simple ``is`` comparison and only fall back to real string `==`
-comparisons, after all of these failed. That means more code, but also a lot
-faster code in the positive case.
+We then can do a simple ``is`` comparison and only fall back to real string
+`==` comparisons, after all of these failed. That means more code, but also a
+lot faster code in the positive case.
 
 Argument tuple
 ++++++++++++++
@@ -1184,8 +1196,8 @@ which case they cannot be provided in the keyword dictionary, and merely should
 get picked from the argument tuple.
 
 Otherwise, the length of the argument tuple should be checked against its
-position and if possible, values should be taken from there. If it's already set
-(from the keyword dictionary), raise an error instead.
+position and if possible, values should be taken from there. If it's already
+set (from the keyword dictionary), raise an error instead.
 
 
 SSA form for Nuitka
@@ -1197,9 +1209,10 @@ collections builds up traces. These are facts about how this works:
    * Assignments draw from a counter unique for the variable, which becomes the
      variable version. This happens during tree building phase.
 
-   * References are associated with the version of the variable active. This can be
-     a merge of branches. Trace collection does do that and provides nodes with
-     the currently active trace for a variable.
+   * References are associated with the version of the variable active.
+
+     This can be a merge of branches. Trace collection does do that and
+     provides nodes with the currently active trace for a variable.
 
 The data structures used for trace collection need to be relatively compact
 as the trace information can become easily much more data than the program
@@ -1553,8 +1566,8 @@ variables. After a failed call, our variant of ``PyErr_Fetch`` called
 quick exception cases apply. The quick exception means, ``NULL`` return from
 C-API without a set exception means e.g. ``StopIteration``.
 
-As an optimization, functions that raise exceptions, but are known not to do so,
-for whatever reason, could only be asserted to not do so.
+As an optimization, functions that raise exceptions, but are known not to do
+so, for whatever reason, could only be asserted to not do so.
 
 Statement Temporary Variables
 +++++++++++++++++++++++++++++
@@ -1583,8 +1596,8 @@ operation that simply releases the reference to the cell or object variable.
 Exit Targets
 ++++++++++++
 
-Each error or other exit releases statement temporary values and then executes a
-``goto`` to the exit target. These targets need to be setup. The
+Each error or other exit releases statement temporary values and then executes
+a ``goto`` to the exit target. These targets need to be setup. The
 ``try``/``except`` will e.g. catch error exits.
 
 Other exits are ``continue``, ``break``, and ``return`` exits. They all work
@@ -1644,7 +1657,8 @@ import it.
 
 We trace used constants per module, and for nested ones, we also associate
 them. The global constants code is special in that it can only use ``static``
-for nested values it exclusively uses, and has to export values that others use.
+for nested values it exclusively uses, and has to export values that others
+use.
 
 
 Language Conversions to make things simpler
@@ -1682,10 +1696,10 @@ The handling in Nuitka is:
 This makes assertions absolutely the same as a raise exception in a conditional
 statement.
 
-This transformation is performed at tree building already, so Nuitka never knows
-about ``assert`` as an element and standard optimizations apply. If e.g. the
-truth value of the assertion can be predicted, the conditional statement will
-have the branch statically executed or removed.
+This transformation is performed at tree building already, so Nuitka never
+knows about ``assert`` as an element and standard optimizations apply. If e.g.
+the truth value of the assertion can be predicted, the conditional statement
+will have the branch statically executed or removed.
 
 
 The "comparison chain" expressions
@@ -1757,8 +1771,8 @@ These are converted at tree building time into a generator function body that
 yields from the iterator given, which is the put into a for loop to iterate,
 created a lambda function of and then called with the first iterator.
 
-That eliminates the generator expression for this case. It's a bizarre construct
-and with this trick needs no special code generation.
+That eliminates the generator expression for this case. It's a bizarre
+construct and with this trick needs no special code generation.
 
 This is a complex example, demonstrating multiple cases of yield in unexpected
 cases:
@@ -1796,8 +1810,8 @@ expression, where the assignment to the name is only at the end, which also
 has the extra benefit of not treating real function and lambda functions any
 different.
 
-This removes the need for optimization and code generation to support decorators
-at all. And it should make the two variants optimize equally well.
+This removes the need for optimization and code generation to support
+decorators at all. And it should make the two variants optimize equally well.
 
 
 Functions nested arguments
@@ -1823,10 +1837,10 @@ the unpacking and gives the errors that come from this:
       a, b = ".1"
       return _tmp(a, b, c)
 
-The ``".1"`` is the variable name used by CPython internally, and actually works
-if you use keyword arguments via star dictionary. So this is very compatible and
-actually the right kind of re-formulation, but it removes the need from the code
-that does parameter parsing to deal with these.
+The ``".1"`` is the variable name used by CPython internally, and actually
+works if you use keyword arguments via star dictionary. So this is very
+compatible and actually the right kind of re-formulation, but it removes the
+need from the code that does parameter parsing to deal with these.
 
 Obviously, there is no frame for ``_tmp``, just one for ``function`` and we do
 not use local variables, but temporary functions.
@@ -2097,9 +2111,9 @@ End quoting the ``nuitka.tree.ReformulationWhileLoopStatements`` documentation:
 Exception Handlers
 ++++++++++++++++++
 
-Exception handlers in Python may assign the caught exception value to a variable
-in the handler definition. And the different handlers are represented as
-conditional checks on the result of comparison operations.
+Exception handlers in Python may assign the caught exception value to a
+variable in the handler definition. And the different handlers are represented
+as conditional checks on the result of comparison operations.
 
 .. code-block:: python
 
@@ -2171,8 +2185,8 @@ And of course, the values of the current exception type and value, both use
 special references, that access the C++ and don't go via ``sys.exc_info`` at
 all, nodes called ``CaughtExceptionTypeRef`` and ``CaughtExceptionValueRef``.
 
-This means, that the different handlers and their catching run time behavior are
-all explicit and reduced the branches.
+This means, that the different handlers and their catching run time behavior
+are all explicit and reduced the branches.
 
 
 Statement ``try``/``except`` with ``else``
@@ -2223,8 +2237,8 @@ re-formulation:
 
    SomeClass = make_class("SomeClass", (SomeBase, AnotherBase), _makeSomeClass())
 
-That is roughly the same, except that ``_makeSomeClass`` is *not* visible to its
-child functions when it comes to closure taking, which we cannot express in
+That is roughly the same, except that ``_makeSomeClass`` is *not* visible to
+its child functions when it comes to closure taking, which we cannot express in
 Python language at all.
 
 Therefore, class bodies are just special function bodies that create a
@@ -2242,8 +2256,8 @@ interact with its body. The body starts with a dictionary provided by the
 metaclass, so that is different, because it can ``__prepare__`` a non-empty
 locals for it, which is hidden away in "prepare_class_dict" below.
 
-What's noteworthy, is that this dictionary, could e.g. be an ``OrderDict``. I am
-not sure, what ``__prepare__`` is allowed to return.
+What's noteworthy, is that this dictionary, could e.g. be an ``OrderDict``. I
+am not sure, what ``__prepare__`` is allowed to return.
 
 .. code-block:: python
 
@@ -2347,8 +2361,8 @@ access the containing name space.
 Set Contractions
 ++++++++++++++++
 
-The set contractions of Python2.7 are like list contractions in Python3, in that
-they produce an actual helper function:
+The set contractions of Python2.7 are like list contractions in Python3, in
+that they produce an actual helper function:
 
 .. code-block:: python
 
@@ -2395,9 +2409,9 @@ they produce an actual helper function:
 Boolean expressions ``and`` and ``or``
 ++++++++++++++++++++++++++++++++++++++
 
-The short circuit operators ``or`` and ``and`` tend to be only less general that
-the ``if``/``else`` expressions, but have dedicated nodes. We used to have a
-re-formulation towards those, but we now do these via dedicated nodes too.
+The short circuit operators ``or`` and ``and`` tend to be only less general
+that the ``if``/``else`` expressions, but have dedicated nodes. We used to have
+a re-formulation towards those, but we now do these via dedicated nodes too.
 
 These new nodes, present the evaluation of the left value, checking for its
 truth value, and depending on it, to pick it, or use the right value.
@@ -2521,9 +2535,9 @@ compile time optimized, this is made visible in the node tree.
 Only string objects are spared from the ``str`` built-in wrapper, because that
 would only cause noise in optimization stage.
 
-Additionally, each ``print`` may have a target, and multiple arguments, which we
-break down as well for dumber code generation. The target is evaluated first and
-should be a file, kept referenced throughout the whole print statement.
+Additionally, each ``print`` may have a target, and multiple arguments, which
+we break down as well for dumber code generation. The target is evaluated first
+and should be a file, kept referenced throughout the whole print statement.
 
 .. code-block:: python
 
@@ -2576,9 +2590,9 @@ Releases
 ++++++++
 
 When a function exits, the local variables are to be released. The same applies
-to temporary variables used in re-formulations. These releases cause a reference
-to the object to the released, but no value change. They are typically the last
-use of the object in the function.
+to temporary variables used in re-formulations. These releases cause a
+reference to the object to the released, but no value change. They are
+typically the last use of the object in the function.
 
 The are similar to ``del``, but make no value change. For shared variables this
 effect is most visible.
@@ -2586,9 +2600,9 @@ effect is most visible.
 Side Effects
 ++++++++++++
 
-When an exception is bound to occur, and this can be determined at compile time,
-Nuitka will not generate the code the leads to the exception, but directly just
-raise it. But not in all cases, this is the full thing.
+When an exception is bound to occur, and this can be determined at compile
+time, Nuitka will not generate the code the leads to the exception, but
+directly just raise it. But not in all cases, this is the full thing.
 
 Consider this code:
 
@@ -2647,8 +2661,8 @@ nodes, or if published then from the thread state.
 Hard Module Imports
 +++++++++++++++++++
 
-These are module look-ups that don't depend on any local variable for the module
-to be looked up, but with hard-coded names. These may be the result of
+These are module look-ups that don't depend on any local variable for the
+module to be looked up, but with hard-coded names. These may be the result of
 optimization gaining such level of certainty.
 
 Currently they are used to represent ``sys.stdout`` usage for ``print``
@@ -2693,9 +2707,10 @@ Goals/Allowances to the task
 
 4. Allowance: Not all ``ctypes`` usages must be supported immediately.
 
-5. Goal: Try and be as general as possible. For the compiler, ``ctypes`` support
-   should be hidden behind a generic interface of some sort. Supporting ``math``
-   module should be the same thing.
+5. Goal: Try and be as general as possible.
+
+   For the compiler, ``ctypes`` support should be hidden behind a generic
+   interface of some sort. Supporting ``math`` module should be the same thing.
 
 Type Inference - The Discussion
 -------------------------------
@@ -2721,9 +2736,10 @@ things are not affectable by aliasing in any way.
 
    b += [4] # a is changed indeed
 
-If we cannot tell, we must assume that ``a`` might be changed. It's either ``b``
-or what ``a`` was before. If the type is not mutable, we can assume the aliasing
-to be broken up, and if it is, we can assume both to be the same value still.
+If we cannot tell, we must assume that ``a`` might be changed. It's either
+``b`` or what ``a`` was before. If the type is not mutable, we can assume the
+aliasing to be broken up, and if it is, we can assume both to be the same value
+still.
 
 When that value is a compile time constant, we will want to push it forward,
 and we do that with "(Constant) Value Propagation", which is implemented
@@ -2799,14 +2815,14 @@ Now lets look at a more complete use case:
 
 Looking at this example, one traditional way to look at it, would be to turn
 ``range`` into ``xrange``, and to note that ``x`` is unused. That would already
-perform better. But really better is to notice that ``range()`` generated values
-are not used at all, but only the length of the expression matters.
+perform better. But really better is to notice that ``range()`` generated
+values are not used at all, but only the length of the expression matters.
 
 And even if ``x`` were used, only the ability to predict the value from a
-function would be interesting, so we would use that computation function instead
-of having an iteration source. Being able to predict from a function could mean
-to have Python code to do it, as well as C code to do it. Then code for the
-loop can be generated without any CPython library usage at all.
+function would be interesting, so we would use that computation function
+instead of having an iteration source. Being able to predict from a function
+could mean to have Python code to do it, as well as C code to do it. Then code
+for the loop can be generated without any CPython library usage at all.
 
 .. note::
 
@@ -2828,9 +2844,9 @@ we sure can't do it in the general case. But we can still, predict some of
 properties of an expression result, more or less.
 
 Here we have ``len`` to look at an argument that we know the size of. Great. We
-need to ask if there are any side effects, and if there are, we need to maintain
-them of course. This is already done by existing optimization if an operation
-generates an exception.
+need to ask if there are any side effects, and if there are, we need to
+maintain them of course. This is already done by existing optimization if an
+operation generates an exception.
 
 .. note::
 
@@ -2840,8 +2856,8 @@ generates an exception.
 Applying this to "ctypes"
 -------------------------
 
-The *not so specific* problem to be solved to understand ``ctypes`` declarations
-is maybe as follows:
+The *not so specific* problem to be solved to understand ``ctypes``
+declarations is maybe as follows:
 
 .. code-block:: python
 
@@ -2852,20 +2868,20 @@ expression to the variable ``ctypes``. It can be predicted by default to be a
 module object, and even better, it can be known as ``ctypes`` from standard
 library with more or less certainty. See the section about "Importing".
 
-So that part is "easy", and it's what will happen. During optimization, when the
-module ``__import__`` expression is examined, it should say:
+So that part is "easy", and it's what will happen. During optimization, when
+the module ``__import__`` expression is examined, it should say:
 
    - ``ctypes`` is a module
    - ``ctypes`` is from standard library (if it is, might not be true)
    - ``ctypes`` then has code behind it, called ``ModuleFriend`` that knows
      things about it attributes, that should be asked.
 
-The later is the generic interface, and the optimization should connect the two,
-of course via package and module full names. It will need a
+The later is the generic interface, and the optimization should connect the
+two, of course via package and module full names. It will need a
 ``ModuleFriendRegistry``, from which it can be pulled. It would be nice if we
-can avoid ``ctypes`` to be loaded into Nuitka unless necessary, so these need to
-be more like a plug-in, loaded only if necessary, i.e. the user code actually
-uses ``ctypes``.
+can avoid ``ctypes`` to be loaded into Nuitka unless necessary, so these need
+to be more like a plug-in, loaded only if necessary, i.e. the user code
+actually uses ``ctypes``.
 
 Coming back to the original expression, it also contains an assignment
 expression, because it re-formulated to be more like this:
@@ -2879,8 +2895,8 @@ SSA form. Ideally, we could be sure that nothing in the program changes the
 variable, and therefore have only one version of that variable.
 
 For module variables, when the execution leaves the module to unknown code, or
-unclear code, it might change the variable. Therefore, likely we will often only
-assume that it could still be ``ctypes``, but also something else.
+unclear code, it might change the variable. Therefore, likely we will often
+only assume that it could still be ``ctypes``, but also something else.
 
 Depending on how well we control module variable assignment, we can decide this
 more of less quickly. With "compiled modules" types, the expectation is that
@@ -2906,8 +2922,8 @@ of Nuitka was always to cover these two cases with the same code.
 Excursion to Functions
 ----------------------
 
-In order to decide what this means to functions and their call boundaries, if we
-propagate forward, how to handle this:
+In order to decide what this means to functions and their call boundaries, if
+we propagate forward, how to handle this:
 
 .. code-block:: python
 
@@ -2921,9 +2937,10 @@ later on something that definitely has an ``append`` attribute, when returned,
 as otherwise an exception occurs.
 
 The type of ``a`` changes to that after ``a.append`` look-up succeeds. It might
-be many kinds of an object, but e.g. it could have a higher probability of being
-a ``PyListObject``. And we would know it cannot be a ``PyStringObject``, as that
-one has no ``append`` method, and would have raised an exception therefore.
+be many kinds of an object, but e.g. it could have a higher probability of
+being a ``PyListObject``. And we would know it cannot be a ``PyStringObject``,
+as that one has no ``append`` method, and would have raised an exception
+therefore.
 
 .. note::
 
@@ -2935,8 +2952,8 @@ one has no ``append`` method, and would have raised an exception therefore.
    On the other hand, types without ``append`` attribute can be eliminated.
 
 Therefore, functions through SSA provide an automatic analysis on their return
-state, or return value types, or a quick way to predict return value properties,
-based on input value knowledge.
+state, or return value types, or a quick way to predict return value
+properties, based on input value knowledge.
 
 So this could work:
 
@@ -2948,8 +2965,8 @@ So this could work:
 
 Goal: The structure we use makes it easy to tell what ``my_append`` may be. So,
 there should be a means to ask it about call results with given type/value
-information. We need to be able to tell, if evaluating ``my_append`` makes sense
-with given parameters or not, if it does impact the return value.
+information. We need to be able to tell, if evaluating ``my_append`` makes
+sense with given parameters or not, if it does impact the return value.
 
 We should e.g. be able to make ``my_append`` tell, one or more of these:
 
@@ -3034,10 +3051,10 @@ exiting the conditional block, a merge must be done, of the ``x`` versions. It
 could be either one. The merge may trace the condition under which a choice is
 taken. That way, we could decide pairs of traces under the same condition.
 
-These merges of SSA variable "versions", represent alternative values. They pose
-difficulties, and might have to be reduced to commonality. In the above example,
-the ``<`` operator will have to check for each version, and then to decide that
-both indeed give the same result.
+These merges of SSA variable "versions", represent alternative values. They
+pose difficulties, and might have to be reduced to commonality. In the above
+example, the ``<`` operator will have to check for each version, and then to
+decide that both indeed give the same result.
 
 The trace collection tracks variable changes in conditional branches, and then
 merges the existing state at conditional statement exits.
@@ -3060,7 +3077,9 @@ new information.
 
 In the above case:
 
-   - The "yes" branch knows variable ``x`` is an ``int`` of constant value ``1``
+   - The "yes" branch knows variable ``x`` is an ``int`` of constant value
+     ``1``
+
    - The "no" branch knows variable ``x`` is an ``int`` of constant value ``2``
 
 That might be collapsed to:
@@ -3102,9 +3121,9 @@ type operation.
 Excursion to ``return`` statements
 ----------------------------------
 
-The ``return`` statement (like ``break``, ``continue``, ``raise``) is "aborting"
-to control flow. It is always the last statement of inspected block. When there
-statements to follow it, optimization will remove it as "dead code".
+The ``return`` statement (like ``break``, ``continue``, ``raise``) is
+"aborting" to control flow. It is always the last statement of inspected block.
+When there statements to follow it, optimization will remove it as "dead code".
 
 If all branches of a conditional statement are "aborting", the statement is
 decided "aborting" too. If a loop doesn't abort with a break, it should be
@@ -3114,10 +3133,10 @@ considered "aborting" too.
 Excursion to ``yield`` expressions
 ----------------------------------
 
-The ``yield`` expression can be treated like a normal function call, and as such
-invalidates some known constraints just as much as they do. It executes outside
-code for an unknown amount of time, and then returns, with little about the
-outside world known anymore, if it's accessible from there.
+The ``yield`` expression can be treated like a normal function call, and as
+such invalidates some known constraints just as much as they do. It executes
+outside code for an unknown amount of time, and then returns, with little about
+the outside world known anymore, if it's accessible from there.
 
 
 Mixed Types
@@ -3132,9 +3151,9 @@ Consider the following inside a function or module:
    else:
       a = ()
 
-A programmer will often not make a difference between ``list`` and ``tuple``. In
-fact, using a ``tuple`` is a good way to express that something won't be changed
-later, as these are mutable.
+A programmer will often not make a difference between ``list`` and ``tuple``.
+In fact, using a ``tuple`` is a good way to express that something won't be
+changed later, as these are mutable.
 
 .. note::
 
@@ -3185,10 +3204,10 @@ The following is the intended interface:
 
 - Iteration with node methods ``computeStatement`` and ``computeExpression``.
 
-  These traverse modules and functions (i.e. scopes) and visit everything in the
-  order that Python executes it. The visiting object is ``TraceCollection`` and
-  pass forward. Some node types, e.g. ``StatementConditional`` new create branch
-  trace collections and handle the SSA merging at exit.
+  These traverse modules and functions (i.e. scopes) and visit everything in
+  the order that Python executes it. The visiting object is ``TraceCollection``
+  and pass forward. Some node types, e.g. ``StatementConditional`` new create
+  branch trace collections and handle the SSA merging at exit.
 
 - Replacing nodes during the visit.
 
@@ -3214,19 +3233,19 @@ The following is the intended interface:
 
 - Nodes can be queried about their properties.
 
-  There is a type shape and a value shape that each node can be asked about. The
-  type shape offers methods that allow to check if certain operations are at all
-  supported or not. These can always return ``True`` (yes), ``False`` (no),
-  and ``None`` (cannot decide). In the case of the later, optimizations may not
-  be able do much about it. Lets call these values "tri-state".
+  There is a type shape and a value shape that each node can be asked about.
+  The type shape offers methods that allow to check if certain operations are
+  at all supported or not. These can always return ``True`` (yes), ``False``
+  (no), and ``None`` (cannot decide). In the case of the later, optimizations
+  may not be able do much about it. Lets call these values "tri-state".
 
   There is also the value shape of a node. This can go deeper, and be more
   specific to a given node.
 
   The default implementation will be very pessimistic. Specific node types and
   shapes may then declare, that they e.g. have no side effects, will not raise
-  for certain operations, have a known truth value, have a known iteration length,
-  can predict their iteration values, etc.
+  for certain operations, have a known truth value, have a known iteration
+  length, can predict their iteration values, etc.
 
 - Nodes are linked to certain states.
 
@@ -3272,10 +3291,10 @@ The following is the intended interface:
 
 - The module friends should each live in a module of their own.
 
-  With a naming policy to be determined. These modules should add themselves via
-  above mechanism to ``ModuleFriendRegistry`` and all shall be imported and
-  register. Importing of e.g. ``ctypes`` should be delayed to when the friend is
-  actually used. A meta class should aid this task.
+  With a naming policy to be determined. These modules should add themselves
+  via above mechanism to ``ModuleFriendRegistry`` and all shall be imported and
+  register. Importing of e.g. ``ctypes`` should be delayed to when the friend
+  is actually used. A meta class should aid this task.
 
   The delay will avoid unnecessary blot of the compiler at run time, if no such
   module is used. For "qt" and other complex stuff, this will be a must.
@@ -3333,8 +3352,8 @@ Python object, and does not take knowledge of ``int`` or other types into
 consideration at all, and it should remain like that for some time to come.
 
 Instead, ``ctypes`` value friend will be asked give ``Identifiers``, like other
-codes do too. And these need to be able to convert themselves to objects to work
-with the other things.
+codes do too. And these need to be able to convert themselves to objects to
+work with the other things.
 
 But Code Generation should no longer require that operations must be performed
 on that level. Imagine e.g. the following calls:
@@ -3368,8 +3387,9 @@ Goal 1 (Reached)
 ++++++++++++++++
 
 Initially most things will only be able to give up on about anything. And it
-will be little more than a tool to do simple look-ups in a general form. It will
-then be the first goal to turn the following code into better performing one:
+will be little more than a tool to do simple look-ups in a general form. It
+will then be the first goal to turn the following code into better performing
+one:
 
 .. code-block:: python
 
@@ -3422,11 +3442,11 @@ assignment source has no effect, so they can be simply dropped.
 In the SSA form, these are then assignments without references. These
 assignments, can be removed if the assignment source has no side effect. Or at
 least they could be made "anonymous", i.e. use a temporary variable instead of
-the named one. That would have to take into account though, that the old version
-still needs a release.
+the named one. That would have to take into account though, that the old
+version still needs a release.
 
-The most general form would first merely remove assignments that have no impact,
-and leave the value as a side effect, so we arrive at this first:
+The most general form would first merely remove assignments that have no
+impact, and leave the value as a side effect, so we arrive at this first:
 
 .. code-block:: python
 
@@ -3442,7 +3462,8 @@ gives us:
 
    return 0
 
-which is the perfect result. Doing it in one step would only be an optimization.
+which is the perfect result. Doing it in one step would only be an
+optimization.
 
 In order to be able to manipulate nodes related to a variable trace, we need to
 attach the nodes that did it. Consider this:
@@ -3516,9 +3537,9 @@ The code should therefore become equivalent to:
 But no other changes must occur, especially not to the ``return`` statement, it
 must not assume ``a`` to be constant "[]" but an unknown ``a`` instead.
 
-With that, we would handle this code correctly and have some form constant value
-propagation in place, handle loops at least correctly, and while it is not much,
-it is important demonstration of the concept.
+With that, we would handle this code correctly and have some form constant
+value propagation in place, handle loops at least correctly, and while it is
+not much, it is important demonstration of the concept.
 
 Goal 4
 ++++++
@@ -3558,8 +3579,8 @@ In order to do that, such code must be considered:
 
    print len( a )
 
-It will be good, if ``len`` still knows that "a" is a list, but not the constant
-list anymore.
+It will be good, if ``len`` still knows that "a" is a list, but not the
+constant list anymore.
 
 From here, work should be done to demonstrate the correctness of it with the
 basic tests applied to discover undetected issues.
@@ -3569,9 +3590,9 @@ Fifth and optional goal: Extra bonus points for being able to track and predict
 should be done and lead to a constant result of "len" being used.
 
 The sixth and challenging goal will be to make the code generation be impacted
-by the value friends types. It should have a knowledge that "PyList_Append" does
-the job of append and use "PyList_Size" for "len". The "ValueFriends" should aid
-the code generation too.
+by the value friends types. It should have a knowledge that "PyList_Append"
+does the job of append and use "PyList_Size" for "len". The "ValueFriends"
+should aid the code generation too.
 
 Last and right now optional goal will be to make "range" have a value friend,
 that can interact with iteration of the for loop, and "append" of the "list"
@@ -3594,12 +3615,12 @@ Limitations for now
   Later then call to "libc" or something else universally available,
   e.g. "strlen()" or "strcmp()" from full blown declarations of the callable.
 
-- We won't have the ability to test that optimization are actually performed, we
-  will check the generated code by hand.
+- We won't have the ability to test that optimization are actually performed,
+  we will check the generated code by hand.
 
   With time, we will add XML based checks with "xpath" queries, expressed as
-  hints, but that is some work that will be based on this work here. The "hints"
-  fits into the "ValueFriends" concept nicely or so the hope is.
+  hints, but that is some work that will be based on this work here. The
+  "hints" fits into the "ValueFriends" concept nicely or so the hope is.
 
 - No inter-function optimization functions yet
 
@@ -3609,15 +3630,16 @@ Limitations for now
 
 - No loops yet
 
-  Loops break value propagation. For the ``ctypes`` use case, this won't be much
-  of a difficulty. Due to the strangeness of the task, it should be tackled
-  later on at a higher priority.
+  Loops break value propagation. For the ``ctypes`` use case, this won't be
+  much of a difficulty. Due to the strangeness of the task, it should be
+  tackled later on at a higher priority.
 
 - Not too much.
 
-  Try and get simple things to work now. We shall see, what kinds of constraints
-  really make the most sense. Understanding ``list`` subscript/slice values
-  e.g. is not strictly useful for much code and should not block us.
+  Try and get simple things to work now. We shall see, what kinds of
+  constraints really make the most sense. Understanding ``list``
+  subscript/slice values e.g. is not strictly useful for much code and should
+  not block us.
 
 .. note::
 
@@ -3903,10 +3925,11 @@ etc.
   are not visible in the node tree tend to be wrong. We already pushed around
   information to the node tree a lot.
 
-  Later versions, Nuitka will become able to determine it has to be the original
-  built-in at compile time, then a condition that checks will be optimized away,
-  together with the slow path. Or the other path, if it won't be.  Then it will
-  be optimized away, or if doubt exists, it will be correct. That is the goal.
+  Later versions, Nuitka will become able to determine it has to be the
+  original built-in at compile time, then a condition that checks will be
+  optimized away, together with the slow path. Or the other path, if it won't
+  be. Then it will be optimized away, or if doubt exists, it will be correct.
+  That is the goal.
 
   Right now, the change would mean to effectively disable all built-in call
   optimization, which is why we don't immediately do it.
@@ -3987,10 +4010,10 @@ Memory Usage at Compile Time
 We will need to store more and more information in the future. Getting the tree
 to be tight shaped is therefore an effort, where we will be spending time too.
 
-The mix-ins prevent slots usage, so lets try and get rid of those. The "children
-having" should become more simple and faster code. I am even thinking of even
-generating code in the meta class, so it's both optimal and doesn't need that
-mix-in any more. This is going to be ugly then.
+The mix-ins prevent slots usage, so lets try and get rid of those. The
+"children having" should become more simple and faster code. I am even thinking
+of even generating code in the meta class, so it's both optimal and doesn't
+need that mix-in any more. This is going to be ugly then.
 
 Coverage Testing
 ----------------
@@ -4003,8 +4026,8 @@ Python3 Performance
 -------------------
 
 The Python3 lock for thread state is making it slower by a lot. I have only
-experimental code that just ignores the lock, but it likely only works on Linux,
-and I wonder why there is that lock in the first place.
+experimental code that just ignores the lock, but it likely only works on
+Linux, and I wonder why there is that lock in the first place.
 
 Ignoring the locks cannot be good. But what updates that thread state pointer
 ever without a thread change, and is this what abiflags are about in this
