@@ -100,6 +100,8 @@ def checkRequirements(filename):
 
 
 def displayError(dirname, filename):
+    assert dirname is None
+
     my_print("Listing of dist folder:")
     os.system("ls -Rla %s" % filename[:-3] + ".dist")
 
@@ -562,6 +564,10 @@ def main():
 
             # QtNetwork insist on doing this it seems.
             if loaded_basename.startswith(("libcrypto.so", "libssl.so")):
+                continue
+
+            # macOS uses these:
+            if loaded_basename in ("libcrypto.1.0.0.dylib", "libssl.1.0.0.dylib"):
                 continue
 
             # MSVC run time DLLs, seem to sometimes come from system.
