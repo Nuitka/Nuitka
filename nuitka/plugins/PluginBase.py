@@ -344,6 +344,9 @@ class NuitkaPluginBase(object):
             is_main=False,
         )
 
+        if mode == "bytecode":
+            trigger_module.setSourceCode(code)
+
         return trigger_module
 
     @staticmethod
@@ -612,3 +615,27 @@ class NuitkaPluginBase(object):
             warned_unused_plugins.add(self.plugin_name)
 
             warning("Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message))
+
+
+def isTriggerModule(module):
+    return module in pre_modules.values() or module in post_modules.values()
+
+
+def replaceTriggerModule(old, new):
+    found = None
+    for key, value in pre_modules.items():
+        if value is old:
+            found = key
+            break
+
+    if found is not None:
+        pre_modules[found] = new
+
+    found = None
+    for key, value in post_modules.items():
+        if value is old:
+            found = key
+            break
+
+    if found is not None:
+        post_modules[found] = new

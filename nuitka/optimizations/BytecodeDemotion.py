@@ -20,14 +20,14 @@
 """
 
 import marshal
+from copy import copy
 from logging import info
 
 from nuitka import Options
-from nuitka.importing.ImportCache import replaceImportedModule
+from nuitka.importing.ImportCache import isImportedModuleByName, replaceImportedModule
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 from nuitka.plugins.Plugins import Plugins
-from nuitka.tree.SourceReading import readSourceCodeFromFilename
 
 
 def demoteCompiledModuleToBytecode(module):
@@ -41,8 +41,10 @@ def demoteCompiledModuleToBytecode(module):
     if Options.isShowProgress() or Options.isDebug():
         info("Demoting module '%s' to bytecode from '%s'." % (full_name, filename))
 
-    source_code = readSourceCodeFromFilename(full_name, filename)
+    source_code = module.getSourceCode()
 
+    # Second chance for plugins to modify source code just before turning it
+    # to bytecode.
     source_code = Plugins.onFrozenModuleSourceCode(
         module_name=full_name, is_package=False, source_code=source_code
     )
@@ -62,9 +64,13 @@ def demoteCompiledModuleToBytecode(module):
         technical=False,
     )
 
-    replaceImportedModule(old=module, new=uncompiled_module)
+    uncompiled_module.setUsedModules(module.trace_collection.getUsedModules())
 
+    if isImportedModuleByName(full_name):
+        replaceImportedModule(old=module, new=uncompiled_module)
     replaceRootModule(old=module, new=uncompiled_module)
 
-    assert module.trace_collection is not None
-    uncompiled_module.setUsedModules(module.trace_collection.getUsedModules())
+    from nuitka.plugins.PluginBase import isTriggerModule, replaceTriggerModule
+
+    if isTriggerModule(module):
+        replaceTriggerModule(old=module, new=uncompiled_module)
