@@ -313,7 +313,9 @@ def _removeCPythonTestSuiteDir():
             raise
 
 
-def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
+def compareWithCPython(
+    dirname, filename, extra_flags, search_mode, needs_2to3, on_error=None
+):
     """ Call the comparison tool. For a given directory filename.
 
     The search mode decides if the test case aborts on error or gets extra
@@ -356,6 +358,9 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
     _removeCPythonTestSuiteDir()
 
     if result != 0 and result != 2 and search_mode.abortOnFinding(dirname, filename):
+        if on_error is not None:
+            on_error(dirname, filename)
+
         search_mode.onErrorDetected("Error exit! %s" % result)
 
     if converted:

@@ -99,6 +99,11 @@ def checkRequirements(filename):
     return (True, "")
 
 
+def displayError(dirname, filename):
+    my_print("Listing of dist folder:")
+    os.system("ls -Rla %s" % filename[:-3] + ".dist")
+
+
 def main():
     # Complex stuff, even more should become common code though.
     # pylint: disable=too-many-branches,too-many-statements
@@ -208,6 +213,7 @@ def main():
             extra_flags=extra_flags,
             search_mode=search_mode,
             needs_2to3=False,
+            on_error=displayError,
         )
 
         # Second check if glibc libraries haven't been accidentaly
