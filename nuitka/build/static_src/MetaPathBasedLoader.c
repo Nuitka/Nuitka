@@ -632,7 +632,8 @@ static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLo
         char filename[MAXPATHLEN + 1];
 
         strcpy(filename, getBinaryDirectoryHostEncoded());
-        filename[strlen(filename)] = SEP;
+        char const sep_str[2] = {SEP, 0};
+        strcat(filename, sep_str);
         copyModulenameAsPath(filename + strlen(filename), entry->name);
         strcat(filename, ".so");
 
