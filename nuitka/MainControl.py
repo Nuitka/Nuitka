@@ -429,7 +429,8 @@ def makeSourceDirectory(main_module):
                 (module.getFilename(), target_filename, module.getPackage())
             )
         elif module.isUncompiledPythonModule():
-            pass
+            if Options.isShowInclusion():
+                info("Included uncompiled module '%s'." % module.getFullName())
         else:
             assert False, module
 
