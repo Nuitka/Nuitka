@@ -15,7 +15,7 @@ if __name__ == "__main__":
                 "lib",
                 "scons-2.3.2"
                   if sys.version_info < (2,7) else
-                "scons-3.0.5"
+                "scons-3.1.0"
             )
         )
     )
