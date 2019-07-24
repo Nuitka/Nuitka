@@ -276,18 +276,9 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
 
         return cls(variable=variable, source_ref=source_ref)
 
-    def getDetail(self):
-        if self.variable is None:
-            return self.variable_name
-        else:
-            return repr(self.variable)
-
     @staticmethod
     def isTargetVariableRef():
         return False
-
-    def getVariableName(self):
-        return self.variable_name
 
     def getVariable(self):
         return self.variable
@@ -502,9 +493,6 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
         variable = owner.getTempVariable(None, args["temp_name"])
 
         return cls(variable=variable, source_ref=source_ref)
-
-    def getDetail(self):
-        return self.variable.getName()
 
     @staticmethod
     def isTargetVariableRef():

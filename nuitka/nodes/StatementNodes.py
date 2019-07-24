@@ -214,9 +214,6 @@ class StatementExpressionOnly(StatementChildHavingBase):
 
         StatementChildHavingBase.__init__(self, value=expression, source_ref=source_ref)
 
-    def getDetail(self):
-        return "expression %s" % self.getExpression()
-
     def mayHaveSideEffects(self):
         return self.getExpression().mayHaveSideEffects()
 

@@ -155,12 +155,6 @@ class StatementAssignmentVariable(StatementChildHavingBase):
         self.variable_trace = None
         self.inplace_suspect = None
 
-    def getDetail(self):
-        if self.variable is not None:
-            return "to variable %s" % self.variable
-        else:
-            return "to variable %s" % self.variable_name
-
     def getDetails(self):
         return {"variable": self.variable}
 
@@ -474,12 +468,6 @@ class StatementDelVariable(StatementBase):
         del self.variable_trace
         del self.previous_trace
 
-    def getDetail(self):
-        if self.variable is not None:
-            return "to variable %s" % self.variable
-        else:
-            return "to variable %s" % self.variable_name
-
     def getDetails(self):
         return {
             "variable": self.variable,
@@ -631,9 +619,6 @@ class StatementReleaseVariable(StatementBase):
         del self.variable
         del self.variable_trace
         del self.parent
-
-    def getDetail(self):
-        return "of variable %s" % self.variable
 
     def getDetails(self):
         return {"variable": self.variable}

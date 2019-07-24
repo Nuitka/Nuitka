@@ -101,13 +101,6 @@ class NodeBase(NodeMetaClassBase):
         """
         return self.getDetails()
 
-    def getDetail(self):
-        """ Details of the node, intended for use in __repr__ and graphical
-            display.
-
-        """
-        return str(self.getDetails())[1:-1]
-
     def getCloneArgs(self):
         return self.getDetails()
 

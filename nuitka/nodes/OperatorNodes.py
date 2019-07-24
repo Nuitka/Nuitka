@@ -61,9 +61,6 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
     def isExpressionOperationBinary():
         return True
 
-    def getDetail(self):
-        return self.operator
-
     def getDetails(self):
         return {"operator": self.operator}
 
@@ -546,9 +543,6 @@ class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
         self.operator = operator
 
         self.simulator = PythonOperators.unary_operator_functions[operator]
-
-    def getDetail(self):
-        return self.operator
 
     def getDetails(self):
         return {"operator": self.operator}

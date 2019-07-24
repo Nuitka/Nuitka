@@ -58,9 +58,6 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunction):
         else:
             setLocalsDictType(self.locals_dict_name, "python2_class")
 
-    def getDetail(self):
-        return "named %s" % self.getFunctionName()
-
     def getDetails(self):
         return {
             "name": self.getFunctionName(),

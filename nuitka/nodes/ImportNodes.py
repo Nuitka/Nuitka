@@ -518,12 +518,6 @@ class ExpressionImportName(ExpressionChildHavingBase):
     def getDetails(self):
         return {"import_name": self.getImportName(), "level": self.level}
 
-    def getDetail(self):
-        return "import %s from %s" % (
-            self.getImportName(),
-            self.getModule().getModuleName(),
-        )
-
     getModule = ExpressionChildrenHavingBase.childGetter("module")
 
     def computeExpression(self, trace_collection):

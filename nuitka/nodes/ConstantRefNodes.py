@@ -131,9 +131,6 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
 
         return result
 
-    def getDetail(self):
-        return repr(self.constant)
-
     @staticmethod
     def isExpressionConstantRef():
         return True
