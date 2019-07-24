@@ -28,7 +28,6 @@ from logging import debug
 
 from nuitka import Tracing, Variables
 from nuitka.__past__ import iterItems  # Python3 compatibility.
-from nuitka.containers.oset import OrderedSet
 from nuitka.importing.ImportCache import getImportedModuleByNameAndPath
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
@@ -806,8 +805,6 @@ class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):
             self, owner=module, name="module:" + module.getFullName(), parent=None
         )
 
-        self.used_modules = OrderedSet()
-
     def onUsedModule(self, module_name, module_relpath):
         assert type(module_name) is str, module_name
 
@@ -815,10 +812,7 @@ class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):
         # done this.
         module_relpath = relpath(module_relpath)
 
-        self.used_modules.add((module_name, module_relpath))
+        self.owner.addUsedModule((module_name, module_relpath))
 
         module = getImportedModuleByNameAndPath(module_name, module_relpath)
         addUsedModule(module)
-
-    def getUsedModules(self):
-        return self.used_modules

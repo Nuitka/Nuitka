@@ -262,6 +262,8 @@ class CompiledPythonModule(
         self.active_functions = OrderedSet()
         self.cross_used_functions = OrderedSet()
 
+        self.used_modules = OrderedSet()
+
         # Often "None" until tree building finishes its part.
         self.future_spec = future_spec
 
@@ -440,7 +442,14 @@ class CompiledPythonModule(
         self.setFunctions(functions)
 
     def startTraversal(self):
+        self.used_modules = OrderedSet()
         self.active_functions = OrderedSet()
+
+    def addUsedModule(self, key):
+        self.used_modules.add(key)
+
+    def getUsedModules(self):
+        return self.used_modules
 
     def addUsedFunction(self, function_body):
         assert function_body in self.getFunctions()

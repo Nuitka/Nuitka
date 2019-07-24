@@ -20,7 +20,6 @@
 """
 
 import marshal
-from copy import copy
 from logging import info
 
 from nuitka import Options
@@ -64,7 +63,8 @@ def demoteCompiledModuleToBytecode(module):
         technical=False,
     )
 
-    uncompiled_module.setUsedModules(module.trace_collection.getUsedModules())
+    uncompiled_module.setUsedModules(module.getUsedModules())
+    module.finalize()
 
     if isImportedModuleByName(full_name):
         replaceImportedModule(old=module, new=uncompiled_module)
