@@ -61,6 +61,7 @@ from nuitka.utils.FileOperations import (
     getFileContentByLine,
     removeDirectory,
 )
+from nuitka.utils.Utils import getOS
 
 
 # checks requirements needed to run each test module, according to the specified special comment
@@ -164,6 +165,10 @@ def main():
                 continue
 
         elif filename == "TkInterUsing.py":
+            if getOS() == "Darwin":
+                reportSkip("Not working macOS yet", ".", filename)
+                continue
+
             # For the plug-in information.
             extra_flags.append("ignore_infos")
             extra_flags.append("plugin_enable:tk-inter")
