@@ -19,6 +19,18 @@
 #     limitations under the License.
 #
 
+""" Runner for PyPI Pytest comparison
+
+This script automates the comparing of pytest results of a nuitka compiled wheel
+using `python setup.py bdist_nuitka` to the pytest results of an uncompiled wheel
+built using `python setup.py bdist_wheel` for the most popular PyPI packages.
+Testing is done to ensure that nuitka is building the wheel correctly. If the
+pytests pass/fail in the same way, that means Nuitka built the wheel properly.
+Else if the tests differ, then something is wrong.
+Virtualenv is used to create a clean environment with no outside pollution.
+
+"""
+
 import os
 import sys
 
@@ -44,6 +56,12 @@ import nuitka
 # TODO: Get closer to 50 items :)
 
 packages = {
+    "attrs": {
+        "url": "https://github.com/python-attrs/attrs.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
     "chardet": {
         "url": "https://github.com/chardet/chardet.git",
         "requirements_file": None,
@@ -56,6 +74,12 @@ packages = {
         "ignored_tests": None,
     },
 
+    "cryptography": {
+        "url": "https://github.com/pyca/cryptography.git",
+        "requirements_file": "dev-requirements.txt",
+        "ignored_tests": None,
+    },
+
     "dateutil": {
         "url": "https://github.com/dateutil/dateutil.git",
         "requirements_file": "requirements-dev.txt",
@@ -64,6 +88,12 @@ packages = {
 
     "idna": {
         "url": "https://github.com/kjd/idna.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
+    "jinja2": {
+        "url": "https://github.com/pallets/jinja.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
@@ -89,6 +119,12 @@ packages = {
     "pyasn1": {
         "url": "https://github.com/etingof/pyasn1.git",
         "requirements_file": "requirements.txt",
+        "ignored_tests": None,
+    },
+
+    "pycparser": {
+        "url": "https://github.com/eliben/pycparser.git",
+        "requirements_file": None,
         "ignored_tests": None,
     },
 
@@ -153,7 +189,11 @@ def main():
 
         # skip these packages
         if package_name in (
+            "attrs", # __import__ check fails for uncompiled whl
+            "cryptography", # setup.py develop fails
+            "jinja2", # bdist_wheel fails
             "numpy",
+            "pycparser", # __import__ check fails for compiled whl; pytest passes
             "pytz",
             "pyyaml", # invalid command 'bdist_nuitka'
         ):
