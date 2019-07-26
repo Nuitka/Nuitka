@@ -262,7 +262,7 @@ def main():
             "cryptography", # setup.py develop fails
             "decorator", # bdist_nuitka fails
             "google-auth",
-            "ipaddress" # automatic bdist_nuitka fails
+            "ipaddress", # automatic bdist_nuitka fails
             "jinja2", # bdist_wheel fails
             "numpy",
             "pandas", # bdist_wheel fails
