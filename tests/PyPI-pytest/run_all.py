@@ -56,14 +56,32 @@ import nuitka
 # TODO: Get closer to 50 items :)
 
 packages = {
+    "asn1crypto": {
+        "url": "https://github.com/wbond/asn1crypto.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
     "attrs": {
         "url": "https://github.com/python-attrs/attrs.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
 
+    "cachetools": {
+        "url": "https://github.com/tkem/cachetools.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
     "chardet": {
         "url": "https://github.com/chardet/chardet.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
+    "click": {
+        "url": "https://github.com/pallets/click.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
@@ -86,8 +104,40 @@ packages = {
         "ignored_tests": None,
     },
 
+    "decorator": {
+        "url": "https://github.com/micheles/decorator.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
+    "flask": {
+        "url": "https://github.com/pallets/flask.git",
+        "requirements_file": None,
+        "ignored_tests": (
+            "tests/test_instance_config.py",
+        )
+    },
+
+    "google-auth": {
+        "url": "https://github.com/googleapis/google-auth-library-python.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
     "idna": {
         "url": "https://github.com/kjd/idna.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
+    "ipaddress": {
+        "url": "https://github.com/phihag/ipaddress.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
+    "itsdangerous": {
+        "url": "https://github.com/pallets/itsdangerous.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
@@ -116,6 +166,12 @@ packages = {
         "ignored_tests": None,
     },
 
+    "pandas": {
+        "url": "https://github.com/pandas-dev/pandas.git",
+        "requirements_file": "requirements-dev.txt",
+        "ignored_tests": None,
+    },
+
     "pyasn1": {
         "url": "https://github.com/etingof/pyasn1.git",
         "requirements_file": "requirements.txt",
@@ -125,6 +181,12 @@ packages = {
     "pycparser": {
         "url": "https://github.com/eliben/pycparser.git",
         "requirements_file": None,
+        "ignored_tests": None,
+    },
+
+    "pyparsing": {
+        "url": "https://github.com/pyparsing/pyparsing.git",
+        "requirements_file": "requirements-dev.txt",
         "ignored_tests": None,
     },
 
@@ -165,6 +227,13 @@ packages = {
             "test/test_no_ssl.py",
         )
     },
+
+    "Werkzeug": {
+        "url": "https://github.com/pallets/werkzeug.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+
 }
 
 
@@ -191,11 +260,17 @@ def main():
         if package_name in (
             "attrs", # __import__ check fails for uncompiled whl
             "cryptography", # setup.py develop fails
+            "decorator", # bdist_nuitka fails
+            "google-auth",
+            "ipaddress" # automatic bdist_nuitka fails
             "jinja2", # bdist_wheel fails
             "numpy",
+            "pandas", # bdist_wheel fails
             "pycparser", # __import__ check fails for compiled whl; pytest passes
+            "pyparsing", # bdist_wheel fails
             "pytz",
             "pyyaml", # invalid command 'bdist_nuitka'
+            "Werkzeug", # __import__ check fails for uncompiled whl
         ):
             if search_mode.abortIfExecuted():
                 break
