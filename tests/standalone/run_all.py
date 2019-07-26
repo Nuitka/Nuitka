@@ -175,6 +175,8 @@ def main():
         elif filename == "FlaskUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
+            # For enum plugin info
+            extra_flags.append("ignore_infos")
         elif filename == "NumpyUsing.py":
             # TODO: Disabled for now.
             reportSkip("numpy.test not fully working yet", ".", filename)
