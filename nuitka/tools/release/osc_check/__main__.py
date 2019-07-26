@@ -82,7 +82,7 @@ def main():
 
         # print(row2[0], title, ":", status)
         # Ignore PowerPC builds for now, they seem to not even boot.
-        if "ppc" in title:
+        if "ppc" in title or "aarch" in title or "arm" in title:
             continue
 
         if status in bad:
