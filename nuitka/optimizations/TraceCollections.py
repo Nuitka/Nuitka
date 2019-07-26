@@ -401,7 +401,7 @@ class TraceCollectionBase(CollectionTracingMixin):
 
     @staticmethod
     def signalChange(tags, source_ref, message):
-        # This is monkey patched from another module.
+        # This is monkey patched from another module. pylint: disable=I0021,not-callable
         signalChange(tags, source_ref, message)
 
     def onUsedModule(self, module_name, module_relpath):
