@@ -175,7 +175,12 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
             else:
                 assert False
 
-        if module_package == "multiprocessing":
+        if module_package is None:
+            if module_name == "multiprocessing":
+                return True, "Multiprocessing plugin needs this to monkey patch it."
+        elif module_package == "multiprocessing" or module_package.startswith(
+            "multiprocessing."
+        ):
             return True, "Multiprocessing plugin needs this to monkey patch it."
 
     def decideCompilation(self, module_name, source_ref):
@@ -183,6 +188,9 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
             "multiprocessing."
         ):
             return "bytecode"
+
+        # TODO: Make this demotable too.
+        # or module_name in( "multiprocessing-preLoad", "multiprocessing-postLoad"):
 
 
 class NuitkaPluginDetectorMultiprocessingWorkarounds(NuitkaPluginBase):
