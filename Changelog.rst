@@ -1,5 +1,5 @@
-Nuitka Release 0.6.5 (Draft)
-============================
+Nuitka Release 0.6.5
+====================
 
 This release contains many bug fixes all across the board. There is also
 new optimization and many organisational improvements.
