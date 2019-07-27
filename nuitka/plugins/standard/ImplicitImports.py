@@ -48,7 +48,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
     @staticmethod
     def _getImportsByFullname(full_name):
-        """ Provides names of modules to imported implicitely.
+        """ Provides names of modules to imported implicitly.
 
         Notes:
             This methods works much like 'getImplicitImports', except that it
@@ -695,7 +695,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield opengl_plugin, True
 
         else:
-            # create a flattend import set for full_name and yield from it
+            # create a flattened import set for full_name and yield from it
             for item in self.getImportsByFullname(full_name):
                 yield item
 

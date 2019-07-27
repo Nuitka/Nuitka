@@ -57,7 +57,7 @@ def remove_suffix(string, suffix):
 
 
 def get_sys_prefix():
-    """ Return sys.prefix as guarantied abspath format.
+    """ Return sys.prefix as guaranteed abspath format.
     """
     sys_prefix = getattr(sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix))
     sys_prefix = os.path.abspath(sys_prefix)

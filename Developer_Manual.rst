@@ -432,7 +432,7 @@ Special ``doxygen`` Anatomy of ``"__doc__"``
   Each section name is coded on its own line, aligned with the leading ``"""``
   and followed by a colon ":". Anything following the section, must start on a
   new line and be indented by 4 spaces relative to the section. Except for the
-  first section (``Notes:``) after the title, sections need not be preceeded by
+  first section (``Notes:``) after the title, sections need not be preceded by
   empty lines -- but it is good practice to still do that.
 
     - ``Notes:`` detailed description of the item, any length.
@@ -3782,7 +3782,7 @@ format source code, and doesn't have a role at run time of the actual compiler
 code of Nuitka.
 
 Much less strict rules apply to these in comparison to runtime dependencies.
-Generally please take care that the tool must be well maitained an available
+Generally please take care that the tool must be well maintained an available
 on newer Pythons. Then we can use it, no problem normally. But if it's really
 big, say all of SciPy, we might want to justify it a bit better.
 

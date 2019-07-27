@@ -529,7 +529,7 @@ if win_target and getExecutablePath(env["CC"], initial=False) is None:
 
         env = createEnvironment(tools=["mingw"])
 
-        printCompilerVersionOutput("CC not found, attemping installed CondaCC")
+        printCompilerVersionOutput("CC not found, attempting installed CondaCC")
 
 if show_scons_mode:
     print("Initial CC:", env.get("CC", None))
@@ -732,7 +732,7 @@ if win_target:
 env["BUILD_DIR"] = source_dir
 
 # Store the file signatures database with the rest of the source files
-# and make it version dependant on the Python version of Scons, as its
+# and make it version dependent on the Python version of Scons, as its
 # pickle is being used.
 sconsign_dir = os.path.abspath(
     os.path.join(

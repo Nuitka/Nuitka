@@ -118,7 +118,7 @@ class TorchPlugin(NuitkaPluginBase):
             return ()
 
         if module.getFullName() == "torch":
-            self.files_copied = True  # fall thru next time
+            self.files_copied = True  # fall through next time
             binaries = get_torch_core_binaries()
             bin_total = len(binaries)
             if bin_total == 0:
