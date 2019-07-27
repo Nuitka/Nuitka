@@ -378,6 +378,27 @@ class ExpressionBase(NodeBase):
 
         return len_node, None, None
 
+    def computeExpressionAbs(self, abs_node, trace_collection):
+        shape = self.getTypeShape()
+
+        if shape.hasShapeSlotAbs() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template="bad operand type for abs(): '%s'",
+                operation="abs",
+                original_node=abs_node,
+                value_node=self,
+            )
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return abs_node, None, None
+
     def computeExpressionInt(self, int_node, trace_collection):
         shape = self.getTypeShape()
 
@@ -598,6 +619,12 @@ class ExpressionBase(NodeBase):
 
         return True
 
+    def mayRaiseExceptionAbs(self, exception_type):
+        """ Unless we are told otherwise, everything may raise in 'abs'. """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+
+        return True
+
     def mayRaiseExceptionInt(self, exception_type):
         """ Unless we are told otherwise, everything may raise in __int__. """
         # Virtual method, pylint: disable=no-self-use,unused-argument
@@ -666,6 +693,15 @@ class ExpressionBase(NodeBase):
     def mayHaveSideEffectsBool(self):
         """ Unless we are told otherwise, everything may have a side effect for bool check. """
         # Virtual method, pylint: disable=no-self-use
+
+        return True
+
+    def mayHaveSideEffectsAbs(self):
+        """ Unless we are told otherwise, everything may have a side effect for abs check. """
+        # Virtual method, pylint: disable=no-self-use
+
+        # TODO: Bonus points for check type shapes that will be good
+        # for abs, i.e. number shapes like Int, Long, Float, Complex.
 
         return True
 
@@ -803,6 +839,14 @@ Compile time constant negation truth value pre-computed.""",
             computation=lambda: len(self.getCompileTimeConstant()),
             description="""\
 Compile time constant len value pre-computed.""",
+        )
+
+    def computeExpressionAbs(self, abs_node, trace_collection):
+        return trace_collection.getCompileTimeComputationResult(
+            node=abs_node,
+            computation=lambda: abs(self.getCompileTimeConstant()),
+            description="""\
+Compile time constant abs value pre-computed.""",
         )
 
     def computeExpressionInt(self, int_node, trace_collection):

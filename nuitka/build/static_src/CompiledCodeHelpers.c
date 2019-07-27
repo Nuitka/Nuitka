@@ -590,6 +590,17 @@ PyObject *BUILTIN_ANY(PyObject *value) {
     return Py_False;
 }
 
+PyObject *BUILTIN_ABS(PyObject *o) {
+    CHECK_OBJECT(o)
+
+    PyNumberMethods *m = o->ob_type->tp_as_number;
+    if (likely(m && m->nb_absolute)) {
+        return m->nb_absolute(o);
+    }
+
+    return PyErr_Format(PyExc_TypeError, "bad operand type for abs(): '%s'", Py_TYPE(o)->tp_name);
+}
+
 NUITKA_DEFINE_BUILTIN(format);
 
 PyObject *BUILTIN_FORMAT(PyObject *value, PyObject *format_spec) {

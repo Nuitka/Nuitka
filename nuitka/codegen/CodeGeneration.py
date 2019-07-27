@@ -44,6 +44,7 @@ from .AttributeCodes import (
 )
 from .BranchCodes import generateBranchCode
 from .BuiltinCodes import (
+    generateBuiltinAbsCode,
     generateBuiltinAnonymousRefCode,
     generateBuiltinBinCode,
     generateBuiltinBoolCode,
@@ -631,6 +632,7 @@ setExpressionDispatchDict(
         "EXPRESSION_OPERATION_BINARY_INPLACE": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_UNARY": generateOperationUnaryCode,
         "EXPRESSION_OPERATION_NOT": generateOperationNotCode,
+        "EXPRESSION_OPERATION_ABS": generateBuiltinAbsCode,
         "EXPRESSION_OUTLINE_BODY": generateFunctionOutlineCode,
         "EXPRESSION_OUTLINE_FUNCTION": generateFunctionOutlineCode,
         # TODO: Rename to make more clear it is an outline

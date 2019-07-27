@@ -71,6 +71,7 @@ unary_operator_functions = {
     "Repr": repr,
     # Boolean not is treated an unary operator.
     "Not": operator.not_,
+    "Abs": operator.abs,
 }
 
 

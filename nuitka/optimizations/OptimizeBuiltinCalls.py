@@ -110,6 +110,7 @@ from nuitka.nodes.NodeMakingHelpers import (
     wrapExpressionWithSideEffects,
 )
 from nuitka.nodes.OperatorNodes import (
+    ExpressionOperationAbs,
     ExpressionOperationBinaryDivmod,
     ExpressionOperationNOT,
     ExpressionOperationUnary,
@@ -477,6 +478,14 @@ def any_extractor(node):
         builtin_class=ExpressionBuiltinAny,
         builtin_spec=BuiltinParameterSpecs.builtin_any_spec,
         empty_special_class=makeAny0,
+    )
+
+
+def abs_extractor(node):
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=ExpressionOperationAbs,
+        builtin_spec=BuiltinParameterSpecs.builtin_abs_spec,
     )
 
 
@@ -1279,6 +1288,7 @@ _dispatch_dict = {
     "repr": repr_extractor,
     "len": len_extractor,
     "any": any_extractor,
+    "abs": abs_extractor,
     "super": super_extractor,
     "hasattr": hasattr_extractor,
     "getattr": getattr_extractor,

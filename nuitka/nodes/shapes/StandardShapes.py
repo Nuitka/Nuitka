@@ -55,6 +55,10 @@ class ShapeBase(object):
         return None
 
     @staticmethod
+    def hasShapeSlotAbs():
+        return None
+
+    @staticmethod
     def hasShapeSlotLen():
         return None
 
