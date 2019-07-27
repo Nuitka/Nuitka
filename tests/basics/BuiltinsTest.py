@@ -566,7 +566,6 @@ except Exception as e:
 print("any() with sets:")
 print(any(set([0, 1, 2, 3, 3])))
 print(any({1:"One", 2:"Two"}))
-
 print("Tests for abs():")
 print(abs(-1000000**10))
 print(abs(len([1, 2, 3])))
@@ -577,3 +576,19 @@ try:
     print(abs([1,2]))
 except Exception as e:
     print("caught ", repr(e))
+
+# Test for all builtins
+print(all([None, None, None]))
+print(all([None, 4, None]))
+print(all([]))
+print(all([0] * 20000))
+print(all([0] * 255))
+print("All with ranges:")
+print(all(range(1, 10000)))
+print(all(range(10000)))
+print(all(range(2, 999, 4)))
+print("All with strings:")
+print(all("Nuitka rocks!"))
+print(all("string"))
+print(all(u'unicode'))
+print(all(b'bytes'))

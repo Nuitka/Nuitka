@@ -2578,6 +2578,88 @@ given, which would be ``sys.stdout`` in a rather hard-coded way (no variable
 look-ups involved).
 
 
+Builtin ``zip`` for Python2
+---------------------------
+
+.. code-block:: python
+
+    def _zip(a, b, c, ... ):
+       # First assign, to preserve order of execution,
+       # the arguments might be complex expressions.
+       tmp_arg1 = a
+       tmp_arg2 = b
+       tmp_arg3 = c
+       ...
+
+       tmp_iter_1 = iter(tmp_arg1)
+       tmp_iter_2 = iter(tmp_arg2)
+       tmp_iter_3 = iter(tmp_arg3)
+       ...
+
+       # could be more
+       tmp_result = []
+       try:
+           while 1:
+               tmp_result.append(
+                   (
+                        next(tmp_iter_1),
+                        next(tmp_iter_2),
+                        next(tmp_iter_3),
+                        ...
+                   )
+                )
+          except StopIteration:
+              pass
+
+       return tmp_result
+
+Builtin ``map`` for Python2
+---------------------------
+
+.. code-block:: python
+
+    def _map():
+        ...
+
+Builtin ``min``
+---------------
+
+.. code-block:: python
+
+    # TODO: keyfunc (Python2/3), defaults (Python3)
+    def _min(a, b, c, ...):
+        tmp_arg1 = a
+        tmp_arg2 = b
+        tmp_arg3 = c
+        ...
+
+        result = tmp_arg1
+        if keyfunc is None: # can be decided during re-formulation
+            tmp_key_result = keyfunc(result)
+            tmp_key_candidate = keyfunc(tmp_arg2)
+            if tmp_key_candidate < tmp_key_result:
+                result = tmp_arg2
+                tmp_key_result = tmp_key_candidate
+            tmp_key_candidate = keyfunc(tmp_arg3)
+            if tmp_key_candidate < tmp_key_result:
+                result = tmp_arg3
+                tmp_key_result = tmp_key_candidate
+            ...
+        else:
+            if tmp_arg2 < result:
+                result = tmp_arg2
+            if tmp_arg3 < result:
+                result = tmp_arg3
+            ...
+
+        return result
+
+
+Builtin ``max``
+---------------
+
+See ``min`` just with ``>`` instead of ``<``.
+
 Call to ``dir`` without arguments
 ---------------------------------
 

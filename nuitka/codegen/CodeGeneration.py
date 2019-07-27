@@ -158,6 +158,7 @@ from .IntegerCodes import (
 )
 from .IteratorCodes import (
     generateBuiltinAnyCode,
+    generateBuiltinAllCode,
     generateBuiltinIter1Code,
     generateBuiltinIter2Code,
     generateBuiltinIterForUnpackCode,
@@ -526,6 +527,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_SET": generateBuiltinSetCode,
         "EXPRESSION_BUILTIN_ANY": generateBuiltinAnyCode,
         "EXPRESSION_BUILTIN_FROZENSET": generateBuiltinFrozensetCode,
+        "EXPRESSION_BUILTIN_ALL": generateBuiltinAllCode,
         "EXPRESSION_BUILTIN_DICT": generateBuiltinDictCode,
         "EXPRESSION_BUILTIN_LOCALS_COPY": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_UPDATED": generateBuiltinLocalsCode,
