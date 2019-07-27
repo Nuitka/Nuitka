@@ -95,11 +95,7 @@ from nuitka.nodes.BuiltinTypeNodes import (
 from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import ExpressionBuiltinType3
-from nuitka.nodes.ComparisonNodes import (
-    ExpressionComparisonGt,
-    ExpressionComparisonIs,
-    ExpressionComparisonLt,
-)
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional,
@@ -139,6 +135,7 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
+from nuitka.tree.ReformulationMinMaxcStatements import computeMinMax
 from nuitka.tree.ReformulationTryFinallyStatements import makeTryFinallyStatement
 from nuitka.tree.TreeHelpers import (
     makeCallNode,
@@ -955,81 +952,11 @@ def max_extractor(node):
             source_ref=source_ref,
         )
 
-        call_args = node.getCallArgs()
-
-        assert call_args.getIterationLength() >= 2
-
-        max_arg_variables = [
-            outline_body.allocateTempVariable(temp_scope=None, name="max_arg_%d" % i)
-            for i in range(call_args.getIterationLength())
-        ]
-
-        max_result_variable = outline_body.allocateTempVariable(
-            temp_scope=None, name="max_result"
-        )
-
-        # To be executed at beginning of outline body. These need
-        # to be released, or else we loose reference
-        statements = [
-            StatementAssignmentVariable(
-                variable=max_arg_variable, source=call_arg, source_ref=source_ref
-            )
-            for call_arg, max_arg_variable in zip(
-                call_args.getElements(), max_arg_variables
-            )
-        ]
-
-        statements.append(
-            StatementAssignmentVariable(
-                variable=max_result_variable,
-                source=ExpressionTempVariableRef(
-                    variable=max_arg_variables[0], source_ref=source_ref
-                ),
-                source_ref=source_ref,
-            )
-        )
-
-        for max_arg_variable in max_arg_variables[1:]:
-            statements.append(
-                makeStatementConditional(
-                    condition=ExpressionComparisonLt(
-                        left=ExpressionTempVariableRef(
-                            variable=max_result_variable, source_ref=source_ref
-                        ),
-                        right=ExpressionTempVariableRef(
-                            variable=max_arg_variable, source_ref=source_ref
-                        ),
-                        source_ref=source_ref,
-                    ),
-                    yes_branch=StatementAssignmentVariable(
-                        variable=max_result_variable,
-                        source=ExpressionTempVariableRef(
-                            variable=max_arg_variable, source_ref=source_ref
-                        ),
-                        source_ref=source_ref,
-                    ),
-                    no_branch=None,
-                    source_ref=source_ref,
-                )
-            )
-
-        statements.append(
-            StatementReturn(
-                expression=ExpressionTempVariableRef(
-                    variable=max_result_variable, source_ref=source_ref
-                ),
-                source_ref=source_ref,
-            )
-        )
-
-        final_statements = [
-            StatementReleaseVariable(variable=max_arg_variable, source_ref=source_ref)
-            for max_arg_variable in max_arg_variables
-        ]
-        final_statements.append(
-            StatementReleaseVariable(
-                variable=max_result_variable, source_ref=source_ref
-            )
+        statements, final_statements = computeMinMax(
+            outline_body=outline_body,
+            call_args=args,
+            builtin_type="max",
+            source_ref=source_ref,
         )
 
         outline_body.setBody(
@@ -1062,81 +989,11 @@ def min_extractor(node):
             source_ref=source_ref,
         )
 
-        call_args = node.getCallArgs()
-
-        assert call_args.getIterationLength() >= 2
-
-        min_arg_variables = [
-            outline_body.allocateTempVariable(temp_scope=None, name="min_arg_%d" % i)
-            for i in range(call_args.getIterationLength())
-        ]
-
-        min_result_variable = outline_body.allocateTempVariable(
-            temp_scope=None, name="min_result"
-        )
-
-        # To be executed at beginning of outline body. These need
-        # to be released, or else we loose reference
-        statements = [
-            StatementAssignmentVariable(
-                variable=min_arg_variable, source=call_arg, source_ref=source_ref
-            )
-            for call_arg, min_arg_variable in zip(
-                call_args.getElements(), min_arg_variables
-            )
-        ]
-
-        statements.append(
-            StatementAssignmentVariable(
-                variable=min_result_variable,
-                source=ExpressionTempVariableRef(
-                    variable=min_arg_variables[0], source_ref=source_ref
-                ),
-                source_ref=source_ref,
-            )
-        )
-
-        for min_arg_variable in min_arg_variables[1:]:
-            statements.append(
-                makeStatementConditional(
-                    condition=ExpressionComparisonGt(
-                        left=ExpressionTempVariableRef(
-                            variable=min_result_variable, source_ref=source_ref
-                        ),
-                        right=ExpressionTempVariableRef(
-                            variable=min_arg_variable, source_ref=source_ref
-                        ),
-                        source_ref=source_ref,
-                    ),
-                    yes_branch=StatementAssignmentVariable(
-                        variable=min_result_variable,
-                        source=ExpressionTempVariableRef(
-                            variable=min_arg_variable, source_ref=source_ref
-                        ),
-                        source_ref=source_ref,
-                    ),
-                    no_branch=None,
-                    source_ref=source_ref,
-                )
-            )
-
-        statements.append(
-            StatementReturn(
-                expression=ExpressionTempVariableRef(
-                    variable=min_result_variable, source_ref=source_ref
-                ),
-                source_ref=source_ref,
-            )
-        )
-
-        final_statements = [
-            StatementReleaseVariable(variable=min_arg_variable, source_ref=source_ref)
-            for min_arg_variable in min_arg_variables
-        ]
-        final_statements.append(
-            StatementReleaseVariable(
-                variable=min_result_variable, source_ref=source_ref
-            )
+        statements, final_statements = computeMinMax(
+            outline_body=outline_body,
+            call_args=args,
+            builtin_type="min",
+            source_ref=source_ref,
         )
 
         outline_body.setBody(
