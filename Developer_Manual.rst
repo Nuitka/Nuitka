@@ -132,13 +132,32 @@ Setting up the Development Environment for Nuitka
 Currently there are 3 kinds of files that we need support for. This is best
 addressed with an IDE. We cover here how to setup the common ones.
 
-Eclipse
--------
+Visual Studio Code
+------------------
+
+Download Visual Studio Code from here: https://code.visualstudio.com/download
 
 At this time, this is the recommended IDE for Linux and Windows. This is going
-to cover that plugins to install. If you are not familiar with Eclipse, this is
-a Java IDE, but designed to be universally extended, and it truly is. There are
+to cover the plugins to install. Configuration is part of the ``.vscode`` in
+your Nuitka checkout. If you are not familiar with Eclipse, this is Free
+Software IDE,designed to be universally extended, and it truly is. There are
 plugins available for nearly everything.
+
+The extensions to be installed are these (check their precise name in brackets
+in the plugin overview after putting it into "search" for in the extensions
+part
+
+- Python (ms-python.python)
+- reStructuredText (lextudio.restructuredtext)
+- C/C++ (ms-vscode.cpptools)
+
+Others we found useful:
+
+- Reflow paragraph (troelsdamgaard.reflow-paragraph)
+- Live Share (ms-vsliveshare.vsliveshare)
+
+Eclipse
+-------
 
 Download Eclipse from here: https://www.eclipse.org/downloads/packages/
 
@@ -164,16 +183,10 @@ that is the easiest way to install your plugins. Install these ones:
   This is good for editing the User Manual, Developer Manual, and generally all
   documentation of Nuitka.
 
-
 PyCharm
 -------
 
 TODO.
-
-VSCode
-------
-
-TODO
 
 Commit and Code Hygiene
 =======================
