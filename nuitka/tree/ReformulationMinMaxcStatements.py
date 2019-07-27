@@ -16,9 +16,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Reformulation of "min" and "max statements
+""" Reformulation of "min" and "max" statements
 
 """
+
+# TODO: NOT statements
+# TODO: Move to nuitka.optimization.OptimizeMinMaxCalls
+
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
@@ -29,25 +33,23 @@ from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
+# createMinMaxCallReformulation.
 
-def computeMinMax(outline_body, call_args, builtin_type, source_ref):
+
+def computeMinMax(outline_body, call_args, builtin_name, source_ref):
     assert len(call_args) >= 2
 
-    if builtin_type == "max":
+    if builtin_name == "max":
         condtionExpression = ExpressionComparisonLt
     else:
         condtionExpression = ExpressionComparisonGt
 
     arg_variables = [
         outline_body.allocateTempVariable(
-            temp_scope=None, name="%s_arg_%d" % (builtin_type, i)
+            temp_scope=None, name="%s_arg_%d" % (builtin_name, i)
         )
         for i in range(len(call_args))
     ]
-
-    result_variable = outline_body.allocateTempVariable(
-        temp_scope=None, name="%s_result" % builtin_type
-    )
 
     # To be executed at beginning of outline body. These need
     # to be released, or else we loose reference
@@ -57,6 +59,10 @@ def computeMinMax(outline_body, call_args, builtin_type, source_ref):
         )
         for call_arg, arg_variable in zip(call_args, arg_variables)
     ]
+
+    result_variable = outline_body.allocateTempVariable(
+        temp_scope=None, name="%s_result" % builtin_name
+    )
 
     statements.append(
         StatementAssignmentVariable(

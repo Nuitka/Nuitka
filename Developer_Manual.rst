@@ -2722,8 +2722,45 @@ Builtin ``zip`` for Python2
 
 .. code-block:: python
 
-    def _zip():
-    ...
+    def _zip(a, b, c, ... ):
+       # First assign, to preserve order of execution,
+       # the arguments might be complex expressions.
+       tmp_arg1 = a
+       tmp_arg2 = b
+       tmp_arg3 = c
+       ...
+
+       # Checks?
+       try:
+          tmp_iter_1 = iter(tmp_arg1)
+       except TypeError:
+          raise TypeError("zip argument #1 must support iteration")
+       try:
+          tmp_iter_2 = iter(tmp_arg2)
+       except TypeError:
+          raise TypeError("zip argument #2 must support iteration")
+       try:
+          tmp_iter_3 = iter(tmp_arg3)
+       except TypeError:
+          raise TypeError("zip argument #3 must support iteration")
+       ...
+
+       # could be more
+       tmp_result = []
+       try:
+           while 1:
+               tmp_result.append(
+                   (
+                        next(tmp_iter_1),
+                        next(tmp_iter_2),
+                        next(tmp_iter_3),
+                        ...
+                   )
+                )
+          except StopIteration:
+              pass
+
+       return tmp_result
 
 Builtin ``map`` for Python2
 ---------------------------
@@ -2731,16 +2768,46 @@ Builtin ``map`` for Python2
 .. code-block:: python
 
     def _map():
-    ...
+        ...
 
 Builtin ``min``
 ---------------
 
 .. code-block:: python
 
-    def _min():
+    # TODO: keyfunc (Python2/3), defaults (Python3)
+    def _min(a, b, c, ...):
+        tmp_arg1 = a
+        tmp_arg2 = b
+        tmp_arg3 = c
         ...
 
+        result = tmp_arg1
+        if keyfunc is None: # can be decided during re-formulation
+            tmp_key_result = keyfunc(result)
+            tmp_key_candidate = keyfunc(tmp_arg2)
+            if tmp_key_candidate < tmp_key_result:
+                result = tmp_arg2
+                tmp_key_result = tmp_key_candidate
+            tmp_key_candidate = keyfunc(tmp_arg3)
+            if tmp_key_candidate < tmp_key_result:
+                result = tmp_arg3
+                tmp_key_result = tmp_key_candidate
+            ...
+        else:
+            if tmp_arg2 < result:
+                result = tmp_arg2
+            if tmp_arg3 < result:
+                result = tmp_arg3
+            ...
+
+        return result
+
+
+Builtin ``max``
+---------------
+
+See ``min`` just with ``>`` instead of ``<``.
 
 Call to ``dir`` without arguments
 +++++++++++++++++++++++++++++++++

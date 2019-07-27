@@ -981,7 +981,7 @@ def max_extractor(node):
 
 def min_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator
-    def wrapMinBuiltin(args, source_ref):
+    def wrapMinBuiltin(args, keyfunc, source_ref):
         # pylint: disable=unused-argument
         outline_body = ExpressionOutlineBody(
             provider=node.getParentVariableProvider(),
@@ -989,10 +989,10 @@ def min_extractor(node):
             source_ref=source_ref,
         )
 
-        statements, final_statements = computeMinMax(
+        statements, final_statements = computeMinMax(  # not a good name
             outline_body=outline_body,
             call_args=args,
-            builtin_type="min",
+            builtin_name="min",
             source_ref=source_ref,
         )
 
