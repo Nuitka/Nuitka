@@ -31,6 +31,7 @@ the traces.
 """
 
 from nuitka.ModuleRegistry import getOwnerFromCodeName
+from nuitka.Variables import Variable
 
 from .NodeBases import StatementBase, StatementChildHavingBase
 from .NodeMakingHelpers import (
@@ -145,6 +146,8 @@ class StatementAssignmentVariable(StatementChildHavingBase):
         assert source is not None, source_ref
 
         if variable is not None:
+            assert isinstance(variable, Variable)
+
             if version is None:
                 version = variable.allocateTargetNumber()
 
@@ -608,6 +611,7 @@ class StatementReleaseVariable(StatementBase):
 
     def __init__(self, variable, source_ref):
         assert variable is not None, source_ref
+        assert isinstance(variable, Variable), source_ref
 
         StatementBase.__init__(self, source_ref=source_ref)
 

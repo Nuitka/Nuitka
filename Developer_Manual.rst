@@ -2648,9 +2648,19 @@ Builtin ``zip`` for Python2
        tmp_arg3 = c
        ...
 
-       tmp_iter_1 = iter(tmp_arg1)
-       tmp_iter_2 = iter(tmp_arg2)
-       tmp_iter_3 = iter(tmp_arg3)
+       # Checks?
+       try:
+          tmp_iter_1 = iter(tmp_arg1)
+       except TypeError:
+          raise TypeError("zip argument #1 must support iteration")
+       try:
+          tmp_iter_2 = iter(tmp_arg2)
+       except TypeError:
+          raise TypeError("zip argument #2 must support iteration")
+       try:
+          tmp_iter_3 = iter(tmp_arg3)
+       except TypeError:
+          raise TypeError("zip argument #3 must support iteration")
        ...
 
        # could be more
