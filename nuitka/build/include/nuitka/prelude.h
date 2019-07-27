@@ -18,8 +18,6 @@
 #ifndef __NUITKA_PRELUDE_H__
 #define __NUITKA_PRELUDE_H__
 
-#include "build_definitions.h"
-
 #ifdef __NUITKA_NO_ASSERT__
 #define NDEBUG
 #endif
@@ -163,6 +161,13 @@
  * clear that the module "init" function should of course be exported, but not
  * for executable, where we call it ourselves from the main code.
  */
+
+#if PYTHON_VERSION < 300
+#define NUITKA_MODULE_ENTRY_FUNCTION void
+#else
+#define NUITKA_MODULE_ENTRY_FUNCTION PyObject *
+#endif
+
 #if defined(_NUITKA_EXE)
 
 #if PYTHON_VERSION < 300
@@ -212,12 +217,14 @@
 
 #define MOD_INIT_NAME(name) init##name
 #define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION init##name(void)
+#define MOD_ENTRY_DECL(name) NUITKA_MODULE_ENTRY_FUNCTION init##name(void)
 #define MOD_RETURN_VALUE(value)
 
 #else
 
 #define MOD_INIT_NAME(name) PyInit_##name
 #define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION PyInit_##name(void)
+#define MOD_ENTRY_DECL(name) NUITKA_MODULE_ENTRY_FUNCTION PyInit_##name(void)
 #define MOD_RETURN_VALUE(value) value
 
 #endif

@@ -118,15 +118,15 @@ class TorchPlugin(NuitkaPluginBase):
             return ()
 
         if module.getFullName() == "torch":
-            self.files_copied = True  # fall thru next time
+            self.files_copied = True  # fall through next time
             binaries = get_torch_core_binaries()
             bin_total = len(binaries)
             if bin_total == 0:
                 return ()
             info("")
-            info(" Copying files from 'torch/lib' and 'torch/bin':")
+            info(" Copying files from 'torch' installation:")
             for f in binaries:
-                bin_file = f[0].lower()  # full binary file name
+                bin_file = f[0]  # full binary file name
                 idx = bin_file.find("torch")  # this will always work (idx > 0)
                 back_end = bin_file[idx:]  # tail of the string
                 tar_file = os.path.join(dist_dir, back_end)

@@ -144,6 +144,10 @@ class ExpressionBase(NodeBase):
             value=self.makeClone(), source_ref=self.getSourceReference()
         )
 
+    def getIterationHandle(self):
+        # Virtual method, pylint: disable=no-self-use
+        return None
+
     def isKnownToBeHashable(self):
         """ Is the value hashable, i.e. suitable for dictionary/set keying."""
 
@@ -166,7 +170,8 @@ class ExpressionBase(NodeBase):
 
     @abstractmethod
     def computeExpressionRaw(self, trace_collection):
-        """ Replace this node with computation result. """
+        """ Returns a tuple(node, tags, description).
+        Replace this node with computation result. """
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # By default, an attribute lookup may change everything about the lookup
@@ -949,16 +954,17 @@ Predicted '%s' on compiled time constant values."""
     def computeExpressionBool(self, trace_collection):
         constant = self.getCompileTimeConstant()
 
-        if type(constant) is not bool:
-            self.parent.replaceChild(
-                self, makeConstantReplacementNode(bool(constant), self)
-            )
+        assert type(constant) is not bool
 
-            trace_collection.signalChange(
-                tags="new_constant",
-                source_ref=self.source_ref,
-                message="Predicted compile time constant true value.",
-            )
+        self.parent.replaceChild(
+            self, makeConstantReplacementNode(bool(constant), self)
+        )
+
+        trace_collection.signalChange(
+            tags="new_constant",
+            source_ref=self.source_ref,
+            message="Predicted compile time constant true value.",
+        )
 
 
 class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):

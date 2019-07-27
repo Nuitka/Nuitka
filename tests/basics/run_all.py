@@ -17,6 +17,13 @@
 #     limitations under the License.
 #
 
+""" Runner for basic tests of Nuitka.
+
+Basic tests are those that cover our back quickly, but need not necessarily,
+be complete.
+
+"""
+
 import os
 import sys
 
@@ -28,103 +35,114 @@ sys.path.insert(
     ),
 )
 
+# isort:start
 
 from nuitka.tools.testing.Common import (
+    compareWithCPython,
+    createSearchMode,
+    decideFilenameVersionSkip,
+    hasDebugPython,
     my_print,
     setup,
-    decideFilenameVersionSkip,
-    compareWithCPython,
-    hasDebugPython,
-    createSearchMode
 )
 
-python_version = setup(suite="basics", needs_io_encoding=True)
 
-search_mode = createSearchMode()
+def main():
+    # Complex stuff, pylint: disable=too-many-branches
 
-# Create large constants test on the fly, if it's not there, not going to
-# add it to release archives for no good reason.
-if not os.path.exists("BigConstants.py"):
-    with open("BigConstants.py", "w") as output:
-        output.write("# Automatically generated test, not part of releases or git.\n\n")
-        output.write("print('%s')\n" % ("1234" * 17000))
+    python_version = setup(suite="basics", needs_io_encoding=True)
 
-# Now run all the tests in this directory.
-for filename in sorted(os.listdir(".")):
-    if not filename.endswith(".py"):
-        continue
+    search_mode = createSearchMode()
 
-    if not decideFilenameVersionSkip(filename):
-        continue
+    # Create large constants test on the fly, if it's not there, not going to
+    # add it to release archives for no good reason.
+    if not os.path.exists("BigConstants.py"):
+        with open("BigConstants.py", "w") as output:
+            output.write(
+                "# Automatically generated test, not part of releases or git.\n\n"
+            )
+            output.write("print('%s')\n" % ("1234" * 17000))
 
-    extra_flags = [
-        # No error exits normally, unless we break tests, and that we would
-        # like to know.
-        "expect_success",
-        # Keep no temporary files.
-        "remove_output",
-        # Include imported files, mostly nothing though.
-        "recurse_all",
-        # Use the original __file__ value, at least one case warns about things
-        # with filename included.
-        "original_file",
-        # Cache the CPython results for re-use, they will normally not change.
-        "cpython_cache",
-    ]
-
-    # This test should be run with the debug Python, and makes outputs to
-    # standard error that might be ignored.
-    if filename.startswith("Referencing"):
-        extra_flags.append("python_debug")
-
-        extra_flags.append("recurse_not:nuitka")
-
-    # This tests warns about __import__() used.
-    if filename == "OrderChecks.py":
-        extra_flags.append("ignore_warnings")
-
-    # This tests warns about an package relative import despite
-    # being in no package.
-    if filename == "Importing.py":
-        extra_flags.append("ignore_warnings")
-
-    # TODO: Nuitka does not give output for ignored exception in dtor, this is
-    # not fully compatible and potentially an error.
-    if filename == "YieldFrom33.py":
-        extra_flags.append("ignore_stderr")
-
-    # For Python2 there is a "builtins" package that gives warnings. TODO: We
-    # ought to NOT import that package and detect statically that __builtins__
-    # import won't raise ImportError.
-    if filename == "BuiltinOverload.py":
-        extra_flags.append("ignore_warnings")
-
-    active = search_mode.consider(dirname=None, filename=filename)
-
-    if active:
-        if filename.startswith("Referencing") and not hasDebugPython():
-            my_print("Skipped (no debug Python)")
+    # Now run all the tests in this directory.
+    for filename in sorted(os.listdir(".")):
+        if not filename.endswith(".py"):
             continue
 
-        needs_2to3 = (
-            python_version.startswith("3")
-            and not filename.endswith("32.py")
-            and not filename.endswith("33.py")
-            and not filename.endswith("35.py")
-            and not filename.endswith("36.py")
-        )
+        if not decideFilenameVersionSkip(filename):
+            continue
 
-        compareWithCPython(
-            dirname=None,
-            filename=filename,
-            extra_flags=extra_flags,
-            search_mode=search_mode,
-            needs_2to3=needs_2to3,
-        )
-        
-        if search_mode.abortIfExecuted():
-            break
-    else:
-        my_print("Skipping", filename)
+        extra_flags = [
+            # No error exits normally, unless we break tests, and that we would
+            # like to know.
+            "expect_success",
+            # Keep no temporary files.
+            "remove_output",
+            # Include imported files, mostly nothing though.
+            "recurse_all",
+            # Use the original __file__ value, at least one case warns about things
+            # with filename included.
+            "original_file",
+            # Cache the CPython results for re-use, they will normally not change.
+            "cpython_cache",
+        ]
 
-search_mode.finish()
+        # This test should be run with the debug Python, and makes outputs to
+        # standard error that might be ignored.
+        if filename.startswith("Referencing"):
+            extra_flags.append("python_debug")
+
+            extra_flags.append("recurse_not:nuitka")
+
+        # This tests warns about __import__() used.
+        if filename == "OrderChecks.py":
+            extra_flags.append("ignore_warnings")
+
+        # This tests warns about an package relative import despite
+        # being in no package.
+        if filename == "Importing.py":
+            extra_flags.append("ignore_warnings")
+
+        # TODO: Nuitka does not give output for ignored exception in dtor, this is
+        # not fully compatible and potentially an error.
+        if filename == "YieldFrom33.py":
+            extra_flags.append("ignore_stderr")
+
+        # For Python2 there is a "builtins" package that gives warnings. TODO: We
+        # ought to NOT import that package and detect statically that __builtins__
+        # import won't raise ImportError.
+        if filename == "BuiltinOverload.py":
+            extra_flags.append("ignore_warnings")
+
+        active = search_mode.consider(dirname=None, filename=filename)
+
+        if active:
+            if filename.startswith("Referencing") and not hasDebugPython():
+                my_print("Skipped (no debug Python)")
+                continue
+
+            needs_2to3 = (
+                python_version.startswith("3")
+                and not filename.endswith("32.py")
+                and not filename.endswith("33.py")
+                and not filename.endswith("35.py")
+                and not filename.endswith("36.py")
+            )
+
+            compareWithCPython(
+                dirname=None,
+                filename=filename,
+                extra_flags=extra_flags,
+                search_mode=search_mode,
+                needs_2to3=needs_2to3,
+            )
+
+            if search_mode.abortIfExecuted():
+                break
+        else:
+            my_print("Skipping", filename)
+
+    search_mode.finish()
+
+
+if __name__ == "__main__":
+    main()

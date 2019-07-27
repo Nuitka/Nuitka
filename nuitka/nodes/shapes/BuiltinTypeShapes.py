@@ -1292,7 +1292,7 @@ if python_version >= 300:
 
 
 else:
-    # Shoudln't happen with Python2
+    # Shouldn't happen with Python2
     ShapeTypeBytes = None
     ShapeTypeBytesIterator = None
 
@@ -1850,7 +1850,7 @@ add_shapes_none.update(
         ShapeTypeStrDerived: operation_result_unknown,
         ShapeTypeUnicodeDerived: operation_result_unknown,
         ShapeTypeBytesDerived: operation_result_unknown,
-        # None really hates everything conrete for all operations.
+        # None really hates everything concrete for all operations.
         ShapeTypeInt: operation_result_unsupported_add,
         ShapeTypeLong: operation_result_unsupported_add,
         ShapeTypeIntOrLong: operation_result_unsupported_add,

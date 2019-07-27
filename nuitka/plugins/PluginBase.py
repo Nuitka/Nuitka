@@ -26,8 +26,6 @@ The base class will serve as documentation. And it will point to examples of
 it being used.
 """
 
-import os
-
 # This is heavily WIP.
 import sys
 from logging import info, warning
@@ -169,6 +167,8 @@ class NuitkaPluginBase(object):
         Returns:
             None
         """
+        from nuitka.importing.Importing import getModuleNameAndKindFromFilename
+
         for full_name, required in self.getImplicitImports(module):
             module_name = full_name.split(".")[-1]
             module_package = ".".join(full_name.split(".")[:-1]) or None
@@ -188,14 +188,10 @@ class NuitkaPluginBase(object):
                     )
                 else:
                     continue
-            elif os.path.isdir(module_filename):
-                module_kind = "py"
-            elif module_filename.endswith(".py"):
-                module_kind = "py"
-            elif module_filename.endswith(".so") or module_filename.endswith(".pyd"):
-                module_kind = "shlib"
-            else:
-                assert False, module_filename
+
+            _module_name2, module_kind = getModuleNameAndKindFromFilename(
+                module_filename
+            )
 
             # TODO: This should get back to plug-ins, they should be allowed to
             # preempt or override the decision.
@@ -263,9 +259,24 @@ class NuitkaPluginBase(object):
             source_code: (str) its source code
         Returns:
             source_code (str)
+        Notes:
+            Default implementation forwards to `checkModuleSourceCode` which is
+            going to allow simply checking the source code without the need to
+            pass it back.
         """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        self.checkModuleSourceCode(module_name, source_code)
+
         return source_code
+
+    def checkModuleSourceCode(self, module_name, source_code):
+        """ Inspect source code.
+
+        Args:
+            module_name: (str) name of module
+            source_code: (str) its source code
+        Returns:
+            None
+        """
 
     def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
         """ Inspect or modify frozen module source code.
@@ -332,6 +343,9 @@ class NuitkaPluginBase(object):
             source_code=code,
             is_main=False,
         )
+
+        if mode == "bytecode":
+            trigger_module.setSourceCode(code)
 
         return trigger_module
 
@@ -601,3 +615,27 @@ class NuitkaPluginBase(object):
             warned_unused_plugins.add(self.plugin_name)
 
             warning("Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message))
+
+
+def isTriggerModule(module):
+    return module in pre_modules.values() or module in post_modules.values()
+
+
+def replaceTriggerModule(old, new):
+    found = None
+    for key, value in pre_modules.items():
+        if value is old:
+            found = key
+            break
+
+    if found is not None:
+        pre_modules[found] = new
+
+    found = None
+    for key, value in post_modules.items():
+        if value is old:
+            found = key
+            break
+
+    if found is not None:
+        post_modules[found] = new

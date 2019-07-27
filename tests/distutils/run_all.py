@@ -19,6 +19,13 @@
 #     limitations under the License.
 #
 
+""" Runner for distutils integration
+
+Tests for example packages demonstrating that wheel creation with Nuitka
+is compatible to normal packaging.
+
+"""
+
 import os
 import sys
 
@@ -47,184 +54,195 @@ from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.FileOperations import removeDirectory
 
-python_version = setup(needs_io_encoding=True)
 
-search_mode = createSearchMode()
+def main():
+    # Complex stuff, pylint: disable=too-many-locals,too-many-statements
 
-nuitka_dir = os.path.abspath(os.path.join(os.getcwd(), "..", ".."))
+    _python_version = setup(needs_io_encoding=True)
 
-for filename in sorted(os.listdir(".")):
-    if (
-        not os.path.isdir(filename)
-        or filename.endswith(".build")
-        or filename.endswith(".dist")
-    ):
-        continue
+    search_mode = createSearchMode()
 
-    filename = os.path.relpath(filename)
+    nuitka_dir = os.path.abspath(os.path.join(os.getcwd(), "..", ".."))
 
-    if not decideFilenameVersionSkip(filename):
-        continue
+    for filename in sorted(os.listdir(".")):
+        if (
+            not os.path.isdir(filename)
+            or filename.endswith(".build")
+            or filename.endswith(".dist")
+        ):
+            continue
 
-    active = search_mode.consider(dirname=None, filename=filename)
+        filename = os.path.relpath(filename)
 
-    if active:
-        my_print("Consider distutils example:", filename)
+        if not decideFilenameVersionSkip(filename):
+            continue
 
-        case_dir = os.path.join(os.getcwd(), filename)
+        active = search_mode.consider(dirname=None, filename=filename)
 
-        removeDirectory(os.path.join(case_dir, "build"), ignore_errors=False)
-        removeDirectory(os.path.join(case_dir, "dist"), ignore_errors=False)
+        if active:
+            my_print("Consider distutils example:", filename)
 
-        with withVirtualenv("venv_cpython") as venv:
-            venv.runCommand(
-                commands=['cd "%s"' % case_dir, "python setup.py bdist_wheel"]
-            )
+            case_dir = os.path.join(os.getcwd(), filename)
 
-            dist_dir = os.path.join(case_dir, "dist")
+            removeDirectory(os.path.join(case_dir, "build"), ignore_errors=False)
+            removeDirectory(os.path.join(case_dir, "dist"), ignore_errors=False)
 
-            venv.runCommand(
-                'pip install "%s"' % (os.path.join(dist_dir, os.listdir(dist_dir)[0]))
-            )
-
-            runner_binary = os.path.join(
-                venv.getVirtualenvDir(),
-                "bin" if os.name != "nt" else "scripts",
-                "runner",
-            )
-
-            if os.path.exists(runner_binary):
-                # Need to call CPython binary for Windows.
-                process = subprocess.Popen(
-                    args=[
-                        os.path.join(
-                            venv.getVirtualenvDir(),
-                            "bin" if os.name != "nt" else "scripts",
-                            "python",
-                        ),
-                        os.path.join(
-                            venv.getVirtualenvDir(),
-                            "bin" if os.name != "nt" else "scripts",
-                            "runner",
-                        ),
-                    ],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
-            else:
-                assert os.path.exists(runner_binary + ".exe")
-
-                process = subprocess.Popen(
-                    args=[runner_binary + ".exe"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+            with withVirtualenv("venv_cpython") as venv:
+                venv.runCommand(
+                    commands=['cd "%s"' % case_dir, "python setup.py bdist_wheel"]
                 )
 
-            stdout_cpython, stderr_cpython = process.communicate()
-            exit_cpython = process.returncode
+                dist_dir = os.path.join(case_dir, "dist")
 
-            print("STDOUT CPython:")
-            print(stdout_cpython)
-            print("STDERR CPython:")
-            print(stderr_cpython)
-
-            assert exit_cpython == 0, exit_cpython
-            print("EXIT was OK.")
-
-        removeDirectory(os.path.join(case_dir, "build"), ignore_errors=False)
-        removeDirectory(os.path.join(case_dir, "dist"), ignore_errors=False)
-
-        with withVirtualenv("venv_nuitka") as venv:
-            # Install nuitka from source.
-            venv.runCommand(
-                commands=['cd "%s"' % nuitka_dir, "python setup.py install"]
-            )
-
-            # Remove that left over from the install command.
-            removeDirectory(
-                path=os.path.join(nuitka_dir, "Nuitka.egg-info"), ignore_errors=False
-            )
-
-            # Create the wheel with Nuitka compilation.
-            venv.runCommand(
-                commands=['cd "%s"' % case_dir, "python setup.py bdist_nuitka"]
-            )
-
-            dist_dir = os.path.join(case_dir, "dist")
-            venv.runCommand(
-                'pip install "%s"' % (os.path.join(dist_dir, os.listdir(dist_dir)[0]))
-            )
-
-            runner_binary = os.path.join(
-                venv.getVirtualenvDir(),
-                "bin" if os.name != "nt" else "scripts",
-                "runner",
-            )
-
-            if os.path.exists(runner_binary):
-                process = subprocess.Popen(
-                    args=[
-                        os.path.join(
-                            venv.getVirtualenvDir(),
-                            "bin" if os.name != "nt" else "scripts",
-                            "python",
-                        ),
-                        runner_binary,
-                    ],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
-            else:
-                assert os.path.exists(runner_binary + ".exe")
-
-                process = subprocess.Popen(
-                    args=[runner_binary + ".exe"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                venv.runCommand(
+                    'pip install "%s"'
+                    % (os.path.join(dist_dir, os.listdir(dist_dir)[0]))
                 )
 
-            stdout_nuitka, stderr_nuitka = process.communicate()
-            exit_nuitka = process.returncode
-
-            print("STDOUT Nuitka:")
-            print(stdout_nuitka)
-            print("STDERR Nuitka:")
-            print(stderr_nuitka)
-
-            assert exit_nuitka == 0, exit_nuitka
-            print("EXIT was OK.")
-
-        exit_code_stdout = compareOutput(
-            "stdout",
-            stdout_cpython,
-            stdout_nuitka,
-            ignore_warnings=True,
-            ignore_infos=True,
-            syntax_errors=True,
-        )
-
-        exit_code_stderr = compareOutput(
-            "stderr",
-            stderr_cpython,
-            stderr_nuitka,
-            ignore_warnings=True,
-            ignore_infos=True,
-            syntax_errors=True,
-        )
-
-        exit_code_return = exit_cpython != exit_nuitka
-
-        if exit_code_return:
-            my_print(
-                """\
-Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
-                    exit_cpython=exit_cpython, exit_nuitka=exit_nuitka
+                runner_binary = os.path.join(
+                    venv.getVirtualenvDir(),
+                    "bin" if os.name != "nt" else "scripts",
+                    "runner",
                 )
+
+                if os.path.exists(runner_binary):
+                    # Need to call CPython binary for Windows.
+                    process = subprocess.Popen(
+                        args=[
+                            os.path.join(
+                                venv.getVirtualenvDir(),
+                                "bin" if os.name != "nt" else "scripts",
+                                "python",
+                            ),
+                            os.path.join(
+                                venv.getVirtualenvDir(),
+                                "bin" if os.name != "nt" else "scripts",
+                                "runner",
+                            ),
+                        ],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                    )
+                else:
+                    assert os.path.exists(runner_binary + ".exe")
+
+                    process = subprocess.Popen(
+                        args=[runner_binary + ".exe"],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                    )
+
+                stdout_cpython, stderr_cpython = process.communicate()
+                exit_cpython = process.returncode
+
+                my_print("STDOUT CPython:")
+                my_print(stdout_cpython)
+                my_print("STDERR CPython:")
+                my_print(stderr_cpython)
+
+                assert exit_cpython == 0, exit_cpython
+                my_print("EXIT was OK.")
+
+            removeDirectory(os.path.join(case_dir, "build"), ignore_errors=False)
+            removeDirectory(os.path.join(case_dir, "dist"), ignore_errors=False)
+
+            with withVirtualenv("venv_nuitka") as venv:
+                # Install nuitka from source.
+                venv.runCommand(
+                    commands=['cd "%s"' % nuitka_dir, "python setup.py install"]
+                )
+
+                # Remove that left over from the install command.
+                removeDirectory(
+                    path=os.path.join(nuitka_dir, "Nuitka.egg-info"),
+                    ignore_errors=False,
+                )
+
+                # Create the wheel with Nuitka compilation.
+                venv.runCommand(
+                    commands=['cd "%s"' % case_dir, "python setup.py bdist_nuitka"]
+                )
+
+                dist_dir = os.path.join(case_dir, "dist")
+                venv.runCommand(
+                    'pip install "%s"'
+                    % (os.path.join(dist_dir, os.listdir(dist_dir)[0]))
+                )
+
+                runner_binary = os.path.join(
+                    venv.getVirtualenvDir(),
+                    "bin" if os.name != "nt" else "scripts",
+                    "runner",
+                )
+
+                if os.path.exists(runner_binary):
+                    process = subprocess.Popen(
+                        args=[
+                            os.path.join(
+                                venv.getVirtualenvDir(),
+                                "bin" if os.name != "nt" else "scripts",
+                                "python",
+                            ),
+                            runner_binary,
+                        ],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                    )
+                else:
+                    assert os.path.exists(runner_binary + ".exe")
+
+                    process = subprocess.Popen(
+                        args=[runner_binary + ".exe"],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                    )
+
+                stdout_nuitka, stderr_nuitka = process.communicate()
+                exit_nuitka = process.returncode
+
+                my_print("STDOUT Nuitka:")
+                my_print(stdout_nuitka)
+                my_print("STDERR Nuitka:")
+                my_print(stderr_nuitka)
+
+                assert exit_nuitka == 0, exit_nuitka
+                my_print("EXIT was OK.")
+
+            exit_code_stdout = compareOutput(
+                "stdout",
+                stdout_cpython,
+                stdout_nuitka,
+                ignore_warnings=True,
+                ignore_infos=True,
+                syntax_errors=True,
             )
 
-        exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
+            exit_code_stderr = compareOutput(
+                "stderr",
+                stderr_cpython,
+                stderr_nuitka,
+                ignore_warnings=True,
+                ignore_infos=True,
+                syntax_errors=True,
+            )
 
-        if exit_code:
-            sys.exit("Error, outputs differed.")
+            exit_code_return = exit_cpython != exit_nuitka
 
-search_mode.finish()
+            if exit_code_return:
+                my_print(
+                    """\
+    Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
+                        exit_cpython=exit_cpython, exit_nuitka=exit_nuitka
+                    )
+                )
+
+            exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
+
+            if exit_code:
+                sys.exit("Error, outputs differed.")
+
+    search_mode.finish()
+
+
+if __name__ == "__main__":
+    main()

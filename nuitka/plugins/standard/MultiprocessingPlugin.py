@@ -26,6 +26,7 @@ The issue applies to accelerated and standalone mode alike.
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.PythonVersions import python_version
 from nuitka.utils import Utils
 
 
@@ -55,7 +56,7 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
             code = """\
 import sys, os
 sys.frozen = 1
-if not os.path.exists(sys.argv[0]) and not sys.argv[0].endswith(".exe"):
+if sys.platform == "win32" and not os.path.exists(sys.argv[0]) and not sys.argv[0].endswith(".exe"):
     sys.executable = sys.argv[0] + ".exe"
 else:
     sys.executable = sys.argv[0]
@@ -111,7 +112,6 @@ Monkey patching "multiprocessing" for compiled methods.""",
         )
         from nuitka.ModuleRegistry import addRootModule
         from nuitka.plugins.Plugins import Plugins
-        from sys import hexversion
 
         # First, build the module node and then read again from the
         # source code.
@@ -136,8 +136,8 @@ Monkey patching "multiprocessing" for compiled methods.""",
         # For the call stack, this may look bad or different to what
         # CPython does. Using the "__import__" built-in to not spoil
         # or use the module namespace. The forking module was split up
-        # into multiple modules in Python 3.4.0.a2
-        if hexversion >= 0x030400A2:
+        # into multiple modules in Python 3.4.
+        if python_version >= 340:
             source_code += """
 __import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
 __import__("multiprocessing.spawn").spawn.freeze_support()"""
@@ -175,12 +175,22 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
             else:
                 assert False
 
-        if module_package == "multiprocessing" and module_name in (
-            "forking",
-            "spawn",
-            "reduction",
+        if module_package is None:
+            if module_name == "multiprocessing":
+                return True, "Multiprocessing plugin needs this to monkey patch it."
+        elif module_package == "multiprocessing" or module_package.startswith(
+            "multiprocessing."
         ):
             return True, "Multiprocessing plugin needs this to monkey patch it."
+
+    def decideCompilation(self, module_name, source_ref):
+        if module_name == "multiprocessing" or module_name.startswith(
+            "multiprocessing."
+        ):
+            return "bytecode"
+
+        # TODO: Make this demotable too.
+        # or module_name in( "multiprocessing-preLoad", "multiprocessing-postLoad"):
 
 
 class NuitkaPluginDetectorMultiprocessingWorkarounds(NuitkaPluginBase):

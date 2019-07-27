@@ -17,58 +17,72 @@
 #     limitations under the License.
 #
 
+""" Runner for syntax tests of Nuitka.
+
+In some cases, the ast module doesn't raise the syntax errors for us, but
+we need to check them manually and raise explicitely. This aims at showing
+we do it in the same way.
+"""
+
+
 import os
 import sys
+
 
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
+
+# isort:start
+
 from nuitka.tools.testing.Common import (
-    my_print,
-    setup,
     compareWithCPython,
     createSearchMode,
-    decideFilenameVersionSkip
+    decideFilenameVersionSkip,
+    my_print,
+    setup,
 )
 
-python_version = setup(needs_io_encoding = True)
 
-search_mode = createSearchMode()
+def main():
+    python_version = setup(needs_io_encoding=True)
 
-for filename in sorted(os.listdir('.')):
-    if not filename.endswith(".py"):
-        continue
+    search_mode = createSearchMode()
 
-    if not decideFilenameVersionSkip(filename):
-        continue
+    for filename in sorted(os.listdir(".")):
+        if not filename.endswith(".py"):
+            continue
 
-    active = search_mode.consider(
-        dirname  = None,
-        filename = filename
-    )
+        if not decideFilenameVersionSkip(filename):
+            continue
 
-    if active:
-        extra_flags = ["expect_failure", "remove_output", "syntax_errors"]
+        if filename == "TryFinallyContinue.py" and python_version >= "3.8":
+            continue
 
-        compareWithCPython(
-            dirname     = None,
-            filename    = filename,
-            extra_flags = extra_flags,
-            search_mode = search_mode,
-            needs_2to3  = False
-        )
-        
-    if search_mode.abortIfExecuted():
-        break
-    else:
-        my_print("Skipping", filename)
+        active = search_mode.consider(dirname=None, filename=filename)
 
-search_mode.finish()
+        if active:
+            extra_flags = ["expect_failure", "remove_output", "syntax_errors"]
+
+            compareWithCPython(
+                dirname=None,
+                filename=filename,
+                extra_flags=extra_flags,
+                search_mode=search_mode,
+                needs_2to3=False,
+            )
+
+            if search_mode.abortIfExecuted():
+                break
+        else:
+            my_print("Skipping", filename)
+
+    search_mode.finish()
+
+
+if __name__ == "__main__":
+    main()

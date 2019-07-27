@@ -61,7 +61,18 @@ def loadStandardPlugins():
         if is_pkg:
             continue
 
-        plugin_module = loader.find_module(name).load_module(name)
+        module_loader = loader.find_module(name)
+
+        # Ignore bytecode left overs.
+        try:
+            if module_loader.get_filename().endswith(".pyc"):
+                continue
+        except AttributeError:
+            # Not a bytecode loader, but e.g. extension module, which is OK in case
+            # it was compiled with Nuitka.
+            pass
+
+        plugin_module = module_loader.load_module(name)
 
         plugin_objects = [None, None]  # plugin and optional detector
 
@@ -264,7 +275,7 @@ class Plugins(object):
 
         Args:
             module: the module object
-            source_ref: ???
+            source_ref: source reference object
         Returns:
             True or False
         """
@@ -422,6 +433,7 @@ def importUserPlugins():
             sys.exit("Error, cannot find '%s'." % plugin_filename)
 
         user_plugin_module = importFile(plugin_filename)
+        valid_file = False
         for key in dir(user_plugin_module):
             obj = getattr(user_plugin_module, key)
             if not isObjectAUserPluginBaseClass(obj):
@@ -429,8 +441,13 @@ def importUserPlugins():
 
             plugin_name = getattr(obj, "plugin_name", None)
             if plugin_name and plugin_name not in Options.getPluginsDisabled():
+                info("User plugin '%s' is being loaded." % plugin_name)
                 active_plugin_list.append(obj())
-                info("User plugin '%s' loaded." % plugin_filename)
+                valid_file = True
+                break  # do not look for more in that module
+
+        if valid_file is False:  # this is not a plugin file ...
+            sys.exit("Error, '%s' is not a plugin file." % plugin_filename)
 
 
 def initPlugins():
@@ -442,6 +459,8 @@ def initPlugins():
         Several checks are made, see below.
         The final result is 'active_plugin_list' which contains all enabled
         plugins.
+        User plugins are enabled as a first step, because they themselves may
+        enable standard plugins.
 
     Returns:
         None

@@ -33,7 +33,7 @@ import warnings
 
 def main():
     # PyLint for Python3 thinks we import from ourselves if we really
-    # import from package, pylint:disable=I0021,no-name-in-module
+    # import from package, pylint: disable=I0021,no-name-in-module
 
     # Also high complexity.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements

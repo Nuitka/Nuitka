@@ -45,6 +45,10 @@ from nuitka.Constants import (
 from nuitka.Options import isDebug
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
+from .IterationHandles import (
+    ConstantIndexableIterationHandle,
+    ConstantSetAndDictIterationHandle,
+)
 from .NodeMakingHelpers import (
     getComputationResult,
     makeRaiseExceptionReplacementExpression,
@@ -127,9 +131,6 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
 
         return result
 
-    def getDetail(self):
-        return repr(self.constant)
-
     @staticmethod
     def isExpressionConstantRef():
         return True
@@ -165,6 +166,12 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
         return self.constant
 
     getConstant = getCompileTimeConstant
+
+    def getIterationHandle(self):
+        if self.isIterableConstant():
+            return ConstantIndexableIterationHandle(self)
+        else:
+            return None
 
     def isMutable(self):
         return isMutable(self.constant)
@@ -448,6 +455,9 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
     def hasShapeDictionaryExact(self):
         return True
 
+    def getIterationHandle(self):
+        return ConstantSetAndDictIterationHandle(self)
+
 
 class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_TUPLE_REF"
@@ -541,6 +551,9 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
 
     def getTypeShape(self):
         return ShapeTypeSet
+
+    def getIterationHandle(self):
+        return ConstantSetAndDictIterationHandle(self)
 
 
 the_empty_set = set()

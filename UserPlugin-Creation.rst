@@ -37,7 +37,7 @@ named "trace" is active::
     from logging import info
 
     from nuitka import Options
-    from nuitka.plugins.PluginBase import UserPluginBase
+    from nuitka.plugins.PluginBase import NuitkaPluginBase
 
     class MyPlugin(UserPluginBase):
 
@@ -154,4 +154,3 @@ shallTraceExecution                   *bool* = ``--trace-execution``
 shallWarnImplicitRaises               *bool* = ``--warn-implicit-exceptions``
 shallWarnUnusualCode                  *bool* = ``--warn-unusual-code``
 ===================================== ======================================================================================
-

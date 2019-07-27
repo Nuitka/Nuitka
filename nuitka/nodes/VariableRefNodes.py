@@ -276,18 +276,9 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
 
         return cls(variable=variable, source_ref=source_ref)
 
-    def getDetail(self):
-        if self.variable is None:
-            return self.variable_name
-        else:
-            return repr(self.variable)
-
     @staticmethod
     def isTargetVariableRef():
         return False
-
-    def getVariableName(self):
-        return self.variable_name
 
     def getVariable(self):
         return self.variable
@@ -503,9 +494,6 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
 
         return cls(variable=variable, source_ref=source_ref)
 
-    def getDetail(self):
-        return self.variable.getName()
-
     @staticmethod
     def isTargetVariableRef():
         return False
@@ -533,12 +521,14 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
         if self.variable_trace.isAssignTrace():
             value = self.variable_trace.getAssignNode().getAssignSource()
 
+            # TODO: Add iteration handles to trace collections instead.
             current_index = trace_collection.getIteratorNextCount(value)
             trace_collection.onIteratorNext(value)
 
             if value.hasShapeSlotNext():
                 if (
                     current_index is not None
+                    # TODO: Change to iteration handles.
                     and value.isKnownToBeIterableAtMin(current_index + 1)
                     and value.canPredictIterationValues()
                 ):

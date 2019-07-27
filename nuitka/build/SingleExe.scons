@@ -17,15 +17,16 @@
 #     limitations under the License.
 #
 
-# The Nuitka scons file. If you have Scons or platform knowledge, please be
-# especially invited and contribute improvements.
-#
-# This file is used to build an executable or shared library. Nuitka needs no
-# build process for itself, although it can be compiled using the same method.
+"""
+The Nuitka scons file. If you have Scons or platform knowledge, please be
+especially invited and contribute improvements.
+
+This file is used to build an executable or shared library. Nuitka needs no
+build process for itself, although it can be compiled using the same method.
+"""
 
 from __future__ import print_function
 
-import hashlib
 import os
 import platform
 import re
@@ -38,13 +39,25 @@ import SCons  # @UnresolvedImport @UnusedImport pylint: disable=import-error
 import SCons.Tool.gcc  # @UnresolvedImport @UnusedImport pylint: disable=import-error
 
 
+def _decode(data):
+    """ Our own decode tries to workaround MSVC misbehavior.
+
+    """
+    try:
+        return data.decode(sys.stdout.encoding)
+    except UnicodeDecodeError:
+        import locale
+
+        return data.decode(locale.getpreferredencoding())
+
+
 def getArguments():
     arg_encoding = ARGUMENTS.get("argument_encoding")
 
     result = {}
     for key, value in ARGUMENTS.items():  # @UndefinedVariable
         if arg_encoding is not None:
-            value = value.decode(arg_encoding)
+            value = _decode(value)
         result[key] = value
 
     return result
@@ -277,7 +290,7 @@ def getExecutablePath(filename, initial):
     if initial:
         search_path = os.environ["PATH"]
     else:
-        search_path = env._dict["ENV"]["PATH"]
+        search_path = env._dict["ENV"]["PATH"]  # pylint: disable=protected-access
 
     # Now check in each path element, much like the shell will.
     path_elements = search_path.split(os.pathsep)
@@ -342,7 +355,7 @@ blacklisted_tools = (
 v_cache = {}
 
 # From gcc.py of Scons
-def detectVersion(env, cc):
+def detectVersion(env, cc):  # pylint: disable=redefined-outer-name
     """Return the version of the GNU compiler, or None if it is not a GNU compiler."""
     cc = env.subst(cc)
     if not cc:
@@ -368,14 +381,14 @@ def detectVersion(env, cc):
         command = list(clvar) + ["--version"]
 
     # pipe = SCons.Action._subproc(env, SCons.Util.CLVar(cc) + ['-dumpversion'],
-    pipe = SCons.Action._subproc(
+    pipe = SCons.Action._subproc(  # pylint: disable=protected-access
         env, command, stdin="devnull", stderr="devnull", stdout=subprocess.PIPE
     )
 
     line = pipe.stdout.readline()
 
     if str is not bytes and type(line) is bytes:
-        line = line.decode(sys.stdout.encoding)
+        line = _decode(line)
 
     line = line.strip()
 
@@ -406,6 +419,7 @@ SCons.Tool.gcc.detect_version = detectVersion
 
 
 def myDetect(self, progs):
+    # cache these, pylint: disable=global-statement
     global found_gcc, gcc_version
 
     # Don't even search a C++ compiler if we found a suitable C11 compiler.
@@ -454,7 +468,7 @@ def myDetect(self, progs):
 Environment.Detect = myDetect  # @UndefinedVariable pylint: disable=undefined-variable
 
 
-def createEnvironment(compiler_tools):
+def createEnvironment(tools):
     args = {}
 
     # If we are on Windows, and MinGW is not enforced, lets see if we can
@@ -474,7 +488,7 @@ def createEnvironment(compiler_tools):
         # We want the outside environment to be passed through.
         ENV=os.environ,
         # Extra tools configuration for scons.
-        tools=compiler_tools,
+        tools=tools,
         # The shared libraries should not be named "lib...", because CPython
         # requires the filename "module_name.so" to load it.
         SHLIBPREFIX="",
@@ -497,7 +511,7 @@ printCompilerVersionOutput("Tools=", compiler_tools)
 
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
-env = createEnvironment(compiler_tools=compiler_tools)
+env = createEnvironment(tools=compiler_tools)
 
 # On Windows, in case MSVC was not found and not previously forced, retry with
 # it and use that instead then as a fallback. Using both tools in one call
@@ -513,9 +527,9 @@ if win_target and getExecutablePath(env["CC"], initial=False) is None:
             [anaconda_mingw_dir] + os.environ["PATH"].split(os.pathsep)
         )
 
-        env = createEnvironment(compiler_tools=["mingw"])
+        env = createEnvironment(tools=["mingw"])
 
-        printCompilerVersionOutput("CC not found, attemping installed CondaCC")
+        printCompilerVersionOutput("CC not found, attempting installed CondaCC")
 
 if show_scons_mode:
     print("Initial CC:", env.get("CC", None))
@@ -536,8 +550,10 @@ elif clang_mode:
 
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
-def setupSpawn(env):
-    def spawn(sh, escape, cmd, args, env):
+def setupSpawn(env):  # pylint: disable=redefined-outer-name
+    def spawn(
+        sh, escape, cmd, args, env
+    ):  # pylint: disable=redefined-outer-name,unused-argument
         # The "del" appears to not work, but is used with large amounts of
         # files to link. So, lets do this ourselves, plus it avoids a process
         # spawn.
@@ -609,13 +625,13 @@ def setupSpawn(env):
                 print(cmdline)
 
             if str is not bytes:
-                data = data.decode(sys.stdout.encoding)
+                data = _decode(data)
 
             print(data, end="")
 
         if err:
             if str is not bytes:
-                err = err.decode(sys.stdout.encoding)
+                err = _decode(err)
 
             print(err, end="")
 
@@ -690,7 +706,7 @@ no_import_lib = False
 if msvc_mode:
 
     def getMsvcVersionString():
-        import SCons.Tool.MSCommon.vc  # @UnresolvedImport pylint: disable=import-error
+        import SCons.Tool.MSCommon.vc  # @UnresolvedImport pylint: disable=import-error,redefined-outer-name
 
         return SCons.Tool.MSCommon.vc.get_default_version(env)
 
@@ -716,7 +732,13 @@ if win_target:
 env["BUILD_DIR"] = source_dir
 
 # Store the file signatures database with the rest of the source files
-sconsign_dir = os.path.abspath(os.path.join(source_dir, ".sconsign"))
+# and make it version dependent on the Python version of Scons, as its
+# pickle is being used.
+sconsign_dir = os.path.abspath(
+    os.path.join(
+        source_dir, ".sconsign-%d%s" % (sys.version_info[0], sys.version_info[1])
+    )
+)
 
 if not os.path.exists(sconsign_dir):
     os.makedirs(sconsign_dir)
@@ -1014,7 +1036,7 @@ if python_debug:
 
 
 def detectHostMultiarch():
-    pipe = SCons.Action._subproc(
+    pipe = SCons.Action._subproc(  # pylint: disable=protected-access
         env,
         "dpkg-architecture",
         stdin="devnull",
@@ -1027,8 +1049,8 @@ def detectHostMultiarch():
 
         if line.startswith("DEB_HOST_MULTIARCH="):
             return line.split("=", 1)[1]
-    else:
-        return None
+
+    return None
 
 
 if gcc_mode and "linux" in sys.platform:
@@ -1078,20 +1100,24 @@ if (
 # Some virtualenv contain the "orig-prefix.txt" as a textual link to
 # the target, this is Windows and standard virtualenv. There are two
 # places to look for.
-for candidate in (
-    "Lib/orig-prefix.txt",
-    "lib/python%s/orig-prefix.txt" % python_version,
-):
-    candidate = os.path.join(python_prefix, candidate)
-    if os.path.exists(candidate):
-        with open(candidate) as f:
-            python_prefix = f.read()
+def _detectVirtualEnvPrefix():
+    for candidate in (
+        "Lib/orig-prefix.txt",
+        "lib/python%s/orig-prefix.txt" % python_version,
+    ):
+        # we change the global value, pylint: disable=global-statement
+        global python_prefix
 
-        # Trailing spaces in the python prefix, please not.
-        assert python_prefix == python_prefix.strip()
+        candidate = os.path.join(python_prefix, candidate)
+        if os.path.exists(candidate):
+            with open(candidate) as f:
+                python_prefix = f.read()
 
-        break
+            # Trailing spaces in the python prefix, please not.
+            assert python_prefix == python_prefix.strip()
 
+
+_detectVirtualEnvPrefix()
 
 if win_target:
     # On Windows, the installation layout is relatively fixed.
@@ -1126,76 +1152,6 @@ def getWindowsPythonDLLPath():
     return os.environ["NUITKA_PYTHON_DLL_PATH"]
 
 
-def makeWindowsMingGW64Lib(win_lib_path):
-    python_dll_filename = getWindowsPythonDLLPath()
-    with open(python_dll_filename, "rb") as f:
-        checksum = hashlib.md5(f.read()).hexdigest()
-
-    # Create the LIB in the build directory.
-    new_win_lib_path = os.path.join(nuitka_cache, "win_libs", python_version, checksum)
-
-    if not os.path.exists(new_win_lib_path):
-        os.makedirs(new_win_lib_path)
-
-    lib_filename = os.path.join(
-        new_win_lib_path, "libpython%s.a" % python_abi_version.replace(".", "")
-    )
-
-    if os.path.exists(lib_filename):
-        return new_win_lib_path
-
-    gendef_tool = os.path.join(
-        os.path.dirname(getExecutablePath(env["CC"], initial=False)), "gendef"
-    )
-
-    command = [gendef_tool, "-", python_dll_filename]
-
-    if show_scons_mode:
-        print("Scons: Creating Python library defs with:", command)
-
-    try:
-        proc = subprocess.Popen(
-            command,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=False,
-        )
-    except WindowsError:  # @UndefinedVariable
-        sys.exit('Error, cannot find "gendef.exe" which is required though.')
-
-    defs, stderr = proc.communicate()
-    rv = proc.wait()
-
-    if rv != 0:
-        sys.exit('Error, unexpected error from "gendef.exe" %s.' % stderr)
-
-    if str is not bytes:
-        defs = defs.decode(sys.stdout.encoding)
-
-    defs_filename = os.path.join(
-        new_win_lib_path, "python%s.defs" % python_abi_version.replace(".", "")
-    )
-
-    with open(defs_filename, "w") as defs_file:
-        defs_file.write(defs)
-
-    shutil.copy(getWindowsPythonDLLPath(), new_win_lib_path)
-
-    dll_tool = os.path.join(
-        os.path.dirname(getExecutablePath(env["CC"], initial=False)), "dlltool"
-    )
-
-    result = subprocess.call(
-        (dll_tool, "-d", defs_filename, "-l", lib_filename), stdout=subprocess.PIPE
-    )
-
-    if result != 0:
-        sys.exit("Error, call to 'dlltool.exe' failed.")
-
-    return new_win_lib_path
-
-
 if win_target:
     # Anaconda has this.
     static_lib_filename = os.path.join(
@@ -1213,27 +1169,27 @@ if win_target:
             ]
         )
     else:
-        # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
-        if python_debug:
-            win_lib_name = "python" + python_abi_version.replace(".", "") + "_d"
-        else:
-            win_lib_name = "python" + python_abi_version.replace(".", "")
 
-        for candidate in ("libs", "PCBuild"):
-            win_lib_path = os.path.join(python_prefix, candidate)
+        def addWinLib():
+            # Make sure to locate the Python link library from multiple potential
+            # locations (installed vs. self-built).
+            if python_debug:
+                win_lib_name = "python" + python_abi_version.replace(".", "") + "_d"
+            else:
+                win_lib_name = "python" + python_abi_version.replace(".", "")
 
-            if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
-                break
-        else:
-            sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
+            for candidate in ("libs", "PCBuild"):
+                win_lib_path = os.path.join(python_prefix, candidate)
 
-        if target_arch == "x86_64" and gcc_mode:
-            win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
-        elif target_arch == "x86" and python_debug and gcc_mode:
-            win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+                if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
+                    break
+            else:
+                sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
 
-        env.Append(LIBPATH=[win_lib_path])
-        env.Append(LIBS=[win_lib_name])
+            env.Append(LIBPATH=[win_lib_path])
+            env.Append(LIBS=[win_lib_name])
+
+        addWinLib()
 elif not module_mode or (macosx_target and not static_libpython):
     # Add the python library path to the library path
     python_lib_path = os.path.join(python_prefix, "lib")
@@ -1257,7 +1213,9 @@ elif not module_mode or (macosx_target and not static_libpython):
             python_debug
             and python_prefix == "/usr"
             and not python_version.startswith("3")
-            and platform.dist()[0].lower()  # pylint: disable=no-member
+            and platform.dist()[  # pylint: disable=I0021,deprecated-method,no-member
+                0
+            ].lower()
             in ("debian", "ubuntu")
         ):
             env.Append(LIBS=["python" + python_abi_version + "_d"])
@@ -1265,7 +1223,7 @@ elif not module_mode or (macosx_target and not static_libpython):
             env.Append(LIBS=["python" + python_abi_version])
 
     if python_prefix != "/usr" and "linux" in sys.platform:
-        env.Append(LIBS=["dl", "pthread", "util", "rt"])
+        env.Append(LIBS=["dl", "pthread", "util", "rt", "m"])
 
         if gcc_mode and not clang_mode:
             env.Append(LINKFLAGS=["-export-dynamic"])
@@ -1288,7 +1246,7 @@ if debug_mode or unstripped_mode:
         env.Append(CCFLAGS=["-g"])
         env.Append(ASFLAGS=["-g"])
 
-        if "gcc" in the_cc_name or "g++" in the_cc_name:
+        if not clang_mode:
             env.Append(CCFLAGS=["-feliminate-unused-debug-types"])
     elif msvc_mode:
         env.Append(CCFLAGS=["/Z7"])
@@ -1370,7 +1328,7 @@ def _getBinaryArch(binary):
             return None
 
         if str is not bytes:
-            data = data.decode(sys.stdout.encoding)
+            data = _decode(data)
 
         for line in data.splitlines():
             if " file format " in line:
@@ -1385,6 +1343,7 @@ _linker_arch = None
 
 
 def getLinkerArch():
+    # Singleton, pylint: disable=global-statement
     global _linker_arch_determined, _linker_arch
 
     if not _linker_arch_determined:
@@ -1399,6 +1358,7 @@ _compiler_arch = None
 
 
 def getCompilerArch():
+    # Singleton, pylint: disable=global-statement
     global _compiler_arch_determined, _compiler_arch
 
     if not _compiler_arch_determined:
@@ -1460,27 +1420,30 @@ elif resource_mode == "linker":
 else:
     constants_generated_filename = os.path.join(source_dir, "__constants_data.c")
 
-    with open(constants_generated_filename, "w") as output:
-        if not c11_mode:
-            output.write('extern "C" ')
+    def writeConstantsDataSource():
+        with open(constants_generated_filename, "w") as output:
+            if not c11_mode:
+                output.write('extern "C" ')
 
-        output.write("const unsigned char constant_bin[] =\n{\n")
+            output.write("const unsigned char constant_bin[] =\n{\n")
 
-        with open(constants_bin_filename, "rb") as f:
-            content = f.read()
-        for count, stream_byte in enumerate(content):
-            if count % 16 == 0:
-                if count > 0:
-                    output.write("\n")
+            with open(constants_bin_filename, "rb") as f:
+                content = f.read()
+            for count, stream_byte in enumerate(content):
+                if count % 16 == 0:
+                    if count > 0:
+                        output.write("\n")
 
-                output.write("   ")
+                    output.write("   ")
 
-            if str is bytes:
-                stream_byte = ord(stream_byte)
+                if str is bytes:
+                    stream_byte = ord(stream_byte)
 
-            output.write(" 0x%02x," % stream_byte)
+                output.write(" 0x%02x," % stream_byte)
 
-        output.write("\n};\n")
+            output.write("\n};\n")
+
+    writeConstantsDataSource()
 
 env.Append(
     CPPDEFINES=[
@@ -1607,9 +1570,9 @@ def discoverSourceFiles():
 
 source_targets = []
 
-# Prepare the use of a custom specs file for windows targets. We change the used
-# specs for linking to avoid the use of the wrong (for CPython) run time
-# library.
+# Prepare the use of a resource file file for windows targets.
+rc_filename = None
+
 if win_target:
     rc_content = []
 
@@ -1698,16 +1661,19 @@ if show_scons_mode:
 # Inject ccache if it happens to be installed.
 if win_target and gcc_mode:
     if "NUITKA_CCACHE_BINARY" in os.environ:
-        candidate = os.environ["NUITKA_CCACHE_BINARY"]
 
-        if os.path.exists(candidate):
-            env["CC"] = "%s %s" % (candidate, env["CC"])
+        def handleCcacheVariable():
+            candidate = os.environ["NUITKA_CCACHE_BINARY"]
 
-            # Do not consider scons cache anymore.
-            if show_scons_mode:
-                print("scons: Found ccache '%s' to cache object files." % candidate)
+            if os.path.exists(candidate):
+                env["CC"] = "%s %s" % (candidate, env["CC"])
 
-            cache_mode = False
+                # Do not consider scons cache anymore.
+                if show_scons_mode:
+                    print("scons: Found ccache '%s' to cache object files." % candidate)
+
+                global cache_mode  # pylint: disable=global-statement
+                cache_mode = False
 
     else:
         if show_scons_mode:
@@ -1716,24 +1682,35 @@ if win_target and gcc_mode:
 # Inject clcache if it happens to be provided via environment.
 if win_target and msvc_mode:
     if "NUITKA_CLCACHE_BINARY" in os.environ:
-        candidate = os.environ["NUITKA_CLCACHE_BINARY"]
 
-        if os.path.exists(candidate):
-            env["CC"] = candidate
-            env._dict["ENV"]["CLCACHE_CL"] = getExecutablePath(
-                the_compiler, initial=False
-            )
+        def handleClacheVariable():
+            candidate = os.environ["NUITKA_CLCACHE_BINARY"]
 
-            if show_scons_mode:
-                print(
-                    "scons: Found clcache '%s' to cache object files for '%s'."
-                    % (candidate, env._dict["ENV"]["CLCACHE_CL"])
+            if os.path.exists(candidate):
+                env["CC"] = candidate
+                env._dict["ENV"][
+                    "CLCACHE_CL"
+                ] = getExecutablePath(  # pylint: disable=protected-access
+                    the_compiler, initial=False
                 )
 
-            cache_mode = False
+                if show_scons_mode:
+                    print(
+                        "scons: Found clcache '%s' to cache object files for '%s'."
+                        % (
+                            candidate,
+                            env._dict["ENV"]["CLCACHE_CL"],
+                        )  # pylint: disable=protected-access
+                    )
+
+                global cache_mode  # pylint: disable=global-statement
+                cache_mode = False
+
+        handleClacheVariable()
     else:
         if show_scons_mode:
-            print("scons: Unable to find clcache.exe, consider user manual.")
+            print("scons: Unable to find clcache.exe, consider reading user manual.")
+
 
 # Cached, when done, by the fastest possible algorithm and right inside the
 # build directory. Makes no sense of course, if that is removed later on by
@@ -1750,7 +1727,9 @@ if cache_mode:
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit.
 
 
-def signalHandler(signal, frame):
+def signalHandler(
+    signal, frame
+):  # pylint: disable=redefined-outer-name,unused-argument
     sys.exit(2)
 
 
@@ -1787,64 +1766,83 @@ if show_scons_mode:
 
 # Hack to make Scons use tempfile for gcc linking.
 if gcc_mode:
-    tmp_linker_filename = os.path.join(source_dir, "@sources.tmp")
 
-    env["LINKCOM"] = env["LINKCOM"].replace(
-        "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
-    )
+    def _makeGccUseLinkerFile():
+        tmp_linker_filename = os.path.join(source_dir, "@sources.tmp")
 
-    with open(tmp_linker_filename, "w") as tmpfile:
-        for filename in source_files:
-            filename = ".".join(filename.split(".")[:-1]) + ".o"
+        env["LINKCOM"] = env["LINKCOM"].replace(
+            "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
+        )
 
-            if os.name == "nt":
-                filename = filename.replace(os.path.sep, "/")
+        with open(tmp_linker_filename, "w") as tmpfile:
+            if rc_filename is not None:
+                source_files.append(rc_filename)
 
-            tmpfile.write('"%s"\n' % filename)
+            for filename in source_files:
+                filename = ".".join(filename.split(".")[:-1]) + ".o"
 
-        tmpfile.write(env.subst("$SOURCES"))
+                if os.name == "nt":
+                    filename = filename.replace(os.path.sep, "/")
+
+                tmpfile.write('"%s"\n' % filename)
+
+            tmpfile.write(env.subst("$SOURCES"))
+
+    _makeGccUseLinkerFile()
 
 Default(target)  # @UndefinedVariable pylint: disable=undefined-variable
 
 
 # Copy the Python DLL to the target directory, so the executable can be run.
 if uninstalled_python:
-    if win_target:
-        # TODO: This should have become unnecessary by DLL_EXTRA_PATH,
-        # but so far we failed to create a manifest that makes the PythonXY.DLL
-        # from there.
-        shutil.copy(getWindowsPythonDLLPath(), os.path.dirname(result_basepath) or ".")
-    elif macosx_target and not module_mode:
-        # TODO: Move this to where we do it for Linux already.
+    # TODO: Move this to nuitka.PostProcessing which now exists for such tasks.
+    def handleUninstalledPython():
 
-        python_dll_filename = "libpython" + python_abi_version + ".dylib"
+        if win_target:
+            # TODO: This should have become unnecessary by DLL_EXTRA_PATH,
+            # but so far we failed to create a manifest that makes the PythonXY.DLL
+            # from there.
+            shutil.copy(
+                getWindowsPythonDLLPath(), os.path.dirname(result_basepath) or "."
+            )
+        elif macosx_target and not module_mode:
+            # TODO: Move this to where we do it for Linux already.
 
-        result = subprocess.call(
-            (
-                "install_name_tool",
-                "-change",
-                python_dll_filename,
-                os.path.join(python_lib_path, python_dll_filename),
-                result_exe,
-            ),
-            stdout=subprocess.PIPE,
-        )
+            python_dll_filename = "libpython" + python_abi_version + ".dylib"
 
-        if result != 0:
-            sys.exit(
-                "Error, call to 'install_name_tool' to fix Python library path failed."
+            result = subprocess.call(
+                (
+                    "install_name_tool",
+                    "-change",
+                    python_dll_filename,
+                    os.path.join(python_lib_path, python_dll_filename),
+                    result_exe,
+                ),
+                stdout=subprocess.PIPE,
             )
 
+            if result != 0:
+                sys.exit(
+                    "Error, call to 'install_name_tool' to fix Python library path failed."
+                )
 
-with open(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
-    for key, value in sorted(env._dict.items()):
-        if type(value) is not str:
-            continue
+    handleUninstalledPython()
 
-        if key.startswith(("_", "CONFIGURE")):
-            continue
 
-        if key in ("MSVSSCONS", "BUILD_DIR"):
-            continue
+def _writeSconsReport():
+    with open(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
+        # We are friends to get at this debug info, pylint: disable=protected-access
+        for key, value in sorted(env._dict.items()):
+            if type(value) is not str:
+                continue
 
-        print(key + "=" + value, file=report_file)
+            if key.startswith(("_", "CONFIGURE")):
+                continue
+
+            if key in ("MSVSSCONS", "BUILD_DIR"):
+                continue
+
+            print(key + "=" + value, file=report_file)
+
+
+_writeSconsReport()

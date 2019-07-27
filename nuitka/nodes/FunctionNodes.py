@@ -511,9 +511,6 @@ class ExpressionFunctionBody(
             **other_args
         )
 
-    def getDetail(self):
-        return "named %s with %s" % (self.getFunctionName(), self.parameters)
-
     def getParent(self):
         assert False
 

@@ -31,6 +31,7 @@ from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
+from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import getFileContentByLine, relpath
 
@@ -66,7 +67,7 @@ class PythonModuleBase(NodeBase):
         self.package = None
 
     def getDetails(self):
-        return {"name": self.name}
+        return {"name": self.name, "package_name": self.package_name}
 
     def getName(self):
         return self.name
@@ -261,8 +262,13 @@ class CompiledPythonModule(
         self.active_functions = OrderedSet()
         self.cross_used_functions = OrderedSet()
 
+        self.used_modules = OrderedSet()
+
         # Often "None" until tree building finishes its part.
         self.future_spec = future_spec
+
+        # The source code of the module if changed or not from disk.
+        self.source_code = None
 
         self.module_dict_name = "globals_%s" % (self.getCodeName(),)
         setLocalsDictType(self.module_dict_name, "module_dict")
@@ -364,6 +370,18 @@ class CompiledPythonModule(
     def isCompiledPythonModule():
         return True
 
+    def getSourceCode(self):
+        if self.source_code is not None:
+            return self.source_code
+        else:
+            return readSourceCodeFromFilename(
+                module_name=self.getFullName(),
+                source_filename=self.getCompileTimeFilename(),
+            )
+
+    def setSourceCode(self, code):
+        self.source_code = code
+
     def getParent(self):
         # We have never have a parent
         return None
@@ -424,7 +442,14 @@ class CompiledPythonModule(
         self.setFunctions(functions)
 
     def startTraversal(self):
+        self.used_modules = OrderedSet()
         self.active_functions = OrderedSet()
+
+    def addUsedModule(self, key):
+        self.used_modules.add(key)
+
+    def getUsedModules(self):
+        return self.used_modules
 
     def addUsedFunction(self, function_body):
         assert function_body in self.getFunctions()

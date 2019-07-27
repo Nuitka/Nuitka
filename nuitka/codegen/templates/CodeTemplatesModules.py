@@ -141,11 +141,15 @@ extern void _initCompiledAsyncgenTypes();
 
 extern PyTypeObject Nuitka_Loader_Type;
 
+#if defined(_NUITKA_EXE) || !%(is_top)d
+// For executables or non top level modules, we need not export anything.
+MOD_ENTRY_DECL(%(module_identifier)s)
+#else
 // The exported interface to CPython. On import of the module, this function
 // gets called. It has to have an exact function name, in cases it's a shared
-// library export. This is hidden behind the MOD_INIT_DECL.
-
-MOD_INIT_DECL( %(module_identifier)s )
+// library export. This is hidden behind the MOD_INIT_DECL macro.
+MOD_INIT_DECL(%(module_identifier)s)
+#endif
 {
 #if defined(_NUITKA_EXE) || PYTHON_VERSION >= 300
     static bool _init_done = false;
@@ -375,25 +379,6 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     // Module code.
 %(module_code)s
-
-#if _NUITKA_EXPERIMENTAL_PKGUTIL_ITERMODULES
-#if %(is_package)s && %(is_top_module)s
-    {
-        PyObject *path_value = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___path__ );
-
-        if (path_value && PyList_CheckExact(path_value) && PyList_Size(path_value) > 0)
-        {
-            PyObject *path_element = PyList_GetItem( path_value, 0 );
-
-            PyObject *path_importer_cache = PySys_GetObject((char *)"path_importer_cache");
-            CHECK_OBJECT( path_importer_cache );
-
-            int res = PyDict_SetItem( path_importer_cache, path_element, (PyObject *)&Nuitka_Loader_Type );
-            assert( res == 0 );
-        }
-    }
-#endif
-#endif
 
     return MOD_RETURN_VALUE( module_%(module_identifier)s );
 %(module_exit)s

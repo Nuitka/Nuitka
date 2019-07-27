@@ -68,7 +68,10 @@ def _cleanupTrailingWhitespace(filename):
     with open(filename, "r") as f:
         source_lines = [line for line in f]
 
-    clean_lines = [line.rstrip() for line in source_lines]
+    clean_lines = [line.rstrip().replace("\t", "    ") for line in source_lines]
+
+    while clean_lines and clean_lines[-1] == "":
+        del clean_lines[-1]
 
     if clean_lines != source_lines:
         with open(filename, "w") as out_file:
@@ -125,9 +128,9 @@ def _updateCommentNode(comment_node):
                 sorted(renamer(token) for token in part.group(2).split(","))
             )
 
-        new_value = re.sub(
-            r"(pylint\: disable=)(.*)", replacer, str(comment_node.value), flags=re.M
-        )
+        new_value = str(comment_node.value).replace("pylint:disable", "pylint: disable")
+        new_value = re.sub(r"(pylint\: disable=)(.*)", replacer, new_value, flags=re.M)
+
         comment_node.value = new_value
 
 
@@ -316,7 +319,7 @@ def _isPythonFile(filename):
 
 
 def autoformat(filename, git_stage, abort):
-    # This does a lot of distinctions, pylint:disable=too-many-branches
+    # This does a lot of distinctions, pylint: disable=too-many-branches
 
     if os.path.isdir(filename):
         return
@@ -330,7 +333,18 @@ def autoformat(filename, git_stage, abort):
     is_c = filename.endswith((".c", ".h"))
 
     is_txt = filename.endswith(
-        (".txt", ".rst", ".sh", ".in", ".md", ".stylesheet", ".j2")
+        (
+            ".patch",
+            ".txt",
+            ".rst",
+            ".sh",
+            ".in",
+            ".md",
+            ".stylesheet",
+            ".j2",
+            ".gitignore",
+            ".json",
+        )
     )
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format

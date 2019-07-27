@@ -43,4 +43,7 @@ then
 fi
 
 # Autoformat the files.
-exec ./bin/autoformat-nuitka-source --from-commit
+if [ "$COMMIT_UNCECKED" != "1" ]
+then
+    exec ./bin/autoformat-nuitka-source --from-commit
+fi

@@ -72,11 +72,7 @@ def main():
             autoformat(desc["src_path"], git_stage=desc, abort=options.abort)
     else:
         if not positional_args:
-            positional_args = [
-                "bin",
-                "nuitka",
-                # "tests/*/run_all.py"
-            ]
+            positional_args = ["bin", "nuitka", "tests/*/run_all.py"]
 
         my_print("Working on:", positional_args)
 
@@ -91,7 +87,9 @@ def main():
         goHome()
 
         filenames = list(
-            scanTargets(positional_args, (".py", ".scons", ".rst", ".txt", ".j2"))
+            scanTargets(
+                positional_args, (".py", ".scons", ".rst", ".txt", ".j2", "*.md")
+            )
         )
         if not filenames:
             sys.exit("No files found.")

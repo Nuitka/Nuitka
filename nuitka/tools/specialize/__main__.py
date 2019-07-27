@@ -15,31 +15,23 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" This tool is generating code variants for helper codes from Jinka templates.
+""" This tool is generating code variants for helper codes from Jinja templates.
 
 """
 
 from __future__ import print_function
 
 import os
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 
 import jinja2
 
 import nuitka.codegen.OperationCodes
+from nuitka.__past__ import getMetaClassBase
 from nuitka.tools.quality.autoformat.Autoformat import autoformat
 
 
-class TypeMetaClass(ABCMeta):
-    pass
-
-
-# For Python2/3 compatible source, we create a base class that has the metaclass
-# used and doesn't require making a choice.
-TypeMetaClassBase = TypeMetaClass("TypeMetaClassBase", (object,), {})
-
-
-class TypeDescBase(TypeMetaClassBase):
+class TypeDescBase(getMetaClassBase("Type")):
     # To be overloaded
     type_name = None
     type_desc = None
@@ -190,11 +182,7 @@ return NULL;""" % (
         cand = self if self is not object_desc else other
 
         if cand is object_desc:
-            assert cand is not int_desc
-
             return ""
-
-        helper_name = cand.getHelperCodeName()
 
         # Special case for sequence concats/repeats.
         if sq_slot is not None and not cand.hasSlot(nb_slot) and cand.hasSlot(sq_slot):
@@ -208,8 +196,17 @@ return NULL;""" % (
 
         return "return SLOT_%s_%s_%s(%s, %s);" % (
             slot,
-            helper_name,
-            helper_name,
+            cand.getHelperCodeName(),
+            cand.getHelperCodeName(),
+            operand1,
+            operand2,
+        )
+
+    def getSimilarTypeSpecializationCode(self, other, nb_slot, operand1, operand2):
+        return "return SLOT_%s_%s_%s(%s, %s);" % (
+            nb_slot,
+            self.getHelperCodeName(),
+            other.getHelperCodeName(),
             operand1,
             operand2,
         )
@@ -221,6 +218,11 @@ return NULL;""" % (
         if self is other:
             return self.getSameTypeSpecializationCode(
                 other, nb_slot, sq_slot, operand1, operand2
+            )
+
+        if other in related_types.get(self, ()):
+            return self.getSimilarTypeSpecializationCode(
+                other, nb_slot, operand1, operand2
             )
 
         return ""
@@ -302,6 +304,15 @@ class IntDesc(ConcreteTypeBase):
     @staticmethod
     def getAsLongValueExpression(operand):
         return "PyInt_AS_LONG(%s)" % operand
+
+    @staticmethod
+    def getAsObjectValueExpression(operand):
+        return operand
+
+    @staticmethod
+    def releaseAsObjectValueStatement(operand):
+        # Virtual method, pylint: disable=unused-argument
+        return ""
 
 
 int_desc = IntDesc()
@@ -544,8 +555,32 @@ class CLongDesc(TypeDescBase):
     def getSqConcatSlotSpecializationCode(self, other, slot, operand1, operand2):
         return ""
 
+    @staticmethod
+    def getAsLongValueExpression(operand):
+        return operand
+
+    @staticmethod
+    def getAsObjectValueExpression(operand):
+        return "PyLong_FromLong(%s)" % operand
+
+    @staticmethod
+    def releaseAsObjectValueStatement(operand):
+        return "Py_DECREF(%s);" % operand
+
 
 clong_desc = CLongDesc()
+
+related_types = {clong_desc: (int_desc,), int_desc: (clong_desc,)}
+
+
+class AlternativeTypeBase(object):
+    # TODO: Base class for alternative types
+    pass
+
+
+class AlternativeIntOrClong(AlternativeTypeBase):
+    # TODO: Base class for alternative type int or clong.
+    pass
 
 
 env = jinja2.Environment(
@@ -575,16 +610,18 @@ def findTypeFromCodeName(code_name):
         if candidate.getHelperCodeName() == code_name:
             return candidate
 
+    assert False, code_name
+
 
 add_codes = set()
 
 
-def makeNbSlotCode(operand, op_code, left, emit):
-    key = operand, op_code, left
+def makeNbSlotCode(operand, op_code, left, right, emit):
+    key = operand, op_code, left, right
     if key in add_codes:
         return
 
-    if left == int_desc:
+    if left in (int_desc, clong_desc):
         template = env.get_template("HelperOperationBinaryInt.c.j2")
     elif left == long_desc:
         template = env.get_template("HelperOperationBinaryLong.c.j2")
@@ -596,7 +633,7 @@ def makeNbSlotCode(operand, op_code, left, emit):
     code = template.render(
         operand=operand,
         left=left,
-        right=left,
+        right=right,
         nb_slot=_getNbSlotFromOperand(operand, op_code),
     )
 
@@ -641,6 +678,8 @@ def _getNbSlotFromOperand(operand, op_code):
 
 
 def makeHelperOperations(template, helpers_set, operand, op_code, emit_h, emit_c, emit):
+    # Complexity comes natural, pylint: disable=too-many-branches
+
     emit(
         '/* C helpers for type specialized "%s" (%s) operations */' % (operand, op_code)
     )
@@ -655,14 +694,23 @@ def makeHelperOperations(template, helpers_set, operand, op_code, emit_h, emit_c
         elif right.python_requirement:
             emit("#if %s" % right.python_requirement)
 
+        nb_slot = _getNbSlotFromOperand(operand, op_code)
+
         code = left.getSameTypeSpecializationCode(
-            right, _getNbSlotFromOperand(operand, op_code), None, "operand1", "operand2"
+            right, nb_slot, None, "operand1", "operand2"
         )
 
         if code:
-            makeNbSlotCode(
-                operand, op_code, left if left is not object_desc else right, emit_c
+            cand = left if left is not object_desc else right
+            makeNbSlotCode(operand, op_code, cand, cand, emit_c)
+
+        if left is not right and right in related_types.get(left, ()):
+            code = left.getSimilarTypeSpecializationCode(
+                right, nb_slot, "operand1", "operand2"
             )
+
+            if code:
+                makeNbSlotCode(operand, op_code, left, right, emit_c)
 
         if operand == "*":
             repeat = left.getSqConcatSlotSpecializationCode(
@@ -716,7 +764,7 @@ def makeHelperOperations(template, helpers_set, operand, op_code, emit_h, emit_c
 
 def makeHelpersBinaryOperation(operand, op_code):
 
-    specialized_add_helpers_set = getattr(
+    specialized_op_helpers_set = getattr(
         nuitka.codegen.OperationCodes, "specialized_%s_helpers_set" % op_code.lower()
     )
 
@@ -756,7 +804,7 @@ def makeHelpersBinaryOperation(operand, op_code):
 
             makeHelperOperations(
                 template,
-                specialized_add_helpers_set,
+                specialized_op_helpers_set,
                 operand,
                 op_code,
                 emit_h,

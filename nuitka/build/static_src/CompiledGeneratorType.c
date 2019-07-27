@@ -149,9 +149,8 @@ static
     ) {
         PyGenObject *gen = (PyGenObject *)value;
 
-        PyObject *result = Nuitka_UncompiledGenerator_throw(gen,
-                                                            0, // ??
-                                                            exception_type, exception_value, (PyObject *)exception_tb);
+        PyObject *result =
+            Nuitka_UncompiledGenerator_throw(gen, 1, exception_type, exception_value, (PyObject *)exception_tb);
 
         Py_DECREF(exception_type);
         Py_XDECREF(exception_value);
@@ -164,11 +163,10 @@ static
         if (Nuitka_Coroutine_Check(value)) {
         struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineObject *)value);
 
-        return _Nuitka_Coroutine_throw2(coro, false, exception_type, exception_value, exception_tb);
+        return _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
     } else if (Nuitka_CoroutineWrapper_Check(value)) {
         struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineWrapperObject *)value)->m_coroutine;
-
-        return _Nuitka_Coroutine_throw2(coro, false, exception_type, exception_value, exception_tb);
+        return _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
     } else
 #endif
     {

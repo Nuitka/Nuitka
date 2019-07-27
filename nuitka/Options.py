@@ -109,6 +109,14 @@ mode where filenames are mandatory, and not for standalone where there is a
 sane default used inside the dist folder."""
         )
 
+    for icon_path in [getIconPath()]:
+        if icon_path is not None and not os.path.exists(icon_path):
+            sys.exit(
+                """\
+Error, icon path "%s" does not exist."""
+                % icon_path
+            )
+
 
 def isVerbose():
     """ *bool* = "--verbose"
@@ -153,7 +161,11 @@ def shallNotDoExecCCompilerCall():
 
 
 def getFileReferenceMode():
-    """ *str*, one of "runtime", "original" or "--file-reference-mode"
+    """ *str*, one of "runtime", "original", "frozen", coming from "--file-reference-choice"
+
+        Notes:
+            Defaults to runtime for modules and packages, as well as standalone binaries,
+            otherwise original is kept.
     """
     if options.file_reference_mode is None:
         value = "runtime" if shallMakeModule() or isStandaloneMode() else "original"

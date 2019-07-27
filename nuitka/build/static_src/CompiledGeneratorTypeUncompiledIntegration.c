@@ -585,7 +585,7 @@ throw_here:
 
     RESTORE_ERROR_OCCURRED(typ, val, (PyTracebackObject *)tb);
 
-    return Nuitka_PyGen_gen_send_ex(gen, Py_None, 1, 0);
+    return Nuitka_PyGen_gen_send_ex(gen, Py_None, 1, 1);
 
 failed_throw:
     Py_DECREF(typ);

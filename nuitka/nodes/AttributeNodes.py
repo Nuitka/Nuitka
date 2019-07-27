@@ -68,9 +68,6 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
     def getDetails(self):
         return {"attribute_name": self.attribute_name}
 
-    def getDetail(self):
-        return "to attribute %s" % self.attribute_name
-
     def getAttributeName(self):
         return self.attribute_name
 
@@ -123,9 +120,6 @@ class StatementDelAttribute(StatementChildHavingBase):
     def getDetails(self):
         return {"attribute_name": self.attribute_name}
 
-    def getDetail(self):
-        return "to attribute %s" % self.attribute_name
-
     def getAttributeName(self):
         return self.attribute_name
 
@@ -177,12 +171,6 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
 
     def getDetails(self):
         return {"attribute_name": self.getAttributeName()}
-
-    def getDetail(self):
-        return "attribute %s from %s" % (
-            self.getAttributeName(),
-            self.getLookupSource(),
-        )
 
     getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
 

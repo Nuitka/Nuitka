@@ -19,4 +19,5 @@
 #
 import Pmw  # @UnresolvedImport
 
+# nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")
 # nuitka-skip-unless-imports: Pmw

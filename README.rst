@@ -27,13 +27,13 @@ compatible manner.
 
 You can use all Python library modules and all extension modules freely.
 
-It translates the Python into a C level program that then uses ``libpython`` and
-a few C files of its own to execute in the same way as CPython does. All
+It translates the Python into a C level program that then uses ``libpython``
+and a few C files of its own to execute in the same way as CPython does. All
 optimization is aimed at avoiding overhead, where it's unnecessary. None is
 aimed at removing compatibility, although slight improvements will occasionally
 be done, where not every bug of standard Python is emulated, e.g. more complete
-error messages are given, but there is a full compatibility mode to disable even
-that.
+error messages are given, but there is a full compatibility mode to disable
+even that.
 
 Usage
 =====
@@ -108,9 +108,10 @@ Requirements
 
 - Operating System: Linux, FreeBSD, NetBSD, macOS X, and Windows (32/64 bits).
 
-  Others may work as well. The portability is expected to be generally good, but
-  the e.g. Scons usage may have to be adapted. Make sure to match Windows Python
-  and C compiler architecture, or else you will get cryptic error messages.
+  Others may work as well. The portability is expected to be generally good,
+  but the e.g. Scons usage may have to be adapted. Make sure to match Windows
+  Python and C compiler architecture, or else you will get cryptic error
+  messages.
 
 - Architectures: x86, x86_64 (amd64), and arm, likely many more
 
@@ -126,25 +127,29 @@ Requirements
        C++ compiler in the past, but it changed.
 
 .. [#] Download MinGW64 from here http://mingw-w64.org/ and choose 64 or 32
-       bits matching your Python. Use both MinGW64 and 64 bits Python if you
-       have the choice of which Python to use. Install it to ``C:\MinGW64`` or
-       ``\MinGW64`` (same disk root as Nuitka running) to find it automatically.
-       Also, when prompted, use ``posix`` for threads and ```dwarf`` for
-       exception model, although these currently do not matter at all.
+       bits matching your Python.
+
+       Use both MinGW64 and 64 bits Python if you have the choice of which
+       Python to use. Install it to ``C:\MinGW64`` or ``\MinGW64`` (same disk
+       root as Nuitka running) to find it automatically. Also, when prompted,
+       use ``posix`` for threads and ```dwarf`` for exception model, although
+       these currently do not matter at all.
 
 .. [#] Installation of matching MinGW64 is easiest if you have an Anaconda or
-       Miniconda installation and execute
-       ``<path_to_Anaconda>\Scripts\conda install m2w64-gcc libpython`` and then
-       before you run Nuitka do
-       ``setenv CC=<path_to_Anaconda>\Library\mingw-w64\bin\gcc.exe``
-       and then its use will be forced. Nuitka also uses it automatically,
-       if you run it like this ``<path_to_Anaconda>\python -m nuitka ...``.
+       Miniconda installation.
+
+       Execute ``<path_to_Anaconda>\Scripts\conda install m2w64-gcc libpython``
+       and then before you run Nuitka do ``setenv
+       CC=<path_to_Anaconda>\Library\mingw-w64\bin\gcc.exe`` and then its use
+       will be forced. Nuitka also uses it automatically, if you run it like
+       this ``<path_to_Anaconda>\python -m nuitka ...``.
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
-       (the Express editions work just fine). The latest version is recommended
-       if not required. There is no need to use older versions, they might in fact
-       not work.
+       (the Express editions work just fine).
+
+       The latest version is recommended if not required. There is no need to
+       use older versions, they might in fact not work.
 
 
 Command Line
@@ -190,10 +195,9 @@ Installation
 ------------
 
 For most systems, there will be packages on the `download page
-<http://www.nuitka.net/pages/download.html>`__ of Nuitka. But you
-can also install it from source code as described above, but also like any other
-Python program it can be installed via the normal ``python setup.py install``
-routine.
+<http://www.nuitka.net/pages/download.html>`__ of Nuitka. But you can also
+install it from source code as described above, but also like any other Python
+program it can be installed via the normal ``python setup.py install`` routine.
 
 License
 -------
@@ -224,9 +228,14 @@ Install the C compiler
 
  - Download and install mingw64 from
    `https://sourceforge.net/projects/mingw-w64/ <https://sourceforge.net/projects/mingw-w64/>`_
- - in Architecture: choose i686 if you want use 32bit or x86_64 if you want 64 bit version python
+
+- in Architecture: choose "i686" if you want use 32bit or "x86_64" if you want
+  64 bit version Python
+
  - Select destination folder to **c:\\MinGW64**
+
  - verify using command  **gcc.exe --version**
+
  - Set a environment variable pointing to **gcc.exe**
 
    **CC=C:\\MinGW64\\mingw64\\bin\\gcc.exe** if 64 bit version
@@ -238,9 +247,12 @@ Install Python 3.7 (64 Bits)
 
  - Download and install from
    `https://www.python.org/downloads/windows <https://www.python.org/downloads/windows>`_
+
  - Select Windows x86-64 web-based installer **or**
+
  - Select Windows x86-64 executable installer
- - verify using command **python --version**
+
+ - Verify using command **python --version**
 
 Install Nuitka
 ++++++++++++++
@@ -297,8 +309,8 @@ Use Cases
 Use Case 1 - Program compilation with all modules embedded
 ----------------------------------------------------------
 
-If you want to compile a whole program recursively, and not only the single file
-that is the main program, do it like this:
+If you want to compile a whole program recursively, and not only the single
+file that is the main program, do it like this:
 
 .. code-block:: bash
 
@@ -309,10 +321,10 @@ that is the main program, do it like this:
    There are more fine grained controls than ``--follow-imports`` available.
    Consider the output of ``nuitka --help``.
 
-In case you have a plugin directory, i.e. one which cannot be found by recursing
-after normal import statements via the ``PYTHONPATH`` (which would be the
-recommended way), you can always require that a given directory shall also be
-included in the executable:
+In case you have a plugin directory, i.e. one which cannot be found by
+recursing after normal import statements via the ``PYTHONPATH`` (which would be
+the recommended way), you can always require that a given directory shall also
+be included in the executable:
 
 .. code-block:: bash
 
@@ -386,9 +398,10 @@ Typical Problems
 Dynamic ``sys.path``
 --------------------
 
-If your script modifies ``sys.path`` to e.g. insert directories with source code
-relative to it, Nuitka will currently not be able to see those. However, if you
-set the ``PYTHONPATH`` to the resulting value, you will be able to compile it
+If your script modifies ``sys.path`` to e.g. insert directories with source
+code relative to it, Nuitka will currently not be able to see those. However,
+if you set the ``PYTHONPATH`` to the resulting value, you will be able to
+compile it
 
 Tips
 ====
@@ -462,11 +475,12 @@ Using the external dependency walker is quite a time consuming, and may copy
 some unnecessary libraries along the way (better have too much than missing).
 
 Since Nuitka 0.6.2, there's an experimental alternative internal dependency
-walker that relies on pefile which analyses PE imports of executables/libraries.
+walker that relies on pefile which analyses PE imports of
+executables/libraries.
 
-This implementation shall create smaller Standalone distributions since it won't
-include Windows' equivalent of the standard library, and will speed-up first
-Nuitka compilations by an order of magnitude.
+This implementation shall create smaller Standalone distributions since it
+won't include Windows' equivalent of the standard library, and will speed-up
+first Nuitka compilations by an order of magnitude.
 
 In order to use it, you may enable the internal dependency walker by using the
 following switch:
@@ -616,9 +630,9 @@ The development of Nuitka occurs in git. We currently have these 3 branches:
 Donations
 =========
 
-Should you feel that you cannot help Nuitka directly, but still want to support,
-please consider `making a donation <http://nuitka.net/pages/donations.html>`__
-and help this way.
+Should you feel that you cannot help Nuitka directly, but still want to
+support, please consider `making a donation
+<http://nuitka.net/pages/donations.html>`__ and help this way.
 
 Unsupported functionality
 =========================
@@ -641,11 +655,11 @@ Optimization
 Constant Folding
 ----------------
 
-The most important form of optimization is the constant folding. This is when an
-operation can be fully predicted at compile time. Currently, Nuitka does these
-for some built-ins (but not all yet, somebody to look at this more closely will
-be very welcome!), and it does it e.g. for binary/unary operations and
-comparisons.
+The most important form of optimization is the constant folding. This is when
+an operation can be fully predicted at compile time. Currently, Nuitka does
+these for some built-ins (but not all yet, somebody to look at this more
+closely will be very welcome!), and it does it e.g. for binary/unary operations
+and comparisons.
 
 Constants currently recognized:
 
@@ -674,14 +688,14 @@ Constant Propagation
 
 At the core of optimizations, there is an attempt to determine the values of
 variables at run time and predictions of assignments. It determines if their
-inputs are constants or of similar values. An expression, e.g. a module variable
-access, an expensive operation, may be constant across the module of the
-function scope and then there needs to be none or no repeated module variable
-look-up.
+inputs are constants or of similar values. An expression, e.g. a module
+variable access, an expensive operation, may be constant across the module of
+the function scope and then there needs to be none or no repeated module
+variable look-up.
 
 Consider e.g. the module attribute ``__name__`` which likely is only ever read,
-so its value could be predicted to a constant string known at compile time. This
-can then be used as input to the constant folding.
+so its value could be predicted to a constant string known at compile time.
+This can then be used as input to the constant folding.
 
 .. code-block:: python
 
@@ -698,8 +712,8 @@ can then be used as input to the constant folding.
 Built-in Name Lookups
 ---------------------
 
-Also, built-in exception name references are optimized if they are used as a module
-level read-only variables:
+Also, built-in exception name references are optimized if they are used as a
+module level read-only variables:
 
 .. code-block:: python
 
@@ -717,10 +731,10 @@ Built-in Call Prediction
 ------------------------
 
 For built-in calls like ``type``, ``len``, or ``range`` it is often possible to
-predict the result at compile time, esp. for constant inputs the resulting value
-often can be precomputed by Nuitka. It can simply determine the result or the
-raised exception and replace the built-in call with that value, allowing for
-more constant folding or code path reduction.
+predict the result at compile time, esp. for constant inputs the resulting
+value often can be precomputed by Nuitka. It can simply determine the result or
+the raised exception and replace the built-in call with that value, allowing
+for more constant folding or code path reduction.
 
 .. code-block:: python
 
@@ -802,8 +816,8 @@ Consider the following code:
    print something_else()
 
 The ``(1 / 0)`` can be predicted to raise a ``ZeroDivisionError`` exception,
-which will be propagated through the ``+`` operation. That part is just Constant
-Propagation as normal.
+which will be propagated through the ``+`` operation. That part is just
+Constant Propagation as normal.
 
 The call `side_effect_having()`` will have to be retained though, but the
 ``print`` statement does not and can be turned into an explicit raise. The
@@ -811,8 +825,8 @@ statement sequence can then be aborted and as such the ``something_else`` call
 needs no code generation or consideration anymore.
 
 To that end, Nuitka works with a special node that raises an exception and is
-wrapped with a so-called "side_effects" expression, but yet can be used in the code
-as an expression having a value.
+wrapped with a so-called "side_effects" expression, but yet can be used in the
+code as an expression having a value.
 
 .. admonition:: Status
 
@@ -877,8 +891,8 @@ code:
     except ValueError, e:
         print e
 
-Which then can be reduced by avoiding the raise and catch of the exception,
-making it:
+Which then can be lowered in complexity by avoiding the raise and catch
+of the exception, making it:
 
 .. code-block:: python
 
@@ -968,9 +982,9 @@ I consider that:
     for i in xrange(1000):
         something(i)
 
-could translate ``xrange(1000)`` into an object of a special class that does the
-integer looping more efficiently. In case ``i`` is only assigned from there,
-this could be a nice case for a dedicated class.
+could translate ``xrange(1000)`` into an object of a special class that does
+the integer looping more efficiently. In case ``i`` is only assigned from
+there, this could be a nice case for a dedicated class.
 
 .. admonition:: Status
 
@@ -993,9 +1007,9 @@ optimized away. One problem is that the evaluation order can differ.
 This will have to evaluate first ``get1()``, then ``get2()`` and only then
 ``get3()`` and then make the function call with these values.
 
-Therefore it will be necessary to have a staging of the parameters before making
-the actual call, to avoid a re-ordering of the calls to ``get1()``, ``get2()``,
-and ``get3()``.
+Therefore it will be necessary to have a staging of the parameters before
+making the actual call, to avoid a re-ordering of the calls to ``get1()``,
+``get2()``, and ``get3()``.
 
 .. admonition:: Status
 
@@ -1034,8 +1048,8 @@ check to assert that. This is also possible for sets.
    possible. This allows us to e.g. only treat iteration over tuples, and not
    care about sets.
 
-In theory, something similar is also possible for ``dict``. For the later, it will
-be non-trivial though to maintain the order of execution without temporary
+In theory, something similar is also possible for ``dict``. For the later, it
+will be non-trivial though to maintain the order of execution without temporary
 values introduced. The same thing is done for pure constants of these types,
 they change to ``tuple`` values when iterated.
 
@@ -1051,8 +1065,8 @@ Closed Source.
 
 The order is sorted by time.
 
-- Li Xuan Ji: Contributed patches for general portability issue and enhancements
-  to the environment variable settings.
+- Li Xuan Ji: Contributed patches for general portability issue and
+  enhancements to the environment variable settings.
 
 - Nicolas Dumazet: Found and fixed reference counting issues, ``import``
   packages work, improved some of the English and generally made good code
@@ -1123,15 +1137,15 @@ Projects used by Nuitka
 
 * The `Scons project <http://www.scons.org>`__
 
-  Thanks for tackling the difficult points and providing a Python environment to
-  make the build results. This is such a perfect fit to Nuitka and a dependency
-  that will likely remain.
+  Thanks for tackling the difficult points and providing a Python environment
+  to make the build results. This is such a perfect fit to Nuitka and a
+  dependency that will likely remain.
 
 * The `valgrind project <http://valgrind.org>`__
 
-  Luckily we can use Valgrind to determine if something is an actual improvement
-  without the noise. And it's also helpful to determine what's actually
-  happening when comparing.
+  Luckily we can use Valgrind to determine if something is an actual
+  improvement without the noise. And it's also helpful to determine what's
+  actually happening when comparing.
 
 * The `NeuroDebian project <http://neuro.debian.net>`__
 
@@ -1140,20 +1154,20 @@ Projects used by Nuitka
 
 * The `openSUSE Buildservice <http://openbuildservice.org>`__
 
-  Thanks for hosting this excellent service that allows us to provide RPMs for a
-  large variety of platforms and make them available immediately nearly at
+  Thanks for hosting this excellent service that allows us to provide RPMs for
+  a large variety of platforms and make them available immediately nearly at
   release time.
 
 * The `MinGW64 project <http://mingw-w64.org>`__
 
-  Thanks for porting the gcc to Windows. This allowed portability of Nuitka with
-  relatively little effort.
+  Thanks for porting the gcc to Windows. This allowed portability of Nuitka
+  with relatively little effort.
 
 * The `Buildbot project <http://buildbot.net>`__
 
-  Thanks for creating an easy to deploy and use continuous integration framework
-  that also runs on Windows and is written and configured in Python code. This
-  allows running the Nuitka tests long before release time.
+  Thanks for creating an easy to deploy and use continuous integration
+  framework that also runs on Windows and is written and configured in Python
+  code. This allows running the Nuitka tests long before release time.
 
 * The `isort project <http://timothycrosley.github.io/isort/>`__
 

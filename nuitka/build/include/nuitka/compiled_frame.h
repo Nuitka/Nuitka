@@ -26,9 +26,12 @@ extern struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObje
 #if PYTHON_VERSION < 300
 extern PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames,
                                   int arg_count, int flags);
-#else
+#elif PYTHON_VERSION < 380
 extern PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames,
                                   int arg_count, int kw_only_count, int flags);
+#else
+extern PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames,
+                                  int arg_count, int pos_only_count, int kw_only_count, int flags);
 #endif
 
 extern PyTypeObject Nuitka_Frame_Type;

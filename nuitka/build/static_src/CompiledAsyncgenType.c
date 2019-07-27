@@ -92,16 +92,16 @@ static void Nuitka_Asyncgen_release_closure(struct Nuitka_AsyncgenObject *asyncg
 
 extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
 
-extern PyObject *_Nuitka_YieldFromCore(PyObject *yieldfrom, PyObject *send_value, PyObject **returned_value);
+extern PyObject *_Nuitka_YieldFromCore(PyObject *yieldfrom, PyObject *send_value, PyObject **returned_value, bool mode);
 
-static PyObject *Nuitka_YieldFromAsyncgenCore(struct Nuitka_AsyncgenObject *asyncgen, PyObject *send_value) {
+static PyObject *Nuitka_YieldFromAsyncgenCore(struct Nuitka_AsyncgenObject *asyncgen, PyObject *send_value, bool mode) {
     PyObject *yieldfrom = asyncgen->m_yieldfrom;
     assert(yieldfrom);
 
     // Need to make it unaccessible while using it.
     asyncgen->m_yieldfrom = NULL;
     PyObject *returned_value;
-    PyObject *yielded = _Nuitka_YieldFromCore(yieldfrom, send_value, &returned_value);
+    PyObject *yielded = _Nuitka_YieldFromCore(yieldfrom, send_value, &returned_value, mode);
 
     if (yielded == NULL) {
         Py_DECREF(yieldfrom);
@@ -115,11 +115,11 @@ static PyObject *Nuitka_YieldFromAsyncgenCore(struct Nuitka_AsyncgenObject *asyn
 }
 
 static PyObject *Nuitka_YieldFromAsyncgenInitial(struct Nuitka_AsyncgenObject *asyncgen) {
-    return Nuitka_YieldFromAsyncgenCore(asyncgen, Py_None);
+    return Nuitka_YieldFromAsyncgenCore(asyncgen, Py_None, true);
 }
 
 static PyObject *Nuitka_YieldFromAsyncgenNext(struct Nuitka_AsyncgenObject *asyncgen, PyObject *send_value) {
-    return Nuitka_YieldFromAsyncgenCore(asyncgen, send_value);
+    return Nuitka_YieldFromAsyncgenCore(asyncgen, send_value, false);
 }
 
 static PyObject *Nuitka_AsyncGenValueWrapperNew(PyObject *value);

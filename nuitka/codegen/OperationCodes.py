@@ -172,6 +172,9 @@ specialized_mul_helpers_set = OrderedSet(
         "BINARY_OPERATION_MUL_INT_OBJECT",
         "BINARY_OPERATION_MUL_INT_INT",
         "BINARY_OPERATION_MUL_OBJECT_LONG",
+        "BINARY_OPERATION_MUL_CLONG_CLONG",
+        "BINARY_OPERATION_MUL_INT_CLONG",
+        "BINARY_OPERATION_MUL_CLONG_INT",
         "BINARY_OPERATION_MUL_LONG_OBJECT",
         "BINARY_OPERATION_MUL_LONG_LONG",
         "BINARY_OPERATION_MUL_OBJECT_STR",
@@ -222,9 +225,6 @@ specialized_mul_helpers_set = OrderedSet(
         "BINARY_OPERATION_MUL_INT_FLOAT",
         "BINARY_OPERATION_MUL_LONG_INT",
         "BINARY_OPERATION_MUL_INT_LONG",
-        # Under construction:
-        # "BINARY_OPERATION_MUL_INT_CLONG",
-        # "BINARY_OPERATION_MUL_CINT_LONG",
         # Default implementation.
         "BINARY_OPERATION_MUL_OBJECT_OBJECT",
     )

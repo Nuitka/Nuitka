@@ -39,7 +39,7 @@ class GeventPlugin(NuitkaPluginBase):
         else:
             full_name = module_package + "." + module_name
 
-        if full_name.startswith("gevent"):
+        if full_name == "gevent" or full_name.startswith("gevent."):
             return True, "everything from gevent"
 
         return None
@@ -56,7 +56,9 @@ class GeventPlugin(NuitkaPluginBase):
         return "\n".join(source_lines)
 
     def decideCompilation(self, module_name, source_ref):
-        if module_name.startswith("gevent") and getOS() == "Windows":
+        if (
+            module_name == "gevent" or module_name.startswith("gevent.")
+        ) and getOS() == "Windows":
             return "bytecode"
 
 

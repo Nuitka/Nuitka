@@ -24,6 +24,7 @@ import functools
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
 from .ExpressionBases import ExpressionChildrenHavingBase
+from .IterationHandles import ListAndTupleContainerMakingIterationHandle
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
     getComputationResult,
@@ -111,6 +112,9 @@ class ExpressionMakeSequenceBase(
     def getIterationValues(self):
         return self.getElements()
 
+    def getIterationHandle(self):
+        return ListAndTupleContainerMakingIterationHandle(self.getElements())
+
     def getTruthValue(self):
         return self.getIterationLength() > 0
 
@@ -181,7 +185,7 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
             iter_node,
             "new_expression",
             """\
-Iteration over list reduced to iteration over tuple.""",
+Iteration over list lowered to iteration over tuple.""",
         )
 
 
@@ -241,7 +245,7 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
             iter_node,
             "new_expression",
             """\
-Iteration over set reduced to iteration over tuple.""",
+Iteration over set lowered to iteration over tuple.""",
         )
 
 

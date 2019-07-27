@@ -82,9 +82,16 @@ class SearchModeBase(object):
 
         return candidate.rstrip("/") in candidates or candidate2 in candidates
 
+    def exit(self, message):
+        # Virtual method, pylint: disable=no-self-use
+        sys.exit(message)
+
     def isCoverage(self):
         # Virtual method, pylint: disable=no-self-use
         return False
+
+    def onErrorDetected(self, message):
+        self.exit(message)
 
 
 class SearchModeByPattern(SearchModeBase):
@@ -173,3 +180,18 @@ class SearchModeOnly(SearchModeByPattern):
         if self.active:
             return True
         return False
+
+
+class SearchModeAll(SearchModeBase):
+    def __init__(self):
+        SearchModeBase.__init__(self)
+        self.total_errors = 0
+
+    def updateTotalErrors(self):
+        self.total_errors += 1
+
+    def onErrorDetected(self, message):
+        self.updateTotalErrors()
+
+    def finish(self):
+        self.exit("Total " + str(self.total_errors) + " error(s) found.")

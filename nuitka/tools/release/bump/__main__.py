@@ -125,5 +125,5 @@ The mode of update, prerelease, hotfix, release, auto (default auto determines f
 
             options_file.write(line)
 
-    # Nuitka is currently in freeze, change to "unstable" once that changes.
-    updateDebianChangelog(old_version, new_version, "experimental")
+    # Debian is currently not in freeze, change to "experimental" once that changes.
+    updateDebianChangelog(old_version, new_version, "unstable")

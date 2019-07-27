@@ -101,13 +101,6 @@ class NodeBase(NodeMetaClassBase):
         """
         return self.getDetails()
 
-    def getDetail(self):
-        """ Details of the node, intended for use in __repr__ and graphical
-            display.
-
-        """
-        return str(self.getDetails())[1:-1]
-
     def getCloneArgs(self):
         return self.getDetails()
 
@@ -1094,7 +1087,7 @@ class SideEffectsFromChildrenMixin(object):
             return (
                 makeStatementOnlyNodesFromExpressions(side_effects),
                 "new_statements",
-                "Reduced unused %s to side effects." % self.kind,
+                "Lowered unused expression %s to its side effects." % self.kind,
             )
         else:
             return (

@@ -16,5 +16,4 @@
 #     limitations under the License.
 #
 
-x = (i for i in
-(yield) if (yield))
+x = (yield i)

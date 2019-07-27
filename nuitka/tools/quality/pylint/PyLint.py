@@ -181,15 +181,6 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
             "\n"
         )
 
-    # Workaround for wrong reports in that version that will hopefully be fixed
-    # in PyLint.
-    if pylint_version == "2.0.0":
-        default_pylint_options += """\
---disable=bad-continuation,C0330,chained-comparison\
-""".split(
-            "\n"
-        )
-
     if os.name != "nt":
         default_pylint_options.append("--rcfile=%s" % os.devnull)
 
@@ -290,10 +281,6 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
                 "ReformulationContractionExpressions.py",
                 "TreeHelpers.py",
             ):
-                return True
-
-        if pylint_version == "2.0.0":
-            if os.path.basename(filename) in ("LocalsDictCodes.py", "FrameCodes.py"):
                 return True
 
         return False
