@@ -157,8 +157,8 @@ from .IntegerCodes import (
     generateBuiltinLong2Code,
 )
 from .IteratorCodes import (
-    generateBuiltinAnyCode,
     generateBuiltinAllCode,
+    generateBuiltinAnyCode,
     generateBuiltinIter1Code,
     generateBuiltinIter2Code,
     generateBuiltinIterForUnpackCode,

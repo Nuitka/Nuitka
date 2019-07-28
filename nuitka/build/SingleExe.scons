@@ -1688,19 +1688,19 @@ if win_target and msvc_mode:
 
             if os.path.exists(candidate):
                 env["CC"] = candidate
-                env._dict["ENV"][
+                env._dict["ENV"][  # pylint: disable=protected-access
                     "CLCACHE_CL"
-                ] = getExecutablePath(  # pylint: disable=protected-access
-                    the_compiler, initial=False
-                )
+                ] = getExecutablePath(the_compiler, initial=False)
 
                 if show_scons_mode:
                     print(
                         "scons: Found clcache '%s' to cache object files for '%s'."
                         % (
                             candidate,
-                            env._dict["ENV"]["CLCACHE_CL"],
-                        )  # pylint: disable=protected-access
+                            env._dict["ENV"][  # pylint: disable=protected-access
+                                "CLCACHE_CL"
+                            ],
+                        )
                     )
 
                 global cache_mode  # pylint: disable=global-statement
