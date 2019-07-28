@@ -232,66 +232,86 @@ def makeBuiltinExceptionParameterSpec(exception_name):
 
 
 if python_version < 370:
-    builtin_int_spec = BuiltinParameterSpec("int", ("x", "base"), 2)
+    builtin_int_spec = BuiltinParameterSpec("int", ("x", "base"), default_count=2)
 else:
-    builtin_int_spec = BuiltinParameterSpecPosArgs("int", ("x", "base"), 2, 1)
+    builtin_int_spec = BuiltinParameterSpecPosArgs(
+        "int", ("x", "base"), default_count=2, positional_only=1
+    )
 
 
 # These builtins are only available for Python2
 if python_version < 300:
-    builtin_long_spec = BuiltinParameterSpec("long", ("x", "base"), 2)
+    builtin_long_spec = BuiltinParameterSpec("long", ("x", "base"), default_count=2)
     builtin_execfile_spec = BuiltinParameterSpecNoKeywords(
-        "execfile", ("filename", "globals", "locals"), 2
+        "execfile", ("filename", "globals", "locals"), default_count=2
     )
     builtin_unicode_spec = BuiltinParameterSpec(
-        "unicode", ("string", "encoding", "errors"), 3
+        "unicode", ("string", "encoding", "errors"), default_count=3
     )
 
 builtin_xrange_spec = BuiltinParameterSpecNoKeywords(
-    "xrange" if python_version < 300 else "range", ("start", "stop", "step"), 2
+    "xrange" if python_version < 300 else "range",
+    ("start", "stop", "step"),
+    default_count=2,
 )
 
 
 if python_version < 370:
-    builtin_bool_spec = BuiltinParameterSpec("bool", ("x",), 1)
+    builtin_bool_spec = BuiltinParameterSpec("bool", ("x",), default_count=1)
 else:
-    builtin_bool_spec = BuiltinParameterSpecNoKeywords("bool", ("x",), 1)
+    builtin_bool_spec = BuiltinParameterSpecNoKeywords("bool", ("x",), default_count=1)
 
 if python_version < 370:
-    builtin_float_spec = BuiltinParameterSpec("float", ("x",), 1)
+    builtin_float_spec = BuiltinParameterSpec("float", ("x",), default_count=1)
 else:
-    builtin_float_spec = BuiltinParameterSpecNoKeywords("float", ("x",), 1)
+    builtin_float_spec = BuiltinParameterSpecNoKeywords(
+        "float", ("x",), default_count=1
+    )
 
-builtin_complex_spec = BuiltinParameterSpec("complex", ("real", "imag"), 2)
+builtin_complex_spec = BuiltinParameterSpec(
+    "complex", ("real", "imag"), default_count=2
+)
 
 # This built-in have variable parameters for Python2/3
 if python_version < 300:
-    builtin_str_spec = BuiltinParameterSpec("str", ("object",), 1)
+    builtin_str_spec = BuiltinParameterSpec("str", ("object",), default_count=1)
 else:
-    builtin_str_spec = BuiltinParameterSpec("str", ("object", "encoding", "errors"), 3)
+    builtin_str_spec = BuiltinParameterSpec(
+        "str", ("object", "encoding", "errors"), default_count=3
+    )
 
-builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), 0)
-builtin_dict_spec = BuiltinParameterSpec("dict", (), 0, "list_args", "dict_args")
-builtin_any_spec = BuiltinParameterSpecNoKeywords("any", ("object",), 0)
-builtin_abs_spec = BuiltinParameterSpecNoKeywords("abs", ("object",), 0)
-builtin_all_spec = BuiltinParameterSpecNoKeywords("all", ("object",), 0)
+builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), default_count=0)
+builtin_dict_spec = BuiltinParameterSpec(
+    "dict", (), default_count=0, list_star_arg="list_args", dict_star_arg="dict_args"
+)
+builtin_any_spec = BuiltinParameterSpecNoKeywords("any", ("object",), default_count=0)
+builtin_abs_spec = BuiltinParameterSpecNoKeywords("abs", ("object",), default_count=0)
+builtin_all_spec = BuiltinParameterSpecNoKeywords("all", ("object",), default_count=0)
 
 if python_version < 370:
-    builtin_tuple_spec = BuiltinParameterSpec("tuple", ("sequence",), 1)
-    builtin_list_spec = BuiltinParameterSpec("list", ("sequence",), 1)
+    builtin_tuple_spec = BuiltinParameterSpec("tuple", ("sequence",), default_count=1)
+    builtin_list_spec = BuiltinParameterSpec("list", ("sequence",), default_count=1)
 else:
-    builtin_tuple_spec = BuiltinParameterSpecNoKeywords("tuple", ("sequence",), 1)
-    builtin_list_spec = BuiltinParameterSpecNoKeywords("list", ("sequence",), 1)
+    builtin_tuple_spec = BuiltinParameterSpecNoKeywords(
+        "tuple", ("sequence",), default_count=1
+    )
+    builtin_list_spec = BuiltinParameterSpecNoKeywords(
+        "list", ("sequence",), default_count=1
+    )
 
-builtin_set_spec = BuiltinParameterSpecNoKeywords("set", ("iterable",), 1)
-builtin_frozenset_spec = BuiltinParameterSpecNoKeywords("frozenset", ("iterable",), 1)
+builtin_set_spec = BuiltinParameterSpecNoKeywords("set", ("iterable",), default_count=1)
+builtin_frozenset_spec = BuiltinParameterSpecNoKeywords(
+    "frozenset", ("iterable",), default_count=1
+)
 
 builtin_import_spec = BuiltinParameterSpec(
-    "__import__", ("name", "globals", "locals", "fromlist", "level"), 4
+    "__import__", ("name", "globals", "locals", "fromlist", "level"), default_count=4
 )
 
 if python_version < 300:
-    builtin_open_spec = BuiltinParameterSpec("open", ("name", "mode", "buffering"), 3)
+    builtin_open_spec = BuiltinParameterSpec(
+        "open", ("name", "mode", "buffering"), default_count=3
+    )
 else:
     builtin_open_spec = BuiltinParameterSpec(
         "open",
@@ -305,65 +325,75 @@ else:
             "closefd",
             "opener",
         ),
-        7,
+        default_count=7,
     )
 
-builtin_chr_spec = BuiltinParameterSpecNoKeywords("chr", ("i",), 0)
-builtin_ord_spec = BuiltinParameterSpecNoKeywords("ord", ("c",), 0)
-builtin_bin_spec = BuiltinParameterSpecNoKeywords("bin", ("number",), 0)
-builtin_oct_spec = BuiltinParameterSpecNoKeywords("oct", ("number",), 0)
-builtin_hex_spec = BuiltinParameterSpecNoKeywords("hex", ("number",), 0)
-builtin_id_spec = BuiltinParameterSpecNoKeywords("id", ("object",), 0)
-builtin_repr_spec = BuiltinParameterSpecNoKeywords("repr", ("object",), 0)
+builtin_chr_spec = BuiltinParameterSpecNoKeywords("chr", ("i",), default_count=0)
+builtin_ord_spec = BuiltinParameterSpecNoKeywords("ord", ("c",), default_count=0)
+builtin_bin_spec = BuiltinParameterSpecNoKeywords("bin", ("number",), default_count=0)
+builtin_oct_spec = BuiltinParameterSpecNoKeywords("oct", ("number",), default_count=0)
+builtin_hex_spec = BuiltinParameterSpecNoKeywords("hex", ("number",), default_count=0)
+builtin_id_spec = BuiltinParameterSpecNoKeywords("id", ("object",), default_count=0)
+builtin_repr_spec = BuiltinParameterSpecNoKeywords("repr", ("object",), default_count=0)
 
-builtin_dir_spec = BuiltinParameterSpecNoKeywords("dir", ("object",), 1)
-builtin_vars_spec = BuiltinParameterSpecNoKeywords("vars", ("object",), 1)
+builtin_dir_spec = BuiltinParameterSpecNoKeywords("dir", ("object",), default_count=1)
+builtin_vars_spec = BuiltinParameterSpecNoKeywords("vars", ("object",), default_count=1)
 
-builtin_locals_spec = BuiltinParameterSpecNoKeywords("locals", (), 0)
-builtin_globals_spec = BuiltinParameterSpecNoKeywords("globals", (), 0)
+builtin_locals_spec = BuiltinParameterSpecNoKeywords("locals", (), default_count=0)
+builtin_globals_spec = BuiltinParameterSpecNoKeywords("globals", (), default_count=0)
 builtin_eval_spec = BuiltinParameterSpecNoKeywords(
     "eval", ("source", "globals", "locals"), 2
 )
 if python_version < 300:
     builtin_compile_spec = BuiltinParameterSpec(
-        "compile", ("source", "filename", "mode", "flags", "dont_inherit"), 2
+        "compile",
+        ("source", "filename", "mode", "flags", "dont_inherit"),
+        default_count=2,
     )
 else:
     builtin_compile_spec = BuiltinParameterSpec(
         "compile",
         ("source", "filename", "mode", "flags", "dont_inherit", "optimize"),
-        3,
+        default_count=3,
     )
 if python_version >= 300:
     builtin_exec_spec = BuiltinParameterSpecNoKeywords(
-        "exec", ("source", "globals", "locals"), 2
+        "exec", ("source", "globals", "locals"), default_count=2
     )
 
 # Note: Iter in fact names its first argument if the default applies
 # "collection", fixed up in a wrapper.
-builtin_iter_spec = BuiltinParameterSpecNoKeywords("iter", ("callable", "sentinel"), 1)
-builtin_next_spec = BuiltinParameterSpecNoKeywords("next", ("iterator", "default"), 1)
+builtin_iter_spec = BuiltinParameterSpecNoKeywords(
+    "iter", ("callable", "sentinel"), default_count=1
+)
+builtin_next_spec = BuiltinParameterSpecNoKeywords(
+    "next", ("iterator", "default"), default_count=1
+)
 
 # Note: type with 1 and type with 3 arguments are too different.
-builtin_type1_spec = BuiltinParameterSpecNoKeywords("type", ("object",), 0)
+builtin_type1_spec = BuiltinParameterSpecNoKeywords(
+    "type", ("object",), default_count=0
+)
 builtin_type3_spec = BuiltinParameterSpecNoKeywords(
-    "type", ("name", "bases", "dict"), 0
+    "type", ("name", "bases", "dict"), default_count=0
 )
 
 builtin_super_spec = BuiltinParameterSpecNoKeywords(
-    "super", ("type", "object"), 1 if python_version < 300 else 2
+    "super", ("type", "object"), default_count=1 if python_version < 300 else 2
 )
 
-builtin_hasattr_spec = BuiltinParameterSpecNoKeywords("hasattr", ("object", "name"), 0)
+builtin_hasattr_spec = BuiltinParameterSpecNoKeywords(
+    "hasattr", ("object", "name"), default_count=0
+)
 builtin_getattr_spec = BuiltinParameterSpecNoKeywords(
-    "getattr", ("object", "name", "default"), 1
+    "getattr", ("object", "name", "default"), default_count=1
 )
 builtin_setattr_spec = BuiltinParameterSpecNoKeywords(
-    "setattr", ("object", "name", "value"), 0
+    "setattr", ("object", "name", "value"), default_count=0
 )
 
 builtin_isinstance_spec = BuiltinParameterSpecNoKeywords(
-    "isinstance", ("instance", "classes"), 0
+    "isinstance", ("instance", "classes"), default_count=0
 )
 
 
@@ -386,52 +416,62 @@ class BuiltinBytearraySpec(BuiltinParameterSpecPosArgs):
 
 
 builtin_bytearray_spec = BuiltinBytearraySpec(
-    "bytearray", ("string", "encoding", "errors"), 2, 1
+    "bytearray", ("string", "encoding", "errors"), default_count=2, positional_only=1
 )
 
 if python_version >= 300:
     builtin_bytes_spec = BuiltinBytearraySpec(
-        "bytes", ("string", "encoding", "errors"), 3, 1
+        "bytes", ("string", "encoding", "errors"), default_count=3, positional_only=1
     )
 
 
 # Beware: One argument version defines "stop", not "start".
 builtin_slice_spec = BuiltinParameterSpecNoKeywords(
-    "slice", ("start", "stop", "step"), 2
+    "slice", ("start", "stop", "step"), default_count=2
 )
 
-builtin_hash_spec = BuiltinParameterSpecNoKeywords("hash", ("object",), 0)
+builtin_hash_spec = BuiltinParameterSpecNoKeywords("hash", ("object",), default_count=0)
 
 builtin_format_spec = BuiltinParameterSpecNoKeywords(
-    "format", ("value", "format_spec"), 1
+    "format", ("value", "format_spec"), default_count=1
 )
 
-builtin_sum_spec = BuiltinParameterSpecNoKeywords("sum", ("sequence", "start"), 1)
+builtin_sum_spec = BuiltinParameterSpecNoKeywords(
+    "sum", ("sequence", "start"), default_count=1
+)
 
 builtin_staticmethod_spec = BuiltinParameterSpecNoKeywords(
-    "staticmethod", ("function",), 0
+    "staticmethod", ("function",), default_count=0
 )
 builtin_classmethod_spec = BuiltinParameterSpecNoKeywords(
-    "classmethod", ("function",), 0
+    "classmethod", ("function",), default_count=0
 )
 
 if python_version < 300:
     builtin_sorted_spec = BuiltinParameterSpecNoKeywords(
-        "sorted", ("iterable", "cmp", "key", "reverse"), 2
+        "sorted", ("iterable", "cmp", "key", "reverse"), default_count=2
     )
 else:
     builtin_sorted_spec = BuiltinParameterSpecNoKeywords(
-        "sorted", ("iterable", "key", "reverse"), 2
+        "sorted", ("iterable", "key", "reverse"), default_count=2
     )
 
-builtin_reversed_spec = BuiltinParameterSpecNoKeywords("reversed", ("object",), 0)
+builtin_reversed_spec = BuiltinParameterSpecNoKeywords(
+    "reversed", ("object",), default_count=0
+)
 
-builtin_reversed_spec = BuiltinParameterSpecNoKeywords("reversed", ("object",), 0)
+builtin_reversed_spec = BuiltinParameterSpecNoKeywords(
+    "reversed", ("object",), default_count=0
+)
 
 if python_version < 300:
-    builtin_enumerate_spec = BuiltinParameterSpec("enumerate", ("sequence",), 0)
+    builtin_enumerate_spec = BuiltinParameterSpec(
+        "enumerate", ("sequence",), default_count=0
+    )
 else:
-    builtin_enumerate_spec = BuiltinParameterSpec("enumerate", ("iterable",), 0)
+    builtin_enumerate_spec = BuiltinParameterSpec(
+        "enumerate", ("iterable",), default_count=0
+    )
 
 
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
@@ -498,13 +538,19 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
             return False
 
 
-builtin_range_spec = BuiltinRangeSpec("range", ("start", "stop", "step"), 2)
+builtin_range_spec = BuiltinRangeSpec(
+    "range", ("start", "stop", "step"), default_count=2
+)
 
 if python_version >= 300:
-    builtin_ascii_spec = BuiltinParameterSpecNoKeywords("ascii", ("object",), 0)
+    builtin_ascii_spec = BuiltinParameterSpecNoKeywords(
+        "ascii", ("object",), default_count=0
+    )
 
 
-builtin_divmod_spec = BuiltinParameterSpecNoKeywords("divmod", ("left", "right"), 0)
+builtin_divmod_spec = BuiltinParameterSpecNoKeywords(
+    "divmod", ("left", "right"), default_count=0
+)
 
 
 def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=None):
