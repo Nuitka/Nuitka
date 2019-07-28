@@ -31,10 +31,4 @@ setup(
     author_email='some3@sum.e',
     version="0.1",
     packages=["outer.inner"],
-    command_options={ 'nuitka' :
-        {'--show-scons': True,
-         '--show-progress': None,
-         '--file-reference-choice':'original',
-        }
-    },
 )
