@@ -5,6 +5,7 @@
     "files.exclude": {
         "**/*.build": true,
         "**/*.exe": true,
+        "**/*.exe.away": true,
         "**/*.bin": true,
         "**/*.pyc": true,
         "**/__pycache__": true,
@@ -17,7 +18,6 @@
         "*.h": "c",
         "*.c": "c",
     },
-    "restructuredtext.confPath": "",
     "python.linting.pylintArgs": ["--disable=I0011,I0012,no-init,C0326,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none",
         "--method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$",
         "--module-rgx=.*",
@@ -42,4 +42,5 @@
         "--disable=c-extension-no-member,inconsistent-return-statements",
         "--disable=useless-object-inheritance,useless-return,assignment-from-no-return",
     ],
+    "restructuredtext.confPath": "",
 }
