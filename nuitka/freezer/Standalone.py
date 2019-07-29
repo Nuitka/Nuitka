@@ -60,6 +60,7 @@ from nuitka.utils.FileOperations import (
     makePath,
     withFileLock,
 )
+from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     getPEFileInformation,
     getWindowsDLLVersion,
@@ -120,7 +121,7 @@ def _detectedSourceFile(filename, module_name, result, user_provided, technical)
     if module_name == "collections.abc":
         _detectedSourceFile(
             filename=filename,
-            module_name="_collections_abc",
+            module_name=ModuleName("_collections_abc"),
             result=result,
             user_provided=user_provided,
             technical=technical,
@@ -187,19 +188,9 @@ def _detectedShlibFile(filename, module_name):
     if ModuleRegistry.hasRootModule(module_name):
         return
 
-    parts = module_name.split(".")
-    if len(parts) == 1:
-        package_name = None
-        name = module_name
-    else:
-        package_name = ".".join(parts[:-1])
-        name = parts[-1]
-
     source_ref = SourceCodeReferences.fromFilename(filename=filename)
 
-    shlib_module = PythonShlibModule(
-        name=name, package_name=package_name, source_ref=source_ref
-    )
+    shlib_module = PythonShlibModule(module_name=module_name, source_ref=source_ref)
 
     ModuleRegistry.addRootModule(shlib_module)
     ImportCache.addImportedModule(shlib_module)
@@ -279,6 +270,8 @@ def _detectImports(command, user_provided, technical):
             if python_version >= 300:
                 module_name = module_name.decode("utf-8")
 
+            module_name = ModuleName(module_name)
+
             if origin == b"precompiled":
                 # This is a ".pyc" file that was imported, even before we have a
                 # chance to do anything, we need to preserve it.
@@ -308,7 +301,7 @@ def _detectImports(command, user_provided, technical):
                     # clashes with "decimal" proper
                     if python_version >= 300:
                         if module_name == "decimal":
-                            module_name = "_decimal"
+                            module_name = ModuleName("_decimal")
 
                     detections.append((module_name, 2, "shlib", filename))
             elif origin == b"dynamically":

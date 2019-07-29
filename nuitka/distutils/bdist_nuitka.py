@@ -28,8 +28,6 @@ import sys
 
 import wheel.bdist_wheel  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
-from nuitka.__past__ import Iterable, unicode  # pylint: disable=I0021,redefined-builtin
-
 
 def setuptools_build_hook(dist, keyword, value):
     # If the user project setup.py includes the key "build_with_nuitka=True" all
@@ -65,6 +63,11 @@ class build(distutils.command.build.build):
         # Nuitka wants the main package by filename, probably we should stop
         # needing that.
         from nuitka.importing.Importing import findModule, setMainScriptDirectory
+        from nuitka.utils.ModuleNames import ModuleName
+        from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+            Iterable,
+            unicode,
+        )
 
         old_dir = os.getcwd()
         os.chdir(build_lib)
@@ -74,7 +77,7 @@ class build(distutils.command.build.build):
 
         package, main_filename, finding = findModule(
             importing=None,
-            module_name=self.main_package,
+            module_name=ModuleName(self.main_package),
             parent_package=None,
             level=0,
             warn=False,

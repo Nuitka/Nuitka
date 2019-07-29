@@ -109,7 +109,7 @@ def getModuleValues(
 
     module_body_template_values = {
         "module_name": module_name,
-        "module_name_obj": context.getConstantCode(constant=module_name),
+        "module_name_obj": context.getConstantCode(constant=module_name.asString()),
         "is_main_module": 1 if is_main_module else 0,
         "is_package": 1 if is_package else 0,
         "is_top": 1 if is_top else 0,

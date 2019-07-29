@@ -45,7 +45,7 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
     def __init__(self):
         self.line_annotations = {}
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def checkModuleSourceCode(self, module_name, source_code):
         annotations = {}
 
         for count, line in enumerate(source_code.split("\n")):
@@ -65,9 +65,6 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
         # Only remember them if there were any.
         if annotations:
             self.line_annotations[module_name] = annotations
-
-        # Do nothing to it.
-        return source_code
 
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
         annotations = self.line_annotations.get(importing.getFullName(), {})

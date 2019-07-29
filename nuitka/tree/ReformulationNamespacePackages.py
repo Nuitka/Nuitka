@@ -87,7 +87,7 @@ def createPathAssignment(package, source_ref):
         ]
 
         if package.canHaveExternalImports():
-            parts = package.getFullName().split(".")
+            parts = package.getFullName().asString().split(".")
 
             for count in range(len(parts)):
                 path_part = _makeCall(
@@ -144,7 +144,7 @@ def createPython3NamespacePath(package, module_relpath, source_ref):
                 source_ref=source_ref,
             ),
             args=makeConstantRefNode(
-                constant=(package.getFullName(), [module_relpath], None),
+                constant=(package.getFullName().asString(), [module_relpath], None),
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
@@ -153,17 +153,14 @@ def createPython3NamespacePath(package, module_relpath, source_ref):
     )
 
 
-def createNamespacePackage(module_name, package_name, is_top, module_relpath):
+def createNamespacePackage(module_name, is_top, module_relpath):
     source_ref = SourceCodeReference.fromFilenameAndLine(
         filename=module_relpath, line=1
     )
     source_ref = source_ref.atInternal()
 
-    package_name = package_name or None
-
     package = CompiledPythonPackage(
-        name=module_name,
-        package_name=package_name,
+        module_name=module_name,
         is_top=is_top,
         mode="compiled",
         future_spec=FutureSpec(),

@@ -52,6 +52,7 @@ from nuitka.utils.FileOperations import (
     makePath,
     removeDirectory,
 )
+from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import isWin32Windows
 
 from . import ModuleRegistry, Options, TreeXML
@@ -108,7 +109,7 @@ def createNodeTree(filename):
     for package_name in Options.getMustIncludePackages():
         package_package, package_directory, kind = Importing.findModule(
             importing=None,
-            module_name=package_name,
+            module_name=ModuleName(package_name),
             parent_package=None,
             level=0,
             warn=False,

@@ -62,17 +62,11 @@ class TensorflowPlugin(NuitkaPluginBase):
         self.files_copied = False
         return None
 
-    def onModuleEncounter(
-        self, module_filename, module_name, module_package, module_kind
-    ):
-        if module_package is not None:
-            full_name = module_package + "." + module_name
-        else:
-            full_name = module_name
+    def onModuleEncounter(self, module_filename, module_name, module_kind):
 
         for candidate in ("tensor", "google"):
-            if full_name == candidate or full_name.startswith(candidate + "."):
-                return True, "accept everything from %s" % candidate
+            if module_name.hasNamespace(candidate):
+                return True, "Accept everything from %s" % candidate
 
     def onModuleSourceCode(self, module_name, source_code):
         """ Neutralize some path magic in tensorflow.

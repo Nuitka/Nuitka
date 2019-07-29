@@ -101,7 +101,7 @@ def generateBuiltinType3Code(to_name, expression, emit, context):
             "%s = BUILTIN_TYPE3( %s, %s, %s, %s );"
             % (
                 value_name,
-                context.getConstantCode(constant=context.getModuleName()),
+                context.getConstantCode(constant=context.getModuleName().asString()),
                 type_name,
                 bases_name,
                 dict_name,

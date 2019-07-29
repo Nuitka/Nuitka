@@ -328,49 +328,43 @@ class NumpyPlugin(NuitkaPluginBase):
             info("Copied folder sklearn/datasets/descr")
             return ()
 
-    def onModuleEncounter(
-        self, module_filename, module_name, module_package, module_kind
-    ):
+    def onModuleEncounter(self, module_filename, module_name, module_kind):
         # pylint: disable=too-many-branches,too-many-return-statements
-        if module_package == "scipy.sparse.csgraph" and module_name == "_validation":
+        if module_name == "scipy.sparse.csgraph._validation":
             return True, "Replicate implicit import"
 
-        if module_package is None:
+        if module_name.getPackageName() is None:
             return None
-        if module_package == module_name:
-            full_name = module_package
-        else:
-            full_name = module_package + "." + module_name
 
-        if full_name in ("cv2", "cv2.cv2", "cv2.data"):
-            return True, "needed for OpenCV"
+        if module_name in ("cv2", "cv2.cv2", "cv2.data"):
+            return True, "Needed for OpenCV"
 
-        if module_package == "sklearn.utils.sparsetools" and module_name in (
-            "_graph_validation",
-            "_graph_tools",
+        if module_name in (
+            "sklearn.utils.sparsetools._graph_validation",
+            "sklearn.utils.sparsetools._graph_tools",
         ):
             return True, "Needed by sklearn"
 
-        if module_package == "sklearn.utils" and module_name in (
-            "lgamma",
-            "weight_vector",
-            "_unittest_backport",
+        if module_name in (
+            "sklearn.utils.lgamma",
+            "sklearn.utils.weight_vector",
+            "sklearn.utils._unittest_backport",
         ):
             return True, "Needed by sklearn"
 
         posix = (
-            "managers",
-            "synchronize",
-            "compat_posix",
-            "_posix_reduction",
-            "popen_loky_posix",
+            "sklearn.externals.joblib.externals.loky.backend.managers",
+            "sklearn.externals.joblib.externals.loky.backend.synchronize",
+            "sklearn.externals.joblib.externals.loky.backend.compat_posix",
+            "sklearn.externals.joblib.externals.loky.backend._posix_reduction",
+            "sklearn.externals.joblib.externals.loky.backend.popen_loky_posix",
         )
         win32 = (
-            "managers",
-            "synchronize",
-            "_win_wait",
-            "_win_reduction",
-            "popen_loky_win32",
+            "sklearn.externals.joblib.externals.loky.backend.managers",
+            "sklearn.externals.joblib.externals.loky.backend.synchronize",
+            "sklearn.externals.joblib.externals.loky.backend._win_wait",
+            "sklearn.externals.joblib.externals.loky.backend._win_reduction",
+            "sklearn.externals.joblib.externals.loky.backend.popen_loky_win32",
         )
 
         if isWin32Windows():
@@ -378,16 +372,10 @@ class NumpyPlugin(NuitkaPluginBase):
         else:
             valid_list = posix
 
-        if (
-            module_package == "sklearn.externals.joblib.externals.loky.backend"
-            and module_name in valid_list
-        ):
+        if module_name in valid_list:
             return True, "Needed by sklearn"
 
-        if (
-            module_package == "sklearn.externals.joblib.externals.cloudpickle"
-            and module_name == "dumps"
-        ):
+        if module_name == "sklearn.externals.joblib.externals.cloudpickle.dumps":
             return True, "Needed by sklearn"
 
         # some special handling for matplotlib:
@@ -395,15 +383,18 @@ class NumpyPlugin(NuitkaPluginBase):
         if self.enabled_plugins is None:
             self.enabled_plugins = [p for p in Options.getPluginsEnabled()]
 
-        if module_package == "matplotlib.backends":
-            if "tk-inter" in self.enabled_plugins and (
-                "backend_tk" in module_name or "tkagg" in module_name
+        if "tk-inter" in self.enabled_plugins:
+            if module_name in (
+                "matplotlib.backends.backend_tk",
+                "matplotlib.backend.tkagg",
             ):
-                return True, "needed for tkinter interaction"
-            if "qt-plugins" in self.enabled_plugins and "backend_qt" in module_name:
-                return True, "needed for Qt interaction"
-            if module_name == "backend_agg":
-                return True, "needed as standard backend"
+                return True, "Needed for tkinter interaction"
+        if "qt-plugins" in self.enabled_plugins:
+            if module_name == "matplotlib.backends.backend_qt":
+                return True, "Needed for Qt interaction"
+
+        if module_name == "matplotlib.backends.backend_agg":
+            return True, "Needed as standard backend"
 
 
 class NumpyPluginDetector(NuitkaPluginBase):

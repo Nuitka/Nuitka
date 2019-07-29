@@ -38,6 +38,7 @@ import nuitka.plugins.standard
 from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.PythonVersions import python_version
+from nuitka.utils.ModuleNames import ModuleName
 
 from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
 
@@ -209,7 +210,7 @@ class Plugins(object):
 
     @staticmethod
     def onModuleSourceCode(module_name, source_code):
-        assert type(module_name) is str
+        assert type(module_name) is ModuleName
         assert type(source_code) is str
 
         for plugin in active_plugin_list:
@@ -220,7 +221,7 @@ class Plugins(object):
 
     @staticmethod
     def onFrozenModuleSourceCode(module_name, is_package, source_code):
-        assert type(module_name) is str
+        assert type(module_name) is ModuleName
         assert type(source_code) is str
 
         for plugin in active_plugin_list:
@@ -233,7 +234,7 @@ class Plugins(object):
 
     @staticmethod
     def onFrozenModuleBytecode(module_name, is_package, bytecode):
-        assert type(module_name) is str
+        assert type(module_name) is ModuleName
         assert bytecode.__class__.__name__ == "code"
 
         for plugin in active_plugin_list:
@@ -243,12 +244,12 @@ class Plugins(object):
         return bytecode
 
     @staticmethod
-    def onModuleEncounter(module_filename, module_name, module_package, module_kind):
+    def onModuleEncounter(module_filename, module_name, module_kind):
         result = False
 
         for plugin in active_plugin_list:
             must_recurse = plugin.onModuleEncounter(
-                module_filename, module_name, module_package, module_kind
+                module_filename, module_name, module_kind
             )
 
             result = result or must_recurse
@@ -261,7 +262,7 @@ class Plugins(object):
             new_module_name = plugin.considerFailedImportReferrals(module_name)
 
             if new_module_name is not None:
-                return new_module_name
+                return ModuleName(new_module_name)
 
         return None
 

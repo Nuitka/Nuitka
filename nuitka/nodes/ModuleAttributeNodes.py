@@ -103,7 +103,7 @@ class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
 
         if not Options.shallMakeModule():
             result = makeConstantRefNode(
-                constant=self.variable.getModule().getFullName(),
+                constant=self.variable.getModule().getFullName().asString(),
                 source_ref=self.getSourceReference(),
             )
 
@@ -133,7 +133,9 @@ class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
             else:
                 value = provider.getPackage()
 
-            result = makeConstantRefNode(constant=value, source_ref=self.source_ref)
+            result = makeConstantRefNode(
+                constant=value.asString(), source_ref=self.source_ref
+            )
 
             return result, "new_expression", "Using constant '__package__' value."
 

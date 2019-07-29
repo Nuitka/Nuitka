@@ -109,6 +109,7 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.utils import MemoryUsage
 from nuitka.utils.FileOperations import splitPath
+from nuitka.utils.ModuleNames import ModuleName
 
 from . import SyntaxErrors
 from .ReformulationAssertStatements import buildAssertNode
@@ -836,9 +837,9 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
 
 def decideModuleTree(filename, package, is_shlib, is_top, is_main):
-    # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
+    # Many variables, branches, due to the many cases, pylint: disable=too-many-branches
 
-    assert package is None or type(package) is str
+    assert package is None or type(package) is ModuleName
     assert filename is not None
 
     if is_main and os.path.isdir(filename):
@@ -863,15 +864,14 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         source_ref = SourceCodeReferences.fromFilename(filename=filename)
 
         if is_main:
-            module_name = "__main__"
+            module_name = ModuleName("__main__")
         else:
+            # Derive module name from filename.
             module_name = os.path.basename(filename)
-
-            if module_name.endswith(".py"):
-                module_name = module_name[:-3]
-
             if is_shlib:
                 module_name = module_name.split(".")[0]
+            elif module_name.endswith(".py"):
+                module_name = module_name[:-3]
 
             if "." in module_name:
                 sys.stderr.write(
@@ -880,28 +880,22 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
 
                 sys.exit(2)
 
+            module_name = ModuleName.makeModuleNameInPackage(module_name, package)
+
         if is_shlib:
-            result = PythonShlibModule(
-                name=module_name, package_name=package, source_ref=source_ref
-            )
+            result = PythonShlibModule(module_name=module_name, source_ref=source_ref)
         elif is_main:
             result = PythonMainModule(
                 main_added=main_added,
-                mode=Plugins.decideCompilation("__main__", source_ref),
+                mode=Plugins.decideCompilation(module_name, source_ref),
                 future_spec=None,
                 source_ref=source_ref,
             )
         else:
-            if package is not None:
-                full_name = package + "." + module_name
-            else:
-                full_name = module_name
-
             result = CompiledPythonModule(
-                name=module_name,
-                package_name=package,
+                module_name=module_name,
                 is_top=is_top,
-                mode=Plugins.decideCompilation(full_name, source_ref),
+                mode=Plugins.decideCompilation(module_name, source_ref),
                 future_spec=None,
                 source_ref=source_ref,
             )
@@ -912,14 +906,13 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         else:
             module_name = os.path.basename(filename)
 
+        module_name = ModuleName.makeModuleNameInPackage(module_name, package)
+
         source_filename = os.path.join(filename, "__init__.py")
 
         if not os.path.isfile(source_filename):
             source_ref, result = createNamespacePackage(
-                module_name=module_name,
-                package_name=package,
-                is_top=is_top,
-                module_relpath=filename,
+                module_name=module_name, is_top=is_top, module_relpath=filename
             )
             source_filename = None
         else:
@@ -927,21 +920,13 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 filename=os.path.abspath(source_filename)
             )
 
-            if package is not None:
-                full_name = package + "." + module_name
-            else:
-                full_name = module_name
-
             result = CompiledPythonPackage(
-                name=module_name,
-                package_name=package,
+                module_name=module_name,
                 is_top=is_top,
-                mode=Plugins.decideCompilation(full_name, source_ref),
+                mode=Plugins.decideCompilation(module_name, source_ref),
                 future_spec=None,
                 source_ref=source_ref,
             )
-
-            assert result.getFullName() == full_name, result
     else:
         sys.stderr.write(
             "%s: can't open file '%s'.\n" % (os.path.basename(sys.argv[0]), filename)

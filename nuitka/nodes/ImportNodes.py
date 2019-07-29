@@ -35,6 +35,7 @@ from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
 from nuitka.ModuleRegistry import getUncompiledModule
 from nuitka.utils.FileOperations import relpath
+from nuitka.utils.ModuleNames import ModuleName
 
 from .ExpressionBases import (
     ExpressionBase,
@@ -179,7 +180,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
     def _consider(self, trace_collection, module_filename, module_package):
         assert module_package is None or (
-            type(module_package) is str and module_package != ""
+            type(module_package) is ModuleName and module_package != ""
         ), repr(module_package)
 
         module_filename = os.path.normpath(module_filename)
@@ -187,15 +188,13 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
 
         if module_kind is not None:
-            if module_package is None:
-                module_fullpath = module_name
-            else:
-                module_fullpath = module_package + "." + module_name
+            module_fullpath = ModuleName.makeModuleNameInPackage(
+                module_name, module_package
+            )
 
             decision, reason = decideRecursion(
                 module_filename=module_filename,
-                module_name=module_name,
-                module_package=module_package,
+                module_name=module_fullpath,
                 module_kind=module_kind,
             )
 
@@ -267,7 +266,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
         module_package, module_filename, self.finding = findModule(
             importing=self,
-            module_name=module_name,
+            module_name=ModuleName(module_name),
             parent_package=parent_package,
             level=level,
             warn=True,
@@ -302,7 +301,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
                         module_package, module_filename, _finding = findModule(
                             importing=self,
-                            module_name=import_item,
+                            module_name=ModuleName(import_item),
                             parent_package=imported_module.getFullName(),
                             level=-1,  # Relative import, so child is used.
                             warn=False,
@@ -323,8 +322,13 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                                     )
                                 )
         else:
-            while "." in module_name:
-                module_name = ".".join(module_name.split(".")[:-1])
+            module_name = ModuleName(module_name)
+
+            while True:
+                module_name = module_name.getPackageName()
+
+                if module_name is None:
+                    break
 
                 module_package, module_filename, _finding = findModule(
                     importing=self,

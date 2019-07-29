@@ -32,6 +32,7 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.FileOperations import listDir, relpath
+from nuitka.utils.ModuleNames import ModuleName
 
 
 def logRecursion(*args):
@@ -169,16 +170,14 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind, reas
         return module, False
 
 
-def decideRecursion(
-    module_filename, module_name, module_package, module_kind, extra_recursion=False
-):
+def decideRecursion(module_filename, module_name, module_kind, extra_recursion=False):
     # Many branches, which make decisions immediately, by returning
-    # pylint: disable=too-many-branches,too-many-return-statements
+    # pylint: disable=too-many-return-statements
     if module_name == "__main__":
         return False, "Main program is not recursed to again."
 
     plugin_decision = Plugins.onModuleEncounter(
-        module_filename, module_name, module_package, module_kind
+        module_filename, module_name, module_kind
     )
 
     if plugin_decision:
@@ -190,20 +189,15 @@ def decideRecursion(
         else:
             return False, "Shared library cannot be inspected."
 
-    if module_package is None:
-        full_name = module_name
-    else:
-        full_name = module_package + "." + module_name
-
     no_case, reason = matchesModuleNameToPatterns(
-        module_name=full_name, patterns=Options.getShallFollowInNoCase()
+        module_name=module_name, patterns=Options.getShallFollowInNoCase()
     )
 
     if no_case:
         return (False, "Module %s instructed by user to not recurse to." % reason)
 
     any_case, reason = matchesModuleNameToPatterns(
-        module_name=full_name, patterns=Options.getShallFollowModules()
+        module_name=module_name, patterns=Options.getShallFollowModules()
     )
 
     if any_case:
@@ -274,11 +268,12 @@ def checkPluginSinglePath(plugin_filename, module_package):
         plugin_filename
     )
 
+    module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
+
     if module_kind is not None:
         decision, reason = decideRecursion(
             module_filename=plugin_filename,
             module_name=module_name,
-            module_package=module_package,
             module_kind=module_kind,
             extra_recursion=True,
         )

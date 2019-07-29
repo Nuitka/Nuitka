@@ -31,15 +31,9 @@ class GeventPlugin(NuitkaPluginBase):
     plugin_name = "gevent"
     plugin_desc = "Required by the gevent package"
 
-    def onModuleEncounter(
-        self, module_filename, module_name, module_package, module_kind
-    ):
-        if not module_package:
-            full_name = module_name
-        else:
-            full_name = module_package + "." + module_name
+    def onModuleEncounter(self, module_filename, module_name, module_kind):
 
-        if full_name == "gevent" or full_name.startswith("gevent."):
+        if module_name.hasNamespace("gevent"):
             return True, "everything from gevent"
 
         return None

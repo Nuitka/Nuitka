@@ -78,7 +78,7 @@ class NuitkaPluginPmw(NuitkaPluginBase):
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "Pmw":
             pmw_path = self.locateModule(
-                importing=None, module_name="Pmw", module_package=None, warn=True
+                importing=None, module_name=module_name, warn=True
             )
 
             return self._packagePmw(pmw_path)

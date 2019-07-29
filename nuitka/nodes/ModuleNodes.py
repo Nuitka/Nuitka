@@ -34,6 +34,7 @@ from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import getFileContentByLine, relpath
+from nuitka.utils.ModuleNames import ModuleName
 
 from .Checkers import checkStatementsSequenceOrNone
 from .FutureSpecs import FutureSpec, fromFlags
@@ -51,35 +52,29 @@ from .NodeBases import (
 class PythonModuleBase(NodeBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = "name", "package_name", "package"
+    __slots__ = "module_name", "package"
 
-    def __init__(self, name, package_name, source_ref):
-        assert type(name) is str, type(name)
-        assert "." not in name, name
-        assert package_name is None or (
-            type(package_name) is str and package_name != ""
-        )
+    def __init__(self, module_name, source_ref):
+        assert type(module_name) is ModuleName, module_name
 
         NodeBase.__init__(self, source_ref=source_ref)
 
-        self.name = name
-        self.package_name = package_name
+        self.module_name = module_name
         self.package = None
 
     def getDetails(self):
-        return {"name": self.name, "package_name": self.package_name}
+        return {"module_name": self.module_name}
 
+    # TODO: Remove this methods, make user go getFullName.getBasename()
     def getName(self):
-        return self.name
+        return self.module_name.getBasename()
 
+    # TODO: Remove this methods, make user go getFullName.getPackageName()
     def getPackage(self):
-        return self.package_name
+        return self.module_name.getPackageName()
 
     def getFullName(self):
-        if self.package_name:
-            return self.package_name + "." + self.getName()
-        else:
-            return self.getName()
+        return self.module_name
 
     @staticmethod
     def isMainModule():
@@ -99,13 +94,15 @@ class PythonModuleBase(NodeBase):
         # Return the list of newly added modules.
         result = []
 
-        if self.package_name is not None and self.package is None:
-            self.package = getModuleByName(self.package_name)
+        package_name = self.module_name.getPackageName()
 
-        if self.package_name is not None and self.package is None:
+        if package_name is not None and self.package is None:
+            self.package = getModuleByName(package_name)
+
+        if package_name is not None and self.package is None:
             package_package, package_filename, finding = findModule(
                 importing=self,
-                module_name=self.package_name,
+                module_name=package_name,
                 parent_package=None,
                 level=1,
                 warn=python_version < 300,
@@ -116,10 +113,10 @@ class PythonModuleBase(NodeBase):
             if python_version >= 300 and not package_filename:
                 return []
 
-            if self.package_name == "uniconvertor.app.modules":
+            if package_name == "uniconvertor.app.modules":
                 return []
 
-            assert package_filename is not None, (self.package_name, finding)
+            assert package_filename is not None, (package_name, finding)
 
             _package_name, package_kind = getModuleNameAndKindFromFilename(
                 package_filename
@@ -128,8 +125,7 @@ class PythonModuleBase(NodeBase):
 
             decision, _reason = decideRecursion(
                 module_filename=package_filename,
-                module_name=self.package_name,
-                module_package=package_package,
+                module_name=package_name,
                 module_kind=package_kind,
             )
 
@@ -238,12 +234,12 @@ class CompiledPythonModule(
 
     checkers = {"body": checkStatementsSequenceOrNone}
 
-    def __init__(self, name, package_name, is_top, mode, future_spec, source_ref):
-        PythonModuleBase.__init__(
-            self, name=name, package_name=package_name, source_ref=source_ref
-        )
+    def __init__(self, module_name, is_top, mode, future_spec, source_ref):
+        PythonModuleBase.__init__(self, module_name=module_name, source_ref=source_ref)
 
-        ClosureGiverNodeMixin.__init__(self, name=name, code_prefix="module")
+        ClosureGiverNodeMixin.__init__(
+            self, name=module_name.getBasename(), code_prefix="module"
+        )
 
         ChildrenHavingMixin.__init__(
             self, values={"body": None, "functions": ()}  # delayed
@@ -276,8 +272,7 @@ class CompiledPythonModule(
     def getDetails(self):
         return {
             "filename": self.source_ref.getFilename(),
-            "package": self.package_name,
-            "name": self.name,
+            "module_name": self.module_name,
         }
 
     def getDetailsForDisplay(self):
@@ -585,13 +580,10 @@ class CompiledPythonModule(
 class CompiledPythonPackage(CompiledPythonModule):
     kind = "COMPILED_PYTHON_PACKAGE"
 
-    def __init__(self, name, package_name, is_top, mode, future_spec, source_ref):
-        assert name, source_ref
-
+    def __init__(self, module_name, is_top, mode, future_spec, source_ref):
         CompiledPythonModule.__init__(
             self,
-            name=name,
-            package_name=package_name,
+            module_name=module_name,
             is_top=is_top,
             mode=mode,
             future_spec=future_spec,
@@ -614,16 +606,11 @@ class CompiledPythonPackage(CompiledPythonModule):
 def makeUncompiledPythonModule(
     module_name, filename, bytecode, is_package, user_provided, technical
 ):
-    parts = module_name.rsplit(".", 1)
-    name = parts[-1]
-
-    package_name = parts[0] if len(parts) == 2 else None
     source_ref = fromFilename(filename)
 
     if is_package:
         return UncompiledPythonPackage(
-            name=name,
-            package_name=package_name,
+            module_name=module_name,
             bytecode=bytecode,
             filename=filename,
             user_provided=user_provided,
@@ -632,8 +619,7 @@ def makeUncompiledPythonModule(
         )
     else:
         return UncompiledPythonModule(
-            name=name,
-            package_name=package_name,
+            module_name=module_name,
             bytecode=bytecode,
             filename=filename,
             user_provided=user_provided,
@@ -652,18 +638,9 @@ class UncompiledPythonModule(PythonModuleBase):
     __slots__ = "bytecode", "filename", "user_provided", "technical", "used_modules"
 
     def __init__(
-        self,
-        name,
-        package_name,
-        bytecode,
-        filename,
-        user_provided,
-        technical,
-        source_ref,
+        self, module_name, bytecode, filename, user_provided, technical, source_ref
     ):
-        PythonModuleBase.__init__(
-            self, name=name, package_name=package_name, source_ref=source_ref
-        )
+        PythonModuleBase.__init__(self, module_name=module_name, source_ref=source_ref)
 
         self.bytecode = bytecode
         self.filename = filename
@@ -714,8 +691,7 @@ class PythonMainModule(CompiledPythonModule):
     def __init__(self, main_added, mode, future_spec, source_ref):
         CompiledPythonModule.__init__(
             self,
-            name="__main__",
-            package_name=None,
+            module_name=ModuleName("__main__"),
             is_top=True,
             mode=mode,
             future_spec=future_spec,
@@ -811,8 +787,7 @@ class PythonInternalModule(CompiledPythonModule):
     def __init__(self):
         CompiledPythonModule.__init__(
             self,
-            name="__internal__",
-            package_name=None,
+            module_name=ModuleName("__internal__"),
             is_top=False,
             mode="compiled",
             source_ref=SourceCodeReference.fromFilenameAndLine(
@@ -836,16 +811,14 @@ class PythonShlibModule(PythonModuleBase):
 
     avoid_duplicates = set()
 
-    def __init__(self, name, package_name, source_ref):
-        PythonModuleBase.__init__(
-            self, name=name, package_name=package_name, source_ref=source_ref
-        )
+    def __init__(self, module_name, source_ref):
+        PythonModuleBase.__init__(self, module_name=module_name, source_ref=source_ref)
 
         # That would be a mistake we just made.
         assert os.path.basename(source_ref.getFilename()) != "<frozen>"
 
         # That is too likely a bug.
-        assert name != "__main__"
+        assert module_name != "__main__"
 
         # Duplicates should be avoided by us caching elsewhere before creating
         # the object.
