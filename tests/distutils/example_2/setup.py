@@ -17,8 +17,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import os
-import sys
+""" Example setup file to test Nuitka distutils integration.
+
+"""
+
 from setuptools import setup, find_packages
 
 # use `python setup.py bdist_nuitka` to use nuitka or use
