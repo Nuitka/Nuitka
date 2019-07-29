@@ -572,8 +572,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "zmq.backend.cython", True
 
         # Support for both pycryotodome (module name Crypto) and pycyptodomex (module name Cryptodome)
-        elif full_name.split(".")[0] in ("Crypto", "Cryptodome"):
-            crypto_module_name = full_name.split(".")[0]
+        elif elements[0] in ("Crypto", "Cryptodome"):
+            crypto_module_name = elements[0]
+
             if full_name == crypto_module_name + ".Util._raw_api":
                 for module_name in (
                     "_raw_aes",
