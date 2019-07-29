@@ -141,6 +141,7 @@ else:
 os.chdir("deb_dist")
 
 # Assert that the unpacked directory is there and file it. Otherwise fail badly.
+entry = None
 for entry in os.listdir("."):
     if (
         os.path.isdir(entry)
@@ -148,7 +149,8 @@ for entry in os.listdir("."):
         and not entry.endswith(".orig")
     ):
         break
-else:
+
+if entry is None:
     assert False
 
 # Import the "debian" directory from above. It's not in the original tar and
