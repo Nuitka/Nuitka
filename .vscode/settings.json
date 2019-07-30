@@ -42,5 +42,6 @@
         "--disable=c-extension-no-member,inconsistent-return-statements",
         "--disable=useless-object-inheritance,useless-return,assignment-from-no-return",
     ],
+    "python.linting.ignorePatterns" : ["tests/CPython??/test/**"],
     "restructuredtext.confPath": "",
 }
