@@ -51,6 +51,9 @@ class build(distutils.command.build.build):
 
     # pylint: disable=attribute-defined-outside-init
     def run(self):
+        # TODO: Handle this being None, and add support
+        # for .py_modules
+
         self.compile_packages = self.distribution.packages
         self.main_package = self.compile_packages[0]
 

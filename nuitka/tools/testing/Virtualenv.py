@@ -81,7 +81,7 @@ class Virtualenv(object):
 
 
 @contextmanager
-def withVirtualenv(env_name, base_dir=None, python=None):
+def withVirtualenv(env_name, base_dir=None, python=None, delete=True):
     """ Create a virtualenv and change into it.
 
         Activating it will be your task.
@@ -104,4 +104,5 @@ def withVirtualenv(env_name, base_dir=None, python=None):
 
         yield Virtualenv(env_dir)
 
-    removeDirectory(env_dir, ignore_errors=False)
+    if delete:
+        removeDirectory(env_dir, ignore_errors=False)

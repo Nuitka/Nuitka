@@ -200,6 +200,7 @@ packages = {
         "url": "https://github.com/yaml/pyyaml.git",
         "requirements_file": None,
         "ignored_tests": None,
+        "package_name": "yaml",
     },
 
     "requests": {
@@ -256,20 +257,35 @@ def main():
         if not active:
             continue
 
+        if os.name == "nt":
+            if package_name in ("cryptography",):
+                reportSkip("Not working on Windows", ".", package_name)
+                continue
+
+        # TODO: Raise an issue that described the setup.py
+        # cmdclass, distribution problem.
+        if package_name == "pyyaml":
+            reportSkip("Not yet supported, see Issue #xxx", ".", package_name)
+            continue
+
+        # TODO: Create an distutils example with py_modules only
+        # like in "decorator".
+        if package_name == "decorator":
+            reportSkip("Not yet supported, see Issue #xxx", ".", package_name)
+            continue
+
         # skip these packages
         if package_name in (
             "attrs", # __import__ check fails for uncompiled whl
-            "cryptography", # setup.py develop fails
-            "decorator", # bdist_nuitka fails
+            # "cryptography", # setup.py develop fails
             "google-auth",
             "ipaddress", # automatic bdist_nuitka fails
             "jinja2", # bdist_wheel fails
             "numpy",
             "pandas", # bdist_wheel fails
-            "pycparser", # __import__ check fails for compiled whl; pytest passes
+            # "pycparser", # __import__ check fails for compiled whl; pytest passes
             "pyparsing", # bdist_wheel fails
             "pytz",
-            "pyyaml", # invalid command 'bdist_nuitka'
             "Werkzeug", # __import__ check fails for uncompiled whl
         ):
             if search_mode.abortIfExecuted():
@@ -321,7 +337,7 @@ def main():
                 venv.runCommand(
                     commands=[
                         "python -m pip install -U %s" % os.path.join(dist_dir, os.listdir(dist_dir)[0]),
-                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" % package_name,
+                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" % details.get("package_name", package_name),
                     ]
                 )
 
@@ -346,7 +362,7 @@ def main():
                 venv.runCommand(
                     commands=[
                         "python -m pip install -U %s" % os.path.join(dist_dir, os.listdir(dist_dir)[0]),
-                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" % package_name,
+                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" % details.get("package_name", package_name),
                     ]
                 )
 
@@ -362,9 +378,11 @@ def main():
 
 
         except Exception as e:
+            # TODO: exceptions should count as fails
+
             my_print("Package", package_name, "ran into an exception during execution, traceback: ")
             my_print(e)
-            removeDirectory(venv.getVirtualenvDir(), ignore_errors=False)
+            # removeDirectory(venv.getVirtualenvDir(), ignore_errors=False)
 
             if search_mode.abortIfExecuted():
                 break
