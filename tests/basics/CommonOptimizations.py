@@ -1,15 +1,13 @@
 #     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
-#     Python test originally created or extracted from other peoples work. The
-#     parts from me are licensed as below. It is at least Free Software where
-#     it's copied from other people. In these cases, that will normally be
-#     indicated.
+#     Python tests originally created or extracted from other peoples work. The
+#     parts were too small to be protected.
 #
 #     Licensed under the Apache License, Version 2.0 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#         http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.apache.org/licenses/LICENSE-2.0
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,6 +15,22 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Common tests for built-ins.
+
+Attempting to cover generic run time behavior. Static optimization of these is
+not expected.
+"""
+
+
+def yield_helper():
+    print("Yielding 40")
+    yield 40
+    print("Yielding 60")
+    yield 60
+    print("Yielding 30")
+    yield 30
+
+
 class CommonOptimizationTest:
     _list_tests = {
             "Test on empty list" : [],
@@ -32,22 +46,16 @@ class CommonOptimizationTest:
             "Test on range with three arguments" : range(2, 1024, 5),
         }
 
-    def yield_helper():
-        print("Yielding 40")
-        yield 40
-        print("Yielding 60")
-        yield 60
-        print("Yielding 30")
-        yield 30
-
     _yeild_tests = {
-        "Yield Test": x > 42 for x in yield_helper()
+        "Yield Test": yield_helper()
         }
 
-    _exception_tests = [
-        1.0,
-        float
-    ]
+    _non_iterable_tests = {
+        "Float value" : 1.0,
+        "Type value" : float,
+        "Int value" : 1,
+        "Complex value" : 1j,
+    }
 
     _set_tests = {
         "Test on set" : set([0, 1, 2, 3, 3]),
@@ -67,47 +75,32 @@ class CommonOptimizationTest:
         self.builtin = builtin
 
     def print_tests(self, test):
-        for desc, value in self._list_tests.items():
-            print("{}: {}".format(desc, self.builtin(value)))
-
-    def print_exception_tests(self, exception_tests, exception_message=None):
-        print("Disallowed without args:")
-        try:
-            print(self.builtin())
-        except Exception as e:
-            print("caught ", repr(e))
-
-        test_name = iter([
-            " with float not iterable:",
-            " with float type not iterable:"
-            ])
-
-        for value in exception_tests:
-            print(str(self.builtin) + next(test_name))
+        for desc, value in sorted(test.items()):
             try:
-                print(self.builtin(value))
-            except Exception as e:
-                if exception_message:
-                    print(exception_message)
-                else:
-                    print(repr(e))
+                print("{}: {}".format(desc, self.builtin(value)))
+            except Exception as e: # pylint: disable=broad-except
+                print("caught ", repr(e))
 
     def run_all_tests(self):
+        print("Calling without args:")
+        try:
+            print(self.builtin())
+        except Exception as e: # pylint: disable=broad-except
+            print("caught ", repr(e))
+
         tests = [
             self._list_tests,
             self._range_tests,
             self._set_tests,
             self._dict_tests,
             self._yeild_tests,
-            self._exception_tests,
+            self._non_iterable_tests,
             self._other_tests
         ]
 
         for test in tests:
-            if test == self._exception_tests:
-                self.print_exception_tests(test)
-            else:
-                self.print_tests(test)
+            self.print_tests(test)
+
 
 print("Test for any")
 any_test = CommonOptimizationTest(any)

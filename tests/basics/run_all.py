@@ -84,6 +84,8 @@ def main():
             "original_file",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
+            # We annotate some tests, use that to lower warnings.
+            "plugin_enable:pylint-warnings",
         ]
 
         # This test should be run with the debug Python, and makes outputs to
