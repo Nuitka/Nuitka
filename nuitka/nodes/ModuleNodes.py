@@ -283,6 +283,9 @@ class CompiledPythonModule(
 
         return result
 
+    def getCompilationMode(self):
+        return self.mode
+
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
         # Modules are not having any provider, must not be used,

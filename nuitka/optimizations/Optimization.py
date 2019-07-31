@@ -550,7 +550,10 @@ def optimize(output_filename):
     # Demote compiled modules to bytecode, now that imports had a chance to be resolved, and
     # dependencies were handled.
     for module in ModuleRegistry.getDoneUserModules():
-        if module.isCompiledPythonModule() and module.mode == "bytecode":
+        if (
+            module.isCompiledPythonModule()
+            and module.getCompilationMode() == "bytecode"
+        ):
             demoteCompiledModuleToBytecode(module)
 
     if _progress:

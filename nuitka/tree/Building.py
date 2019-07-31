@@ -836,6 +836,22 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         assert False
 
 
+def decideCompilationMode(is_top, module_name, source_ref):
+    result = Plugins.decideCompilation(module_name, source_ref)
+
+    if result == "bytecode" and is_top:
+        warning(
+            """\
+Ignoring plugin decision to compile top level package '%s'
+as bytecode, the extension module entry point is technically
+required to compiled."""
+            % module_name
+        )
+        result = "compiled"
+
+    return result
+
+
 def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     # Many variables, branches, due to the many cases, pylint: disable=too-many-branches
 
@@ -887,7 +903,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         elif is_main:
             result = PythonMainModule(
                 main_added=main_added,
-                mode=Plugins.decideCompilation(module_name, source_ref),
+                mode=decideCompilationMode(False, module_name, source_ref),
                 future_spec=None,
                 source_ref=source_ref,
             )
@@ -895,7 +911,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             result = CompiledPythonModule(
                 module_name=module_name,
                 is_top=is_top,
-                mode=Plugins.decideCompilation(module_name, source_ref),
+                mode=decideCompilationMode(is_top, module_name, source_ref),
                 future_spec=None,
                 source_ref=source_ref,
             )
@@ -923,7 +939,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             result = CompiledPythonPackage(
                 module_name=module_name,
                 is_top=is_top,
-                mode=Plugins.decideCompilation(module_name, source_ref),
+                mode=decideCompilationMode(is_top, module_name, source_ref),
                 future_spec=None,
                 source_ref=source_ref,
             )
