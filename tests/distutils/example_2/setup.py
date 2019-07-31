@@ -32,8 +32,8 @@ setup(
     description='nuitka bdist_nuitka test-case compiling interdependent' +
                 ' python packages, and printing a data file',
     author='Some Two',
-    author_email='some2@sum.e',
-    version="0.1",
+    author_email = "email@someplace.com",
+    version="0.8.2",
     py_modules=[],
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     command_options={ 'nuitka' :

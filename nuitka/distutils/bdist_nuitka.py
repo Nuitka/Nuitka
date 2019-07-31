@@ -85,7 +85,6 @@ class build(distutils.command.build.build):
 
         # Check expectations, e.g. do not compile built-in modules.
         assert finding == "absolute", finding
-        assert package is None, package
 
         # If there are other files left over in the wheel after python scripts
         # are compiled, we'll keep the folder structure with the files in the wheel
@@ -107,7 +106,10 @@ class build(distutils.command.build.build):
                     else:
                         keep_resources = True
 
-        output_dir = build_lib
+        if package is not None:
+            output_dir = os.path.join(build_lib, package)
+        else:
+            output_dir = build_lib
 
         command = [
             sys.executable,
@@ -152,7 +154,11 @@ class build(distutils.command.build.build):
                 os.unlink(fn)
         else:
             # Delete the entire source copy of the module
-            shutil.rmtree(os.path.join(self.build_lib, self.main_package))
+            shutil.rmtree(
+                os.path.join(
+                    self.build_lib, self.main_package.replace(".", os.path.sep)
+                )
+            )
 
 
 # pylint: disable=C0103

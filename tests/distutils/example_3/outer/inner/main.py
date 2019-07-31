@@ -17,27 +17,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Example setup file to test Nuitka distutils integration.
+def main():
+    print("Hello example 3 world!")
+    import outer.inner
+    print("Imported", outer.inner)
 
-"""
-
-from setuptools import setup
-
-# use `python setup.py bdist_nuitka` to use nuitka or use
-# in the setup(..., build_with_nuitka=True, ...)
-# and bdist and build will allways use nuitka
-
-setup(
-    name='bdist_nuitka_test_3',
-    description='nuitka bdist_nuitka test-case compiling a namespace package',
-    author='Some Three',
-    author_email = "email@someplace.com",
-    version="0.2",
-    packages=["outer.inner"],
-    entry_points={
-        'console_scripts': [
-            'runner = outer.inner.main:main'
-        ]
-    },
-
-)
