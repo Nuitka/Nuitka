@@ -274,19 +274,34 @@ def main():
             reportSkip("Not yet supported, see Issue #xxx", ".", package_name)
             continue
 
+        # TODO: Raise an issue about being unable to compile
+        # modules listed as "unworthy_namespaces"
+        if package_name == "pycparser":
+            reportSkip("Not yet supported, see Issue #xxx", ".", package_name)
+            continue
+
         # skip these packages
         if package_name in (
             "attrs", # __import__ check fails for uncompiled whl
             # "cryptography", # setup.py develop fails
             "google-auth",
-            "ipaddress", # automatic bdist_nuitka fails
-            "jinja2", # bdist_wheel fails
+
+            # Same as decorator
+#            "ipaddress", # automatic bdist_nuitka fails
+
+#            TODO: add commands to execute before
+#            running setup.py bdist* and copy the LICENSE.rst
+#            to LICENSE
+#            "jinja2", # bdist_wheel fails
             "numpy",
             "pandas", # bdist_wheel fails
-            # "pycparser", # __import__ check fails for compiled whl; pytest passes
-            "pyparsing", # bdist_wheel fails
-            "pytz",
-            "Werkzeug", # __import__ check fails for uncompiled whl
+            # TODO: Similar to decorator, no packages.
+            # "pyparsing", # bdist_wheel fails
+
+            # Indirect usage of distutils, ignore it.
+            # "pytz", # can't open file 'setup.py'
+            # TODO: similar to pyyaml
+#            "Werkzeug", # __import__ check fails for uncompiled whl
         ):
             if search_mode.abortIfExecuted():
                 break
@@ -294,16 +309,14 @@ def main():
 
         package_dir = os.path.join(cache_dir, package_name)
 
-        # update package if existing, else clone
         try:
-            assert os.system("cd %s && git fetch && git reset --hard origin" % package_name) == 0
-        except AssertionError:
-            assert os.system("git clone %s %s --depth 1 --single-branch --no-tags" % (details["url"], package_name)) == 0, \
-                "Error while git cloning package %s, aborting..." % package_name
+            # update package if existing, else clone
+            if not os.system("cd %s && git fetch && git reset --hard origin && git clean -dfx" % package_name) == 0:
+                assert os.system("git clone %s %s --depth 1 --single-branch --no-tags" % (details["url"], package_name)) == 0, \
+                    "Error while git cloning package %s, aborting..." % package_name
 
 
-        try:
-            with withVirtualenv("venv_%s" % package_name) as venv:
+            with withVirtualenv("venv_%s" % package_name, delete=True) as venv:
                 dist_dir = os.path.join(package_dir, "dist")
 
                 # delete ignored tests if any
@@ -337,7 +350,8 @@ def main():
                 venv.runCommand(
                     commands=[
                         "python -m pip install -U %s" % os.path.join(dist_dir, os.listdir(dist_dir)[0]),
-                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" % details.get("package_name", package_name),
+                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" \
+                            % details.get("package_name", package_name),
                     ]
                 )
 
@@ -353,7 +367,7 @@ def main():
                 venv.runCommand(
                     commands=[
                         "cd %s" % package_dir,
-                        "rm -rf dist",
+                        "git clean -dfx",
                         "python setup.py bdist_nuitka",
                     ]
                 )
@@ -362,7 +376,8 @@ def main():
                 venv.runCommand(
                     commands=[
                         "python -m pip install -U %s" % os.path.join(dist_dir, os.listdir(dist_dir)[0]),
-                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" % details.get("package_name", package_name),
+                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" \
+                            % details.get("package_name", package_name),
                     ]
                 )
 
@@ -374,7 +389,12 @@ def main():
                     ]
                 )
 
-                venv.runCommand("rm -rf %s" % dist_dir)
+                venv.runCommand(
+                    commands=[
+                        "cd %s" % package_dir,
+                        "git clean -dfx",
+                    ]
+                )
 
 
         except Exception as e:
@@ -439,6 +459,9 @@ def main():
 
 
     # give a summary of all packages
+    # TODO: add "ERRORs" for exceptions
+    # differences are "FAILs"
+    # Travis, Jenkins both do it like that.
 
     my_print(
         "\n\n=====================================SUMMARY=====================================",
