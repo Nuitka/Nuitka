@@ -47,7 +47,11 @@ sys.path.insert(
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.FileOperations import removeDirectory
-from nuitka.tools.testing.Common import createSearchMode, my_print
+from nuitka.tools.testing.Common import (
+    createSearchMode,
+    my_print,
+    reportSkip,
+)
 from nuitka.utils.AppDirs import getCacheDir
 import nuitka
 
@@ -229,7 +233,7 @@ packages = {
         )
     },
 
-    "Werkzeug": {
+    "werkzeug": {
         "url": "https://github.com/pallets/werkzeug.git",
         "requirements_file": None,
         "ignored_tests": None,
@@ -241,11 +245,11 @@ packages = {
 
 def main():
     cache_dir = os.path.join(getCacheDir(), "pypi-git-clones")
+    base_dir = os.getcwd()
 
     if not os.path.isdir(cache_dir):
         os.mkdir(cache_dir)
 
-    os.chdir(cache_dir)
 
     search_mode = createSearchMode()
 
@@ -258,32 +262,37 @@ def main():
             continue
 
         if os.name == "nt":
-            if package_name in ("cryptography",):
+            if package_name in (
+                "cryptography",
+            ):
                 reportSkip("Not working on Windows", ".", package_name)
+                if search_mode.abortIfExecuted():
+                    break
                 continue
 
-        # TODO: Raise an issue that described the setup.py
-        # cmdclass, distribution problem.
         if package_name == "pyyaml":
-            reportSkip("Not yet supported, see Issue #xxx", ".", package_name)
+            reportSkip("Not yet supported, see Issue #476", ".", package_name)
+            if search_mode.abortIfExecuted():
+                break
             continue
 
         # TODO: Create an distutils example with py_modules only
         # like in "decorator".
         if package_name == "decorator":
             reportSkip("Not yet supported, see Issue #xxx", ".", package_name)
+            if search_mode.abortIfExecuted():
+                break
             continue
 
-        # TODO: Raise an issue about being unable to compile
-        # modules listed as "unworthy_namespaces"
         if package_name == "pycparser":
-            reportSkip("Not yet supported, see Issue #xxx", ".", package_name)
+            reportSkip("Not yet supported, see Issue #477", ".", package_name)
+            if search_mode.abortIfExecuted():
+                break
             continue
 
         # skip these packages
         if package_name in (
             "attrs", # __import__ check fails for uncompiled whl
-            # "cryptography", # setup.py develop fails
             "google-auth",
 
             # Same as decorator
@@ -293,15 +302,15 @@ def main():
 #            running setup.py bdist* and copy the LICENSE.rst
 #            to LICENSE
 #            "jinja2", # bdist_wheel fails
+
             "numpy",
             "pandas", # bdist_wheel fails
+
             # TODO: Similar to decorator, no packages.
             # "pyparsing", # bdist_wheel fails
 
             # Indirect usage of distutils, ignore it.
             # "pytz", # can't open file 'setup.py'
-            # TODO: similar to pyyaml
-#            "Werkzeug", # __import__ check fails for uncompiled whl
         ):
             if search_mode.abortIfExecuted():
                 break
@@ -310,12 +319,13 @@ def main():
         package_dir = os.path.join(cache_dir, package_name)
 
         try:
+            os.chdir(cache_dir)
             # update package if existing, else clone
             if not os.system("cd %s && git fetch && git reset --hard origin && git clean -dfx" % package_name) == 0:
                 assert os.system("git clone %s %s --depth 1 --single-branch --no-tags" % (details["url"], package_name)) == 0, \
                     "Error while git cloning package %s, aborting..." % package_name
 
-
+            os.chdir(base_dir)
             with withVirtualenv("venv_%s" % package_name, delete=True) as venv:
                 dist_dir = os.path.join(package_dir, "dist")
 
@@ -398,11 +408,9 @@ def main():
 
 
         except Exception as e:
-            # TODO: exceptions should count as fails
-
             my_print("Package", package_name, "ran into an exception during execution, traceback: ")
             my_print(e)
-            # removeDirectory(venv.getVirtualenvDir(), ignore_errors=False)
+            results.append((package_name,"ERROR","ERROR"))
 
             if search_mode.abortIfExecuted():
                 break
@@ -459,10 +467,6 @@ def main():
 
 
     # give a summary of all packages
-    # TODO: add "ERRORs" for exceptions
-    # differences are "FAILs"
-    # Travis, Jenkins both do it like that.
-
     my_print(
         "\n\n=====================================SUMMARY=====================================",
         style="yellow"
@@ -498,15 +502,26 @@ def main():
         style="yellow"
     )
 
-    num_failed = sum(y or z for _,y,z in results)
+    num_failed = 0
+    num_errors = 0
+    for _,y,z in results:
+        if type(y) is str:
+            num_errors += 1
+        elif y or z:
+            num_failed += 1
 
     my_print(
-        "TOTAL PASSED: %s" % (len(results) - num_failed),
+        "TOTAL PASSED: %s" % (len(results) - num_failed - num_errors),
         style="green"
     )
 
     my_print(
-        "TOTAL FAILED: %s" % num_failed,
+        "TOTAL FAILED (differences): %s" % num_failed,
+        style="red"
+    )
+
+    my_print(
+        "TOTAL ERRORS (exceptions): %s" % num_errors,
         style="red"
     )
 
