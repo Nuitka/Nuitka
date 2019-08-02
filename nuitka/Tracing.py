@@ -51,7 +51,7 @@ def flushStdout():
     sys.stdout.flush()
 
 
-class bcolors:
+class Colors:
     PINK = '\033[95m'
     BLUE = '\033[94m'
     GREEN = '\033[92m'
@@ -69,25 +69,25 @@ def my_print(*args, **kwargs):
 
     if "style" in kwargs:
         if kwargs["style"] == "pink":
-            style = bcolors.PINK
+            style = Colors.PINK
         elif kwargs["style"] == "blue":
-            style = bcolors.BLUE
+            style = Colors.BLUE
         elif kwargs["style"] == "green":
-            style = bcolors.GREEN
+            style = Colors.GREEN
         elif kwargs["style"] == "yellow":
-            style = bcolors.YELLOW
+            style = Colors.YELLOW
         elif kwargs["style"] == "red":
-            style = bcolors.RED
+            style = Colors.RED
         elif kwargs["style"] == "bold":
-            style = bcolors.BOLD
+            style = Colors.BOLD
         elif kwargs["style"] == "underline":
-            style = bcolors.UNDERLINE
+            style = Colors.UNDERLINE
         else:
             raise ValueError("%s is an invalid value for keyword argument style" % kwargs["style"])
 
         del kwargs["style"]
 
-        print(style, *args, bcolors.ENDC, **kwargs)
+        print(style, *(args + (Colors.ENDC,)), **kwargs)
 
     else:
         print(*args, **kwargs)

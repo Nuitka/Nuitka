@@ -46,7 +46,6 @@ sys.path.insert(
 
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
-from nuitka.utils.FileOperations import removeDirectory
 from nuitka.tools.testing.Common import (
     createSearchMode,
     my_print,
@@ -322,7 +321,8 @@ def main():
             os.chdir(cache_dir)
             # update package if existing, else clone
             if not os.system("cd %s && git fetch && git reset --hard origin && git clean -dfx" % package_name) == 0:
-                assert os.system("git clone %s %s --depth 1 --single-branch --no-tags" % (details["url"], package_name)) == 0, \
+                assert os.system("git clone %s %s --depth 1 --single-branch --no-tags" % \
+                    (details["url"], package_name)) == 0, \
                     "Error while git cloning package %s, aborting..." % package_name
 
             os.chdir(base_dir)
