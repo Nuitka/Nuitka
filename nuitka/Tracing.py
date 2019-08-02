@@ -51,44 +51,36 @@ def flushStdout():
     sys.stdout.flush()
 
 
-# pylint: disable=old-style-class
-class Colors:
-    PINK = '\033[95m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 def my_print(*args, **kwargs):
     """ Make sure we flush after every print.
 
     Not even the "-u" option does more than that and this is easy enough.
+
+    Use kwarg style=[option] to print in a style listed below
     """
 
     if "style" in kwargs:
         if kwargs["style"] == "pink":
-            style = Colors.PINK
+            style = '\033[95m'
         elif kwargs["style"] == "blue":
-            style = Colors.BLUE
+            style = '\033[94m'
         elif kwargs["style"] == "green":
-            style = Colors.GREEN
+            style = '\033[92m'
         elif kwargs["style"] == "yellow":
-            style = Colors.YELLOW
+            style = '\033[93m'
         elif kwargs["style"] == "red":
-            style = Colors.RED
+            style = '\033[91m'
         elif kwargs["style"] == "bold":
-            style = Colors.BOLD
+            style = '\033[1m'
         elif kwargs["style"] == "underline":
-            style = Colors.UNDERLINE
+            style = '\033[4m'
         else:
             raise ValueError("%s is an invalid value for keyword argument style" % kwargs["style"])
 
         del kwargs["style"]
 
-        print(style, *(args + (Colors.ENDC,)), **kwargs)
+        print(style, *(args + ('\033[0m',)), **kwargs)
 
     else:
         print(*args, **kwargs)
