@@ -243,6 +243,8 @@ packages = {
 
 
 def main():
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements,broad-except
+
     cache_dir = os.path.join(getCacheDir(), "pypi-git-clones")
     base_dir = os.getcwd()
 

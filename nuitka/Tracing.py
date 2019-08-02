@@ -51,6 +51,7 @@ def flushStdout():
     sys.stdout.flush()
 
 
+# pylint: disable=old-style-class
 class Colors:
     PINK = '\033[95m'
     BLUE = '\033[94m'
