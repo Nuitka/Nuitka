@@ -680,8 +680,9 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
 
     stdout, _stderr = process.communicate()
     system_paths = (b"/usr/lib/", b"/System/Library/Frameworks/")
+    rpaths = _detectBinaryRPathsMacOS(original_dir, binary_filename)
 
-    for line in stdout.split(b"\n")[2:]:
+    for line in stdout.split(b"\n")[1:]:
         if not line:
             continue
 
@@ -696,12 +697,54 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
                 filename = filename.decode("utf-8")
 
             if filename.startswith("@rpath/"):
-                filename = os.path.join(original_dir, filename[7:])
+                for i in rpaths:
+                    if os.path.isfile(os.path.join(i, filename[7:])):
+                        filename = os.path.join(i, filename[7:])
+                        break
+                else:
+                    filename = os.path.join(original_dir, filename[7:])
+
             elif filename.startswith("@loader_path/"):
                 filename = os.path.join(original_dir, filename[13:])
 
-            # print "adding", filename
+            # print("adding", filename)
             result.add(filename)
+
+    return result
+
+
+def _detectBinaryRPathsMacOS(original_dir, binary_filename):
+    result = []
+
+    process = subprocess.Popen(
+        args=["otool", "-l", binary_filename],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    stdout, _stderr = process.communicate()
+
+    lines = stdout.split(b"\n")
+
+    for i, o in enumerate(lines):
+        if o.endswith(b"cmd LC_RPATH"):
+            line = lines[i + 2]
+            if python_version >= 300:
+                line = line.decode("utf-8")
+
+            line = line.split("path ")[1]
+            line = line.split(" (offset")[0]
+            if line.startswith("@loader_path"):
+                line = os.path.join(original_dir, line[13:])
+            elif line.startswith("@executable_path"):
+                warning(
+                    "Dropping not-fully-resolved rpath: "
+                    + line
+                    + " for "
+                    + os.path.basename(binary_filename)
+                )
+                continue
+            result.append(line)
 
     return result
 
