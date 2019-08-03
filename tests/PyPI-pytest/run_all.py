@@ -69,6 +69,7 @@ packages = {
         "url": "https://github.com/python-attrs/attrs.git",
         "requirements_file": None,
         "ignored_tests": None,
+        "package_name": "attr",
     },
 
     "cachetools": {
@@ -125,6 +126,7 @@ packages = {
         "url": "https://github.com/googleapis/google-auth-library-python.git",
         "requirements_file": None,
         "ignored_tests": None,
+        "package_name": "google",
     },
 
     "idna": {
@@ -271,47 +273,51 @@ def main():
                     break
                 continue
 
+
         if package_name == "pyyaml":
             reportSkip("Not yet supported, see Issue #476", ".", package_name)
             if search_mode.abortIfExecuted():
                 break
             continue
 
-        # TODO: Create an distutils example with py_modules only
-        # like in "decorator".
-        if package_name == "decorator":
-            reportSkip("Not yet supported, see Issue #xxx", ".", package_name)
+
+        if package_name in (
+            "decorator",
+            "ipaddress",
+            "pyparsing",
+        ):
+            reportSkip("Not yet supported, see Issue #479", ".", package_name)
             if search_mode.abortIfExecuted():
                 break
             continue
 
-        if package_name == "pycparser":
+
+        if package_name in (
+            "pycparser",
+            "numpy",
+        ):
             reportSkip("Not yet supported, see Issue #477", ".", package_name)
             if search_mode.abortIfExecuted():
                 break
             continue
 
-        # skip these packages
+
         if package_name in (
-            "attrs", # __import__ check fails for uncompiled whl
-            "google-auth",
+            "pytz", # indirect usage of distutils
+        ):
+            reportSkip("Not yet supported", ".", package_name)
+            if search_mode.abortIfExecuted():
+                break
+            continue
 
-            # Same as decorator
-#            "ipaddress", # automatic bdist_nuitka fails
 
-#            TODO: add commands to execute before
-#            running setup.py bdist* and copy the LICENSE.rst
-#            to LICENSE
+        if package_name in (
+            "google-auth", # bdist_nuitka fails AttributeError: single_version_externally_managed
+
+#            TODO: add commands to execute before running setup.py bdist* and copy the LICENSE.rst to LICENSE
 #            "jinja2", # bdist_wheel fails
 
-            "numpy",
-            "pandas", # bdist_wheel fails
-
-            # TODO: Similar to decorator, no packages.
-            # "pyparsing", # bdist_wheel fails
-
-            # Indirect usage of distutils, ignore it.
-            # "pytz", # can't open file 'setup.py'
+            "pandas", # python setup.py egg_info fails
         ):
             if search_mode.abortIfExecuted():
                 break

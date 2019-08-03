@@ -241,6 +241,9 @@ def main():
             if exit_code:
                 sys.exit("Error, outputs differed.")
 
+        if search_mode.abortIfExecuted():
+            break
+
     search_mode.finish()
 
 
