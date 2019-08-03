@@ -151,6 +151,9 @@ packages = {
         "url": "https://github.com/pallets/jinja.git",
         "requirements_file": None,
         "ignored_tests": None,
+        "extra_commands": [
+            "cp LICENSE.rst LICENSE",
+        ]
     },
 
     "jmespath": {
@@ -313,10 +316,7 @@ def main():
 
         if package_name in (
             "google-auth", # bdist_nuitka fails AttributeError: single_version_externally_managed
-
-#            TODO: add commands to execute before running setup.py bdist* and copy the LICENSE.rst to LICENSE
-#            "jinja2", # bdist_wheel fails
-
+            "jinja2", # ModuleNotFoundError: No module named 'jinja2.tests'
             "pandas", # python setup.py egg_info fails
         ):
             if search_mode.abortIfExecuted():
@@ -355,6 +355,9 @@ def main():
                         "python -m pip install -r %s" % details["requirements_file"],
                     ]
 
+                if details.get("extra_commands"):
+                    cmds += details["extra_commands"]
+
                 # build uncompiled .whl
                 cmds += [
                     "python setup.py bdist_wheel",
@@ -381,13 +384,23 @@ def main():
                     ]
                 )
 
+
+                # clean up before building compiled .whl
+                cmds = [
+                    "cd %s" % package_dir,
+                    "git clean -dfx",
+                ]
+
+                if details.get("extra_commands"):
+                    cmds += details["extra_commands"]
+
                 # build nuitka compiled .whl
+                cmds += [
+                    "python setup.py bdist_nuitka",
+                ]
+
                 venv.runCommand(
-                    commands=[
-                        "cd %s" % package_dir,
-                        "git clean -dfx",
-                        "python setup.py bdist_nuitka",
-                    ]
+                    commands=cmds
                 )
 
                 # install and print out if the active .whl is compiled or not
