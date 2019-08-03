@@ -25,6 +25,38 @@
 // Needed for offsetof
 #include <stddef.h>
 
+typedef struct {
+    PyObject_HEAD
+}  MetaObject;
+
+
+static PyObject *
+Check_instance(MetaObject *self, PyObject *Py_UNUSED(ignored))
+{
+    // PRINT_ITEM(self);
+    PRINT_NEW_LINE();
+    PRINT_STRING("Hello");
+}
+
+static PyMethodDef Meta_methods[] = {
+    {"type", (PyCFunction) Check_instance, METH_NOARGS,
+     "Return the name, combining the first and last name"
+    },
+    {NULL}  /* Sentinel */
+};
+
+static PyTypeObject MetaType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "Meta",
+    .tp_doc = "Meta Class",
+    .tp_basicsize = sizeof(MetaObject),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    
+    .tp_methods = Meta_methods,
+};
+
+
 // tp_descr_get slot, bind a function to an object.
 static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object, PyObject *klass) {
     assert(Nuitka_Function_Check(function));
@@ -570,7 +602,12 @@ PyTypeObject Nuitka_Function_Type = {
 #endif
 };
 
-void _initCompiledFunctionType(void) { PyType_Ready(&Nuitka_Function_Type); }
+void _initCompiledFunctionType(void) {
+    // PyModule_AddObject(Nuitka_Function_Type.m_module, "Meta", (PyObject *) &MetaType);
+     Nuitka_Function_Type.ob_type = &MetaType;
+    //  Py_TYPE(&Nuitka_Function_Type) = &MetaType;
+     PyType_Ready(&Nuitka_Function_Type);
+    }
 
 // Make a function with closure.
 #if PYTHON_VERSION < 300
