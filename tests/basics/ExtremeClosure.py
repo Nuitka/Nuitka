@@ -48,14 +48,12 @@ try:
 except NameError as e:
     print("Expected name error occurred:", repr(e))
 
-# TODO: This is not passing yet.
-if False:
-    try:
+try:
 
-        class YetAnotherClass:
-            b = 1
-            del b
-            print(b)
+    class YetAnotherClass:
+        b = 1
+        del b
+        print(b)
 
-    except NameError as e:
-        print("Expected name error occurred:", repr(e))
+except NameError as e:
+    print("Expected name error occurred:", repr(e))
