@@ -1358,25 +1358,57 @@ _compiler_arch = None
 
 
 def getCompilerArch():
-    # Singleton, pylint: disable=global-statement
-    global _compiler_arch_determined, _compiler_arch
+    if mingw_mode:
+        # Singleton, pylint: disable=global-statement
+        global _compiler_arch_determined, _compiler_arch
 
-    if not _compiler_arch_determined:
-        _compiler_arch = _getBinaryArch(getExecutablePath(the_compiler, initial=False))
-        _compiler_arch_determined = True
+        if not _compiler_arch_determined:
+            _compiler_arch = _getBinaryArch(
+                getExecutablePath(the_compiler, initial=False)
+            )
+            _compiler_arch_determined = True
+    elif msvc_mode:
+        cmdline = [getExecutablePath(the_compiler, initial=False)]
+
+        proc = subprocess.Popen(
+            cmdline,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+        )
+
+        # The cl.exe without further args will give error output indicating
+        # arch.
+        _data, err = proc.communicate()
+        _rv = proc.wait()
+
+        if b"x86" in err:
+            _compiler_arch = "x86"
+            _compiler_arch_determined = True
+        elif b"x64" in err:
+            _compiler_arch = "x86_64"
+            _compiler_arch_determined = True
+        else:
+            _compiler_arch_determined = True
+    else:
+        assert False, the_compiler
 
     return _compiler_arch
 
 
-if win_target and mingw_mode:
+if win_target:
     # Check most common user error related to MinGW64. People install 32 and
     # 64 variants and do not consider that MinGW64 could be 32 bits too.
 
-    if getLinkerArch() != getCompilerArch():
+    if (getLinkerArch() or target_arch) != getCompilerArch():
         sys.exit(
-            "Error, mismatch between Python %s and MinGW64 ('%s') arches."
+            "Error, mismatch between Python ('%s') and C compiler ('%s') arches."
             % (
-                "%s" % (getLinkerArch() or "unknown, but likely 'pei-x86-64'"),
+                "%s"
+                % (
+                    getLinkerArch() or target_arch or "unknown, but likely 'pei-x86-64'"
+                ),
                 getCompilerArch(),
             )
         )
