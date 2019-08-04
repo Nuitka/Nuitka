@@ -57,7 +57,7 @@ def _checkInsideGenerator(provider, node, source_ref):
         raiseSyntaxError(
             "'%s' inside generator expression"
             % ("yield" if node.__class__ is ast.Yield else "yield from",),
-            source_ref.atColumnNumber(node.col_offset),
+            provider.getSourceReference(),
         )
 
     assert (
