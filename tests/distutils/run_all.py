@@ -56,7 +56,7 @@ from nuitka.utils.FileOperations import removeDirectory
 
 
 def main():
-    # Complex stuff, pylint: disable=too-many-locals,too-many-statements
+    # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     _python_version = setup(needs_io_encoding=True)
 
