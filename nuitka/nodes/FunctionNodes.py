@@ -702,6 +702,10 @@ class ExpressionFunctionCreation(
 
             values = [args_dict[name] for name in call_spec.getParameterNames()]
 
+            # TODO: Not handling default values either yet.
+            if None in values:
+                return call_node, None, None
+
             result = ExpressionFunctionCall(
                 function=self, values=values, source_ref=call_node.getSourceReference()
             )
