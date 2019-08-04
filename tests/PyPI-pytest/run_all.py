@@ -45,7 +45,7 @@ sys.path.insert(
 # isort:start
 
 import nuitka
-from nuitka.tools.testing.Common import createSearchMode, my_print, reportSkip
+from nuitka.tools.testing.Common import createSearchMode, my_print, reportSkip, setup
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.AppDirs import getCacheDir
@@ -208,6 +208,8 @@ packages = {
 def main():
     # pylint: disable=broad-except,too-many-branches,too-many-locals,too-many-statements
 
+    _python_version = setup()
+
     cache_dir = os.path.join(getCacheDir(), "pypi-git-clones")
     base_dir = os.getcwd()
 
@@ -249,16 +251,11 @@ def main():
                 break
             continue
 
-        if package_name in ("pytz",):  # indirect usage of distutils
-            reportSkip("Not yet supported", ".", package_name)
-            if search_mode.abortIfExecuted():
-                break
-            continue
-
         if package_name in (
             "google-auth",  # bdist_nuitka fails AttributeError: single_version_externally_managed
             "jinja2",  # ModuleNotFoundError: No module named 'jinja2.tests'
             "pandas",  # python setup.py egg_info fails
+            "pytz",  # AssertionError: zoneinfo files not found!
         ):
             if search_mode.abortIfExecuted():
                 break
