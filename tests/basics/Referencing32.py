@@ -15,7 +15,18 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import sys, os
+""" Reference counting tests.
+
+These contain functions that do specific things, where we have a suspect
+that references may be lost or corrupted. Executing them repeatedly and
+checking the reference count is how they are used.
+
+These are Python3 specific constructs, that will give a SyntaxError or
+not be relevant on Python2.
+"""
+
+import os
+import sys
 
 # Find nuitka package relative to us.
 sys.path.insert(
@@ -33,11 +44,13 @@ from nuitka.tools.testing.Common import (
     checkDebugPython
 )
 
+# isort:start
+
 checkDebugPython()
 
 
 def simpleFunction1():
-    def abc(*, exc=IOError):
+    def abc(*, _exc=IOError):
         pass
     for _ in range(100):
         abc()
@@ -54,17 +67,17 @@ def simpleFunction2():
 def simpleFunction3():
     try:
 
-        class A(Exception):
+        class ClassA(Exception):
             pass
 
-        class B(Exception):
+        class ClassB(Exception):
             pass
 
         try:
-            raise A('foo')
-        except A as e1:
-            raise B(str(e1)) from e1
-    except Exception:
+            raise ClassA('foo')
+        except ClassA as e1:
+            raise ClassB(str(e1)) from e1
+    except Exception: # different to Nuitka, pylint: disable=broad-except
         pass
 
 def simpleFunction4():
@@ -73,7 +86,7 @@ def simpleFunction4():
     def nonlocal_writer():
         nonlocal a
 
-        for a in range(10):
+        for a in range(10): # false alarm, pylint: disable=unused-variable
             pass
 
     nonlocal_writer()
@@ -83,7 +96,7 @@ def simpleFunction4():
 def simpleFunction5():
     x = 2
 
-    def local_func(a: int, b: x*x):
+    def local_func(_a: int, _b: x*x):
         pass
 
     local_func(x, x)
@@ -95,6 +108,7 @@ def simpleFunction6():
 
     class MyException(Exception):
         def __init__(self, obj):
+            # This is on purpose not called, pylint: disable=super-init-not-called
             self.obj = obj
 
     class MyObj:
@@ -112,7 +126,7 @@ def simpleFunction6():
             inner_raising_func()
         except:
             raise KeyError
-    except KeyError as e:
+    except KeyError as e: # on purpose, pylint: disable=unused-variable
         pass
 
 range_low = 0
@@ -133,10 +147,17 @@ def simpleFunction9():
     return range(range_high)
 
 def simpleFunction10():
-    def f(x : int ) -> int:
+    def f(_x : int ) -> int:
         pass
 
     return f
+
+def simpleFunction11():
+    try:
+        raise ImportError(path="lala", name="lele")
+    except ImportError as e:
+        assert e.name == "lele"
+        assert e.path == "lala"
 
 
 

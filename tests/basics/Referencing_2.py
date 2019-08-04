@@ -15,7 +15,18 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import sys, os
+""" Reference counting tests.
+
+These contain functions that do specific things, where we have a suspect
+that references may be lost or corrupted. Executing them repeatedly and
+checking the reference count is how they are used.
+
+These are for Python2 only constructs, which will give SyntaxError on
+other versions.
+"""
+
+import os
+import sys
 
 # Find nuitka package relative to us.
 sys.path.insert(
@@ -33,8 +44,9 @@ from nuitka.tools.testing.Common import (
     checkDebugPython
 )
 
-checkDebugPython()
+# isort:start
 
+checkDebugPython()
 
 x = 17
 

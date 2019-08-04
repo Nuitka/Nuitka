@@ -15,7 +15,11 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import sys, os, types
+
+# TODO: merge with Referencing32, as we do not distinguish with Python3.2 and Python3.3
+# anymore.
+
+import sys, os
 
 # Find nuitka package relative to us.
 sys.path.insert(
@@ -34,6 +38,10 @@ from nuitka.tools.testing.Common import (
     someGeneratorRaising,
     checkDebugPython
 )
+
+# isort: start
+
+import types
 
 checkDebugPython()
 

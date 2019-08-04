@@ -15,7 +15,15 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import sys, os
+""" Reference counting tests.
+
+These contain functions that do specific things, where we have a suspect
+that references may be lost or corrupted. Executing them repeatedly and
+checking the reference count is how they are used.
+"""
+
+import os
+import sys
 
 # Find nuitka package relative to us.
 sys.path.insert(
@@ -32,6 +40,8 @@ from nuitka.tools.testing.Common import (
     executeReferenceChecked,
     checkDebugPython
 )
+
+# isort:start
 
 checkDebugPython()
 
@@ -124,12 +134,12 @@ def simpleFunction13(a = 1*2):
 
 def simpleFunction14p(x):
     try:
-        simpleFunction14p(1,1)
+        simpleFunction14p(1,1) # pylint: disable=too-many-function-args
     except TypeError as _e:
         pass
 
     try:
-        simpleFunction14p(1,1)
+        simpleFunction14p(1,1) # pylint: disable=too-many-function-args
     except TypeError:
         pass
 
