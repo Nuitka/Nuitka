@@ -1825,42 +1825,6 @@ if gcc_mode:
 Default(target)  # @UndefinedVariable pylint: disable=undefined-variable
 
 
-# Copy the Python DLL to the target directory, so the executable can be run.
-if uninstalled_python:
-    # TODO: Move this to nuitka.PostProcessing which now exists for such tasks.
-    def handleUninstalledPython():
-
-        if win_target:
-            # TODO: This should have become unnecessary by DLL_EXTRA_PATH,
-            # but so far we failed to create a manifest that makes the PythonXY.DLL
-            # from there.
-            shutil.copy(
-                getWindowsPythonDLLPath(), os.path.dirname(result_basepath) or "."
-            )
-        elif macosx_target and not module_mode:
-            # TODO: Move this to where we do it for Linux already.
-
-            python_dll_filename = "libpython" + python_abi_version + ".dylib"
-
-            result = subprocess.call(
-                (
-                    "install_name_tool",
-                    "-change",
-                    python_dll_filename,
-                    os.path.join(python_lib_path, python_dll_filename),
-                    result_exe,
-                ),
-                stdout=subprocess.PIPE,
-            )
-
-            if result != 0:
-                sys.exit(
-                    "Error, call to 'install_name_tool' to fix Python library path failed."
-                )
-
-    handleUninstalledPython()
-
-
 def _writeSconsReport():
     with open(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
         # We are friends to get at this debug info, pylint: disable=protected-access

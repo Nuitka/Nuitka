@@ -20,6 +20,7 @@
 """
 
 import os
+import subprocess
 import sys
 from logging import warning
 
@@ -61,8 +62,6 @@ def locateDLL(dll_name):
         return localDLLFromFilesystem(
             name=dll_name, paths=["/lib", "/usr/lib", "/usr/local/lib"]
         )
-
-    import subprocess
 
     process = subprocess.Popen(
         args=["/sbin/ldconfig", "-p"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -217,14 +216,14 @@ def getWindowsDLLVersion(filename):
 def getPEFileInformation(filename):
     """ Return the PE file information of a Windows EXE or DLL
 
-        Args:
-            filename - The file to be investigated.
+    Args:
+        filename - The file to be investigated.
 
-        Notes:
-            Use of this is obviously only for Windows, although the module
-            will exist on other platforms too. We use the system version
-            of pefile in preference, but have an inline copy as a fallback
-            too.
+    Notes:
+        Use of this is obviously only for Windows, although the module
+        will exist on other platforms too. We use the system version
+        of pefile in preference, but have an inline copy as a fallback
+        too.
     """
 
     try:
@@ -273,3 +272,28 @@ def getPEFileInformation(filename):
         )
 
     return extracted
+
+
+def callInstallNameTool(filename, old_path, new_path):
+    """ Update the macOS shared library information for a binary or shared library.
+
+    Args:
+        filename - The file to be modified.
+        old_path - The old value that should be changed
+        new_path - The new value that should be changed
+
+    Returns:
+        None
+
+    Notes:
+        This is obviously macOS specific.
+    """
+    result = subprocess.call(
+        ("install_name_tool", "-change", old_path, new_path, filename),
+        stdout=subprocess.PIPE,
+    )
+
+    if result != 0:
+        sys.exit(
+            "Error, call to 'install_name_tool' to fix shared library path failed."
+        )
