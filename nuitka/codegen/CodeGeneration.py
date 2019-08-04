@@ -550,6 +550,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_XRANGE2": generateBuiltinXrange2Code,
         "EXPRESSION_BUILTIN_XRANGE3": generateBuiltinXrange3Code,
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION": generateBuiltinMakeExceptionCode,
+        "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_REF": generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_EXCEPTION_REF": generateExceptionRefCode,
         "EXPRESSION_BUILTIN_ANONYMOUS_REF": generateBuiltinAnonymousRefCode,

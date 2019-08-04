@@ -274,10 +274,10 @@ class ParameterSpec(object):
         return len(self.kw_only_args)
 
 
-# Note: Based loosely on "inspect.getcallargs" with corrections.
 def matchCall(
     func_name,
     args,
+    kw_only_args,
     star_list_arg,
     star_dict_arg,
     num_defaults,
@@ -286,12 +286,33 @@ def matchCall(
     pairs,
     improved=False,
 ):
+    """ Match a call arguments to a signature.
+
+    Args:
+        func_name - Name of the function being matched, used to construct exception texts.
+        args - normal argument names
+        kw_only_args -  keyword only argument names (Python3)
+        star_list_arg - name of star list argument if any
+        star_dict_arg - name of star dict argument if any
+        num_defaults - amount of arguments that have default values
+        num_posonly - amount of arguments that must be given by position
+        positional - tuple of argument values given for simulated call
+        pairs - tuple of pairs arg argument name and argument values
+        improved - (bool) should we give better errors than CPython or not.
+    Returns:
+        Dictionary of argument name to value mappings
+    Notes:
+        Based loosely on "inspect.getcallargs" with corrections.
+    """
+
     # This is of incredible code complexity, but there really is no other way to
     # express this with less statements, branches, or variables.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     assert type(positional) is tuple, positional
     assert type(pairs) in (tuple, list), pairs
+
+    args += kw_only_args
 
     # Make a copy, we are going to modify it.
     pairs = list(pairs)

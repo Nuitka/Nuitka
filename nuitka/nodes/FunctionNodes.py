@@ -691,6 +691,7 @@ class ExpressionFunctionCreation(
             args_dict = matchCall(
                 func_name=self.getName(),
                 args=call_spec.getArgumentNames(),
+                kw_only_args=call_spec.getKwOnlyParameterNames(),
                 star_list_arg=call_spec.getStarListArgumentName(),
                 star_dict_arg=call_spec.getStarDictArgumentName(),
                 num_defaults=call_spec.getDefaultCount(),

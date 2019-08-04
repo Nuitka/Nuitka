@@ -33,7 +33,13 @@ class BuiltinParameterSpec(ParameterSpec):
     __slots__ = ("builtin",)
 
     def __init__(
-        self, name, arg_names, default_count, list_star_arg=None, dict_star_arg=None
+        self,
+        name,
+        arg_names,
+        default_count,
+        list_star_arg=None,
+        dict_star_arg=None,
+        kw_only_args=(),
     ):
         ParameterSpec.__init__(
             self,
@@ -42,12 +48,12 @@ class BuiltinParameterSpec(ParameterSpec):
             ps_list_star_arg=list_star_arg,
             ps_dict_star_arg=dict_star_arg,
             ps_default_count=default_count,
-            ps_kw_only_args=(),
+            ps_kw_only_args=kw_only_args,
         )
 
         self.builtin = getattr(builtins, name)
 
-        assert default_count <= len(arg_names)
+        assert default_count <= len(arg_names + kw_only_args)
 
     def __repr__(self):
         return "<BuiltinParameterSpec %s>" % self.name
@@ -172,9 +178,20 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
         return self.builtin(*arg_list)
 
 
+class BuiltinParameterSpecExceptionsKwOnly(BuiltinParameterSpec):
+    def __init__(self, exception_name, kw_only_args):
+        BuiltinParameterSpec.__init__(
+            self,
+            name=exception_name,
+            arg_names=(),
+            default_count=len(kw_only_args),  # For exceptions, they will be required.
+            list_star_arg="args",
+            kw_only_args=kw_only_args,
+        )
+
+
 class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
     def __init__(self, exception_name):
-        # TODO: Parameter default_count makes no sense for exceptions probably.
         BuiltinParameterSpec.__init__(
             self,
             name=exception_name,
@@ -191,6 +208,26 @@ class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
 
     def getCallableName(self):
         return "exceptions." + self.getName()
+
+
+def makeBuiltinExceptionParameterSpec(exception_name):
+    """ Factory function to create parameter spec for an exception from its name.
+
+    Args:
+        exception_name - (str) name of the built-in exception
+
+    Returns:
+        ParameterSpec that can be used to evaluate calls of these exceptions.
+    """
+    if exception_name == "ImportError" and python_version >= 300:
+        # This is currently the only known built-in exception that does it, but let's
+        # be general, as surely that list is going to expand only.
+
+        return BuiltinParameterSpecExceptionsKwOnly(
+            exception_name=exception_name, kw_only_args=("name", "path")
+        )
+    else:
+        return BuiltinParameterSpecExceptions(exception_name=exception_name)
 
 
 class BuiltinParameterSpecPosArgs(BuiltinParameterSpec):
@@ -220,15 +257,6 @@ class BuiltinParameterSpecPosArgs(BuiltinParameterSpec):
 
     def getPositionalOnlyCount(self):
         return self.positional_only
-
-
-def makeBuiltinExceptionParameterSpec(exception_name):
-    if exception_name == "ImportError" and python_version >= 300:
-        # TODO: Create this beast, needs keyword only arguments to be supported,
-        # currently user of this function must take care to not have them.
-        pass
-
-    return BuiltinParameterSpecExceptions(exception_name=exception_name)
 
 
 if python_version < 370:
@@ -588,6 +616,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
         args_dict = matchCall(
             func_name=builtin_spec.getName(),
             args=builtin_spec.getArgumentNames(),
+            kw_only_args=builtin_spec.getKwOnlyParameterNames(),
             star_list_arg=builtin_spec.getStarListArgumentName(),
             star_dict_arg=builtin_spec.getStarDictArgumentName(),
             num_defaults=builtin_spec.getDefaultCount(),
@@ -609,6 +638,8 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
             side_effects=node.extractSideEffectsPreCall(),
         )
 
+    # Using list reference for passing the arguments without names where it
+    # it possible, otherwise dictionary to make those distinuishable.
     args_list = []
 
     for argument_name in builtin_spec.getArgumentNames():
@@ -619,6 +650,9 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
 
     if builtin_spec.getStarDictArgumentName() is not None:
         args_list.append(args_dict[builtin_spec.getStarDictArgumentName()])
+
+    for argument_name in builtin_spec.getKwOnlyParameterNames():
+        args_list.append(args_dict[argument_name])
 
     # Using list reference for passing the arguments without names,
     result = builtin_class(*args_list, source_ref=node.getSourceReference())
