@@ -1104,7 +1104,7 @@ def zip_extractor(node):
                         constant=str(i + 1), source_ref=source_ref
                     ),
                     source_ref=source_ref,
-                ).asStatement(),
+                ),
                 source_ref=source_ref,
             )
             for i, _ in enumerate(zip_arg_variables)
