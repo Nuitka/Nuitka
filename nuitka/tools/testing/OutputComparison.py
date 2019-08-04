@@ -72,7 +72,7 @@ tempfile_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 
 
 def normalizeTimeDiff(outputStr):
-    '''
+    """
     use regular expression to normalize the time output
 
     e.g.
@@ -80,11 +80,15 @@ def normalizeTimeDiff(outputStr):
 
     becomes
     =================== 1059 passed, 8 warnings in x.xx seconds ===================
-    '''
+    """
 
     matchObj = re.search(b"in [0-9]+.[0-9][0-9] seconds", outputStr)
     if matchObj:
-        return outputStr[:matchObj.start()] + b"in x.xx seconds" +outputStr[matchObj.end():]
+        return (
+            outputStr[: matchObj.start()]
+            + b"in x.xx seconds"
+            + outputStr[matchObj.end() :]
+        )
     return outputStr
 
 
@@ -222,7 +226,9 @@ def compareOutput(
     diff = difflib.unified_diff(
         makeDiffable(out_cpython, ignore_warnings, ignore_infos, syntax_errors),
         makeDiffable(out_nuitka, ignore_warnings, ignore_infos, syntax_errors),
-        "{program} ({detail})".format(program=os.environ["PYTHON"] if "PYTHON" in os.environ else "python", detail=kind),
+        "{program} ({detail})".format(
+            program=os.environ.get("PYTHON", "python"), detail=kind
+        ),
         "{program} ({detail})".format(program="nuitka", detail=kind),
         fromdate,
         todate,

@@ -51,7 +51,6 @@ def flushStdout():
     sys.stdout.flush()
 
 
-
 def my_print(*args, **kwargs):
     """ Make sure we flush after every print.
 
@@ -62,25 +61,27 @@ def my_print(*args, **kwargs):
 
     if "style" in kwargs:
         if kwargs["style"] == "pink":
-            style = '\033[95m'
+            style = "\033[95m"
         elif kwargs["style"] == "blue":
-            style = '\033[94m'
+            style = "\033[94m"
         elif kwargs["style"] == "green":
-            style = '\033[92m'
+            style = "\033[92m"
         elif kwargs["style"] == "yellow":
-            style = '\033[93m'
+            style = "\033[93m"
         elif kwargs["style"] == "red":
-            style = '\033[91m'
+            style = "\033[91m"
         elif kwargs["style"] == "bold":
-            style = '\033[1m'
+            style = "\033[1m"
         elif kwargs["style"] == "underline":
-            style = '\033[4m'
+            style = "\033[4m"
         else:
-            raise ValueError("%s is an invalid value for keyword argument style" % kwargs["style"])
+            raise ValueError(
+                "%s is an invalid value for keyword argument style" % kwargs["style"]
+            )
 
         del kwargs["style"]
 
-        print(style, *(args + ('\033[0m',)), **kwargs)
+        print(style, *(args + ("\033[0m",)), **kwargs)
 
     else:
         print(*args, **kwargs)

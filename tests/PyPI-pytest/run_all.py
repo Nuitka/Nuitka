@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Tommy Li, mailto:tommyli3318@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -44,17 +44,11 @@ sys.path.insert(
 
 # isort:start
 
+import nuitka
+from nuitka.tools.testing.Common import createSearchMode, my_print, reportSkip
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
-from nuitka.tools.testing.Common import (
-    createSearchMode,
-    my_print,
-    reportSkip,
-)
 from nuitka.utils.AppDirs import getCacheDir
-import nuitka
-
-
 
 # TODO: Get closer to 50 items :)
 
@@ -64,198 +58,161 @@ packages = {
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "attrs": {
         "url": "https://github.com/python-attrs/attrs.git",
         "requirements_file": None,
         "ignored_tests": None,
         "package_name": "attr",
     },
-
     "cachetools": {
         "url": "https://github.com/tkem/cachetools.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "chardet": {
         "url": "https://github.com/chardet/chardet.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "click": {
         "url": "https://github.com/pallets/click.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "colorama": {
         "url": "https://github.com/tartley/colorama.git",
         "requirements_file": "requirements-dev.txt",
         "ignored_tests": None,
     },
-
     "cryptography": {
         "url": "https://github.com/pyca/cryptography.git",
         "requirements_file": "dev-requirements.txt",
         "ignored_tests": None,
     },
-
     "dateutil": {
         "url": "https://github.com/dateutil/dateutil.git",
         "requirements_file": "requirements-dev.txt",
         "ignored_tests": None,
     },
-
     "decorator": {
         "url": "https://github.com/micheles/decorator.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "flask": {
         "url": "https://github.com/pallets/flask.git",
         "requirements_file": None,
-        "ignored_tests": (
-            "tests/test_instance_config.py",
-        )
+        "ignored_tests": ("tests/test_instance_config.py",),
     },
-
     "google-auth": {
         "url": "https://github.com/googleapis/google-auth-library-python.git",
         "requirements_file": None,
         "ignored_tests": None,
         "package_name": "google",
     },
-
     "idna": {
         "url": "https://github.com/kjd/idna.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "ipaddress": {
         "url": "https://github.com/phihag/ipaddress.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "itsdangerous": {
         "url": "https://github.com/pallets/itsdangerous.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "jinja2": {
         "url": "https://github.com/pallets/jinja.git",
         "requirements_file": None,
         "ignored_tests": None,
-        "extra_commands": [
-            "cp LICENSE.rst LICENSE",
-        ]
+        "extra_commands": ["cp LICENSE.rst LICENSE"],
     },
-
     "jmespath": {
         "url": "https://github.com/jmespath/jmespath.py.git",
         "requirements_file": "requirements.txt",
         "ignored_tests": None,
     },
-
     "markupsafe": {
         "url": "https://github.com/pallets/markupsafe.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "numpy": {
         "url": "https://github.com/numpy/numpy.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "pandas": {
         "url": "https://github.com/pandas-dev/pandas.git",
         "requirements_file": "requirements-dev.txt",
         "ignored_tests": None,
     },
-
     "pyasn1": {
         "url": "https://github.com/etingof/pyasn1.git",
         "requirements_file": "requirements.txt",
         "ignored_tests": None,
     },
-
     "pycparser": {
         "url": "https://github.com/eliben/pycparser.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "pyparsing": {
         "url": "https://github.com/pyparsing/pyparsing.git",
         "requirements_file": "requirements-dev.txt",
         "ignored_tests": None,
     },
-
     "pytz": {
         "url": "https://github.com/stub42/pytz.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "pyyaml": {
         "url": "https://github.com/yaml/pyyaml.git",
         "requirements_file": None,
         "ignored_tests": None,
         "package_name": "yaml",
     },
-
     "requests": {
         "url": "https://github.com/kennethreitz/requests.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "rsa": {
         "url": "https://github.com/sybrenstuvel/python-rsa.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "simplejson": {
         "url": "https://github.com/simplejson/simplejson.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
     "urllib3": {
         "url": "https://github.com/urllib3/urllib3.git",
         "requirements_file": "dev-requirements.txt",
-        "ignored_tests": (
-            "test/test_no_ssl.py",
-        )
+        "ignored_tests": ("test/test_no_ssl.py",),
     },
-
     "werkzeug": {
         "url": "https://github.com/pallets/werkzeug.git",
         "requirements_file": None,
         "ignored_tests": None,
     },
-
 }
 
 
-
 def main():
-    # pylint: disable=too-many-locals,too-many-branches,too-many-statements,broad-except
+    # pylint: disable=broad-except,too-many-branches,too-many-locals,too-many-statements
 
     cache_dir = os.path.join(getCacheDir(), "pypi-git-clones")
     base_dir = os.getcwd()
 
     if not os.path.isdir(cache_dir):
         os.mkdir(cache_dir)
-
 
     search_mode = createSearchMode()
 
@@ -268,14 +225,11 @@ def main():
             continue
 
         if os.name == "nt":
-            if package_name in (
-                "cryptography",
-            ):
+            if package_name in ("cryptography",):
                 reportSkip("Not working on Windows", ".", package_name)
                 if search_mode.abortIfExecuted():
                     break
                 continue
-
 
         if package_name == "pyyaml":
             reportSkip("Not yet supported, see Issue #476", ".", package_name)
@@ -283,41 +237,28 @@ def main():
                 break
             continue
 
-
-        if package_name in (
-            "decorator",
-            "ipaddress",
-            "pyparsing",
-        ):
+        if package_name in ("decorator", "ipaddress", "pyparsing"):
             reportSkip("Not yet supported, see Issue #479", ".", package_name)
             if search_mode.abortIfExecuted():
                 break
             continue
 
-
-        if package_name in (
-            "pycparser",
-            "numpy",
-        ):
+        if package_name in ("pycparser", "numpy"):
             reportSkip("Not yet supported, see Issue #477", ".", package_name)
             if search_mode.abortIfExecuted():
                 break
             continue
 
-
-        if package_name in (
-            "pytz", # indirect usage of distutils
-        ):
+        if package_name in ("pytz",):  # indirect usage of distutils
             reportSkip("Not yet supported", ".", package_name)
             if search_mode.abortIfExecuted():
                 break
             continue
 
-
         if package_name in (
-            "google-auth", # bdist_nuitka fails AttributeError: single_version_externally_managed
-            "jinja2", # ModuleNotFoundError: No module named 'jinja2.tests'
-            "pandas", # python setup.py egg_info fails
+            "google-auth",  # bdist_nuitka fails AttributeError: single_version_externally_managed
+            "jinja2",  # ModuleNotFoundError: No module named 'jinja2.tests'
+            "pandas",  # python setup.py egg_info fails
         ):
             if search_mode.abortIfExecuted():
                 break
@@ -328,10 +269,20 @@ def main():
         try:
             os.chdir(cache_dir)
             # update package if existing, else clone
-            if not os.system("cd %s && git fetch && git reset --hard origin && git clean -dfx" % package_name) == 0:
-                assert os.system("git clone %s %s --depth 1 --single-branch --no-tags" % \
-                    (details["url"], package_name)) == 0, \
-                    "Error while git cloning package %s, aborting..." % package_name
+            if (
+                not os.system(
+                    "cd %s && git fetch && git reset --hard origin && git clean -dfx"
+                    % package_name
+                )
+                == 0
+            ):
+                assert (
+                    os.system(
+                        "git clone %s %s --depth 1 --single-branch --no-tags"
+                        % (details["url"], package_name)
+                    )
+                    == 0
+                ), ("Error while git cloning package %s, aborting..." % package_name)
 
             os.chdir(base_dir)
             with withVirtualenv("venv_%s" % package_name, delete=True) as venv:
@@ -352,27 +303,24 @@ def main():
 
                 if details["requirements_file"]:
                     cmds += [
-                        "python -m pip install -r %s" % details["requirements_file"],
+                        "python -m pip install -r %s" % details["requirements_file"]
                     ]
 
                 if details.get("extra_commands"):
                     cmds += details["extra_commands"]
 
                 # build uncompiled .whl
-                cmds += [
-                    "python setup.py bdist_wheel",
-                ]
+                cmds += ["python setup.py bdist_wheel"]
 
-                venv.runCommand(
-                    commands=cmds
-                )
+                venv.runCommand(commands=cmds)
 
                 # install and print out if the active .whl is compiled or not
                 venv.runCommand(
                     commands=[
-                        "python -m pip install -U %s" % os.path.join(dist_dir, os.listdir(dist_dir)[0]),
-                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" \
-                            % details.get("package_name", package_name),
+                        "python -m pip install -U %s"
+                        % os.path.join(dist_dir, os.listdir(dist_dir)[0]),
+                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))"
+                        % details.get("package_name", package_name),
                     ]
                 )
 
@@ -384,31 +332,24 @@ def main():
                     ]
                 )
 
-
                 # clean up before building compiled .whl
-                cmds = [
-                    "cd %s" % package_dir,
-                    "git clean -dfx",
-                ]
+                cmds = ["cd %s" % package_dir, "git clean -dfx"]
 
                 if details.get("extra_commands"):
                     cmds += details["extra_commands"]
 
                 # build nuitka compiled .whl
-                cmds += [
-                    "python setup.py bdist_nuitka",
-                ]
+                cmds += ["python setup.py bdist_nuitka"]
 
-                venv.runCommand(
-                    commands=cmds
-                )
+                venv.runCommand(commands=cmds)
 
                 # install and print out if the active .whl is compiled or not
                 venv.runCommand(
                     commands=[
-                        "python -m pip install -U %s" % os.path.join(dist_dir, os.listdir(dist_dir)[0]),
-                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" \
-                            % details.get("package_name", package_name),
+                        "python -m pip install -U %s"
+                        % os.path.join(dist_dir, os.listdir(dist_dir)[0]),
+                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))"
+                        % details.get("package_name", package_name),
                     ]
                 )
 
@@ -420,24 +361,20 @@ def main():
                     ]
                 )
 
-                venv.runCommand(
-                    commands=[
-                        "cd %s" % package_dir,
-                        "git clean -dfx",
-                    ]
-                )
-
+                venv.runCommand(commands=["cd %s" % package_dir, "git clean -dfx"])
 
         except Exception as e:
-            my_print("Package", package_name, "ran into an exception during execution, traceback: ")
+            my_print(
+                "Package",
+                package_name,
+                "ran into an exception during execution, traceback: ",
+            )
             my_print(e)
-            results.append((package_name,"ERROR","ERROR"))
+            results.append((package_name, "ERROR", "ERROR"))
 
             if search_mode.abortIfExecuted():
                 break
             continue
-
-
 
         # compare outputs
         stdout_diff = compareOutput(
@@ -458,11 +395,9 @@ def main():
             syntax_errors=True,
         )
 
-
-        results.append((package_name,stdout_diff,stderr_diff))
+        results.append((package_name, stdout_diff, stderr_diff))
 
         exit_code = stdout_diff or stderr_diff
-
 
         my_print(
             "\n=================================================================================",
@@ -471,14 +406,16 @@ def main():
             stdout_diff,
             "exit_stderr:",
             stderr_diff,
-            "\nError, outputs differed for package %s." % package_name if exit_code \
-                else "\nNo differences found for package %s." % package_name,
+            "\nError, outputs differed for package %s." % package_name
+            if exit_code
+            else "\nNo differences found for package %s." % package_name,
             "\n=================================================================================\n",
-            style="red" if exit_code else "green"
+            style="red" if exit_code else "green",
         )
 
-
-        if exit_code != 0 and search_mode.abortOnFinding(dirname=None, filename=package_name):
+        if exit_code != 0 and search_mode.abortOnFinding(
+            dirname=None, filename=package_name
+        ):
             break
 
         if search_mode.abortIfExecuted():
@@ -486,11 +423,10 @@ def main():
 
     search_mode.finish()
 
-
     # give a summary of all packages
     my_print(
         "\n\n=====================================SUMMARY=====================================",
-        style="yellow"
+        style="yellow",
     )
 
     for package_name, stdout_diff, stderr_diff in results:
@@ -498,53 +434,38 @@ def main():
             package_name,
             "-",
             end=" ",
-            style="red" if (stdout_diff or stderr_diff) else "green"
+            style="red" if (stdout_diff or stderr_diff) else "green",
         )
 
         my_print(
-            "stdout:",
-            stdout_diff,
-            end=" ",
-            style="red" if stdout_diff else "green"
+            "stdout:", stdout_diff, end=" ", style="red" if stdout_diff else "green"
         )
 
         my_print(
-            "stderr:",
-            stderr_diff,
-            end="",
-            style="red" if stderr_diff else "green"
+            "stderr:", stderr_diff, end="", style="red" if stderr_diff else "green"
         )
 
-        my_print("\n---------------------------------------------------------------------------------")
+        my_print(
+            "\n---------------------------------------------------------------------------------"
+        )
 
-
-    my_print(
-        "TOTAL NUMBER OF PACKAGES TESTED: %s" % len(results),
-        style="yellow"
-    )
+    my_print("TOTAL NUMBER OF PACKAGES TESTED: %s" % len(results), style="yellow")
 
     num_failed = 0
     num_errors = 0
-    for _,y,z in results:
+    for _, y, z in results:
         if type(y) is str:
             num_errors += 1
         elif y or z:
             num_failed += 1
 
     my_print(
-        "TOTAL PASSED: %s" % (len(results) - num_failed - num_errors),
-        style="green"
+        "TOTAL PASSED: %s" % (len(results) - num_failed - num_errors), style="green"
     )
 
-    my_print(
-        "TOTAL FAILED (differences): %s" % num_failed,
-        style="red"
-    )
+    my_print("TOTAL FAILED (differences): %s" % num_failed, style="red")
 
-    my_print(
-        "TOTAL ERRORS (exceptions): %s" % num_errors,
-        style="red"
-    )
+    my_print("TOTAL ERRORS (exceptions): %s" % num_errors, style="red")
 
 
 if __name__ == "__main__":
