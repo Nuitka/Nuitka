@@ -1042,8 +1042,6 @@ def zip_extractor(node):
             for call_arg, zip_arg_variable in zip(call_args, zip_arg_variables)
         ]
 
-        # assert False, statements[-1].asXmlText()
-
         zip_iter_variables = [
             outline_body.allocateTempVariable(
                 temp_scope=None, name="zip_iter_%d" % (i + 1)
@@ -1052,34 +1050,33 @@ def zip_extractor(node):
         ]
 
         # Add check for all argument if they are iterable
-        statements += [
-            makeStatementConditional(
-                condition=ExpressionAttributeCheck(
-                    object_arg=ExpressionTempVariableRef(
-                        variable=zip_arg_variable, source_ref=source_ref
-                    ),
-                    attribute_name="__iter__",
-                    source_ref=source_ref,
-                ),
-                yes_branch=None,
-                # This should become the exception
-                # handle for TypeError
-                no_branch=makeRaiseExceptionExpressionFromTemplate(
-                    exception_type="TypeError",
-                    template="zip argument #%s must support iteration",
-                    template_args=makeConstantRefNode(
-                        constant="1", source_ref=source_ref
-                    ),
-                    source_ref=source_ref,
-                ).asStatement(),
-                source_ref=source_ref,
-            )
-            for zip_arg_variable in zip_arg_variables
-        ]
+        # statements += [
+        #     makeStatementConditional(
+        #         condition=ExpressionAttributeCheck(
+        #             object_arg=ExpressionTempVariableRef(
+        #                 variable=zip_arg_variable, source_ref=source_ref
+        #             ),
+        #             attribute_name="__iter__",
+        #             source_ref=source_ref,
+        #         ),
+        #         yes_branch=None,
+        #         # This should become the exception
+        #         # handle for TypeError
+        #         no_branch=makeRaiseExceptionExpressionFromTemplate(
+        #             exception_type="TypeError",
+        #             template="zip argument #%s must support iteration",
+        #             template_args=makeConstantRefNode(
+        #                 constant=str(i+1), source_ref=source_ref
+        #             ),
+        #             source_ref=source_ref,
+        #         ).asStatement(),
+        #         source_ref=source_ref,
+        #     )
+        #     for i, zip_arg_variable in enumerate(zip_arg_variables)
+        # ]
 
         # Create iterators of all zip arguments.
-        statements += [
-            # makeTryExceptSingleHandlerNode
+        assign_iter_statements = [
             StatementAssignmentVariable(
                 variable=zip_iter_variable,
                 source=ExpressionBuiltinIter1(
@@ -1093,6 +1090,24 @@ def zip_extractor(node):
             for zip_iter_variable, zip_arg_variable in zip(
                 zip_iter_variables, zip_arg_variables
             )
+        ]
+
+        # makeTryExceptSingleHandlerNode
+        statements += [
+            makeTryExceptSingleHandlerNode(
+                tried=assign_iter_statements,
+                exception_name="TypeError",
+                handler_body=makeRaiseExceptionExpressionFromTemplate(
+                    exception_type="TypeError",
+                    template="zip argument #%s must support iteration",
+                    template_args=makeConstantRefNode(
+                        constant=str(i + 1), source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                ).asStatement(),
+                source_ref=source_ref,
+            )
+            for i, _ in enumerate(zip_arg_variables)
         ]
 
         tmp_result = outline_body.allocateTempVariable(
