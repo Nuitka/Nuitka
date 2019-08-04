@@ -15,33 +15,30 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 # TODO: merge with Referencing32, as we do not distinguish with Python3.2 and Python3.3
 # anymore.
 
-import sys, os
+import os
+import sys
 
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
+
+# isort:start
+
+import types
+
 from nuitka.tools.testing.Common import (
+    checkDebugPython,
     executeReferenceChecked,
     someGenerator,
     someGeneratorRaising,
-    checkDebugPython
 )
-
-# isort: start
-
-import types
 
 checkDebugPython()
 
@@ -60,7 +57,7 @@ def simpleFunction1():
         yield from g()
         yield from h()
 
-    x = list( f() )
+    x = list(f())
 
 
 def simpleFunction2():
@@ -80,19 +77,23 @@ def simpleFunction2():
         yield from h()
 
     try:
-        x = list( f() )
+        x = list(f())
     except TypeError:
         pass
+
 
 # Broken iterator class.
 class Broken:
     def __iter__(self):
         return self
+
     def __next__(self):
         return 1
+
     def __getattr__(self, attr):
 
-        1/0
+        1 / 0
+
 
 def simpleFunction3():
     def g():
@@ -103,6 +104,7 @@ def simpleFunction3():
         next(gi)
     except Exception:
         pass
+
 
 def simpleFunction4():
     def g():
@@ -118,26 +120,27 @@ def simpleFunction4():
 
 def simpleFunction5():
     def g():
-        yield from (2,3)
+        yield from (2, 3)
 
-    return list( g() )
+    return list(g())
 
 
 def simpleFunction6():
     def g():
-        yield from (2,3)
+        yield from (2, 3)
 
         return 9
 
-    return list( g() )
+    return list(g())
+
 
 def simpleFunction7():
     def g():
-        yield from (2,3)
+        yield from (2, 3)
 
         return 9, 8
 
-    return list( g() )
+    return list(g())
 
 
 def simpleFunction8():
@@ -187,6 +190,7 @@ class ClassIteratorBrokenClose:
 
     __next__ = next
 
+
 def simpleFunction10():
     def g():
         x = ClassIteratorBrokenClose()
@@ -202,6 +206,7 @@ def simpleFunction10():
         pass
     except TypeError:
         pass
+
 
 class ClassIteratorBrokenThrow:
     def __init__(self):
@@ -248,7 +253,7 @@ class ClassIteratorRejectingThrow:
 
     def throw(self, *args):
         # Some Python3.4 versions do normalize exceptions.
-        assert len(args) == 1 or sys.version_info < (3,5)
+        assert len(args) == 1 or sys.version_info < (3, 5)
 
     __next__ = next
 
@@ -256,7 +261,9 @@ class ClassIteratorRejectingThrow:
 # Lets have an exception that must not be instantiated.
 class MyError(Exception):
     def __init__(self):
+        # pylint: disable=super-init-not-called
         assert False
+
 
 def simpleFunction12():
     def g():
@@ -277,10 +284,10 @@ tests_stderr = (3, 4)
 tests_skipped = {}
 
 result = executeReferenceChecked(
-    prefix        = "simpleFunction",
-    names         = globals(),
-    tests_skipped = tests_skipped,
-    tests_stderr  = tests_stderr
+    prefix="simpleFunction",
+    names=globals(),
+    tests_skipped=tests_skipped,
+    tests_stderr=tests_stderr,
 )
 
 sys.exit(0 if result else 1)

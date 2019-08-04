@@ -15,7 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 print(u"gfcrk")
 print(repr(u"g\xfcrk"))
 
@@ -23,11 +22,13 @@ print(r"""\x00""")
 
 print("\ttest\n")
 
-print("""
+print(
+    """
 something
 with
 new
-lines""")
+lines"""
+)
 
 print(u"favicon.ico (32\xd732)")
 

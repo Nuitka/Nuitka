@@ -17,10 +17,12 @@
 #
 from __future__ import print_function
 
+
 def localImporter1():
     import os
 
     return os
+
 
 def localImporter1a():
     import os as my_os_name
@@ -33,10 +35,12 @@ def localImporter2():
 
     return path
 
+
 def localImporter2a():
     from os import path as renamed
 
     return renamed
+
 
 print("Direct module import", localImporter1())
 print("Direct module import using rename", localImporter1a())
@@ -44,13 +48,14 @@ print("Direct module import using rename", localImporter1a())
 print("From module import", localImporter2())
 print("From module import using rename", localImporter2a())
 
-from os import *
+from os import *  # isort:skip
 
 print("Star import gave us", path)
 
-import os.path as myname
+import os.path as myname  # isort:skip
 
 print("As import gave", myname)
+
 
 def localImportFailure():
     try:
@@ -61,12 +66,14 @@ def localImportFailure():
     try:
         print(listdir)
     except UnboundLocalError:
-        print("and listdir was not imported", end = ' ')
+        print("and listdir was not imported", end=" ")
 
     print("but path was", path)
 
-print("From import that fails in the middle", end = ' ')
+
+print("From import that fails in the middle", end=" ")
 localImportFailure()
+
 
 def nonPackageImportFailure():
     try:
@@ -75,18 +82,21 @@ def nonPackageImportFailure():
     except Exception as e:
         print(type(e), repr(e))
 
-print("Package import fails in non-package:", end = ' ')
+
+print("Package import fails in non-package:", end=" ")
 nonPackageImportFailure()
+
 
 def importBuiltinTupleFailure():
     try:
-        value = "something",
+        value = ("something",)
         # Not allowed to not be constant string, optimization might be fooled
         # though.
         __import__(value)
     except Exception as e:
         print(type(e), repr(e))
 
-print("The __import__ built-in optimization can handle tuples:", end = ' ')
+
+print("The __import__ built-in optimization can handle tuples:", end=" ")
 
 importBuiltinTupleFailure()

@@ -15,8 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-
 def someFunctionThatReturnsDeletedValueViaLong():
     class C:
         def __int__(self):
@@ -65,7 +63,6 @@ def someFunctionThatReturnsDeletedValueViaCompare():
             return 0
 
     c = C()
-
 
     a = [1]
     c < None

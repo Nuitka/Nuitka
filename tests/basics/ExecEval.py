@@ -15,16 +15,20 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-import tempfile, sys, os
+import os
+import sys
+import tempfile
 
 print "eval 3+3=", eval("3+3")
 print "eval  4+4=", eval(" 4+4")
 
+
 def functionEval1():
     return eval(" 5+5")
 
+
 print "eval in a function with nothing provided", functionEval1()
+
 
 def functionEval2():
     a = [2]
@@ -35,7 +39,9 @@ def functionEval2():
 
     return r, g.keys(), a
 
+
 print "eval in a function with globals provided", functionEval2()
+
 
 def functionEval3():
     result = []
@@ -45,19 +51,22 @@ def functionEval3():
 
     return result
 
+
 print "eval in a for loop as iterator giver", functionEval3()
 
 print "exec on a global level",
-exec( "d=2+2" )
-print "2+2=",d  # @UndefinedVariable
+exec ("d=2+2")
+print "2+2=", d  # @UndefinedVariable
+
 
 def functionExec1():
     a = 1
 
     code = "a=2"
-    exec( code )
+    exec (code)
 
     return a
+
 
 def functionExec2():
     a = 1
@@ -67,11 +76,12 @@ def functionExec2():
 
     return a
 
+
 print "exec in function without and with locals() provided:", functionExec1(), functionExec2()
 
 tmp_filename = tempfile.gettempdir() + "/execfile.py"
 
-f = open(tmp_filename, 'w')
+f = open(tmp_filename, "w")
 f.write("e=7\nf=8\n")
 f.close()
 
@@ -79,7 +89,7 @@ execfile(tmp_filename)
 
 print "execfile with defaults f,g=", e, f  # @UndefinedVariable
 
-global_vars = { 'e' : '0', 'f' : 0 }
+global_vars = {"e": "0", "f": 0}
 local_vars = dict(global_vars)
 
 execfile(tmp_filename, global_vars)
@@ -90,11 +100,12 @@ execfile(tmp_filename, global_vars, local_vars)
 
 print "execfile with globals and locals dict:", local_vars
 
+
 def functionExecfile():
     e = 0
     f = 0
 
-    global_vars = { 'e' : '0', 'f' : 0 }
+    global_vars = {"e": "0", "f": 0}
     local_vars = dict(global_vars)
 
     print "execfile with globals and locals dict in a function:",
@@ -102,7 +113,9 @@ def functionExecfile():
     print x,
     print global_vars.keys(), local_vars, e, f
 
+
 functionExecfile()
+
 
 class classExecfile:
     e = 0
@@ -117,35 +130,40 @@ class classExecfile:
 
 f = 7
 
+
 def functionExecNonesTuple():
     f = 0
 
-    exec("f=1", None, None)
+    exec ("f=1", None, None)
     print "Exec with None as optimizable tuple args did update locals:", f
+
 
 def functionExecNonesSyntax():
     f = 0
     exec "f=2" in None, None
     print "Exec with None as optimizable normal args did update locals:", f
 
+
 functionExecNonesTuple()
 functionExecNonesSyntax()
 
 print "Global value is untouched", f
 
+
 def functionEvalNones2():
     f = 11
 
-    code = 'f'
+    code = "f"
     g = None
     l = None
 
-    f1 = eval (code, l, g)
+    f1 = eval(code, l, g)
 
     print "Eval with None arguments from variables did access locals:", f1
 
 
 functionEvalNones2()
+
 
 def functionExecNonesTuple2():
     f = 0
@@ -154,9 +172,10 @@ def functionExecNonesTuple2():
     g = None
     l = None
 
-    exec(code, l, g)
+    exec (code, l, g)
 
     print "Exec with None as tuple args from variable did update locals:", f
+
 
 def functionExecNonesSyntax2():
     f = 0
@@ -188,6 +207,7 @@ print( "3/2 is without future division", 3/2 )
 
 x = 1
 y = 1
+
 
 def functionGlobalsExecShadow():
     global x
@@ -243,7 +263,9 @@ print( "Exec local y is", y )
     print_global_y()
     print "Outside y", y
 
+
 functionGlobalsExecShadow()
+
 
 def functionWithClosureProvidedByExec():
 
@@ -256,9 +278,11 @@ def functionWithClosureProvidedByExec():
 
     func()
 
+
 functionWithClosureProvidedByExec()
 
 x = 2
+
 
 def functionWithExecAffectingClosure():
     x = 4
@@ -273,7 +297,9 @@ def functionWithExecAffectingClosure():
 
     return d, closureMaker()  # @UndefinedVariable
 
+
 print "Closure in a function with exec to not none", functionWithExecAffectingClosure()
+
 
 def generatorFunctionWithExec():
     yield 1
@@ -283,16 +309,20 @@ def generatorFunctionWithExec():
 
     yield y
 
+
 print "Exec in a generator function", tuple(generatorFunctionWithExec())
+
 
 def evalInContractions():
 
-    r1 = list( eval(str(s)) for s in range(3) )
-    r2 = [ eval(str(s)) for s in range(4) ]
+    r1 = list(eval(str(s)) for s in range(3))
+    r2 = [eval(str(s)) for s in range(4)]
 
     return r1, r2
 
+
 print "Eval in a list contraction or generator expression", evalInContractions()
+
 
 def execDefinesFunctionToLocalsExplicity():
     exec """\
@@ -307,6 +337,7 @@ def makeAddPair(a, b):
 
     return "yes"
 
+
 print "Exec adds functions declares in explicit locals() given.", execDefinesFunctionToLocalsExplicity()
 
 os.unlink(tmp_filename)
@@ -314,13 +345,15 @@ os.unlink(tmp_filename)
 
 def execWithShortTuple():
     try:
-        exec("print hey",)
+        exec ("print hey",)
     except Exception as e:
         return "gives exception: " + repr(e)
+
 
 print "Exec with too short tuple argument:", execWithShortTuple()
 
 if str is not bytes:
+
     def evalMemoryView(value):
         return eval(memoryview(value))
 

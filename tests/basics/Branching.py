@@ -19,6 +19,7 @@
 
 from __future__ import print_function
 
+
 def branchingFunction(a, b, c):
     print("branchingFunction:", a, b, c)
 
@@ -78,7 +79,7 @@ def branchingFunction(a, b, c):
 
     print("or condition in braces:")
     q = "NO"
-    if (a or b):
+    if a or b:
         q = "YES"
     print("(a or b) ->", q)
 
@@ -97,8 +98,8 @@ def branchingFunction(a, b, c):
     print("not (b or b)", q)
 
     print("Expression a or b", a or b)
-    print("Expression not(a or b)", not(a or b))
-    print("Expression a and (b+5)", a and (b+5))
+    print("Expression not(a or b)", not (a or b))
+    print("Expression a and (b+5)", a and (b + 5))
 
     print("Expression (b if b else 2)", (b if b else 2))
     print("Expression (a and (b if b else 2))", (a and (b if b else 2)))
@@ -110,7 +111,7 @@ def branchingFunction(a, b, c):
 
     print("Nested if chain with outer else:")
 
-    d=1
+    d = 1
 
     if a:
         if b or c:
@@ -121,16 +122,17 @@ def branchingFunction(a, b, c):
         print("outer else")
 
     print("Complex conditional expression:")
-    v = (3 if a-1 else 0) or \
-        (b or (c*2 if c else 6) if b-1 else a and b and c)
+    v = (3 if a - 1 else 0) or (b or (c * 2 if c else 6) if b - 1 else a and b and c)
     print(v)
 
     if True:
         print("Predictable branch taken")
 
-branchingFunction(1,0,3)
+
+branchingFunction(1, 0, 3)
 
 x = 3
+
 
 def optimizationVictim():
 
@@ -146,8 +148,11 @@ def optimizationVictim():
 
 optimizationVictim()
 
+
 def dontOptimizeSideEffects():
-    print("Lets see, if conditional expression in known true values are correctly handled:")
+    print(
+        "Lets see, if conditional expression in known true values are correctly handled:"
+    )
 
     def returnTrue():
         print("function 'returnTrue' was called as expected")
@@ -163,7 +168,9 @@ def dontOptimizeSideEffects():
     else:
         print("Bad branch taken.")
 
+
 dontOptimizeSideEffects()
+
 
 def dontOptimizeTruthCheck():
     class A:
@@ -177,8 +184,9 @@ def dontOptimizeTruthCheck():
     if a:
         pass
 
+
 try:
-    print("Check that branch conditions are not optimized way: ", end = "")
+    print("Check that branch conditions are not optimized way: ", end="")
     dontOptimizeTruthCheck()
     print("FAIL.")
 except ValueError:

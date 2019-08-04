@@ -19,8 +19,10 @@
 
 from __future__ import print_function
 
+
 def one():
     return 1
+
 
 def tryScope1(x):
     try:
@@ -38,9 +40,11 @@ def tryScope1(x):
     else:
         print("No exception occurred")
 
+
 tryScope1(1)
-print('*' * 20)
+print("*" * 20)
 tryScope1([1])
+
 
 def tryScope2(x, someExceptionClass):
     try:
@@ -49,6 +53,7 @@ def tryScope2(x, someExceptionClass):
         print("Exception class from argument occurred:", someExceptionClass, repr(e))
     else:
         print("No exception occurred")
+
 
 def tryScope3(x):
     if x:
@@ -60,18 +65,19 @@ def tryScope3(x):
         print("Not taken")
 
 
-print('*' * 20)
+print("*" * 20)
 
 tryScope2(1, TypeError)
 tryScope2([1], TypeError)
 
-print('*' * 20)
+print("*" * 20)
 
 tryScope3(1)
 tryScope3([1])
 tryScope3([])
 
-print('*' * 20)
+print("*" * 20)
+
 
 def tryScope4(x):
     try:
@@ -83,8 +89,10 @@ def tryScope4(x):
     finally:
         print("finally obeyed")
 
+
 tryScope4(1)
 tryScope4([1])
+
 
 def tryScope5():
     import sys
@@ -97,5 +105,6 @@ def tryScope5():
             print("Exception info in 'finally' clause is", sys.exc_info())
     except:
         pass
+
 
 tryScope5()

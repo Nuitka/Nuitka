@@ -32,19 +32,13 @@ import sys
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
-)
-from nuitka.tools.testing.Common import (
-    executeReferenceChecked,
-    checkDebugPython
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
 
 # isort:start
+
+from nuitka.tools.testing.Common import checkDebugPython, executeReferenceChecked
 
 checkDebugPython()
 
@@ -52,8 +46,10 @@ checkDebugPython()
 def simpleFunction1():
     def abc(*, _exc=IOError):
         pass
+
     for _ in range(100):
         abc()
+
 
 def simpleFunction2():
     def abc(*, exc=IOError):
@@ -63,6 +59,7 @@ def simpleFunction2():
         abc()
     except (ValueError, TypeError):
         pass
+
 
 def simpleFunction3():
     try:
@@ -74,11 +71,12 @@ def simpleFunction3():
             pass
 
         try:
-            raise ClassA('foo')
+            raise ClassA("foo")
         except ClassA as e1:
             raise ClassB(str(e1)) from e1
-    except Exception: # different to Nuitka, pylint: disable=broad-except
+    except Exception:  # different to Nuitka, pylint: disable=broad-except
         pass
+
 
 def simpleFunction4():
     a = 1
@@ -86,17 +84,18 @@ def simpleFunction4():
     def nonlocal_writer():
         nonlocal a
 
-        for a in range(10): # false alarm, pylint: disable=unused-variable
+        for a in range(10):  # false alarm, pylint: disable=unused-variable
             pass
 
     nonlocal_writer()
 
     assert a == 9, a
 
+
 def simpleFunction5():
     x = 2
 
-    def local_func(_a: int, _b: x*x):
+    def local_func(_a: int, _b: x * x):
         pass
 
     local_func(x, x)
@@ -126,8 +125,9 @@ def simpleFunction6():
             inner_raising_func()
         except:
             raise KeyError
-    except KeyError as e: # on purpose, pylint: disable=unused-variable
+    except KeyError as e:  # on purpose, pylint: disable=unused-variable
         pass
+
 
 range_low = 0
 range_high = 256
@@ -136,21 +136,25 @@ range_step = 13
 
 def simpleFunction7():
     # Make sure xranges work nicely
-    return range(range_low,range_high,range_step)
+    return range(range_low, range_high, range_step)
+
 
 def simpleFunction8():
     # Make sure xranges work nicely
-    return range(range_low,range_high)
+    return range(range_low, range_high)
+
 
 def simpleFunction9():
     # Make sure xranges work nicely
     return range(range_high)
 
+
 def simpleFunction10():
-    def f(_x : int ) -> int:
+    def f(_x: int) -> int:
         pass
 
     return f
+
 
 def simpleFunction11():
     try:
@@ -160,7 +164,6 @@ def simpleFunction11():
         assert e.path == "lala"
 
 
-
 # These need stderr to be wrapped.
 tests_stderr = ()
 
@@ -168,10 +171,10 @@ tests_stderr = ()
 tests_skipped = {}
 
 result = executeReferenceChecked(
-    prefix        = "simpleFunction",
-    names         = globals(),
-    tests_skipped = tests_skipped,
-    tests_stderr  = tests_stderr
+    prefix="simpleFunction",
+    names=globals(),
+    tests_skipped=tests_skipped,
+    tests_stderr=tests_stderr,
 )
 
 sys.exit(0 if result else 1)

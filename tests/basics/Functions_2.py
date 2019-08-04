@@ -17,24 +17,31 @@
 #
 from __future__ import print_function
 
-def local_function(a,z = 9):
-    b = `a*a+1`
 
-    c = (a,b,a**32,a+a)
+def local_function(a, z=9):
+    b = ` a * a + 1 `
 
-    d = long('0')  # @UnusedVariable
+    c = (a, b, a ** 32, a + a)
+
+    d = long("0")  # @UnusedVariable
     e = int("77")  # @UnusedVariable
 
     d = long(b)
-    e = long(1+1)
+    e = long(1 + 1)
 
     return a, b, c, d, e, z
 
-print("Call function with many variables calculated and returned", local_function(1,z = 5))
+
+print(
+    "Call function with many variables calculated and returned", local_function(1, z=5)
+)
 
 print("Function with nested args:")
-def nested_args_function((a,b), c):
+
+
+def nested_args_function((a, b), c):
     return a, b, c
+
 
 print(nested_args_function((1, 2), 3))
 
@@ -48,12 +55,15 @@ try:
 except ValueError, e:
     print("Calling nested with too short tuple gave:", e)
 
-def deeply_nested_function(((a,), b, c,  (d, (e,f)))):
+
+def deeply_nested_function(((a,), b, c, (d, (e, f)))):
     return a, b, c, d, e, f
+
 
 print("Deeply nested function", deeply_nested_function(((1,), 2, 3, (4, (5, 6)))))
 
 print("Function with nested args that have defaults:")
+
 
 def default_giver():
     class R:
@@ -63,22 +73,36 @@ def default_giver():
 
     return R()
 
-def nested_args_function_with_defaults((a,b) = default_giver(), c = 5):
+
+def nested_args_function_with_defaults((a, b)=default_giver(), c=5):
     return a, b, c
+
 
 print("Calling it.")
 print(nested_args_function_with_defaults())
 
-def comp_args1((a, b)):
-    return a,b
 
-def comp_args2((a, b) = (3, 4)):
+def comp_args1((a, b)):
     return a, b
+
+
+def comp_args2((a, b)=(3, 4)):
+    return a, b
+
 
 def comp_args3(a, (b, c)):
     return a, b, c
 
-def comp_args4(a = 2, (b, c) = (3, 4)):
+
+def comp_args4(a=2, (b, c)=(3, 4)):
     return a, b, c
 
-print("Complex args functions", comp_args1((2, 1)), comp_args2(), comp_args2((7,9)), comp_args3(7, (8,9)), comp_args4())
+
+print(
+    "Complex args functions",
+    comp_args1((2, 1)),
+    comp_args2(),
+    comp_args2((7, 9)),
+    comp_args3(7, (8, 9)),
+    comp_args4(),
+)

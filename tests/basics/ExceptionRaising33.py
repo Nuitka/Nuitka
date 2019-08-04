@@ -19,6 +19,7 @@ import sys
 
 print("Testing exception changes between generator switches:")
 
+
 def yieldExceptionInteraction():
     def yield_raise():
         try:
@@ -34,5 +35,6 @@ def yieldExceptionInteraction():
     print("Second yield from the catch reentered", next(g))
     print("Checking from outside of generator", sys.exc_info()[0])
     print("After leaving the catch generator yielded", next(g))
+
 
 yieldExceptionInteraction()

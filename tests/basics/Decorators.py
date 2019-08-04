@@ -17,6 +17,7 @@
 #
 from __future__ import print_function
 
+
 def decorator1(f):
     print("Executing decorator 1")
 
@@ -24,6 +25,7 @@ def decorator1(f):
         return f() + 2
 
     return deco_f
+
 
 def decorator2(f):
     print("Executing decorator 2")
@@ -33,32 +35,39 @@ def decorator2(f):
 
     return deco_f
 
+
 # Result of function now depends on correct order of applying the decorators
 @decorator1
 @decorator2
 def function1():
     return 3
 
+
 print(function1())
+
 
 def deco_returner1():
     print("Executing decorator returner D1")
     return decorator1
 
+
 def deco_returner2():
     print("Executing decorator returner D2")
     return decorator2
+
 
 @deco_returner1()
 @deco_returner2()
 def function2():
     return 3
 
+
 print(function2())
 
 # Same as function2, but without decorator syntax.
 def function3():
     return 3
+
 
 function3 = deco_returner1()(deco_returner2()(function3))
 

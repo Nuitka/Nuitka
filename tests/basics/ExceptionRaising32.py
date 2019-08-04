@@ -18,8 +18,9 @@
 def raisy():
     raise ValueError() from None
 
+
 try:
     print("Raising exception in a function 'from None':")
     raisy()
-except (ValueError,TypeError) as e:
+except (ValueError, TypeError) as e:
     print("Caught as", repr(e))

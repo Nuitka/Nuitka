@@ -17,21 +17,23 @@
 #
 from __future__ import print_function
 
+
 def cond():
     return False
 
-def loopingFunction(a = 1*2):
+
+def loopingFunction(a=1 * 2):
     c = []
     f = [c, a]
 
     for a in range(6 or 8):
         for b in range(8):
             if a == b:
-                c.append((a,b,True))
+                c.append((a, b, True))
             elif a < b:
-                c.append((b,a,False))
+                c.append((b, a, False))
             else:
-                c.append((a,b,False))
+                c.append((a, b, False))
 
             if a != b:
                 z = 1
@@ -40,7 +42,6 @@ def loopingFunction(a = 1*2):
 
             if z == 0:
                 continue
-
 
             if z == 1 and b == 6:
                 break
@@ -62,16 +63,16 @@ def loopingFunction(a = 1*2):
     x = [u for u in range(8)]
     print(x)
 
-    x = [(u,v) for (u,v) in zip(range(8),reversed(range(8))) ]
+    x = [(u, v) for (u, v) in zip(range(8), reversed(range(8)))]
     print(x)
 
-    x = [(u if u%2==0 else 0) for u in range(10)]
+    x = [(u if u % 2 == 0 else 0) for u in range(10)]
     print(x)
 
-    x = [(u if u%2==0 else 0) for u in (a if cond() else range(9))]
+    x = [(u if u % 2 == 0 else 0) for u in (a if cond() else range(9))]
     print(x)
 
-    y = [ [ 3+ (l if l else -1) for l in [m,m+1] ] for m in [f for f in range(2)] ]
+    y = [[3 + (l if l else -1) for l in [m, m + 1]] for m in [f for f in range(2)]]
     print("f=", f)
     print("y=", y)
 
@@ -108,7 +109,7 @@ def loopingFunction(a = 1*2):
     if not (m and l):
         print("oki")
 
-    d=1
+    d = 1
     print("Nested if chain with outer else")
     if a:
         if b or c:
@@ -146,5 +147,6 @@ def loopingFunction(a = 1*2):
         pass
     else:
         print("Executed else branch of while loop without break")
+
 
 loopingFunction()

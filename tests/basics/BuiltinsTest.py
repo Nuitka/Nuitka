@@ -23,6 +23,11 @@
 
 from __future__ import print_function
 
+# Patch away "__file__" path in a hard to detect way. This will make sure,
+# repeated calls to locals really get the same dictionary.
+import os
+from math import copysign
+
 
 def someFunctionWritingLocals():
     x = 1
@@ -93,9 +98,6 @@ print("Vars on module level", displayDict(vars()))
 
 module_locals = locals()
 
-# Patch away "__file__" path in a hard to detect way. This will make sure,
-# repeated calls to locals really get the same dictionary.
-import os
 
 module_locals["__file__"] = os.path.basename(module_locals["__file__"])
 del module_locals
@@ -404,7 +406,6 @@ print(
 print([dict(type=int)])
 
 print("nan and -nan sign checks:")
-from math import copysign
 
 print(copysign(1.0, float("nan")))
 print(copysign(1.0, float("-nan")))

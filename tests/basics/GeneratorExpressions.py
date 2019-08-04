@@ -75,9 +75,7 @@ def iteratorCreationTiming():
         print("Usage past end gave StopIteration exception as expected.")
 
         try:
-            print(
-                "Generator state then is", inspect.getgeneratorstate(gen)
-            )
+            print("Generator state then is", inspect.getgeneratorstate(gen))
         except AttributeError:
             pass
 

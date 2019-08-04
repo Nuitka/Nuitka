@@ -55,5 +55,6 @@ try:
         del b
         print(b)
 
+
 except NameError as e:
     print("Expected name error occurred:", repr(e))

@@ -15,24 +15,36 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import sys, os, types
+""" Reference counting tests.
+
+These contain functions that do specific things, where we have a suspect
+that references may be lost or corrupted. Executing them repeatedly and
+checking the reference count is how they are used.
+
+These are Python3.6 specific constructs, that will give a SyntaxError or
+not be relevant on older versions.
+"""
+
+import os
+import sys
 
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
+
+# isort:start
+
+import types
+
 from nuitka.tools.testing.Common import (
-    executeReferenceChecked,
-    checkDebugPython,
     async_iterate,
-    run_async
+    checkDebugPython,
+    executeReferenceChecked,
+    run_async,
 )
 
 checkDebugPython()
@@ -50,7 +62,7 @@ def run_until_complete(coro):
         except StopIteration as ex:
             return ex.args[0]
 
-        if fut == ('throw',):
+        if fut == ("throw",):
             exc = True
 
 
@@ -62,9 +74,9 @@ def simpleFunction1():
             pass
 
     async def run():
-            g = gen1()
-            await g.asend(None)
-            await g.asend(None)
+        g = gen1()
+        await g.asend(None)
+        await g.asend(None)
 
     try:
         run_async(run())
@@ -90,9 +102,9 @@ def simpleFunction2():
 @types.coroutine
 def awaitable(*, throw=False):
     if throw:
-        yield ('throw',)
+        yield ("throw",)
     else:
-        yield ('result',)
+        yield ("result",)
 
 
 async def gen2():
@@ -114,7 +126,6 @@ def simpleFunction3():
             return res
 
         return run_until_complete(iterate())
-
 
     async def run2():
         return to_list(gen2())
@@ -141,18 +152,16 @@ def simpleFunction5():
 
     class C:
         exec("u=2")
-        x : int = 2
-        y : float = 2.0
+        x: int = 2
+        y: float = 2.0
 
-        z = x+y+t*u
+        z = x + y + t * u
 
         rawdata = b"The quick brown fox jumps over the lazy dog.\r\n"
         # Be slow so we don't depend on other modules
         rawdata += bytes(range(256))
 
-
     return C()
-
 
 
 # These need stderr to be wrapped.
@@ -162,10 +171,10 @@ tests_stderr = ()
 tests_skipped = {}
 
 result = executeReferenceChecked(
-    prefix        = "simpleFunction",
-    names         = globals(),
-    tests_skipped = tests_skipped,
-    tests_stderr  = tests_stderr
+    prefix="simpleFunction",
+    names=globals(),
+    tests_skipped=tests_skipped,
+    tests_stderr=tests_stderr,
 )
 
 sys.exit(0 if result else 1)

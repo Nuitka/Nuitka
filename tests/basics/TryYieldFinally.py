@@ -15,7 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 def tryContinueFinallyTest():
     for x in range(10):
         try:
@@ -24,7 +23,7 @@ def tryContinueFinallyTest():
         finally:
             yield x
 
-        yield '-'
+        yield "-"
 
 
 def tryBreakFinallyTest():
@@ -35,7 +34,8 @@ def tryBreakFinallyTest():
         finally:
             yield x
 
-        yield '-'
+        yield "-"
+
 
 def tryFinallyAfterYield():
     try:
@@ -43,11 +43,13 @@ def tryFinallyAfterYield():
     finally:
         print("Executing finally")
 
+
 def tryReturnFinallyYield():
     try:
         return
     finally:
         yield 1
+
 
 def tryReturnExceptYield():
     try:
@@ -59,6 +61,7 @@ def tryReturnExceptYield():
         yield 1
     else:
         print("No exception")
+
 
 def tryStopIterationExceptYield():
     try:

@@ -15,23 +15,26 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 from __future__ import print_function
+
 
 def testAssert1():
     assert False
 
     return 1
 
+
 def testAssert2():
     assert True
 
     return 1
 
+
 def testAssert3():
     assert False, "argument"
 
     return 1
+
 
 try:
     print("Function that will assert.")
@@ -55,13 +58,13 @@ except Exception as e:
     print("Raised", type(e), e)
 
 try:
-    print("Assertion with tuple argument.", end = "")
+    print("Assertion with tuple argument.", end="")
     assert False, (3,)
 except AssertionError as e:
     print(str(e))
 
 try:
-    print("Assertion with plain argument.", end = "")
+    print("Assertion with plain argument.", end="")
     assert False, 3
 except AssertionError as e:
     print(str(e))

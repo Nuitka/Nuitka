@@ -15,9 +15,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 def functionNoParameters():
     pass
+
 
 print("Call a function with no parameters with a plain argument:")
 
@@ -29,12 +29,14 @@ except TypeError as e:
 print("Call a function with no parameters with a keyword argument:")
 
 try:
-    functionNoParameters(z = 1)
+    functionNoParameters(z=1)
 except TypeError as e:
     print(repr(e))
 
+
 def functionOneParameter(a):
     print(a)
+
 
 print("Call a function with one parameter with two plain arguments:")
 
@@ -45,14 +47,16 @@ except TypeError as e:
 
 print("Call a function with one parameter too many, and duplicate arguments:")
 try:
-    functionOneParameter(6, a = 4, *(1, 2, 3))
+    functionOneParameter(6, a=4, *(1, 2, 3))
 except TypeError as e:
     print(repr(e))
 
 print("Call a function with two parameters with three plain arguments:")
 
+
 def functionTwoParameters(a, b):
     print(a, b)
+
 
 try:
     functionTwoParameters(1, 2, 3)
@@ -77,16 +81,17 @@ except TypeError as e:
 print("Call a function with two parameters with one keyword argument:")
 
 try:
-    functionTwoParameters(a = 1)
+    functionTwoParameters(a=1)
 except TypeError as e:
     print(repr(e))
 
 print("Call a function with two parameters with three keyword arguments:")
 
 try:
-    functionTwoParameters(a = 1, b = 2, c = 3)
+    functionTwoParameters(a=1, b=2, c=3)
 except TypeError as e:
     print(repr(e))
+
 
 class MethodContainer:
     def methodNoParameters(self):
@@ -97,6 +102,7 @@ class MethodContainer:
 
     def methodTwoParameters(self, a, b):
         print(a, b)
+
 
 obj = MethodContainer()
 
@@ -110,7 +116,7 @@ except TypeError as e:
 print("Call a method with no parameters with a keyword argument:")
 
 try:
-    obj.methodNoParameters(z = 1)
+    obj.methodNoParameters(z=1)
 except TypeError as e:
     print(repr(e))
 
@@ -138,34 +144,38 @@ except TypeError as e:
 print("Call a method with two parameters with one keyword argument:")
 
 try:
-    obj.methodTwoParameters(a = 1)
+    obj.methodTwoParameters(a=1)
 except TypeError as e:
     print(repr(e))
 
 print("Call a method with two parameters with three keyword arguments:")
 
 try:
-    obj.methodTwoParameters(a = 1, b = 2, c = 3)
+    obj.methodTwoParameters(a=1, b=2, c=3)
 except TypeError as e:
     print(repr(e))
+
 
 def functionPosBothStarArgs(a, b, c, *l, **d):
     print(a, b, c, l, d)
 
+
 l = [2]
-d = { "other" : 7 }
+d = {"other": 7}
 
 print("Call a function with both star arguments and too little arguments:")
 
 try:
-    functionPosBothStarArgs(1,  *l, **d)
+    functionPosBothStarArgs(1, *l, **d)
 except TypeError as e:
     print(repr(e))
 
 print("Call a function with defaults with too little arguments:")
 
-def functionWithDefaults(a, b, c, d = 3):
+
+def functionWithDefaults(a, b, c, d=3):
     print(a, b, c, d)
+
 
 try:
     functionWithDefaults(1)
@@ -185,7 +195,7 @@ try:
     a = 1
     b = 2.0
 
-    functionWithDefaults(1,c = 3,*a,**b)
+    functionWithDefaults(1, c=3, *a, **b)
 except TypeError as e:
     print(repr(e))
 
@@ -193,7 +203,7 @@ try:
     a = 1
     b = 2.0
 
-    functionWithDefaults(1,*a,**b)
+    functionWithDefaults(1, *a, **b)
 except TypeError as e:
     print(repr(e))
 
@@ -201,7 +211,7 @@ try:
     a = 1
     b = 2.0
 
-    functionWithDefaults(c = 1, *a,**b)
+    functionWithDefaults(c=1, *a, **b)
 except TypeError as e:
     print(repr(e))
 
@@ -209,7 +219,7 @@ try:
     a = 1
     b = 2.0
 
-    functionWithDefaults(*a,**b)
+    functionWithDefaults(*a, **b)
 except TypeError as e:
     print(repr(e))
 
@@ -262,18 +272,20 @@ except TypeError as e:
 
 print("Call object with name as both keyword and in star dict argument:")
 try:
-    a = {'a' : 3}
+    a = {"a": 3}
 
-    None(a = 2, **a)
+    None(a=2, **a)
 except TypeError as e:
     print(repr(e))
 
 print("Call function with only defaulted value given as keyword argument:")
 
-def functionwithTwoArgsOneDefaulted(a, b = 5):
+
+def functionwithTwoArgsOneDefaulted(a, b=5):
     pass
 
+
 try:
-    functionwithTwoArgsOneDefaulted(b = 12)
+    functionwithTwoArgsOneDefaulted(b=12)
 except TypeError as e:
     print(repr(e))
