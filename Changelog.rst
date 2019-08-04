@@ -122,6 +122,8 @@ Organisational
 
 - Added repository for Fedora 30 for download.
 
+- Added repository for openSUSE 15.1 for download.
+
 - Ask people to compile hello world program in the Github issue template,
   because many times, they have setup problems only.
 
