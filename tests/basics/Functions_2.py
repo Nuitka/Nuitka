@@ -15,7 +15,16 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Various kinds of functions definitions with Python2 only features.
+
+Esp. nested arguments are no longer allowed in Python3 and covered here
+to make sure they are not forgotten.
+"""
+
+
 from __future__ import print_function
+
+# pylint: disable=redefined-outer-name
 
 
 def local_function(a, z=9):
@@ -66,12 +75,12 @@ print("Function with nested args that have defaults:")
 
 
 def default_giver():
-    class R:
+    class SomeClass:  # pylint: disable=old-style-class
         def __iter__(self):
             print("Giving iter")
             return iter(range(2))
 
-    return R()
+    return SomeClass()
 
 
 def nested_args_function_with_defaults((a, b)=default_giver(), c=5):

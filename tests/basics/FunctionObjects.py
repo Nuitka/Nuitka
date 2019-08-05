@@ -15,13 +15,16 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Test that covers attributes if function objects.
+
+"""
+
+
 from __future__ import print_function
 
 
-def func(arg1, arg2, arg3, **star):
+def func(_arg1, _arg2, _arg3, **_star):
     """ Some documentation. """
-
-    pass
 
 
 print("Starting out: func, __name__:", func, func.__name__)
@@ -46,7 +49,7 @@ print("__code__ dir")
 print(dir(func.__code__))
 
 
-def func2(arg1, arg2="default_arg2", arg3="default_arg3"):
+def func2(_arg1, arg2="default_arg2", arg3="default_arg3"):
     x = arg2 + arg3
     return x
 

@@ -15,18 +15,25 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Various kinds of functions with small specialties.
+
+"""
+
 from __future__ import print_function
 
 import inspect
 import sys
 
+# pylint: disable=redefined-outer-name
+
+
 var_on_module_level = 1
 
 
-def closureTest1(some_arg):
+def closureTest1(some_arg):  # pylint: disable=unused-argument
     x = 3
 
-    def enclosed(f="default_value"):
+    def enclosed(_f="default_value"):
         return x
 
     return enclosed
@@ -35,8 +42,8 @@ def closureTest1(some_arg):
 print("Call closured function returning function:", closureTest1(some_arg="ignored")())
 
 
-def closureTest2(some_arg):
-    def enclosed(f="default_value"):
+def closureTest2(some_arg):  # pylint: disable=unused-argument
+    def enclosed(_f="default_value"):
         return x
 
     x = 4
@@ -95,7 +102,7 @@ print("Call function that returns a list contraction:", contractionTest())
 
 
 def defaultValueTest3a(
-    no_default, funced_defaulted=defaultValueTest2(var_on_module_level)
+    _no_default, funced_defaulted=defaultValueTest2(var_on_module_level)
 ):
     return [i + funced_defaulted for i in range(8)]
 
@@ -107,7 +114,7 @@ print(
 
 
 def defaultValueTest3b(
-    no_default, funced_defaulted=defaultValueTest2(var_on_module_level)
+    _no_default, funced_defaulted=defaultValueTest2(var_on_module_level)
 ):
     local_var = [funced_defaulted + i for i in range(8)]
 
@@ -121,7 +128,7 @@ print(
 
 
 def defaultValueTest3c(
-    no_default, funced_defaulted=defaultValueTest2(var_on_module_level)
+    _no_default, funced_defaulted=defaultValueTest2(var_on_module_level)
 ):
     local_var = [[j + funced_defaulted + 1 for j in range(i)] for i in range(8)]
 
@@ -134,7 +141,7 @@ print(
 )
 
 
-def defaultValueTest4(no_default, funced_defaulted=lambda x: x ** 2):
+def defaultValueTest4(_no_default, funced_defaulted=lambda x: x ** 2):
     return funced_defaulted(4)
 
 
@@ -144,7 +151,7 @@ print(
 )
 
 
-def defaultValueTest4a(no_default, funced_defaulted=lambda x: x ** 2):
+def defaultValueTest4a(_no_default, funced_defaulted=lambda x: x ** 2):
     c = 1
     d = funced_defaulted(1)
 
@@ -163,7 +170,7 @@ print(
 )
 
 
-def defaultValueTest4b(no_default, funced_defaulted=lambda x: x ** 3):
+def defaultValueTest4b(_no_default, funced_defaulted=lambda x: x ** 3):
     d = funced_defaulted(1)
 
     # Nested generators
@@ -182,40 +189,39 @@ print(
 )
 
 
-def defaultValueTest5(no_default, tuple_defaulted=(1, 2, 3)):
+def defaultValueTest5(_no_default, tuple_defaulted=(1, 2, 3)):
     return tuple_defaulted
 
 
 print("Call function with default value that is a tuple", defaultValueTest5("ignored"))
 
 
-def defaultValueTest6(no_default, list_defaulted=[1, 2, 3]):
+def defaultValueTest6(
+    _no_default, list_defaulted=[1, 2, 3]
+):  # pylint: disable=dangerous-default-value
     return list_defaulted
 
 
 print("Call function with default value that is a list", defaultValueTest6("ignored"))
 
 
-def lookup(unused, something):
-    something.very.namelookup.chaining()
-    something.very.namelookup.chaining()
-
-
 x = len("hey")
 
-
+# TODO: Doesn't belong here.
 def in_test(a):
     # if 7 in a:
     #   print "hey"
 
+    # pylint: disable=pointless-statement
     8 in a  # @NoEffect
     9 not in a  # @NoEffect
 
 
-def printing():
-    print("Hallo")
-    print("du")
-    print("da")
+in_test([8])
+try:
+    in_test(9)
+except TypeError:
+    pass
 
 
 def my_deco(function):
@@ -226,7 +232,7 @@ def my_deco(function):
 
 
 @my_deco
-def decoriert(a, b):
+def decoriert(a, b):  # pylint: disable=unused-argument
     def subby(a):
         return 2 + a
 
@@ -235,14 +241,10 @@ def decoriert(a, b):
 
 print("Function with decoration", decoriert(3, 9))
 
-# def var_test(a):
-#   b = len(a)
-#   c = len(a)
 
+def functionWithGlobalReturnValue():
 
-def user():
-    global a
-
+    global a  # pylint: disable=global-statement
     return a
 
 
@@ -458,7 +460,7 @@ def someGeneratorFunction():
     try:
         yield 1
         yield 2
-    except:
+    except Exception:  # pylint: disable=broad-except
         yield 3
 
     yield 4
@@ -552,7 +554,7 @@ print("Function that has keyword argument matching the list star arg name", end=
 print(doubleStarArgs(1, **UserDict(a=2)))
 
 
-def generatorFunctionUnusedArg(a):
+def generatorFunctionUnusedArg(_a):
     yield 1
 
 
@@ -560,7 +562,7 @@ generatorFunctionUnusedArg(3)
 
 
 def closureHavingGenerator(arg):
-    def gen(x=1):
+    def gen(_x=1):
         yield arg
 
     return gen()
@@ -600,9 +602,9 @@ for value in sorted(dir()):
         print(
             main_value,
             main_value.__code__.co_varnames[: main_value.__code__.co_argcount],
-        )  # inspect.getargs( main_value.func_code )
+            inspect.getargs(main_value.__code__),
+        )  #
 
         # TODO: Make this work as well, currently disabled, because of nested arguments not
         # being compatible yet.
-        # print main_value, main_value.func_code.co_varnames, inspect.getargspec( main_value )
-        pass
+        # print inspect.getargspec( main_value )
