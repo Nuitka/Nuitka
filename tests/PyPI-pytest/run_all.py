@@ -202,6 +202,33 @@ packages = {
         "requirements_file": None,
         "ignored_tests": None,
     },
+    "setuptools": {
+        "url": "https://github.com/pypa/setuptools.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+        "extra_commands": ["python bootstrap.py"],
+    },
+    "futures": {
+        "url": "https://github.com/agronholm/pythonfutures.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+        "package_name": "concurrent",
+    },
+    "wheel": {
+        "url": "https://github.com/pypa/wheel.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+    "pytest": {
+        "url": "https://github.com/pytest-dev/pytest.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
+    "future": {
+        "url": "https://github.com/PythonCharmers/python-future.git",
+        "requirements_file": None,
+        "ignored_tests": None,
+    },
 }
 
 
@@ -225,6 +252,14 @@ def main():
 
         if not active:
             continue
+
+        if str is not bytes:
+            # running on python3
+            if package_name in ("futures", "future"):
+                reportSkip("Does not run on Python3", ".", package_name)
+                if search_mode.abortIfExecuted():
+                    break
+                continue
 
         if os.name == "nt":
             if package_name in ("cryptography",):
@@ -256,6 +291,9 @@ def main():
             "jinja2",  # ModuleNotFoundError: No module named 'jinja2.tests'
             "pandas",  # python setup.py egg_info fails
             "pytz",  # AssertionError: zoneinfo files not found!
+            "setuptools",  # compiled __import__ check fails; pytest passes
+            "wheel",  # compiled __import__ check fails; pytest passes
+            "pytest",  # compiled __import__ check fails; should we even test this?
         ):
             if search_mode.abortIfExecuted():
                 break
