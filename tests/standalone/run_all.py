@@ -204,9 +204,7 @@ def main():
             # For the plug-in information.
             extra_flags.append("ignore_infos")
 
-            if getPythonVendor() != "Anaconda" and (
-                "Plugins" in filename or "SSL" in filename
-            ):
+            if getPythonVendor() != "Anaconda":
                 extra_flags.append("plugin_enable:qt-plugins")
                 # extra_flags.append("ignore_infos")
             else:
