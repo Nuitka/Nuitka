@@ -115,8 +115,14 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "QtQuick",
                 "QtQuickWidgets",
                 "QtWebSockets",
+                "QtWebEngineWidgets",
             ):
                 yield elements[0] + ".QtNetwork", True
+
+            if child == "QtWebEngineWidgets":
+                yield elements[0] + ".QtWebEngineCore", True
+                yield elements[0] + ".QtWebChannel", True
+                yield elements[0] + ".QtPrintSupport", True
 
             if child == "QtScriptTools":
                 yield elements[0] + ".QtScript", True

@@ -28,7 +28,7 @@ from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 
-from .Utils import getArchitecture, isAlpineLinux
+from .Utils import getArchitecture, isAlpineLinux, isWin32Windows
 from .WindowsResources import RT_MANIFEST, deleteWindowsResources, getResourcesFromDLL
 
 
@@ -46,6 +46,9 @@ def locateDLL(dll_name):
 
     if dll_name is None:
         return None
+
+    if isWin32Windows():
+        return os.path.normpath(dll_name)
 
     if os.path.sep in dll_name:
         # Use this from ctypes instead of rolling our own.
