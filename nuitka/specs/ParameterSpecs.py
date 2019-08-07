@@ -312,8 +312,6 @@ def matchCall(
     assert type(positional) is tuple, positional
     assert type(pairs) in (tuple, list), pairs
 
-    args += kw_only_args
-
     # Make a copy, we are going to modify it.
     pairs = list(pairs)
 
@@ -370,7 +368,7 @@ def matchCall(
     if python_version >= 300 and not star_dict_arg:
         for pair in pairs:
             try:
-                arg_index = args.index(pair[0])
+                arg_index = (args + kw_only_args).index(pair[0])
             except ValueError:
                 if improved or python_version >= 370:
                     message = "'%s' is an invalid keyword argument for %s()" % (
@@ -445,7 +443,7 @@ def matchCall(
 
     named_argument_names = [pair[0] for pair in pairs]
 
-    for arg in args:
+    for arg in args + kw_only_args:
         if type(arg) is str and arg in named_argument_names:
             if isAssigned(arg):
                 raise TooManyArguments(
@@ -469,7 +467,7 @@ def matchCall(
 
     # Fill in any missing values with the None to indicate "default".
     if num_defaults > 0:
-        for arg in args[-num_defaults:]:
+        for arg in (kw_only_args + args)[-num_defaults:]:
             if not isAssigned(arg):
                 assign(arg, None)
 
@@ -532,6 +530,25 @@ def matchCall(
                     else "exactly ",
                     "%d arguments" % num_required,
                     num_total,
+                )
+            )
+        )
+
+    unassigned = len(kw_only_args) - len(
+        [arg for arg in kw_only_args if isAssigned(arg)]
+    )
+    if unassigned:
+        raise TooManyArguments(
+            TypeError(
+                "%s missing %d required keyword-only argument%s: %s"
+                % (
+                    func_name,
+                    unassigned,
+                    "s" if unassigned > 1 else "",
+                    " and ".join(
+                        "'%s'"
+                        % [arg.getName() for arg in kw_only_args if not isAssigned(arg)]
+                    ),
                 )
             )
         )
