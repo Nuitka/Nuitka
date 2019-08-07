@@ -18,8 +18,6 @@
 #ifndef __NUITKA_CALLING_H__
 #define __NUITKA_CALLING_H__
 
-#include "__helpers.h"
-
 extern PyObject *const_tuple_empty;
 
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyObject *function_object, PyObject *positional_args,

@@ -20,10 +20,10 @@
 """
 
 template_call_function_with_args_decl = """\
-extern PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **args );"""
+extern PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **args);"""
 
 template_call_function_with_args_impl = """\
-PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **args )
+PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **args)
 {
     CHECK_OBJECT( called );
 
