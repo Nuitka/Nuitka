@@ -1049,32 +1049,6 @@ def zip_extractor(node):
             for i in range(len(call_args))
         ]
 
-        # Add check for all argument if they are iterable
-        # statements += [
-        #     makeStatementConditional(
-        #         condition=ExpressionAttributeCheck(
-        #             object_arg=ExpressionTempVariableRef(
-        #                 variable=zip_arg_variable, source_ref=source_ref
-        #             ),
-        #             attribute_name="__iter__",
-        #             source_ref=source_ref,
-        #         ),
-        #         yes_branch=None,
-        #         # This should become the exception
-        #         # handle for TypeError
-        #         no_branch=makeRaiseExceptionExpressionFromTemplate(
-        #             exception_type="TypeError",
-        #             template="zip argument #%s must support iteration",
-        #             template_args=makeConstantRefNode(
-        #                 constant=str(i+1), source_ref=source_ref
-        #             ),
-        #             source_ref=source_ref,
-        #         ).asStatement(),
-        #         source_ref=source_ref,
-        #     )
-        #     for i, zip_arg_variable in enumerate(zip_arg_variables)
-        # ]
-
         # Create iterators of all zip arguments.
         assign_iter_statements = [
             StatementAssignmentVariable(
@@ -1095,24 +1069,36 @@ def zip_extractor(node):
         # makeTryExceptSingleHandlerNode
         statements += [
             makeTryExceptSingleHandlerNode(
-                tried=assign_iter_statements,
+                tried=makeStatementsSequence(
+                    statements=assign_iter_statements,
+                    allow_none=False,
+                    source_ref=source_ref,
+                ),
                 exception_name="TypeError",
-                handler_body=makeRaiseExceptionExpressionFromTemplate(
-                    exception_type="TypeError",
-                    template="zip argument #%s must support iteration",
-                    template_args=makeConstantRefNode(
-                        constant=str(i + 1), source_ref=source_ref
+                handler_body=StatementRaiseException(
+                    exception_type=ExpressionBuiltinExceptionRef(
+                        exception_name="TypeError", source_ref=source_ref
                     ),
+                    exception_value=None,
+                    exception_trace=None,
+                    exception_cause=None,
                     source_ref=source_ref,
                 ),
                 source_ref=source_ref,
             )
-            for i, _ in enumerate(zip_arg_variables)
         ]
 
         tmp_result = outline_body.allocateTempVariable(
             temp_scope=None, name="tmp_result"
         )
+
+        statements += [
+            StatementAssignmentVariable(
+                variable=tmp_result,
+                source=makeConstantRefNode(constant=[], source_ref=source_ref),
+                source_ref=source_ref,
+            )
+        ]
 
         # When we append all values at once, all we
         # need to do is to check StopIteration for
@@ -1152,7 +1138,7 @@ def zip_extractor(node):
         statements.append(
             StatementReturn(
                 ExpressionTempVariableRef(
-                    # TODO: Create that tmp_result
+                    # Create that tmp_result
                     # and assign from empty list
                     # right before loop.
                     variable=tmp_result,

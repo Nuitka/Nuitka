@@ -675,5 +675,8 @@ print(all(range(2, 999, 4)))
 print("All with strings:")
 print(all("Nuitka rocks!"))
 print(all("string"))
-print(all(u"unicode"))
-print(all(b"bytes"))
+print(all(u'unicode'))
+print(all(b'bytes'))
+
+
+print(zip("abc", "cdd"))
