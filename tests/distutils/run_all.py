@@ -57,7 +57,7 @@ from nuitka.utils.FileOperations import removeDirectory
 
 
 def main():
-    # Complex stuff, pylint: disable=too-many-locals,too-many-statements
+    # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     python_version = setup(needs_io_encoding=True)
 
@@ -246,6 +246,9 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
 
             if exit_code:
                 sys.exit("Error, outputs differed.")
+
+        if search_mode.abortIfExecuted():
+            break
 
     search_mode.finish()
 

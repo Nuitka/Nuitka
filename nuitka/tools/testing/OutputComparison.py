@@ -71,9 +71,33 @@ def import_re_callback(match):
 tempfile_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 
 
+def normalizeTimeDiff(outputStr):
+    """
+    use regular expression to normalize the time output
+
+    e.g.
+    =================== 1059 passed, 8 warnings in 7.99 seconds ===================
+
+    becomes
+    =================== 1059 passed, 8 warnings in x.xx seconds ===================
+    """
+
+    matchObj = re.search(b"in [0-9]+.[0-9][0-9] seconds", outputStr)
+    if matchObj:
+        return (
+            outputStr[: matchObj.start()]
+            + b"in x.xx seconds"
+            + outputStr[matchObj.end() :]
+        )
+    return outputStr
+
+
 def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
     # Of course many cases to deal with,
     # pylint: disable=too-many-branches,too-many-statements
+
+    # do not compare time differences
+    output = normalizeTimeDiff(output)
 
     result = []
 
