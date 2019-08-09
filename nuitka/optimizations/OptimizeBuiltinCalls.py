@@ -31,7 +31,6 @@ from nuitka.nodes.AssignNodes import (
     StatementReleaseVariable,
 )
 from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeCheck,
     ExpressionAttributeLookup,
     ExpressionBuiltinGetattr,
     ExpressionBuiltinHasattr,
@@ -119,7 +118,6 @@ from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeExpressionBuiltinLocals,
-    makeRaiseExceptionExpressionFromTemplate,
     makeRaiseExceptionReplacementExpression,
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
@@ -1048,28 +1046,25 @@ def zip_extractor(node):
             for i in range(len(call_args))
         ]
 
-        # Create iterators of all zip arguments.
-        assign_iter_statements = [
-            StatementAssignmentVariable(
-                variable=zip_iter_variable,
-                source=ExpressionBuiltinIter1(
-                    value=ExpressionTempVariableRef(
-                        variable=zip_arg_variable, source_ref=source_ref
-                    ),
-                    source_ref=source_ref,
-                ),
-                source_ref=source_ref,
-            )
-            for zip_iter_variable, zip_arg_variable in zip(
-                zip_iter_variables, zip_arg_variables
-            )
-        ]
-
-        # Raise TypeError if any argument has the required type
+        # Try creating iterators of all zip arguments.
         statements += [
             makeTryExceptSingleHandlerNode(
                 tried=makeStatementsSequence(
-                    statements=assign_iter_statements,
+                    statements=[
+                        StatementAssignmentVariable(
+                            variable=zip_iter_variable,
+                            source=ExpressionBuiltinIter1(
+                                value=ExpressionTempVariableRef(
+                                    variable=zip_arg_variable, source_ref=source_ref
+                                ),
+                                source_ref=source_ref,
+                            ),
+                            source_ref=source_ref,
+                        )
+                        for zip_iter_variable, zip_arg_variable in zip(
+                            zip_iter_variables, zip_arg_variables
+                        )
+                    ],
                     allow_none=False,
                     source_ref=source_ref,
                 ),
