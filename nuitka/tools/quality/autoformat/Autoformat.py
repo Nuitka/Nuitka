@@ -343,6 +343,8 @@ def autoformat(filename, git_stage, abort):
             ".j2",
             ".gitignore",
             ".json",
+            ".spec",
+            "-rpmlintrc",
         )
     )
 
