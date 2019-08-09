@@ -1061,8 +1061,8 @@ def zip_extractor(node):
                             ),
                             source_ref=source_ref,
                         )
-                        for zip_iter_variable, zip_arg_variable in zip(
-                            zip_iter_variables, zip_arg_variables
+                        for i, zip_iter_variable, zip_arg_variable in zip(
+                            range(len(call_args)), zip_iter_variables, zip_arg_variables
                         )
                     ],
                     allow_none=False,
@@ -1074,7 +1074,7 @@ def zip_extractor(node):
                         exception_name="TypeError", source_ref=source_ref
                     ),
                     exception_value=makeConstantRefNode(
-                        constant="zip argument must support iteration",
+                        constant="zip argument #%d must support iteration" % (i + 1),
                         source_ref=source_ref,
                     ),
                     exception_trace=None,
