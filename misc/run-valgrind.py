@@ -17,57 +17,57 @@
 #     limitations under the License.
 #
 
+""" Run code with Nuitka compiled and put that through valgrind.
+
+"""
+
 import os
-import shutil
-import subprocess
 import sys
-import tempfile
 
 # Find nuitka package relative to us.
 sys.path.insert(
-    0,
-    os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-        )
-    )
+    0, os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 )
+
+# isort:start
+
+import shutil
+import tempfile
+
+from nuitka.tools.testing.Valgrind import getBinarySizes, runValgrind
 
 input_file = sys.argv[1]
 
 nuitka_binary = os.environ.get(
-    "NUITKA_BINARY",
-    os.path.join(os.path.dirname(__file__), "../bin/nuitka")
+    "NUITKA_BINARY", os.path.join(os.path.dirname(__file__), "../bin/nuitka")
 )
 nuitka_binary = os.path.normpath(nuitka_binary)
 
 basename = os.path.basename(input_file)
 
 tempdir = tempfile.mkdtemp(
-    prefix = basename + '-',
-    dir    = None if not os.path.exists("/var/tmp") else "/var/tmp"
+    prefix=basename + "-", dir=None if not os.path.exists("/var/tmp") else "/var/tmp"
 )
 
 output_binary = os.path.join(
-    tempdir,
-    ( basename[:-3] if input_file.endswith(".py") else basename ) + ".bin"
+    tempdir, (basename[:-3] if input_file.endswith(".py") else basename) + ".bin"
 )
 
-os.environ[ "PYTHONHASHSEED" ] = '0'
+os.environ["PYTHONHASHSEED"] = "0"
 
 # To make that python run well despite the "-S" flag for things that need site
 # to expand sys.path.
 os.environ["PYTHONPATH"] = os.pathsep.join(sys.path)
 
 os.system(
-    "%s %s --python-flag=-S --output-dir=%s %s %s %s" % (
+    "%s %s --python-flag=-S --output-dir=%s %s %s %s"
+    % (
         sys.executable,
         nuitka_binary,
         tempdir,
         "--unstripped",
         os.environ.get("NUITKA_EXTRA_OPTIONS", ""),
-        input_file
+        input_file,
     )
 )
 
@@ -85,14 +85,9 @@ log_file = log_base + ".log"
 
 sys.stdout.flush()
 
-from nuitka.tools.testing.Valgrind import getBinarySizes, runValgrind
 
 ticks = runValgrind(
-    None,
-    "callgrind",
-    [output_binary],
-    include_startup = False,
-    save_logfilename = log_file
+    None, "callgrind", [output_binary], include_startup=False, save_logfilename=log_file
 )
 
 if "number" in sys.argv or "numbers" in sys.argv:
@@ -102,12 +97,7 @@ if "number" in sys.argv or "numbers" in sys.argv:
     print("TICKS=%s" % ticks)
     print("BINARY=%s" % nuitka_binary)
 
-    max_mem = runValgrind(
-        None,
-        "massif",
-        [output_binary],
-        include_startup = True
-    )
+    max_mem = runValgrind(None, "massif", [output_binary], include_startup=True)
 
     print("MEM=%s" % max_mem)
 
