@@ -619,4 +619,9 @@ try:
 except Exception as e:
     print("caught ", repr(e))
 
+
+print("Tests for zip():")
 print(zip("abc", "cdd"))
+print(zip([1, 2, 3], [2, 3, 4]))
+print(zip([1, 2, 3], "String"))
+print(1, "String")
