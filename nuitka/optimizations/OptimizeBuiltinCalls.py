@@ -1079,7 +1079,10 @@ def zip_extractor(node):
                     exception_type=ExpressionBuiltinExceptionRef(
                         exception_name="TypeError", source_ref=source_ref
                     ),
-                    exception_value=None,
+                    exception_value=makeConstantRefNode(
+                        constant="zip argument must support iteration",
+                        source_ref=source_ref,
+                    ),
                     exception_trace=None,
                     exception_cause=None,
                     source_ref=source_ref,
