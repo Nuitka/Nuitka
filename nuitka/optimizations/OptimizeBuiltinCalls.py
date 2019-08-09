@@ -1021,7 +1021,6 @@ def zip_extractor(node):
 
     @calledWithBuiltinArgumentNamesDecorator
     def wrapZipBuiltin(call_args, source_ref):
-        # pylint: disable=unused-argument
         outline_body = ExpressionOutlineBody(
             provider=node.getParentVariableProvider(),
             name="zip_call",
@@ -1066,7 +1065,7 @@ def zip_extractor(node):
             )
         ]
 
-        # makeTryExceptSingleHandlerNode
+        # Raise TypeError if any argument has the required type
         statements += [
             makeTryExceptSingleHandlerNode(
                 tried=makeStatementsSequence(
@@ -1140,13 +1139,7 @@ def zip_extractor(node):
 
         statements.append(
             StatementReturn(
-                ExpressionTempVariableRef(
-                    # Create that tmp_result
-                    # and assign from empty list
-                    # right before loop.
-                    variable=tmp_result,
-                    source_ref=source_ref,
-                ),
+                ExpressionTempVariableRef(variable=tmp_result, source_ref=source_ref),
                 source_ref=source_ref,
             )
         )
