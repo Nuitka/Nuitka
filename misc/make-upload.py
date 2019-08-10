@@ -17,6 +17,10 @@
 #     limitations under the License.
 #
 
+""" Upload the packaging results and/or push branches.
+
+"""
+
 import os
 import sys
 
@@ -26,42 +30,51 @@ sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), ".."
 
 # isort:start
 
-import shutil
-import subprocess
-
 from nuitka.tools.release.Release import checkAtHome, checkBranchName
 from nuitka.utils.Execution import check_output
 
 checkAtHome()
 
-nuitka_version = check_output("./bin/nuitka --version", shell=True).strip()
+nuitka_version = check_output(
+    "%s ./bin/nuitka --version" % sys.executable, shell=True
+).strip()
 
 branch_name = checkBranchName()
 
 if branch_name == "factory":
     for remote in "origin", "github":
-        assert 0 == os.system(
-            "git push --recurse-submodules=no --force-with-lease %s factory" % remote
+        assert (
+            os.system(
+                "git push --recurse-submodules=no --force-with-lease %s factory"
+                % remote
+            )
+            == 0
         )
 
     sys.exit(0)
 
-assert 0 == os.system(
-    "rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/"
+assert (
+    os.system(
+        "rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/"
+    )
+    == 0
 )
 
 for filename in ("README.pdf", "Changelog.pdf", "Developer_Manual.pdf"):
-    assert 0 == os.system("rsync %s root@nuitka.net:/var/www/doc/" % filename)
+    assert os.system("rsync %s root@nuitka.net:/var/www/doc/" % filename) == 0
 
 # Upload only stable releases to OpenSUSE Build Service:
 if branch_name.startswith("release") or branch_name == "master":
     pass
 elif branch_name == "develop":
     for remote in "origin", "github":
-        assert 0 == os.system(
-            "git push --recurse-submodules=no --tags --force-with-lease %s develop"
-            % remote
+        assert (
+            os.system(
+                "git push --recurse-submodules=no --tags --force-with-lease %s develop"
+                % remote
+            )
+            == 0
         )
-        assert 0 == os.system("git push %s master" % remote)
+        assert os.system("git push %s master" % remote) == 0
 else:
     sys.stdout.write("Skipping for branch '%s'" % branch_name)
