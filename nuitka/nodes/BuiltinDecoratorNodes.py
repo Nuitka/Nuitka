@@ -22,21 +22,18 @@ only the way a class member is being called. Being able to avoid going through a
 C call to the built-ins resulting wrapper, will speed up things.
 """
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildHavingBase
 from .shapes.BuiltinTypeShapes import ShapeTypeClassmethod, ShapeTypeStaticmethod
 
 
-class ExpressionBuiltinStaticmethod(ExpressionChildrenHavingBase):
+class ExpressionBuiltinStaticmethod(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_STATICMETHOD"
 
-    named_children = ("value",)
-
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
+    named_child = "value"
+    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"value": value}, source_ref=source_ref
-        )
+        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         # TODO: Consider shape and predict exception raise or not.
@@ -51,17 +48,14 @@ class ExpressionBuiltinStaticmethod(ExpressionChildrenHavingBase):
         return ShapeTypeStaticmethod
 
 
-class ExpressionBuiltinClassmethod(ExpressionChildrenHavingBase):
+class ExpressionBuiltinClassmethod(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_CLASSMETHOD"
 
-    named_children = ("value",)
-
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
+    named_child = "value"
+    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"value": value}, source_ref=source_ref
-        )
+        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         # TODO: Consider shape and predict exception raise or not.

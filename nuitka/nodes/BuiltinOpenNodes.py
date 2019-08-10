@@ -78,6 +78,11 @@ else:
             "closefd",
             "opener",
         )
+        getEncoding = ExpressionChildrenHavingBase.childGetter("encoding")
+        getErrors = ExpressionChildrenHavingBase.childGetter("errors")
+        getNewline = ExpressionChildrenHavingBase.childGetter("newline")
+        getCloseFd = ExpressionChildrenHavingBase.childGetter("closefd")
+        getOpener = ExpressionChildrenHavingBase.childGetter("opener")
 
         def __init__(
             self,
@@ -105,9 +110,3 @@ else:
                 },
                 source_ref=source_ref,
             )
-
-        getEncoding = ExpressionChildrenHavingBase.childGetter("encoding")
-        getErrors = ExpressionChildrenHavingBase.childGetter("errors")
-        getNewline = ExpressionChildrenHavingBase.childGetter("newline")
-        getCloseFd = ExpressionChildrenHavingBase.childGetter("closefd")
-        getOpener = ExpressionChildrenHavingBase.childGetter("opener")

@@ -51,6 +51,8 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
 
     named_children = ("left", "right")
     nice_children = tuple(child_name + " operand" for child_name in named_children)
+    getLeft = ExpressionChildrenHavingBase.childGetter("left")
+    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     def __init__(self, left, right, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -117,9 +119,6 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
 
     def getOperands(self):
         return (self.subnode_left, self.subnode_right)
-
-    getLeft = ExpressionChildrenHavingBase.childGetter("left")
-    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     def mayRaiseExceptionOperation(self):
         # TODO: This is to keep the same way as before before specializing to
@@ -534,6 +533,7 @@ def makeBinaryOperationNode(operator, left, right, source_ref):
 
 class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
     named_child = "operand"
+    getOperand = ExpressionChildHavingBase.childGetter("operand")
 
     __slots__ = ("operator", "simulator")
 
@@ -574,8 +574,6 @@ class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
             trace_collection.onControlFlowEscape(self)
 
             return self, None, None
-
-    getOperand = ExpressionChildHavingBase.childGetter("operand")
 
     def getOperands(self):
         return (self.getOperand(),)

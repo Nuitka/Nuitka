@@ -136,6 +136,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
     named_children = ("name", "globals", "locals", "fromlist", "level")
+    getImportName = ExpressionChildrenHavingBase.childGetter("name")
+    getFromList = ExpressionChildrenHavingBase.childGetter("fromlist")
+    getGlobals = ExpressionChildrenHavingBase.childGetter("globals")
+    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
+    getLevel = ExpressionChildrenHavingBase.childGetter("level")
 
     _warned_about = set()
 
@@ -171,12 +176,6 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         self.type_shape = ShapeTypeModule
 
         self.builtin_module = None
-
-    getImportName = ExpressionChildrenHavingBase.childGetter("name")
-    getFromList = ExpressionChildrenHavingBase.childGetter("fromlist")
-    getGlobals = ExpressionChildrenHavingBase.childGetter("globals")
-    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
-    getLevel = ExpressionChildrenHavingBase.childGetter("level")
 
     def _consider(self, trace_collection, module_filename, module_package):
         assert module_package is None or (
@@ -455,6 +454,7 @@ class StatementImportStar(StatementChildHavingBase):
     kind = "STATEMENT_IMPORT_STAR"
 
     named_child = "module"
+    getSourceModule = StatementChildHavingBase.childGetter("module")
 
     __slots__ = ("target_scope",)
 
@@ -468,8 +468,6 @@ class StatementImportStar(StatementChildHavingBase):
         # TODO: Abstract these things.
         if type(self.target_scope) is GlobalsDictHandle:
             self.target_scope.markAsEscaped()
-
-    getSourceModule = StatementChildHavingBase.childGetter("module")
 
     def getTargetDictScope(self):
         return self.target_scope
@@ -502,6 +500,7 @@ class ExpressionImportName(ExpressionChildHavingBase):
     kind = "EXPRESSION_IMPORT_NAME"
 
     named_child = "module"
+    getModule = ExpressionChildrenHavingBase.childGetter("module")
 
     __slots__ = ("import_name", "level")
 
@@ -521,8 +520,6 @@ class ExpressionImportName(ExpressionChildHavingBase):
 
     def getDetails(self):
         return {"import_name": self.getImportName(), "level": self.level}
-
-    getModule = ExpressionChildrenHavingBase.childGetter("module")
 
     def computeExpression(self, trace_collection):
         return self.getModule().computeExpressionImportName(

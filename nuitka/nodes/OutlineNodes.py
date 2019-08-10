@@ -24,11 +24,11 @@ expressions, or multiple returns, without running in a too different context.
 """
 
 from .ExceptionNodes import ExpressionRaiseException
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildHavingBase
 from .FunctionNodes import ExpressionFunctionBodyBase
 
 
-class ExpressionOutlineBody(ExpressionChildrenHavingBase):
+class ExpressionOutlineBody(ExpressionChildHavingBase):
     """ Outlined expression code.
 
         This is for a call to a piece of code to be executed in a specific
@@ -41,7 +41,11 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
 
     kind = "EXPRESSION_OUTLINE_BODY"
 
-    named_children = ("body",)
+    named_child = "body"
+    getBody = ExpressionChildHavingBase.childGetter("body")
+    setBody = ExpressionChildHavingBase.childSetter("body")
+
+    __slots__ = ("provider", "name", "temp_scope")
 
     @staticmethod
     def isExpressionOutlineBody():
@@ -50,9 +54,7 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
     def __init__(self, provider, name, source_ref, body=None):
         assert name != ""
 
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"body": body}, source_ref=source_ref
-        )
+        ExpressionChildHavingBase.__init__(self, value=body, source_ref=source_ref)
 
         self.provider = provider
         self.name = name
@@ -65,9 +67,6 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
 
     def getDetails(self):
         return {"provider": self.provider, "name": self.name}
-
-    getBody = ExpressionChildrenHavingBase.childGetter("body")
-    setBody = ExpressionChildrenHavingBase.childSetter("body")
 
     def getOutlineTempScope(self):
         # We use our own name as a temp_scope, cached from the parent, if the

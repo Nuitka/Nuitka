@@ -130,6 +130,8 @@ class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SELECT_METACLASS"
 
     named_children = ("metaclass", "bases")
+    getMetaclass = ExpressionChildrenHavingBase.childGetter("metaclass")
+    getBases = ExpressionChildrenHavingBase.childGetter("bases")
 
     def __init__(self, metaclass, bases, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -140,14 +142,14 @@ class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
         # TODO: Meta class selection is very computable, and should be done.
         return self, None, None
 
-    getMetaclass = ExpressionChildrenHavingBase.childGetter("metaclass")
-    getBases = ExpressionChildrenHavingBase.childGetter("bases")
-
 
 class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_TYPE3"
 
     named_children = ("type_name", "bases", "dict")
+    getTypeName = ExpressionChildrenHavingBase.childGetter("type_name")
+    getBases = ExpressionChildrenHavingBase.childGetter("bases")
+    getDict = ExpressionChildrenHavingBase.childGetter("dict")
 
     def __init__(self, type_name, bases, type_dict, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -155,10 +157,6 @@ class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
             values={"type_name": type_name, "bases": bases, "dict": type_dict},
             source_ref=source_ref,
         )
-
-    getTypeName = ExpressionChildrenHavingBase.childGetter("type_name")
-    getBases = ExpressionChildrenHavingBase.childGetter("bases")
-    getDict = ExpressionChildrenHavingBase.childGetter("dict")
 
     def computeExpression(self, trace_collection):
         # TODO: Should be compile time computable if bases and dict are.

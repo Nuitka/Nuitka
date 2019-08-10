@@ -32,6 +32,8 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_DICT"
 
     named_children = ("pos_arg", "pairs")
+    getPositionalArgument = ExpressionChildrenHavingBase.childGetter("pos_arg")
+    getNamedArgumentPairs = ExpressionChildrenHavingBase.childGetter("pairs")
 
     def __init__(self, pos_arg, pairs, source_ref):
         assert type(pos_arg) not in (tuple, list), source_ref
@@ -52,9 +54,6 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             },
             source_ref=source_ref,
         )
-
-    getPositionalArgument = ExpressionChildrenHavingBase.childGetter("pos_arg")
-    getNamedArgumentPairs = ExpressionChildrenHavingBase.childGetter("pairs")
 
     def hasOnlyConstantArguments(self):
         pos_arg = self.getPositionalArgument()

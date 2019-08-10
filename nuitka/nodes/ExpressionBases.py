@@ -1251,7 +1251,7 @@ class ExpressionChildHavingBase(ExpressionBase):
         return values
 
 
-class ExpressionSpecBasedComputationBase(ExpressionChildrenHavingBase):
+class ExpressionSpecBasedComputationMixin(object):
     builtin_spec = None
 
     def computeBuiltinSpec(self, trace_collection, given_values):
@@ -1276,15 +1276,14 @@ class ExpressionSpecBasedComputationBase(ExpressionChildrenHavingBase):
         )
 
 
-class ExpressionBuiltinSingleArgBase(ExpressionSpecBasedComputationBase):
-    named_children = ("value",)
+class ExpressionBuiltinSingleArgBase(
+    ExpressionSpecBasedComputationMixin, ExpressionChildHavingBase
+):
+    named_child = "value"
+    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
-        ExpressionSpecBasedComputationBase.__init__(
-            self, values={"value": value}, source_ref=source_ref
-        )
-
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
+        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         value = self.getValue()

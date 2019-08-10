@@ -41,6 +41,9 @@ class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_FORMAT"
 
     named_children = ("value", "format_spec")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
+    getFormatSpec = ExpressionChildrenHavingBase.childGetter("format_spec")
+    setFormatSpec = ExpressionChildrenHavingBase.childSetter("format_spec")
 
     def __init__(self, value, format_spec, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -87,10 +90,6 @@ Removed useless 'format' on '%s' value."""
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
-
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
-    getFormatSpec = ExpressionChildrenHavingBase.childGetter("format_spec")
-    setFormatSpec = ExpressionChildrenHavingBase.childSetter("format_spec")
 
 
 class ExpressionBuiltinAscii(ExpressionBuiltinSingleArgBase):

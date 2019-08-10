@@ -44,6 +44,9 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SIDE_EFFECTS"
 
     named_children = ("side_effects", "expression")
+    getSideEffects = ExpressionChildrenHavingBase.childGetter("side_effects")
+    setSideEffects = ExpressionChildrenHavingBase.childSetter("side_effects")
+    getExpression = ExpressionChildrenHavingBase.childGetter("expression")
 
     checkers = {"side_effects": checkSideEffects}
 
@@ -56,11 +59,6 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
             values={"side_effects": tuple(side_effects), "expression": expression},
             source_ref=source_ref,
         )
-
-    getSideEffects = ExpressionChildrenHavingBase.childGetter("side_effects")
-    setSideEffects = ExpressionChildrenHavingBase.childSetter("side_effects")
-
-    getExpression = ExpressionChildrenHavingBase.childGetter("expression")
 
     def isExpressionSideEffects(self):
         return True

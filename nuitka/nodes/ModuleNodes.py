@@ -231,6 +231,10 @@ class CompiledPythonModule(
     kind = "COMPILED_PYTHON_MODULE"
 
     named_children = ("body", "functions")
+    getBody = ChildrenHavingMixin.childGetter("body")
+    setBody = ChildrenHavingMixin.childSetter("body")
+    getFunctions = ChildrenHavingMixin.childGetter("functions")
+    setFunctions = ChildrenHavingMixin.childSetter("functions")
 
     checkers = {"body": checkStatementsSequenceOrNone}
 
@@ -357,12 +361,6 @@ class CompiledPythonModule(
                     graph.add_edge(node_names[previous], node_name)
 
         return graph
-
-    getBody = ChildrenHavingMixin.childGetter("body")
-    setBody = ChildrenHavingMixin.childSetter("body")
-
-    getFunctions = ChildrenHavingMixin.childGetter("functions")
-    setFunctions = ChildrenHavingMixin.childSetter("functions")
 
     @staticmethod
     def isCompiledPythonModule():

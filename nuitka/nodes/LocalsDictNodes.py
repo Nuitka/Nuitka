@@ -34,20 +34,20 @@ from .AssignNodes import (
 )
 from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
-from .ExpressionBases import ExpressionBase, ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionBase, ExpressionChildHavingBase
 from .NodeBases import StatementBase, StatementChildHavingBase
 from .VariableRefNodes import ExpressionTempVariableRef
 
 
-class ExpressionLocalsVariableRefORFallback(ExpressionChildrenHavingBase):
+class ExpressionLocalsVariableRefORFallback(ExpressionChildHavingBase):
     kind = "EXPRESSION_LOCALS_VARIABLE_REF_OR_FALLBACK"
 
-    named_children = ("fallback",)
+    named_child = "fallback"
+
+    __slots__ = ("locals_scope", "variable", "variable_trace")
 
     def __init__(self, locals_scope, variable_name, fallback, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"fallback": fallback}, source_ref=source_ref
-        )
+        ExpressionChildHavingBase.__init__(self, value=fallback, source_ref=source_ref)
 
         assert locals_scope is not None
 
@@ -322,6 +322,8 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
     kind = "STATEMENT_LOCALS_DICT_OPERATION_SET"
 
     named_child = "value"
+    # TODO: Child name inconsistent with accessor name.
+    getAssignSource = StatementChildHavingBase.childGetter("value")
 
     __slots__ = ("variable", "variable_version", "variable_trace", "locals_scope")
 
@@ -359,9 +361,6 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
 
     def getLocalsDictScope(self):
         return self.locals_scope
-
-    # TODO: Child name inconsistent with accessor name.
-    getAssignSource = StatementChildHavingBase.childGetter("value")
 
     def computeStatement(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
@@ -518,6 +517,8 @@ class StatementSetLocals(StatementChildHavingBase):
     kind = "STATEMENT_SET_LOCALS"
 
     named_child = "new_locals"
+    getNewLocals = StatementChildHavingBase.childGetter("new_locals")
+    getAssignSource = getNewLocals
 
     __slots__ = ("locals_scope",)
 
@@ -542,9 +543,6 @@ class StatementSetLocals(StatementChildHavingBase):
 
     def mayRaiseException(self, exception_type):
         return self.getNewLocals().mayRaiseException(exception_type)
-
-    getNewLocals = StatementChildHavingBase.childGetter("new_locals")
-    getAssignSource = getNewLocals
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getNewLocals())

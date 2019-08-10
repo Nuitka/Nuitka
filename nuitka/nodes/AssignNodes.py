@@ -48,6 +48,7 @@ class StatementAssignmentVariableName(StatementChildHavingBase):
 
     named_child = "source"
     nice_child = "assignment source"
+    getAssignSource = StatementChildHavingBase.childGetter("source")
 
     __slots__ = ("variable_name", "provider")
 
@@ -76,8 +77,6 @@ class StatementAssignmentVariableName(StatementChildHavingBase):
 
     def getStatementNiceName(self):
         return "variable assignment statement"
-
-    getAssignSource = StatementChildHavingBase.childGetter("source")
 
 
 class StatementDelVariableName(StatementBase):
@@ -137,6 +136,8 @@ class StatementAssignmentVariable(StatementChildHavingBase):
 
     named_child = "source"
     nice_child = "assignment source"
+    getAssignSource = StatementChildHavingBase.childGetter("source")
+    setAssignSource = StatementChildHavingBase.childSetter("source")
 
     __slots__ = ("variable", "variable_version", "variable_trace", "inplace_suspect")
 
@@ -195,9 +196,6 @@ class StatementAssignmentVariable(StatementChildHavingBase):
             version=version,
             source_ref=self.source_ref,
         )
-
-    getAssignSource = StatementChildHavingBase.childGetter("source")
-    setAssignSource = StatementChildHavingBase.childSetter("source")
 
     def getVariableName(self):
         return self.variable.getName()

@@ -74,6 +74,8 @@ class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_NEXT2"
 
     named_children = ("iterator", "default")
+    getIterator = ExpressionChildrenHavingBase.childGetter("iterator")
+    getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def __init__(self, iterator, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -81,9 +83,6 @@ class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
             values={"iterator": iterator, "default": default},
             source_ref=source_ref,
         )
-
-    getIterator = ExpressionChildrenHavingBase.childGetter("iterator")
-    getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def computeExpression(self, trace_collection):
         # TODO: The "iterator" should be investigated here, if it is iterable,
