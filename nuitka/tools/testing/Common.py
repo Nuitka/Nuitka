@@ -299,6 +299,18 @@ def decideFilenameVersionSkip(filename):
     return True
 
 
+def decideNeeds2to3(filename):
+    return (
+        _python_version.startswith("3")
+        and not filename.endswith("32.py")
+        and not filename.endswith("33.py")
+        and not filename.endswith("35.py")
+        and not filename.endswith("36.py")
+        and not filename.endswith("37.py")
+        and not filename.endswith("38.py")
+    )
+
+
 def _removeCPythonTestSuiteDir():
     # Cleanup, some tests apparently forget that.
     try:

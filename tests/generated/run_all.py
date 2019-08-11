@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 #     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
-#     Python tests originally created or extracted from other peoples work. The
-#     parts were too small to be protected.
+#     Python test originally created or extracted from other peoples work. The
+#     parts from me are licensed as below. It is at least Free Software where
+#     it's copied from other people. In these cases, that will normally be
+#     indicated.
 #
 #     Licensed under the Apache License, Version 2.0 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#         http://www.apache.org/licenses/LICENSE-2.0
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,10 +19,12 @@
 #     limitations under the License.
 #
 
-""" Runner for basic tests of Nuitka.
+""" Runner for generated tests of Nuitka.
 
-Basic tests are those that cover our back quickly, but need not necessarily,
-be complete.
+These tests are created on the fly, and some use Nuitka internals to
+decide what to test for or how, e.g. to check that a type indeed does
+have a certain slot.
+
 
 """
 
@@ -42,10 +46,25 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     decideFilenameVersionSkip,
     decideNeeds2to3,
-    hasDebugPython,
     my_print,
     setup,
 )
+
+
+def _createTests():
+    result = []
+
+    # Create large constants test on the fly.
+    if not os.path.exists("BigConstants.py"):
+        with open("BigConstants.py", "w") as output:
+            output.write(
+                "# Automatically generated test, not part of releases or git.\n\n"
+            )
+            output.write("print('%s')\n" % ("1234" * 17000))
+
+    result.append("BigConstants.py")
+
+    return result
 
 
 def main():
@@ -53,10 +72,11 @@ def main():
 
     search_mode = createSearchMode()
 
+    filenames = _createTests()
+
     # Now run all the tests in this directory.
-    for filename in sorted(os.listdir(".")):
-        if not filename.endswith(".py"):
-            continue
+    for filename in filenames:
+        assert filename.endswith(".py")
 
         if not decideFilenameVersionSkip(filename):
             continue
@@ -79,39 +99,10 @@ def main():
         ]
 
         # This test should be run with the debug Python, and makes outputs to
-        # standard error that might be ignored.
-        if filename.startswith("Referencing"):
-            extra_flags.append("python_debug")
-
-            extra_flags.append("recurse_not:nuitka")
-
-        # This tests warns about __import__() used.
-        if filename == "OrderChecks.py":
-            extra_flags.append("ignore_warnings")
-
-        # This tests warns about an package relative import despite
-        # being in no package.
-        if filename == "Importing.py":
-            extra_flags.append("ignore_warnings")
-
-        # TODO: Nuitka does not give output for ignored exception in dtor, this is
-        # not fully compatible and potentially an error.
-        if filename == "YieldFrom33.py":
-            extra_flags.append("ignore_stderr")
-
-        # For Python2 there is a "builtins" package that gives warnings. TODO: We
-        # ought to NOT import that package and detect statically that __builtins__
-        # import won't raise ImportError.
-        if filename == "BuiltinOverload.py":
-            extra_flags.append("ignore_warnings")
 
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
-            if filename.startswith("Referencing") and not hasDebugPython():
-                my_print("Skipped (no debug Python)")
-                continue
-
             compareWithCPython(
                 dirname=None,
                 filename=filename,
