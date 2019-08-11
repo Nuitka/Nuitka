@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Tommy Li, mailto:tommyli3318@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -56,8 +56,8 @@ print(
 print(
 	list(
 		rrule(
-			YEARLY, 
-			bymonth=1, 
+			YEARLY,
+			bymonth=1,
 			byweekday=range(7),
 			dtstart=parse("19980101T090000"),
 			until=parse("20000131T090000")
