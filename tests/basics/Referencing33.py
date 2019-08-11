@@ -15,8 +15,15 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-# TODO: merge with Referencing32, as we do not distinguish with Python3.2 and Python3.3
-# anymore.
+""" Reference counting tests.
+
+These contain functions that do specific things, where we have a suspect
+that references may be lost or corrupted. Executing them repeatedly and
+checking the reference count is how they are used.
+
+These are Python3 specific constructs, that will give a SyntaxError or
+not be relevant on Python2.
+"""
 
 import os
 import sys
@@ -44,6 +51,127 @@ checkDebugPython()
 
 
 def simpleFunction1():
+    def abc(*, _exc=IOError):
+        pass
+
+    for _ in range(100):
+        abc()
+
+
+def simpleFunction2():
+    def abc(*, exc=IOError):
+        raise ValueError from None
+
+    try:
+        abc()
+    except (ValueError, TypeError):
+        pass
+
+
+def simpleFunction3():
+    try:
+
+        class ClassA(Exception):
+            pass
+
+        class ClassB(Exception):
+            pass
+
+        try:
+            raise ClassA("foo")
+        except ClassA as e1:
+            raise ClassB(str(e1)) from e1
+    except Exception:  # different to Nuitka, pylint: disable=broad-except
+        pass
+
+
+def simpleFunction4():
+    a = 1
+
+    def nonlocal_writer():
+        nonlocal a
+
+        for a in range(10):  # false alarm, pylint: disable=unused-variable
+            pass
+
+    nonlocal_writer()
+
+    assert a == 9, a
+
+
+def simpleFunction5():
+    x = 2
+
+    def local_func(_a: int, _b: x * x):
+        pass
+
+    local_func(x, x)
+
+
+def simpleFunction6():
+    # Make sure exception state is cleaned up as soon as the except
+    # block is left.
+
+    class MyException(Exception):
+        def __init__(self, obj):
+            # This is on purpose not called, pylint: disable=super-init-not-called
+            self.obj = obj
+
+    class MyObj:
+        pass
+
+    def inner_raising_func():
+        local_ref = obj
+        raise MyException(obj)
+
+    # "except" block raising another exception
+    obj = MyObj()
+
+    try:
+        try:
+            inner_raising_func()
+        except:
+            raise KeyError
+    except KeyError as e:  # on purpose, pylint: disable=unused-variable
+        pass
+
+
+range_low = 0
+range_high = 256
+range_step = 13
+
+
+def simpleFunction7():
+    # Make sure xranges work nicely
+    return range(range_low, range_high, range_step)
+
+
+def simpleFunction8():
+    # Make sure xranges work nicely
+    return range(range_low, range_high)
+
+
+def simpleFunction9():
+    # Make sure xranges work nicely
+    return range(range_high)
+
+
+def simpleFunction10():
+    def f(_x: int) -> int:
+        pass
+
+    return f
+
+
+def simpleFunction11():
+    try:
+        raise ImportError(path="lala", name="lele")
+    except ImportError as e:
+        assert e.name == "lele"
+        assert e.path == "lala"
+
+
+def simpleFunction12():
     def g():
         for a in range(20):
             yield a
@@ -57,10 +185,10 @@ def simpleFunction1():
         yield from g()
         yield from h()
 
-    x = list(f())
+    _x = list(f())
 
 
-def simpleFunction2():
+def simpleFunction13():
     def g():
         for a in range(20):
             yield a
@@ -77,7 +205,7 @@ def simpleFunction2():
         yield from h()
 
     try:
-        x = list(f())
+        _x = list(f())
     except TypeError:
         pass
 
@@ -92,21 +220,21 @@ class Broken:
 
     def __getattr__(self, attr):
 
-        1 / 0
+        1 / 0  # pylint: disable=pointless-statement
 
 
-def simpleFunction3():
+def simpleFunction14():
     def g():
         yield from Broken()
 
     try:
         gi = g()
         next(gi)
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         pass
 
 
-def simpleFunction4():
+def simpleFunction15():
     def g():
         yield from Broken()
 
@@ -114,18 +242,18 @@ def simpleFunction4():
         gi = g()
         next(gi)
         gi.throw(AttributeError)
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         pass
 
 
-def simpleFunction5():
+def simpleFunction16():
     def g():
         yield from (2, 3)
 
     return list(g())
 
 
-def simpleFunction6():
+def simpleFunction17():
     def g():
         yield from (2, 3)
 
@@ -134,7 +262,7 @@ def simpleFunction6():
     return list(g())
 
 
-def simpleFunction7():
+def simpleFunction18():
     def g():
         yield from (2, 3)
 
@@ -143,7 +271,7 @@ def simpleFunction7():
     return list(g())
 
 
-def simpleFunction8():
+def simpleFunction19():
     def g():
         x = someGenerator()
         assert type(x) is types.GeneratorType
@@ -159,7 +287,7 @@ def simpleFunction8():
         pass
 
 
-def simpleFunction9():
+def simpleFunction20():
     def g():
         x = someGeneratorRaising()
         assert type(x) is types.GeneratorType
@@ -191,7 +319,7 @@ class ClassIteratorBrokenClose:
     __next__ = next
 
 
-def simpleFunction10():
+def simpleFunction21():
     def g():
         x = ClassIteratorBrokenClose()
 
@@ -224,7 +352,7 @@ class ClassIteratorBrokenThrow:
     __next__ = next
 
 
-def simpleFunction11():
+def simpleFunction22():
     def g():
         x = ClassIteratorBrokenThrow()
 
@@ -265,7 +393,7 @@ class MyError(Exception):
         assert False
 
 
-def simpleFunction12():
+def simpleFunction23():
     def g():
         x = ClassIteratorRejectingThrow()
 
@@ -278,7 +406,7 @@ def simpleFunction12():
 
 
 # These need stderr to be wrapped.
-tests_stderr = (3, 4)
+tests_stderr = (14, 15)
 
 # Disabled tests
 tests_skipped = {}
