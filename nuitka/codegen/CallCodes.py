@@ -408,20 +408,28 @@ def getCallCodePosArgsQuick(
 
     emitLineNumberUpdateCode(emit, context)
 
-    emit(
-        """\
+    # For one argument, we have a dedicated helper function that might
+    # be more efficient.
+    if arg_size == 1:
+        emit(
+            """%s = CALL_FUNCTION_WITH_SINGLE_ARG( %s, %s );"""
+            % (to_name, called_name, arg_names[0])
+        )
+    else:
+        emit(
+            """\
 {
     PyObject *call_args[] = { %s };
     %s = CALL_FUNCTION_WITH_ARGS%d( %s, call_args );
 }
 """
-        % (
-            ", ".join(str(arg_name) for arg_name in arg_names),
-            to_name,
-            arg_size,
-            called_name,
+            % (
+                ", ".join(str(arg_name) for arg_name in arg_names),
+                to_name,
+                arg_size,
+                called_name,
+            )
         )
-    )
 
     getErrorExitCode(
         check_name=to_name,
