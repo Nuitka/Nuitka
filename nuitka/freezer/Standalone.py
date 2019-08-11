@@ -399,6 +399,11 @@ def scanStandardLibraryPath(stdlib_dir):
             if "test" in dirs:
                 dirs.remove("test")
 
+        if import_path == "distutils.command":
+            # Misbehaving and crashing while importing the world.
+            if "bdist_conda.py" in filenames:
+                filenames.remove("bdist_conda.py")
+
         if import_path in ("lib2to3", "json", "distutils"):
             if "tests" in dirs:
                 dirs.remove("tests")
@@ -513,6 +518,9 @@ for imp in imports:
         __import__(imp)
     except (ImportError, SyntaxError):
         failed.add(imp)
+    except Exception:
+        sys.stderr("PROBLEM with '%%s'\\n" %% imp)
+        raise
 
     for fail in failed:
         if fail in sys.modules:
