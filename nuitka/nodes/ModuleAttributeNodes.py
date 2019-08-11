@@ -131,7 +131,7 @@ class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
             if provider.isCompiledPythonPackage():
                 value = provider.getFullName()
             else:
-                value = provider.getPackage()
+                value = provider.getFullName().getPackageName()
 
             result = makeConstantRefNode(
                 constant=value.asString(), source_ref=self.source_ref

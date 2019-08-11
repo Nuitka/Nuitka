@@ -65,14 +65,6 @@ class PythonModuleBase(NodeBase):
     def getDetails(self):
         return {"module_name": self.module_name}
 
-    # TODO: Remove this methods, make user go getFullName.getBasename()
-    def getName(self):
-        return self.module_name.getBasename()
-
-    # TODO: Remove this methods, make user go getFullName.getPackageName()
-    def getPackage(self):
-        return self.module_name.getPackageName()
-
     def getFullName(self):
         return self.module_name
 

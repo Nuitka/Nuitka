@@ -426,7 +426,11 @@ def makeSourceDirectory(main_module):
             shutil.copyfile(module.getFilename(), target_filename)
 
             standalone_entry_points.append(
-                (module.getFilename(), target_filename, module.getPackage())
+                (
+                    module.getFilename(),
+                    target_filename,
+                    module.getFullName().getPackageName(),
+                )
             )
         elif module.isUncompiledPythonModule():
             if Options.isShowInclusion():

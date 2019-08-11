@@ -88,7 +88,7 @@ def getImportedModuleByPath(module_relpath, module_package):
 
             if (
                 module.getCompileTimeFilename().endswith("__init__.py")
-                and module.getPackage() != module_package
+                and module.getFullName().getPackageName() != module_package
             ):
                 continue
 

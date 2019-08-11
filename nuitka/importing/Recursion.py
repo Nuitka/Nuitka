@@ -310,7 +310,7 @@ def checkPluginSinglePath(plugin_filename, module_package):
                 debug(
                     "Recursed to %s %s %s",
                     module.getName(),
-                    module.getPackage(),
+                    module.getFullName().getPackageName(),
                     module,
                 )
 

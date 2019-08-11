@@ -245,10 +245,9 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
         parent_module = self.getParentModule()
 
-        if parent_module.isCompiledPythonPackage():
-            parent_package = parent_module.getFullName()
-        else:
-            parent_package = self.getParentModule().getPackage()
+        parent_package = parent_module.getFullName()
+        if not parent_module.isCompiledPythonPackage():
+            parent_package = parent_package.getPackageName()
 
         level = self.getLevel()
 
