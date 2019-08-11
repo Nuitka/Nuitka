@@ -251,7 +251,7 @@ class CTypeCellObject(CTypeBase):
     def getCellObjectAssignmentCode(cls, target_cell_code, variable_code_name, emit):
         emit("%s = %s;" % (target_cell_code, variable_code_name))
 
-        emit("Py_INCREF( %s );" % (target_cell_code))
+        emit("Py_INCREF(%s);" % (target_cell_code))
 
     @classmethod
     def emitVariableAssignCode(

@@ -344,7 +344,7 @@ MOD_INIT_DECL(%(module_identifier)s)
         PyObject *bootstrap_module = PyImport_ImportModule("importlib._bootstrap");
         CHECK_OBJECT( bootstrap_module );
         PyObject *module_spec_class = PyObject_GetAttrString( bootstrap_module, "ModuleSpec" );
-        Py_DECREF( bootstrap_module );
+        Py_DECREF(bootstrap_module);
 
         PyObject *args[] = {
             GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ ),
@@ -355,7 +355,7 @@ MOD_INIT_DECL(%(module_identifier)s)
             module_spec_class,
             args
         );
-        Py_DECREF( module_spec_class );
+        Py_DECREF(module_spec_class);
 
         // We can assume this to never fail, or else we are in trouble anyway.
         CHECK_OBJECT( spec_value );

@@ -15,6 +15,11 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
 
 PyObject *callPythonFunction(PyObject *func, PyObject **args, int count) {
     PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE(func);

@@ -98,7 +98,7 @@ def generateExceptionCaughtTracebackCode(to_name, expression, emit, context):
 if ( %(keeper_tb)s != NULL )
 {
     %(to_name)s = (PyObject *)%(keeper_tb)s;
-    Py_INCREF( %(to_name)s );
+    Py_INCREF(%(to_name)s);
 }
 else
 {
@@ -121,9 +121,9 @@ def getExceptionUnpublishedReleaseCode(emit, context):
     keeper_variables = context.getExceptionKeeperVariables()
 
     if keeper_variables[0] is not None:
-        emit("Py_DECREF( %s );" % keeper_variables[0])
-        emit("Py_XDECREF( %s );" % keeper_variables[1])
-        emit("Py_XDECREF( %s );" % keeper_variables[2])
+        emit("Py_DECREF(%s);" % keeper_variables[0])
+        emit("Py_XDECREF(%s);" % keeper_variables[1])
+        emit("Py_XDECREF(%s);" % keeper_variables[2])
 
 
 def generateExceptionPublishCode(statement, emit, context):

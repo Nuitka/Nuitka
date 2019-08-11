@@ -136,16 +136,16 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
         res_name = context.getIntResName()
 
         emit(
-            "%s = PyDict_SetItem( %s, %s, %s );"
+            "%s = PyDict_SetItem(%s, %s, %s);"
             % (res_name, to_name, dict_key_name, dict_value_name)
         )
 
         if context.needsCleanup(dict_value_name):
-            emit("Py_DECREF( %s );" % dict_value_name)
+            emit("Py_DECREF(%s);" % dict_value_name)
             context.removeCleanupTempName(dict_value_name)
 
         if context.needsCleanup(dict_key_name):
-            emit("Py_DECREF( %s );" % dict_key_name)
+            emit("Py_DECREF(%s);" % dict_key_name)
             context.removeCleanupTempName(dict_key_name)
 
         getErrorExitBoolCode(

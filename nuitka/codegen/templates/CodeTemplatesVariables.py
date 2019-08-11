@@ -23,7 +23,7 @@ template_write_local_unclear_ref0 = """\
 {
     PyObject *old = %(identifier)s;
     %(identifier)s = %(tmp_name)s;
-    Py_XDECREF( old );
+    Py_XDECREF(old);
 }
 """
 
@@ -31,8 +31,8 @@ template_write_local_unclear_ref1 = """\
 {
     PyObject *old = %(identifier)s;
     %(identifier)s = %(tmp_name)s;
-    Py_INCREF( %(identifier)s );
-    Py_XDECREF( old );
+    Py_INCREF(%(identifier)s);
+    Py_XDECREF(old);
 }
 """
 
@@ -41,16 +41,16 @@ assert( %(identifier)s == NULL );
 %(identifier)s = %(tmp_name)s;"""
 
 template_write_local_empty_ref1 = """\
-assert( %(identifier)s == NULL );
-Py_INCREF( %(tmp_name)s );
+assert(%(identifier)s == NULL);
+Py_INCREF(%(tmp_name)s);
 %(identifier)s = %(tmp_name)s;"""
 
 template_write_local_clear_ref0 = """\
 {
     PyObject *old = %(identifier)s;
-    assert( old != NULL );
+    assert(old != NULL);
     %(identifier)s = %(tmp_name)s;
-    Py_DECREF( old );
+    Py_DECREF(old);
 }
 """
 
@@ -68,50 +68,50 @@ template_write_local_clear_ref1 = """\
     PyObject *old = %(identifier)s;
     assert( old != NULL );
     %(identifier)s = %(tmp_name)s;
-    Py_INCREF( %(identifier)s );
-    Py_DECREF( old );
+    Py_INCREF(%(identifier)s);
+    Py_DECREF(old);
 }
 """
 
 template_write_shared_unclear_ref0 = """\
 {
-    PyObject *old = PyCell_GET( %(identifier)s );
-    PyCell_SET( %(identifier)s, %(tmp_name)s );
-    Py_XDECREF( old );
+    PyObject *old = PyCell_GET(%(identifier)s);
+    PyCell_SET(%(identifier)s, %(tmp_name)s);
+    Py_XDECREF(old);
 }
 """
 
 template_write_shared_unclear_ref1 = """\
 {
-    PyObject *old = PyCell_GET( %(identifier)s );
-    PyCell_SET( %(identifier)s, %(tmp_name)s );
-    Py_INCREF( %(tmp_name)s );
-    Py_XDECREF( old );
+    PyObject *old = PyCell_GET(%(identifier)s);
+    PyCell_SET(%(identifier)s, %(tmp_name)s);
+    Py_INCREF(%(tmp_name)s);
+    Py_XDECREF(old);
 }
 """
 
 template_write_shared_clear_ref0 = """\
 assert( PyCell_GET( %(identifier)s ) == NULL );
-PyCell_SET( %(identifier)s, %(tmp_name)s );
+PyCell_SET(%(identifier)s, %(tmp_name)s);
 """
 
 template_write_shared_clear_ref1 = """\
 assert( PyCell_GET( %(identifier)s ) == NULL );
-Py_INCREF( %(tmp_name)s );
-PyCell_SET( %(identifier)s, %(tmp_name)s );
+Py_INCREF(%(tmp_name)s);
+PyCell_SET(%(identifier)s, %(tmp_name)s);
 """
 
 
 template_del_local_tolerant = """\
-Py_XDECREF( %(identifier)s );
+Py_XDECREF(%(identifier)s);
 %(identifier)s = NULL;
 """
 
 template_del_shared_tolerant = """\
 {
-    PyObject *old = PyCell_GET( %(identifier)s );
-    PyCell_SET( %(identifier)s, NULL );
-    Py_XDECREF( old );
+    PyObject *old = PyCell_GET(%(identifier)s);
+    PyCell_SET(%(identifier)s, NULL);
+    Py_XDECREF(old);
 }
 """
 
@@ -119,16 +119,16 @@ template_del_local_intolerant = """\
 %(result)s = %(identifier)s != NULL;
 if ( %(result)s == true )
 {
-    Py_DECREF( %(identifier)s );
+    Py_DECREF(%(identifier)s);
     %(identifier)s = NULL;
 }
 """
 
 template_del_shared_intolerant = """\
 {
-    PyObject *old = PyCell_GET( %(identifier)s );
-    PyCell_SET( %(identifier)s, NULL );
-    Py_XDECREF( old );
+    PyObject *old = PyCell_GET(%(identifier)s);
+    PyCell_SET(%(identifier)s, NULL);
+    Py_XDECREF(old);
 
     %(result)s = old != NULL;
 }
@@ -136,17 +136,17 @@ template_del_shared_intolerant = """\
 
 template_del_local_known = """\
 CHECK_OBJECT( %(identifier)s );
-Py_DECREF( %(identifier)s );
+Py_DECREF(%(identifier)s);
 %(identifier)s = NULL;
 """
 
 template_del_shared_known = """\
 {
-    PyObject *old = PyCell_GET( %(identifier)s );
-    PyCell_SET( %(identifier)s, NULL );
+    PyObject *old = PyCell_GET(%(identifier)s);
+    PyCell_SET(%(identifier)s, NULL);
 
-    CHECK_OBJECT( old );
-    Py_DECREF( old );
+    CHECK_OBJECT(old);
+    Py_DECREF(old);
 }
 """
 
@@ -154,18 +154,18 @@ template_del_shared_known = """\
 # TODO: We could know, if we could loop, and only set the
 # variable to NULL then, using a different template.
 template_release_unclear = """\
-Py_XDECREF( %(identifier)s );
+Py_XDECREF(%(identifier)s);
 %(identifier)s = NULL;
 """
 
 template_release_clear = """\
-CHECK_OBJECT( (PyObject *)%(identifier)s );
-Py_DECREF( %(identifier)s );
+CHECK_OBJECT((PyObject *)%(identifier)s);
+Py_DECREF(%(identifier)s);
 %(identifier)s = NULL;
 """
 
 template_read_shared_known = """\
-%(tmp_name)s = PyCell_GET( %(identifier)s );
+%(tmp_name)s = PyCell_GET(%(identifier)s);
 """
 
 # For module variable values, need to lookup in module dictionary or in
@@ -205,7 +205,7 @@ if ( %(to_name)s == NULL )
     if ( CHECK_AND_CLEAR_KEY_ERROR_OCCURRED() )
     {
 %(fallback)s
-    Py_INCREF( %(to_name)s );
+        Py_INCREF(%(to_name)s);
     }
 }
 """
@@ -284,7 +284,7 @@ else
 
     if ( test_value )
     {
-        Py_DECREF( test_value );
+        Py_DECREF(test_value);
 
         int res = PyObject_DelItem(
             %(mapping_name)s,
