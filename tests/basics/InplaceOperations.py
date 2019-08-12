@@ -27,31 +27,33 @@ z[1] += 5
 
 print("List in-place:", z[1])
 
-h = { 'a' : 3 }
-h['a'] += 2
+h = {"a": 3}
+h["a"] += 2
 
-print("Dictionary in-place:", h['a'])
+print("Dictionary in-place:", h["a"])
+
 
 class B:
     a = 1
+
 
 B.a += 2
 
 print("Class attribute in-place:", B.a)
 
 h = [1, 2, 3, 4]
-h[1:2] += (2,3)
+h[1:2] += (2, 3)
 
 print("List 'sclice' in-place [x:y]", h)
 
-h[:1] += (9,9)
+h[:1] += (9, 9)
 
 print("List 'sclice' in-place [:y]", h)
 
-h[2:] += (6,6)
+h[2:] += (6, 6)
 
 print("List 'sclice' in-place [y:]", h)
 
-h[:] += (5,5,5)
+h[:] += (5, 5, 5)
 
 print("List 'sclice' in-place [:]", h)

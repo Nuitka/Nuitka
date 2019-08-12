@@ -618,7 +618,7 @@ CHECK_OBJECT( const_int_pos_1 );
 
             # Do not take references, these won't be deleted ever.
             emit(
-                "PyTuple_SET_ITEM( %s, %d, %s ); Py_INCREF( %s );"
+                "PyTuple_SET_ITEM( %s, %d, %s ); Py_INCREF(%s);"
                 % (constant_identifier, count, element_name, element_name)
             )
 
@@ -648,7 +648,7 @@ CHECK_OBJECT( const_int_pos_1 );
 
             # Do not take references, these won't be deleted ever.
             emit(
-                "PyList_SET_ITEM( %s, %d, %s ); Py_INCREF( %s );"
+                "PyList_SET_ITEM(%s, %d, %s); Py_INCREF(%s);"
                 % (constant_identifier, count, element_name, element_name)
             )
 

@@ -15,19 +15,24 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" These tests contain all forms of closure absuse.
 
+"""
 from __future__ import print_function
 
 a = 1
 b = 1
 
-def someFunction():
-    a = a
 
-class someClass():
+def someFunction():
+    a = a  # pylint: disable=redefined-outer-name,unused-variable
+
+
+class SomeClass:
     b = b
 
-someClass()
+
+SomeClass()
 
 try:
     someFunction()
@@ -35,18 +40,21 @@ except UnboundLocalError as e:
     print("Expected unbound local error occurred:", repr(e))
 
 try:
-    class anotherClass():
-        b = undefined_global  # @UndefinedVariable
+
+    class AnotherClass:
+        b = undefined_global
+
+
 except NameError as e:
     print("Expected name error occurred:", repr(e))
 
-# TODO: This is not passing yet.
-if False:
-    try:
-        class yetanotherClass():
-            b = 1
-            del b
-            print(b)
+try:
 
-    except NameError as e:
-        print("Expected name error occurred:", repr(e))
+    class YetAnotherClass:
+        b = 1
+        del b
+        print(b)
+
+
+except NameError as e:
+    print("Expected name error occurred:", repr(e))

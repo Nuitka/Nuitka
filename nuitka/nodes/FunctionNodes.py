@@ -66,6 +66,8 @@ class ExpressionFunctionBodyBase(
 ):
 
     named_child = "body"
+    getBody = ExpressionChildHavingBase.childGetter("body")
+    setBody = ExpressionChildHavingBase.childSetter("body")
 
     checker = checkStatementsSequenceOrNone
 
@@ -330,9 +332,6 @@ class ExpressionFunctionBodyBase(
         else:
             return self.getBody().mayRaiseException(exception_type)
 
-    getBody = ExpressionChildHavingBase.childGetter("body")
-    setBody = ExpressionChildHavingBase.childSetter("body")
-
 
 class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBase):
     def __init__(self, provider, name, code_object, code_prefix, flags, source_ref):
@@ -405,8 +404,6 @@ class ExpressionFunctionBody(
     MarkUnoptimizedFunctionIndicatorMixin, ExpressionFunctionEntryPointBase
 ):
     kind = "EXPRESSION_FUNCTION_BODY"
-
-    named_children = ("body",)
 
     checkers = {
         # TODO: Is "None" really an allowed value.
@@ -595,6 +592,10 @@ class ExpressionFunctionCreation(
         named_children = ("kw_defaults", "defaults", "annotations", "function_ref")
     else:
         named_children = ("defaults", "kw_defaults", "annotations", "function_ref")
+    getFunctionRef = ExpressionChildrenHavingBase.childGetter("function_ref")
+    getDefaults = ExpressionChildrenHavingBase.childGetter("defaults")
+    getKwDefaults = ExpressionChildrenHavingBase.childGetter("kw_defaults")
+    getAnnotations = ExpressionChildrenHavingBase.childGetter("annotations")
 
     checkers = {"kw_defaults": convertNoneConstantOrEmptyDictToNone}
 
@@ -632,11 +633,6 @@ class ExpressionFunctionCreation(
 
         # TODO: Function body may know something too.
         return self, None, None
-
-    getFunctionRef = ExpressionChildrenHavingBase.childGetter("function_ref")
-    getDefaults = ExpressionChildrenHavingBase.childGetter("defaults")
-    getKwDefaults = ExpressionChildrenHavingBase.childGetter("kw_defaults")
-    getAnnotations = ExpressionChildrenHavingBase.childGetter("annotations")
 
     def mayRaiseException(self, exception_type):
         for default in self.getDefaults():
@@ -691,6 +687,7 @@ class ExpressionFunctionCreation(
             args_dict = matchCall(
                 func_name=self.getName(),
                 args=call_spec.getArgumentNames(),
+                kw_only_args=call_spec.getKwOnlyParameterNames(),
                 star_list_arg=call_spec.getStarListArgumentName(),
                 star_dict_arg=call_spec.getStarDictArgumentName(),
                 num_defaults=call_spec.getDefaultCount(),
@@ -700,6 +697,10 @@ class ExpressionFunctionCreation(
             )
 
             values = [args_dict[name] for name in call_spec.getParameterNames()]
+
+            # TODO: Not handling default values either yet.
+            if None in values:
+                return call_node, None, None
 
             result = ExpressionFunctionCall(
                 function=self, values=values, source_ref=call_node.getSourceReference()
@@ -848,6 +849,8 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_FUNCTION_CALL"
 
     named_children = ("function", "values")
+    getFunction = ExpressionChildrenHavingBase.childGetter("function")
+    getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
 
     def __init__(self, function, values, source_ref):
         assert function.isExpressionFunctionCreation()
@@ -911,9 +914,6 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
                 return True
 
         return False
-
-    getFunction = ExpressionChildrenHavingBase.childGetter("function")
-    getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
 
     def getClosureVariableVersions(self):
         return self.variable_closure_traces

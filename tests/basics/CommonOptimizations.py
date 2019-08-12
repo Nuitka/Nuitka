@@ -33,42 +33,36 @@ def yield_helper():
 
 class CommonOptimizationTest:
     _list_tests = {
-            "Test on empty list" : [],
-            "Test on all None" : [None, None, None],
-            "Test on single True and rest None": [None, True, None],
-            "Test on zero list 20000 times": [0]*20000,
-            "Test on zero list 255 times": [0]*255
-        }
+        "Test on empty list": [],
+        "Test on all None": [None, None, None],
+        "Test on single True and rest None": [None, True, None],
+        "Test on zero list 20000 times": [0] * 20000,
+        "Test on zero list 255 times": [0] * 255,
+    }
 
     _range_tests = {
-            "Test on range with single argument" : range(260),
-            "Test on range with two arguments" : range(1, 270),
-            "Test on range with three arguments" : range(2, 1024, 5),
-        }
+        "Test on range with single argument": range(260),
+        "Test on range with two arguments": range(1, 270),
+        "Test on range with three arguments": range(2, 1024, 5),
+    }
 
-    _yeild_tests = {
-        "Yield Test": yield_helper()
-        }
+    _yeild_tests = {"Yield Test": yield_helper()}
 
     _non_iterable_tests = {
-        "Float value" : 1.0,
-        "Type value" : float,
-        "Int value" : 1,
-        "Complex value" : 1j,
+        "Float value": 1.0,
+        "Type value": float,
+        "Int value": 1,
+        "Complex value": 1j,
     }
 
-    _set_tests = {
-        "Test on set" : set([0, 1, 2, 3, 3]),
-    }
+    _set_tests = {"Test on set": set([0, 1, 2, 3, 3])}
 
-    _dict_tests = {
-        "Test on dict" : {1:"One", 2:"Two"},
-    }
+    _dict_tests = {"Test on dict": {1: "One", 2: "Two"}}
 
     _other_tests = {
-        "Test for string" : "String",
-        "Test for unicode" : u"Unicode",
-        "Test for byte" : b"byte",
+        "Test for string": "String",
+        "Test for unicode": u"Unicode",
+        "Test for byte": b"byte",
     }
 
     def __init__(self, builtin):
@@ -78,14 +72,14 @@ class CommonOptimizationTest:
         for desc, value in sorted(test.items()):
             try:
                 print("{}: {}".format(desc, self.builtin(value)))
-            except Exception as e: # pylint: disable=broad-except
+            except Exception as e:  # pylint: disable=broad-except
                 print("caught ", repr(e))
 
     def run_all_tests(self):
         print("Calling without args:")
         try:
             print(self.builtin())
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             print("caught ", repr(e))
 
         tests = [
@@ -95,7 +89,7 @@ class CommonOptimizationTest:
             self._dict_tests,
             self._yeild_tests,
             self._non_iterable_tests,
-            self._other_tests
+            self._other_tests,
         ]
 
         for test in tests:

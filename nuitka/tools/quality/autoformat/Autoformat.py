@@ -151,8 +151,7 @@ def _cleanupPyLintComments(filename, abort):
         if abort:
             raise
 
-        my_print("PARSING ERROR.")
-        return 2
+        return
 
     for node in red.find_all("CommentNode"):
         try:
@@ -295,7 +294,7 @@ def _shouldNotFormatCode(filename):
 
     if "inline_copy" in parts:
         return True
-    elif "tests" in parts:
+    elif "tests" in parts and not "basics" in parts:
         return "run_all.py" not in parts and "compile_itself.py" not in parts
     else:
         return False
@@ -344,6 +343,8 @@ def autoformat(filename, git_stage, abort):
             ".j2",
             ".gitignore",
             ".json",
+            ".spec",
+            "-rpmlintrc",
         )
     )
 
@@ -374,7 +375,7 @@ def autoformat(filename, git_stage, abort):
 
                 black_call = _getPythonBinaryCall("black")
 
-                subprocess.call(black_call + ["-q", tmp_filename])
+                subprocess.call(black_call + ["-q", "--fast", tmp_filename])
                 _cleanupWindowsNewlines(tmp_filename)
 
         elif is_c:

@@ -15,11 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 import random
+
 
 def getrandom():
     return random.random()
+
 
 def optimizerCrashIssue13():
     try:
@@ -30,22 +31,26 @@ def optimizerCrashIssue13():
         print("Should not reach this")
         raise x
 
+
 # Just so it won't be optimized away entirely, the run time has no issue.
 optimizerCrashIssue13()
 
+
 def codegeneratorCrashIssue15():
     f = float("nan")
-    g = getrandom() # Prevent optimization of "nan"-constant
+    g = getrandom()  # Prevent optimization of "nan"-constant
 
-    return f+g
+    return f + g
+
 
 # Just so it won't be optimized away entirely.
 codegeneratorCrashIssue15()
 
+
 def codegeneratorCrashIssue30():
     f = getrandom()  # Prevent optimization
 
-    f   # Will be optimized way in later versions of Nuitka.
+    f  # Will be optimized way in later versions of Nuitka.
     # TODO: May already be the case.
 
 
@@ -56,9 +61,10 @@ def runtimeCrashIssue():
 
     try:
         # This will set an error and return a value for at least Python3.2
-        count(1, sys.maxsize+5)
+        count(1, sys.maxsize + 5)
     except TypeError:
         # For Python2.6, the two arguments variant didn't exist yet.
-        assert sys.version_info < (2,7)
+        assert sys.version_info < (2, 7)
+
 
 runtimeCrashIssue()

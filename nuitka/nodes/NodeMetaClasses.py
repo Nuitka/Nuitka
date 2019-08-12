@@ -27,6 +27,10 @@ from abc import ABCMeta
 from nuitka.__past__ import intern  # pylint: disable=I0021,redefined-builtin
 
 
+class NuitkaNodeDesignError(Exception):
+    pass
+
+
 def _checkBases(name, bases):
     # Avoid duplicate base classes.
     assert len(bases) == len(set(bases)), (name, bases)
@@ -38,7 +42,9 @@ def _checkBases(name, bases):
         is_mixin = base_name.endswith("Mixin")
 
         if is_mixin and last_mixin is False:
-            assert False, (name, bases)
+            raise NuitkaNodeDesignError(
+                "Mixins must come first in base classes.", bases
+            )
 
         last_mixin = is_mixin
 
@@ -58,6 +64,12 @@ class NodeCheckMetaClass(ABCMeta):
 
         if "named_child" in dictionary:
             dictionary["__slots__"] += (intern("subnode_" + dictionary["named_child"]),)
+
+        if "named_children" in dictionary and not name.endswith("Base"):
+            if len(dictionary["named_children"]) <= 1:
+                raise NuitkaNodeDesignError(
+                    "Use ExpressionChildHaving for one child node classes", name
+                )
 
         # Not a method:
         if "checker" in dictionary:

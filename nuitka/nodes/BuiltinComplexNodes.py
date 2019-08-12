@@ -21,21 +21,21 @@
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import (
+    ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
-    ExpressionSpecBasedComputationBase,
+    ExpressionSpecBasedComputationMixin,
 )
 from .shapes.BuiltinTypeShapes import ShapeTypeComplex
 
 
-class ExpressionBuiltinComplex1(ExpressionChildrenHavingBase):
+class ExpressionBuiltinComplex1(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_COMPLEX1"
 
-    named_children = ("value",)
+    named_child = "value"
+    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"value": value}, source_ref=source_ref
-        )
+        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def getTypeShape(self):
         # Note: The complex built-in will convert overloads from __complex__
@@ -49,23 +49,22 @@ class ExpressionBuiltinComplex1(ExpressionChildrenHavingBase):
             complex_node=self, trace_collection=trace_collection
         )
 
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
-
-class ExpressionBuiltinComplex2(ExpressionSpecBasedComputationBase):
+class ExpressionBuiltinComplex2(
+    ExpressionSpecBasedComputationMixin, ExpressionChildrenHavingBase
+):
     kind = "EXPRESSION_BUILTIN_COMPLEX2"
 
     named_children = ("real", "imag")
+    getReal = ExpressionChildrenHavingBase.childGetter("real")
+    getImag = ExpressionChildrenHavingBase.childGetter("imag")
 
     builtin_spec = BuiltinParameterSpecs.builtin_complex_spec
 
     def __init__(self, real, imag, source_ref):
-        ExpressionSpecBasedComputationBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self, values={"real": real, "imag": imag}, source_ref=source_ref
         )
-
-    getReal = ExpressionSpecBasedComputationBase.childGetter("real")
-    getImag = ExpressionSpecBasedComputationBase.childGetter("imag")
 
     def computeExpression(self, trace_collection):
         given_values = self.subnode_real, self.subnode_imag

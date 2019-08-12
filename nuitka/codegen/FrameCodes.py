@@ -451,11 +451,11 @@ def generateFramePreserveExceptionCode(statement, emit, context):
         emit(
             """\
 %(exception_preserved_type)s = EXC_TYPE(PyThreadState_GET());
-Py_XINCREF( %(exception_preserved_type)s );
+Py_XINCREF(%(exception_preserved_type)s);
 %(exception_preserved_value)s = EXC_VALUE(PyThreadState_GET());
-Py_XINCREF( %(exception_preserved_value)s );
+Py_XINCREF(%(exception_preserved_value)s);
 %(exception_preserved_tb)s = (PyTracebackObject *)EXC_TRACEBACK(PyThreadState_GET());
-Py_XINCREF( %(exception_preserved_tb)s );
+Py_XINCREF(%(exception_preserved_tb)s);
 """
             % {
                 "exception_preserved_type": exception_preserved_type,
@@ -470,7 +470,7 @@ def generateFrameRestoreExceptionCode(statement, emit, context):
 
     if python_version < 300:
         emit(
-            "RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );"
+            "RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);"
             % {"frame_identifier": context.getFrameHandle()}
         )
     else:

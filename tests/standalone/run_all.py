@@ -104,7 +104,13 @@ def displayError(dirname, filename):
     assert dirname is None
 
     my_print("Listing of dist folder:")
-    os.system("ls -Rla %s" % filename[:-3] + ".dist")
+
+    if os.name == "nt":
+        command = "dir /b /s /a:-D %s"
+    else:
+        command = "ls -Rla %s"
+
+    os.system(command % filename)
 
 
 def main():
@@ -204,9 +210,7 @@ def main():
             # For the plug-in information.
             extra_flags.append("ignore_infos")
 
-            if getPythonVendor() != "Anaconda" and (
-                "Plugins" in filename or "SSL" in filename
-            ):
+            if getPythonVendor() != "Anaconda":
                 extra_flags.append("plugin_enable:qt-plugins")
                 # extra_flags.append("ignore_infos")
             else:

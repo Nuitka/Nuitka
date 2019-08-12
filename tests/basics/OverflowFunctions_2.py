@@ -15,13 +15,14 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 def starImporterFunction():
     from sys import *  # @UnusedWildImport
 
-    print "Version", version.split()[0].split('.')[:-1]
+    print "Version", version.split()[0].split(".")[:-1]
+
 
 starImporterFunction()
+
 
 def deepExec():
     for_closure = 3
@@ -45,5 +46,6 @@ def deepExec():
         execFunction()
 
     deeper()
+
 
 deepExec()

@@ -17,6 +17,7 @@
 #
 from __future__ import print_function
 
+
 def tryWhileExceptContinueTest():
     print("Check if continue is executed in a except handler using for loop:")
 
@@ -31,12 +32,13 @@ def tryWhileExceptContinueTest():
             if x % 2 == 1:
                 undefined
         except:
-            print(x, end = ' ')
+            print(x, end=" ")
             continue
 
-        print('-', end = ' ')
+        print("-", end=" ")
 
     print()
+
 
 def tryForExceptContinueTest():
     print("Check if continue is executed in a except handler using for loop:")
@@ -46,12 +48,13 @@ def tryForExceptContinueTest():
             if x % 2 == 1:
                 undefined
         except:
-            print(x, end = ' ')
+            print(x, end=" ")
             continue
 
-        print('-', end = ' ')
+        print("-", end=" ")
 
     print()
+
 
 def tryWhileExceptBreakTest():
     print("Check if break is executed in a except handler using while loop:")
@@ -65,12 +68,13 @@ def tryWhileExceptBreakTest():
             if x == 5:
                 undefined
         except:
-            print(x, end = ' ')
+            print(x, end=" ")
             break
 
-        print('-', end = ' ')
+        print("-", end=" ")
 
     print()
+
 
 def tryForExceptBreakTest():
     print("Check if break is executed in a except handler using for loop:")
@@ -80,12 +84,13 @@ def tryForExceptBreakTest():
             if x == 5:
                 undefined
         except:
-            print(x, end = ' ')
+            print(x, end=" ")
             break
 
-        print('-', end = ' ')
+        print("-", end=" ")
 
     print()
+
 
 tryWhileExceptContinueTest()
 tryWhileExceptBreakTest()

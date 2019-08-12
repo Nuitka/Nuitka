@@ -15,8 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 count = 0
+
 
 def recurse():
     global count
@@ -24,5 +24,6 @@ def recurse():
 
     if count < 50:
         recurse()
+
 
 recurse()

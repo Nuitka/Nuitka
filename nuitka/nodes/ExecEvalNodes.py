@@ -37,6 +37,9 @@ class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_EVAL"
 
     named_children = ("source", "globals", "locals")
+    getSourceCode = ExpressionChildrenHavingBase.childGetter("source")
+    getGlobals = ExpressionChildrenHavingBase.childGetter("globals")
+    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
 
     def __init__(self, source_code, globals_arg, locals_arg, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -48,10 +51,6 @@ class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
             },
             source_ref=source_ref,
         )
-
-    getSourceCode = ExpressionChildrenHavingBase.childGetter("source")
-    getGlobals = ExpressionChildrenHavingBase.childGetter("globals")
-    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
 
     def computeExpression(self, trace_collection):
         # TODO: Attempt for constant values to do it.
@@ -144,6 +143,9 @@ class StatementExec(StatementChildrenHavingBase):
     kind = "STATEMENT_EXEC"
 
     named_children = ("source", "globals", "locals")
+    getSourceCode = StatementChildrenHavingBase.childGetter("source")
+    getGlobals = StatementChildrenHavingBase.childGetter("globals")
+    getLocals = StatementChildrenHavingBase.childGetter("locals")
 
     def __init__(self, source_code, globals_arg, locals_arg, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -161,10 +163,6 @@ class StatementExec(StatementChildrenHavingBase):
             value = convertNoneConstantToNone(value)
 
         return StatementChildrenHavingBase.setChild(self, name, value)
-
-    getSourceCode = StatementChildrenHavingBase.childGetter("source")
-    getGlobals = StatementChildrenHavingBase.childGetter("globals")
-    getLocals = StatementChildrenHavingBase.childGetter("locals")
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(expression=self.getSourceCode())
@@ -239,6 +237,7 @@ class StatementLocalsDictSync(StatementChildHavingBase):
     kind = "STATEMENT_LOCALS_DICT_SYNC"
 
     named_child = "locals"
+    getLocals = StatementChildHavingBase.childGetter("locals")
 
     __slots__ = ("previous_traces", "variable_traces")
 
@@ -277,8 +276,6 @@ class StatementLocalsDictSync(StatementChildHavingBase):
 
         return self, None, None
 
-    getLocals = StatementChildHavingBase.childGetter("locals")
-
     def mayRaiseException(self, exception_type):
         return False
 
@@ -287,6 +284,12 @@ class ExpressionBuiltinCompile(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_COMPILE"
 
     named_children = ("source", "filename", "mode", "flags", "dont_inherit", "optimize")
+    getSourceCode = ExpressionChildrenHavingBase.childGetter("source")
+    getFilename = ExpressionChildrenHavingBase.childGetter("filename")
+    getMode = ExpressionChildrenHavingBase.childGetter("mode")
+    getFlags = ExpressionChildrenHavingBase.childGetter("flags")
+    getDontInherit = ExpressionChildrenHavingBase.childGetter("dont_inherit")
+    getOptimize = ExpressionChildrenHavingBase.childGetter("optimize")
 
     def __init__(
         self, source_code, filename, mode, flags, dont_inherit, optimize, source_ref
@@ -303,13 +306,6 @@ class ExpressionBuiltinCompile(ExpressionChildrenHavingBase):
             },
             source_ref=source_ref,
         )
-
-    getSourceCode = ExpressionChildrenHavingBase.childGetter("source")
-    getFilename = ExpressionChildrenHavingBase.childGetter("filename")
-    getMode = ExpressionChildrenHavingBase.childGetter("mode")
-    getFlags = ExpressionChildrenHavingBase.childGetter("flags")
-    getDontInherit = ExpressionChildrenHavingBase.childGetter("dont_inherit")
-    getOptimize = ExpressionChildrenHavingBase.childGetter("optimize")
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)

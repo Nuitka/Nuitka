@@ -20,13 +20,15 @@
 """
 
 import os
+import shutil
 import stat
 import sys
 
 from nuitka import Options
 from nuitka.codegen import ConstantCodes
-from nuitka.PythonVersions import python_version
-from nuitka.utils.Utils import isWin32Windows
+from nuitka.PythonVersions import getPythonABI, getTargetPythonDLLPath, python_version
+from nuitka.utils.SharedLibraries import callInstallNameTool
+from nuitka.utils.Utils import getOS, isWin32Windows
 from nuitka.utils.WindowsResources import (
     RT_MANIFEST,
     RT_RCDATA,
@@ -63,6 +65,24 @@ def executePostProcessing(result_filename):
             lang_id=0,
         )
 
+    # On macOS, we update the executable path for searching the "libpython"
+    # library.
+    if (
+        getOS() == "Darwin"
+        and not Options.shallMakeModule()
+        and not Options.shallUseStaticLibPython()
+    ):
+        python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
+        python_abi_version = python_version_str + getPythonABI()
+        python_dll_filename = "libpython" + python_abi_version + ".dylib"
+        python_lib_path = os.path.join(sys.prefix, "lib")
+
+        callInstallNameTool(
+            filename=result_filename,
+            old_path=python_dll_filename,
+            new_path=os.path.join(python_lib_path, python_dll_filename),
+        )
+
     # Modules should not be executable, but Scons creates them like it, fix
     # it up here.
     if not isWin32Windows() and Options.shallMakeModule():
@@ -73,3 +93,6 @@ def executePostProcessing(result_filename):
 
         if mode != old_stat.st_mode:
             os.chmod(result_filename, mode)
+
+    if isWin32Windows() and Options.shallTreatUninstalledPython():
+        shutil.copy(getTargetPythonDLLPath(), os.path.dirname(result_filename) or ".")

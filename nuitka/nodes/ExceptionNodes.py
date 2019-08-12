@@ -19,7 +19,11 @@
 
 """
 
-from .ExpressionBases import ExpressionBase, ExpressionChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionBase,
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase,
+)
 from .NodeBases import StatementBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
@@ -45,6 +49,10 @@ class StatementRaiseException(
         "exception_trace",
         "exception_cause",
     )
+    getExceptionType = StatementChildrenHavingBase.childGetter("exception_type")
+    getExceptionValue = StatementChildrenHavingBase.childGetter("exception_value")
+    getExceptionTrace = StatementChildrenHavingBase.childGetter("exception_trace")
+    getExceptionCause = StatementChildrenHavingBase.childGetter("exception_cause")
 
     def __init__(
         self,
@@ -74,11 +82,6 @@ class StatementRaiseException(
         )
 
         self.reraise_finally = False
-
-    getExceptionType = StatementChildrenHavingBase.childGetter("exception_type")
-    getExceptionValue = StatementChildrenHavingBase.childGetter("exception_value")
-    getExceptionTrace = StatementChildrenHavingBase.childGetter("exception_trace")
-    getExceptionCause = StatementChildrenHavingBase.childGetter("exception_cause")
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(
@@ -209,6 +212,8 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_RAISE_EXCEPTION"
 
     named_children = ("exception_type", "exception_value")
+    getExceptionType = ExpressionChildrenHavingBase.childGetter("exception_type")
+    getExceptionValue = ExpressionChildrenHavingBase.childGetter("exception_value")
 
     def __init__(self, exception_type, exception_value, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -224,9 +229,6 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
         # One thing is clear, it will raise. TODO: Match exception_type more
         # closely if it is predictable.
         return exception_type is BaseException
-
-    getExceptionType = ExpressionChildrenHavingBase.childGetter("exception_type")
-    getExceptionValue = ExpressionChildrenHavingBase.childGetter("exception_value")
 
     def computeExpression(self, trace_collection):
         return self, None, None
@@ -253,14 +255,17 @@ Propagated implicit raise expression to raise statement.""",
         )
 
 
-class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
+class ExpressionBuiltinMakeException(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
 
-    named_children = ("args",)
+    named_child = "args"
+    getArgs = ExpressionChildHavingBase.childGetter("args")
+
+    __slots__ = ("exception_name",)
 
     def __init__(self, exception_name, args, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"args": tuple(args)}, source_ref=source_ref
+        ExpressionChildHavingBase.__init__(
+            self, value=tuple(args), source_ref=source_ref
         )
 
         self.exception_name = exception_name
@@ -271,8 +276,6 @@ class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
     def getExceptionName(self):
         return self.exception_name
 
-    getArgs = ExpressionChildrenHavingBase.childGetter("args")
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -282,6 +285,46 @@ class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
                 return True
 
         return False
+
+
+if str is bytes:
+    ExpressionBuiltinMakeExceptionImportError = ExpressionBuiltinMakeException
+else:
+
+    class ExpressionBuiltinMakeExceptionImportError(ExpressionChildrenHavingBase):
+        kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR"
+
+        named_children = ("args", "name", "path")
+        getArgs = ExpressionChildrenHavingBase.childGetter("args")
+        getImportErrorName = ExpressionChildrenHavingBase.childGetter("name")
+        getImportErrorPath = ExpressionChildrenHavingBase.childGetter("path")
+
+        __slots__ = ("exception_name",)
+
+        def __init__(self, exception_name, args, name, path, source_ref):
+            ExpressionChildrenHavingBase.__init__(
+                self,
+                values={"args": tuple(args), "name": name, "path": path},
+                source_ref=source_ref,
+            )
+
+            self.exception_name = exception_name
+
+        def getDetails(self):
+            return {"exception_name": self.exception_name}
+
+        def getExceptionName(self):
+            return self.exception_name
+
+        def computeExpression(self, trace_collection):
+            return self, None, None
+
+        def mayRaiseException(self, exception_type):
+            for arg in self.getArgs():
+                if arg.mayRaiseException(exception_type):
+                    return True
+
+            return False
 
 
 class ExpressionCaughtExceptionTypeRef(ExpressionBase):

@@ -370,7 +370,7 @@ def getDirectFunctionCallCode(
         if context.needsCleanup(arg_name):
             context.removeCleanupTempName(arg_name)
         else:
-            emit("Py_INCREF( %s );" % arg_name)
+            emit("Py_INCREF(%s);" % arg_name)
 
     if arg_names:
         emit(
@@ -503,7 +503,7 @@ def finalizeFunctionLocalVariables(context):
     # TODO: Many times this will not be necessary.
     for locals_declaration in context.getLocalsDictNames():
         function_cleanup.append(
-            "Py_XDECREF( %(locals_dict)s );\n" % {"locals_dict": locals_declaration}
+            "Py_XDECREF(%(locals_dict)s);\n" % {"locals_dict": locals_declaration}
         )
 
     return function_cleanup

@@ -40,6 +40,20 @@ class StatementTry(StatementChildrenHavingBase):
         "continue_handler",
         "return_handler",
     )
+    getBlockTry = StatementChildrenHavingBase.childGetter("tried")
+    setBlockTry = StatementChildrenHavingBase.childSetter("tried")
+    getBlockExceptHandler = StatementChildrenHavingBase.childGetter("except_handler")
+    setBlockExceptHandler = StatementChildrenHavingBase.childSetter("except_handler")
+    getBlockBreakHandler = StatementChildrenHavingBase.childGetter("break_handler")
+    setBlockBreakHandler = StatementChildrenHavingBase.childSetter("break_handler")
+    getBlockContinueHandler = StatementChildrenHavingBase.childGetter(
+        "continue_handler"
+    )
+    setBlockContinueHandler = StatementChildrenHavingBase.childSetter(
+        "continue_handler"
+    )
+    getBlockReturnHandler = StatementChildrenHavingBase.childGetter("return_handler")
+    setBlockReturnHandler = StatementChildrenHavingBase.childSetter("return_handler")
 
     checkers = {
         "tried": checkStatementsSequence,
@@ -69,25 +83,6 @@ class StatementTry(StatementChildrenHavingBase):
             },
             source_ref=source_ref,
         )
-
-    getBlockTry = StatementChildrenHavingBase.childGetter("tried")
-    setBlockTry = StatementChildrenHavingBase.childSetter("tried")
-
-    getBlockExceptHandler = StatementChildrenHavingBase.childGetter("except_handler")
-    setBlockExceptHandler = StatementChildrenHavingBase.childSetter("except_handler")
-
-    getBlockBreakHandler = StatementChildrenHavingBase.childGetter("break_handler")
-    setBlockBreakHandler = StatementChildrenHavingBase.childSetter("break_handler")
-
-    getBlockContinueHandler = StatementChildrenHavingBase.childGetter(
-        "continue_handler"
-    )
-    setBlockContinueHandler = StatementChildrenHavingBase.childSetter(
-        "continue_handler"
-    )
-
-    getBlockReturnHandler = StatementChildrenHavingBase.childGetter("return_handler")
-    setBlockReturnHandler = StatementChildrenHavingBase.childSetter("return_handler")
 
     def computeStatement(self, trace_collection):
         # This node has many children to handle, pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements

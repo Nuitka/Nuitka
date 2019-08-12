@@ -22,6 +22,7 @@ import os
 import sys
 
 from nuitka.OptionParsing import parseOptions
+from nuitka.PythonVersions import isUninstalledPython
 from nuitka.utils import Utils
 
 options = None
@@ -350,6 +351,34 @@ def shallClearPythonPathEnvironment():
     """ *bool* = **not** "--execute-with-pythonpath"
     """
     return not options.keep_pythonpath
+
+
+def shallUseStaticLibPython():
+    """ *bool* = derived from sys.version
+
+    Notes:
+        Currently only AnaConda on non-Windows can do this.
+    """
+
+    # For AnaConda default to trying static lib python library, which
+    # normally is just not available or if it is even unusable.
+    return "Anaconda" in sys.version and os.name == "nt"
+
+
+def shallTreatUninstalledPython():
+    """ *bool* = derived from Python installation and modes
+
+    Notes:
+        Not done for standalone mode obviously.
+
+        Also not done for extension modules, they are loaded with
+        a Python runtime available.
+
+        Most often uninstalled Python versions are self compiled or
+        from AnaConda.
+    """
+
+    return not isStandaloneMode() and not shallMakeModule() and isUninstalledPython()
 
 
 def isShowScons():

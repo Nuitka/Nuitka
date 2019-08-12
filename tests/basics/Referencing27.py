@@ -15,23 +15,20 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import sys, os
+import os
+import sys
 
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
-from nuitka.tools.testing.Common import (
-    executeReferenceChecked,
-    checkDebugPython
-)
+
+# isort:start
+
+from nuitka.tools.testing.Common import checkDebugPython, executeReferenceChecked
 
 checkDebugPython()
 
@@ -40,22 +37,26 @@ x = 17
 
 # Python2.7 or higher syntax things are here.
 def simpleFunction1():
-    return {i:x for i in range(x)}
+    return {i: x for i in range(x)}
+
 
 def simpleFunction2():
     try:
-        return {y:i for i in range(x)}  # @UndefinedVariable
+        return {y: i for i in range(x)}  # @UndefinedVariable
     except NameError:
         pass
 
+
 def simpleFunction3():
     return {i for i in range(x)}
+
 
 def simpleFunction4():
     try:
         return {y for i in range(x)}  # @UndefinedVariable @UnusedVariable
     except NameError:
         pass
+
 
 # These need stderr to be wrapped.
 tests_stderr = ()
@@ -64,10 +65,10 @@ tests_stderr = ()
 tests_skipped = {}
 
 result = executeReferenceChecked(
-    prefix        = "simpleFunction",
-    names         = globals(),
-    tests_skipped = tests_skipped,
-    tests_stderr  = tests_stderr
+    prefix="simpleFunction",
+    names=globals(),
+    tests_skipped=tests_skipped,
+    tests_stderr=tests_stderr,
 )
 
 sys.exit(0 if result else 1)

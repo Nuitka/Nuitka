@@ -1358,25 +1358,57 @@ _compiler_arch = None
 
 
 def getCompilerArch():
-    # Singleton, pylint: disable=global-statement
-    global _compiler_arch_determined, _compiler_arch
+    if mingw_mode:
+        # Singleton, pylint: disable=global-statement
+        global _compiler_arch_determined, _compiler_arch
 
-    if not _compiler_arch_determined:
-        _compiler_arch = _getBinaryArch(getExecutablePath(the_compiler, initial=False))
-        _compiler_arch_determined = True
+        if not _compiler_arch_determined:
+            _compiler_arch = _getBinaryArch(
+                getExecutablePath(the_compiler, initial=False)
+            )
+            _compiler_arch_determined = True
+    elif msvc_mode:
+        cmdline = [getExecutablePath(the_compiler, initial=False)]
+
+        proc = subprocess.Popen(
+            cmdline,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+        )
+
+        # The cl.exe without further args will give error output indicating
+        # arch.
+        _data, err = proc.communicate()
+        _rv = proc.wait()
+
+        if b"x86" in err:
+            _compiler_arch = "x86"
+            _compiler_arch_determined = True
+        elif b"x64" in err:
+            _compiler_arch = "x86_64"
+            _compiler_arch_determined = True
+        else:
+            _compiler_arch_determined = True
+    else:
+        assert False, the_compiler
 
     return _compiler_arch
 
 
-if win_target and mingw_mode:
+if win_target:
     # Check most common user error related to MinGW64. People install 32 and
     # 64 variants and do not consider that MinGW64 could be 32 bits too.
 
-    if getLinkerArch() != getCompilerArch():
+    if (getLinkerArch() or target_arch) != getCompilerArch():
         sys.exit(
-            "Error, mismatch between Python %s and MinGW64 ('%s') arches."
+            "Error, mismatch between Python ('%s') and C compiler ('%s') arches."
             % (
-                "%s" % (getLinkerArch() or "unknown, but likely 'pei-x86-64'"),
+                "%s"
+                % (
+                    getLinkerArch() or target_arch or "unknown, but likely 'pei-x86-64'"
+                ),
                 getCompilerArch(),
             )
         )
@@ -1791,42 +1823,6 @@ if gcc_mode:
     _makeGccUseLinkerFile()
 
 Default(target)  # @UndefinedVariable pylint: disable=undefined-variable
-
-
-# Copy the Python DLL to the target directory, so the executable can be run.
-if uninstalled_python:
-    # TODO: Move this to nuitka.PostProcessing which now exists for such tasks.
-    def handleUninstalledPython():
-
-        if win_target:
-            # TODO: This should have become unnecessary by DLL_EXTRA_PATH,
-            # but so far we failed to create a manifest that makes the PythonXY.DLL
-            # from there.
-            shutil.copy(
-                getWindowsPythonDLLPath(), os.path.dirname(result_basepath) or "."
-            )
-        elif macosx_target and not module_mode:
-            # TODO: Move this to where we do it for Linux already.
-
-            python_dll_filename = "libpython" + python_abi_version + ".dylib"
-
-            result = subprocess.call(
-                (
-                    "install_name_tool",
-                    "-change",
-                    python_dll_filename,
-                    os.path.join(python_lib_path, python_dll_filename),
-                    result_exe,
-                ),
-                stdout=subprocess.PIPE,
-            )
-
-            if result != 0:
-                sys.exit(
-                    "Error, call to 'install_name_tool' to fix Python library path failed."
-                )
-
-    handleUninstalledPython()
 
 
 def _writeSconsReport():

@@ -65,14 +65,6 @@ class PythonModuleBase(NodeBase):
     def getDetails(self):
         return {"module_name": self.module_name}
 
-    # TODO: Remove this methods, make user go getFullName.getBasename()
-    def getName(self):
-        return self.module_name.getBasename()
-
-    # TODO: Remove this methods, make user go getFullName.getPackageName()
-    def getPackage(self):
-        return self.module_name.getPackageName()
-
     def getFullName(self):
         return self.module_name
 
@@ -231,6 +223,10 @@ class CompiledPythonModule(
     kind = "COMPILED_PYTHON_MODULE"
 
     named_children = ("body", "functions")
+    getBody = ChildrenHavingMixin.childGetter("body")
+    setBody = ChildrenHavingMixin.childSetter("body")
+    getFunctions = ChildrenHavingMixin.childGetter("functions")
+    setFunctions = ChildrenHavingMixin.childSetter("functions")
 
     checkers = {"body": checkStatementsSequenceOrNone}
 
@@ -357,12 +353,6 @@ class CompiledPythonModule(
                     graph.add_edge(node_names[previous], node_name)
 
         return graph
-
-    getBody = ChildrenHavingMixin.childGetter("body")
-    setBody = ChildrenHavingMixin.childSetter("body")
-
-    getFunctions = ChildrenHavingMixin.childGetter("functions")
-    setFunctions = ChildrenHavingMixin.childSetter("functions")
 
     @staticmethod
     def isCompiledPythonModule():

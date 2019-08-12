@@ -28,7 +28,7 @@ import math
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
 from .IterationHandles import (
     ConstantIterationHandleRange1,
     ConstantIterationHandleRange2,
@@ -38,17 +38,13 @@ from .NodeMakingHelpers import makeConstantReplacementNode
 from .shapes.BuiltinTypeShapes import ShapeTypeList, ShapeTypeXrange
 
 
-class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
-    """ Base class for range nodes with 1/2/3 arguments. """
+class ExpressionBuiltinRangeMixin(object):
+    """ Mixin class for range nodes with 1/2/3 arguments. """
 
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
 
-    def __init__(self, values, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values=values, source_ref=source_ref
-        )
-
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return ShapeTypeList
 
     def getTruthValue(self):
@@ -159,22 +155,19 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
         return None
 
 
-class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
+class ExpressionBuiltinRange1(ExpressionBuiltinRangeMixin, ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_RANGE1"
 
-    named_children = ("low",)
+    named_child = "low"
+    getLow = ExpressionChildrenHavingBase.childGetter("low")
 
     def __init__(self, low, source_ref):
         assert low is not None
+        assert python_version < 300
 
-        ExpressionBuiltinRangeBase.__init__(
-            self, values={"low": low}, source_ref=source_ref
-        )
-
-    getLow = ExpressionChildrenHavingBase.childGetter("low")
+        ExpressionChildHavingBase.__init__(self, value=low, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
-        assert python_version < 300
         low = self.getLow()
 
         return self.computeBuiltinSpec(
@@ -213,18 +206,19 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
         return count is None or count == self.getIterationLength()
 
 
-class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
+class ExpressionBuiltinRange2(
+    ExpressionBuiltinRangeMixin, ExpressionChildrenHavingBase
+):
     kind = "EXPRESSION_BUILTIN_RANGE2"
 
     named_children = ("low", "high")
-
-    def __init__(self, low, high, source_ref):
-        ExpressionBuiltinRangeBase.__init__(
-            self, values={"low": low, "high": high}, source_ref=source_ref
-        )
-
     getLow = ExpressionChildrenHavingBase.childGetter("low")
     getHigh = ExpressionChildrenHavingBase.childGetter("high")
+
+    def __init__(self, low, high, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self, values={"low": low, "high": high}, source_ref=source_ref
+        )
 
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
 
@@ -290,19 +284,20 @@ class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
         return count is None or count == self.getIterationLength()
 
 
-class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
+class ExpressionBuiltinRange3(
+    ExpressionBuiltinRangeMixin, ExpressionChildrenHavingBase
+):
     kind = "EXPRESSION_BUILTIN_RANGE3"
 
     named_children = ("low", "high", "step")
-
-    def __init__(self, low, high, step, source_ref):
-        ExpressionBuiltinRangeBase.__init__(
-            self, values={"low": low, "high": high, "step": step}, source_ref=source_ref
-        )
-
     getLow = ExpressionChildrenHavingBase.childGetter("low")
     getHigh = ExpressionChildrenHavingBase.childGetter("high")
     getStep = ExpressionChildrenHavingBase.childGetter("step")
+
+    def __init__(self, low, high, step, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self, values={"low": low, "high": high, "step": step}, source_ref=source_ref
+        )
 
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
 
@@ -404,17 +399,13 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
         return count is None or count == self.getIterationLength()
 
 
-class ExpressionBuiltinXrangeBase(ExpressionChildrenHavingBase):
-    """ Base class for xrange nodes with 1/2/3 arguments. """
+class ExpressionBuiltinXrangeMixin(object):
+    """ Mixin class for xrange nodes with 1/2/3 arguments. """
 
     builtin_spec = BuiltinParameterSpecs.builtin_xrange_spec
 
-    def __init__(self, values, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values=values, source_ref=source_ref
-        )
-
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return ShapeTypeXrange
 
     def canPredictIterationValues(self):
@@ -473,7 +464,8 @@ class ExpressionBuiltinXrangeBase(ExpressionChildrenHavingBase):
         )
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        # No exception will be raised on xrange iteration.
+        # No exception will be raised on xrange iteration, but there is nothing to
+        # lower for, virtual method: pylint: disable=no-self-use
 
         return iter_node, None, None
 
@@ -490,15 +482,14 @@ class ExpressionBuiltinXrangeBase(ExpressionChildrenHavingBase):
         return None
 
 
-class ExpressionBuiltinXrange1(ExpressionBuiltinXrangeBase):
+class ExpressionBuiltinXrange1(ExpressionBuiltinXrangeMixin, ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_XRANGE1"
 
-    named_children = ("low",)
+    named_child = "low"
+    getLow = ExpressionChildrenHavingBase.childGetter("low")
 
     def __init__(self, low, source_ref):
-        ExpressionBuiltinXrangeBase.__init__(
-            self, values={"low": low}, source_ref=source_ref
-        )
+        ExpressionChildHavingBase.__init__(self, value=low, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         low = self.getLow()
@@ -507,8 +498,6 @@ class ExpressionBuiltinXrange1(ExpressionBuiltinXrangeBase):
         return self.computeBuiltinSpec(
             trace_collection=trace_collection, given_values=(low,)
         )
-
-    getLow = ExpressionChildrenHavingBase.childGetter("low")
 
     def getIterationLength(self):
         low = self.getLow().getIntegerValue()
@@ -532,13 +521,17 @@ class ExpressionBuiltinXrange1(ExpressionBuiltinXrangeBase):
         return makeConstantReplacementNode(constant=int(element_index), node=self)
 
 
-class ExpressionBuiltinXrange2(ExpressionBuiltinXrangeBase):
+class ExpressionBuiltinXrange2(
+    ExpressionBuiltinXrangeMixin, ExpressionChildrenHavingBase
+):
     kind = "EXPRESSION_BUILTIN_XRANGE2"
 
     named_children = ("low", "high")
+    getLow = ExpressionChildrenHavingBase.childGetter("low")
+    getHigh = ExpressionChildrenHavingBase.childGetter("high")
 
     def __init__(self, low, high, source_ref):
-        ExpressionBuiltinXrangeBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self, values={"low": low, "high": high}, source_ref=source_ref
         )
 
@@ -587,17 +580,19 @@ class ExpressionBuiltinXrange2(ExpressionBuiltinXrangeBase):
         else:
             return makeConstantReplacementNode(constant=result, node=self)
 
-    getLow = ExpressionChildrenHavingBase.childGetter("low")
-    getHigh = ExpressionChildrenHavingBase.childGetter("high")
 
-
-class ExpressionBuiltinXrange3(ExpressionBuiltinXrangeBase):
+class ExpressionBuiltinXrange3(
+    ExpressionBuiltinXrangeMixin, ExpressionChildrenHavingBase
+):
     kind = "EXPRESSION_BUILTIN_XRANGE3"
 
     named_children = ("low", "high", "step")
+    getLow = ExpressionChildrenHavingBase.childGetter("low")
+    getHigh = ExpressionChildrenHavingBase.childGetter("high")
+    getStep = ExpressionChildrenHavingBase.childGetter("step")
 
     def __init__(self, low, high, step, source_ref):
-        ExpressionBuiltinXrangeBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self, values={"low": low, "high": high, "step": step}, source_ref=source_ref
         )
 
@@ -609,10 +604,6 @@ class ExpressionBuiltinXrange3(ExpressionBuiltinXrangeBase):
         return self.computeBuiltinSpec(
             trace_collection=trace_collection, given_values=(low, high, step)
         )
-
-    getLow = ExpressionChildrenHavingBase.childGetter("low")
-    getHigh = ExpressionChildrenHavingBase.childGetter("high")
-    getStep = ExpressionChildrenHavingBase.childGetter("step")
 
     def getIterationLength(self):
         low = self.getLow()

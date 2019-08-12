@@ -38,7 +38,6 @@ from nuitka.PostProcessing import executePostProcessing
 from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
-    isUninstalledPython,
     python_version,
     python_version_str,
 )
@@ -427,7 +426,11 @@ def makeSourceDirectory(main_module):
             shutil.copyfile(module.getFilename(), target_filename)
 
             standalone_entry_points.append(
-                (module.getFilename(), target_filename, module.getPackage())
+                (
+                    module.getFilename(),
+                    target_filename,
+                    module.getFullName().getPackageName(),
+                )
             )
         elif module.isUncompiledPythonModule():
             if Options.isShowInclusion():
@@ -497,9 +500,7 @@ def runScons(main_module, quiet):
     if Options.isLto():
         options["lto_mode"] = "true"
 
-    # For AnaConda default to trying static lib python library, which
-    # normally is just not available or if it is even unusable.
-    if "Anaconda" in sys.version:
+    if Options.shallUseStaticLibPython():
         options["static_libpython"] = "true"
 
     if Options.shallDisableConsoleWindow():
@@ -508,11 +509,7 @@ def runScons(main_module, quiet):
     if Options.isStandaloneMode():
         options["standalone_mode"] = "true"
 
-    if (
-        not Options.isStandaloneMode()
-        and not Options.shallMakeModule()
-        and isUninstalledPython()
-    ):
+    if Options.shallTreatUninstalledPython():
         options["uninstalled_python"] = "true"
 
     if ModuleRegistry.getUncompiledTechnicalModules():

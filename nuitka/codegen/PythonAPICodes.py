@@ -159,4 +159,4 @@ def getCAPIObjectCode(
 
 def getReferenceExportCode(base_name, emit, context):
     if not context.needsCleanup(base_name):
-        emit("Py_INCREF( %s );" % base_name)
+        emit("Py_INCREF(%s);" % base_name)

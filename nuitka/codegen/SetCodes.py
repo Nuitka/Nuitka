@@ -68,7 +68,7 @@ def generateSetCreationCode(to_name, expression, emit, context):
             )
 
             if context.needsCleanup(element_name):
-                emit("Py_DECREF( %s );" % element_name)
+                emit("Py_DECREF(%s);" % element_name)
                 context.removeCleanupTempName(element_name)
 
 
@@ -113,7 +113,7 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
                 )
 
             if context.needsCleanup(element_name):
-                emit("Py_DECREF( %s );" % element_name)
+                emit("Py_DECREF(%s);" % element_name)
                 context.removeCleanupTempName(element_name)
 
 

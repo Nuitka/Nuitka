@@ -260,7 +260,12 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("27.py") and _python_version.startswith("2.6"):
         return False
 
+    # Skip tests that require Python 2 at maximum.
     if filename.endswith("_2.py") and _python_version.startswith("3"):
+        return False
+
+    # Skip tests that require Python 3.7 at maximum.
+    if filename.endswith("_37.py") and _python_version >= "3.8":
         return False
 
     # Skip tests that require Python 3.2 at least.
@@ -292,6 +297,18 @@ def decideFilenameVersionSkip(filename):
         return False
 
     return True
+
+
+def decideNeeds2to3(filename):
+    return (
+        _python_version.startswith("3")
+        and not filename.endswith("32.py")
+        and not filename.endswith("33.py")
+        and not filename.endswith("35.py")
+        and not filename.endswith("36.py")
+        and not filename.endswith("37.py")
+        and not filename.endswith("38.py")
+    )
 
 
 def _removeCPythonTestSuiteDir():

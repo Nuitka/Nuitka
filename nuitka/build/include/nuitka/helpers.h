@@ -41,6 +41,13 @@ typedef struct {
     PyObject_HEAD PyObject *md_dict;
 } PyModuleObject;
 
+// Generated code helpers, used in static helper codes:
+extern PyObject *CALL_FUNCTION_WITH_ARGS1(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject **args);
+
 // Most fundamental, because we use it for debugging in everything else.
 #include "nuitka/helper/printing.h"
 

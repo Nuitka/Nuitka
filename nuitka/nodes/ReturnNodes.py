@@ -31,13 +31,11 @@ class StatementReturn(StatementChildHavingBase):
     kind = "STATEMENT_RETURN"
 
     named_child = "expression"
-
     nice_child = "return value"
+    getExpression = StatementChildHavingBase.childGetter("expression")
 
     def __init__(self, expression, source_ref):
         StatementChildHavingBase.__init__(self, value=expression, source_ref=source_ref)
-
-    getExpression = StatementChildHavingBase.childGetter("expression")
 
     def isStatementAborting(self):
         return True

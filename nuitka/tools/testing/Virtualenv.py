@@ -48,15 +48,40 @@ class Virtualenv(object):
                 commands = [". bin/activate"] + commands
 
             command = " && ".join(commands)
-
             assert os.system(command) == 0, command
+
+
+    def runCommandWithOutput(self, commands):
+        '''
+        Returns the stdout,stderr from process.communicate()
+        '''
+        if type(commands) in (str, unicode):
+            commands = [commands]
+
+        with withDirectoryChange(self.env_dir):
+            if os.name == "nt":
+                commands = [r"call scripts\activate.bat"] + commands
+            else:
+                commands = [". bin/activate"] + commands
+
+            popen_arg = " && ".join(commands)
+
+            # Use subprocess and also return outputs, stdout, stderr, result
+            process = subprocess.Popen(
+                args=popen_arg,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                shell=True
+            )
+            return process.communicate()
+
 
     def getVirtualenvDir(self):
         return self.env_dir
 
 
 @contextmanager
-def withVirtualenv(env_name, base_dir=None, python=None):
+def withVirtualenv(env_name, base_dir=None, python=None, delete=True):
     """ Create a virtualenv and change into it.
 
         Activating it will be your task.
@@ -79,4 +104,5 @@ def withVirtualenv(env_name, base_dir=None, python=None):
 
         yield Virtualenv(env_dir)
 
-    removeDirectory(env_dir, ignore_errors=False)
+    if delete:
+        removeDirectory(env_dir, ignore_errors=False)

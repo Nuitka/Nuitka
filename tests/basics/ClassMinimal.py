@@ -19,7 +19,9 @@
 
 a = 1
 
+
 class B:
     b = a
+
 
 print(B.b)

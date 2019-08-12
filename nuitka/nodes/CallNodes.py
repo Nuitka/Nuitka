@@ -25,13 +25,17 @@ There will be a method "computeExpressionCall" to aid predicting them in other
 nodes.
 """
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
 
 
 class ExpressionCall(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CALL"
 
     named_children = ("called", "args", "kw")
+    getCalled = ExpressionChildrenHavingBase.childGetter("called")
+    setCalled = ExpressionChildrenHavingBase.childSetter("called")
+    getCallArgs = ExpressionChildrenHavingBase.childGetter("args")
+    getCallKw = ExpressionChildrenHavingBase.childGetter("kw")
 
     def __init__(self, called, args, kw, source_ref):
         assert called.isExpression()
@@ -43,11 +47,6 @@ class ExpressionCall(ExpressionChildrenHavingBase):
             values={"called": called, "args": args, "kw": kw},
             source_ref=source_ref,
         )
-
-    getCalled = ExpressionChildrenHavingBase.childGetter("called")
-    setCalled = ExpressionChildrenHavingBase.childSetter("called")
-    getCallArgs = ExpressionChildrenHavingBase.childGetter("args")
-    getCallKw = ExpressionChildrenHavingBase.childGetter("kw")
 
     def isExpressionCall(self):
         return True
@@ -73,6 +72,9 @@ class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CALL_NO_KEYWORDS"
 
     named_children = ("called", "args")
+    getCalled = ExpressionChildrenHavingBase.childGetter("called")
+    setCalled = ExpressionChildrenHavingBase.childSetter("called")
+    getCallArgs = ExpressionChildrenHavingBase.childGetter("args")
 
     def __init__(self, called, args, source_ref):
         assert called.isExpression()
@@ -81,10 +83,6 @@ class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
         ExpressionChildrenHavingBase.__init__(
             self, values={"called": called, "args": args}, source_ref=source_ref
         )
-
-    getCalled = ExpressionChildrenHavingBase.childGetter("called")
-    setCalled = ExpressionChildrenHavingBase.childSetter("called")
-    getCallArgs = ExpressionChildrenHavingBase.childGetter("args")
 
     def computeExpression(self, trace_collection):
         return self.getCalled().computeExpressionCall(
@@ -111,6 +109,9 @@ class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CALL_KEYWORDS_ONLY"
 
     named_children = ("called", "kw")
+    getCalled = ExpressionChildrenHavingBase.childGetter("called")
+    setCalled = ExpressionChildrenHavingBase.childSetter("called")
+    getCallKw = ExpressionChildrenHavingBase.childGetter("kw")
 
     def __init__(self, called, kw, source_ref):
         assert called.isExpression()
@@ -119,10 +120,6 @@ class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
         ExpressionChildrenHavingBase.__init__(
             self, values={"called": called, "kw": kw}, source_ref=source_ref
         )
-
-    getCalled = ExpressionChildrenHavingBase.childGetter("called")
-    setCalled = ExpressionChildrenHavingBase.childSetter("called")
-    getCallKw = ExpressionChildrenHavingBase.childGetter("kw")
 
     def computeExpression(self, trace_collection):
         called = self.getCalled()
@@ -147,20 +144,17 @@ class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
         return kw.extractSideEffects()
 
 
-class ExpressionCallEmpty(ExpressionChildrenHavingBase):
+class ExpressionCallEmpty(ExpressionChildHavingBase):
     kind = "EXPRESSION_CALL_EMPTY"
 
-    named_children = ("called",)
+    named_child = "called"
+    getCalled = ExpressionChildHavingBase.childGetter("called")
+    setCalled = ExpressionChildHavingBase.childSetter("called")
 
     def __init__(self, called, source_ref):
         assert called.isExpression()
 
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"called": called}, source_ref=source_ref
-        )
-
-    getCalled = ExpressionChildrenHavingBase.childGetter("called")
-    setCalled = ExpressionChildrenHavingBase.childSetter("called")
+        ExpressionChildHavingBase.__init__(self, value=called, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         called = self.getCalled()

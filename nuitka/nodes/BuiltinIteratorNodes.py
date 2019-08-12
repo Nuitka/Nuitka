@@ -161,6 +161,7 @@ class StatementSpecialUnpackCheck(StatementChildHavingBase):
     kind = "STATEMENT_SPECIAL_UNPACK_CHECK"
 
     named_child = "iterator"
+    getIterator = StatementChildHavingBase.childGetter("iterator")
 
     __slots__ = ("count",)
 
@@ -174,8 +175,6 @@ class StatementSpecialUnpackCheck(StatementChildHavingBase):
 
     def getCount(self):
         return self.count
-
-    getIterator = StatementChildHavingBase.childGetter("iterator")
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getIterator())
@@ -252,6 +251,8 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ITER2"
 
     named_children = ("callable", "sentinel")
+    getCallable = ExpressionChildrenHavingBase.childGetter("callable")
+    getSentinel = ExpressionChildrenHavingBase.childGetter("sentinel")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, callable_arg, sentinel, source_ref):
@@ -260,9 +261,6 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
             values={"callable": callable_arg, "sentinel": sentinel},
             source_ref=source_ref,
         )
-
-    getCallable = ExpressionChildrenHavingBase.childGetter("callable")
-    getSentinel = ExpressionChildrenHavingBase.childGetter("sentinel")
 
     def getTypeShape(self):
         # TODO: This could be more specific.

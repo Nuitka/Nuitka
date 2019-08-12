@@ -130,10 +130,11 @@ def optimizeCompiledPythonModule(module):
 
 
 def optimizeUncompiledPythonModule(module):
+    full_name = module.getFullName()
     if _progress:
         info(
             "Doing module dependency considerations for '{module_name}':".format(
-                module_name=module.getFullName()
+                module_name=full_name
             )
         )
 
@@ -143,7 +144,7 @@ def optimizeUncompiledPythonModule(module):
         )
         ModuleRegistry.addUsedModule(used_module)
 
-    package_name = module.getPackage()
+    package_name = full_name.getPackageName()
 
     if package_name is not None:
         used_module = ImportCache.getImportedModuleByName(package_name)

@@ -21,7 +21,8 @@ With newline and stuff."""
 
 from __future__ import print_function
 
-import os, sys
+import os
+import sys
 
 print("doc:", __doc__)
 print("filename:", os.path.basename(__file__))
@@ -29,11 +30,12 @@ print("builtins:", __builtins__)
 print("debug", __debug__)
 print("debug in builtins", __builtins__.__debug__)
 
-print("__initializing__", end = ' ')
+print("__initializing__", end=" ")
 try:
     print(__initializing__)  # @UndefinedVariable
 except NameError:
     print("not found")
+
 
 def checkFromFunction():
     frame = sys._getframe(1)
@@ -52,10 +54,12 @@ def checkFromFunction():
             del d["__compiled__"]
 
         import pprint
+
         return pprint.pformat(d)
 
     print("Globals", displayDict(frame.f_globals))
     print("Locals", displayDict(frame.f_locals))
     print("Is identical", frame.f_locals is frame.f_globals)
+
 
 checkFromFunction()

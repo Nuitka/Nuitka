@@ -17,6 +17,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Optimization of calls
 
-# TODO: This is only a placeholder, currently no calls will be optimized
+
+TODO: This is only a placeholder, currently no real calls will be optimized.
+"""
+
 print(range(4))

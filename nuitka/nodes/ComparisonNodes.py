@@ -31,6 +31,8 @@ from .shapes.BuiltinTypeShapes import ShapeTypeBool
 
 class ExpressionComparisonBase(ExpressionChildrenHavingBase):
     named_children = ("left", "right")
+    getLeft = ExpressionChildrenHavingBase.childGetter("left")
+    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     def __init__(self, left, right, source_ref):
         assert left.isExpression()
@@ -42,9 +44,6 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
 
     def getOperands(self):
         return (self.getLeft(), self.getRight())
-
-    getLeft = ExpressionChildrenHavingBase.childGetter("left")
-    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     def getComparator(self):
         return self.comparator

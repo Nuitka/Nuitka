@@ -24,26 +24,27 @@ whose implementation lives here. The creation itself also lives here.
 
 from nuitka.PythonVersions import python_version
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildHavingBase
 from .FunctionNodes import ExpressionFunctionEntryPointBase
 from .IndicatorMixins import MarkUnoptimizedFunctionIndicatorMixin
 from .ReturnNodes import StatementReturn, StatementReturnNone
 
 
-class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
+class ExpressionMakeGeneratorObject(ExpressionChildHavingBase):
     kind = "EXPRESSION_MAKE_GENERATOR_OBJECT"
 
-    named_children = ("generator_ref",)
+    named_child = "generator_ref"
+    getGeneratorRef = ExpressionChildHavingBase.childGetter("generator_ref")
 
-    getGeneratorRef = ExpressionChildrenHavingBase.childGetter("generator_ref")
+    __slots__ = ("variable_closure_traces",)
 
     def __init__(self, generator_ref, source_ref):
         assert (
             generator_ref.getFunctionBody().isExpressionGeneratorObjectBody()
         ), generator_ref
 
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"generator_ref": generator_ref}, source_ref=source_ref
+        ExpressionChildHavingBase.__init__(
+            self, value=generator_ref, source_ref=source_ref
         )
 
         self.variable_closure_traces = None

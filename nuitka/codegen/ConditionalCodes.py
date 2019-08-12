@@ -117,7 +117,7 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
         context.removeCleanupTempName(right_name)
 
     if not needs_ref2 and needs_ref1:
-        emit("Py_INCREF( %s );" % right_name)
+        emit("Py_INCREF(%s);" % right_name)
 
     to_name.getCType().emitAssignConversionCode(
         to_name=to_name,
@@ -132,7 +132,7 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     getLabelCode(true_target, emit)
 
     if not needs_ref1 and needs_ref2:
-        emit("Py_INCREF( %s );" % left_name)
+        emit("Py_INCREF(%s);" % left_name)
 
     to_name.getCType().emitAssignConversionCode(
         to_name=to_name,
@@ -201,10 +201,10 @@ def generateConditionalCode(to_name, expression, emit, context):
             real_emit(line)
         emit = real_emit
 
-        emit("Py_INCREF( %s );" % to_name)
+        emit("Py_INCREF(%s);" % to_name)
         context.addCleanupTempName(to_name)
     elif not needs_ref1 and needs_ref2:
-        real_emit("Py_INCREF( %s );" % to_name)
+        real_emit("Py_INCREF(%s);" % to_name)
         getGotoCode(end_target, real_emit)
         getLabelCode(false_target, real_emit)
 

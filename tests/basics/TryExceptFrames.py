@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import sys
 
+
 def displayDict(d):
     if "__loader__" in d:
         d = dict(d)
@@ -29,9 +30,12 @@ def displayDict(d):
         d["__file__"] = "<__file__ removed>"
 
     import pprint
+
     return pprint.pformat(d)
 
+
 counter = 1
+
 
 class X:
     def __init__(self):
@@ -42,12 +46,14 @@ class X:
     def __del__(self):
         print("X.__del__ occurred", self.counter)
 
+
 def raising(doit):
     _x = X()
 
     def nested():
         if doit:
             1 / 0
+
     try:
         return nested()
     except ZeroDivisionError:
@@ -57,8 +63,10 @@ def raising(doit):
         doit = 5
         raise
 
+
 # Call it without an exception
 raising(False)
+
 
 def catcher():
     try:
@@ -67,9 +75,19 @@ def catcher():
         print("Catched.")
 
         print("Top traceback code is '%s'." % sys.exc_info()[2].tb_frame.f_code.co_name)
-        print("Second traceback code is '%s'." % sys.exc_info()[2].tb_next.tb_frame.f_code.co_name)
-        print("Third traceback code is '%s'." % sys.exc_info()[2].tb_next.tb_next.tb_frame.f_code.co_name)
-        print("Previous frame locals (module) are", displayDict(sys.exc_info()[2].tb_next.tb_next.tb_frame.f_locals))
+        print(
+            "Second traceback code is '%s'."
+            % sys.exc_info()[2].tb_next.tb_frame.f_code.co_name
+        )
+        print(
+            "Third traceback code is '%s'."
+            % sys.exc_info()[2].tb_next.tb_next.tb_frame.f_code.co_name
+        )
+        print(
+            "Previous frame locals (module) are",
+            displayDict(sys.exc_info()[2].tb_next.tb_next.tb_frame.f_locals),
+        )
+
 
 catcher()
 

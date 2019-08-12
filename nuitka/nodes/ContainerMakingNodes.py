@@ -23,7 +23,7 @@ import functools
 
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildHavingBase
 from .IterationHandles import ListAndTupleContainerMakingIterationHandle
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
@@ -35,9 +35,10 @@ from .shapes.BuiltinTypeShapes import ShapeTypeList, ShapeTypeSet, ShapeTypeTupl
 
 
 class ExpressionMakeSequenceBase(
-    SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase
+    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
 ):
-    named_children = ("elements",)
+    named_child = "elements"
+    getElements = ExpressionChildHavingBase.childGetter("elements")
 
     def __init__(self, sequence_kind, elements, source_ref):
         assert sequence_kind in ("TUPLE", "LIST", "SET"), sequence_kind
@@ -47,8 +48,8 @@ class ExpressionMakeSequenceBase(
 
         self.sequence_kind = sequence_kind.lower()
 
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"elements": tuple(elements)}, source_ref=source_ref
+        ExpressionChildHavingBase.__init__(
+            self, value=tuple(elements), source_ref=source_ref
         )
 
     def isExpressionMakeSequence(self):
@@ -56,8 +57,6 @@ class ExpressionMakeSequenceBase(
 
     def getSequenceKind(self):
         return self.sequence_kind
-
-    getElements = ExpressionChildrenHavingBase.childGetter("elements")
 
     def getSimulator(self):
         # Abstract method, pylint: disable=no-self-use

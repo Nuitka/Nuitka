@@ -399,6 +399,11 @@ def scanStandardLibraryPath(stdlib_dir):
             if "test" in dirs:
                 dirs.remove("test")
 
+        if import_path == "distutils.command":
+            # Misbehaving and crashing while importing the world.
+            if "bdist_conda.py" in filenames:
+                filenames.remove("bdist_conda.py")
+
         if import_path in ("lib2to3", "json", "distutils"):
             if "tests" in dirs:
                 dirs.remove("tests")
@@ -513,6 +518,9 @@ for imp in imports:
         __import__(imp)
     except (ImportError, SyntaxError):
         failed.add(imp)
+    except Exception:
+        sys.stderr("PROBLEM with '%%s'\\n" %% imp)
+        raise
 
     for fail in failed:
         if fail in sys.modules:
@@ -799,10 +807,23 @@ def _parseDependsExeOutput(filename, result):
     _parseDependsExeOutput2(getFileContentByLine(filename), result)
 
 
+def _getPyWin32Dir():
+    for path_element in sys.path:
+        if not path_element:
+            continue
+
+        candidate = os.path.join(path_element, "pywin32_system32")
+
+        if os.path.isdir(candidate):
+            return candidate
+
+
 _scan_dir_cache = {}
 
 
 def getScanDirectories(package_name, original_dir):
+    # Many cases, pylint: disable=too-many-branches
+
     cache_key = package_name, original_dir
 
     if cache_key in _scan_dir_cache:
@@ -835,6 +856,16 @@ def getScanDirectories(package_name, original_dir):
             continue
 
         scan_dirs.append(path_dir)
+
+    if (
+        Utils.isWin32Windows()
+        and package_name is not None
+        and package_name.isBelowNamespace("win32com")
+    ):
+        pywin32_dir = _getPyWin32Dir()
+
+        if pywin32_dir is not None:
+            scan_dirs.append(pywin32_dir)
 
     result = []
 

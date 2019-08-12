@@ -17,6 +17,7 @@
 #
 from __future__ import print_function
 
+
 def tryWhileContinueFinallyTest():
     print("Check if finally is executed in a continue using for loop:")
 
@@ -29,11 +30,12 @@ def tryWhileContinueFinallyTest():
             if x % 2 == 1:
                 continue
         finally:
-            print(x, end = ' ')
+            print(x, end=" ")
 
-        print('-', end = ' ')
+        print("-", end=" ")
 
     print()
+
 
 def tryForContinueFinallyTest():
     print("Check if finally is executed in a continue using for loop:")
@@ -43,11 +45,12 @@ def tryForContinueFinallyTest():
             if x % 2 == 1:
                 continue
         finally:
-            print(x, end = ' ')
+            print(x, end=" ")
 
-        print('-', end = ' ')
+        print("-", end=" ")
 
     print()
+
 
 def tryWhileBreakFinallyTest():
     print("Check if finally is executed in a break using while loop:")
@@ -61,11 +64,12 @@ def tryWhileBreakFinallyTest():
             if x == 5:
                 break
         finally:
-            print(x, end = ' ')
+            print(x, end=" ")
 
-        print('-', end = ' ')
+        print("-", end=" ")
 
     print()
+
 
 def tryForBreakFinallyTest():
     print("Check if finally is executed in a break using for loop:")
@@ -75,11 +79,12 @@ def tryForBreakFinallyTest():
             if x == 5:
                 break
         finally:
-            print(x, end = ' ')
+            print(x, end=" ")
 
-        print('-', end = ' ')
+        print("-", end=" ")
 
     print()
+
 
 tryWhileContinueFinallyTest()
 tryWhileBreakFinallyTest()

@@ -546,27 +546,23 @@ PyObject *BUILTIN_ALL(PyObject *value) {
 
     PyObject *it = PyObject_GetIter(value);
 
-    if (unlikely((it == NULL)))
-    {
+    if (unlikely((it == NULL))) {
         return NULL;
     }
 
     iternextfunc iternext = Py_TYPE(it)->tp_iternext;
-    for (;;)
-    {
+    for (;;) {
         PyObject *item = iternext(it);
 
         if (unlikely((item == NULL)))
             break;
         int cmp = PyObject_IsTrue(item);
         Py_DECREF(item);
-        if (unlikely(cmp < 0))
-        {
+        if (unlikely(cmp < 0)) {
             Py_DECREF(it);
             return NULL;
         }
-        if (cmp == 0)
-        {
+        if (cmp == 0) {
             Py_DECREF(it);
             Py_INCREF(Py_False);
             return Py_False;
@@ -574,8 +570,7 @@ PyObject *BUILTIN_ALL(PyObject *value) {
     }
 
     Py_DECREF(it);
-    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED()))
-    {
+    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED())) {
         return NULL;
     }
 

@@ -74,7 +74,7 @@ def getTupleCreationCode(to_name, elements, emit, context):
                 context.addCleanupTempName(to_name)
 
             if not context.needsCleanup(element_name):
-                emit("Py_INCREF( %s );" % element_name)
+                emit("Py_INCREF(%s);" % element_name)
             else:
                 context.removeCleanupTempName(element_name)
 

@@ -24,17 +24,13 @@
 import os
 import sys
 
+from nuitka.tools.release.debian.__main__ import main
+
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
-sys.path.insert(
-    0,
-    os.path.normpath(
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-        )
-    )
-)
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
-from nuitka.tools.release.debian.__main__ import main # isort:skip
+# isort:start
+
+
 main()

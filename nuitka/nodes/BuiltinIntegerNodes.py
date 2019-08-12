@@ -30,8 +30,9 @@ from nuitka.specs import BuiltinParameterSpecs
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
+    ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
-    ExpressionSpecBasedComputationBase,
+    ExpressionSpecBasedComputationMixin,
 )
 from .shapes.BuiltinTypeShapes import (
     ShapeTypeIntOrLong,
@@ -41,15 +42,14 @@ from .shapes.BuiltinTypeShapes import (
 )
 
 
-class ExpressionBuiltinInt1(ExpressionChildrenHavingBase):
+class ExpressionBuiltinInt1(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_INT1"
 
-    named_children = ("value",)
+    named_child = "value"
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"value": value}, source_ref=source_ref
-        )
+        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def getTypeShape(self):
         # TODO: Depending on input type shape and value, we should improve this.
@@ -62,11 +62,13 @@ class ExpressionBuiltinInt1(ExpressionChildrenHavingBase):
             int_node=self, trace_collection=trace_collection
         )
 
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
-
-class ExpressionBuiltinIntLong2Base(ExpressionSpecBasedComputationBase):
+class ExpressionBuiltinIntLong2Base(
+    ExpressionSpecBasedComputationMixin, ExpressionChildrenHavingBase
+):
     named_children = ("value", "base")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
+    getBase = ExpressionChildrenHavingBase.childGetter("base")
 
     # Note: Version specific, may be allowed or not.
     try:
@@ -85,12 +87,9 @@ class ExpressionBuiltinIntLong2Base(ExpressionSpecBasedComputationBase):
                 constant="0", source_ref=source_ref, user_provided=True
             )
 
-        ExpressionSpecBasedComputationBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self, values={"value": value, "base": base}, source_ref=source_ref
         )
-
-    getValue = ExpressionSpecBasedComputationBase.childGetter("value")
-    getBase = ExpressionSpecBasedComputationBase.childGetter("base")
 
     def computeExpression(self, trace_collection):
         value = self.subnode_value
@@ -128,15 +127,14 @@ class ExpressionBuiltinInt2(ExpressionBuiltinIntLong2Base):
 
 if python_version < 300:
 
-    class ExpressionBuiltinLong1(ExpressionChildrenHavingBase):
+    class ExpressionBuiltinLong1(ExpressionChildHavingBase):
         kind = "EXPRESSION_BUILTIN_LONG1"
 
-        named_children = ("value",)
+        named_child = "value"
+        getValue = ExpressionChildHavingBase.childGetter("value")
 
         def __init__(self, value, source_ref):
-            ExpressionChildrenHavingBase.__init__(
-                self, values={"value": value}, source_ref=source_ref
-            )
+            ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
         def getTypeShape(self):
             # TODO: Depending on input type shape and value, we should improve this.
@@ -146,8 +144,6 @@ if python_version < 300:
             return self.subnode_value.computeExpressionLong(
                 long_node=self, trace_collection=trace_collection
             )
-
-        getValue = ExpressionChildrenHavingBase.childGetter("value")
 
         def mayRaiseException(self, exception_type):
             return self.subnode_value.mayRaiseExceptionLong(exception_type)

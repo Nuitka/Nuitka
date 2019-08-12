@@ -17,9 +17,10 @@
 #
 from __future__ import print_function
 
+
 def lamdaContainer(x):
-    f = lambda c : c
-    g = lambda c : c if x else c*c
+    f = lambda c: c
+    g = lambda c: c if x else c * c
     # h = lambda c: 'a' <= c <= 'z'
 
     y = f(x)
@@ -27,40 +28,45 @@ def lamdaContainer(x):
 
     print("Lambda with conditional expression gives", z)
 
-    if 'a' <= x <= y <= 'z':
+    if "a" <= x <= y <= "z":
         print("Four")
 
-    if 'a' <= x <= 'z':
+    if "a" <= x <= "z":
         print("Yes")
 
-    if 'a' <= x > 'z':
+    if "a" <= x > "z":
         print("Yes1")
 
-    if 'a' <= ('1' if x else '2') > 'z':
+    if "a" <= ("1" if x else "2") > "z":
         print("Yes2")
 
-    if 'a' <= ('1' if x else '2') > 'z' > undefined_global:  # @UndefinedVariable
+    if "a" <= ("1" if x else "2") > "z" > undefined_global:  # @UndefinedVariable
         print("Yes3")
 
-    z = lambda huhu = y : huhu
+    z = lambda huhu=y: huhu
 
     print("Lambda defaulted gives", z())
 
-lamdaContainer('b')
+
+lamdaContainer("b")
+
 
 def lambdaGenerator():
-    x = lambda : (yield 3)
+    x = lambda: (yield 3)
 
     gen = x()
     print("Lambda generator gives", next(gen))
 
+
 lambdaGenerator()
+
 
 def lambdaDirectCall():
     args = range(7)
 
-    x = (lambda *args:args)(*args)
+    x = (lambda *args: args)(*args)
 
     print("Lambda direct call gave", x)
+
 
 lambdaDirectCall()

@@ -37,7 +37,10 @@ from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ConstantRefNodes import makeConstantRefNode
-from .ExceptionNodes import ExpressionBuiltinMakeException
+from .ExceptionNodes import (
+    ExpressionBuiltinMakeException,
+    ExpressionBuiltinMakeExceptionImportError,
+)
 from .ExpressionBases import CompileTimeConstantExpressionBase
 
 
@@ -205,18 +208,23 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         exception_name = self.getExceptionName()
 
-        # TODO: Keyword only arguments of it, are not properly handled yet by
-        # the built-in call code.
-        if exception_name == "ImportError" and python_version >= 300:
-            if call_kw is not None and (
-                not call_kw.isExpressionConstantRef() or call_kw.getConstant() != {}
-            ):
-                return call_node, None, None
+        def createBuiltinMakeException(args, name=None, path=None, source_ref=None):
+            if exception_name == "ImportError" and python_version >= 300:
+                return ExpressionBuiltinMakeExceptionImportError(
+                    exception_name=exception_name,
+                    args=args,
+                    name=name,
+                    path=path,
+                    source_ref=source_ref,
+                )
+            else:
+                # We expect to only get the star arguments for these.
+                assert name is None
+                assert path is None
 
-        def createBuiltinMakeException(args, source_ref):
-            return ExpressionBuiltinMakeException(
-                exception_name=exception_name, args=args, source_ref=source_ref
-            )
+                return ExpressionBuiltinMakeException(
+                    exception_name=exception_name, args=args, source_ref=source_ref
+                )
 
         new_node = BuiltinParameterSpecs.extractBuiltinArgs(
             node=call_node,
@@ -226,8 +234,6 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
             ),
         )
 
-        # TODO: Don't allow this to happen.
-        if new_node is None:
-            return call_node, None, None
+        assert new_node is not None
 
         return new_node, "new_expression", "Detected built-in exception making."

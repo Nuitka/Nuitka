@@ -73,7 +73,7 @@ def generateReleaseLocalsDictCode(statement, emit, context):
 
     emit(
         """\
-Py_DECREF( %(locals_dict)s );
+Py_DECREF(%(locals_dict)s);
 %(locals_dict)s = NULL;"""
         % {"locals_dict": locals_declaration}
     )

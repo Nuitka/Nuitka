@@ -17,43 +17,55 @@
 #
 from __future__ import print_function
 
+
 def displayDict(d):
-    result = '{'
+    result = "{"
     for key, value in sorted(d.items()):
         result += "%s: %s" % (key, value)
-    result += '}'
+    result += "}"
+
 
 print("List contraction on the module level:")
-x = [(u if u%2==0 else 0) for u in range(10)]
+x = [(u if u % 2 == 0 else 0) for u in range(10)]
 print(x)
 
 print("List contraction on the function level:")
+
+
 def someFunction():
-    x = [(u if u%2==0 else 0) for u in range(10)]
+    x = [(u if u % 2 == 0 else 0) for u in range(10)]
     print(x)
+
 
 someFunction()
 
 print("List contractions with no, 1 one 2 conditions:")
+
+
 def otherFunction():
-    print([ x for x in range(8) ])
-    print([ x for x in range(8) if x % 2 == 1 ])
-    print([ x for x in range(8) if x % 2 == 1 if x > 4 ])
+    print([x for x in range(8)])
+    print([x for x in range(8) if x % 2 == 1])
+    print([x for x in range(8) if x % 2 == 1 if x > 4])
+
 
 otherFunction()
 
 print("Complex list contractions with more than one for:")
+
+
 def complexContractions():
-    print([ (x,y) for x in range(3) for y in range(5) ])
+    print([(x, y) for x in range(3) for y in range(5)])
 
     seq = range(3)
     res = [(i, j, k) for i in iter(seq) for j in iter(seq) for k in iter(seq)]
 
     print(res)
 
+
 complexContractions()
 
 print("Contraction for 2 for statements and one final if referring to first for:")
+
 
 def trickyContraction():
     class Range:
@@ -70,24 +82,29 @@ def trickyContraction():
 
         return y == 1
 
-    r = [ (x,z,y) for x in Range(3) for z in Range(2) for y in Range(4) if Cond(y) ]
+    r = [(x, z, y) for x in Range(3) for z in Range(2) for y in Range(4) if Cond(y)]
     print("result is", r)
+
 
 trickyContraction()
 
+
 def lambdaWithcontraction(x):
-    l = lambda x : [ z for z in range(x) ]
+    l = lambda x: [z for z in range(x)]
     r = l(x)
 
     print("Lambda contraction locals:", displayDict(locals()))
 
+
 lambdaWithcontraction(3)
 
-print("Contraction that gets a 'del' on the iterator variable:", end = ' ')
+print("Contraction that gets a 'del' on the iterator variable:", end=" ")
+
 
 def allowedDelOnIteratorVariable(z):
     x = 2
     del x
-    return [ x*z for x in range(z) ]
+    return [x * z for x in range(z)]
+
 
 print(allowedDelOnIteratorVariable(3))

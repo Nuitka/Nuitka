@@ -47,16 +47,16 @@ def generateListCreationCode(to_name, expression, emit, context):
 
             # Delayed allocation of the list to store in.
             if count == 0:
-                emit("%s = PyList_New( %d );" % (result_name, len(elements)))
+                emit("%s = PyList_New(%d);" % (result_name, len(elements)))
 
                 context.addCleanupTempName(result_name)
 
             if not context.needsCleanup(element_name):
-                emit("Py_INCREF( %s );" % element_name)
+                emit("Py_INCREF(%s);" % element_name)
             else:
                 context.removeCleanupTempName(element_name)
 
-            emit("PyList_SET_ITEM( %s, %d, %s );" % (result_name, count, element_name))
+            emit("PyList_SET_ITEM(%s, %d, %s);" % (result_name, count, element_name))
 
 
 def generateListOperationAppendCode(statement, emit, context):

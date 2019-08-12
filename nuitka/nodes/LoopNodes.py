@@ -33,6 +33,8 @@ class StatementLoop(StatementChildHavingBase):
     kind = "STATEMENT_LOOP"
 
     named_child = "body"
+    getLoopBody = StatementChildHavingBase.childGetter("body")
+    setLoopBody = StatementChildHavingBase.childSetter("body")
 
     checker = checkStatementsSequenceOrNone
 
@@ -43,9 +45,6 @@ class StatementLoop(StatementChildHavingBase):
 
         self.loop_variables = None
         self.loop_memory = None
-
-    getLoopBody = StatementChildHavingBase.childGetter("body")
-    setLoopBody = StatementChildHavingBase.childSetter("body")
 
     def mayReturn(self):
         loop_body = self.getLoopBody()

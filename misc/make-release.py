@@ -18,8 +18,15 @@
 #
 
 import os
-import shutil
 import sys
+
+# Unchanged, running from checkout, use the parent directory, the nuitka
+# package ought be there.
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
+
+# isort:start
+
+import shutil
 from optparse import OptionParser
 
 from nuitka.tools.release.Debian import checkChangeLog
@@ -30,11 +37,6 @@ from nuitka.tools.release.Release import (
     checkNuitkaChangelog,
 )
 from nuitka.Version import getNuitkaVersion
-
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought be there.
-sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
-
 
 parser = OptionParser()
 

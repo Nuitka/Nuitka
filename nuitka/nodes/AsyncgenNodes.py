@@ -22,22 +22,23 @@ whose implementation lives here. The creation itself also lives here.
 
 """
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildHavingBase
 from .FunctionNodes import ExpressionFunctionEntryPointBase
 
 
-class ExpressionMakeAsyncgenObject(ExpressionChildrenHavingBase):
+class ExpressionMakeAsyncgenObject(ExpressionChildHavingBase):
     kind = "EXPRESSION_MAKE_ASYNCGEN_OBJECT"
 
-    named_children = ("asyncgen_ref",)
+    named_child = "asyncgen_ref"
+    getAsyncgenRef = ExpressionChildHavingBase.childGetter("asyncgen_ref")
 
-    getAsyncgenRef = ExpressionChildrenHavingBase.childGetter("asyncgen_ref")
+    __slots__ = ("variable_closure_traces",)
 
     def __init__(self, asyncgen_ref, source_ref):
         assert asyncgen_ref.getFunctionBody().isExpressionAsyncgenObjectBody()
 
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"asyncgen_ref": asyncgen_ref}, source_ref=source_ref
+        ExpressionChildHavingBase.__init__(
+            self, value=asyncgen_ref, source_ref=source_ref
         )
 
         self.variable_closure_traces = []

@@ -32,6 +32,9 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_SUBSCRIPT"
 
     named_children = ("source", "expression", "subscript")
+    getSubscribed = StatementChildrenHavingBase.childGetter("expression")
+    getSubscript = StatementChildrenHavingBase.childGetter("subscript")
+    getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
     def __init__(self, expression, subscript, source, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -39,10 +42,6 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
             values={"source": source, "expression": expression, "subscript": subscript},
             source_ref=source_ref,
         )
-
-    getSubscribed = StatementChildrenHavingBase.childGetter("expression")
-    getSubscript = StatementChildrenHavingBase.childGetter("subscript")
-    getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -67,6 +66,8 @@ class StatementDelSubscript(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_SUBSCRIPT"
 
     named_children = ("expression", "subscript")
+    getSubscribed = StatementChildrenHavingBase.childGetter("expression")
+    getSubscript = StatementChildrenHavingBase.childGetter("subscript")
 
     def __init__(self, expression, subscript, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -74,9 +75,6 @@ class StatementDelSubscript(StatementChildrenHavingBase):
             values={"expression": expression, "subscript": subscript},
             source_ref=source_ref,
         )
-
-    getSubscribed = StatementChildrenHavingBase.childGetter("expression")
-    getSubscript = StatementChildrenHavingBase.childGetter("subscript")
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -100,6 +98,8 @@ class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SUBSCRIPT_LOOKUP"
 
     named_children = ("subscribed", "subscript")
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("subscribed")
+    getSubscript = ExpressionChildrenHavingBase.childGetter("subscript")
 
     def __init__(self, subscribed, subscript, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -107,9 +107,6 @@ class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):
             values={"subscribed": subscribed, "subscript": subscript},
             source_ref=source_ref,
         )
-
-    getLookupSource = ExpressionChildrenHavingBase.childGetter("subscribed")
-    getSubscript = ExpressionChildrenHavingBase.childGetter("subscript")
 
     def computeExpression(self, trace_collection):
         return self.getLookupSource().computeExpressionSubscript(
