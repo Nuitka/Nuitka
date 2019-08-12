@@ -606,7 +606,7 @@ void _initCompiledFunctionType(void) {
      MetaType.tp_base = &PyType_Type;
      PyType_Ready(&MetaType);
      
-     Nuitka_Function_Type.tp_type = &MetaType;
+     Nuitka_Function_Type.ob_type = &MetaType;
     //  Py_TYPE(&Nuitka_Function_Type) = &MetaType;
      PyType_Ready(&Nuitka_Function_Type);
     }
