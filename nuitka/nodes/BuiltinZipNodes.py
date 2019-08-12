@@ -22,18 +22,40 @@
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionChildHavingBase
-from .NodeMakingHelpers import makeConstantReplacementNode
+from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
+    wrapExpressionWithNodeSideEffects,
+)
 
 
 class ExpressionBuiltinZip(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_ZIP"
 
-    # TODO: Store "values" as a named child that is a list
+    named_child = "values"
 
     builtin_spec = BuiltinParameterSpecs.builtin_zip_spec
 
-    def computeExpression(self, trace_collection):
-        # TODO: Can you tell if arguments are not iterable
+    getValues = ExpressionChildHavingBase.childGetter("values")
 
-        # Notice: For C side, just call zip built-in
-        pass
+    def computeExpression(self, trace_collection):
+        values = self.getValues()
+
+        if values:
+            for i in range(len(values)):
+                if not values[i].hasShapeSlotIter():
+                    return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                        template="zip argument #%d must support iteration" % (i + 1),
+                        operation="any",
+                        original_node=values[i],
+                        value_node=values[i],
+                    )
+
+        return (
+            wrapExpressionWithNodeSideEffects(
+                new_node=makeConstantReplacementNode(constant=zip(values), node=self),
+                old_node=values,
+            ),
+            "new_constant",
+            "Predicted 'zip' value",
+        )
