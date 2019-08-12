@@ -51,8 +51,7 @@ static PyTypeObject MetaType = {
     .tp_doc = "Meta Class",
     .tp_basicsize = sizeof(MetaObject),
     .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    
+    .tp_flags = Py_TPFLAGS_DEFAULT| Py_TPFLAGS_BASETYPE,
     .tp_methods = Meta_methods,
 };
 
@@ -604,7 +603,10 @@ PyTypeObject Nuitka_Function_Type = {
 
 void _initCompiledFunctionType(void) {
     // PyModule_AddObject(Nuitka_Function_Type.m_module, "Meta", (PyObject *) &MetaType);
-     Nuitka_Function_Type.ob_type = &MetaType;
+     MetaType.tp_base = &PyType_Type;
+     PyType_Ready(&MetaType);
+     
+     Nuitka_Function_Type.tp_type = &MetaType;
     //  Py_TYPE(&Nuitka_Function_Type) = &MetaType;
      PyType_Ready(&Nuitka_Function_Type);
     }
