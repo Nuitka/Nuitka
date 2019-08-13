@@ -406,6 +406,54 @@ The "git flow" model
   those changes.
 
 
+  Nuikta "git/github" Workflow
+  =====================
+
+  * Forking and cloning
+
+  You need to have git installed and GitHub account. Goto Nuitka repository
+  <https://github.com/Nuitka/Nuitka> and fork the repository.
+
+  To clone it to your local machine execute the following your git bash:
+
+     .. code-block:: python
+        $ git clone https://github.com/your-user-name/Nuitka.git
+        $ cd Nuikta
+        $ git remote add upstream https://github.com/Nuitka/Nuitka.git
+
+  * Create a Branch
+
+     .. code-block:: python
+        $ git checkout develop
+        $ git pull upstream develop
+        $ git checkout -b feature_branch
+
+  If you are having merge conflicts while doing the previous step, then
+  check out (DON'T FORGET TO SAVE YOUR CHANGES FIRST IF ANY): <https://stackoverflow.com/questions/1125968/how-do-i-force-git-pull-to-overwrite-local-files>
+
+  * In case you have an existing branch rebase it to develop
+
+      .. code-block:: python
+        $ git rebase upstream/develop
+
+  Fix the merge conflicts if any, stash them and continue:
+
+      .. code-block:: python
+        $ git rebase --continue
+
+   If anything goes wrong while rebasing:
+
+      .. code-block:: python
+        $ git rebase --abort
+
+  * Making changes
+
+      .. code-block:: python
+        $ git commit -am "Commit Message"
+        $ git push –set-upstream origin feature_branch (one time)
+        $ git push
+
+
 API Documentation and Guidelines
 ================================
 
