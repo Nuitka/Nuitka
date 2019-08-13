@@ -50,11 +50,10 @@ class Virtualenv(object):
             command = " && ".join(commands)
             assert os.system(command) == 0, command
 
-
     def runCommandWithOutput(self, commands):
-        '''
+        """
         Returns the stdout,stderr from process.communicate()
-        '''
+        """
         if type(commands) in (str, unicode):
             commands = [commands]
 
@@ -71,10 +70,9 @@ class Virtualenv(object):
                 args=popen_arg,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                shell=True
+                shell=True,
             )
             return process.communicate()
-
 
     def getVirtualenvDir(self):
         return self.env_dir
