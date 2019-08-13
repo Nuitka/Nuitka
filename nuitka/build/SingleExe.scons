@@ -219,7 +219,7 @@ compiler_version_mode = getBoolOption("compiler_version", False)
 
 def printCompilerVersionOutput(*args):
     if compiler_version_mode or show_scons_mode:
-        print("SCONS: ", *args)
+        print("Scons:", *args)
 
 
 # Amount of jobs to use.
@@ -371,7 +371,7 @@ def detectVersion(env, cc):  # pylint: disable=redefined-outer-name
         return v_cache[clvar]
 
     if show_scons_mode:
-        print("Scons CC %r version check:" % cc)
+        print("Scons: CC %r version check:" % cc)
 
     clvar0 = os.path.basename(clvar[0])
 
@@ -400,7 +400,7 @@ def detectVersion(env, cc):  # pylint: disable=redefined-outer-name
         version = line.strip()
 
     if show_scons_mode:
-        print("Scons CC %r version check gives %r from %r" % (cc, version, line))
+        print("Scons: CC %r version check gives %r from %r" % (cc, version, line))
 
     # Non-GNU compiler's output (like AIX xlc's) may exceed the stdout buffer:
     # So continue with reading to let the child process actually terminate.
@@ -532,10 +532,10 @@ if win_target and getExecutablePath(env["CC"], initial=False) is None:
         printCompilerVersionOutput("CC not found, attempting installed CondaCC")
 
 if show_scons_mode:
-    print("Initial CC:", env.get("CC", None))
-    print("Initial CCVERSION:", env.get("CCVERSION", None))
-    print("Initial CXX:", env.get("CXX", None))
-    print("Initial CXXVERSION:", env.get("CXXVERSION", None))
+    print("Scons: Initial CC:", env.get("CC", None))
+    print("Scons: Initial CCVERSION:", env.get("CCVERSION", None))
+    print("Scons. Initial CXX:", env.get("CXX", None))
+    print("Scons: Initial CXXVERSION:", env.get("CXXVERSION", None))
 
 if "CC" in os.environ:
     # If the environment variable CC is set, use that.
@@ -701,6 +701,9 @@ elif gcc_mode and found_gcc:
 else:
     c11_mode = False
 
+if show_scons_mode:
+    print("Scons: Using C11 mode:", c11_mode)
+
 no_import_lib = False
 
 if msvc_mode:
@@ -718,7 +721,7 @@ if msvc_mode:
 
 
 if show_scons_mode:
-    print("Scons compiler: Using", end=" ")
+    print("Scons: Compiler used", end=" ")
     print(getExecutablePath(the_compiler, initial=False), end=" ")
 
     if win_target and msvc_mode:
@@ -1672,14 +1675,24 @@ if win_target and gcc_mode and not clang_mode:
 if gcc_mode:
     env.Append(CCFLAGS="-pipe")
 
+# Outside compiler settings are respected.
 if "CPPFLAGS" in os.environ:
+    if show_scons_mode:
+        print("Scons: Inherited CPPFLAGS='%s' variable." % os.environ["CPPFLAGS"])
     env.Append(CCFLAGS=os.environ["CPPFLAGS"].split())
 if "CCFLAGS" in os.environ:
+    if show_scons_mode:
+        print("Scons: Inherited CCFLAGS='%s' variable." % os.environ["CCFLAGS"])
     env.Append(CCFLAGS=os.environ["CCFLAGS"].split())
 if "CXXFLAGS" in os.environ:
+    if show_scons_mode:
+        print("Scons: Inherited CXXFLAGS='%s' variable." % os.environ["CXXFLAGS"])
     env.Append(CCFLAGS=os.environ["CXXFLAGS"].split())
 
+# Outside linker flags are respected.
 if "LDFLAGS" in os.environ:
+    if show_scons_mode:
+        print("Scons: Inherited LDFLAGS='%s' variable." % os.environ["LDFLAGS"])
     env.Append(LINKFLAGS=os.environ["LDFLAGS"].split())
 
 # Remove the target file to avoid cases where it falsely doesn't get rebuild
@@ -1688,7 +1701,7 @@ if os.path.exists(target[0].abspath):
     os.unlink(target[0].abspath)
 
 if show_scons_mode:
-    print("scons: Told to run compilation on %d CPUs." % job_count)
+    print("Scons: Told to run compilation on %d CPUs." % job_count)
 
 # Inject ccache if it happens to be installed.
 if win_target and gcc_mode:
@@ -1702,14 +1715,14 @@ if win_target and gcc_mode:
 
                 # Do not consider scons cache anymore.
                 if show_scons_mode:
-                    print("scons: Found ccache '%s' to cache object files." % candidate)
+                    print("Scons: Found ccache '%s' to cache object files." % candidate)
 
                 global cache_mode  # pylint: disable=global-statement
                 cache_mode = False
 
     else:
         if show_scons_mode:
-            print("scons: Unable to find ccache.exe, consider user manual.")
+            print("Scons: Unable to find ccache.exe, consider user manual.")
 
 # Inject clcache if it happens to be provided via environment.
 if win_target and msvc_mode:
@@ -1726,7 +1739,7 @@ if win_target and msvc_mode:
 
                 if show_scons_mode:
                     print(
-                        "scons: Found clcache '%s' to cache object files for '%s'."
+                        "Scons: Found clcache '%s' to cache object files for '%s'."
                         % (
                             candidate,
                             env._dict["ENV"][  # pylint: disable=protected-access
@@ -1741,7 +1754,7 @@ if win_target and msvc_mode:
         handleClacheVariable()
     else:
         if show_scons_mode:
-            print("scons: Unable to find clcache.exe, consider reading user manual.")
+            print("Scons: Unable to find clcache.exe, consider reading user manual.")
 
 
 # Cached, when done, by the fastest possible algorithm and right inside the
@@ -1749,7 +1762,7 @@ if win_target and msvc_mode:
 # Nuitka.
 if cache_mode:
     if show_scons_mode:
-        print("scons: Using scons cache inside build directory.")
+        print("Scons: Using scons cache inside build directory.")
 
     CacheDir(  # @UndefinedVariable pylint: disable=undefined-variable
         os.path.join(source_dir, "cache-" + target_arch + "-" + python_abi_version)
