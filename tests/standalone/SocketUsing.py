@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Paweł Kierzkowski, mailto:<pk.pawelo@gmail.com>
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -23,5 +23,5 @@ import socket
 
 socket.getfqdn("1.1.1.1")
 
-# Call to socket.getfqdn with a non-local addresswill cause libresolv.so glibc
+# Call to socket.getfqdn with a non-local address will cause libresolv.so glibc
 # library to be loaded
