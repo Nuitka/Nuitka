@@ -1679,7 +1679,7 @@ if gcc_mode:
 if "CPPFLAGS" in os.environ:
     if show_scons_mode:
         print("Scons: Inherited CPPFLAGS='%s' variable." % os.environ["CPPFLAGS"])
-    env.Append(CCFLAGS=os.environ["CPPFLAGS"].split())
+    env.Append(CPPFLAGS=os.environ["CPPFLAGS"].split())
 if "CCFLAGS" in os.environ:
     if show_scons_mode:
         print("Scons: Inherited CCFLAGS='%s' variable." % os.environ["CCFLAGS"])
@@ -1687,7 +1687,7 @@ if "CCFLAGS" in os.environ:
 if "CXXFLAGS" in os.environ:
     if show_scons_mode:
         print("Scons: Inherited CXXFLAGS='%s' variable." % os.environ["CXXFLAGS"])
-    env.Append(CCFLAGS=os.environ["CXXFLAGS"].split())
+    env.Append(CXXFLAGS=os.environ["CXXFLAGS"].split())
 
 # Outside linker flags are respected.
 if "LDFLAGS" in os.environ:
