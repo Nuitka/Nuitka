@@ -1180,16 +1180,10 @@ def zip_extractor(node):
 
     else:
 
-        def makeZip0(source_ref):
-            # pylint: disable=unused-argument
-
-            return makeConstantReplacementNode(constant=zip(), node=node)
-
         return BuiltinParameterSpecs.extractBuiltinArgs(
             node=node,
             builtin_class=ExpressionBuiltinZip,
             builtin_spec=BuiltinParameterSpecs.builtin_zip_spec,
-            empty_special_class=makeZip0,
         )
 
 

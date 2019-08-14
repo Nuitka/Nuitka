@@ -42,13 +42,13 @@ class ExpressionBuiltinZip(ExpressionChildHavingBase):
         values = self.getValues()
 
         if values:
-            for i in range(len(values)):
-                if not values[i].hasShapeSlotIter():
+            for i, value in enumerate(values):
+                if not value.hasShapeSlotIter():
                     return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                         template="zip argument #%d must support iteration" % (i + 1),
-                        operation="any",
-                        original_node=values[i],
-                        value_node=values[i],
+                        operation="zip",
+                        original_node=value,
+                        value_node=value,
                     )
 
         return (
