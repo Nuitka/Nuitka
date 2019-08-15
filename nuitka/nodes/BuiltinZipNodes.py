@@ -42,20 +42,19 @@ class ExpressionBuiltinZip(ExpressionChildHavingBase):
         values = self.getValues()
 
         if values:
-            for i, value in enumerate(values):
+            for count, value in enumerate(values):
                 if not value.hasShapeSlotIter():
                     return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                        template="zip argument #%d must support iteration" % (i + 1),
+                        template="zip argument #%d must support iteration"
+                        % (count + 1),
                         operation="zip",
                         original_node=value,
                         value_node=value,
                     )
 
-        return (
-            wrapExpressionWithNodeSideEffects(
-                new_node=makeConstantReplacementNode(constant=zip(values), node=self),
-                old_node=values,
-            ),
-            "new_constant",
-            "Predicted 'zip' value",
-        )
+            # TODO: How can we do the same as computeExpressionIter1
+            # even for exceptions.
+            # zip arguments could be lowered, not done now.
+            # [1,2,3] -> (1,2,3)
+
+        return self, None, None

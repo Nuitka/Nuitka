@@ -436,7 +436,7 @@ def generateBuiltinClassmethodCode(to_name, expression, emit, context):
 def generateBuiltinZipCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
-        capi="BUILTIN_ZIP",
+        capi="BUILTIN_ZIP",  # TODO: Write C code
         arg_desc=(("zip_arg", expression.getValue()),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

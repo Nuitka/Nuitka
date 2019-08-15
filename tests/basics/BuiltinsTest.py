@@ -621,9 +621,9 @@ except Exception as e:
 
 
 print("Tests for zip():")
-# print(zip("abc", "cdd"))
-# print(zip([1, 2, 3], [2, 3, 4]))
-# print(zip([1, 2, 3], "String"))
+print(zip("abc", "cdd"))
+print(zip([1, 2, 3], [2, 3, 4]))
+print(zip([1, 2, 3], "String"))
 try:
     zip(1, "String")
 except TypeError as e:
