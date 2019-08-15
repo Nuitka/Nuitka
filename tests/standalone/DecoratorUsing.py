@@ -25,30 +25,24 @@ from decorator import decorate
 import time
 
 def _memoize(func, *args, **kw):
-    if kw:  # frozenset is used to ensure hashability
+    if kw:
         key = args, frozenset(kw.items())
     else:
         key = args
-    cache = func.cache  # attribute added by memoize
-    if key not in cache:
-        cache[key] = func(*args, **kw)
-    return cache[key]
+    cache = func.cache
+    if key in cache:
+        return "cached"
+    result = func(*args, **kw)
+    cache[key] = result
+    return result
 
 def memoize(f):
-    """
-    A simple memoize implementation. It works by adding a .cache dictionary
-    to the decorated function. The cache will grow indefinitely, so it is
-    your responsibility to clear it, if needed.
-    """
     f.cache = {}
     return decorate(f, _memoize)
 
 @memoize
-def heavy_computation():
-    time.sleep(2)
-    return "done"
+def some_function():
+    return "not cached"
 
-# the first time it will take 2 seconds
-print(heavy_computation())
-# the second time it will be instantaneous
-print(heavy_computation())
+print(some_function())
+print(some_function())

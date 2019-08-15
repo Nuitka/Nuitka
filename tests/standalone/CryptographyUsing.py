@@ -24,5 +24,9 @@
 from cryptography.fernet import Fernet
 key = Fernet.generate_key()
 f = Fernet(key)
-token = f.encrypt(b"A really secret message. Not for prying eyes.")
-print(f.decrypt(token))
+message = b"Some secret message."
+e = f.encrypt(message)
+d = f.decrypt(e)
+
+assert d == message
+print(d)
