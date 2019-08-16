@@ -19,11 +19,26 @@
 #
 
 
-# nuitka-skip-unless-imports: idna.core
+# nuitka-skip-unless-imports: itsdangerous
 
-from __future__ import print_function
-import sys
-import idna
+from itsdangerous import Signer
+s = Signer('secret-key')
+print(s.sign('my string'))
+print(s.unsign('my string.wh6tMHxLgJqB6oY1uT73iMlyrOA'))
 
-print(idna.core, "idna.idnadata" in sys.modules)
-print(idna.encode('ドメイン.テスト'))
+from itsdangerous import URLSafeSerializer
+s = URLSafeSerializer('secret-key')
+print(s.dumps([1, 2, 3, 4]))
+print(s.loads('WzEsMiwzLDRd.wSPHqC0gR7VUqivlSukJ0IeTDgo'))
+
+from itsdangerous import JSONWebSignatureSerializer
+s = JSONWebSignatureSerializer('secret-key')
+print(s.dumps({'x': 42}))
+print(s.dumps(0, header_fields={'v': 1}))
+
+
+s1 = URLSafeSerializer('secret-key', salt='activate-salt')
+print(s1.dumps(42))
+
+s2 = URLSafeSerializer('secret-key', salt='upgrade-salt')
+print(s2.dumps(42))

@@ -19,11 +19,14 @@
 #
 
 
-# nuitka-skip-unless-imports: idna.core
+# nuitka-skip-unless-imports: ipaddress
 
-from __future__ import print_function
-import sys
-import idna
+import ipaddress
 
-print(idna.core, "idna.idnadata" in sys.modules)
-print(idna.encode('ドメイン.テスト'))
+i1 = ipaddress.ip_address('192.0.2.1')
+print(type(i1), i1)
+print(i1 - 10)
+
+i2 = ipaddress.ip_address('2001:DB8::1')
+print(type(i2), i2)
+print(i2 + 50)
