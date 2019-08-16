@@ -124,7 +124,7 @@ def createNodeTree(filename):
     for module_name in Options.getMustIncludeModules():
         module_package, module_filename, kind = Importing.findModule(
             importing=None,
-            module_name=module_name,
+            module_name=ModuleName(module_name),
             parent_package=None,
             level=0,
             warn=False,
