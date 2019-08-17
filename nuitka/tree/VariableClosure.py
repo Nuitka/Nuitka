@@ -230,7 +230,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             if node.getVariable().getOwner() != node.getParentVariableProvider():
                 node.getParentVariableProvider().addClosureVariable(node.getVariable())
         elif node.isExpressionGeneratorObjectBody():
-            self._handleNonLocal(node)
+            if python_version >= 300:
+                self._handleNonLocal(node)
 
             # Only Python3.4 or later allows for generators to have qualname.
             if python_version >= 340:
@@ -244,14 +245,16 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             self._handleQualnameSetup(node)
         elif node.isExpressionClassBody():
-            self._handleNonLocal(node)
+            if python_version >= 300:
+                self._handleNonLocal(node)
 
             # Python3.4 allows for class declarations to be made global, even
             # after they were declared, so we need to fix this up.
             if python_version >= 340:
                 self._handleQualnameSetup(node)
         elif node.isExpressionFunctionBody():
-            self._handleNonLocal(node)
+            if python_version >= 300:
+                self._handleNonLocal(node)
 
             # Python 3.4 allows for class declarations to be made global, even
             # after they were declared, so we need to fix this up.

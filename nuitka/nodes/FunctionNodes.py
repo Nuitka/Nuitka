@@ -99,7 +99,10 @@ class ExpressionFunctionBodyBase(
             self.qualname_provider = provider
 
         # Non-local declarations.
-        self.non_local_declarations = []
+        if python_version >= 300:
+            self.non_local_declarations = None
+
+        self.auto_release = set()
 
     @staticmethod
     def isExpressionFunctionBodyBase():
@@ -287,11 +290,27 @@ class ExpressionFunctionBodyBase(
         return Variables.LocalVariable(owner=self, variable_name=variable_name)
 
     def addNonlocalsDeclaration(self, names, source_ref):
+        """ Add a nonlocal declared name.
+
+            This happens during tree building, and is a Python3 only
+            feature. We remember the names for later use through the
+            function @consumeNonlocalDeclarations
+        """
+        if self.non_local_declarations is None:
+            self.non_local_declarations = []
+
         self.non_local_declarations.append((names, source_ref))
 
     def consumeNonlocalDeclarations(self):
-        result = self.non_local_declarations
-        self.non_local_declarations = ()
+        """ Return the nonlocal declared names for this function.
+
+            There may not be any, which is why we assigned it to
+            None originally and now check and return empty tuple
+            in that case.
+        """
+
+        result = self.non_local_declarations or ()
+        self.non_local_declarations = None
         return result
 
     def getFunctionName(self):
