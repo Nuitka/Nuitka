@@ -122,8 +122,7 @@ class build(distutils.command.build.build):
                             python_files.append(os.path.join(root, fn))
                         else:
                             keep_resources = True
-
-        if self.has_module:
+        elif self.has_module:
             package, main_filename, finding = findModule(
                 importing=None,
                 module_name=ModuleName(self.main_module),
@@ -152,8 +151,13 @@ class build(distutils.command.build.build):
             "--remove-output",
         ]
 
-        if self.has_package:
-            command += ["--include-package=%s" % self.main_package]
+        command += [
+            "--include-package=%s" % package_name
+            for package_name in self.compile_packages
+        ]
+        command += [
+            "--include-module=%s" % module_name for module_name in self.py_modules
+        ]
 
         # Process any extra options from setuptools
         if "nuitka" in self.distribution.command_options:
@@ -178,6 +182,13 @@ class build(distutils.command.build.build):
         os.chdir(old_dir)
 
         self.build_lib = build_lib
+
+        for root, dirs, filenames in os.walk(build_lib):
+            for filename in filenames:
+                fullpath = os.path.join(root, filename)
+
+                if fullpath.endswith(".py"):
+                    os.unlink(fullpath)
 
         if self.has_module:
             # delete python file
