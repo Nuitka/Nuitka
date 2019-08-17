@@ -13,6 +13,7 @@
         "**/*.tmp": true,
         "tests/reflected/nuitka": true,
         "tests/distutils/venv_*": true,
+        "build" : true,
     },
     "files.associations": {
         "*.scons": "python",
