@@ -287,10 +287,12 @@ def getNameReferenceErrorCode(variable_name, condition, emit, context):
     else:
         error_message = "name '%s' is not defined"
 
+    error_message = error_message % variable_name
+
     getErrorFormatExitBoolCode(
         condition=condition,
         exception="PyExc_NameError",
-        args=(error_message, variable_name),
+        args=(error_message,),
         emit=emit,
         context=context,
     )
