@@ -23,9 +23,9 @@ from setuptools import setup
 #(relative to the 'root' dir, where setup.py is)
 #You could be more specific.
 setup(
-    name = "nuitka-example-1",
+    name = "package-and-module-example",
     version = "101",
-    packages = ['example1_package'],
+    packages = ['some_package'],
     py_modules = ["some_module"],
     scripts = ["runner"],
     description = "yadda yadda",
