@@ -648,6 +648,15 @@ class StatementReleaseVariable(StatementBase):
         self.variable = variable
 
     def computeStatement(self, trace_collection):
+        if self.variable.isParameterVariable():
+            if self.variable.getOwner().isAutoReleaseVariable(self.variable):
+                return (
+                    None,
+                    "new_statements",
+                    "Original parameter variable value %s is not released."
+                    % (self.variable.getDescription()),
+                )
+
         self.variable_trace = trace_collection.getVariableCurrentTrace(self.variable)
 
         if self.variable_trace.isUninitTrace():

@@ -102,8 +102,6 @@ class ExpressionFunctionBodyBase(
         if python_version >= 300:
             self.non_local_declarations = None
 
-        self.auto_release = set()
-
     @staticmethod
     def isExpressionFunctionBodyBase():
         return True
@@ -382,6 +380,9 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             # TODO: There should be a locals scope for non-dict/mapping too.
             self.locals_dict_name = None
 
+        # Automatic parameter variable releases.
+        self.auto_release = None
+
     def getFunctionLocalsScope(self):
         if self.locals_dict_name is None:
             return None
@@ -406,9 +407,12 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
     def computeFunction(self, trace_collection):
         statements_sequence = self.getBody()
 
-        if statements_sequence is not None and not statements_sequence.getStatements():
-            statements_sequence.setStatements(None)
-            statements_sequence = None
+        # TODO: Lift this restriction to only functions here and it code generation.
+        if statements_sequence is not None and self.isExpressionFunctionBody():
+            if statements_sequence.getStatements()[0].isStatementReturnNone():
+                self.setBody(None)
+                statements_sequence.finalize()
+                statements_sequence = None
 
         if statements_sequence is not None:
             result = statements_sequence.computeStatementsSequence(
@@ -417,6 +421,47 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
             if result is not statements_sequence:
                 self.setBody(result)
+
+    def removeVariableReleases(self, variable):
+        assert variable in self.providing.values(), (self, self.providing, variable)
+
+        if self.auto_release is None:
+            self.auto_release = set()
+
+        self.auto_release.add(variable)
+
+    def getParameterVariablesWithManualRelease(self):
+        """ Return the list of parameter variables that have release statements.
+
+            These are for consideration if these can be dropped, and if so, they
+            are releases automatically by function code.
+        """
+        return tuple(
+            variable
+            for variable in self.providing.values()
+            if not self.auto_release or variable not in self.auto_release
+            if variable.isParameterVariable()
+            if variable.getOwner() is self
+        )
+
+    def isAutoReleaseVariable(self, variable):
+        """ Is this variable to be automatically released.
+
+        """
+        return self.auto_release is not None and variable in self.auto_release
+
+    def getFunctionVariablesWithAutoReleases(self):
+        """ Return the list of function variables that should be released at exit.
+
+        """
+        if self.auto_release is None:
+            return ()
+
+        return tuple(
+            variable
+            for variable in self.providing.values()
+            if variable in self.auto_release
+        )
 
 
 class ExpressionFunctionBody(
@@ -571,7 +616,9 @@ class ExpressionFunctionBody(
         return False
 
     def mayRaiseException(self, exception_type):
-        return self.getBody().mayRaiseException(exception_type)
+        body = self.getBody()
+
+        return body is not None and body.mayRaiseException(exception_type)
 
     def markAsExceptionReturnValue(self):
         self.return_exception = True

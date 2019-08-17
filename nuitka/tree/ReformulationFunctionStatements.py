@@ -751,7 +751,7 @@ def addFunctionVariableReleases(function):
     source_ref = function.getSourceReference()
 
     for variable in function.getLocalVariables():
-        # Shared variables are freed by function object attachment.
+        # Shared variables are freed by function attachment.
         if variable.getOwner() is not function:
             continue
 
@@ -770,5 +770,3 @@ def addFunctionVariableReleases(function):
         )
 
         function.setBody(makeStatementsSequenceFromStatement(statement=body))
-
-        # assert body.isStatementAborting(), body.asXmlText()

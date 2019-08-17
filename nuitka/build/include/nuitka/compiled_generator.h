@@ -110,6 +110,12 @@ extern PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyO
                                       PyCodeObject *code_object, Py_ssize_t closure_given,
                                       Py_ssize_t heap_storage_size);
 
+extern PyObject *Nuitka_Generator_NewEmpty(PyObject *module, PyObject *name,
+#if PYTHON_VERSION >= 350
+                                           PyObject *qualname,
+#endif
+                                           PyCodeObject *code_object, Py_ssize_t closure_given);
+
 extern PyObject *Nuitka_Generator_qiter(struct Nuitka_GeneratorObject *generator, bool *finished);
 
 static inline bool Nuitka_Generator_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Generator_Type; }

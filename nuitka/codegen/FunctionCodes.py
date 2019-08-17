@@ -135,15 +135,20 @@ def getFunctionMakerCode(
     else:
         function_doc = context.getConstantCode(constant=function_doc)
 
+    if function_body.getBody() is None:
+        function_impl_identifier = "NULL"
+    else:
+        function_impl_identifier = _getFunctionEntryPointIdentifier(
+            function_identifier=function_identifier
+        )
+
     result = template_make_function_body % {
         "function_name_obj": context.getConstantCode(
             constant=function_body.getFunctionName()
         ),
         "function_qualname_obj": getFunctionQualnameObj(function_body, context),
         "function_identifier": function_identifier,
-        "function_impl_identifier": _getFunctionEntryPointIdentifier(
-            function_identifier=function_identifier
-        ),
+        "function_impl_identifier": function_impl_identifier,
         "function_creation_args": ", ".join(function_creation_args),
         "code_identifier": context.getCodeObjectHandle(
             code_object=function_body.getCodeObject()
@@ -505,6 +510,16 @@ def finalizeFunctionLocalVariables(context):
         function_cleanup.append(
             "Py_XDECREF(%(locals_dict)s);\n" % {"locals_dict": locals_declaration}
         )
+
+    # Automatic variable releases if any.
+    for variable in context.getOwner().getFunctionVariablesWithAutoReleases():
+        variable_declaration = getLocalVariableDeclaration(
+            context=context,
+            variable=variable,
+            variable_trace=None,  # TODO: See other uses of None.
+        )
+        function_cleanup.append("CHECK_OBJECT(%s);" % variable_declaration)
+        function_cleanup.append("Py_DECREF(%s);" % variable_declaration)
 
     return function_cleanup
 

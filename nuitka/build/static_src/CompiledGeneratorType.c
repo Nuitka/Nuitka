@@ -1101,3 +1101,19 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
     Nuitka_GC_Track(result);
     return (PyObject *)result;
 }
+
+static PyObject *_EMPTY_GENERATOR_CONTEXT(struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value) {
+    return NULL;
+}
+
+PyObject *Nuitka_Generator_NewEmpty(PyObject *module, PyObject *name,
+#if PYTHON_VERSION >= 350
+                                    PyObject *qualname,
+#endif
+                                    PyCodeObject *code_object, Py_ssize_t closure_given) {
+    return Nuitka_Generator_New(_EMPTY_GENERATOR_CONTEXT, module, name,
+#if PYTHON_VERSION >= 350
+                                qualname,
+#endif
+                                code_object, closure_given, 0);
+}

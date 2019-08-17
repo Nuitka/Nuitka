@@ -534,6 +534,13 @@ class CompiledPythonModule(
         # Modules don't do this, pylint: disable=no-self-use
         return ()
 
+    @staticmethod
+    def getFunctionVariablesWithAutoReleases():
+        """ Return the list of function variables that should be released at exit.
+
+        """
+        return ()
+
     def getOutlineLocalVariables(self):
         outlines = self.getTraceCollection().getOutlineFunctions()
 

@@ -64,8 +64,21 @@ static PyObject *%(function_identifier)s_maker( void )
 }
 """
 
-template_make_generator = """\
+template_make_generator_template = """\
 %(to_name)s = %(generator_identifier)s_maker();
+%(closure_copy)s
+"""
+
+template_make_empty_generator_template = """\
+%(to_name)s = Nuitka_Generator_NewEmpty(
+    %(generator_module)s,
+    %(generator_name_obj)s,
+#if PYTHON_VERSION >= 350
+    %(generator_qualname_obj)s,
+#endif
+    %(code_identifier)s,
+    %(closure_count)d
+);
 %(closure_copy)s
 """
 

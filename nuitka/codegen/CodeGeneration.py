@@ -412,6 +412,10 @@ def prepareModuleCode(global_context, module, module_name):
     function_body_codes = []
 
     for function_body in module.getUsedFunctions():
+        # Empty functions get no code.
+        if function_body.getBody() is None:
+            continue
+
         function_code, function_context = generateFunctionBodyCode(
             function_body=function_body, context=context
         )

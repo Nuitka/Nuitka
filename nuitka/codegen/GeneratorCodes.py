@@ -37,7 +37,8 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_generator_return_exit,
     template_genfunc_yielder_body_template,
     template_genfunc_yielder_maker_decl,
-    template_make_generator,
+    template_make_empty_generator_template,
+    template_make_generator_template,
 )
 from .YieldCodes import getYieldReturnDispatchCode
 
@@ -152,13 +153,34 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
         context=context,
     )
 
-    emit(
-        template_make_generator
-        % {
-            "closure_copy": indented(closure_copy, 0, True),
-            "to_name": to_name,
-            "generator_identifier": generator_object_body.getCodeName(),
-        }
-    )
+    # Special case empty generators.
+    if generator_object_body.getBody() is None:
+        emit(
+            template_make_empty_generator_template
+            % {
+                "closure_copy": indented(closure_copy, 0, True),
+                "to_name": to_name,
+                "generator_module": getModuleAccessCode(context),
+                "generator_name_obj": context.getConstantCode(
+                    constant=generator_object_body.getFunctionName()
+                ),
+                "generator_qualname_obj": getFunctionQualnameObj(
+                    generator_object_body, context
+                ),
+                "code_identifier": context.getCodeObjectHandle(
+                    code_object=generator_object_body.getCodeObject()
+                ),
+                "closure_count": len(closure_variables),
+            }
+        )
+    else:
+        emit(
+            template_make_generator_template
+            % {
+                "closure_copy": indented(closure_copy, 0, True),
+                "to_name": to_name,
+                "generator_identifier": generator_object_body.getCodeName(),
+            }
+        )
 
     context.addCleanupTempName(to_name)

@@ -572,6 +572,22 @@ PyTypeObject Nuitka_Function_Type = {
 
 void _initCompiledFunctionType(void) { PyType_Ready(&Nuitka_Function_Type); }
 
+// Shared implementation for empty functions. When a function body is empty, but
+// still needs to exist, e.g. overloaded functions, this is saving the effort to
+// produce one.
+static PyObject *Nuitka_FunctionEmptyCodeImpl(struct Nuitka_FunctionObject const *function, PyObject **python_pars) {
+    PyObject *result = Py_None;
+
+    Py_ssize_t arg_count = function->m_args_overall_count;
+
+    for (Py_ssize_t i = 0; i < arg_count; i++) {
+        Py_DECREF(python_pars[i]);
+    }
+
+    Py_INCREF(result);
+    return result;
+}
+
 // Make a function with closure.
 #if PYTHON_VERSION < 300
 struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name, PyCodeObject *code_object,
@@ -592,7 +608,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     /* Closure is set externally after we return */
     result->m_closure_given = closure_given;
 
-    result->m_c_code = c_code;
+    result->m_c_code = c_code != NULL ? c_code : Nuitka_FunctionEmptyCodeImpl;
 
     Py_INCREF(name);
     result->m_name = name;

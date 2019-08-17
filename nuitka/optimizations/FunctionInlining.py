@@ -21,9 +21,13 @@ Done by assigning the argument values to variables, and producing an outline
 from the in-lined function.
 """
 
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementReleaseVariable,
+)
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.tree.Extractions import updateVariableUsage
+from nuitka.tree.ReformulationTryFinallyStatements import makeTryFinallyStatement
 from nuitka.tree.TreeHelpers import makeStatementsSequence
 
 
@@ -78,6 +82,22 @@ def convertFunctionCallToOutline(provider, function_ref, values):
     body = makeStatementsSequence(
         statements=(statements, clone), allow_none=False, source_ref=function_source_ref
     )
+
+    auto_releases = function_body.getFunctionVariablesWithAutoReleases()
+
+    if auto_releases:
+        releases = [
+            StatementReleaseVariable(variable=variable, source_ref=function_source_ref)
+            for variable in auto_releases
+        ]
+
+        body = makeTryFinallyStatement(
+            provider=outline_body,
+            tried=body,
+            final=releases,
+            source_ref=function_source_ref,
+        )
+
     outline_body.setBody(body)
 
     return outline_body
