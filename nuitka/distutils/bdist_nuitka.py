@@ -49,23 +49,10 @@ class build(distutils.command.build.build):
 
     # pylint: disable=attribute-defined-outside-init
     def run(self):
-        # TODO: Handle this being None, and add support
-        # for .py_modules
+        self.compile_packages = self.distribution.packages or ()
+        self.py_modules = self.distribution.py_modules or ()
 
-        self.has_package = False
-        self.has_module = False
-        self.compile_packages = self.distribution.packages
-        self.py_modules = self.distribution.py_modules
-
-        if self.py_modules:
-            self.main_module = self.py_modules[0]
-            self.has_module = True
-
-        if self.compile_packages:
-            self.main_package = self.compile_packages[0]
-            self.has_package = True
-
-        if not self.has_package and not self.has_module:
+        if not self.compile_packages and not self.py_modules:
             sys.exit("Missing both compile_packages and py_modules, aborting...")
 
         # Python2 does not allow super on this old style class.
@@ -91,48 +78,20 @@ class build(distutils.command.build.build):
         # Search in the build directory preferably.
         setMainScriptDirectory(".")
 
-        if self.has_package:
-            package, main_filename, finding = findModule(
-                importing=None,
-                module_name=ModuleName(self.main_package),
-                parent_package=None,
-                level=0,
-                warn=False,
-            )
+        package, main_filename, finding = findModule(
+            importing=None,
+            module_name=ModuleName(
+                self.compile_packages[0]
+                if self.compile_packages
+                else self.py_modules[0]
+            ),
+            parent_package=None,
+            level=0,
+            warn=False,
+        )
 
-            # Check expectations, e.g. do not compile built-in modules.
-            assert finding == "absolute", finding
-
-            # If there are other files left over in the wheel after python scripts
-            # are compiled, we'll keep the folder structure with the files in the wheel
-            keep_resources = False
-
-            python_files = []
-            if os.path.isdir(main_filename):
-                # Include all python files in wheel
-                for root, dirs, files in os.walk(main_filename):
-                    if "__pycache__" in dirs:
-                        dirs.remove("__pycache__")
-                        shutil.rmtree(os.path.join(root, "__pycache__"))
-
-                    for fn in files:
-                        if fn.lower().endswith((".py", ".pyc", ".pyo")):
-                            # These files will definitely be deleted once nuitka
-                            # has compiled the main_target
-                            python_files.append(os.path.join(root, fn))
-                        else:
-                            keep_resources = True
-        elif self.has_module:
-            package, main_filename, finding = findModule(
-                importing=None,
-                module_name=ModuleName(self.main_module),
-                parent_package=None,
-                level=0,
-                warn=False,
-            )
-
-            # Check expectations, e.g. do not compile built-in modules.
-            assert finding == "absolute", finding
+        # Check expectations, e.g. do not compile built-in modules.
+        assert finding == "absolute", finding
 
         if package is not None:
             output_dir = os.path.join(build_lib, package)
@@ -155,6 +114,7 @@ class build(distutils.command.build.build):
             "--include-package=%s" % package_name
             for package_name in self.compile_packages
         ]
+
         command += [
             "--include-module=%s" % module_name for module_name in self.py_modules
         ]
@@ -179,20 +139,17 @@ class build(distutils.command.build.build):
         command.append(main_filename)
 
         subprocess.check_call(command, cwd=build_lib)
-        os.chdir(old_dir)
-
-        self.build_lib = build_lib
 
         for root, dirs, filenames in os.walk(build_lib):
             for filename in filenames:
                 fullpath = os.path.join(root, filename)
 
-                if fullpath.endswith(".py"):
+                if fullpath.lower().endswith((".py", ".pyw", ".pyc", ".pyo")):
                     os.unlink(fullpath)
 
-        if self.has_module:
-            # delete python file
-            os.unlink(main_filename)
+        os.chdir(old_dir)
+
+        self.build_lib = build_lib
 
 
 # pylint: disable=C0103
