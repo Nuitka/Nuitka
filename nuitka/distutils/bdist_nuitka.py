@@ -52,15 +52,28 @@ class build(distutils.command.build.build):
         # TODO: Handle this being None, and add support
         # for .py_modules
 
+        self.has_package = False
+        self.has_module = False
         self.compile_packages = self.distribution.packages
-        self.main_package = self.compile_packages[0]
+        self.py_modules = self.distribution.py_modules
+
+        if self.py_modules:
+            self.main_module = self.py_modules[0]
+            self.has_module = True
+
+        if self.compile_packages:
+            self.main_package = self.compile_packages[0]
+            self.has_package = True
+
+        if not self.has_package and not self.has_module:
+            sys.exit("Missing both compile_packages and py_modules, aborting...")
 
         # Python2 does not allow super on this old style class.
         distutils.command.build.build.run(self)
 
-        self._buildPackage(os.path.abspath(self.build_lib))
+        self._build(os.path.abspath(self.build_lib))
 
-    def _buildPackage(self, build_lib):
+    def _build(self, build_lib):
         # High complexity, pylint: disable=too-many-branches,too-many-locals
 
         # Nuitka wants the main package by filename, probably we should stop
@@ -78,36 +91,49 @@ class build(distutils.command.build.build):
         # Search in the build directory preferably.
         setMainScriptDirectory(".")
 
-        package, main_filename, finding = findModule(
-            importing=None,
-            module_name=ModuleName(self.main_package),
-            parent_package=None,
-            level=0,
-            warn=False,
-        )
+        if self.has_package:
+            package, main_filename, finding = findModule(
+                importing=None,
+                module_name=ModuleName(self.main_package),
+                parent_package=None,
+                level=0,
+                warn=False,
+            )
 
-        # Check expectations, e.g. do not compile built-in modules.
-        assert finding == "absolute", finding
+            # Check expectations, e.g. do not compile built-in modules.
+            assert finding == "absolute", finding
 
-        # If there are other files left over in the wheel after python scripts
-        # are compiled, we'll keep the folder structure with the files in the wheel
-        keep_resources = False
+            # If there are other files left over in the wheel after python scripts
+            # are compiled, we'll keep the folder structure with the files in the wheel
+            keep_resources = False
 
-        python_files = []
-        if os.path.isdir(main_filename):
-            # Include all python files in wheel
-            for root, dirs, files in os.walk(main_filename):
-                if "__pycache__" in dirs:
-                    dirs.remove("__pycache__")
-                    shutil.rmtree(os.path.join(root, "__pycache__"))
+            python_files = []
+            if os.path.isdir(main_filename):
+                # Include all python files in wheel
+                for root, dirs, files in os.walk(main_filename):
+                    if "__pycache__" in dirs:
+                        dirs.remove("__pycache__")
+                        shutil.rmtree(os.path.join(root, "__pycache__"))
 
-                for fn in files:
-                    if fn.lower().endswith((".py", ".pyc", ".pyo")):
-                        # These files will definitely be deleted once nuitka
-                        # has compiled the main_package
-                        python_files.append(os.path.join(root, fn))
-                    else:
-                        keep_resources = True
+                    for fn in files:
+                        if fn.lower().endswith((".py", ".pyc", ".pyo")):
+                            # These files will definitely be deleted once nuitka
+                            # has compiled the main_target
+                            python_files.append(os.path.join(root, fn))
+                        else:
+                            keep_resources = True
+
+        if self.has_module:
+            package, main_filename, finding = findModule(
+                importing=None,
+                module_name=ModuleName(self.main_module),
+                parent_package=None,
+                level=0,
+                warn=False,
+            )
+
+            # Check expectations, e.g. do not compile built-in modules.
+            assert finding == "absolute", finding
 
         if package is not None:
             output_dir = os.path.join(build_lib, package)
@@ -121,11 +147,13 @@ class build(distutils.command.build.build):
             "--module",
             "--plugin-enable=pylint-warnings",
             "--output-dir=%s" % output_dir,
-            "--include-package=%s" % self.main_package,
             "--nofollow-import-to=*.tests",
             "--show-modules",
             "--remove-output",
         ]
+
+        if self.has_package:
+            command += ["--include-package=%s" % self.main_package]
 
         # Process any extra options from setuptools
         if "nuitka" in self.distribution.command_options:
@@ -151,17 +179,9 @@ class build(distutils.command.build.build):
 
         self.build_lib = build_lib
 
-        if keep_resources:
-            # Delete the individual source files
-            for fn in python_files:
-                os.unlink(fn)
-        else:
-            # Delete the entire source copy of the module
-            shutil.rmtree(
-                os.path.join(
-                    self.build_lib, self.main_package.replace(".", os.path.sep)
-                )
-            )
+        if self.has_module:
+            # delete python file
+            os.unlink(main_filename)
 
 
 # pylint: disable=C0103
