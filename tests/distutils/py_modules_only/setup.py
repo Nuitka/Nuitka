@@ -17,6 +17,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Distutils examle that contains only plain module.
+
+"""
+
 from setuptools import setup
 
 # use `python setup.py bdist_nuitka` to use nuitka or use

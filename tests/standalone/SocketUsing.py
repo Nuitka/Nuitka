@@ -18,7 +18,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Test that shows that the socket module can properly be used.
 
+"""
 import socket
 
 socket.getfqdn("1.1.1.1")
