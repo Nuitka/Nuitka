@@ -198,6 +198,8 @@ def main():
         elif filename == "Jinja2Using.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
+            # For the demoting of modules to bytecode
+            extra_flags.append("ignore_infos")
 
         if filename.startswith(("PySide", "PyQt")):
             if python_version.startswith("2.6"):
