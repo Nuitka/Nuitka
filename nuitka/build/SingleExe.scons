@@ -814,6 +814,9 @@ version for lto mode (>= 4.6)."""
             % (env["CXX"], env["CXXVERSION"])
         )
 
+    if lto_mode and mingw_mode:
+        sys.exit("""The gcc compiler on Windows, doesn't currently support lto mode.""")
+
     # For g++ 4.6 there are some new interesting functions.
     if gcc_version >= "4.6":
         env.Append(CCFLAGS=["-fpartial-inlining"])
