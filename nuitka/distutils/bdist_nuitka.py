@@ -22,7 +22,6 @@
 import distutils.command.build  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 import distutils.command.install  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 import os
-import shutil
 import subprocess
 import sys
 
@@ -61,7 +60,7 @@ class build(distutils.command.build.build):
         self._build(os.path.abspath(self.build_lib))
 
     def _build(self, build_lib):
-        # High complexity, pylint: disable=too-many-branches,too-many-locals
+        # High complexity, pylint: disable=too-many-locals
 
         # Nuitka wants the main package by filename, probably we should stop
         # needing that.
@@ -140,7 +139,7 @@ class build(distutils.command.build.build):
 
         subprocess.check_call(command, cwd=build_lib)
 
-        for root, dirs, filenames in os.walk(build_lib):
+        for root, _, filenames in os.walk(build_lib):
             for filename in filenames:
                 fullpath = os.path.join(root, filename)
 
