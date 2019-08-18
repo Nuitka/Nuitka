@@ -22,7 +22,6 @@
 import distutils.command.build  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 import distutils.command.install  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 import os
-import shutil
 import subprocess
 import sys
 
@@ -49,19 +48,19 @@ class build(distutils.command.build.build):
 
     # pylint: disable=attribute-defined-outside-init
     def run(self):
-        # TODO: Handle this being None, and add support
-        # for .py_modules
+        self.compile_packages = self.distribution.packages or ()
+        self.py_modules = self.distribution.py_modules or ()
 
-        self.compile_packages = self.distribution.packages
-        self.main_package = self.compile_packages[0]
+        if not self.compile_packages and not self.py_modules:
+            sys.exit("Missing both compile_packages and py_modules, aborting...")
 
         # Python2 does not allow super on this old style class.
         distutils.command.build.build.run(self)
 
-        self._buildPackage(os.path.abspath(self.build_lib))
+        self._build(os.path.abspath(self.build_lib))
 
-    def _buildPackage(self, build_lib):
-        # High complexity, pylint: disable=too-many-branches,too-many-locals
+    def _build(self, build_lib):
+        # High complexity, pylint: disable=too-many-locals
 
         # Nuitka wants the main package by filename, probably we should stop
         # needing that.
@@ -80,7 +79,11 @@ class build(distutils.command.build.build):
 
         package, main_filename, finding = findModule(
             importing=None,
-            module_name=ModuleName(self.main_package),
+            module_name=ModuleName(
+                self.compile_packages[0]
+                if self.compile_packages
+                else self.py_modules[0]
+            ),
             parent_package=None,
             level=0,
             warn=False,
@@ -88,26 +91,6 @@ class build(distutils.command.build.build):
 
         # Check expectations, e.g. do not compile built-in modules.
         assert finding == "absolute", finding
-
-        # If there are other files left over in the wheel after python scripts
-        # are compiled, we'll keep the folder structure with the files in the wheel
-        keep_resources = False
-
-        python_files = []
-        if os.path.isdir(main_filename):
-            # Include all python files in wheel
-            for root, dirs, files in os.walk(main_filename):
-                if "__pycache__" in dirs:
-                    dirs.remove("__pycache__")
-                    shutil.rmtree(os.path.join(root, "__pycache__"))
-
-                for fn in files:
-                    if fn.lower().endswith((".py", ".pyc", ".pyo")):
-                        # These files will definitely be deleted once nuitka
-                        # has compiled the main_package
-                        python_files.append(os.path.join(root, fn))
-                    else:
-                        keep_resources = True
 
         if package is not None:
             output_dir = os.path.join(build_lib, package)
@@ -121,10 +104,18 @@ class build(distutils.command.build.build):
             "--module",
             "--plugin-enable=pylint-warnings",
             "--output-dir=%s" % output_dir,
-            "--include-package=%s" % self.main_package,
             "--nofollow-import-to=*.tests",
             "--show-modules",
             "--remove-output",
+        ]
+
+        command += [
+            "--include-package=%s" % package_name
+            for package_name in self.compile_packages
+        ]
+
+        command += [
+            "--include-module=%s" % module_name for module_name in self.py_modules
         ]
 
         # Process any extra options from setuptools
@@ -147,21 +138,17 @@ class build(distutils.command.build.build):
         command.append(main_filename)
 
         subprocess.check_call(command, cwd=build_lib)
+
+        for root, _, filenames in os.walk(build_lib):
+            for filename in filenames:
+                fullpath = os.path.join(root, filename)
+
+                if fullpath.lower().endswith((".py", ".pyw", ".pyc", ".pyo")):
+                    os.unlink(fullpath)
+
         os.chdir(old_dir)
 
         self.build_lib = build_lib
-
-        if keep_resources:
-            # Delete the individual source files
-            for fn in python_files:
-                os.unlink(fn)
-        else:
-            # Delete the entire source copy of the module
-            shutil.rmtree(
-                os.path.join(
-                    self.build_lib, self.main_package.replace(".", os.path.sep)
-                )
-            )
 
 
 # pylint: disable=C0103

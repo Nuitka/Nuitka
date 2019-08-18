@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
@@ -18,6 +17,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-from __future__ import print_function
-
-print("Hello Distutils this is", __name__)
+print("Hello, this is ", __name__)

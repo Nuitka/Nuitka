@@ -94,5 +94,14 @@ def executePostProcessing(result_filename):
         if mode != old_stat.st_mode:
             os.chmod(result_filename, mode)
 
+    if isWin32Windows() and Options.shallMakeModule():
+        candidate = os.path.join(
+            os.path.dirname(result_filename),
+            "lib" + os.path.basename(result_filename)[:-4] + ".a",
+        )
+
+        if os.path.exists(candidate):
+            os.unlink(candidate)
+
     if isWin32Windows() and Options.shallTreatUninstalledPython():
         shutil.copy(getTargetPythonDLLPath(), os.path.dirname(result_filename) or ".")

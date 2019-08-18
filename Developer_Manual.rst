@@ -425,7 +425,7 @@ The "git flow" model
 
      .. code-block:: sh
         $ git checkout develop
-        $ git pull upstream develop
+        $ git pull --rebase upstream
         $ git checkout -b feature_branch
 
   If you are having merge conflicts while doing the previous step, then
@@ -434,6 +434,7 @@ The "git flow" model
   * In case you have an existing branch rebase it to develop
 
       .. code-block:: sh
+        $ git fetch upstream
         $ git rebase upstream/develop
 
   Fix the merge conflicts if any, stash them and continue:
@@ -449,8 +450,8 @@ The "git flow" model
   * Making changes
 
       .. code-block:: sh
-        $ git commit -am "Commit Message"
-        $ git push –set-upstream origin feature_branch (one time)
+        $ git commit -a -m "Commit Message"
+        $ git push -u origin # once, later always:
         $ git push
 
 

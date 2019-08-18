@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
@@ -18,6 +17,20 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-from __future__ import print_function
+from setuptools import setup
 
-print("Hello Distutils this is", __name__)
+#This is a list of files to install, and where
+#(relative to the 'root' dir, where setup.py is)
+#You could be more specific.
+setup(
+    name = "package-and-module-example",
+    version = "101",
+    packages = ['some_package'],
+    py_modules = ["some_module"],
+    scripts = ["runner"],
+    description = "yadda yadda",
+    author = "Tommy",
+    author_email = "email@someplace.com",
+    url = "whatever",
+    long_description = """Really long text here.""",
+)
