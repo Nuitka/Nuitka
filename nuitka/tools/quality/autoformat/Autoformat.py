@@ -147,7 +147,7 @@ def _cleanupPyLintComments(filename, abort):
     try:
         red = RedBaron(old_code)
         # red = RedBaron(old_code.rstrip()+'\n')
-    except ParsingError:
+    except (ParsingError, AssertionError):  # Baron does assertions too.
         if abort:
             raise
 
