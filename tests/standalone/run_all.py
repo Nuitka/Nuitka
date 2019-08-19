@@ -56,11 +56,8 @@ from nuitka.tools.testing.Common import (
     reportSkip,
     setup,
 )
-from nuitka.utils.FileOperations import (
-    areSamePaths,
-    getFileContentByLine,
-    removeDirectory,
-)
+from nuitka.tree.SourceReading import readSourceCodeFromFilename
+from nuitka.utils.FileOperations import areSamePaths, removeDirectory
 from nuitka.utils.Utils import getOS
 
 
@@ -70,7 +67,7 @@ from nuitka.utils.Utils import getOS
 #       OR
 #     "# nuitka-skip-unless-imports: module1,module2,..."
 def checkRequirements(filename):
-    for line in getFileContentByLine(filename):
+    for line in readSourceCodeFromFilename(None, filename).splitlines():
         if line.startswith("# nuitka-skip-unless-"):
             if line[21:33] == "expression: ":
                 expression = line[33:]

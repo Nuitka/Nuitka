@@ -117,8 +117,10 @@ def readSourceCodeFromFilename(module_name, source_filename):
     else:
         source_code = _readSourceCodeFromFilename3(source_filename)
 
-    # Allow plug-ins to mess with source code.
-    source_code = Plugins.onModuleSourceCode(module_name, source_code)
+    # Allow plug-ins to mess with source code, test framework usages
+    # will pass None for module name.
+    if module_name is not None:
+        source_code = Plugins.onModuleSourceCode(module_name, source_code)
 
     return source_code
 
