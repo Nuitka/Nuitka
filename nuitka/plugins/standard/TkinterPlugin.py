@@ -120,6 +120,8 @@ if not os.environ.get("TCL_LIBRARY", None):
             "/usr/share/tcltk/tcl8.5",
             "/usr/share/tcl8.6",
             "/usr/share/tcl8.5",
+            "/usr/lib64/tcl/tcl8.5",
+            "/usr/lib64/tcl/tcl8.6",
         )
         candidates_tk = (
             os.environ.get("TK_LIBRARY"),
@@ -129,6 +131,8 @@ if not os.environ.get("TCL_LIBRARY", None):
             "/usr/share/tcltk/tk8.5",
             "/usr/share/tk8.6",
             "/usr/share/tk8.5",
+            "/usr/lib64/tcl/tk8.5",
+            "/usr/lib64/tcl/tk8.6",
         )
 
         tcl = None
