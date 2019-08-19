@@ -23,6 +23,7 @@ import os
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.utils.FileOperations import listDir
 
 known_data_files = {
     # Key is the package name to trigger it
@@ -68,24 +69,33 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         return True
 
     def considerDataFiles(self, module):
-        if module.getFullName() in known_data_files:
-            for target_dir, filename in known_data_files[module.getFullName()]:
+        module_name = module.getFullName()
+
+        if module_name in known_data_files:
+            for target_dir, filename in known_data_files[module_name]:
                 source_path = os.path.join(module.getCompileTimeDirectory(), filename)
 
                 if os.path.isfile(source_path):
                     if target_dir is None:
-                        target_dir = module.getFullName().replace(".", os.path.sep)
+                        target_dir = module_name.replace(".", os.path.sep)
 
                     yield (
                         source_path,
                         os.path.normpath(os.path.join(target_dir, filename)),
                     )
 
-        if module.getFullName() in generated_data_files:
-            for target_dir, filename, func in generated_data_files[
-                module.getFullName()
-            ]:
+        if module_name in generated_data_files:
+            for target_dir, filename, func in generated_data_files[module_name]:
                 if target_dir is None:
-                    target_dir = module.getFullName().replace(".", os.path.sep)
+                    target_dir = module_name.replace(".", os.path.sep)
 
                 yield (func, os.path.normpath(os.path.join(target_dir, filename)))
+
+        if module_name == "lib2to3.pgen2":
+            for source_path, filename in listDir(
+                os.path.join(module.getCompileTimeDirectory(), "..")
+            ):
+                if not filename.endswith(".pickle"):
+                    continue
+
+                yield (source_path, os.path.normpath(os.path.join("lib2to3", filename)))
