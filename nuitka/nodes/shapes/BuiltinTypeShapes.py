@@ -175,6 +175,9 @@ class ShapeTypeNoneType(ShapeBase):
             if right_shape.getTypeName() is not None:
                 return operation_result_bool_noescape
 
+            if right_shape in (ShapeTypeIntOrLong, ShapeTypeStrOrUnicode):
+                return operation_result_bool_noescape
+
             return _getComparisonLtShapeGeneric(cls, right_shape)
 
     else:
