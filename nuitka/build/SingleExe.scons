@@ -162,6 +162,12 @@ clang_mode = getBoolOption("clang_mode", False)
 if macosx_target or ("freebsd" in sys.platform and target_arch != "powerpc"):
     clang_mode = True
 
+# Clang on Windows is always clang-cl for now.
+clangcl_mode = False
+if win_target and clang_mode:
+    clang_mode = False
+    clangcl_mode = True
+
 # MinGW compiler mode, optional and interesting to Windows only.
 mingw_mode = getBoolOption("mingw_mode", False)
 
@@ -242,6 +248,7 @@ if "CC" in os.environ:
     cc_dirname = os.path.dirname(os.environ["CC"])
 
     if win_target and isGccName(os.path.basename(os.environ["CC"])):
+        print("Scons: Environment CC seems to be a gcc, enable mingw_mode.")
         mingw_mode = True
 
     if os.path.isdir(cc_dirname):
@@ -260,6 +267,7 @@ if "CXX" in os.environ:
     cxx_dirname = os.path.dirname(os.environ["CXX"])
 
     if win_target and isGccName(os.path.basename(os.environ["CXX"])):
+        print("Scons: Environment CXX seems to be a gcc, enable mingw_mode.")
         mingw_mode = True
 
     if os.path.isdir(cxx_dirname):
@@ -534,7 +542,7 @@ if win_target and getExecutablePath(env["CC"], initial=False) is None:
 if show_scons_mode:
     print("Scons: Initial CC:", env.get("CC", None))
     print("Scons: Initial CCVERSION:", env.get("CCVERSION", None))
-    print("Scons. Initial CXX:", env.get("CXX", None))
+    print("Scons: Initial CXX:", env.get("CXX", None))
     print("Scons: Initial CXXVERSION:", env.get("CXXVERSION", None))
 
 if "CC" in os.environ:
@@ -542,9 +550,29 @@ if "CC" in os.environ:
     env["CC"] = os.path.expanduser(os.environ["CC"])
     env["CCVERSION"] = None
     found_gcc = True
+elif clangcl_mode:
+    clang_exe = getExecutablePath(env["CC"], initial=False)
+
+    clang_dir = clang_exe = os.path.join(
+        clang_exe[: clang_exe.lower().rfind("msvc")],
+        "LLVM",
+        "8.0.0",  # TODO: Observe this and/or use latest
+        "bin",
+    )
+
+    env._dict["ENV"]["PATH"] = os.pathsep.join(  # pylint: disable=protected-access
+        env._dict["ENV"]["PATH"].split(os.pathsep)  # pylint: disable=protected-access
+        + [clang_dir]
+    )
+
+    env["CC"] = "clang-cl"
+    env["LINK"] = "lld-link"
+
+    env["CCVERSION"] = None
 elif clang_mode:
     # If requested by the user, use the clang compiler, overriding what was
     # said in environment.
+
     env["CC"] = "clang"
     env["CCVERSION"] = None
 
@@ -690,7 +718,9 @@ clang-cl will only work if MSVC already worked.
         sys.exit("Error, cannot locate suitable C compiler.")
 
 # Do we use C11 for source files, or C++.
-if msvc_mode:
+if clangcl_mode:
+    c11_mode = True
+elif msvc_mode:
     c11_mode = False
 elif mingw_mode and found_gcc:
     c11_mode = True
@@ -871,9 +901,6 @@ if gcc_mode and not noelf_mode and not clang_mode:
 
 if msvc_mode:
     # With Clang on Windows, there is also an linker to use.
-    if "clang" in the_cc_name and "-cl" in the_cc_name:
-        env["LINK"] = "lld-link"
-
     env.Append(CCFLAGS=["/EHsc", "/J", "/Gd"])
 
     # No incremental linking.
@@ -1376,6 +1403,9 @@ def getCompilerArch():
     elif msvc_mode:
         cmdline = [getExecutablePath(the_compiler, initial=False)]
 
+        if "-cl" in the_cc_name:
+            cmdline.append("--version")
+
         proc = subprocess.Popen(
             cmdline,
             stdin=subprocess.PIPE,
@@ -1386,10 +1416,10 @@ def getCompilerArch():
 
         # The cl.exe without further args will give error output indicating
         # arch.
-        _data, err = proc.communicate()
+        data, err = proc.communicate()
         _rv = proc.wait()
 
-        if b"x86" in err:
+        if b"x86" in err or b"i686" in data:
             _compiler_arch = "x86"
             _compiler_arch_determined = True
         elif b"x64" in err:
