@@ -641,7 +641,7 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
         # without stdin forwarded.
         if (
             exit_code_return
-            and exit_nuitka == -11
+            and exit_nuitka in (-11, -6)
             and sys.platform != "nt"
             and not module_mode
             and not two_step_execution
