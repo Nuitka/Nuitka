@@ -33,6 +33,7 @@ Virtualenv is used to create a clean environment with no outside pollution.
 
 import os
 import sys
+import json
 
 # Find nuitka package relative to us.
 sys.path.insert(
@@ -50,186 +51,26 @@ from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.AppDirs import getCacheDir
 
-# TODO: Get closer to 50 items :)
 
-packages = {
-    "asn1crypto": {
-        "url": "https://github.com/wbond/asn1crypto.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "attrs": {
-        "url": "https://github.com/python-attrs/attrs.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-        "package_name": "attr",
-    },
-    "cachetools": {
-        "url": "https://github.com/tkem/cachetools.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "chardet": {
-        "url": "https://github.com/chardet/chardet.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "click": {
-        "url": "https://github.com/pallets/click.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "colorama": {
-        "url": "https://github.com/tartley/colorama.git",
-        "requirements_file": "requirements-dev.txt",
-        "ignored_tests": None,
-    },
-    "cryptography": {
-        "url": "https://github.com/pyca/cryptography.git",
-        "requirements_file": "dev-requirements.txt",
-        "ignored_tests": None,
-    },
-    "dateutil": {
-        "url": "https://github.com/dateutil/dateutil.git",
-        "requirements_file": "requirements-dev.txt",
-        "ignored_tests": None,
-    },
-    "decorator": {
-        "url": "https://github.com/micheles/decorator.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "flask": {
-        "url": "https://github.com/pallets/flask.git",
-        "requirements_file": None,
-        "ignored_tests": ("tests/test_instance_config.py",),
-    },
-    "google-auth": {
-        "url": "https://github.com/googleapis/google-auth-library-python.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-        "package_name": "google",
-    },
-    "idna": {
-        "url": "https://github.com/kjd/idna.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "ipaddress": {
-        "url": "https://github.com/phihag/ipaddress.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "itsdangerous": {
-        "url": "https://github.com/pallets/itsdangerous.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "jinja2": {
-        "url": "https://github.com/pallets/jinja.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-        "extra_commands": ["cp LICENSE.rst LICENSE"],
-    },
-    "jmespath": {
-        "url": "https://github.com/jmespath/jmespath.py.git",
-        "requirements_file": "requirements.txt",
-        "ignored_tests": None,
-    },
-    "markupsafe": {
-        "url": "https://github.com/pallets/markupsafe.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "numpy": {
-        "url": "https://github.com/numpy/numpy.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "pandas": {
-        "url": "https://github.com/pandas-dev/pandas.git",
-        "requirements_file": "requirements-dev.txt",
-        "ignored_tests": None,
-    },
-    "pyasn1": {
-        "url": "https://github.com/etingof/pyasn1.git",
-        "requirements_file": "requirements.txt",
-        "ignored_tests": None,
-    },
-    "pycparser": {
-        "url": "https://github.com/eliben/pycparser.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "pyparsing": {
-        "url": "https://github.com/pyparsing/pyparsing.git",
-        "requirements_file": "requirements-dev.txt",
-        "ignored_tests": None,
-    },
-    "pytz": {
-        "url": "https://github.com/stub42/pytz.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "pyyaml": {
-        "url": "https://github.com/yaml/pyyaml.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-        "package_name": "yaml",
-    },
-    "requests": {
-        "url": "https://github.com/kennethreitz/requests.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "rsa": {
-        "url": "https://github.com/sybrenstuvel/python-rsa.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "simplejson": {
-        "url": "https://github.com/simplejson/simplejson.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "urllib3": {
-        "url": "https://github.com/urllib3/urllib3.git",
-        "requirements_file": "dev-requirements.txt",
-        "ignored_tests": ("test/test_no_ssl.py",),
-    },
-    "werkzeug": {
-        "url": "https://github.com/pallets/werkzeug.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "setuptools": {
-        "url": "https://github.com/pypa/setuptools.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-        "extra_commands": ["python bootstrap.py"],
-    },
-    "futures": {
-        "url": "https://github.com/agronholm/pythonfutures.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-        "package_name": "concurrent",
-    },
-    "wheel": {
-        "url": "https://github.com/pypa/wheel.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "pytest": {
-        "url": "https://github.com/pytest-dev/pytest.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-    "future": {
-        "url": "https://github.com/PythonCharmers/python-future.git",
-        "requirements_file": None,
-        "ignored_tests": None,
-    },
-}
+def gitClone(package, url, directory):
+    """
+    Update package with git if already existing in directory
+    else git clone the package into directory
+    """
+
+    os.chdir(directory)
+    if (
+        not os.system(
+            "cd %s && git fetch && git reset --hard origin && git clean -dfx" % package
+        )
+        == 0
+    ):
+        assert (
+            os.system(
+                "git clone %s %s --depth 1 --single-branch --no-tags" % (url, package)
+            )
+            == 0
+        ), ("Error while git cloning package %s, aborting..." % package)
 
 
 def main():
@@ -237,6 +78,7 @@ def main():
 
     _python_version = setup()
 
+    # cache_dir is where the git clones are cached
     cache_dir = os.path.join(getCacheDir(), "pypi-git-clones")
     base_dir = os.getcwd()
 
@@ -246,6 +88,10 @@ def main():
     search_mode = createSearchMode()
 
     results = []
+
+    # load json
+    with open("packages.json", "r") as f:
+        packages = json.load(f)
 
     for package_name, details in sorted(packages.items()):
         active = search_mode.consider(dirname=None, filename=package_name)
@@ -274,12 +120,6 @@ def main():
                 break
             continue
 
-        if package_name in ("decorator", "ipaddress", "pyparsing"):
-            reportSkip("Not yet supported, see Issue #479", ".", package_name)
-            if search_mode.abortIfExecuted():
-                break
-            continue
-
         if package_name in ("pycparser", "numpy"):
             reportSkip("Not yet supported, see Issue #477", ".", package_name)
             if search_mode.abortIfExecuted():
@@ -289,11 +129,9 @@ def main():
         if package_name in (
             "google-auth",  # bdist_nuitka fails AttributeError: single_version_externally_managed
             "jinja2",  # ModuleNotFoundError: No module named 'jinja2.tests'
-            "pandas",  # python setup.py egg_info fails
-            "pytz",  # AssertionError: zoneinfo files not found!
-            "setuptools",  # compiled __import__ check fails; pytest passes
-            "wheel",  # compiled __import__ check fails; pytest passes
-            "pytest",  # compiled __import__ check fails; should we even test this?
+            "pandas",  # ModuleNotFoundError: No module named 'Cython'
+            "pytz",  # need to 'make build'
+            "rsa",  # Now uses Poetry (no setup.py)
         ):
             if search_mode.abortIfExecuted():
                 break
@@ -302,22 +140,7 @@ def main():
         package_dir = os.path.join(cache_dir, package_name)
 
         try:
-            os.chdir(cache_dir)
-            # update package if existing, else clone
-            if (
-                not os.system(
-                    "cd %s && git fetch && git reset --hard origin && git clean -dfx"
-                    % package_name
-                )
-                == 0
-            ):
-                assert (
-                    os.system(
-                        "git clone %s %s --depth 1 --single-branch --no-tags"
-                        % (details["url"], package_name)
-                    )
-                    == 0
-                ), ("Error while git cloning package %s, aborting..." % package_name)
+            gitClone(package_name, details["url"], cache_dir)
 
             os.chdir(base_dir)
             with withVirtualenv("venv_%s" % package_name, delete=True) as venv:
@@ -383,7 +206,8 @@ def main():
                     commands=[
                         "python -m pip install -U %s"
                         % os.path.join(dist_dir, os.listdir(dist_dir)[0]),
-                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))"
+                        # use triple quotes for linux
+                        """python -c "print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" """
                         % details.get("package_name", package_name),
                     ]
                 )
@@ -488,8 +312,11 @@ def main():
 
     num_failed = 0
     num_errors = 0
+
+    # tally the number of errors and failed
     for _, y, z in results:
         if type(y) is str:
+            # this means the package ran into an exception
             num_errors += 1
         elif y or z:
             num_failed += 1
