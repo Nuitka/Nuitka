@@ -1,5 +1,5 @@
-Automated testing for top PyPI packages
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Automated Pytest Testing for Top PyPI Packages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Overview
 ========
@@ -31,7 +31,7 @@ A Nuitka-compiled wheel is then built using the ``bdist_nuitka`` command which i
 Pytest is run again for the package, and the output is captured into another string.
 The two strings of pytest outputs are then compared to see if any differences exist.
 
-packages.json
+Packages.json
 -------------
 
 The file containing the packages to be tested and their respective information.
@@ -67,13 +67,13 @@ different options.
 List of options
 ---------------
 
-- all
+- ``all``
 
   Run testing for all packages, tallying the number of errors.
 
   * Usage: ``python run_all.py all``
 
-- only
+- ``only``
 
   Run testing for only the package specified.
 
@@ -81,7 +81,7 @@ List of options
 
   * Example: ``python run_all.py only click``
 
-- search
+- ``search``
 
   Run tests starting at the package specified, abort if an error is found
 
@@ -89,7 +89,7 @@ List of options
 
   * Example: ``python run_all.py search click``
 
-- resume
+- ``resume``
 
   Run tests starting at the package where it last left off
 
