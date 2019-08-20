@@ -1,0 +1,169 @@
+{
+    "asn1crypto": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/wbond/asn1crypto.git"
+    },
+    "attrs": {
+        "ignored_tests": null,
+        "package_name": "attr",
+        "requirements_file": null,
+        "url": "https://github.com/python-attrs/attrs.git"
+    },
+    "cachetools": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/tkem/cachetools.git"
+    },
+    "chardet": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/chardet/chardet.git"
+    },
+    "click": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/pallets/click.git"
+    },
+    "colorama": {
+        "ignored_tests": null,
+        "requirements_file": "requirements-dev.txt",
+        "url": "https://github.com/tartley/colorama.git"
+    },
+    "cryptography": {
+        "ignored_tests": null,
+        "requirements_file": "dev-requirements.txt",
+        "url": "https://github.com/pyca/cryptography.git"
+    },
+    "dateutil": {
+        "ignored_tests": null,
+        "requirements_file": "requirements-dev.txt",
+        "url": "https://github.com/dateutil/dateutil.git"
+    },
+    "decorator": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/micheles/decorator.git"
+    },
+    "flask": {
+        "ignored_tests": [
+            "tests/test_instance_config.py"
+        ],
+        "requirements_file": null,
+        "url": "https://github.com/pallets/flask.git"
+    },
+    "future": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/PythonCharmers/python-future.git"
+    },
+    "futures": {
+        "ignored_tests": null,
+        "package_name": "concurrent",
+        "requirements_file": null,
+        "url": "https://github.com/agronholm/pythonfutures.git"
+    },
+    "google-auth": {
+        "ignored_tests": null,
+        "package_name": "google",
+        "requirements_file": null,
+        "url": "https://github.com/googleapis/google-auth-library-python.git"
+    },
+    "idna": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/kjd/idna.git"
+    },
+    "ipaddress": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/phihag/ipaddress.git"
+    },
+    "itsdangerous": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/pallets/itsdangerous.git"
+    },
+    "jinja2": {
+        "extra_commands": [
+            "cp LICENSE.rst LICENSE"
+        ],
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/pallets/jinja.git"
+    },
+    "jmespath": {
+        "ignored_tests": null,
+        "requirements_file": "requirements.txt",
+        "url": "https://github.com/jmespath/jmespath.py.git"
+    },
+    "markupsafe": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/pallets/markupsafe.git"
+    },
+    "numpy": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/numpy/numpy.git"
+    },
+    "pandas": {
+        "ignored_tests": null,
+        "requirements_file": "requirements-dev.txt",
+        "url": "https://github.com/pandas-dev/pandas.git"
+    },
+    "pyasn1": {
+        "ignored_tests": null,
+        "requirements_file": "requirements.txt",
+        "url": "https://github.com/etingof/pyasn1.git"
+    },
+    "pycparser": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/eliben/pycparser.git"
+    },
+    "pyparsing": {
+        "ignored_tests": null,
+        "requirements_file": "requirements-dev.txt",
+        "url": "https://github.com/pyparsing/pyparsing.git"
+    },
+    "pytz": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/stub42/pytz.git"
+    },
+    "pyyaml": {
+        "ignored_tests": null,
+        "package_name": "yaml",
+        "requirements_file": null,
+        "url": "https://github.com/yaml/pyyaml.git"
+    },
+    "requests": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/kennethreitz/requests.git"
+    },
+    "rsa": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/sybrenstuvel/python-rsa.git"
+    },
+    "simplejson": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/simplejson/simplejson.git"
+    },
+    "urllib3": {
+        "ignored_tests": [
+            "test/test_no_ssl.py",
+            "test/with_dummyserver/test_no_ssl.py"
+        ],
+        "requirements_file": "dev-requirements.txt",
+        "url": "https://github.com/urllib3/urllib3.git"
+    },
+    "werkzeug": {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/pallets/werkzeug.git"
+    }
+}
