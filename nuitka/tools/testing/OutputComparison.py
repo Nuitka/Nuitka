@@ -82,7 +82,7 @@ def normalizeTimeDiff(outputStr):
     =================== 1059 passed, 8 warnings in x.xx seconds ===================
     """
 
-    matchObj = re.search(b"in [0-9]+.[0-9][0-9] seconds", outputStr)
+    matchObj = re.search(b"in [0-9]+.[0-9][0-9](s| seconds)", outputStr)
     if matchObj:
         return (
             outputStr[: matchObj.start()]
