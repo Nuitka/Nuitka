@@ -177,7 +177,8 @@ def main():
                     commands=[
                         "python -m pip install -U %s"
                         % os.path.join(dist_dir, os.listdir(dist_dir)[0]),
-                        "python -c print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))"
+                        # use triple quotes for linux
+                        """python -c "print(getattr(__import__('%s'),'__compiled__','__uncompiled_version__'))" """
                         % details.get("package_name", package_name),
                     ]
                 )
