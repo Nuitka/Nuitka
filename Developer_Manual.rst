@@ -406,8 +406,8 @@ The "git flow" model
   those changes.
 
 
-  Nuitka "git/github" Workflow
-  =====================
+Nuitka "git/github" Workflow
+============================
 
   * Forking and cloning
 
@@ -416,43 +416,49 @@ The "git flow" model
 
   To clone it to your local machine execute the following your git bash:
 
-     .. code-block:: sh
-        $ git clone https://github.com/your-user-name/Nuitka.git
-        $ cd Nuitka
-        $ git remote add upstream https://github.com/Nuitka/Nuitka.git
+    .. code-block:: sh
+
+        git clone https://github.com/your-user-name/Nuitka.git
+        cd Nuitka
+        git remote add upstream https://github.com/Nuitka/Nuitka.git
 
   * Create a Branch
 
-     .. code-block:: sh
-        $ git checkout develop
-        $ git pull --rebase upstream
-        $ git checkout -b feature_branch
+    .. code-block:: sh
+
+        git checkout develop
+        git pull --rebase upstream
+        git checkout -b feature_branch
 
   If you are having merge conflicts while doing the previous step, then
   check out (DON'T FORGET TO SAVE YOUR CHANGES FIRST IF ANY): <https://stackoverflow.com/questions/1125968/how-do-i-force-git-pull-to-overwrite-local-files>
 
   * In case you have an existing branch rebase it to develop
 
-      .. code-block:: sh
-        $ git fetch upstream
-        $ git rebase upstream/develop
+    .. code-block:: sh
+
+        git fetch upstream
+        git rebase upstream/develop
 
   Fix the merge conflicts if any, stash them and continue:
 
-      .. code-block:: sh
-        $ git rebase --continue
+    .. code-block:: sh
+
+        git rebase --continue
 
    If anything goes wrong while rebasing:
 
-      .. code-block:: sh
-        $ git rebase --abort
+    .. code-block:: sh
+
+        git rebase --abort
 
   * Making changes
 
-      .. code-block:: sh
-        $ git commit -a -m "Commit Message"
-        $ git push -u origin # once, later always:
-        $ git push
+    .. code-block:: sh
+
+        git commit -a -m "Commit Message"
+        git push -u origin # once, later always:
+        git push
 
 
 API Documentation and Guidelines
