@@ -19,6 +19,8 @@
 
 """
 
+import os
+
 from nuitka.__past__ import iterItems
 from nuitka.codegen import Emission
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
@@ -77,7 +79,8 @@ def getModuleValues(
 
     module_codes = Emission.SourceCodeCollector()
 
-    module_body = context.getOwner().getBody()
+    module = context.getOwner()
+    module_body = module.getBody()
 
     generateStatementSequenceCode(
         statement_sequence=module_body,
@@ -111,6 +114,10 @@ def getModuleValues(
         "module_name": module_name,
         "module_name_obj": context.getConstantCode(constant=module_name.asString()),
         "is_main_module": 1 if is_main_module else 0,
+        "is_dunder_main": 1
+        if module_name == "__main__"
+        and os.path.basename(module.getCompileTimeFilename()) == "__main__.py"
+        else 0,
         "is_package": 1 if is_package else 0,
         "is_top": 1 if is_top else 0,
         "module_identifier": module_identifier,

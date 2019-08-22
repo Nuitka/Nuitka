@@ -15,7 +15,23 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+"""
+Test case, where __main__ is the main program in a directory.
+"""
 
+
+from __future__ import print_function
 
 import sys
-print("Hello world!", __name__, sys.modules[ __name__ ])
+print("Hello world!")
+print("I am thinking of myself as", __name__, "module has", sys.modules[ __name__ ])
+print("My package value is", repr(__package__), "module has", repr(sys.modules[ __name__ ].__package__))
+print("Try to import from module in main package:")
+
+for_import = "something"
+
+try:
+    from . import for_import as value
+    print(value)
+except (ImportError, SystemError, ValueError) as e:
+    print("Gave exception:", e)

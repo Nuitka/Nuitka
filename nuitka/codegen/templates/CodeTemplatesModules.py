@@ -115,6 +115,7 @@ static struct PyModuleDef mdef_%(module_identifier)s =
 extern PyObject *const_str_plain___compiled__;
 
 extern PyObject *const_str_plain___package__;
+extern PyObject *const_str_empty;
 
 #if PYTHON_VERSION >= 300
 extern PyObject *const_str_dot;
@@ -260,7 +261,13 @@ MOD_INIT_DECL(%(module_identifier)s)
 
     // Update "__package__" value to what it ought to be.
     {
-#if %(is_package)s
+#if %(is_dunder_main)s
+        UPDATE_STRING_DICT0(
+            moduledict_%(module_identifier)s,
+            (Nuitka_StringObject *)const_str_plain___package__,
+            const_str_empty
+        );
+#elif %(is_package)s
         PyObject *module_name = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ );
 
         UPDATE_STRING_DICT1(
