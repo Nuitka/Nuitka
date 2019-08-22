@@ -29,6 +29,8 @@ from .NodeMakingHelpers import (
 )
 
 
+# TODO: Add support for generator outlines and
+# remove this node entirely.
 class ExpressionBuiltinZip(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_ZIP"
 
@@ -58,3 +60,7 @@ class ExpressionBuiltinZip(ExpressionChildHavingBase):
             # [1,2,3] -> (1,2,3)
 
         return self, None, None
+
+    # TODO: We should have an iteration handle.
+    # Length and values might be possible to predict
+    # if every argument iteration handle is capable of it.

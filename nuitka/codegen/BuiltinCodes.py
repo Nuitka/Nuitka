@@ -30,6 +30,7 @@ from .CodeHelpers import (
 )
 from .ErrorCodes import getAssertionCode, getErrorExitBoolCode, getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode
+from .TupleCodes import getTupleCreationCode
 
 
 def generateBuiltinAbsCode(to_name, expression, emit, context):
@@ -434,13 +435,29 @@ def generateBuiltinClassmethodCode(to_name, expression, emit, context):
 
 
 def generateBuiltinZipCode(to_name, expression, emit, context):
-    generateCAPIObjectCode(
-        to_name=to_name,
-        capi="BUILTIN_ZIP",  # TODO: Write C code
-        arg_desc=(("zip_arg", expression.getValue()),),
-        may_raise=expression.mayRaiseException(BaseException),
-        conversion_check=decideConversionCheckNeeded(to_name, expression),
-        source_ref=expression.getCompatibleSourceReference(),
+    tmp_zip_args_name = context.allocateTempName("zip_args")
+
+    getTupleCreationCode(
+        to_name=tmp_zip_args_name,
+        elements=expression.getValue(),
         emit=emit,
         context=context,
     )
+
+    # TODO: Create BUILTIN_ZIP that passes args to
+    # CALL_FUNCTION_WITH_POSARGS of builtin zip.
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "zip_value", expression, emit, context
+    ) as value_name:
+        emit("%s = BUILTIN_ZIP(%s);" % (value_name, tmp_zip_args_name))
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_name=tmp_zip_args_name,
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(value_name)

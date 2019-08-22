@@ -253,6 +253,19 @@ PyObject *BUILTIN_STATICMETHOD(PyObject *value) {
     return CALL_FUNCTION_WITH_SINGLE_ARG(NUITKA_ACCESS_BUILTIN(staticmethod), value);
 }
 
+/** The "zip" built-in.
+ *
+ **/
+
+NUITKA_DEFINE_BUILTIN(zip)
+
+PyObject *BUILTIN_ZIP(PyObject *value) {
+    NUITKA_ASSIGN_BUILTIN(zip);
+
+    return CALL_FUNCTION_WITH_SINGLE_ARG(NUITKA_ACCESS_BUILTIN(zip), value);
+}
+
+
 /** The "classmethod" built-in.
  *
  **/
