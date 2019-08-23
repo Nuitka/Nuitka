@@ -669,7 +669,7 @@ def _detectBinaryPathDLLsPosix(dll_filename):
     return sub_result
 
 
-def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
+def _detectBinaryPathDLLsMacOS(original_dir, binary_filename, keep_unresolved=False):
     result = set()
 
     process = subprocess.Popen(
@@ -680,7 +680,6 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
 
     stdout, _stderr = process.communicate()
     system_paths = (b"/usr/lib/", b"/System/Library/Frameworks/")
-    rpaths = _detectBinaryRPathsMacOS(original_dir, binary_filename)
 
     for line in stdout.split(b"\n")[1:]:
         if not line:
@@ -696,25 +695,45 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
             if python_version >= 300:
                 filename = filename.decode("utf-8")
 
-            if filename.startswith("@rpath/"):
-                for i in rpaths:
-                    if os.path.isfile(os.path.join(i, filename[7:])):
-                        filename = os.path.join(i, filename[7:])
-                        break
-                else:
-                    filename = os.path.join(original_dir, filename[7:])
-
-            elif filename.startswith("@loader_path/"):
-                filename = os.path.join(original_dir, filename[13:])
-
             # print("adding", filename)
             result.add(filename)
 
+    resolved_result = _resolveBinaryPathDLLsMacOS(
+        original_dir, binary_filename, result, keep_unresolved
+    )
+    return resolved_result
+
+
+def _resolveBinaryPathDLLsMacOS(original_dir, binary_filename, paths, keep_unresolved):
+    if keep_unresolved:
+        result = {}
+    else:
+        result = set()
+
+    rpaths = _detectBinaryRPathsMacOS(original_dir, binary_filename)
+
+    for path in paths:
+        if path.startswith("@rpath/"):
+            for rpath in rpaths:
+                if os.path.isfile(os.path.join(rpath, path[7:])):
+                    resolved_path = os.path.join(rpath, path[7:])
+                    break
+            else:
+                resolved_path = os.path.join(original_dir, path[7:])
+
+        elif path.startswith("@loader_path/"):
+            resolved_path = os.path.join(original_dir, path[13:])
+        else:
+            resolved_path = path
+        if keep_unresolved:
+            result.update({resolved_path: path})
+        else:
+            result.add(resolved_path)
     return result
 
 
 def _detectBinaryRPathsMacOS(original_dir, binary_filename):
-    result = []
+    result = set()
 
     process = subprocess.Popen(
         args=["otool", "-l", binary_filename],
@@ -737,14 +756,8 @@ def _detectBinaryRPathsMacOS(original_dir, binary_filename):
             if line.startswith("@loader_path"):
                 line = os.path.join(original_dir, line[13:])
             elif line.startswith("@executable_path"):
-                warning(
-                    "Dropping not-fully-resolved rpath: "
-                    + line
-                    + " for "
-                    + os.path.basename(binary_filename)
-                )
                 continue
-            result.append(line)
+            result.add(line)
 
     return result
 
@@ -1282,12 +1295,18 @@ manually."""
     return result
 
 
-def fixupBinaryDLLPaths(binary_filename, is_exe, dll_map):
+def fixupBinaryDLLPaths(binary_filename, is_exe, dll_map, original_location):
     """ For macOS, the binary needs to be told to use relative DLL paths """
 
     # There may be nothing to do, in case there are no DLLs.
     if not dll_map:
         return
+
+    rpath_map = _detectBinaryPathDLLsMacOS(
+        os.path.dirname(original_location), original_location, True
+    )
+    for i, o in enumerate(dll_map):
+        dll_map[i] = (rpath_map.get(o[0], o[0]), o[1])
 
     command = ["install_name_tool"]
 
@@ -1488,13 +1507,15 @@ different from
                 binary_filename=standalone_entry_point[1],
                 is_exe=standalone_entry_point is standalone_entry_points[0],
                 dll_map=dll_map,
+                original_location=standalone_entry_point[0],
             )
 
-        for _original_path, dll_filename in dll_map:
+        for original_path, dll_filename in dll_map:
             fixupBinaryDLLPaths(
                 binary_filename=os.path.join(dist_dir, dll_filename),
                 is_exe=False,
                 dll_map=dll_map,
+                original_location=original_path,
             )
 
     if Utils.getOS() == "Linux":
