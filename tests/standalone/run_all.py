@@ -210,6 +210,10 @@ def main():
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
+        elif filename == "WerkzeugUsing.py":
+            # For the warnings.
+            extra_flags.append("ignore_warnings")
+
         if filename.startswith(("PySide", "PyQt")):
             if python_version.startswith("2.6"):
                 reportSkip("irrelevant Python version", ".", filename)
