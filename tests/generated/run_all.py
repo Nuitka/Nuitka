@@ -41,6 +41,8 @@ sys.path.insert(
 
 # isort:start
 
+import jinja2
+
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
@@ -51,17 +53,98 @@ from nuitka.tools.testing.Common import (
 )
 
 
+def _createBigConstantsTest():
+    # Create large constants test on the fly.
+    with open("BigConstants.py", "w") as output:
+        output.write(
+            "'''Automatically generated test, not part of releases or git.\n\n'''\n"
+        )
+        output.write("print('%s')\n" % ("1234" * 17000))
+
+
+def _createOperationsTest():
+    with open("Operations.py", "w") as output:
+        output.write(
+            "'''Automatically generated test, not part of releases or git.\n\n'''\n"
+        )
+        output.write("from __future__ import print_function\n\n")
+        output.write("cond = 8\n\n")
+
+        candidates = (
+            ("NoneType", "None", "None"),
+            ("bool", "True", "False"),
+            ("int", "17", "-9"),
+            ("float", "17.2", "-8"),
+            ("complex", "2j", "-4j"),
+            ("str", "'lala'", "'lele'"),
+            ("bytes", "b'lala'", "b'lele'"),
+            ("list", "[1,2]", "[3]"),
+            ("tuple", "(1,2)", "(3,)"),
+            ("set", "set([1,2])", "set([3])"),
+            ("dict", "{1:2}", "{3:4}"),
+        )
+
+        operation_template = """
+def {{operation_id}}():
+    left = {{left_1}}
+    right = {{right_1}}
+
+    try:
+        # We expect this to be compile time computed.
+        x = left {{operation}} right
+    except Exception as e: # pylint: disable=broad-except
+        print("{{operation_id}} compile time occurred:", e)
+    else:
+        print("{{operation_id}} compile time result:", x)
+
+    # This allows the merge trace to know the type.
+    left = {{left_1}} if cond else {{left_2}}
+    right = {{right_1}} if cond else {{right_2}}
+
+    try:
+        # We expect this to be compile time error checked.
+        x = left {{operation}} right
+    except Exception as e: # pylint: disable=broad-except
+        print("{{operation_id}} runtime occurred:", e)
+    else:
+        print("{{operation_id}} runtime result:", x)
+
+
+{{operation_id}}()
+
+"""
+
+        template = jinja2.Template(operation_template)
+
+        for op_name, operation in (
+            ("Add", "+"),
+            ("Sub", "-"),
+            ("Mul", "*"),
+            ("Div", "/"),
+            ("FloorDiv", "//"),
+            ("Mod", "%"),
+        ):
+            for l_type, left_value1, left_value2 in candidates:
+                for r_type, right_value1, right_value2 in candidates:
+                    output.write(
+                        template.render(
+                            operation_id=op_name + "_" + l_type + "_" + r_type,
+                            operation=operation,
+                            left_1=left_value1,
+                            right_1=right_value1,
+                            left_2=left_value2,
+                            right_2=right_value2,
+                        )
+                    )
+
+
 def _createTests():
     result = []
 
-    # Create large constants test on the fly.
-    if not os.path.exists("BigConstants.py"):
-        with open("BigConstants.py", "w") as output:
-            output.write(
-                "# Automatically generated test, not part of releases or git.\n\n"
-            )
-            output.write("print('%s')\n" % ("1234" * 17000))
+    _createOperationsTest()
+    result.append("Operations.py")
 
+    _createBigConstantsTest()
     result.append("BigConstants.py")
 
     return result
