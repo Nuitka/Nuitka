@@ -240,7 +240,6 @@ class ExpressionOperationBinaryConcreteBase(ExpressionOperationBinaryBase):
                 self.escape_desc.isUnsupported()
                 and self.canCreateUnsupportedException()
             ):
-
                 result = wrapExpressionWithSideEffects(
                     new_node=makeRaiseExceptionReplacementExpressionFromInstance(
                         expression=self, exception=self.createUnsupportedException()

@@ -332,7 +332,6 @@ Removed assignment of %s from itself which is known to be defined."""
             if last_trace is not None:
                 if source.isCompileTimeConstant() and not last_trace.hasLoopUsages():
                     if not variable.isModuleVariable():
-
                         # Can safely forward propagate only non-mutable constants.
                         if source.isMutable():
                             # Something might be possible still, lets check for
@@ -395,6 +394,9 @@ Removed assignment of %s from itself which is known to be defined."""
                                         self.getVariableName(),
                                     ),
                                 )
+                elif source.isExpressionFunctionCreation():
+                    # TODO: Prepare for inlining.
+                    pass
                 else:
                     # More cases thinkable.
                     pass
