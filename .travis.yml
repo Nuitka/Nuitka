@@ -1,20 +1,28 @@
 # Python project, check against all supported things.
 language: python
 
-python:
-#  - 2.6
-  - 2.7
-#  - 3.3
-  - 3.4
-  - 3.5
-  - 3.6
-
 matrix:
   include:
     - os: linux
+      python: 2.7
+      dist: xenial
+      sudo: required
+    - os: linux
+      python: 3.4
+      dist: xenial
+      sudo: required
+    - os: linux
+      python: 3.5
+      dist: xenial
+      sudo: required
+    - os: linux
+      python: 3.6
+      dist: xenial
+      sudo: required
+    - os: linux
       python: 3.7
-      dist: xenial    # required for Python 3.7 (travis-ci/travis-ci#9069)
-      sudo: required  # required for Python 3.7 (travis-ci/travis-ci#9069)
+      dist: xenial
+      sudo: required
     - os: osx
       osx_image: xcode11
       language: shell
@@ -36,3 +44,4 @@ install:
 script:
   - ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
   - ./bin/check-nuitka-with-pylint --not-installed-is-no-error
+  - env
