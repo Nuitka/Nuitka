@@ -17,6 +17,9 @@
 #
 from __future__ import print_function
 
+import sys
+
+
 def displayDict(d):
     d = dict(d)
 
@@ -42,6 +45,7 @@ def displayDict(d):
         del d["__compiled__"]
 
     import pprint
+
     return pprint.pformat(d)
 
 
@@ -49,10 +53,9 @@ print(displayDict(globals()))
 
 print("__name__: ", __name__)
 
-import sys
 print(
     "__package__: ",
     __package__
-      if __package__ is not None or sys.version_info[:2] != (3,2) else
-    ".".join(__name__.split(".")[:-1])
+    if __package__ is not None or sys.version_info[:2] != (3, 2)
+    else ".".join(__name__.split(".")[:-1]),
 )

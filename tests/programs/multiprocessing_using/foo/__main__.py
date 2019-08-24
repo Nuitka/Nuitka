@@ -17,6 +17,5 @@
 #
 from foo import entry
 
-
-if __name__ == '__main__':
-	entry.main()
+if __name__ == "__main__":
+    entry.main()

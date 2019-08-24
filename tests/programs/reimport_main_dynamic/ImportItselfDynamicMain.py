@@ -15,11 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 import sys
 
 print("Here I am before import", __name__)
 
-c = "ImportItselfDynamicMain" 
+c = "ImportItselfDynamicMain"
 __import__(c)
 print("Here I am after import", __name__)

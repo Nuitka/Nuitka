@@ -17,6 +17,8 @@
 #
 import pkgutil
 
-__version__ = pkgutil.get_data(__package__ or __name__, 'DATA_FILE.txt').decode('ascii').strip()
+__version__ = (
+    pkgutil.get_data(__package__ or __name__, "DATA_FILE.txt").decode("ascii").strip()
+)
 
 print(__version__)

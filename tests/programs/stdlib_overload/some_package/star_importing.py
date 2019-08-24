@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-print( "some_package.star_importing, doing the star import" )
+print("some_package.star_importing, doing the star import")
 
 print("Before", sorted(x for x in dir() if x != "__compiled__"))
 
@@ -24,4 +24,4 @@ from .pyexpat import *  # @UnusedWildImport
 lala = 1
 print("After", sorted(x for x in dir() if x != "__compiled__"))
 
-print( "Finished" )
+print("Finished")

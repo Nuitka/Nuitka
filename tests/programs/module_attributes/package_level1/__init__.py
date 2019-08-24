@@ -17,6 +17,7 @@
 #
 from __future__ import print_function
 
+
 def displayDict(d):
     d = dict(d)
 
@@ -42,7 +43,9 @@ def displayDict(d):
         del d["__compiled__"]
 
     import pprint
+
     return pprint.pformat(d)
+
 
 print(displayDict(globals()))
 

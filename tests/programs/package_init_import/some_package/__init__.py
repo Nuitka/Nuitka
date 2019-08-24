@@ -25,12 +25,12 @@ print(
     "in",
     "__package__: ",
     __package__
-      if __package__ is not None or sys.version_info[:2] != (3,2) else
-    ".".join(__name__.split(".")[:-1])
+    if __package__ is not None or sys.version_info[:2] != (3, 2)
+    else ".".join(__name__.split(".")[:-1]),
 )
 
 try:
     import PackageLocal
 except ImportError:
-    print( "This must be Python3, doing local import then." )
+    print("This must be Python3, doing local import then.")
     from . import PackageLocal

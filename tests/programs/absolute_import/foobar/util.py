@@ -15,7 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Module that provides a function for import.
+
+"""
 
 
-def foo():
+def someFunction():
     return "hi"

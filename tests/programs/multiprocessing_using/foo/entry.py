@@ -15,7 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-from multiprocessing import Process, Pipe
+from multiprocessing import Pipe, Process
+
 
 class MyProcess(Process):
     def __init__(self, connection):
@@ -26,25 +27,26 @@ class MyProcess(Process):
     def run(self):
         while not self.close_issued:
             op, arg = self.connection.recv()
-            if op == 'add':
+            if op == "add":
                 self.connection.send(arg + 1)
-            elif op == 'close':
+            elif op == "close":
                 self.close_issued = True
-            elif op == 'method':
+            elif op == "method":
                 self.connection.send(repr(self.run))
+
 
 def main():
     server_channel, client_channel = Pipe()
     my_process = MyProcess(client_channel)
     my_process.start()
 
-    server_channel.send(('add', 4))
+    server_channel.send(("add", 4))
     print(server_channel.recv())
 
-    server_channel.send(('add', 12))
+    server_channel.send(("add", 12))
     print(server_channel.recv())
 
-    server_channel.send(('method', None))
+    server_channel.send(("method", None))
     print(("compiled" in server_channel.recv()) == ("compiled" in repr(MyProcess.run)))
 
-    server_channel.send(('close', 0))
+    server_channel.send(("close", 0))

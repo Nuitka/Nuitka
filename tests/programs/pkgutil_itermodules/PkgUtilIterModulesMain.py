@@ -17,13 +17,14 @@
 #
 from __future__ import print_function
 
+import pkgutil
+
 import some_package.sub_package1.SomeModuleC
 import some_package.sub_package1.SomeModuleD
 import some_package.sub_package2.SomeModuleA
 import some_package.sub_package2.SomeModuleB
 
 print("Checking with 'pkg_util.iter_modules' what was included:")
-import pkgutil
 pkg = __import__("some_package")
 print("Package is", pkg)
 

@@ -147,7 +147,7 @@ def _cleanupPyLintComments(filename, abort):
     try:
         red = RedBaron(old_code)
         # red = RedBaron(old_code.rstrip()+'\n')
-    except (ParsingError, AssertionError):  # Baron does assertions too.
+    except (ParsingError, AssertionError, TypeError):  # Baron does assertions too.
         if abort:
             raise
 
@@ -294,7 +294,7 @@ def _shouldNotFormatCode(filename):
 
     if "inline_copy" in parts:
         return True
-    elif "tests" in parts and not "basics" in parts:
+    elif "tests" in parts and not "basics" in parts and "programs" not in parts:
         return "run_all.py" not in parts and "compile_itself.py" not in parts
     else:
         return False

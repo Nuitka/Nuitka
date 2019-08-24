@@ -15,6 +15,14 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Program that imports a BOM using module.
+
+"""
+
+from __future__ import print_function
+
+import unicode_bom  # pylint: disable=unused-import
+
 print("Importing unicode BOM file:")
-import unicode_bom
+
 print("OK.")

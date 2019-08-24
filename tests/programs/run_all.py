@@ -105,6 +105,9 @@ def main():
         else:
             extra_flags = ["expect_failure"]
 
+        # We annotate some tests, use that to lower warnings.
+        extra_flags.append("plugin_enable:pylint-warnings")
+
         if filename in (
             "reimport_main_static",
             "package_missing_init",

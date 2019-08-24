@@ -15,7 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 import some_package
 
-print( some_package.PackageLocal )
+print(some_package.PackageLocal)

@@ -15,8 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-import some_package.DeepChild
 import some_package.deep_package.DeepDeepChild
+import some_package.DeepChild
 
-print( "Done." )
+print("Done.")

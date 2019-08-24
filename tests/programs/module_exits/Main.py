@@ -15,9 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-print( type(__builtins__) )
+print(type(__builtins__))
 
 import ErrorExitingModule
 
-print( "Should not get here!" )
+print("Should not get here!")

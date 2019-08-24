@@ -15,5 +15,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-print("This is running from",__file__)
+print("This is running from", __file__)

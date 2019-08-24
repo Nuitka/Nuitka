@@ -15,7 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 name = "some_module"
 
-module = getattr(__import__("some_package", fromlist = [name]), name)
+module = getattr(__import__("some_package", fromlist=[name]), name)

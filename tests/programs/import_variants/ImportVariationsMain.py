@@ -15,14 +15,14 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 from __future__ import print_function
-
-print( "*** Main: Importing" )
 
 import some_package.Child2
 
-print( "*** Main: Imported" )
+print("*** Main: Importing")
+
+
+print("*** Main: Imported")
 
 print("*** Main: Some package", some_package)
 print("*** Main: Imported package child", some_package.Child2)

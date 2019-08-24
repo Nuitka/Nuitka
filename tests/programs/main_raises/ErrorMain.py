@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 # Just plain exception from the module level, supposed to report the correct file and line
 import ErrorRaising
+
 ErrorRaising.raiseException()
