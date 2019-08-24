@@ -25,6 +25,8 @@ import os
 import subprocess
 import sys
 
+from nuitka.utils.FileOperations import listDir
+
 
 def makeLogoImages():
     assert (
@@ -203,5 +205,14 @@ def createReleaseDocumentation():
 
 
 def checkReleaseDocumentation():
+    documents = [
+        os.path.normpath(entry[0])
+        for entry in listDir(".")
+        if entry[0].endswith(".rst")
+    ]
+
     for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
+        assert document in documents, documents
+
+    for document in documents:
         checkRstLint(document)
