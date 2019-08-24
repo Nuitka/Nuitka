@@ -638,7 +638,11 @@ PyObject *BINARY_OPERATION_MUL_OBJECT_LONG(PyObject *operand1, PyObject *operand
         return result;
     }
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'long'", type1->tp_name);
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'int'", type1->tp_name);
+#endif
     return NULL;
 }
 
@@ -963,7 +967,11 @@ PyObject *BINARY_OPERATION_MUL_LONG_OBJECT(PyObject *operand1, PyObject *operand
         return result;
     }
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and '%s'", type2->tp_name);
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and '%s'", type2->tp_name);
+#endif
     return NULL;
 }
 
@@ -1950,7 +1958,11 @@ PyObject *BINARY_OPERATION_MUL_LONG_STR(PyObject *operand1, PyObject *operand2) 
     }
     return SLOT_sq_repeat_STR_LONG(operand2, operand1);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'str'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'str'");
+#endif
     return NULL;
 }
 #endif
@@ -2115,7 +2127,11 @@ PyObject *BINARY_OPERATION_MUL_STR_LONG(PyObject *operand1, PyObject *operand2) 
 
     return SLOT_sq_repeat_STR_LONG(operand1, operand2);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and 'long'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and 'int'");
+#endif
     return NULL;
 }
 #endif
@@ -3067,7 +3083,11 @@ PyObject *BINARY_OPERATION_MUL_LONG_UNICODE(PyObject *operand1, PyObject *operan
     }
     return SLOT_sq_repeat_UNICODE_LONG(operand2, operand1);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'UNICODE'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'UNICODE'");
+#endif
     return NULL;
 }
 
@@ -3229,7 +3249,11 @@ PyObject *BINARY_OPERATION_MUL_UNICODE_LONG(PyObject *operand1, PyObject *operan
 
     return SLOT_sq_repeat_UNICODE_LONG(operand1, operand2);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'UNICODE' and 'long'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'UNICODE' and 'int'");
+#endif
     return NULL;
 }
 
@@ -4598,7 +4622,11 @@ PyObject *BINARY_OPERATION_MUL_LONG_TUPLE(PyObject *operand1, PyObject *operand2
     }
     return SLOT_sq_repeat_TUPLE_LONG(operand2, operand1);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'tuple'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'tuple'");
+#endif
     return NULL;
 }
 
@@ -4761,7 +4789,11 @@ PyObject *BINARY_OPERATION_MUL_TUPLE_LONG(PyObject *operand1, PyObject *operand2
 
     return SLOT_sq_repeat_TUPLE_LONG(operand1, operand2);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'tuple' and 'long'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'tuple' and 'int'");
+#endif
     return NULL;
 }
 
@@ -5727,7 +5759,11 @@ PyObject *BINARY_OPERATION_MUL_LONG_LIST(PyObject *operand1, PyObject *operand2)
     }
     return SLOT_sq_repeat_LIST_LONG(operand2, operand1);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'list'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'list'");
+#endif
     return NULL;
 }
 
@@ -5890,7 +5926,11 @@ PyObject *BINARY_OPERATION_MUL_LIST_LONG(PyObject *operand1, PyObject *operand2)
 
     return SLOT_sq_repeat_LIST_LONG(operand1, operand2);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'list' and 'long'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'list' and 'int'");
+#endif
     return NULL;
 }
 
@@ -6484,7 +6524,11 @@ PyObject *BINARY_OPERATION_MUL_LONG_BYTES(PyObject *operand1, PyObject *operand2
     }
     return SLOT_sq_repeat_BYTES_LONG(operand2, operand1);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'bytes'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'bytes'");
+#endif
     return NULL;
 }
 #endif
@@ -6649,7 +6693,11 @@ PyObject *BINARY_OPERATION_MUL_BYTES_LONG(PyObject *operand1, PyObject *operand2
 
     return SLOT_sq_repeat_BYTES_LONG(operand1, operand2);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'bytes' and 'long'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'bytes' and 'int'");
+#endif
     return NULL;
 }
 #endif
@@ -6838,7 +6886,11 @@ PyObject *BINARY_OPERATION_MUL_FLOAT_LONG(PyObject *operand1, PyObject *operand2
         return result;
     }
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'long'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'int'");
+#endif
     return NULL;
 }
 
@@ -7026,7 +7078,11 @@ PyObject *BINARY_OPERATION_MUL_LONG_FLOAT(PyObject *operand1, PyObject *operand2
         return result;
     }
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'float'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'float'");
+#endif
     return NULL;
 }
 
@@ -7595,7 +7651,11 @@ PyObject *BINARY_OPERATION_MUL_LONG_INT(PyObject *operand1, PyObject *operand2) 
         return result;
     }
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'int'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'int'");
+#endif
     return NULL;
 }
 #endif
@@ -7785,7 +7845,11 @@ PyObject *BINARY_OPERATION_MUL_INT_LONG(PyObject *operand1, PyObject *operand2) 
         return result;
     }
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'long'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'int'");
+#endif
     return NULL;
 }
 #endif

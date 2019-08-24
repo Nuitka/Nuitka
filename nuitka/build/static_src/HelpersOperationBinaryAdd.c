@@ -2730,7 +2730,11 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_LONG(PyObject *operand1, PyObject *operand
         return result;
     }
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'long'", type1->tp_name);
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'int'", type1->tp_name);
+#endif
     return NULL;
 }
 
@@ -2902,7 +2906,11 @@ PyObject *BINARY_OPERATION_ADD_LONG_OBJECT(PyObject *operand1, PyObject *operand
         return result;
     }
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'long' and '%s'", type2->tp_name);
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and '%s'", type2->tp_name);
+#endif
     return NULL;
 }
 
@@ -3094,7 +3102,11 @@ PyObject *BINARY_OPERATION_ADD_FLOAT_LONG(PyObject *operand1, PyObject *operand2
         return result;
     }
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and 'long'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and 'int'");
+#endif
     return NULL;
 }
 
@@ -3270,7 +3282,11 @@ PyObject *BINARY_OPERATION_ADD_LONG_FLOAT(PyObject *operand1, PyObject *operand2
         return result;
     }
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'long' and 'float'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'float'");
+#endif
     return NULL;
 }
 
@@ -3803,7 +3819,11 @@ PyObject *BINARY_OPERATION_ADD_LONG_INT(PyObject *operand1, PyObject *operand2) 
         return result;
     }
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'long' and 'int'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'int'");
+#endif
     return NULL;
 }
 #endif
@@ -3981,7 +4001,11 @@ PyObject *BINARY_OPERATION_ADD_INT_LONG(PyObject *operand1, PyObject *operand2) 
         return result;
     }
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'long'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'int'");
+#endif
     return NULL;
 }
 #endif

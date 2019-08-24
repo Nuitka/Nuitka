@@ -52,6 +52,14 @@ class TypeDescBase(getMetaClassBase("Type")):
         return cls.type_name.upper()
 
     @classmethod
+    def getTypeName2(cls):
+        return cls.type_name
+
+    @classmethod
+    def getTypeName3(cls):
+        return cls.type_name
+
+    @classmethod
     def getVariableDecl(cls, variable_name):
         if cls.type_decl.endswith("*"):
             return cls.type_decl + variable_name
@@ -167,14 +175,35 @@ class TypeDescBase(getMetaClassBase("Type")):
         else:
             args = ""
 
-        return """\
-PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
+        if (
+            self.getTypeName2() != self.getTypeName3()
+            or other.getTypeName2() != other.getTypeName3()
+        ):
+            return """\
+#if PYTHON_VERSION < 300
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
+#endif
 return NULL;""" % (
-            operation,
-            "%s" if self is object_desc else self.type_name,
-            "%s" if other is object_desc else other.type_name,
-            args,
-        )
+                operation,
+                "%s" if self is object_desc else self.getTypeName2(),
+                "%s" if other is object_desc else other.getTypeName2(),
+                args,
+                operation,
+                "%s" if self is object_desc else self.getTypeName3(),
+                "%s" if other is object_desc else other.getTypeName3(),
+                args,
+            )
+        else:
+            return """\
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
+    return NULL;""" % (
+                operation,
+                "%s" if self is object_desc else self.getTypeName2(),
+                "%s" if other is object_desc else other.getTypeName2(),
+                args,
+            )
 
     def getSameTypeSpecializationCode(
         self, other, nb_slot, sq_slot, operand1, operand2
@@ -478,6 +507,10 @@ bytes_desc = BytesDesc()
 class LongDesc(ConcreteTypeBase):
     type_name = "long"
     type_desc = "Python2 'long', Python3 'int'"
+
+    @classmethod
+    def getTypeName3(cls):
+        return "int"
 
     @classmethod
     def getTypeValueExpression(cls, operand):
