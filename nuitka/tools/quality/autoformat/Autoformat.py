@@ -339,6 +339,7 @@ def autoformat(filename, git_stage, abort):
             ".sh",
             ".in",
             ".md",
+            ".yml",
             ".stylesheet",
             ".j2",
             ".gitignore",
