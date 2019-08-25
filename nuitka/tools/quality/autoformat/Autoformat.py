@@ -255,7 +255,7 @@ def _cleanupImportSortOrder(filename):
 warned_clang_format = False
 
 
-def cleanupClangFormat(filename):
+def _cleanupClangFormat(filename):
     """ Call clang-format on a given filename to format C code.
 
     Args:
@@ -270,8 +270,12 @@ def cleanupClangFormat(filename):
 
     # Extra ball on Windows, check default installation PATH too.
     if not clang_format_path and getOS() == "Windows":
-        with withEnvironmentPathAdded("PATH", r"C:\Program Files\LLVM\bin"):
-            clang_format_path = getExecutablePath("clang-format")
+        with withEnvironmentPathAdded(
+            "PATH",
+            r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\Llvm\8.0.0\bin",
+        ):
+            with withEnvironmentPathAdded("PATH", r"C:\Program Files\LLVM\bin"):
+                clang_format_path = getExecutablePath("clang-format")
 
     if clang_format_path:
         subprocess.call(
@@ -381,7 +385,7 @@ def autoformat(filename, git_stage, abort):
 
         elif is_c:
             _cleanupWindowsNewlines(tmp_filename)
-            cleanupClangFormat(filename)
+            _cleanupClangFormat(filename)
             _cleanupWindowsNewlines(tmp_filename)
         elif is_txt:
             _cleanupWindowsNewlines(tmp_filename)
