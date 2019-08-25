@@ -36,12 +36,11 @@ git:
 # commands to install dependencies
 install:
   - 'if [ -x "$(command -v apt-get)" ]; then sudo apt-get install scons chrpath; fi'
-  # This will install PyLint but not where it does not work. It will fail
-  # to install 2.6 and be buggy for 3.3
   - "pip install -r requirements-devel.txt"
   - "pip install ."
 # commands to run tests
 script:
   - ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
   - ./bin/check-nuitka-with-pylint --not-installed-is-no-error
-  - env
+  - 'if [ "$TRAVIS_PYTHON_VERSION" = "3.7" ]; then ./bin/check-nuitka-with-restlint; fi'
+  - env | sort
