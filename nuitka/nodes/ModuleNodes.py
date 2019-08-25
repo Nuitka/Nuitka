@@ -52,7 +52,7 @@ from .NodeBases import (
 class PythonModuleBase(NodeBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = "module_name", "package"
+    __slots__ = ("module_name",)
 
     def __init__(self, module_name, source_ref):
         assert type(module_name) is ModuleName, module_name
@@ -60,7 +60,6 @@ class PythonModuleBase(NodeBase):
         NodeBase.__init__(self, source_ref=source_ref)
 
         self.module_name = module_name
-        self.package = None
 
     def getDetails(self):
         return {"module_name": self.module_name}
@@ -81,17 +80,17 @@ class PythonModuleBase(NodeBase):
         return False
 
     def attemptRecursion(self):
-        # Make sure the package is recursed to.
+        # Make sure the package is recursed to if any
+        package_name = self.module_name.getPackageName()
+        if package_name is None:
+            return ()
 
         # Return the list of newly added modules.
+
         result = []
+        package = getModuleByName(package_name)
 
-        package_name = self.module_name.getPackageName()
-
-        if package_name is not None and self.package is None:
-            self.package = getModuleByName(package_name)
-
-        if package_name is not None and self.package is None:
+        if package_name is not None and package is None:
             package_package, package_filename, finding = findModule(
                 importing=self,
                 module_name=package_name,
@@ -103,10 +102,10 @@ class PythonModuleBase(NodeBase):
             # TODO: Temporary, if we can't find the package for Python3.3 that
             # is semi-OK, maybe.
             if python_version >= 300 and not package_filename:
-                return []
+                return ()
 
             if package_name == "uniconvertor.app.modules":
-                return []
+                return ()
 
             assert package_filename is not None, (package_name, finding)
 
@@ -122,7 +121,7 @@ class PythonModuleBase(NodeBase):
             )
 
             if decision is not None:
-                self.package, is_added = recurseTo(
+                package, is_added = recurseTo(
                     module_package=package_package,
                     module_filename=package_filename,
                     module_relpath=relpath(package_filename),
@@ -132,15 +131,14 @@ class PythonModuleBase(NodeBase):
                 )
 
                 if is_added:
-                    result.append(self.package)
+                    result.append(package)
 
-        if self.package:
+        if package:
             from nuitka.ModuleRegistry import addUsedModule
 
-            addUsedModule(self.package)
+            addUsedModule(package)
 
-            #            print "Recursed to package", self.package_name
-            result.extend(self.package.attemptRecursion())
+            result.extend(package.attemptRecursion())
 
         return result
 
