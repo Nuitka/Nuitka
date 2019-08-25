@@ -225,6 +225,7 @@ class NumpyPlugin(NuitkaPluginBase):
         self.scipy_copied = False  # indicator: scipy files copied
         self.mpl_copied = False  # indicator: mpl-data files copied
         self.sklearn_copied = False  # indicator: sklearn files copied
+        self.matplotlib = self.getPluginOptionBool("matplotlib", False)
 
     def considerExtraDlls(self, dist_dir, module):
         """ Copy extra shared libraries or data for this installation.
@@ -330,8 +331,13 @@ class NumpyPlugin(NuitkaPluginBase):
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         # pylint: disable=too-many-branches,too-many-return-statements
+        elements = module_name.split(".")
+
         if module_name == "scipy.sparse.csgraph._validation":
             return True, "Replicate implicit import"
+
+        if elements[0] == "mpl_toolkits" and self.matplotlib is True:
+            return True, "Needed by matplotlib"
 
         if module_name.getPackageName() is None:
             return None
@@ -386,9 +392,11 @@ class NumpyPlugin(NuitkaPluginBase):
         if "tk-inter" in self.enabled_plugins:
             if module_name in (
                 "matplotlib.backends.backend_tk",
+                "matplotlib.backends.backend_tkagg",
                 "matplotlib.backend.tkagg",
             ):
                 return True, "Needed for tkinter interaction"
+
         if "qt-plugins" in self.enabled_plugins:
             if module_name == "matplotlib.backends.backend_qt":
                 return True, "Needed for Qt interaction"

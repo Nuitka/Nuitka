@@ -523,39 +523,76 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         # numpy imports -------------------------------------------------------
         elif full_name == "numpy":
             yield "numpy._mklinit", False
+
         elif full_name == "numpy.core":
             yield "numpy.core._dtype_ctypes", False
+            yield "numpy.core._multiarray_tests", False
+
+        elif full_name == "numpy.random":
+            yield "numpy.random.bit_generator", False
+            yield "numpy.random.bounded_integers", False
+            yield "numpy.random.common", False
+            yield "numpy.random.entropy", False
+            yield "numpy.random.generator", False
+            yield "numpy.random.mt19937", False
+            yield "numpy.random.mtrand", False
+            yield "numpy.random.pcg64", False
+            yield "numpy.random.philox", False
+            yield "numpy.random.sfc64", False
 
         # matplotlib imports --------------------------------------------------
         elif full_name == "matplotlib":
             yield "matplotlib.backend_managers", True
             yield "matplotlib.backend_bases", True
+            yield "mpl_toolkits", False
 
         elif full_name == "matplotlib.backends.backend_agg":
-            yield "matplotlib.backends._backend_agg", True
-            yield "matplotlib.backends._tkagg", True
-            yield "matplotlib.backends.backend_tkagg", True
+            yield "matplotlib.backends._backend_agg", False
+            yield "matplotlib.backends._tkagg", False
+            yield "matplotlib.backends.backend_tkagg", False
 
         # scipy imports -------------------------------------------------------
         elif full_name == "scipy.special":
-            yield "scipy.special._ufuncs_cxx", True
+            yield "scipy.special._ufuncs_cxx", False
         elif full_name == "scipy.linalg":
-            yield "scipy.linalg.cython_blas", True
-            yield "scipy.linalg.cython_lapack", True
+            yield "scipy.linalg.cython_blas", False
+            yield "scipy.linalg.cython_lapack", False
         elif full_name == "scipy.sparse.csgraph":
-            yield "scipy.sparse.csgraph._validation", True
+            yield "scipy.sparse.csgraph._validation", False
         elif full_name == "scipy._lib":
-            yield "scipy._lib.messagestream", True
+            yield "scipy._lib.messagestream", False
 
         # scikit-learn imports ------------------------------------------------
+        elif full_name == "sklearn.tree":
+            yield "sklearn.tree._criterion", False
+            yield "sklearn.tree._splitter", False
+            yield "sklearn.tree._tree", False
+            yield "sklearn.tree._utils", False
+
+        elif full_name == "sklearn.neighbors":
+            yield "sklearn.neighbors.ball_tree", False
+            yield "sklearn.neighbors.dist_metrics", False
+            yield "sklearn.neighbors.kd_tree", False
+            yield "sklearn.neighbors.quad_tree", False
+            yield "sklearn.neighbors.typedefs", False
+
         elif full_name == "sklearn.utils.sparsetools":
             yield "sklearn.utils.sparsetools._graph_validation", True
             yield "sklearn.utils.sparsetools._graph_tools", True
 
         elif full_name == "sklearn.utils":
-            yield "sklearn.utils.lgamma", True
-            yield "sklearn.utils.weight_vector", True
-            yield "sklearn.utils._unittest_backport", False
+            yield "sklearn.utils.arrayfuncs", False
+            yield "sklearn.utils.fast_dict", False
+            yield "sklearn.utils.graph_shortest_path", False
+            yield "sklearn.utils.lgamma", False
+            yield "sklearn.utils.murmurhash", False
+            yield "sklearn.utils.seq_dataset", False
+            yield "sklearn.utils.sparsefuncs_fast", False
+            yield "sklearn.utils.weight_vector", False
+            yield "sklearn.utils._cython_blas", False
+            yield "sklearn.utils._logistic_sigmoid", False
+            yield "sklearn.utils._random", False
+        # end of scikit-learn imports -----------------------------------------
 
         elif full_name == "PIL._imagingtk":
             yield "PIL._tkinter_finder", True
