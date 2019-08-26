@@ -69,6 +69,22 @@ def _createOperationsTest():
         )
         output.write("from __future__ import print_function\n\n")
         output.write("cond = 8\n\n")
+        output.write("def forgetType(value): return value\n\n")
+
+        operations = (
+            ("Add", "+"),
+            ("Sub", "-"),
+            ("Pow", "**"),
+            ("Mult", "*"),
+            ("FloorDiv", "//"),
+            ("Div", "/"),
+            ("Mod", "%"),
+            ("LShift", "<<"),
+            ("RShift", ">>"),
+            ("BitAnd", "&"),
+            ("BitOr", "|"),
+            ("BitXor", "^"),
+        )
 
         candidates = (
             ("NoneType", "None", "None"),
@@ -77,6 +93,7 @@ def _createOperationsTest():
             ("float", "17.2", "-8"),
             ("complex", "2j", "-4j"),
             ("str", "'lala'", "'lele'"),
+            ("unicode", "u'lala'", "u'lele'"),
             ("bytes", "b'lala'", "b'lele'"),
             ("list", "[1,2]", "[3]"),
             ("tuple", "(1,2)", "(3,)"),
@@ -86,8 +103,20 @@ def _createOperationsTest():
 
         operation_template = """
 def {{operation_id}}():
+    # First value, which we expect to be compile time computed.
     left = {{left_1}}
     right = {{right_1}}
+
+    try:
+        x = left {{operation}} right
+    except Exception as e: # pylint: disable=broad-except
+        print("{{operation_id}} compile time occurred:", e)
+    else:
+        print("{{operation_id}} compile time result:", x)
+
+    # Second value, which we expect to be compile time computed as well.
+    left = {{left_2}}
+    right = {{right_2}}
 
     try:
         # We expect this to be compile time computed.
@@ -97,12 +126,13 @@ def {{operation_id}}():
     else:
         print("{{operation_id}} compile time result:", x)
 
-    # This allows the merge trace to know the type.
+    # Now the branch may make things less clear for mixed types and
+    # also require the operation to be checked at run time.
     left = {{left_1}} if cond else {{left_2}}
     right = {{right_1}} if cond else {{right_2}}
 
     try:
-        # We expect this to be compile time error checked.
+        # We expect this to be compile time error checked still.
         x = left {{operation}} right
     except Exception as e: # pylint: disable=broad-except
         print("{{operation_id}} runtime occurred:", e)
@@ -110,20 +140,48 @@ def {{operation_id}}():
         print("{{operation_id}} runtime result:", x)
 
 
+    # Now we forget one type, forcing run time error checking.
+    left = forgetType({{left_1}})
+    right = {{right_1}}
+
+    try:
+        x = left {{operation}} right
+    except Exception as e: # pylint: disable=broad-except
+        print("{{operation_id}} runtime occurred:", e)
+    else:
+        print("{{operation_id}} runtime result:", x)
+
+    # And the other, forcing run time error checking.
+    left = {{left_1}}
+    right = forgetType({{right_1}})
+
+    try:
+        # We expect this to be compile time error checked still.
+        x = left {{operation}} right
+    except Exception as e: # pylint: disable=broad-except
+        print("{{operation_id}} runtime occurred:", e)
+    else:
+        print("{{operation_id}} runtime result:", x)
+
+    # And both, forcing generic run time error checking.
+    left = {{left_1}}
+    right = forgetType({{right_1}})
+
+    try:
+        # We expect this to be compile time error checked still.
+        x = left {{operation}} right
+    except Exception as e: # pylint: disable=broad-except
+        print("{{operation_id}} runtime occurred:", e)
+    else:
+        print("{{operation_id}} runtime result:", x)
+
 {{operation_id}}()
 
 """
 
         template = jinja2.Template(operation_template)
 
-        for op_name, operation in (
-            ("Add", "+"),
-            ("Sub", "-"),
-            ("Mul", "*"),
-            ("Div", "/"),
-            ("FloorDiv", "//"),
-            ("Mod", "%"),
-        ):
+        for op_name, operation in operations:
             for l_type, left_value1, left_value2 in candidates:
                 for r_type, right_value1, right_value2 in candidates:
                     output.write(
