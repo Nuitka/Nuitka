@@ -44,9 +44,9 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
      * signs correctly unlike standard CPython code, which does heavy lifting
      * to avoid the issue.
      */
-    long result = (long)(a / b);
+    double result = (double)(a / b);
 
-    return PyInt_FromLong(result);
+    return PyFloat_FromDouble(result);
 {%elif operand == "/" %}
     if (b == 0.0) {
         PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");

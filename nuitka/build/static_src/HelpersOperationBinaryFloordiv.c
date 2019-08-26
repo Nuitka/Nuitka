@@ -797,9 +797,9 @@ static PyObject *SLOT_nb_floor_divide_FLOAT_FLOAT(PyObject *operand1, PyObject *
      * signs correctly unlike standard CPython code, which does heavy lifting
      * to avoid the issue.
      */
-    long result = (long)(a / b);
+    double result = (double)(a / b);
 
-    return PyInt_FromLong(result);
+    return PyFloat_FromDouble(result);
 }
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
