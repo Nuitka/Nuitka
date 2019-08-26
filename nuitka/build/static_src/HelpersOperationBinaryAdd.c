@@ -16,6 +16,12 @@
 //     limitations under the License.
 //
 /* WARNING, this code is GENERATED. Modify the template HelperOperationBinary.c.j2 instead! */
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 #include "HelpersOperationBinaryAddUtils.c"
 /* C helpers for type specialized "+" (ADD) operations */
 
@@ -941,7 +947,11 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE(PyObject *operand1, PyObject *oper
         return result;
     }
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'UNICODE'", type1->tp_name);
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'unicode'", type1->tp_name);
+#endif
     return NULL;
 }
 
@@ -1100,7 +1110,11 @@ PyObject *BINARY_OPERATION_ADD_UNICODE_OBJECT(PyObject *operand1, PyObject *oper
 
     return SLOT_sq_concat_UNICODE_OBJECT(operand1, operand2);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'UNICODE' and '%s'", type2->tp_name);
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'unicode' and '%s'", type2->tp_name);
+#endif
     return NULL;
 }
 
@@ -4170,7 +4184,11 @@ PyObject *BINARY_OPERATION_ADD_UNICODE_STR(PyObject *operand1, PyObject *operand
 
     return SLOT_sq_concat_UNICODE_STR(operand1, operand2);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'UNICODE' and 'str'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'unicode' and 'str'");
+#endif
     return NULL;
 }
 #endif
@@ -4335,7 +4353,11 @@ PyObject *BINARY_OPERATION_ADD_STR_UNICODE(PyObject *operand1, PyObject *operand
 
     return SLOT_sq_concat_STR_UNICODE(operand1, operand2);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'UNICODE'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'unicode'");
+#endif
     return NULL;
 }
 #endif

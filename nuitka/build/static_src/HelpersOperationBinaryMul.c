@@ -16,6 +16,12 @@
 //     limitations under the License.
 //
 /* WARNING, this code is GENERATED. Modify the template HelperOperationBinary.c.j2 instead! */
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 #include "HelpersOperationBinaryMulUtils.c"
 /* C helpers for type specialized "*" (MUL) operations */
 
@@ -2342,7 +2348,11 @@ PyObject *BINARY_OPERATION_MUL_OBJECT_UNICODE(PyObject *operand1, PyObject *oper
     }
     return SLOT_sq_repeat_UNICODE_OBJECT(operand2, operand1);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'UNICODE'", type1->tp_name);
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'unicode'", type1->tp_name);
+#endif
     return NULL;
 }
 
@@ -2499,7 +2509,11 @@ PyObject *BINARY_OPERATION_MUL_UNICODE_OBJECT(PyObject *operand1, PyObject *oper
 
     return SLOT_sq_repeat_UNICODE_OBJECT(operand1, operand2);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'UNICODE' and '%s'", type2->tp_name);
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'unicode' and '%s'", type2->tp_name);
+#endif
     return NULL;
 }
 
@@ -2706,7 +2720,11 @@ PyObject *BINARY_OPERATION_MUL_INT_UNICODE(PyObject *operand1, PyObject *operand
     }
     return SLOT_sq_repeat_UNICODE_INT(operand2, operand1);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'UNICODE'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'unicode'");
+#endif
     return NULL;
 }
 #endif
@@ -2869,7 +2887,11 @@ PyObject *BINARY_OPERATION_MUL_UNICODE_INT(PyObject *operand1, PyObject *operand
 
     return SLOT_sq_repeat_UNICODE_INT(operand1, operand2);
 
+#if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'UNICODE' and 'int'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'unicode' and 'int'");
+#endif
     return NULL;
 }
 #endif
@@ -3086,7 +3108,7 @@ PyObject *BINARY_OPERATION_MUL_LONG_UNICODE(PyObject *operand1, PyObject *operan
 #if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'UNICODE'");
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'UNICODE'");
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'unicode'");
 #endif
     return NULL;
 }
@@ -3252,7 +3274,7 @@ PyObject *BINARY_OPERATION_MUL_UNICODE_LONG(PyObject *operand1, PyObject *operan
 #if PYTHON_VERSION < 300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'UNICODE' and 'long'");
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'UNICODE' and 'int'");
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'unicode' and 'int'");
 #endif
     return NULL;
 }

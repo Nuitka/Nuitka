@@ -16,6 +16,12 @@
 //     limitations under the License.
 //
 /* WARNING, this code is GENERATED. Modify the template HelperOperationBinary.c.j2 instead! */
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 /* C helpers for type specialized "/" (TRUEDIV) operations */
 
 #if PYTHON_VERSION < 300

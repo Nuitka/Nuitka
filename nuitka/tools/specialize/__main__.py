@@ -378,6 +378,10 @@ class UnicodeDesc(ConcreteTypeBase):
     type_desc = "Python2 'unicode', Python3 'str'"
 
     @classmethod
+    def getTypeName3(cls):
+        return "unicode"
+
+    @classmethod
     def getTypeValueExpression(cls, operand):
         return "&PyUnicode_Type"
 
@@ -829,6 +833,16 @@ def makeHelpersBinaryOperation(operand, op_code):
 
             emitGenerationWarning(emit_h)
             emitGenerationWarning(emit_c)
+
+            emit_c(
+                """\
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+"""
+            )
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
