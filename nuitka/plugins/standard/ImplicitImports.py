@@ -523,6 +523,15 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         # numpy imports -------------------------------------------------------
         elif full_name == "numpy":
             yield "numpy._mklinit", False
+            yield "numpy.compat", False
+            yield "numpy.lib", False
+            yield "numpy.linalg", False
+            yield "numpy.fft", False
+            yield "numpy.polynomial", False
+            yield "numpy.random", False
+            yield "numpy.ctypeslib", False
+            yield "numpy.ma", False
+            yield "numpy.matrixlib", False
 
         elif full_name == "numpy.core":
             yield "numpy.core._dtype_ctypes", False
