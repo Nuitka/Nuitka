@@ -40,7 +40,7 @@ install:
   - "pip install ."
 # commands to run tests
 script:
-  - ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
-  - ./bin/check-nuitka-with-pylint --not-installed-is-no-error
-  - 'if [ "$TRAVIS_PYTHON_VERSION" = "3.7" ]; then ./bin/check-nuitka-with-restlint; fi'
   - env | sort
+  - ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+  - 'if [ "$TRAVIS_PYTHON_VERSION" = "3.7" ]; then ./bin/check-nuitka-with-restlint; fi'
+  - ./bin/check-nuitka-with-pylint --not-installed-is-no-error
