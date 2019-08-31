@@ -79,8 +79,12 @@ def executePostProcessing(result_filename):
 
         callInstallNameTool(
             filename=result_filename,
-            old_path=python_dll_filename,
-            new_path=os.path.join(python_lib_path, python_dll_filename),
+            mapping=(
+                (
+                    python_dll_filename,
+                    os.path.join(python_lib_path, python_dll_filename),
+                ),
+            ),
         )
 
     # Modules should not be executable, but Scons creates them like it, fix

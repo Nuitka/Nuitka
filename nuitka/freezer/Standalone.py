@@ -62,6 +62,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
+    callInstallNameTool,
     getPEFileInformation,
     getWindowsDLLVersion,
     removeSxsFromDLL,
@@ -669,7 +670,7 @@ def _detectBinaryPathDLLsPosix(dll_filename):
     return sub_result
 
 
-def _detectBinaryPathDLLsMacOS(original_dir, binary_filename, keep_unresolved=False):
+def _detectBinaryPathDLLsMacOS(original_dir, binary_filename, keep_unresolved):
     result = set()
 
     process = subprocess.Popen(
@@ -1226,6 +1227,7 @@ def detectBinaryDLLs(
         return _detectBinaryPathDLLsMacOS(
             original_dir=os.path.dirname(original_filename),
             binary_filename=original_filename,
+            keep_unresolved=False,
         )
     else:
         # Support your platform above.
@@ -1295,7 +1297,7 @@ manually."""
     return result
 
 
-def fixupBinaryDLLPaths(binary_filename, is_exe, dll_map, original_location):
+def fixupBinaryDLLPathsMacOS(binary_filename, dll_map, original_location):
     """ For macOS, the binary needs to be told to use relative DLL paths """
 
     # There may be nothing to do, in case there are no DLLs.
@@ -1303,26 +1305,20 @@ def fixupBinaryDLLPaths(binary_filename, is_exe, dll_map, original_location):
         return
 
     rpath_map = _detectBinaryPathDLLsMacOS(
-        os.path.dirname(original_location), original_location, True
+        original_dir=os.path.dirname(original_location),
+        binary_filename=original_location,
+        keep_unresolved=True,
     )
     for i, o in enumerate(dll_map):
         dll_map[i] = (rpath_map.get(o[0], o[0]), o[1])
 
-    command = ["install_name_tool"]
-
-    for original_path, dist_path in dll_map:
-        command += ["-change", original_path, "@executable_path/" + dist_path]
-
-    os.chmod(binary_filename, int("644", 8))
-    command.append(binary_filename)
-    process = subprocess.Popen(
-        args=command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    callInstallNameTool(
+        filename=binary_filename,
+        mapping=(
+            (original_path, "@executable_path/" + dist_path)
+            for (original_path, dist_path) in dll_map
+        ),
     )
-    _stdout, stderr = process.communicate()
-    os.chmod(binary_filename, int("755" if is_exe else "444", 8))
-
-    # Don't let errors here go unnoticed.
-    assert process.returncode == 0, stderr
 
 
 def getSharedLibraryRPATH(filename):
@@ -1503,17 +1499,15 @@ different from
         # For macOS, the binary and the DLLs needs to be changed to reflect
         # the relative DLL location in the ".dist" folder.
         for standalone_entry_point in standalone_entry_points:
-            fixupBinaryDLLPaths(
+            fixupBinaryDLLPathsMacOS(
                 binary_filename=standalone_entry_point[1],
-                is_exe=standalone_entry_point is standalone_entry_points[0],
                 dll_map=dll_map,
                 original_location=standalone_entry_point[0],
             )
 
         for original_path, dll_filename in dll_map:
-            fixupBinaryDLLPaths(
+            fixupBinaryDLLPathsMacOS(
                 binary_filename=os.path.join(dist_dir, dll_filename),
-                is_exe=False,
                 dll_map=dll_map,
                 original_location=original_path,
             )

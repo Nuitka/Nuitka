@@ -28,6 +28,7 @@ from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 
+from .FileOperations import withMadeWritableFileMode
 from .Utils import getArchitecture, isAlpineLinux, isWin32Windows
 from .WindowsResources import RT_MANIFEST, deleteWindowsResources, getResourcesFromDLL
 
@@ -277,13 +278,12 @@ def getPEFileInformation(filename):
     return extracted
 
 
-def callInstallNameTool(filename, old_path, new_path):
+def callInstallNameTool(filename, mapping):
     """ Update the macOS shared library information for a binary or shared library.
 
     Args:
         filename - The file to be modified.
-        old_path - The old value that should be changed
-        new_path - The new value that should be changed
+        mapping  - old_path, new_path pairs of values that should be changed
 
     Returns:
         None
@@ -291,10 +291,13 @@ def callInstallNameTool(filename, old_path, new_path):
     Notes:
         This is obviously macOS specific.
     """
-    result = subprocess.call(
-        ("install_name_tool", "-change", old_path, new_path, filename),
-        stdout=subprocess.PIPE,
-    )
+    command = ["install_name_tool"]
+    for old_path, new_path in mapping:
+        command += ["-change", old_path, new_path]
+    command.append(filename)
+
+    with withMadeWritableFileMode(filename):
+        result = subprocess.call(command, stdout=subprocess.PIPE)
 
     if result != 0:
         sys.exit(
