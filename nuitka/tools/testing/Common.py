@@ -340,6 +340,8 @@ def compareWithCPython(
 
     """
 
+    # Many cases to consider here, pylint: disable=too-many-branches
+
     if dirname is None:
         path = filename
     else:
@@ -351,12 +353,20 @@ def compareWithCPython(
     else:
         converted = False
 
-    command = [
-        sys.executable,
-        os.path.join("..", "..", "bin", "compare_with_cpython"),
-        path,
-        "silent",
-    ]
+    if os.getenv("NUITKA_TEST_INSTALLED", "") == "1":
+        command = [
+            sys.executable,
+            "-m",
+            "nuitka.tools.testing.compare_with_cpython",
+            path,
+            "silent",
+        ]
+    else:
+        compare_with_cpython = os.path.join("..", "..", "bin", "compare_with_cpython")
+        if os.path.exists(compare_with_cpython):
+            command = [sys.executable, compare_with_cpython, path, "silent"]
+        else:
+            sys.exit("Error, cannot find Nuitka comparison runner.")
 
     if extra_flags is not None:
         command += extra_flags
