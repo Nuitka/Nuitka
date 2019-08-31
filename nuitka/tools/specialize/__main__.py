@@ -862,6 +862,11 @@ def makeHelpersBinaryOperation(operand, op_code):
     autoformat(filename_c, None, True)
     autoformat(filename_h, None, True)
 
+    # No idea why, but this helps.
+    if os.name == "nt":
+        autoformat(filename_c, None, True)
+        autoformat(filename_h, None, True)
+
 
 def writeline(output, *args):
     if not args:
