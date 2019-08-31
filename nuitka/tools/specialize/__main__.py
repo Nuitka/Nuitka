@@ -374,12 +374,12 @@ str_desc = StrDesc()
 
 
 class UnicodeDesc(ConcreteTypeBase):
-    type_name = "UNICODE"
+    type_name = "unicode"
     type_desc = "Python2 'unicode', Python3 'str'"
 
     @classmethod
     def getTypeName3(cls):
-        return "unicode"
+        return "str"
 
     @classmethod
     def getTypeValueExpression(cls, operand):
