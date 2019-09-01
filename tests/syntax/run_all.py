@@ -20,7 +20,7 @@
 """ Runner for syntax tests of Nuitka.
 
 In some cases, the ast module doesn't raise the syntax errors for us, but
-we need to check them manually and raise explicitely. This aims at showing
+we need to check them manually and raise explicitly. This aims at showing
 we do it in the same way.
 """
 

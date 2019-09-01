@@ -226,7 +226,7 @@ def main():
             on_error=displayError,
         )
 
-        # Second check if glibc libraries haven't been accidentaly
+        # Second check if glibc libraries haven't been accidentally
         # shipped with the standalone executable
         found_glibc_libs = []
         for dist_filename in os.listdir(os.path.join(filename[:-3] + ".dist")):

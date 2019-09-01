@@ -40,6 +40,7 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.Tracing import my_print
+from nuitka.utils.Execution import check_output
 from nuitka.utils.Timing import StopWatch
 
 
@@ -166,7 +167,6 @@ def getCPythonResults(cpython_cmd, cpython_cached):
 
 def main():
     # Of course many cases to deal with, pylint: disable=too-many-branches,too-many-locals,too-many-statements
-    from nuitka.utils.Execution import check_output
 
     filename = sys.argv[1]
     args = sys.argv[2:]
