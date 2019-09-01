@@ -7,28 +7,41 @@ matrix:
       python: 2.7
       dist: xenial
       sudo: required
+      env: PYTHON=python2.7
     - os: linux
       python: 3.4
       dist: xenial
       sudo: required
+      env: PYTHON=python3.4
     - os: linux
       python: 3.5
       dist: xenial
       sudo: required
+      env: PYTHON=python3.5
     - os: linux
       python: 3.6
       dist: xenial
       sudo: required
+      env: PYTHON=python3.6
     - os: linux
       python: 3.7
       dist: xenial
       sudo: required
+      env: PYTHON=python3.7
     - os: osx
       osx_image: xcode11
       language: shell
       before_install:
       - brew update -q
       - brew outdated python || brew upgrade python
+      env: PYTHON=python
+    - os: osx
+      osx_image: xcode11
+      language: shell
+      before_install:
+      - brew update -q
+      - brew outdated python@3 || brew upgrade python@3
+      env: PYTHON=python3
 
 # disable submodules from git
 git:
@@ -41,6 +54,7 @@ install:
 # commands to run tests
 script:
   - env | sort
-  - ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+  - $PYTHON ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
   - 'if [ "$TRAVIS_PYTHON_VERSION" = "3.7" ]; then ./bin/check-nuitka-with-restlint; fi'
+  - 'if [ "$TRAVIS_PYTHON_VERSION" = "3.7" ]; then ./bin/check-nuitka-with-codespell; fi'
   - ./bin/check-nuitka-with-pylint --not-installed-is-no-error
