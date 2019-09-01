@@ -26,11 +26,10 @@ import sys
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
+from nuitka.tools.quality.autoformat.Autoformat import autoformat
 from nuitka.tools.quality.Git import getStagedFileChangeDesc
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print
-
-from .Autoformat import autoformat
 
 
 def resolveShellPatternToFilenames(pattern):
@@ -88,7 +87,7 @@ def main():
 
         filenames = list(
             scanTargets(
-                positional_args, (".py", ".scons", ".rst", ".txt", ".j2", "*.md")
+                positional_args, (".py", ".scons", ".rst", ".txt", ".j2", ".md")
             )
         )
         if not filenames:

@@ -169,20 +169,30 @@ def _cleanupPyLintComments(filename, abort):
 
 
 def _cleanupImportRelative(filename):
+    """ Make imports of Nuitka package when possible.
+
+    """
+
+    # Avoid doing it for "__main__" packages, because for those the Visual Code
+    # IDE doesn't like it and it may not run
+    if os.path.basename(filename) == "__main__.py.tmp":
+        return
+
     package_name = os.path.dirname(filename).replace(os.path.sep, ".")
 
     # Make imports local if possible.
-    if package_name.startswith("nuitka."):
+    if not package_name.startswith("nuitka."):
+        return
 
-        source_code = getFileContents(filename)
-        updated_code = re.sub(
-            r"from %s import" % package_name, "from . import", source_code
-        )
-        updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
+    source_code = getFileContents(filename)
+    updated_code = re.sub(
+        r"from %s import" % package_name, "from . import", source_code
+    )
+    updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
 
-        if source_code != updated_code:
-            with open(filename, "w") as out_file:
-                out_file.write(updated_code)
+    if source_code != updated_code:
+        with open(filename, "w") as out_file:
+            out_file.write(updated_code)
 
 
 _binary_calls = {}
