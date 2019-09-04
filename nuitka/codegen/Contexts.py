@@ -640,6 +640,7 @@ def _getConstantDefaultPopulation():
         # Meta path based loader.
         "read",
         "rb",
+        "zip",
     ]
 
     if python_version >= 300:

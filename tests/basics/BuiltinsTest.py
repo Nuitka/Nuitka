@@ -628,4 +628,4 @@ try:
     zip(1, "String")
 except TypeError as e:
     print(e)
-# print(zip())
+print(zip())

@@ -22,10 +22,14 @@
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionChildHavingBase
+from .FunctionNodes import ExpressionFunctionRef
+from .GeneratorNodes import (
+    ExpressionGeneratorObjectBody,
+    ExpressionMakeGeneratorObject,
+    StatementGeneratorReturnNone,
+)
 from .NodeMakingHelpers import (
-    makeConstantReplacementNode,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
-    wrapExpressionWithNodeSideEffects,
 )
 
 
@@ -64,3 +68,33 @@ class ExpressionBuiltinZip(ExpressionChildHavingBase):
     # TODO: We should have an iteration handle.
     # Length and values might be possible to predict
     # if every argument iteration handle is capable of it.
+
+    def x_computeExpressionIter1(self, iter_node, trace_collection):
+        statements = []
+        # TODO: Put re-formulation, ideally shared with Python2
+        # zip here, with yield instead of appending to a list
+        # needs no list temporary variable of course.
+
+        provider = self.getParentVariableProvider()
+
+        generator_body = ExpressionGeneratorObjectBody(
+            provider=provider,
+            name="builtin_zip",
+            code_object=provider.getCodeObject(),
+            flags=set(),
+            source_ref=self.source_ref,
+        )
+
+        # Code generation expects this to be there.
+        statements.append(StatementGeneratorReturnNone(source_ref=self.source_ref))
+
+        generator_body.setBody()
+
+        result = ExpressionMakeGeneratorObject(
+            generator_ref=ExpressionFunctionRef(
+                function_body=generator_body, source_ref=self.source_ref
+            ),
+            source_ref=self.source_ref,
+        )
+
+        return result, "new_expression", "Lowered zip built-in to generator."

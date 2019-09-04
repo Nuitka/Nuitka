@@ -24,6 +24,12 @@
  *
  **/
 
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 static PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const **arg_names, int max_args) {
     int i = 0;
 
@@ -262,7 +268,7 @@ NUITKA_DEFINE_BUILTIN(zip)
 PyObject *BUILTIN_ZIP(PyObject *value) {
     NUITKA_ASSIGN_BUILTIN(zip);
 
-    return CALL_FUNCTION_WITH_SINGLE_ARG(NUITKA_ACCESS_BUILTIN(zip), value);
+    return CALL_FUNCTION_WITH_POSARGS(NUITKA_ACCESS_BUILTIN(zip), value);
 }
 
 

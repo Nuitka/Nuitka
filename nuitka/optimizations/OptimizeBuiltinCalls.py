@@ -1046,26 +1046,25 @@ def zip2_extractor(node):
         ]
 
         # Try creating iterators of all zip arguments.
+
+        # TODO: Use class derived from
+        # ExpressionBuiltinIter1 that takes "i" as an
+        # argument, and raises exceptions with the proper
+        # message directly.
+
         statements += [
             makeTryExceptSingleHandlerNode(
-                tried=makeStatementsSequence(
-                    statements=[
-                        StatementAssignmentVariable(
-                            variable=zip_iter_variable,
-                            source=ExpressionBuiltinIter1(
-                                value=ExpressionTempVariableRef(
-                                    variable=zip_arg_variable, source_ref=source_ref
-                                ),
-                                source_ref=source_ref,
+                tried=makeStatementsSequenceFromStatement(
+                    StatementAssignmentVariable(
+                        variable=zip_iter_variable,
+                        source=ExpressionBuiltinIter1(
+                            value=ExpressionTempVariableRef(
+                                variable=zip_arg_variable, source_ref=source_ref
                             ),
                             source_ref=source_ref,
-                        )
-                        for i, zip_iter_variable, zip_arg_variable in zip(
-                            range(len(call_args)), zip_iter_variables, zip_arg_variables
-                        )
-                    ],
-                    allow_none=False,
-                    source_ref=source_ref,
+                        ),
+                        source_ref=source_ref,
+                    )
                 ),
                 exception_name="TypeError",
                 handler_body=StatementRaiseException(
@@ -1081,6 +1080,9 @@ def zip2_extractor(node):
                     source_ref=source_ref,
                 ),
                 source_ref=source_ref,
+            )
+            for i, zip_iter_variable, zip_arg_variable in zip(
+                range(len(call_args)), zip_iter_variables, zip_arg_variables
             )
         ]
 
@@ -1504,7 +1506,6 @@ _dispatch_dict = {
     "staticmethod": staticmethod_extractor,
     "classmethod": classmethod_extractor,
     "divmod": divmod_extractor,
-    "zip": zip3_extractor,
 }
 
 if python_version < 300:
@@ -1524,6 +1525,7 @@ else:
 
     # The Python3 range is really an xrange, use that.
     _dispatch_dict["range"] = xrange_extractor
+    _dispatch_dict["zip"] = zip3_extractor
 
 
 def check():

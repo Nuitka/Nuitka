@@ -49,6 +49,8 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
         value = self.getValue()
         shape = value.getTypeShape()
         if shape.hasShapeSlotIter() is False:
+            trace_collection.onExceptionRaiseExit(TypeError)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="'%s' object is not iterable",
                 operation="any",

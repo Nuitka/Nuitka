@@ -529,6 +529,9 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotIter() is False:
+            # Any exception TypeError will be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="'%s' object is not iterable",
                 operation="iter",

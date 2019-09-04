@@ -439,13 +439,10 @@ def generateBuiltinZipCode(to_name, expression, emit, context):
 
     getTupleCreationCode(
         to_name=tmp_zip_args_name,
-        elements=expression.getValue(),
+        elements=expression.getValues(),
         emit=emit,
         context=context,
     )
-
-    # TODO: Create BUILTIN_ZIP that passes args to
-    # CALL_FUNCTION_WITH_POSARGS of builtin zip.
 
     with withObjectCodeTemporaryAssignment(
         to_name, "zip_value", expression, emit, context
