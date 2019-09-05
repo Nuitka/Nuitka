@@ -452,7 +452,7 @@ class ExpressionDictOperationIn(ExpressionChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionDictOperationNOTIn(ExpressionChildrenHavingBase):
+class ExpressionDictOperationNotIn(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_DICT_OPERATION_NOT_IN"
 
     # Follow the reversed nature of "in", with the dictionary on the right

@@ -189,14 +189,14 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
     # Missed optimization opportunity, please report it, this should not
     # normally happen. We are supposed to propagate this upwards.
     if isDebug():
-        # TODO: Need to optimize ExpressionLocalsVariableRefORFallback once we know
+        # TODO: Need to optimize ExpressionLocalsVariableRefOrFallback once we know
         # it handles cases where the value is not in locals dict properly.
 
         parent = expression.parent
         assert (
             parent.isExpressionSideEffects()
             or parent.isExpressionConditional()
-            or parent.isExpressionLocalsVariableRefORFallback()
+            or parent.isExpressionLocalsVariableRefOrFallback()
         ), (expression, expression.parent, expression.asXmlText())
 
     with withObjectCodeTemporaryAssignment(

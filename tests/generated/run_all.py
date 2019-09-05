@@ -69,7 +69,7 @@ def _createOperationsTest():
         )
         output.write("from __future__ import print_function\n\n")
         output.write("cond = 8\n\n")
-        output.write("def forgetType(value): return value\n\n")
+        output.write("def forgetType(value):\n    return value\n\n")
 
         operations = (
             ("Add", "+"),

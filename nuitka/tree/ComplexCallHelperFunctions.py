@@ -38,10 +38,10 @@ from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonIn,
-    ExpressionComparisonIsNOT,
+    ExpressionComparisonIsNot,
 )
 from nuitka.nodes.ConditionalNodes import (
-    ExpressionConditionalOR,
+    ExpressionConditionalOr,
     makeStatementConditional,
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -350,7 +350,7 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
 def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
     if python_version >= 350:
         non_tuple_code = makeStatementConditional(
-            condition=ExpressionConditionalOR(
+            condition=ExpressionConditionalOr(
                 left=ExpressionAttributeCheck(
                     object_arg=ExpressionVariableRef(
                         variable=star_list_variable, source_ref=internal_source_ref
@@ -402,7 +402,7 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
         )
 
     return makeStatementConditional(
-        condition=ExpressionComparisonIsNOT(
+        condition=ExpressionComparisonIsNot(
             left=ExpressionBuiltinType1(
                 value=ExpressionVariableRef(
                     variable=star_list_variable, source_ref=internal_source_ref
@@ -583,7 +583,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
     )
 
     tried = makeStatementConditional(
-        condition=ExpressionComparisonIsNOT(
+        condition=ExpressionComparisonIsNot(
             left=ExpressionBuiltinType1(
                 value=ExpressionVariableRef(
                     variable=star_dict_variable, source_ref=internal_source_ref
@@ -937,7 +937,7 @@ def _makeStarDictArgumentMergeToKwStatement(
     )
 
     tried = makeStatementConditional(
-        condition=ExpressionComparisonIsNOT(
+        condition=ExpressionComparisonIsNot(
             left=ExpressionBuiltinType1(
                 value=ExpressionVariableRef(
                     variable=star_dict_variable, source_ref=internal_source_ref
@@ -2197,7 +2197,7 @@ def getFunctionCallHelperDictionaryUnpacking():
 
     update_body = (
         makeStatementConditional(
-            condition=ExpressionComparisonIsNOT(
+            condition=ExpressionComparisonIsNot(
                 left=ExpressionBuiltinType1(
                     value=ExpressionTempVariableRef(
                         variable=tmp_key_variable, source_ref=internal_source_ref

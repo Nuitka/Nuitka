@@ -143,7 +143,6 @@ class TypeDescBase(getMetaClassBase("Type")):
                 + self.getNewStyleNumberTypeCheckExpression(operand),
                 operand + "->tp_as_number->" + slot,
             )
-
         elif slot.startswith("sq_"):
             return "%s ? %s : NULL" % (
                 operand + "->tp_as_sequence" + " != NULL",
@@ -186,11 +185,11 @@ class TypeDescBase(getMetaClassBase("Type")):
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
 #endif
 return NULL;""" % (
-                operation,
+                operation if operation != "%" else "%%",
                 "%s" if self is object_desc else self.getTypeName2(),
                 "%s" if other is object_desc else other.getTypeName2(),
                 args,
-                operation,
+                operation if operation != "%" else "%%",
                 "%s" if self is object_desc else self.getTypeName3(),
                 "%s" if other is object_desc else other.getTypeName3(),
                 args,
@@ -199,7 +198,7 @@ return NULL;""" % (
             return """\
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
     return NULL;""" % (
-                operation,
+                operation if operation != "%" else "%%",
                 "%s" if self is object_desc else self.getTypeName2(),
                 "%s" if other is object_desc else other.getTypeName2(),
                 args,
@@ -363,7 +362,7 @@ class StrDesc(ConcreteTypeBase):
 
     def hasSlot(self, slot):
         if slot.startswith("nb_"):
-            return "slot" == "nb_remainder"
+            return slot == "nb_remainder"
         elif slot.startswith("sq_"):
             return "ass" not in slot
         else:
@@ -400,7 +399,7 @@ assert(NEW_STYLE_NUMBER(%(operand)s));""" % {
 
     def hasSlot(self, slot):
         if slot.startswith("nb_"):
-            return "slot" == "nb_remainder"
+            return slot == "nb_remainder"
         elif slot.startswith("sq_"):
             return "ass" not in slot
         else:
@@ -672,6 +671,7 @@ def makeNbSlotCode(operand, op_code, left, right, emit):
         left=left,
         right=right,
         nb_slot=_getNbSlotFromOperand(operand, op_code),
+        name=template.name,
     )
 
     emit(code)
@@ -697,6 +697,8 @@ def makeMulRepeatCode(left, right, emit):
 
 
 def _getNbSlotFromOperand(operand, op_code):
+    # pylint: disable=too-many-branches,too-many-return-statements
+
     if operand == "+":
         return "nb_add"
     elif operand == "*":
@@ -710,6 +712,20 @@ def _getNbSlotFromOperand(operand, op_code):
             return "nb_true_divide"
         else:
             return "nb_divide"
+    elif operand == "%":
+        return "nb_remainder"
+    elif operand == "^^":
+        return "nb_power"
+    elif operand == "<<":
+        return "nb_lshift"
+    elif operand == ">>":
+        return "nb_rshift"
+    elif operand == "|":
+        return "nb_or"
+    elif operand == "&":
+        return "nb_and"
+    elif operand == "^":
+        return "nb_xor"
     else:
         assert False, operand
 
@@ -878,6 +894,12 @@ def writeline(output, *args):
 
 
 def main():
+    makeHelpersBinaryOperation("|", "BITOR")
+    makeHelpersBinaryOperation("&", "BITAND")
+    makeHelpersBinaryOperation("^", "BITXOR")
+    makeHelpersBinaryOperation("<<", "LSHIFT")
+    makeHelpersBinaryOperation(">>", "RSHIFT")
+    makeHelpersBinaryOperation("%", "MOD")
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MUL")

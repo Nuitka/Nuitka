@@ -458,7 +458,7 @@ PyObject *BINARY_OPERATION_MUL_INT_INT(PyObject *operand1, PyObject *operand2) {
 #endif
 
 static PyObject *SLOT_nb_multiply_LONG_LONG(PyObject *operand1, PyObject *operand2) {
-    PyObject *x = PyLong_Type.tp_as_number->nb_multiply((PyObject *)operand1, (PyObject *)operand2);
+    PyObject *x = PyLong_Type.tp_as_number->nb_multiply(operand1, operand2);
     assert(x != Py_NotImplemented);
     return x;
 }

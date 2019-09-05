@@ -215,7 +215,7 @@ def generateDictOperationGetCode(to_name, expression, emit, context):
 
 
 def generateDictOperationInCode(to_name, expression, emit, context):
-    inverted = expression.isExpressionDictOperationNOTIn()
+    inverted = expression.isExpressionDictOperationNotIn()
 
     dict_name, key_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context

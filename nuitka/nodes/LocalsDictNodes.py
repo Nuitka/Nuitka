@@ -39,7 +39,7 @@ from .NodeBases import StatementBase, StatementChildHavingBase
 from .VariableRefNodes import ExpressionTempVariableRef
 
 
-class ExpressionLocalsVariableRefORFallback(ExpressionChildHavingBase):
+class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
     kind = "EXPRESSION_LOCALS_VARIABLE_REF_OR_FALLBACK"
 
     named_child = "fallback"
@@ -187,8 +187,9 @@ class ExpressionLocalsVariableRefORFallback(ExpressionChildHavingBase):
         )
 
 
-class ExpressionLocalsMappingVariableRefORFallback(
-    ExpressionLocalsVariableRefORFallback
+# TODO: Why is this unused.
+class ExpressionLocalsMappingVariableRefOrFallback(
+    ExpressionLocalsVariableRefOrFallback
 ):
     kind = "EXPRESSION_LOCALS_MAPPING_VARIABLE_REF_OR_FALLBACK"
 

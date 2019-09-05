@@ -592,6 +592,7 @@ def _getConstantDefaultPopulation():
         False,
         0,
         1,
+        -1,
         # Some math operations shortcut to these
         0.0,
         -0.0,

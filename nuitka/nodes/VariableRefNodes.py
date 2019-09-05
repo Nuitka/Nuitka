@@ -29,7 +29,7 @@ from nuitka.PythonVersions import python_version
 from .DictionaryNodes import (
     ExpressionDictOperationGet,
     ExpressionDictOperationIn,
-    ExpressionDictOperationNOTIn,
+    ExpressionDictOperationNotIn,
     StatementDictOperationRemove,
     StatementDictOperationSet,
 )
@@ -153,7 +153,7 @@ Check '%s' on dictionary lowered to dictionary '%s'.""" % (
                     source_ref=in_node.getSourceReference(),
                 )
             else:
-                in_node = ExpressionDictOperationNOTIn(
+                in_node = ExpressionDictOperationNotIn(
                     key=value_node,
                     dict_arg=self,
                     source_ref=in_node.getSourceReference(),

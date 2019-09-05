@@ -28,7 +28,7 @@ from nuitka.nodes.AssignNodes import StatementAssignmentVariable, StatementDelVa
 from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.nodes.LocalsDictNodes import (
     ExpressionLocalsVariableRef,
-    ExpressionLocalsVariableRefORFallback,
+    ExpressionLocalsVariableRefOrFallback,
     StatementLocalsDictOperationDel,
     StatementLocalsDictOperationSet,
 )
@@ -205,7 +205,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         variable_name=node.getVariableName()
                     )
 
-                    new_node = ExpressionLocalsVariableRefORFallback(
+                    new_node = ExpressionLocalsVariableRefOrFallback(
                         locals_scope=provider.getFunctionLocalsScope(),
                         variable_name=node.getVariableName(),
                         fallback=ExpressionVariableRef(
@@ -361,7 +361,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
             except MaybeLocalVariableUsage:
                 variable_name = node.getVariableName()
 
-                new_node = ExpressionLocalsVariableRefORFallback(
+                new_node = ExpressionLocalsVariableRefOrFallback(
                     locals_scope=provider.getFunctionLocalsScope(),
                     variable_name=variable_name,
                     fallback=ExpressionVariableRef(

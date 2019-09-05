@@ -23,12 +23,12 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
     const long a = {{left.getAsLongValueExpression("operand1")}};
     const long b = {{right.getAsLongValueExpression("operand2")}};
 
-{% if operand in "+-"%}
+{% if operand in "+-" %}
     const long x = (long)((unsigned long)a {{operand}} b);
     if ((x^a) >= 0 || (x^{{"~" if operand == "-" else ""}}b) >= 0) {
         return PyInt_FromLong(x);
     }
-{% elif operand == "*"%}
+{% elif operand == "*" %}
     const long longprod = (long)((unsigned long)a * b);
     const double doubleprod = (double)a * (double)b;
     const double doubled_longprod = (double)longprod;
@@ -86,6 +86,83 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
     } else
 #endif
     return PyFloat_FromDouble((double)a / (double)b);
+{% elif operand=="%" %}
+    /* TODO: Isn't this a very specific value only, of which we could
+     * hardcode the constant result. Not sure how well the C compiler
+     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+     * -1 has to be rare anyway.
+     */
+
+    if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+
+        long result = a % b;
+
+        // Sign handling.
+        if (result != 0 && ((b ^ result) < 0) ) {
+            result += b;
+        }
+
+        return PyInt_FromLong(result);
+    }
+{% elif operand in "|^&" %}
+    const long result = a {{operand}} b;
+    return PyInt_FromLong(result);
+{% elif operand == "<<" %}
+    if (unlikely(b < 0)) {
+        PyErr_SetString(PyExc_ValueError, "negative shift count");
+        return NULL;
+    }
+    /* Short cut for zero shift or shifting zero. */
+    PyObject *result;
+    if (a == 0 || b == 0) {
+        result = operand1;
+        Py_INCREF(result);
+    } else if (b >= LONG_BIT) {
+        PyObject *operand1_long = PyLong_FromLong(a);
+        PyObject *operand2_long = PyLong_FromLong(b);
+
+        // TODO: Change this to using CLONG once we specialize that too.
+        result = BINARY_OPERATION_LSHIFT_LONG_LONG(operand1_long, operand2_long);
+    } else {
+        long c = a << b;
+
+        if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
+            PyObject *operand1_long = PyLong_FromLong(a);
+            PyObject *operand2_long = PyLong_FromLong(b);
+
+            // TODO: Change this to using CLONG once we specialize that too.
+            result = BINARY_OPERATION_LSHIFT_LONG_LONG(operand1_long, operand2_long);
+        } else {
+            result = PyInt_FromLong(c);
+        }
+    }
+
+    return result;
+{% elif operand == ">>" %}
+    if (unlikely(b < 0)) {
+        PyErr_SetString(PyExc_ValueError, "negative shift count");
+        return NULL;
+    }
+
+    /* Short cut for zero shift or shifting zero. */
+    PyObject *result;
+    if (a == 0 || b == 0) {
+        result = operand1;
+        Py_INCREF(result);
+    } else if (b >= LONG_BIT) {
+        if (a < 0) {
+            result = const_int_neg_1;
+        } else {
+            result = const_int_0;
+        }
+
+        Py_INCREF(result);
+    } else {
+        long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
+        result = PyInt_FromLong(r);
+    }
+
+    return result;
 {% else %}
 #error Operand {{operand}} not implemented in {{name}}
 {% endif %}

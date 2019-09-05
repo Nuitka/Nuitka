@@ -749,7 +749,7 @@ PyObject *BINARY_OPERATION_SUB_FLOAT_FLOAT(PyObject *operand1, PyObject *operand
 }
 
 static PyObject *SLOT_nb_subtract_LONG_LONG(PyObject *operand1, PyObject *operand2) {
-    PyObject *x = PyLong_Type.tp_as_number->nb_subtract((PyObject *)operand1, (PyObject *)operand2);
+    PyObject *x = PyLong_Type.tp_as_number->nb_subtract(operand1, operand2);
     assert(x != Py_NotImplemented);
     return x;
 }

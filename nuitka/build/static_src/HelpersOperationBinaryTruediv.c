@@ -22,6 +22,7 @@
 #include "nuitka/prelude.h"
 #endif
 
+#include "HelpersOperationBinaryTruedivUtils.c"
 /* C helpers for type specialized "/" (TRUEDIV) operations */
 
 #if PYTHON_VERSION < 300
@@ -413,7 +414,7 @@ PyObject *BINARY_OPERATION_TRUEDIV_INT_INT(PyObject *operand1, PyObject *operand
 #endif
 
 static PyObject *SLOT_nb_true_divide_LONG_LONG(PyObject *operand1, PyObject *operand2) {
-    PyObject *x = PyLong_Type.tp_as_number->nb_true_divide((PyObject *)operand1, (PyObject *)operand2);
+    PyObject *x = PyLong_Type.tp_as_number->nb_true_divide(operand1, operand2);
     assert(x != Py_NotImplemented);
     return x;
 }

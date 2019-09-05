@@ -412,7 +412,7 @@ PyObject *BINARY_OPERATION_OLDDIV_INT_INT(PyObject *operand1, PyObject *operand2
 #endif
 
 static PyObject *SLOT_nb_divide_LONG_LONG(PyObject *operand1, PyObject *operand2) {
-    PyObject *x = PyLong_Type.tp_as_number->nb_divide((PyObject *)operand1, (PyObject *)operand2);
+    PyObject *x = PyLong_Type.tp_as_number->nb_divide(operand1, operand2);
     assert(x != Py_NotImplemented);
     return x;
 }

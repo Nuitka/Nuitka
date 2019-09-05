@@ -22,9 +22,9 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
     double a = PyFloat_AS_DOUBLE(operand1);
     double b = PyFloat_AS_DOUBLE(operand2);
 
-{%if operand in "+-*" %}
+{% if operand in "+-*" %}
     return PyFloat_FromDouble(a {{operand}} b);
-{%elif operand == "//" %}
+{% elif operand == "//" %}
     if (unlikely(b == 0)) {
         PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
         return NULL;
@@ -47,13 +47,29 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
     double result = (double)(a / b);
 
     return PyFloat_FromDouble(result);
-{%elif operand == "/" %}
+{% elif operand == "/" %}
     if (b == 0.0) {
         PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
         return NULL;
     }
 
     return PyFloat_FromDouble(a {{operand}} b);
+{% elif operand == "%" %}
+    if (b == 0.0) {
+        PyErr_SetString(PyExc_ZeroDivisionError, "float modulo");
+        return NULL;
+    }
+
+    double mod = fmod(a, b);
+    if (mod) {
+        if ((a < 0) != (mod < 0)) {
+            mod += b;
+        }
+    } else {
+        mod = copysign(0.0, b);
+    }
+
+    return PyFloat_FromDouble(mod);
 {% else %}
 #error Operand {{operand}} not implemented in {{name}}
 {% endif %}

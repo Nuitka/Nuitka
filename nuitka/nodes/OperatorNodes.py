@@ -487,6 +487,78 @@ class ExpressionOperationBinaryTrueDiv(ExpressionOperationBinaryConcreteBase):
         )
 
 
+class ExpressionOperationBinaryMod(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_MOD"
+
+    operator = "Mod"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryModShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationBinaryLshift(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_LSHIFT"
+
+    operator = "LShift"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryLShiftShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationBinaryRshift(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_RSHIFT"
+
+    operator = "RShift"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryRShiftShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationBinaryBitOr(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_BIT_OR"
+
+    operator = "BitOr"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryBitOrShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationBinaryBitAnd(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_BIT_AND"
+
+    operator = "BitAnd"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryBitAndShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationBinaryBitXor(ExpressionOperationBinaryConcreteBase):
+    kind = "EXPRESSION_OPERATION_BINARY_BIT_XOR"
+
+    operator = "BitXor"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryBitXorShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
 class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_DIVMOD"
 
@@ -511,6 +583,12 @@ _operator2nodeclass = {
     "Mult": ExpressionOperationBinaryMult,
     "FloorDiv": ExpressionOperationBinaryFloorDiv,
     "TrueDiv": ExpressionOperationBinaryTrueDiv,
+    "Mod": ExpressionOperationBinaryMod,
+    "LShift": ExpressionOperationBinaryLshift,
+    "RShift": ExpressionOperationBinaryRshift,
+    "BitOr": ExpressionOperationBinaryBitOr,
+    "BitAnd": ExpressionOperationBinaryBitAnd,
+    "BitXor": ExpressionOperationBinaryBitXor,
 }
 
 if python_version < 300:
@@ -593,7 +671,7 @@ class ExpressionOperationUnary(ExpressionOperationUnaryBase):
         )
 
 
-class ExpressionOperationNOT(ExpressionOperationUnaryBase):
+class ExpressionOperationNot(ExpressionOperationUnaryBase):
     kind = "EXPRESSION_OPERATION_NOT"
 
     def __init__(self, operand, source_ref):

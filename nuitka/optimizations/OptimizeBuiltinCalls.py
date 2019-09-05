@@ -113,7 +113,7 @@ from nuitka.nodes.NodeMakingHelpers import (
 from nuitka.nodes.OperatorNodes import (
     ExpressionOperationAbs,
     ExpressionOperationBinaryDivmod,
-    ExpressionOperationNOT,
+    ExpressionOperationNot,
     ExpressionOperationUnary,
 )
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
@@ -883,7 +883,7 @@ def eval_extractor(node):
                 variable=source_variable, source=source, source_ref=source_ref
             ),
             makeStatementConditional(
-                condition=ExpressionOperationNOT(
+                condition=ExpressionOperationNot(
                     operand=ExpressionBuiltinIsinstance(
                         instance=ExpressionTempVariableRef(
                             variable=source_variable, source_ref=source_ref

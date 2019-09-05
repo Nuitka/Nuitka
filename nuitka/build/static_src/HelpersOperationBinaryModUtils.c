@@ -15,8 +15,10 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-/* These are defines used in floordiv code.
-
+/* These slots are still manually coded and are used by the generated code.
+ *
+ * The plan should be to generate these as well, so e.g. we can have a slot
+ * SLOT_nb_remainder_LONG_INT that is optimal too.
  */
 
 // This file is included from another C file, help IDEs to still parse it on
@@ -25,9 +27,24 @@
 #include "nuitka/prelude.h"
 #endif
 
-#include <float.h>
+#if PYTHON_VERSION < 300
+static PyObject *SLOT_nb_remainder_STR_STR(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyString_CheckExact(operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyString_CheckExact(operand2));
 
-/* Check if unary negation would not fit into long */
-#define UNARY_NEG_WOULD_OVERFLOW(x) ((x) < 0 && (unsigned long)(x) == 0 - (unsigned long)(x))
-/* This is from pyport.h */
-#define WIDTH_OF_ULONG (CHAR_BIT * SIZEOF_LONG)
+    // TODO: Could inline this and specialize for constant template values too.
+    return PyString_Format(operand1, operand2);
+}
+
+#endif
+
+static PyObject *SLOT_nb_remainder_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyUnicode_CheckExact(operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyUnicode_CheckExact(operand2));
+
+    return PyUnicode_Format(operand1, operand2);
+}

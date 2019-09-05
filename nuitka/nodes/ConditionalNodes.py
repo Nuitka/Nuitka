@@ -33,7 +33,7 @@ from .NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
     wrapStatementWithSideEffects,
 )
-from .OperatorNodes import ExpressionOperationNOT
+from .OperatorNodes import ExpressionOperationNot
 from .StatementNodes import StatementsSequence
 
 
@@ -350,7 +350,7 @@ branches."""
         return False
 
 
-class ExpressionConditionalOR(ExpressionConditionalBoolBase):
+class ExpressionConditionalOr(ExpressionConditionalBoolBase):
     kind = "EXPRESSION_CONDITIONAL_OR"
 
     def __init__(self, left, right, source_ref):
@@ -380,7 +380,7 @@ Convert conditional 'or' expression with unused result into conditional statemen
         )
 
 
-class ExpressionConditionalAND(ExpressionConditionalBoolBase):
+class ExpressionConditionalAnd(ExpressionConditionalBoolBase):
     kind = "EXPRESSION_CONDITIONAL_AND"
 
     def __init__(self, left, right, source_ref):
@@ -690,7 +690,7 @@ Condition for branch statement was predicted to be always %s."""
             assert no_branch is not None
 
             new_statement = makeStatementConditional(
-                condition=ExpressionOperationNOT(
+                condition=ExpressionOperationNot(
                     operand=condition, source_ref=condition.getSourceReference()
                 ),
                 yes_branch=no_branch,
@@ -759,7 +759,7 @@ def makeStatementConditional(condition, yes_branch, no_branch, source_ref):
     """
 
     if yes_branch is None:
-        condition = ExpressionOperationNOT(
+        condition = ExpressionOperationNot(
             operand=condition, source_ref=condition.getSourceReference()
         )
 

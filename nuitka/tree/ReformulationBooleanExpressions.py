@@ -23,10 +23,10 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.ConditionalNodes import (
-    ExpressionConditionalAND,
-    ExpressionConditionalOR,
+    ExpressionConditionalAnd,
+    ExpressionConditionalOr,
 )
-from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
+from nuitka.nodes.OperatorNodes import ExpressionOperationNot
 
 from .TreeHelpers import buildNode, buildNodeList, getKind
 
@@ -57,7 +57,7 @@ def buildBoolOpNode(provider, node, source_ref):
         return buildAndNode(values=values, source_ref=source_ref)
     elif bool_op == "Not":
         # The "not" is really only a unary operation and no special.
-        return ExpressionOperationNOT(
+        return ExpressionOperationNot(
             operand=buildNode(provider, node.operand, source_ref), source_ref=source_ref
         )
     else:
@@ -73,7 +73,7 @@ def buildOrNode(values, source_ref):
     assert values
 
     while values:
-        result = ExpressionConditionalOR(
+        result = ExpressionConditionalOr(
             left=values.pop(), right=result, source_ref=source_ref
         )
 
@@ -88,7 +88,7 @@ def buildAndNode(values, source_ref):
     # Unlike "or", for "and", this is used with only one value.
 
     while values:
-        result = ExpressionConditionalAND(
+        result = ExpressionConditionalAnd(
             left=values.pop(), right=result, source_ref=source_ref
         )
 
