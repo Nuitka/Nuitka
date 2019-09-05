@@ -26,21 +26,6 @@ from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
-def get_module_file_attribute(package):
-    """ Get the absolute path of the module with the passed-in name.
-
-    Args:
-        package: the fully-qualified name of this module.
-    Returns:
-        absolute path of this module.
-    """
-    loader = pkgutil.find_loader(package)
-    attr = loader.get_filename(package)
-    if not attr:
-        raise ImportError
-    return os.path.dirname(attr)
-
-
 class TensorflowPlugin(NuitkaPluginBase):
     """ This class represents the main logic of the plugin.
 

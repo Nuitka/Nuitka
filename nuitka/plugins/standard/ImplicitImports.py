@@ -510,6 +510,16 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         # end of tensorflow imports -------------------------------------------
 
+        # boto3 imports ------------------------------------------------------
+        elif full_name == "boto3":
+            yield "boto3.ec2", False
+            yield "boto3.ec2.createtags", False
+            yield "boto3.ec2.deletetags", False
+            yield "boto3.dynamodb", False
+            yield "boto3.s3", False
+            yield "boto3.s3.inject", False
+            yield "boto3.s3.transfer", False
+
         # OpenCV imports ------------------------------------------------------
         elif full_name == "cv2":
             yield "numpy", True
@@ -572,11 +582,55 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "scipy._lib.messagestream", False
 
         # scikit-learn imports ------------------------------------------------
-        elif full_name == "sklearn.tree":
-            yield "sklearn.tree._criterion", False
-            yield "sklearn.tree._splitter", False
-            yield "sklearn.tree._tree", False
-            yield "sklearn.tree._utils", False
+        elif full_name == "sklearn.cluster":
+            yield "sklearn.cluster._dbscan_inner", False
+            yield "sklearn.cluster._hierarchical", False
+            yield "sklearn.cluster._k_means", False
+            yield "sklearn.cluster._k_means_elkan", False
+
+        elif full_name == "sklearn.datasets":
+            yield "sklearn.datasets._svmlight_format", False
+
+        elif full_name == "sklearn.decomposition":
+            yield "sklearn.decomposition.cdnmf_fast", False
+            yield "sklearn.decomposition._online_lda", False
+
+        elif full_name == "sklearn.ensemble":
+            yield "sklearn.ensemble._gradient_boosting", False
+
+        elif full_name == "sklearn.externals":
+            yield "sklearn.externals.joblib", False
+
+        elif full_name == "sklearn.externals.joblib":
+            yield "sklearn.externals.joblib.numpy_pickle", False
+
+        elif full_name == "sklearn.ensemble._hist_gradient_boosting":
+            yield "sklearn.ensemble._hist_gradient_boosting.histogram", False
+            yield "sklearn.ensemble._hist_gradient_boosting.splitting", False
+            yield "sklearn.ensemble._hist_gradient_boosting.types", False
+            yield "sklearn.ensemble._hist_gradient_boosting.utils", False
+            yield "sklearn.ensemble._hist_gradient_boosting._binning", False
+            yield "sklearn.ensemble._hist_gradient_boosting._gradient_boosting", False
+            yield "sklearn.ensemble._hist_gradient_boosting._loss", False
+            yield "sklearn.ensemble._hist_gradient_boosting._predictor", False
+
+        elif full_name == "sklearn.feature_extraction":
+            yield "sklearn.feature_extraction._hashing", False
+
+        elif full_name == "sklearn.linear_model":
+            yield "sklearn.linear_model.cd_fast", False
+            yield "sklearn.linear_model.sag_fast", False
+            yield "sklearn.linear_model.sgd_fast", False
+
+        elif full_name == "sklearn.manifold":
+            yield "sklearn.manifold._barnes_hut_tsne", False
+            yield "sklearn.manifold._utils", False
+
+        elif full_name == "sklearn.metrics":
+            yield "sklearn.metrics.pairwise_fast", False
+
+        elif full_name == "sklearn.metrics.cluster":
+            yield "sklearn.metrics.cluster.expected_mutual_info_fast", False
 
         elif full_name == "sklearn.neighbors":
             yield "sklearn.neighbors.ball_tree", False
@@ -585,9 +639,19 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "sklearn.neighbors.quad_tree", False
             yield "sklearn.neighbors.typedefs", False
 
-        elif full_name == "sklearn.utils.sparsetools":
-            yield "sklearn.utils.sparsetools._graph_validation", True
-            yield "sklearn.utils.sparsetools._graph_tools", True
+        elif full_name == "sklearn.preprocessing":
+            yield "sklearn.preprocessing._csr_polynomial_expansion", False
+
+        elif full_name == "sklearn.svm":
+            yield "sklearn.svm.liblinear", False
+            yield "sklearn.svm.libsvm", False
+            yield "sklearn.svm.libsvm_sparse", False
+
+        elif full_name == "sklearn.tree":
+            yield "sklearn.tree._criterion", False
+            yield "sklearn.tree._splitter", False
+            yield "sklearn.tree._tree", False
+            yield "sklearn.tree._utils", False
 
         elif full_name == "sklearn.utils":
             yield "sklearn.utils.arrayfuncs", False
@@ -601,6 +665,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "sklearn.utils._cython_blas", False
             yield "sklearn.utils._logistic_sigmoid", False
             yield "sklearn.utils._random", False
+
+        elif full_name == "sklearn.utils.sparsetools":
+            yield "sklearn.utils.sparsetools._graph_validation", True
+            yield "sklearn.utils.sparsetools._graph_tools", True
+
         # end of scikit-learn imports -----------------------------------------
 
         elif full_name == "PIL._imagingtk":

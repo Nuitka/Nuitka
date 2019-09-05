@@ -154,7 +154,7 @@ if not os.environ.get("TCL_LIBRARY", None):
         tar_tcl = os.path.join(dist_dir, "tcl")
 
         copyTree(tk, tar_tk)
-        info("Copied Tk libraries from '%s'." % tk)  # just to entertain
+        info("Copied Tk libraries from %s." % tk)  # just to entertain
 
         copyTree(tcl, tar_tcl)
         info("Copied TCL libraries from %s." % tcl)  # just to entertain

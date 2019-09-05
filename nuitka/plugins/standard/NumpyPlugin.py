@@ -128,18 +128,6 @@ def get_scipy_core_binaries():
     return binaries
 
 
-def get_matplotlib_data():
-    """ Return 'mpl-data' folder name for matplotlib.
-    """
-    mpl_data = os.path.join(
-        os.path.dirname(get_module_file_attribute("matplotlib")), "mpl-data"
-    )
-    if not os.path.isdir(mpl_data):
-        return None
-    suffix_start = mpl_data.find("matplotlib")
-    return mpl_data, suffix_start
-
-
 def get_numpy_core_binaries():
     """ Return any binaries in numpy/core and/or numpy/.libs, whether or not actually used by our script.
 
@@ -223,8 +211,6 @@ class NumpyPlugin(NuitkaPluginBase):
         self.enabled_plugins = None  # list of active standard plugins
         self.numpy_copied = False  # indicator: numpy files copied
         self.scipy_copied = False  # indicator: scipy files copied
-        self.mpl_copied = False  # indicator: mpl-data files copied
-        self.sklearn_copied = False  # indicator: sklearn files copied
         self.matplotlib = self.getPluginOptionBool("matplotlib", False)
 
     def considerExtraDlls(self, dist_dir, module):
@@ -238,8 +224,6 @@ class NumpyPlugin(NuitkaPluginBase):
         """
         # pylint: disable=too-many-branches,too-many-locals,too-many-return-statements,too-many-statements
         full_name = module.getFullName()
-        if full_name not in ("numpy", "scipy", "matplotlib", "sklearn.datasets"):
-            return ()
 
         if full_name == "numpy":
             if self.numpy_copied:
@@ -292,42 +276,7 @@ class NumpyPlugin(NuitkaPluginBase):
             )
             info(msg)
             return ()
-
-        if full_name == "matplotlib":
-            if self.mpl_copied:
-                return ()
-            self.mpl_copied = True
-            if not self.getPluginOptionBool("matplotlib", False):
-                return ()
-            mpl_data = get_matplotlib_data()
-            if not mpl_data:
-                warning("'mpl-data' folder not found in matplotlib.")
-                return ()
-            mpl_data, idx = mpl_data  # (folder, pos. of 'matplotlib')
-            back_end = mpl_data[idx:]
-            tar_dir = os.path.join(dist_dir, back_end)
-            copyTree(mpl_data, tar_dir)
-
-            msg = "Copied 'mpl-data' from 'matplotlib' installation."
-            info(msg)
-            return ()
-
-        if full_name == "sklearn.datasets":
-            if self.sklearn_copied:
-                return ()
-            self.sklearn_copied = True
-            if not self.getPluginOptionBool("sklearn", False):
-                return ()
-            sklearn_dir = os.path.dirname(get_module_file_attribute("sklearn"))
-            source_data = os.path.join(sklearn_dir, "datasets", "data")
-            target_data = os.path.join(dist_dir, "sklearn", "datasets", "data")
-            source_descr = os.path.join(sklearn_dir, "datasets", "descr")
-            target_descr = os.path.join(dist_dir, "sklearn", "datasets", "descr")
-            copyTree(source_data, target_data)
-            info("Copied folder sklearn/datasets/data")
-            copyTree(source_descr, target_descr)
-            info("Copied folder sklearn/datasets/descr")
-            return ()
+        return ()
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         # pylint: disable=too-many-branches,too-many-return-statements
