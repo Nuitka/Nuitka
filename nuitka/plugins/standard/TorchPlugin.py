@@ -18,7 +18,6 @@
 """ Details see below in class definition.
 """
 import os
-import pkgutil
 import shutil
 from logging import info
 
@@ -26,22 +25,7 @@ from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
-def get_module_file_attribute(package):
-    """ Get the absolute path of the module with the passed-in name.
-
-    Args:
-        package: the fully-qualified name of this module.
-    Returns:
-        absolute path of this module.
-    """
-    loader = pkgutil.find_loader(package)
-    attr = loader.get_filename(package)
-    if not attr:
-        raise ImportError
-    return attr
-
-
-def get_torch_core_binaries():
+def get_torch_core_binaries(module):
     """ Return required files from the torch folders.
 
     Notes:
@@ -49,8 +33,8 @@ def get_torch_core_binaries():
         are unknown.
     """
     binaries = []
-
-    extras = os.path.join(os.path.dirname(get_module_file_attribute("torch")), "lib")
+    torch_dir = module.getCompileTimeDirectory()
+    extras = os.path.join(torch_dir, "lib")
 
     if os.path.isdir(extras):
         for f in os.listdir(extras):
@@ -61,7 +45,7 @@ def get_torch_core_binaries():
                     binaries.append((item, "."))
 
     # this folder exists in the Linux version
-    extras = os.path.join(os.path.dirname(get_module_file_attribute("torch")), "bin")
+    extras = os.path.join(torch_dir, "bin")
 
     if os.path.isdir(extras):
         for f in os.listdir(extras):
@@ -70,9 +54,7 @@ def get_torch_core_binaries():
                 binaries.append((item, "."))
 
     # this folder exists in the Linux version
-    extras = os.path.join(
-        os.path.dirname(get_module_file_attribute("torch")), "include"
-    )
+    extras = os.path.join(torch_dir, "include")
 
     if os.path.isdir(extras):
         for root, _, files in os.walk(extras):
@@ -119,7 +101,7 @@ class TorchPlugin(NuitkaPluginBase):
 
         if module.getFullName() == "torch":
             self.files_copied = True  # fall through next time
-            binaries = get_torch_core_binaries()
+            binaries = get_torch_core_binaries(module)
             bin_total = len(binaries)
             if bin_total == 0:
                 return ()

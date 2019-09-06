@@ -17,8 +17,6 @@
 #
 """ Details see below in class definition.
 """
-import os
-import pkgutil
 import sys
 from logging import info
 

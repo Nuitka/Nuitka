@@ -32,6 +32,7 @@ known_data_files = {
     # the target path can be specified (None is just default, i.e. the
     # package directory) and the filename relative to the source package
     # directory
+    "botocore": ((None, "cacert.pem"),),
     "site": ((None, "orig-prefix.txt"),),
     "nose.core": ((None, "usage.txt"),),
     "scrapy": ((None, "VERSION"),),
