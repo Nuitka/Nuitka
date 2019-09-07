@@ -25,6 +25,7 @@ from nuitka.PythonVersions import python_version
 
 binary_operator_codes = {
     # Those commented out in this section have fully specialized variants already.
+    # TODO: Get rid of this dictionary entirely.
     #    "Add"       : "PyNumber_Add",
     #    "Sub"       : "PyNumber_Subtract",
     #    "Div"       : "PyNumber_Divide",

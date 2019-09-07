@@ -62,7 +62,7 @@ def _createBigConstantsTest():
         output.write("print('%s')\n" % ("1234" * 17000))
 
 
-def _createOperationsTest():
+def _createOperationsTest(python_version):
     with open("Operations.py", "w") as output:
         output.write(
             "'''Automatically generated test, not part of releases or git.\n\n'''\n"
@@ -79,12 +79,16 @@ def _createOperationsTest():
             ("FloorDiv", "//"),
             ("Div", "/"),
             ("Mod", "%"),
+            ("Pow", "**"),
             ("LShift", "<<"),
             ("RShift", ">>"),
             ("BitAnd", "&"),
             ("BitOr", "|"),
             ("BitXor", "^"),
         )
+
+        if python_version >= "3.5":
+            operations += (("MatMult", "@"),)
 
         candidates = (
             ("NoneType", "None", "None"),
@@ -196,10 +200,10 @@ def {{operation_id}}():
                     )
 
 
-def _createTests():
+def _createTests(python_version):
     result = []
 
-    _createOperationsTest()
+    _createOperationsTest(python_version)
     result.append("Operations.py")
 
     _createBigConstantsTest()
@@ -209,11 +213,11 @@ def _createTests():
 
 
 def main():
-    _python_version = setup(suite="basics", needs_io_encoding=True)
+    python_version = setup(suite="basics", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
-    filenames = _createTests()
+    filenames = _createTests(python_version)
 
     # Now run all the tests in this directory.
     for filename in filenames:
