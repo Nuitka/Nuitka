@@ -21,6 +21,7 @@
 
 from nuitka.specs import BuiltinParameterSpecs
 
+from .AssignNodes import StatementAssignmentVariable, StatementReleaseVariable
 from .ExpressionBases import ExpressionChildHavingBase
 from .FunctionNodes import ExpressionFunctionRef
 from .GeneratorNodes import (
@@ -31,6 +32,7 @@ from .GeneratorNodes import (
 from .NodeMakingHelpers import (
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
 )
+from .OutlineNodes import ExpressionOutlineBody
 
 
 # TODO: Add support for generator outlines and
@@ -69,13 +71,85 @@ class ExpressionBuiltinZip(ExpressionChildHavingBase):
     # Length and values might be possible to predict
     # if every argument iteration handle is capable of it.
 
-    def x_computeExpressionIter1(self, iter_node, trace_collection):
-        statements = []
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        values = self.getValues()
+
         # TODO: Put re-formulation, ideally shared with Python2
         # zip here, with yield instead of appending to a list
         # needs no list temporary variable of course.
 
         provider = self.getParentVariableProvider()
+
+        outline_body = ExpressionOutlineBody(
+            provider=provider, name="zip_iter1", source_ref=self.source_ref
+        )
+
+        zip_arg_variables = [
+            outline_body.allocateTempVariable(
+                temp_scope=None, name="zip_arg_%d" % (i + 1)
+            )
+            for i in range(len(values))
+        ]
+
+        statements = [
+            StatementAssignmentVariable(
+                variable=zip_arg_variable, source=call_arg, source_ref=self.source_ref
+            )
+            for call_arg, zip_arg_variable in zip(values, zip_arg_variables)
+        ]
+
+        zip_iter_variables = [
+            outline_body.allocateTempVariable(
+                temp_scope=None, name="zip_iter_%d" % (i + 1)
+            )
+            for i in range(len(values))
+        ]
+
+        statements += [
+            makeTryExceptSingleHandlerNode(
+                tried=makeStatementsSequenceFromStatement(
+                    StatementAssignmentVariable(
+                        variable=zip_iter_variable,
+                        source=ExpressionBuiltinIter1(
+                            value=ExpressionTempVariableRef(
+                                variable=zip_arg_variable, source_ref=self.source_ref
+                            ),
+                            source_ref=self.source_ref,
+                        ),
+                        source_ref=self.source_ref,
+                    )
+                ),
+                exception_name="TypeError",
+                handler_body=StatementRaiseException(
+                    exception_type=ExpressionBuiltinExceptionRef(
+                        exception_name="TypeError", source_ref=self.source_ref
+                    ),
+                    exception_value=makeConstantRefNode(
+                        constant="zip argument #%d must support iteration" % (i + 1),
+                        source_ref=self.source_ref,
+                    ),
+                    exception_trace=None,
+                    exception_cause=None,
+                    source_ref=self.source_ref,
+                ),
+                source_ref=self.source_ref,
+            )
+            for i, zip_iter_variable, zip_arg_variable in zip(
+                range(len(values)), zip_iter_variables, zip_arg_variables
+            )
+        ]
+
+        tmp_result = outline_body.allocateTempVariable(
+            temp_scope=None, name="tmp_result"
+        )
+
+        statements += [
+            StatementAssignmentVariable(
+                variable=tmp_result,
+                source=makeConstantRefNode(constant=set(), source_ref=self.source_ref),
+                source_ref=self.source_ref,
+            )
+        ]
 
         generator_body = ExpressionGeneratorObjectBody(
             provider=provider,

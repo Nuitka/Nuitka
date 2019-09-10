@@ -629,3 +629,5 @@ try:
 except TypeError as e:
     print(e)
 print(zip())
+x = [(u, v) for (u, v) in zip(range(8), reversed(range(8)))]
+print(x)
