@@ -575,7 +575,11 @@ def main():
                 continue
 
             # macOS uses these:
-            if loaded_basename in ("libcrypto.1.0.0.dylib", "libssl.1.0.0.dylib"):
+            if loaded_basename in (
+                "libcrypto.1.0.0.dylib",
+                "libssl.1.0.0.dylib",
+                "libcrypto.1.1.dylib",
+            ):
                 continue
 
             # MSVC run time DLLs, seem to sometimes come from system.
