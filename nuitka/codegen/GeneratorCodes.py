@@ -119,6 +119,15 @@ struct %(function_identifier)s_locals *generator_heap = \
     else:
         heap_declaration = ""
 
+    code_object = generator_object_body.getCodeObject()
+
+    if code_object is not None:
+        code_identifier = context.getCodeObjectHandle(
+            code_object=generator_object_body.getCodeObject()
+        )
+    else:
+        code_identifier = "NULL"
+
     return template_genfunc_yielder_body_template % {
         "function_identifier": function_identifier,
         "function_body": indented(function_codes.codes),
@@ -134,9 +143,7 @@ struct %(function_identifier)s_locals *generator_heap = \
         "generator_qualname_obj": getFunctionQualnameObj(
             generator_object_body, context
         ),
-        "code_identifier": context.getCodeObjectHandle(
-            code_object=generator_object_body.getCodeObject()
-        ),
+        "code_identifier": code_identifier,
         "closure_count": len(closure_variables),
     }
 

@@ -155,9 +155,6 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
     shape = value_node.getTypeShape()
 
     type_name = shape.getTypeName()
-    import ipdb
-
-    ipdb.set_trace()
     if type_name is not None:
         result = makeRaiseExceptionReplacementExpressionFromInstance(
             expression=original_node,

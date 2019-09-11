@@ -631,3 +631,5 @@ except TypeError as e:
 print(zip())
 x = [(u, v) for (u, v) in zip(range(8), reversed(range(8)))]
 print(x)
+for v in zip([1, 2, 3], "String"):
+    print(v)

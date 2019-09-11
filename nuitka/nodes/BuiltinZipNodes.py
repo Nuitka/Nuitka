@@ -20,8 +20,19 @@
 """
 
 from nuitka.specs import BuiltinParameterSpecs
+from nuitka.tree.ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+from nuitka.tree.TreeHelpers import (
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
+)
 
 from .AssignNodes import StatementAssignmentVariable, StatementReleaseVariable
+from .BuiltinIteratorNodes import ExpressionBuiltinIter1
+from .BuiltinNextNodes import ExpressionBuiltinNext1
+from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+from .ConstantRefNodes import makeConstantRefNode
+from .ContainerMakingNodes import ExpressionMakeTuple
+from .ExceptionNodes import StatementRaiseException
 from .ExpressionBases import ExpressionChildHavingBase
 from .FunctionNodes import ExpressionFunctionRef
 from .GeneratorNodes import (
@@ -29,10 +40,15 @@ from .GeneratorNodes import (
     ExpressionMakeGeneratorObject,
     StatementGeneratorReturnNone,
 )
+from .LoopNodes import StatementLoop, StatementLoopBreak
 from .NodeMakingHelpers import (
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
 )
 from .OutlineNodes import ExpressionOutlineBody
+from .ReturnNodes import StatementReturn
+from .StatementNodes import StatementExpressionOnly
+from .VariableRefNodes import ExpressionTempVariableRef
+from .YieldNodes import ExpressionYield
 
 
 # TODO: Add support for generator outlines and
@@ -81,7 +97,7 @@ class ExpressionBuiltinZip(ExpressionChildHavingBase):
         provider = self.getParentVariableProvider()
 
         outline_body = ExpressionOutlineBody(
-            provider=provider, name="zip_iter1", source_ref=self.source_ref
+            provider=provider, name="zip_reformulation", source_ref=self.source_ref
         )
 
         zip_arg_variables = [
@@ -98,8 +114,43 @@ class ExpressionBuiltinZip(ExpressionChildHavingBase):
             for call_arg, zip_arg_variable in zip(values, zip_arg_variables)
         ]
 
+        # while provider.isExpressionOutlineBody() or provider.isExpressionOutlineFunction():
+        #     provider = provider.getParentVariableProvider()
+
+        generator_body = ExpressionGeneratorObjectBody(
+            provider=provider,
+            name="builtin_zip",
+            code_object=None,  # provider.getCodeObject(),
+            flags=set(),
+            source_ref=self.source_ref,
+        )
+
+        # Take closure of arg variable to use them in generator
+        for variable in zip_arg_variables:
+            generator_body.addClosureVariable(variable)
+
+        statements.append(
+            StatementReturn(
+                expression=ExpressionMakeGeneratorObject(
+                    generator_ref=ExpressionFunctionRef(
+                        function_body=generator_body, source_ref=self.source_ref
+                    ),
+                    source_ref=self.source_ref,
+                ),
+                source_ref=self.source_ref,
+            )
+        )
+
+        outline_body.setBody(
+            makeStatementsSequence(
+                statements=statements, allow_none=False, source_ref=self.source_ref
+            )
+        )
+
+        statements = []
+
         zip_iter_variables = [
-            outline_body.allocateTempVariable(
+            generator_body.allocateTempVariable(
                 temp_scope=None, name="zip_iter_%d" % (i + 1)
             )
             for i in range(len(values))
@@ -139,36 +190,46 @@ class ExpressionBuiltinZip(ExpressionChildHavingBase):
             )
         ]
 
-        tmp_result = outline_body.allocateTempVariable(
-            temp_scope=None, name="tmp_result"
-        )
-
-        statements += [
-            StatementAssignmentVariable(
-                variable=tmp_result,
-                source=makeConstantRefNode(constant=set(), source_ref=self.source_ref),
+        yield_statement = StatementExpressionOnly(
+            expression=ExpressionYield(
+                expression=ExpressionMakeTuple(
+                    elements=[
+                        ExpressionBuiltinNext1(
+                            value=ExpressionTempVariableRef(
+                                variable=zip_iter_variable, source_ref=self.source_ref
+                            ),
+                            source_ref=self.source_ref,
+                        )
+                        for zip_iter_variable in zip_iter_variables
+                    ],
+                    source_ref=self.source_ref,
+                ),
                 source_ref=self.source_ref,
-            )
-        ]
-
-        generator_body = ExpressionGeneratorObjectBody(
-            provider=provider,
-            name="builtin_zip",
-            code_object=provider.getCodeObject(),
-            flags=set(),
-            source_ref=self.source_ref,
-        )
-
-        # Code generation expects this to be there.
-        statements.append(StatementGeneratorReturnNone(source_ref=self.source_ref))
-
-        generator_body.setBody()
-
-        result = ExpressionMakeGeneratorObject(
-            generator_ref=ExpressionFunctionRef(
-                function_body=generator_body, source_ref=self.source_ref
             ),
             source_ref=self.source_ref,
         )
 
-        return result, "new_expression", "Lowered zip built-in to generator."
+        loop_body = StatementLoop(
+            body=makeStatementsSequenceFromStatement(
+                statement=makeTryExceptSingleHandlerNode(
+                    tried=yield_statement,
+                    exception_name="StopIteration",
+                    handler_body=StatementLoopBreak(source_ref=self.source_ref),
+                    source_ref=self.source_ref,
+                )
+            ),
+            source_ref=self.source_ref,
+        )
+
+        statements.append(loop_body)
+
+        # Code generation expects this to be there.
+        statements.append(StatementGeneratorReturnNone(source_ref=self.source_ref))
+
+        generator_body.setBody(
+            makeStatementsSequence(
+                statements=statements, allow_none=False, source_ref=self.source_ref
+            )
+        )
+
+        return outline_body, "new_expression", "Lowered zip built-in to generator."
