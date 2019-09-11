@@ -93,6 +93,9 @@ extern PyObject *BINARY_OPERATION_MOD_UNICODE_OBJECT(PyObject *operand1, PyObjec
 /* Code referring to "OBJECT" corresponds to any Python object and "UNICODE" to Python2 'unicode', Python3 'str'. */
 extern PyObject *BINARY_OPERATION_MOD_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2);
 
+/* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
+extern PyObject *BINARY_OPERATION_MOD_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2);
+
 #if PYTHON_VERSION < 300
 /* Code referring to "STR" corresponds to Python2 'str' and "TUPLE" to Python 'tuple'. */
 extern PyObject *BINARY_OPERATION_MOD_STR_TUPLE(PyObject *operand1, PyObject *operand2);
@@ -101,6 +104,9 @@ extern PyObject *BINARY_OPERATION_MOD_STR_TUPLE(PyObject *operand1, PyObject *op
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "TUPLE" to Python 'tuple'. */
 extern PyObject *BINARY_OPERATION_MOD_UNICODE_TUPLE(PyObject *operand1, PyObject *operand2);
 
+/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
+extern PyObject *BINARY_OPERATION_MOD_OBJECT_LIST(PyObject *operand1, PyObject *operand2);
+
 #if PYTHON_VERSION < 300
 /* Code referring to "STR" corresponds to Python2 'str' and "LIST" to Python 'list'. */
 extern PyObject *BINARY_OPERATION_MOD_STR_LIST(PyObject *operand1, PyObject *operand2);
@@ -108,6 +114,52 @@ extern PyObject *BINARY_OPERATION_MOD_STR_LIST(PyObject *operand1, PyObject *ope
 
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "LIST" to Python 'list'. */
 extern PyObject *BINARY_OPERATION_MOD_UNICODE_LIST(PyObject *operand1, PyObject *operand2);
+
+#if PYTHON_VERSION < 300
+/* Code referring to "STR" corresponds to Python2 'str' and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_MOD_STR_INT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 300
+/* Code referring to "STR" corresponds to Python2 'str' and "LONG" to Python2 'long', Python3 'int'. */
+extern PyObject *BINARY_OPERATION_MOD_STR_LONG(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 300
+/* Code referring to "STR" corresponds to Python2 'str' and "FLOAT" to Python 'float'. */
+extern PyObject *BINARY_OPERATION_MOD_STR_FLOAT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 300
+/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
+extern PyObject *BINARY_OPERATION_MOD_STR_STR(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 300
+/* Code referring to "STR" corresponds to Python2 'str' and "UNICODE" to Python2 'unicode', Python3 'str'. */
+extern PyObject *BINARY_OPERATION_MOD_STR_UNICODE(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 300
+/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_MOD_UNICODE_INT(PyObject *operand1, PyObject *operand2);
+#endif
+
+/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "LONG" to Python2 'long', Python3
+ * 'int'. */
+extern PyObject *BINARY_OPERATION_MOD_UNICODE_LONG(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "FLOAT" to Python 'float'. */
+extern PyObject *BINARY_OPERATION_MOD_UNICODE_FLOAT(PyObject *operand1, PyObject *operand2);
+
+#if PYTHON_VERSION < 300
+/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "STR" to Python2 'str'. */
+extern PyObject *BINARY_OPERATION_MOD_UNICODE_STR(PyObject *operand1, PyObject *operand2);
+#endif
+
+/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "UNICODE" to Python2 'unicode',
+ * Python3 'str'. */
+extern PyObject *BINARY_OPERATION_MOD_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern PyObject *BINARY_OPERATION_MOD_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);

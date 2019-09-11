@@ -151,6 +151,20 @@ class TypeDescBase(getMetaClassBase("Type")):
         else:
             assert False, slot
 
+    @staticmethod
+    def getSlotType(slot):
+        if slot == "nb_power":
+            return "ternaryfunc"
+        else:
+            return "binaryfunc"
+
+    @staticmethod
+    def getSlotCallExpression(nb_slot, slot_var, operand1, operand2):
+        if nb_slot == "nb_power":
+            return "%s(%s, %s, Py_None)" % (slot_var, operand1, operand2)
+        else:
+            return "%s(%s, %s)" % (slot_var, operand1, operand2)
+
     def getSlotValueExpression(self, operand, slot):
         if not self.hasSlot(slot):
             return "NULL"
@@ -174,6 +188,14 @@ class TypeDescBase(getMetaClassBase("Type")):
         else:
             args = ""
 
+        def formatOperation(operation):
+            if operation == "%":
+                return "%%"
+            elif operation == "**":
+                return "** or pow()"
+            else:
+                return operation
+
         if (
             self.getTypeName2() != self.getTypeName3()
             or other.getTypeName2() != other.getTypeName3()
@@ -185,11 +207,11 @@ class TypeDescBase(getMetaClassBase("Type")):
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
 #endif
 return NULL;""" % (
-                operation if operation != "%" else "%%",
+                formatOperation(operation),
                 "%s" if self is object_desc else self.getTypeName2(),
                 "%s" if other is object_desc else other.getTypeName2(),
                 args,
-                operation if operation != "%" else "%%",
+                formatOperation(operation),
                 "%s" if self is object_desc else self.getTypeName3(),
                 "%s" if other is object_desc else other.getTypeName3(),
                 args,
@@ -198,7 +220,7 @@ return NULL;""" % (
             return """\
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
     return NULL;""" % (
-                operation if operation != "%" else "%%",
+                formatOperation(operation),
                 "%s" if self is object_desc else self.getTypeName2(),
                 "%s" if other is object_desc else other.getTypeName2(),
                 args,
@@ -219,8 +241,28 @@ return NULL;""" % (
             slot = nb_slot
 
         if slot == "sq_repeat":
-            if cand in (list_desc, tuple_desc, unicode_desc, str_desc, bytes_desc):
+            if cand in (
+                list_desc,
+                tuple_desc,
+                set_desc,
+                dict_desc,
+                unicode_desc,
+                str_desc,
+                bytes_desc,
+            ):
+                # No repeat with themselves.
                 return ""
+
+        if slot == "nb_remainder":
+            if cand in (list_desc, tuple_desc, set_desc, dict_desc):
+                return ""
+
+        # Nobody has it.
+        if slot == "nb_matrix_multiply":
+            return ""
+
+        # We sometimes fake these, e.g. for CLONG. Maybe we should make it more
+        # distinct function names in those cases and use cand.hasSlot there.
 
         return "return SLOT_%s_%s_%s(%s, %s);" % (
             slot,
@@ -319,7 +361,7 @@ class IntDesc(ConcreteTypeBase):
 
     def hasSlot(self, slot):
         if slot.startswith("nb_"):
-            return True
+            return slot != "nb_matrix_multiply"
         elif slot.startswith("sq_"):
             return False
         else:
@@ -419,7 +461,7 @@ class FloatDesc(ConcreteTypeBase):
 
     def hasSlot(self, slot):
         if slot.startswith("nb_"):
-            return True
+            return slot != "nb_matrix_multiply"
         elif slot.startswith("sq_"):
             return False
         else:
@@ -481,6 +523,54 @@ class ListDesc(ConcreteTypeBase):
 list_desc = ListDesc()
 
 
+class SetDesc(ConcreteTypeBase):
+    type_name = "set"
+    type_desc = "Python 'set'"
+
+    @classmethod
+    def getTypeValueExpression(cls, operand):
+        return "&PySet_Type"
+
+    def hasSlot(self, slot):
+        if slot.startswith("nb_"):
+            return False
+        elif slot.startswith("sq_"):
+            return True
+        else:
+            assert False, slot
+
+    @classmethod
+    def getNewStyleNumberTypeCheckExpression(cls, operand):
+        return "0"
+
+
+set_desc = SetDesc()
+
+
+class DictDesc(ConcreteTypeBase):
+    type_name = "dict"
+    type_desc = "Python 'dict'"
+
+    @classmethod
+    def getTypeValueExpression(cls, operand):
+        return "&PyDict_Type"
+
+    def hasSlot(self, slot):
+        if slot.startswith("nb_"):
+            return False
+        elif slot.startswith("sq_"):
+            return True
+        else:
+            assert False, slot
+
+    @classmethod
+    def getNewStyleNumberTypeCheckExpression(cls, operand):
+        return "0"
+
+
+dict_desc = DictDesc()
+
+
 class BytesDesc(ConcreteTypeBase):
     type_name = "bytes"
     type_desc = "Python3 'bytes'"
@@ -521,7 +611,7 @@ class LongDesc(ConcreteTypeBase):
 
     def hasSlot(self, slot):
         if slot.startswith("nb_"):
-            return True
+            return slot != "nb_matrix_multiply"
         elif slot.startswith("sq_"):
             return False
         else:
@@ -634,6 +724,8 @@ types = (
     float_desc,
     tuple_desc,
     list_desc,
+    set_desc,
+    dict_desc,
     bytes_desc,
     long_desc,
     clong_desc,
@@ -714,7 +806,7 @@ def _getNbSlotFromOperand(operand, op_code):
             return "nb_divide"
     elif operand == "%":
         return "nb_remainder"
-    elif operand == "^^":
+    elif operand == "**":
         return "nb_power"
     elif operand == "<<":
         return "nb_lshift"
@@ -726,6 +818,8 @@ def _getNbSlotFromOperand(operand, op_code):
         return "nb_and"
     elif operand == "^":
         return "nb_xor"
+    elif operand == "@":
+        return "nb_matrix_multiply"
     else:
         assert False, operand
 
@@ -894,6 +988,7 @@ def writeline(output, *args):
 
 
 def main():
+    makeHelpersBinaryOperation("**", "POW")
     makeHelpersBinaryOperation("|", "BITOR")
     makeHelpersBinaryOperation("&", "BITAND")
     makeHelpersBinaryOperation("^", "BITXOR")
@@ -906,6 +1001,7 @@ def main():
     makeHelpersBinaryOperation("//", "FLOORDIV")
     makeHelpersBinaryOperation("/", "TRUEDIV")
     makeHelpersBinaryOperation("/", "OLDDIV")
+    makeHelpersBinaryOperation("@", "MATMULT")
 
 
 if __name__ == "__main__":

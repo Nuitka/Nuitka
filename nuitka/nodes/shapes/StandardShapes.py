@@ -230,6 +230,27 @@ class ShapeBase(object):
 
             return operation_result_unknown
 
+    pow_shapes = {}
+
+    @classmethod
+    def getOperationBinaryPowShape(cls, right_shape):
+        result = cls.pow_shapes.get(right_shape)
+
+        if result is not None:
+            return result
+        else:
+            right_shape_type = type(right_shape)
+            if right_shape_type is ShapeLoopCompleteAlternative:
+                return right_shape.getOperationBinaryPowLShape(cls)
+
+            if right_shape_type is ShapeLoopInitialAlternative:
+                return operation_result_unknown
+
+            # TODO: Not yet there.
+            # onMissingOperation("Pow", cls, right_shape)
+
+            return operation_result_unknown
+
     lshift_shapes = {}
 
     @classmethod
@@ -335,6 +356,27 @@ class ShapeBase(object):
 
             return operation_result_unknown
 
+    matmult_shapes = {}
+
+    @classmethod
+    def getOperationBinaryMatMultShape(cls, right_shape):
+        result = cls.matmult_shapes.get(right_shape)
+
+        if result is not None:
+            return result
+        else:
+            right_shape_type = type(right_shape)
+            if right_shape_type is ShapeLoopCompleteAlternative:
+                return right_shape.getOperationBinaryBitMatMultLShape(cls)
+
+            if right_shape_type is ShapeLoopInitialAlternative:
+                return operation_result_unknown
+
+            # TODO: Not yet there.
+            # onMissingOperation("MatMult", cls, right_shape)
+
+            return operation_result_unknown
+
     @classmethod
     def getComparisonLtShape(cls, right_shape):
         onMissingOperation("Lt", cls, right_shape)
@@ -396,6 +438,10 @@ class ShapeUnknown(ShapeBase):
         return operation_result_unknown
 
     @classmethod
+    def getOperationBinaryPowShape(cls, right_shape):
+        return operation_result_unknown
+
+    @classmethod
     def getOperationBinaryLShiftShape(cls, right_shape):
         return operation_result_unknown
 
@@ -413,6 +459,10 @@ class ShapeUnknown(ShapeBase):
 
     @classmethod
     def getOperationBinaryBitXorShape(cls, right_shape):
+        return operation_result_unknown
+
+    @classmethod
+    def getOperationBinaryMatMultShape(cls, right_shape):
         return operation_result_unknown
 
     @classmethod
@@ -633,6 +683,19 @@ class ShapeLoopInitialAlternative(ShapeBase):
                 ControlFlowDescriptionFullEscape,
             )
 
+    def getOperationBinaryPowShape(self, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+        else:
+            return (
+                self._collectInitialShape(
+                    operation=lambda left_shape: left_shape.getOperationBinaryPowShape(
+                        right_shape
+                    )
+                ),
+                ControlFlowDescriptionFullEscape,
+            )
+
     def getOperationBinaryLShiftShape(self, right_shape):
         if right_shape is ShapeUnknown:
             return operation_result_unknown
@@ -692,6 +755,19 @@ class ShapeLoopInitialAlternative(ShapeBase):
             return (
                 self._collectInitialShape(
                     operation=lambda left_shape: left_shape.getOperationBinaryBitXorShape(
+                        right_shape
+                    )
+                ),
+                ControlFlowDescriptionFullEscape,
+            )
+
+    def getOperationBinaryMatMultShape(self, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+        else:
+            return (
+                self._collectInitialShape(
+                    operation=lambda left_shape: left_shape.getOperationBinaryMatMultShape(
                         right_shape
                     )
                 ),
@@ -860,6 +936,16 @@ class ShapeLoopCompleteAlternative(ShapeBase):
             )
         )
 
+    def getOperationBinaryPowShape(self, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        return self._collectShapeOperation(
+            operation=lambda left_shape: left_shape.getOperationBinaryPowShape(
+                right_shape
+            )
+        )
+
     def getOperationBinaryLShiftShape(self, right_shape):
         if right_shape is ShapeUnknown:
             return operation_result_unknown
@@ -906,6 +992,16 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
         return self._collectShapeOperation(
             operation=lambda left_shape: left_shape.getOperationBinaryBitXorShape(
+                right_shape
+            )
+        )
+
+    def getOperationBinaryMatMultShape(self, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        return self._collectShapeOperation(
+            operation=lambda left_shape: left_shape.getOperationBinaryMatMultShape(
                 right_shape
             )
         )
@@ -963,6 +1059,13 @@ class ShapeLoopCompleteAlternative(ShapeBase):
             operation=left_shape.getOperationBinaryModShape
         )
 
+    def getOperationBinaryPowLShape(self, left_shape):
+        assert left_shape is not ShapeUnknown
+
+        return self._collectShapeOperation(
+            operation=left_shape.getOperationBinaryPowShape
+        )
+
     def getOperationBinaryLShiftLShape(self, left_shape):
         assert left_shape is not ShapeUnknown
 
@@ -996,6 +1099,13 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
         return self._collectShapeOperation(
             operation=left_shape.getOperationBinaryBitXorShape
+        )
+
+    def getOperationBinaryMatMultLShape(self, left_shape):
+        assert left_shape is not ShapeUnknown
+
+        return self._collectShapeOperation(
+            operation=left_shape.getOperationBinaryMatMultShape
         )
 
     def getComparisonLtShape(self, right_shape):

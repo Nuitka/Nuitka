@@ -329,11 +329,25 @@ specialized_mod_helpers_set = OrderedSet(
         "BINARY_OPERATION_MOD_OBJECT_STR",
         "BINARY_OPERATION_MOD_UNICODE_OBJECT",
         "BINARY_OPERATION_MOD_OBJECT_UNICODE",
+        "BINARY_OPERATION_MOD_OBJECT_TUPLE",
         # TODO: Make sure it's lowered to tuple for list most of the time.
+        "BINARY_OPERATION_MOD_OBJECT_TUPLE",
         "BINARY_OPERATION_MOD_STR_TUPLE",
         "BINARY_OPERATION_MOD_UNICODE_TUPLE",
+        "BINARY_OPERATION_MOD_OBJECT_LIST",
         "BINARY_OPERATION_MOD_STR_LIST",
         "BINARY_OPERATION_MOD_UNICODE_LIST",
+        # String formatting with single values.
+        "BINARY_OPERATION_MOD_STR_INT",
+        "BINARY_OPERATION_MOD_STR_LONG",
+        "BINARY_OPERATION_MOD_STR_FLOAT",
+        "BINARY_OPERATION_MOD_STR_STR",
+        "BINARY_OPERATION_MOD_STR_UNICODE",
+        "BINARY_OPERATION_MOD_UNICODE_INT",
+        "BINARY_OPERATION_MOD_UNICODE_LONG",
+        "BINARY_OPERATION_MOD_UNICODE_FLOAT",
+        "BINARY_OPERATION_MOD_UNICODE_STR",
+        "BINARY_OPERATION_MOD_UNICODE_UNICODE",
         # Default implementation.
         "BINARY_OPERATION_MOD_OBJECT_OBJECT",
     )
@@ -381,6 +395,31 @@ specialized_rshift_helpers_set = OrderedSet(
 nonspecialized_rshift_helpers_set = OrderedSet(
     helper.replace("_BITOR_", "_RSHIFT_") for helper in nonspecialized_bitor_helpers_set
 )
+specialized_pow_helpers_set = OrderedSet(
+    (
+        "BINARY_OPERATION_POW_INT_INT",
+        "BINARY_OPERATION_POW_OBJECT_INT",
+        "BINARY_OPERATION_POW_INT_OBJECT",
+        "BINARY_OPERATION_POW_OBJECT_LONG",
+        "BINARY_OPERATION_POW_LONG_OBJECT",
+        "BINARY_OPERATION_POW_LONG_LONG",
+        "BINARY_OPERATION_POW_OBJECT_FLOAT",
+        "BINARY_OPERATION_POW_FLOAT_OBJECT",
+        "BINARY_OPERATION_POW_FLOAT_FLOAT",
+        # Default implementation.
+        "BINARY_OPERATION_POW_OBJECT_OBJECT",
+    )
+)
+nonspecialized_pow_helpers_set = set()
+specialized_matmult_helpers_set = OrderedSet(
+    (
+        # Default implementation.
+        "BINARY_OPERATION_MATMULT_LONG_OBJECT",
+        "BINARY_OPERATION_MATMULT_OBJECT_LONG",
+        "BINARY_OPERATION_MATMULT_OBJECT_OBJECT",
+    )
+)
+nonspecialized_matmult_helpers_set = set()
 
 
 def _getBinaryOperationCode(
@@ -395,9 +434,7 @@ def _getBinaryOperationCode(
 
     needs_check = expression.mayRaiseExceptionOperation()
 
-    if operator == "Pow":
-        helper = "POWER_OPERATION"
-    elif operator == "IPow" and in_place:
+    if operator == "IPow" and in_place:
         helper = "POWER_OPERATION_INPLACE"
     elif operator == "IPow":
         helper = "POWER_OPERATION2"
@@ -532,6 +569,26 @@ def _getBinaryOperationCode(
             right_shape=expression.getRight().getTypeShape(),
             helpers=specialized_bitxor_helpers_set,
             nonhelpers=nonspecialized_bitxor_helpers_set,
+            source_ref=expression.source_ref,
+        )
+    elif operator == "Pow":
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_POW",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_pow_helpers_set,
+            nonhelpers=nonspecialized_pow_helpers_set,
+            source_ref=expression.source_ref,
+        )
+    elif operator == "MatMult":
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_MATMULT",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_matmult_helpers_set,
+            nonhelpers=nonspecialized_matmult_helpers_set,
             source_ref=expression.source_ref,
         )
     elif operator == "Divmod":

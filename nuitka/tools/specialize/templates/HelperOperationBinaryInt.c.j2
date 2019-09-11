@@ -123,6 +123,9 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
 
         // TODO: Change this to using CLONG once we specialize that too.
         result = BINARY_OPERATION_LSHIFT_LONG_LONG(operand1_long, operand2_long);
+
+        Py_DECREF(operand1_long);
+        Py_DECREF(operand2_long);
     } else {
         long c = a << b;
 
@@ -132,6 +135,9 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
 
             // TODO: Change this to using CLONG once we specialize that too.
             result = BINARY_OPERATION_LSHIFT_LONG_LONG(operand1_long, operand2_long);
+
+            Py_DECREF(operand1_long);
+            Py_DECREF(operand2_long);
         } else {
             result = PyInt_FromLong(c);
         }
@@ -163,6 +169,64 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
     }
 
     return result;
+{% elif operand == "**" %}
+    if (b < 0) {
+        // TODO: Use CFLOAT once available.
+        PyObject *operand1_float = PyFloat_FromDouble(a);
+        PyObject *operand2_float = PyFloat_FromDouble(b);
+
+        PyObject *result = BINARY_OPERATION_POW_FLOAT_FLOAT(operand1_float, operand2_float);
+
+        Py_DECREF(operand1_float);
+        Py_DECREF(operand2_float);
+
+        return result;
+    }
+
+    long temp = a;
+    long ix = 1;
+    long bb = b;
+
+    while (bb > 0) {
+        long prev = ix;
+        if (bb & 1) {
+            ix = (unsigned long)ix * temp;
+            if (temp == 0) {
+                break;
+            }
+            if (ix / temp != prev) {
+                PyObject *operand1_long = PyLong_FromLong(a);
+                PyObject *operand2_long = PyLong_FromLong(b);
+
+                PyObject *result = BINARY_OPERATION_POW_LONG_LONG(operand1_long, operand2_long);
+
+                Py_DECREF(operand1_long);
+                Py_DECREF(operand2_long);
+
+                return result;
+            }
+        }
+        bb >>= 1;
+        if (bb==0) {
+            break;
+        }
+        prev = temp;
+        temp = (unsigned long)temp * temp;
+
+        if (prev != 0 && temp / prev != prev) {
+            PyObject *operand1_long = PyLong_FromLong(a);
+            PyObject *operand2_long = PyLong_FromLong(b);
+
+            PyObject *result = BINARY_OPERATION_POW_LONG_LONG(operand1_long, operand2_long);
+
+            Py_DECREF(operand1_long);
+            Py_DECREF(operand2_long);
+
+            return result;
+        }
+    }
+
+    return PyInt_FromLong(ix);
 {% else %}
 #error Operand {{operand}} not implemented in {{name}}
 {% endif %}
@@ -171,7 +235,7 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
     PyObject *op2 = {{right.getAsObjectValueExpression("operand2")}};
 
     // TODO: Could in-line and specialize these as well.
-    PyObject *o = PyLong_Type.tp_as_number->{{nb_slot}}(op1, op2);
+    PyObject *o = {{left.getSlotCallExpression(nb_slot, "PyLong_Type.tp_as_number->"+nb_slot, "op1", "op2")}};
     assert(o != Py_NotImplemented);
 
     {{left.releaseAsObjectValueStatement("op1")}}

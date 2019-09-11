@@ -34,16 +34,12 @@ binary_operator_codes = {
     #    "Div"       : "PyNumber_Divide",
     #    "FloorDiv"  : "PyNumber_FloorDivide",
     #    "TrueDiv"   : "PyNumber_TrueDivide",
-    # These have their own variants only to make sure the generic code is in-lined
-    # but the CPython code is not in-lined.
     #    "Pow"       : "PyNumber_Power",
-    #    "IPow"      : "PyNumber_InPlacePower",
-    # The others are generic code and would be faster if they had a specialized variant too.
-    "LShift": "PyNumber_Lshift",
-    "RShift": "PyNumber_Rshift",
-    "BitAnd": "PyNumber_And",
-    "BitOr": "PyNumber_Or",
-    "BitXor": "PyNumber_Xor",
+    #    "LShift"    : "PyNumber_Lshift",
+    #    "RShift"    : "PyNumber_Rshift",
+    #    "BitAnd"    : "PyNumber_And",
+    #    "BitOr"     : "PyNumber_Or",
+    #    "BitXor"    : "PyNumber_Xor",
     "IAdd": "PyNumber_InPlaceAdd",
     "ISub": "PyNumber_InPlaceSubtract",
     "IMult": "PyNumber_InPlaceMultiply",
@@ -56,11 +52,14 @@ binary_operator_codes = {
     "IBitAnd": "PyNumber_InPlaceAnd",
     "IBitOr": "PyNumber_InPlaceOr",
     "IBitXor": "PyNumber_InPlaceXor",
+    # This has its own variant only to make sure the generic code is in-lined
+    # but the CPython code is not in-lined.
+    #    "IPow"      : "PyNumber_InPlacePower",
 }
 
 # Python 3.5 only operator
 if python_version >= 350:
-    binary_operator_codes["MatMult"] = "PyNumber_MatrixMultiply"
+    # binary_operator_codes["MatMult"] = "PyNumber_MatrixMultiply"
     binary_operator_codes["IMatMult"] = "PyNumber_InPlaceMatrixMultiply"
 
 unary_operator_codes = {

@@ -77,6 +77,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION(binary_api api, PyObject 
 #include "nuitka/helper/operations_binary_lshift.h"
 #include "nuitka/helper/operations_binary_mod.h"
 #include "nuitka/helper/operations_binary_mul.h"
+#include "nuitka/helper/operations_binary_pow.h"
 #include "nuitka/helper/operations_binary_rshift.h"
 #include "nuitka/helper/operations_binary_sub.h"
 #include "nuitka/helper/operations_binary_truediv.h"
@@ -84,6 +85,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION(binary_api api, PyObject 
 #if PYTHON_VERSION < 300
 // Classical division is Python2 only.
 #include "nuitka/helper/operations_binary_olddiv.h"
+#endif
+
+#if PYTHON_VERSION >= 350
+// Matrix multiplication is Python3.5 or higher only.
+#include "nuitka/helper/operations_binary_matmult.h"
 #endif
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_INPLACE(binary_api api, PyObject **operand1, PyObject *operand2) {
@@ -277,16 +283,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_DIV(PyObject *operand1, P
     return NULL;
 }
 #endif
-
-NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION(PyObject *operand1, PyObject *operand2) {
-    PyObject *result = PyNumber_Power(operand1, operand2, Py_None);
-
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-    return result;
-}
 
 NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION2(PyObject *operand1, PyObject *operand2) {
     PyObject *result = PyNumber_InPlacePower(operand1, operand2, Py_None);

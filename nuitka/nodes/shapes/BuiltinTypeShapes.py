@@ -27,13 +27,23 @@ from nuitka.PythonVersions import python_version
 
 from .ControlFlowDescriptions import (
     ControlFlowDescriptionAddUnsupported,
+    ControlFlowDescriptionBitandUnsupported,
+    ControlFlowDescriptionBitorUnsupported,
+    ControlFlowDescriptionBitxorUnsupported,
     ControlFlowDescriptionComparisonUnorderable,
     ControlFlowDescriptionElementBasedEscape,
     ControlFlowDescriptionFloorDivUnsupported,
+    ControlFlowDescriptionLshiftUnsupported,
+    ControlFlowDescriptionModUnsupported,
     ControlFlowDescriptionMulUnsupported,
     ControlFlowDescriptionNoEscape,
+    ControlFlowDescriptionOldDivUnsupported,
+    ControlFlowDescriptionPowUnsupported,
+    ControlFlowDescriptionRshiftUnsupported,
     ControlFlowDescriptionSubUnsupported,
     ControlFlowDescriptionTrueDivUnsupported,
+    ControlFlowDescriptionValueErrorNoEscape,
+    ControlFlowDescriptionZeroDivisionNoEscape,
 )
 from .StandardShapes import (
     ShapeBase,
@@ -51,12 +61,45 @@ sub_shapes_none = {}
 mul_shapes_none = {}
 floordiv_shapes_none = {}
 truediv_shapes_none = {}
+olddiv_shapes_none = {}
+mod_shapes_none = {}
+pow_shapes_none = {}
+bitor_shapes_none = {}
+bitand_shapes_none = {}
+bitxor_shapes_none = {}
+lshift_shapes_none = {}
+rshift_shapes_none = {}
+
+
 add_shapes_bool = {}
 sub_shapes_bool = {}
 mul_shapes_bool = {}
+floordiv_shapes_bool = {}
+truediv_shapes_bool = {}
+olddiv_shapes_bool = {}
+mod_shapes_bool = {}
+pow_shapes_bool = {}
+bitor_shapes_bool = {}
+bitand_shapes_bool = {}
+bitxor_shapes_bool = {}
+lshift_shapes_bool = {}
+rshift_shapes_bool = {}
+
+
 add_shapes_int = {}
 sub_shapes_int = {}
 mul_shapes_int = {}
+floordiv_shapes_int = {}
+truediv_shapes_int = {}
+olddiv_shapes_int = {}
+mod_shapes_int = {}
+pow_shapes_int = {}
+bitor_shapes_int = {}
+bitand_shapes_int = {}
+bitxor_shapes_int = {}
+lshift_shapes_int = {}
+rshift_shapes_int = {}
+
 add_shapes_long = {}
 sub_shapes_long = {}
 mul_shapes_long = {}
@@ -162,8 +205,16 @@ class ShapeTypeNoneType(ShapeBase):
     add_shapes = add_shapes_none
     sub_shapes = sub_shapes_none
     mul_shapes = mul_shapes_none
+    mod_shapes = mod_shapes_none
     floordiv_shapes = floordiv_shapes_none
     truediv_shapes = truediv_shapes_none
+    olddiv_shapes = olddiv_shapes_none
+    pow_shapes = pow_shapes_none
+    bitor_shapes = bitor_shapes_none
+    bitand_shapes = bitand_shapes_none
+    bitxor_shapes = bitxor_shapes_none
+    lshift_shapes = lshift_shapes_none
+    rshift_shapes = rshift_shapes_none
 
     if python_version < 300:
 
@@ -251,6 +302,16 @@ class ShapeTypeBool(ShapeBase):
     add_shapes = add_shapes_bool
     sub_shapes = sub_shapes_bool
     mul_shapes = mul_shapes_bool
+    floordiv_shapes = floordiv_shapes_bool
+    truediv_shapes = truediv_shapes_bool
+    olddiv_shapes = olddiv_shapes_bool
+    mod_shapes = mod_shapes_bool
+    pow_shapes = pow_shapes_bool
+    bitor_shapes = bitor_shapes_bool
+    bitand_shapes = bitand_shapes_bool
+    bitxor_shapes = bitxor_shapes_bool
+    lshift_shapes = lshift_shapes_bool
+    rshift_shapes = rshift_shapes_bool
 
     @classmethod
     def getComparisonLtShape(cls, right_shape):
@@ -324,6 +385,16 @@ class ShapeTypeInt(ShapeBase):
     add_shapes = add_shapes_int
     sub_shapes = sub_shapes_int
     mul_shapes = mul_shapes_int
+    floordiv_shapes = floordiv_shapes_int
+    truediv_shapes = truediv_shapes_int
+    olddiv_shapes = olddiv_shapes_int
+    mod_shapes = mod_shapes_int
+    pow_shapes = pow_shapes_int
+    bitor_shapes = bitor_shapes_int
+    bitand_shapes = bitand_shapes_int
+    bitxor_shapes = bitxor_shapes_int
+    lshift_shapes = lshift_shapes_int
+    rshift_shapes = rshift_shapes_int
 
     @classmethod
     def getComparisonLtShape(cls, right_shape):
@@ -1943,6 +2014,61 @@ operation_result_unsupported_truediv = (
     ShapeUnknown,
     ControlFlowDescriptionTrueDivUnsupported,
 )
+operation_result_unsupported_olddiv = (
+    ShapeUnknown,
+    ControlFlowDescriptionOldDivUnsupported,
+)
+operation_result_unsupported_mod = ShapeUnknown, ControlFlowDescriptionModUnsupported
+operation_result_unsupported_pow = ShapeUnknown, ControlFlowDescriptionPowUnsupported
+operation_result_unsupported_bitor = (
+    ShapeUnknown,
+    ControlFlowDescriptionBitorUnsupported,
+)
+operation_result_unsupported_bitand = (
+    ShapeUnknown,
+    ControlFlowDescriptionBitandUnsupported,
+)
+operation_result_unsupported_bitxor = (
+    ShapeUnknown,
+    ControlFlowDescriptionBitxorUnsupported,
+)
+operation_result_unsupported_lshift = (
+    ShapeUnknown,
+    ControlFlowDescriptionLshiftUnsupported,
+)
+operation_result_unsupported_rshift = (
+    ShapeUnknown,
+    ControlFlowDescriptionRshiftUnsupported,
+)
+
+# ZeroDivisionError can occur for some module and division operations, otherwise they
+# are fixed type.
+operation_result_zerodiv_int = ShapeTypeInt, ControlFlowDescriptionZeroDivisionNoEscape
+operation_result_zerodiv_long = (
+    ShapeTypeLong,
+    ControlFlowDescriptionZeroDivisionNoEscape,
+)
+operation_result_zerodiv_intorlong = (
+    ShapeTypeIntOrLong,
+    ControlFlowDescriptionZeroDivisionNoEscape,
+)
+operation_result_zerodiv_float = (
+    ShapeTypeFloat,
+    ControlFlowDescriptionZeroDivisionNoEscape,
+)
+operation_result_zerodiv_complex = (
+    ShapeTypeComplex,
+    ControlFlowDescriptionZeroDivisionNoEscape,
+)
+
+operation_result_valueerror_intorlong = (
+    ShapeTypeIntOrLong,
+    ControlFlowDescriptionValueErrorNoEscape,
+)
+operation_result_valueerror_long = (
+    ShapeTypeLong,
+    ControlFlowDescriptionValueErrorNoEscape,
+)
 
 add_shapes_none.update(
     {
@@ -1959,6 +2085,8 @@ add_shapes_none.update(
         ShapeTypeIntOrLong: operation_result_unsupported_add,
         ShapeTypeBool: operation_result_unsupported_add,
         ShapeTypeLong: operation_result_unsupported_add,
+        ShapeTypeFloat: operation_result_unsupported_add,
+        ShapeTypeComplex: operation_result_unsupported_add,
         # Sequence repeat:
         ShapeTypeStr: operation_result_unsupported_add,
         ShapeTypeBytes: operation_result_unsupported_add,
@@ -1998,6 +2126,27 @@ floordiv_shapes_none.update(
 truediv_shapes_none.update(
     cloneWithUnsupportedChange(add_shapes_none, operation_result_unsupported_truediv)
 )
+olddiv_shapes_none.update(
+    cloneWithUnsupportedChange(add_shapes_none, operation_result_unsupported_olddiv)
+)
+mod_shapes_none.update(
+    cloneWithUnsupportedChange(add_shapes_none, operation_result_unsupported_mod)
+)
+bitor_shapes_none.update(
+    cloneWithUnsupportedChange(add_shapes_none, operation_result_unsupported_bitor)
+)
+bitand_shapes_none.update(
+    cloneWithUnsupportedChange(add_shapes_none, operation_result_unsupported_bitand)
+)
+bitxor_shapes_none.update(
+    cloneWithUnsupportedChange(add_shapes_none, operation_result_unsupported_bitxor)
+)
+lshift_shapes_none.update(
+    cloneWithUnsupportedChange(add_shapes_none, operation_result_unsupported_lshift)
+)
+rshift_shapes_none.update(
+    cloneWithUnsupportedChange(add_shapes_none, operation_result_unsupported_rshift)
+)
 
 add_shapes_bool.update(
     {
@@ -2014,6 +2163,8 @@ add_shapes_bool.update(
         ShapeTypeIntOrLong: operation_result_intorlong_noescape,
         ShapeTypeBool: operation_result_int_noescape,
         ShapeTypeLong: operation_result_long_noescape,
+        ShapeTypeFloat: operation_result_float_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
         # Sequence repeat:
         ShapeTypeStr: operation_result_unsupported_add,
         ShapeTypeBytes: operation_result_unsupported_add,
@@ -2029,33 +2180,9 @@ add_shapes_bool.update(
 )
 
 sub_shapes_bool.update(
-    {
-        # Standard
-        ShapeUnknown: operation_result_unknown,
-        ShapeTypeLongDerived: operation_result_unknown,
-        ShapeTypeIntOrLongDerived: operation_result_unknown,
-        ShapeTypeStrDerived: operation_result_unknown,
-        ShapeTypeUnicodeDerived: operation_result_unknown,
-        ShapeTypeBytesDerived: operation_result_unknown,
-        # Int keep their type, as bool is 0 or 1 int.
-        ShapeTypeInt: operation_result_intorlong_noescape,
-        ShapeTypeLong: operation_result_long_noescape,
-        ShapeTypeIntOrLong: operation_result_intorlong_noescape,
-        ShapeTypeBool: operation_result_int_noescape,
-        ShapeTypeLong: operation_result_long_noescape,
-        # Sequence repeat:
-        ShapeTypeStr: operation_result_unsupported_sub,
-        ShapeTypeBytes: operation_result_unsupported_sub,
-        ShapeTypeBytearray: operation_result_unsupported_sub,
-        ShapeTypeUnicode: operation_result_unsupported_sub,
-        ShapeTypeTuple: operation_result_unsupported_sub,
-        ShapeTypeList: operation_result_unsupported_sub,
-        # Unsupported:
-        ShapeTypeSet: operation_result_unsupported_sub,
-        ShapeTypeDict: operation_result_unsupported_sub,
-        ShapeTypeNoneType: operation_result_unsupported_sub,
-    }
+    cloneWithUnsupportedChange(add_shapes_bool, operation_result_unsupported_sub)
 )
+
 
 mul_shapes_bool.update(
     {
@@ -2071,7 +2198,8 @@ mul_shapes_bool.update(
         ShapeTypeLong: operation_result_long_noescape,
         ShapeTypeIntOrLong: operation_result_intorlong_noescape,
         ShapeTypeBool: operation_result_int_noescape,
-        ShapeTypeLong: operation_result_long_noescape,
+        ShapeTypeFloat: operation_result_float_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
         # Sequence repeat:
         ShapeTypeStr: operation_result_str_noescape,
         ShapeTypeBytes: operation_result_bytes_noescape,
@@ -2085,6 +2213,220 @@ mul_shapes_bool.update(
         ShapeTypeNoneType: operation_result_unsupported_mul,
     }
 )
+
+floordiv_shapes_bool.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # Ints do math
+        ShapeTypeInt: operation_result_zerodiv_int,
+        ShapeTypeLong: operation_result_zerodiv_long,
+        ShapeTypeIntOrLong: operation_result_zerodiv_intorlong,
+        ShapeTypeBool: operation_result_zerodiv_int,
+        ShapeTypeFloat: operation_result_zerodiv_float,
+        ShapeTypeComplex: operation_result_zerodiv_complex,
+        # Unsupported:
+        ShapeTypeStr: operation_result_unsupported_floordiv,
+        ShapeTypeBytes: operation_result_unsupported_floordiv,
+        ShapeTypeBytearray: operation_result_unsupported_floordiv,
+        ShapeTypeUnicode: operation_result_unsupported_floordiv,
+        ShapeTypeTuple: operation_result_unsupported_floordiv,
+        ShapeTypeList: operation_result_unsupported_floordiv,
+        ShapeTypeSet: operation_result_unsupported_floordiv,
+        ShapeTypeDict: operation_result_unsupported_floordiv,
+        ShapeTypeNoneType: operation_result_unsupported_floordiv,
+    }
+)
+
+truediv_shapes_bool.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # Bool act mostly like 0 or 1 int.
+        ShapeTypeInt: operation_result_zerodiv_float,
+        ShapeTypeLong: operation_result_zerodiv_float,
+        ShapeTypeIntOrLong: operation_result_zerodiv_float,
+        ShapeTypeBool: operation_result_zerodiv_float,
+        ShapeTypeFloat: operation_result_zerodiv_float,
+        ShapeTypeComplex: operation_result_zerodiv_complex,
+        # Unsupported:
+        ShapeTypeStr: operation_result_unsupported_truediv,
+        ShapeTypeBytes: operation_result_unsupported_truediv,
+        ShapeTypeBytearray: operation_result_unsupported_truediv,
+        ShapeTypeUnicode: operation_result_unsupported_truediv,
+        ShapeTypeTuple: operation_result_unsupported_truediv,
+        ShapeTypeList: operation_result_unsupported_truediv,
+        ShapeTypeSet: operation_result_unsupported_truediv,
+        ShapeTypeDict: operation_result_unsupported_truediv,
+        ShapeTypeNoneType: operation_result_unsupported_truediv,
+    }
+)
+
+olddiv_shapes_bool.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # Bool act mostly like 0 or 1 int.
+        ShapeTypeInt: operation_result_zerodiv_int,
+        ShapeTypeLong: operation_result_zerodiv_long,
+        ShapeTypeIntOrLong: operation_result_zerodiv_intorlong,
+        ShapeTypeBool: operation_result_zerodiv_int,
+        ShapeTypeFloat: operation_result_zerodiv_float,
+        ShapeTypeComplex: operation_result_zerodiv_complex,
+        # Unsupported:
+        ShapeTypeStr: operation_result_unsupported_olddiv,
+        ShapeTypeBytes: operation_result_unsupported_olddiv,
+        ShapeTypeBytearray: operation_result_unsupported_olddiv,
+        ShapeTypeUnicode: operation_result_unsupported_olddiv,
+        ShapeTypeTuple: operation_result_unsupported_olddiv,
+        ShapeTypeList: operation_result_unsupported_olddiv,
+        ShapeTypeSet: operation_result_unsupported_olddiv,
+        ShapeTypeDict: operation_result_unsupported_olddiv,
+        ShapeTypeNoneType: operation_result_unsupported_olddiv,
+    }
+)
+
+mod_shapes_bool.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # Int keep their type, as bool is 0 or 1 int.
+        ShapeTypeInt: operation_result_zerodiv_int,
+        ShapeTypeLong: operation_result_zerodiv_long,
+        ShapeTypeIntOrLong: operation_result_zerodiv_intorlong,
+        ShapeTypeBool: operation_result_zerodiv_int,
+        ShapeTypeFloat: operation_result_zerodiv_float,
+        ShapeTypeComplex: operation_result_unsupported_mod,
+        # Unsupported:
+        ShapeTypeStr: operation_result_unsupported_mod,
+        ShapeTypeBytes: operation_result_unsupported_mod,
+        ShapeTypeBytearray: operation_result_unsupported_mod,
+        ShapeTypeUnicode: operation_result_unsupported_mod,
+        ShapeTypeTuple: operation_result_unsupported_mod,
+        ShapeTypeList: operation_result_unsupported_mod,
+        ShapeTypeSet: operation_result_unsupported_mod,
+        ShapeTypeDict: operation_result_unsupported_mod,
+        ShapeTypeNoneType: operation_result_unsupported_mod,
+    }
+)
+
+pow_shapes_bool.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # Int keep their type, as bool is 0 or 1 int.
+        ShapeTypeInt: operation_result_unknown,  # TODO: operation_result_intorfloat,
+        ShapeTypeLong: operation_result_unknown,  # TODO: operation_result_longorfloat,
+        ShapeTypeIntOrLong: operation_result_unknown,  # TODO: operation_result_intorlongorfloat,
+        ShapeTypeBool: operation_result_int_noescape,
+        ShapeTypeFloat: operation_result_float_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
+        # Unsupported:
+        ShapeTypeStr: operation_result_unsupported_pow,
+        ShapeTypeBytes: operation_result_unsupported_pow,
+        ShapeTypeBytearray: operation_result_unsupported_pow,
+        ShapeTypeUnicode: operation_result_unsupported_pow,
+        ShapeTypeTuple: operation_result_unsupported_pow,
+        ShapeTypeList: operation_result_unsupported_pow,
+        ShapeTypeSet: operation_result_unsupported_pow,
+        ShapeTypeDict: operation_result_unsupported_pow,
+        ShapeTypeNoneType: operation_result_unsupported_pow,
+    }
+)
+
+bitor_shapes_bool.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # Int keep their type, as bool is 0 or 1 int.
+        ShapeTypeInt: operation_result_int_noescape,
+        ShapeTypeLong: operation_result_long_noescape,
+        ShapeTypeIntOrLong: operation_result_intorlong_noescape,
+        ShapeTypeBool: operation_result_bool_noescape,
+        # Unsupported:
+        ShapeTypeFloat: operation_result_unsupported_bitor,
+        ShapeTypeComplex: operation_result_unsupported_bitor,
+        ShapeTypeStr: operation_result_unsupported_bitor,
+        ShapeTypeBytes: operation_result_unsupported_bitor,
+        ShapeTypeBytearray: operation_result_unsupported_bitor,
+        ShapeTypeUnicode: operation_result_unsupported_bitor,
+        ShapeTypeTuple: operation_result_unsupported_bitor,
+        ShapeTypeList: operation_result_unsupported_bitor,
+        ShapeTypeSet: operation_result_unsupported_bitor,
+        ShapeTypeDict: operation_result_unsupported_bitor,
+        ShapeTypeNoneType: operation_result_unsupported_bitor,
+    }
+)
+
+bitand_shapes_bool.update(
+    cloneWithUnsupportedChange(bitor_shapes_bool, operation_result_unsupported_bitand)
+)
+bitxor_shapes_bool.update(
+    cloneWithUnsupportedChange(bitor_shapes_bool, operation_result_unsupported_bitand)
+)
+
+lshift_shapes_bool.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # Int keep their type, as bool is 0 or 1 int.
+        ShapeTypeInt: operation_result_valueerror_intorlong,
+        ShapeTypeLong: operation_result_valueerror_long,
+        ShapeTypeIntOrLong: operation_result_valueerror_intorlong,
+        ShapeTypeBool: operation_result_valueerror_intorlong,
+        # Unsupported:
+        ShapeTypeFloat: operation_result_unsupported_lshift,
+        ShapeTypeComplex: operation_result_unsupported_lshift,
+        ShapeTypeStr: operation_result_unsupported_lshift,
+        ShapeTypeBytes: operation_result_unsupported_lshift,
+        ShapeTypeBytearray: operation_result_unsupported_lshift,
+        ShapeTypeUnicode: operation_result_unsupported_lshift,
+        ShapeTypeTuple: operation_result_unsupported_lshift,
+        ShapeTypeList: operation_result_unsupported_lshift,
+        ShapeTypeSet: operation_result_unsupported_lshift,
+        ShapeTypeDict: operation_result_unsupported_lshift,
+        ShapeTypeNoneType: operation_result_unsupported_lshift,
+    }
+)
+rshift_shapes_bool.update(
+    cloneWithUnsupportedChange(lshift_shapes_bool, operation_result_unsupported_rshift)
+)
+
 
 add_shapes_int.update(
     {
@@ -2101,14 +2443,14 @@ add_shapes_int.update(
         ShapeTypeIntOrLong: operation_result_intorlong_noescape,
         ShapeTypeBool: operation_result_intorlong_noescape,
         ShapeTypeFloat: operation_result_float_noescape,
-        # Sequences do not add
+        ShapeTypeComplex: operation_result_complex_noescape,
+        # Unsupported:
         ShapeTypeStr: operation_result_unsupported_add,
         ShapeTypeBytes: operation_result_unsupported_add,
         ShapeTypeBytearray: operation_result_unsupported_add,
         ShapeTypeUnicode: operation_result_unsupported_add,
         ShapeTypeTuple: operation_result_unsupported_add,
         ShapeTypeList: operation_result_unsupported_add,
-        # Unsupported:
         ShapeTypeSet: operation_result_unsupported_add,
         ShapeTypeDict: operation_result_unsupported_add,
         ShapeTypeNoneType: operation_result_unsupported_add,
@@ -2116,34 +2458,8 @@ add_shapes_int.update(
 )
 
 sub_shapes_int.update(
-    {
-        # Standard
-        ShapeUnknown: operation_result_unknown,
-        ShapeTypeLongDerived: operation_result_unknown,
-        ShapeTypeIntOrLongDerived: operation_result_unknown,
-        ShapeTypeStrDerived: operation_result_unknown,
-        ShapeTypeUnicodeDerived: operation_result_unknown,
-        ShapeTypeBytesDerived: operation_result_unknown,
-        # Int might turn into long when growing due to possible overflow.
-        ShapeTypeInt: operation_result_intorlong_noescape,
-        ShapeTypeLong: operation_result_long_noescape,
-        ShapeTypeIntOrLong: operation_result_intorlong_noescape,
-        ShapeTypeBool: operation_result_intorlong_noescape,
-        ShapeTypeFloat: operation_result_float_noescape,
-        # Sequences do not sub
-        ShapeTypeStr: operation_result_unsupported_sub,
-        ShapeTypeBytes: operation_result_unsupported_sub,
-        ShapeTypeBytearray: operation_result_unsupported_sub,
-        ShapeTypeUnicode: operation_result_unsupported_sub,
-        ShapeTypeTuple: operation_result_unsupported_sub,
-        ShapeTypeList: operation_result_unsupported_sub,
-        # Unsupported:
-        ShapeTypeSet: operation_result_unsupported_sub,
-        ShapeTypeDict: operation_result_unsupported_sub,
-        ShapeTypeNoneType: operation_result_unsupported_sub,
-    }
+    cloneWithUnsupportedChange(add_shapes_int, operation_result_unsupported_sub)
 )
-
 
 mul_shapes_int.update(
     {
@@ -2160,6 +2476,7 @@ mul_shapes_int.update(
         ShapeTypeIntOrLong: operation_result_intorlong_noescape,
         ShapeTypeBool: operation_result_int_noescape,  # cannot overflow
         ShapeTypeFloat: operation_result_float_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
         # Sequence repeat:
         ShapeTypeStr: operation_result_str_noescape,
         ShapeTypeBytes: operation_result_bytes_noescape,
@@ -2173,6 +2490,220 @@ mul_shapes_int.update(
         ShapeTypeNoneType: operation_result_unsupported_mul,
     }
 )
+
+floordiv_shapes_int.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # ints do math ops
+        ShapeTypeInt: operation_result_zerodiv_intorlong,
+        ShapeTypeLong: operation_result_zerodiv_long,
+        ShapeTypeIntOrLong: operation_result_zerodiv_intorlong,
+        ShapeTypeBool: operation_result_zerodiv_int,
+        ShapeTypeFloat: operation_result_zerodiv_float,
+        ShapeTypeComplex: operation_result_zerodiv_complex,
+        # Unsupported:
+        ShapeTypeStr: operation_result_unsupported_floordiv,
+        ShapeTypeBytes: operation_result_unsupported_floordiv,
+        ShapeTypeBytearray: operation_result_unsupported_floordiv,
+        ShapeTypeUnicode: operation_result_unsupported_floordiv,
+        ShapeTypeTuple: operation_result_unsupported_floordiv,
+        ShapeTypeList: operation_result_unsupported_floordiv,
+        ShapeTypeSet: operation_result_unsupported_floordiv,
+        ShapeTypeDict: operation_result_unsupported_floordiv,
+        ShapeTypeNoneType: operation_result_unsupported_floordiv,
+    }
+)
+
+truediv_shapes_int.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # ints do math ops
+        ShapeTypeInt: operation_result_zerodiv_float,
+        ShapeTypeLong: operation_result_zerodiv_float,
+        ShapeTypeIntOrLong: operation_result_zerodiv_float,
+        ShapeTypeBool: operation_result_zerodiv_float,
+        ShapeTypeFloat: operation_result_zerodiv_float,
+        ShapeTypeComplex: operation_result_zerodiv_complex,
+        # Unsupported:
+        ShapeTypeStr: operation_result_unsupported_truediv,
+        ShapeTypeBytes: operation_result_unsupported_truediv,
+        ShapeTypeBytearray: operation_result_unsupported_truediv,
+        ShapeTypeUnicode: operation_result_unsupported_truediv,
+        ShapeTypeTuple: operation_result_unsupported_truediv,
+        ShapeTypeList: operation_result_unsupported_truediv,
+        ShapeTypeSet: operation_result_unsupported_truediv,
+        ShapeTypeDict: operation_result_unsupported_truediv,
+        ShapeTypeNoneType: operation_result_unsupported_truediv,
+    }
+)
+
+olddiv_shapes_int.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # ints do math
+        ShapeTypeInt: operation_result_zerodiv_intorlong,
+        ShapeTypeLong: operation_result_zerodiv_long,
+        ShapeTypeIntOrLong: operation_result_zerodiv_intorlong,
+        ShapeTypeBool: operation_result_zerodiv_int,
+        ShapeTypeFloat: operation_result_zerodiv_float,
+        ShapeTypeComplex: operation_result_zerodiv_complex,
+        # Unsupported:
+        ShapeTypeStr: operation_result_unsupported_olddiv,
+        ShapeTypeBytes: operation_result_unsupported_olddiv,
+        ShapeTypeBytearray: operation_result_unsupported_olddiv,
+        ShapeTypeUnicode: operation_result_unsupported_olddiv,
+        ShapeTypeTuple: operation_result_unsupported_olddiv,
+        ShapeTypeList: operation_result_unsupported_olddiv,
+        ShapeTypeSet: operation_result_unsupported_olddiv,
+        ShapeTypeDict: operation_result_unsupported_olddiv,
+        ShapeTypeNoneType: operation_result_unsupported_olddiv,
+    }
+)
+
+mod_shapes_int.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # ints do math
+        ShapeTypeInt: operation_result_zerodiv_intorlong,
+        ShapeTypeLong: operation_result_zerodiv_long,
+        ShapeTypeIntOrLong: operation_result_zerodiv_intorlong,
+        ShapeTypeBool: operation_result_zerodiv_int,
+        ShapeTypeFloat: operation_result_zerodiv_float,
+        ShapeTypeComplex: operation_result_unsupported_mod,
+        # Unsupported:
+        ShapeTypeStr: operation_result_unsupported_mod,
+        ShapeTypeBytes: operation_result_unsupported_mod,
+        ShapeTypeBytearray: operation_result_unsupported_mod,
+        ShapeTypeUnicode: operation_result_unsupported_mod,
+        ShapeTypeTuple: operation_result_unsupported_mod,
+        ShapeTypeList: operation_result_unsupported_mod,
+        ShapeTypeSet: operation_result_unsupported_mod,
+        ShapeTypeDict: operation_result_unsupported_mod,
+        ShapeTypeNoneType: operation_result_unsupported_mod,
+    }
+)
+
+pow_shapes_int.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # Int keep their type, as bool is 0 or 1 int.
+        ShapeTypeInt: operation_result_unknown,  # TODO: operation_result_intorlongorfloat,
+        ShapeTypeLong: operation_result_unknown,  # TODO: operation_result_longorfloat,
+        ShapeTypeIntOrLong: operation_result_unknown,  # TODO: operation_result_intorlongorfloat,
+        ShapeTypeBool: operation_result_int_noescape,
+        ShapeTypeFloat: operation_result_float_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
+        # Unsupported:
+        ShapeTypeStr: operation_result_unsupported_pow,
+        ShapeTypeBytes: operation_result_unsupported_pow,
+        ShapeTypeBytearray: operation_result_unsupported_pow,
+        ShapeTypeUnicode: operation_result_unsupported_pow,
+        ShapeTypeTuple: operation_result_unsupported_pow,
+        ShapeTypeList: operation_result_unsupported_pow,
+        ShapeTypeSet: operation_result_unsupported_pow,
+        ShapeTypeDict: operation_result_unsupported_pow,
+        ShapeTypeNoneType: operation_result_unsupported_pow,
+    }
+)
+
+bitor_shapes_int.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # Int keep their type, as bool is 0 or 1 int.
+        ShapeTypeInt: operation_result_int_noescape,
+        ShapeTypeLong: operation_result_long_noescape,
+        ShapeTypeIntOrLong: operation_result_intorlong_noescape,
+        ShapeTypeBool: operation_result_bool_noescape,
+        # Unsupported:
+        ShapeTypeFloat: operation_result_unsupported_bitor,
+        ShapeTypeComplex: operation_result_unsupported_bitor,
+        ShapeTypeStr: operation_result_unsupported_bitor,
+        ShapeTypeBytes: operation_result_unsupported_bitor,
+        ShapeTypeBytearray: operation_result_unsupported_bitor,
+        ShapeTypeUnicode: operation_result_unsupported_bitor,
+        ShapeTypeTuple: operation_result_unsupported_bitor,
+        ShapeTypeList: operation_result_unsupported_bitor,
+        ShapeTypeSet: operation_result_unsupported_bitor,
+        ShapeTypeDict: operation_result_unsupported_bitor,
+        ShapeTypeNoneType: operation_result_unsupported_bitor,
+    }
+)
+
+bitand_shapes_int.update(
+    cloneWithUnsupportedChange(bitor_shapes_int, operation_result_unsupported_bitand)
+)
+bitxor_shapes_int.update(
+    cloneWithUnsupportedChange(bitor_shapes_int, operation_result_unsupported_bitand)
+)
+
+lshift_shapes_int.update(
+    {
+        # Standard
+        ShapeUnknown: operation_result_unknown,
+        ShapeTypeLongDerived: operation_result_unknown,
+        ShapeTypeIntOrLongDerived: operation_result_unknown,
+        ShapeTypeStrDerived: operation_result_unknown,
+        ShapeTypeUnicodeDerived: operation_result_unknown,
+        ShapeTypeBytesDerived: operation_result_unknown,
+        # Int keep their type, as bool is 0 or 1 int.
+        ShapeTypeInt: operation_result_valueerror_intorlong,
+        ShapeTypeLong: operation_result_valueerror_long,
+        ShapeTypeIntOrLong: operation_result_valueerror_intorlong,
+        ShapeTypeBool: operation_result_valueerror_intorlong,
+        # Unsupported:
+        ShapeTypeFloat: operation_result_unsupported_lshift,
+        ShapeTypeComplex: operation_result_unsupported_lshift,
+        ShapeTypeStr: operation_result_unsupported_lshift,
+        ShapeTypeBytes: operation_result_unsupported_lshift,
+        ShapeTypeBytearray: operation_result_unsupported_lshift,
+        ShapeTypeUnicode: operation_result_unsupported_lshift,
+        ShapeTypeTuple: operation_result_unsupported_lshift,
+        ShapeTypeList: operation_result_unsupported_lshift,
+        ShapeTypeSet: operation_result_unsupported_lshift,
+        ShapeTypeDict: operation_result_unsupported_lshift,
+        ShapeTypeNoneType: operation_result_unsupported_lshift,
+    }
+)
+rshift_shapes_int.update(
+    cloneWithUnsupportedChange(lshift_shapes_int, operation_result_unsupported_rshift)
+)
+
 
 add_shapes_long.update(
     {
@@ -2189,6 +2720,7 @@ add_shapes_long.update(
         ShapeTypeIntOrLong: operation_result_long_noescape,
         ShapeTypeBool: operation_result_long_noescape,
         ShapeTypeFloat: operation_result_float_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
         # Sequence repeat:
         ShapeTypeStr: operation_result_unsupported_add,
         ShapeTypeBytes: operation_result_unsupported_add,
@@ -2218,6 +2750,7 @@ sub_shapes_long.update(
         ShapeTypeIntOrLong: operation_result_long_noescape,
         ShapeTypeBool: operation_result_long_noescape,
         ShapeTypeFloat: operation_result_float_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
         # Sequence repeat:
         ShapeTypeStr: operation_result_unsupported_sub,
         ShapeTypeBytes: operation_result_unsupported_sub,
@@ -2248,6 +2781,7 @@ mul_shapes_long.update(
         ShapeTypeIntOrLong: operation_result_long_noescape,
         ShapeTypeBool: operation_result_long_noescape,
         ShapeTypeFloat: operation_result_float_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
         # Sequence repeat:
         ShapeTypeStr: operation_result_str_noescape,
         ShapeTypeBytes: operation_result_bytes_noescape,
@@ -2304,6 +2838,7 @@ add_shapes_float.update(
         ShapeTypeIntOrLong: operation_result_float_noescape,
         ShapeTypeBool: operation_result_float_noescape,
         ShapeTypeFloat: operation_result_float_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
         # Sequence repeat is not allowed
         ShapeTypeStr: operation_result_unsupported_add,
         ShapeTypeBytes: operation_result_unsupported_add,
@@ -2334,6 +2869,7 @@ sub_shapes_float.update(
         ShapeTypeIntOrLong: operation_result_float_noescape,
         ShapeTypeBool: operation_result_float_noescape,
         ShapeTypeFloat: operation_result_float_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
         # Sequence repeat is not allowed
         ShapeTypeStr: operation_result_unsupported_sub,
         ShapeTypeBytes: operation_result_unsupported_sub,
@@ -2364,6 +2900,7 @@ mul_shapes_float.update(
         ShapeTypeIntOrLong: operation_result_float_noescape,
         ShapeTypeBool: operation_result_float_noescape,
         ShapeTypeFloat: operation_result_float_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
         # Sequence repeat is not allowed
         ShapeTypeStr: operation_result_unsupported_mul,
         ShapeTypeBytes: operation_result_unsupported_mul,
@@ -2393,6 +2930,7 @@ add_shapes_complex.update(
         ShapeTypeIntOrLong: operation_result_complex_noescape,
         ShapeTypeBool: operation_result_complex_noescape,
         ShapeTypeFloat: operation_result_complex_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
         # Sequence repeat is not allowed
         ShapeTypeStr: operation_result_unsupported_add,
         ShapeTypeBytes: operation_result_unsupported_add,
@@ -2423,6 +2961,7 @@ sub_shapes_complex.update(
         ShapeTypeIntOrLong: operation_result_complex_noescape,
         ShapeTypeBool: operation_result_complex_noescape,
         ShapeTypeFloat: operation_result_complex_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
         # Sequence repeat is not allowed
         ShapeTypeStr: operation_result_unsupported_sub,
         ShapeTypeBytes: operation_result_unsupported_sub,
@@ -2452,6 +2991,7 @@ mul_shapes_complex.update(
         ShapeTypeIntOrLong: operation_result_complex_noescape,
         ShapeTypeBool: operation_result_complex_noescape,
         ShapeTypeFloat: operation_result_complex_noescape,
+        ShapeTypeComplex: operation_result_complex_noescape,
         # Sequence repeat is not allowed
         ShapeTypeStr: operation_result_unsupported_mul,
         ShapeTypeBytes: operation_result_unsupported_mul,
@@ -2476,16 +3016,17 @@ add_shapes_tuple.update(
         ShapeTypeUnicodeDerived: operation_result_unknown,
         ShapeTypeBytesDerived: operation_result_unknown,
         # Int is sequence repeat
-        ShapeTypeInt: operation_result_unsupported_sub,
-        ShapeTypeLong: operation_result_unsupported_sub,
-        ShapeTypeIntOrLong: operation_result_unsupported_sub,
-        ShapeTypeBool: operation_result_unsupported_sub,
-        ShapeTypeFloat: operation_result_unsupported_sub,
+        ShapeTypeInt: operation_result_unsupported_add,
+        ShapeTypeLong: operation_result_unsupported_add,
+        ShapeTypeIntOrLong: operation_result_unsupported_add,
+        ShapeTypeBool: operation_result_unsupported_add,
+        ShapeTypeFloat: operation_result_unsupported_add,
+        ShapeTypeComplex: operation_result_unsupported_add,
         # Sequence mixing is not allowed
-        ShapeTypeStr: operation_result_unsupported_sub,
-        ShapeTypeBytes: operation_result_unsupported_sub,
-        ShapeTypeBytearray: operation_result_unsupported_sub,
-        ShapeTypeUnicode: operation_result_unsupported_sub,
+        ShapeTypeStr: operation_result_unsupported_add,
+        ShapeTypeBytes: operation_result_unsupported_add,
+        ShapeTypeBytearray: operation_result_unsupported_add,
+        ShapeTypeUnicode: operation_result_unsupported_add,
         ShapeTypeTuple: operation_result_tuple_noescape,
         ShapeTypeList: operation_result_unsupported_add,
         # Unsupported:
@@ -2511,6 +3052,7 @@ sub_shapes_tuple.update(
         ShapeTypeIntOrLong: operation_result_unsupported_sub,
         ShapeTypeBool: operation_result_unsupported_sub,
         ShapeTypeFloat: operation_result_unsupported_sub,
+        ShapeTypeComplex: operation_result_unsupported_sub,
         # Sequence repeat is not allowed
         ShapeTypeStr: operation_result_unsupported_sub,
         ShapeTypeBytes: operation_result_unsupported_sub,
@@ -2541,6 +3083,7 @@ mul_shapes_tuple.update(
         ShapeTypeIntOrLong: operation_result_tuple_noescape,
         ShapeTypeBool: operation_result_tuple_noescape,
         ShapeTypeFloat: operation_result_unsupported_mul,
+        ShapeTypeComplex: operation_result_unsupported_mul,
         # Sequence repeat is not allowed
         ShapeTypeStr: operation_result_unsupported_mul,
         ShapeTypeBytes: operation_result_unsupported_mul,
@@ -2570,6 +3113,7 @@ add_shapes_list.update(
         ShapeTypeIntOrLong: operation_result_unsupported_add,
         ShapeTypeBool: operation_result_unsupported_add,
         ShapeTypeFloat: operation_result_unsupported_add,
+        ShapeTypeComplex: operation_result_unsupported_add,
         # Sequence concat mixing is not allowed
         ShapeTypeStr: operation_result_unsupported_add,
         ShapeTypeBytes: operation_result_unsupported_add,
@@ -2599,6 +3143,7 @@ sub_shapes_list.update(
         ShapeTypeIntOrLong: operation_result_unsupported_sub,
         ShapeTypeBool: operation_result_unsupported_sub,
         ShapeTypeFloat: operation_result_unsupported_sub,
+        ShapeTypeComplex: operation_result_unsupported_sub,
         # Sequence repeat is not allowed
         ShapeTypeStr: operation_result_unsupported_sub,
         ShapeTypeBytes: operation_result_unsupported_sub,

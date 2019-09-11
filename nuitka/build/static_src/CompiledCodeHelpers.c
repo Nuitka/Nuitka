@@ -2087,8 +2087,11 @@ void _initSlotIternext() {
 #include "HelpersOperationBinaryBitxor.c"
 #include "HelpersOperationBinaryLshift.c"
 #include "HelpersOperationBinaryMod.c"
-extern PyObject *const_int_neg_1;
+#include "HelpersOperationBinaryPow.c"
 #include "HelpersOperationBinaryRshift.c"
+#if PYTHON_VERSION >= 350
+#include "HelpersOperationBinaryMatmult.c"
+#endif
 
 #include "HelpersOperationBinaryInplaceAdd.c"
 
