@@ -1122,16 +1122,19 @@ def zip2_extractor(node):
         )
 
         # Can check all next in once go.
-        loop_body = makeStatementsSequenceFromStatement(
-            statement=makeTryExceptSingleHandlerNode(
-                tried=append_statement,
-                exception_name="StopIteration",
-                handler_body=StatementLoopBreak(source_ref=source_ref),
-                source_ref=source_ref,
-            )
+        loop_body = StatementLoop(
+            body=makeStatementsSequenceFromStatement(
+                statement=makeTryExceptSingleHandlerNode(
+                    tried=append_statement,
+                    exception_name="StopIteration",
+                    handler_body=StatementLoopBreak(source_ref=source_ref),
+                    source_ref=source_ref,
+                )
+            ),
+            source_ref=source_ref,
         )
 
-        statements.append(StatementLoop(body=loop_body, source_ref=source_ref))
+        statements.append(loop_body)
 
         statements.append(
             StatementReturn(

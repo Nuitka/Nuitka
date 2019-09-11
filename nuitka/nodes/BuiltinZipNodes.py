@@ -129,6 +129,9 @@ class ExpressionBuiltinZip(ExpressionChildHavingBase):
         for variable in zip_arg_variables:
             generator_body.addClosureVariable(variable)
 
+        # TODO: Add a Try statement with a final that releases
+        # before this returns.
+
         statements.append(
             StatementReturn(
                 expression=ExpressionMakeGeneratorObject(
