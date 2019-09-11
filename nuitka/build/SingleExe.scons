@@ -950,11 +950,17 @@ if debug_mode:
                 # and has little use anyway.
                 "-Wno-error=format",
                 "-Wno-format",
-                # For large files, these can issue warnings about disabling
-                # itself, while we do not need it
-                "-Wno-misleading-indentation",
             ]
         )
+
+        if not clang_mode and gcc_version >= "6":
+            env.Append(
+                CCFLAGS=[
+                    # For large files, these can issue warnings about disabling
+                    # itself, while we do not need it
+                    "-Wno-misleading-indentation"
+                ]
+            )
     elif msvc_mode:
         # Disable warnings that system headers already show.
         env.Append(
