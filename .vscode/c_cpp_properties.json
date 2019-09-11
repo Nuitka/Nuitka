@@ -27,7 +27,8 @@
             "defines": [
                 "_DEBUG",
                 "UNICODE",
-                "_UNICODE"
+                "_UNICODE",
+                "__IDE_ONLY__"
             ],
             "windowsSdkVersion": "10.0.17134.0",
             "compilerPath": "/usr/bin/gcc",
