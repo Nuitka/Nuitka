@@ -17,6 +17,12 @@
 //
 /* C helpers for type specialized "+=" (IAdd) operations */
 
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 #include "HelpersOperationBinaryInplaceAddUtils.c"
 
 bool BINARY_OPERATION_ADD_LIST_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {

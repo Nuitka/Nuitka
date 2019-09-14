@@ -229,6 +229,8 @@ return NULL;""" % (
     def getSameTypeSpecializationCode(
         self, other, nb_slot, sq_slot, operand1, operand2
     ):
+        # Many cases, pylint: disable=too-many-return-statements
+
         cand = self if self is not object_desc else other
 
         if cand is object_desc:
@@ -255,6 +257,15 @@ return NULL;""" % (
 
         if slot == "nb_remainder":
             if cand in (list_desc, tuple_desc, set_desc, dict_desc):
+                return ""
+
+        if slot == "nb_multiply":
+            if cand in (list_desc, tuple_desc, set_desc, dict_desc):
+                return ""
+
+        if slot == "nb_add":
+            # Tuple and list use sq_concat.
+            if cand in (tuple_desc, list_desc, set_desc, dict_desc):
                 return ""
 
         # Nobody has it.
@@ -755,6 +766,12 @@ def makeNbSlotCode(operand, op_code, left, right, emit):
         template = env.get_template("HelperOperationBinaryLong.c.j2")
     elif left == float_desc:
         template = env.get_template("HelperOperationBinaryFloat.c.j2")
+    elif left == list_desc:
+        template = env.get_template("HelperOperationBinaryList.c.j2")
+    elif left == tuple_desc:
+        template = env.get_template("HelperOperationBinaryTuple.c.j2")
+    elif left == set_desc:
+        template = env.get_template("HelperOperationBinarySet.c.j2")
     else:
         return
 
