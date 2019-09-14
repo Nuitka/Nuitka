@@ -171,7 +171,7 @@ def getFileList(path):
         filenames.sort()
 
         for filename in filenames:
-            result.append(os.path.join(root, filename))
+            result.append(os.path.normpath(os.path.join(root, filename)))
 
     return result
 

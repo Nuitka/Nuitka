@@ -25,7 +25,7 @@ import os
 import subprocess
 import sys
 
-from nuitka.utils.FileOperations import listDir
+from nuitka.utils.FileOperations import getFileList
 
 
 def makeLogoImages():
@@ -206,9 +206,9 @@ def createReleaseDocumentation():
 
 def checkReleaseDocumentation():
     documents = [
-        os.path.normpath(entry[0])
-        for entry in listDir(".")
-        if entry[0].endswith(".rst")
+        entry
+        for entry in getFileList(".")
+        if entry.endswith(".rst") and not entry.startswith("web" + os.path.sep)
     ]
 
     for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
