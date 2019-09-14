@@ -75,7 +75,7 @@ class ExpressionAsyncgenObjectBody(ExpressionFunctionEntryPointBase):
 
     qualname_setup = None
 
-    def __init__(self, provider, name, code_object, flags, source_ref):
+    def __init__(self, provider, name, code_object, flags, auto_release, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
             self,
             provider=provider,
@@ -83,6 +83,7 @@ class ExpressionAsyncgenObjectBody(ExpressionFunctionEntryPointBase):
             code_object=code_object,
             code_prefix="asyncgen",
             flags=flags,
+            auto_release=auto_release,
             source_ref=source_ref,
         )
 

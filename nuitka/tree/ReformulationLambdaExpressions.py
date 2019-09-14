@@ -81,7 +81,8 @@ def buildLambdaNode(provider, node, source_ref):
             provider=function_body,
             name="<lambda>",
             code_object=code_object,
-            flags=set(),
+            flags=None,
+            auto_release=None,
             source_ref=source_ref,
         )
         code_body.qualname_provider = provider

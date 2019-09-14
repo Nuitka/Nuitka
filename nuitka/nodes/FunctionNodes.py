@@ -351,7 +351,9 @@ class ExpressionFunctionBodyBase(
 
 
 class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBase):
-    def __init__(self, provider, name, code_object, code_prefix, flags, source_ref):
+    def __init__(
+        self, provider, name, code_object, code_prefix, flags, auto_release, source_ref
+    ):
         ExpressionFunctionBodyBase.__init__(
             self,
             provider=provider,
@@ -368,20 +370,27 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
         provider.getParentModule().addFunction(self)
 
-        if "has_exec" in flags or python_version >= 300:
+        if python_version >= 300:
             self.locals_dict_name = "locals_%s" % (self.getCodeName(),)
 
-            if "has_exec" in flags:
-                setLocalsDictType(self.locals_dict_name, "python2_function_exec")
-            else:
-                setLocalsDictType(self.locals_dict_name, "python3_function")
+            setLocalsDictType(self.locals_dict_name, "python3_function")
+        elif flags is not None and "has_exec" in flags:
+            self.locals_dict_name = "locals_%s" % (self.getCodeName(),)
 
+            setLocalsDictType(self.locals_dict_name, "python2_function_exec")
         else:
             # TODO: There should be a locals scope for non-dict/mapping too.
             self.locals_dict_name = None
 
         # Automatic parameter variable releases.
-        self.auto_release = None
+        self.auto_release = auto_release or None
+
+    def getDetails(self):
+        result = ExpressionFunctionBodyBase.getDetails(self)
+
+        result["auto_release"] = tuple(sorted(self.auto_release or ()))
+
+        return result
 
     def getFunctionLocalsScope(self):
         if self.locals_dict_name is None:
@@ -477,7 +486,17 @@ class ExpressionFunctionBody(
     if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, code_object, doc, parameters, flags, source_ref):
+    def __init__(
+        self,
+        provider,
+        name,
+        code_object,
+        doc,
+        parameters,
+        flags,
+        auto_release,
+        source_ref,
+    ):
         ExpressionFunctionEntryPointBase.__init__(
             self,
             provider=provider,
@@ -485,6 +504,7 @@ class ExpressionFunctionBody(
             code_object=code_object,
             code_prefix="function",
             flags=flags,
+            auto_release=auto_release,
             source_ref=source_ref,
         )
 

@@ -153,6 +153,7 @@ def buildFunctionNode(provider, node, source_ref):
                 name=node.name,
                 code_object=code_object,
                 flags=flags,
+                auto_release=None,
                 source_ref=source_ref,
             )
 
@@ -163,6 +164,7 @@ def buildFunctionNode(provider, node, source_ref):
                 name=node.name,
                 code_object=code_object,
                 flags=flags,
+                auto_release=None,
                 source_ref=source_ref,
             )
 
@@ -311,6 +313,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             name=node.name,
             code_object=code_object,
             flags=flags,
+            auto_release=None,
             source_ref=source_ref,
         )
     else:
@@ -319,6 +322,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             name=node.name,
             code_object=code_object,
             flags=flags,
+            auto_release=None,
             source_ref=source_ref,
         )
 
@@ -723,6 +727,7 @@ def buildFunctionWithParsing(
         flags=flags,
         doc=function_doc,
         parameters=parameters,
+        auto_release=None,
         source_ref=source_ref,
     )
 

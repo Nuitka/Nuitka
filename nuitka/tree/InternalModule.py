@@ -67,6 +67,7 @@ def makeInternalHelperFunctionBody(name, parameters):
         code_object=None,
         doc=None,
         parameters=parameters,
-        flags=set(),
+        flags=None,
+        auto_release=None,
         source_ref=internal_source_ref,
     )

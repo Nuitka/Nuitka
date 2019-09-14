@@ -245,7 +245,8 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
             provider=provider,
             name="<genexpr>",
             code_object=code_object,
-            flags=set(),
+            flags=None,
+            auto_release=None,
             source_ref=source_ref,
         )
 
@@ -255,7 +256,8 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
             provider=provider,
             name="<genexpr>",
             code_object=code_object,
-            flags=set(),
+            flags=None,
+            auto_release=None,
             source_ref=source_ref.atColumnNumber(node.col_offset + 1),
         )
 

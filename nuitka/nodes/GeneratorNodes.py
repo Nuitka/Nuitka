@@ -84,7 +84,7 @@ class ExpressionGeneratorObjectBody(
     if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, code_object, flags, source_ref):
+    def __init__(self, provider, name, code_object, flags, auto_release, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
             self,
             provider=provider,
@@ -92,6 +92,7 @@ class ExpressionGeneratorObjectBody(
             code_object=code_object,
             code_prefix="genexpr" if name == "<genexpr>" else "genobj",
             flags=flags,
+            auto_release=auto_release,
             source_ref=source_ref,
         )
 
