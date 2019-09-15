@@ -260,12 +260,26 @@ return NULL;""" % (
                 return ""
 
         if slot == "nb_multiply":
-            if cand in (list_desc, tuple_desc, set_desc, dict_desc):
+            if cand in (
+                str_desc,
+                bytes_desc,
+                list_desc,
+                tuple_desc,
+                set_desc,
+                dict_desc,
+            ):
                 return ""
 
         if slot == "nb_add":
             # Tuple and list use sq_concat.
-            if cand in (tuple_desc, list_desc, set_desc, dict_desc):
+            if cand in (
+                str_desc,
+                bytes_desc,
+                tuple_desc,
+                list_desc,
+                set_desc,
+                dict_desc,
+            ):
                 return ""
 
         # Nobody has it.
@@ -594,7 +608,7 @@ class BytesDesc(ConcreteTypeBase):
 
     def hasSlot(self, slot):
         if slot.startswith("nb_"):
-            return "slot" == "nb_remainder"
+            return slot == "nb_remainder"
         elif slot.startswith("sq_"):
             return "ass" not in slot and slot != "sq_slice"
         else:
@@ -772,6 +786,8 @@ def makeNbSlotCode(operand, op_code, left, right, emit):
         template = env.get_template("HelperOperationBinaryTuple.c.j2")
     elif left == set_desc:
         template = env.get_template("HelperOperationBinarySet.c.j2")
+    elif left == bytes_desc:
+        template = env.get_template("HelperOperationBinaryBytes.c.j2")
     else:
         return
 
