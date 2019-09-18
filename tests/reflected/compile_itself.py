@@ -279,7 +279,11 @@ def compileAndCompareWith(nuitka):
 
                 # TODO: Temporary, until we have something better than marshal which behaves
                 # differently in compiled Nuitka:
-                if has_diff and filename not in ("Contexts.py", "Whitelisting.py"):
+                if has_diff and filename not in (
+                    "Contexts.py",
+                    "Whitelisting.py",
+                    "ImplicitImports.py",
+                ):
                     sys.exit("There were differences!")
 
                 shutil.rmtree(target_dir)
