@@ -234,11 +234,7 @@ def getMustNotGetHereCode(reason, context, emit):
         "NUITKA_CANNOT_GET_HERE( %(function_identifier)s );"
         % {"function_identifier": provider.getCodeName()}
     )
-
-    if provider.isCompiledPythonModule():
-        emit("return MOD_RETURN_VALUE( NULL );")
-    else:
-        emit("return NULL;")
+    emit("return NULL;")
 
 
 def getAssertionCode(check, emit):

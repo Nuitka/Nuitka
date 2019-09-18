@@ -21,6 +21,7 @@
 
 import os
 
+from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.codegen import Emission
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
@@ -37,6 +38,7 @@ from .templates.CodeTemplatesModules import (
     template_global_copyright,
     template_module_body_template,
     template_module_exception_exit,
+    template_module_external_entry_point,
     template_module_noexception_exit,
 )
 from .VariableCodes import getVariableReferenceCode
@@ -112,7 +114,6 @@ def getModuleValues(
 
     module_body_template_values = {
         "module_name": module_name,
-        "module_name_obj": context.getConstantCode(constant=module_name.asString()),
         "is_main_module": 1 if is_main_module else 0,
         "is_dunder_main": 1
         if module_name == "__main__"
@@ -159,7 +160,18 @@ def getModuleCode(module_context, template_values):
 
     template_values["constant_check_codes"] = indented(checks, 1)
 
-    return header + template_module_body_template % template_values
+    is_top = template_values["is_top"]
+    del template_values["is_top"]
+
+    result = header + template_module_body_template % template_values
+
+    if is_top == 1 and Options.shallMakeModule():
+        result += template_module_external_entry_point % {
+            "module_name": template_values["module_name"],
+            "module_identifier": template_values["module_identifier"],
+        }
+
+    return result
 
 
 def generateModuleAttributeFileCode(to_name, expression, emit, context):

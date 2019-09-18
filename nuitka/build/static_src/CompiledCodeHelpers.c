@@ -34,13 +34,22 @@
 #include "HelpersPathTools.c"
 #include "HelpersStrings.c"
 
-void copyStringSafe(char *buffer, char *source, size_t buffer_size) {
-    if (strlen(source) >= buffer_size)
+void copyStringSafe(char *buffer, char const *source, size_t buffer_size) {
+    if (strlen(source) >= buffer_size) {
         abort();
+    }
     strcpy(buffer, source);
 }
 
-void appendStringSafe(char *buffer, char *source, size_t buffer_size) {
+void copyStringSafeN(char *buffer, char const *source, size_t n, size_t buffer_size) {
+    if (n >= buffer_size - 1) {
+        abort();
+    }
+    strncpy(buffer, source, n);
+    buffer[n] = 0;
+}
+
+void appendStringSafe(char *buffer, char const *source, size_t buffer_size) {
     if (strlen(source) + strlen(buffer) >= buffer_size)
         abort();
     strcat(buffer, source);

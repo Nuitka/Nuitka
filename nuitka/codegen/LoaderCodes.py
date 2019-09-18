@@ -101,11 +101,8 @@ def getMetapathLoaderBodyCode(other_modules):
 
         if other_module.isCompiledPythonModule():
             metapath_module_decls.append(
-                "%s(%s);"
-                % (
-                    "MOD_INIT_DECL" if other_module.isTopModule() else "MOD_ENTRY_DECL",
-                    other_module.getCodeName(),
-                )
+                "extern PyObject *modulecode_%(module_identifier)s(char const *);"
+                % {"module_identifier": other_module.getCodeName()}
             )
 
     for uncompiled_module in getUncompiledNonTechnicalModules():

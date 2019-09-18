@@ -42,7 +42,7 @@ template_global_copyright = """\
  */
 """
 
-template_module_body_template = """
+template_module_body_template = r"""
 #include "nuitka/prelude.h"
 
 #include "__helpers.h"
@@ -101,7 +101,7 @@ static void createModuleCodeObjects(void)
 static struct PyModuleDef mdef_%(module_identifier)s =
 {
     PyModuleDef_HEAD_INIT,
-    "%(module_name)s",
+    NULL,                /* m_name, filled later */
     NULL,                /* m_doc */
     -1,                  /* m_size */
     NULL,                /* m_methods */
@@ -142,23 +142,16 @@ extern void _initCompiledAsyncgenTypes();
 
 extern PyTypeObject Nuitka_Loader_Type;
 
-#if defined(_NUITKA_EXE) || !%(is_top)d
-// For executables or non top level modules, we need not export anything.
-MOD_ENTRY_DECL(%(module_identifier)s)
-#else
-// The exported interface to CPython. On import of the module, this function
-// gets called. It has to have an exact function name, in cases it's a shared
-// library export. This is hidden behind the MOD_INIT_DECL macro.
-MOD_INIT_DECL(%(module_identifier)s)
-#endif
+// Internal entry point for module code.
+PyObject *modulecode_%(module_identifier)s(char const *module_full_name)
 {
 #if defined(_NUITKA_EXE) || PYTHON_VERSION >= 300
     static bool _init_done = false;
 
     // Modules might be imported repeatedly, which is to be ignored.
-    if ( _init_done )
+    if (_init_done)
     {
-        return MOD_RETURN_VALUE( module_%(module_identifier)s );
+        return module_%(module_identifier)s;
     }
     else
     {
@@ -205,7 +198,7 @@ MOD_INIT_DECL(%(module_identifier)s)
 
     // Enable meta path based loader if not already done.
 #ifdef _NUITKA_TRACE
-    puts("%(module_name)s: Calling setupMetaPathBasedLoader().");
+    PRINT_STRING("%(module_name)s: Calling setupMetaPathBasedLoader().\n");
 #endif
     setupMetaPathBasedLoader();
 
@@ -217,17 +210,17 @@ MOD_INIT_DECL(%(module_identifier)s)
 
     /* The constants only used by this module are created now. */
 #ifdef _NUITKA_TRACE
-    puts("%(module_name)s: Calling createModuleConstants().");
+    PRINT_STRING("%(module_name)s: Calling createModuleConstants().\n");
 #endif
     createModuleConstants();
 
     /* The code objects used by this module are created now. */
 #ifdef _NUITKA_TRACE
-    puts("%(module_name)s: Calling createModuleCodeObjects().");
+    PRINT_STRING("%(module_name)s: Calling createModuleCodeObjects().\n");
 #endif
     createModuleCodeObjects();
 
-    // puts( "in init%(module_identifier)s" );
+    // PRINT_STRING("in init%(module_identifier)s\n");
 
     // Create the module object first. There are no methods initially, all are
     // added dynamically in actual code only.  Also no "__doc__" is initially
@@ -236,7 +229,7 @@ MOD_INIT_DECL(%(module_identifier)s)
     // use for it.
 #if PYTHON_VERSION < 300
     module_%(module_identifier)s = Py_InitModule4(
-        "%(module_name)s",       // Module Name
+        module_full_name,        // Module Name
         NULL,                    // No methods initially, all are added
                                  // dynamically in actual module code only.
         NULL,                    // No "__doc__" is initially set, as it could
@@ -246,13 +239,13 @@ MOD_INIT_DECL(%(module_identifier)s)
         PYTHON_API_VERSION
     );
 #else
-
-    module_%(module_identifier)s = PyModule_Create( &mdef_%(module_identifier)s );
+    mdef_%(module_identifier)s.m_name = module_full_name;
+    module_%(module_identifier)s = PyModule_Create(&mdef_%(module_identifier)s);
 #endif
 
-    moduledict_%(module_identifier)s = MODULE_DICT( module_%(module_identifier)s );
+    moduledict_%(module_identifier)s = MODULE_DICT(module_%(module_identifier)s);
 
-    // Set __compiled__ to what it we know.
+    // Set "__compiled__" to what it we know.
     UPDATE_STRING_DICT1(
         moduledict_%(module_identifier)s,
         (Nuitka_StringObject *)const_str_plain___compiled__,
@@ -268,7 +261,7 @@ MOD_INIT_DECL(%(module_identifier)s)
             const_str_empty
         );
 #elif %(is_package)s
-        PyObject *module_name = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ );
+        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
 
         UPDATE_STRING_DICT1(
             moduledict_%(module_identifier)s,
@@ -278,29 +271,29 @@ MOD_INIT_DECL(%(module_identifier)s)
 #else
 
 #if PYTHON_VERSION < 300
-        PyObject *module_name = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ );
-        char const *module_name_cstr = PyString_AS_STRING( module_name );
+        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
+        char const *module_name_cstr = PyString_AS_STRING(module_name);
 
-        char const *last_dot = strrchr( module_name_cstr, '.' );
+        char const *last_dot = strrchr(module_name_cstr, '.');
 
-        if ( last_dot != NULL )
+        if (last_dot != NULL)
         {
             UPDATE_STRING_DICT1(
                 moduledict_%(module_identifier)s,
                 (Nuitka_StringObject *)const_str_plain___package__,
-                PyString_FromStringAndSize( module_name_cstr, last_dot - module_name_cstr )
+                PyString_FromStringAndSize(module_name_cstr, last_dot - module_name_cstr)
             );
         }
 #else
-        PyObject *module_name = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ );
-        Py_ssize_t dot_index = PyUnicode_Find( module_name, const_str_dot, 0, PyUnicode_GetLength( module_name ), -1 );
+        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
+        Py_ssize_t dot_index = PyUnicode_Find(module_name, const_str_dot, 0, PyUnicode_GetLength(module_name), -1);
 
-        if ( dot_index != -1 )
+        if (dot_index != -1)
         {
             UPDATE_STRING_DICT1(
                 moduledict_%(module_identifier)s,
                 (Nuitka_StringObject *)const_str_plain___package__,
-                PyUnicode_Substring( module_name, 0, dot_index )
+                PyUnicode_Substring(module_name, 0, dot_index)
             );
         }
 #endif
@@ -313,8 +306,7 @@ MOD_INIT_DECL(%(module_identifier)s)
 // doesn't automatically enter "sys.modules", so do it manually.
 #if PYTHON_VERSION >= 300
     {
-        int r = PyObject_SetItem( PyImport_GetModuleDict(), %(module_name_obj)s, module_%(module_identifier)s );
-
+        int r = PyDict_SetItemString(PyImport_GetModuleDict(), module_full_name, module_%(module_identifier)s);
         assert( r != -1 );
     }
 #endif
@@ -323,20 +315,20 @@ MOD_INIT_DECL(%(module_identifier)s)
     // it ourselves in the same way than CPython does. Note: This must be done
     // before the frame object is allocated, or else it may fail.
 
-    if ( GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__ ) == NULL )
+    if (GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__) == NULL)
     {
         PyObject *value = (PyObject *)builtin_module;
 
         // Check if main module, not a dict then but the module itself.
 #if !defined(_NUITKA_EXE) || !%(is_main_module)s
-        value = PyModule_GetDict( value );
+        value = PyModule_GetDict(value);
 #endif
 
-        UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__, value );
+        UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__, value);
     }
 
 #if PYTHON_VERSION >= 300
-    UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, (PyObject *)&Nuitka_Loader_Type );
+    UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, (PyObject *)&Nuitka_Loader_Type);
 #endif
 
 #if PYTHON_VERSION >= 340
@@ -344,13 +336,13 @@ MOD_INIT_DECL(%(module_identifier)s)
 
 #if %(is_main_module)s
     // Main modules just get "None" as spec.
-    UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, Py_None );
+    UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, Py_None);
 #else
     // Other modules get a "ModuleSpec" from the standard mechanism.
     {
         PyObject *bootstrap_module = PyImport_ImportModule("importlib._bootstrap");
-        CHECK_OBJECT( bootstrap_module );
-        PyObject *module_spec_class = PyObject_GetAttrString( bootstrap_module, "ModuleSpec" );
+        CHECK_OBJECT(bootstrap_module);
+        PyObject *module_spec_class = PyObject_GetAttrString(bootstrap_module, "ModuleSpec");
         Py_DECREF(bootstrap_module);
 
         PyObject *args[] = {
@@ -370,13 +362,13 @@ MOD_INIT_DECL(%(module_identifier)s)
 // For packages set the submodule search locations as well, even if to empty
 // list, so investigating code will consider it a package.
 #if %(is_package)s
-        SET_ATTRIBUTE( spec_value, const_str_plain_submodule_search_locations, PyList_New(0) );
+        SET_ATTRIBUTE(spec_value, const_str_plain_submodule_search_locations, PyList_New(0));
 #endif
 
 // Mark the execution in the "__spec__" value.
-        SET_ATTRIBUTE( spec_value, const_str_plain__initializing, Py_True );
+        SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_True);
 
-        UPDATE_STRING_DICT1( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, spec_value );
+        UPDATE_STRING_DICT1(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, spec_value);
     }
 #endif
 #endif
@@ -387,14 +379,65 @@ MOD_INIT_DECL(%(module_identifier)s)
     // Module code.
 %(module_code)s
 
-    return MOD_RETURN_VALUE( module_%(module_identifier)s );
+    return module_%(module_identifier)s;
 %(module_exit)s
+"""
+
+template_module_external_entry_point = r"""
+
+/* Visibility definitions to make the DLL entry poinz exported */
+#if defined(__GNUC__)
+
+#if PYTHON_VERSION < 300
+#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility("default")))
+
+#else
+
+#ifdef __cplusplus
+#define NUITKA_MODULE_INIT_FUNCTION extern "C" __attribute__((visibility("default"))) PyObject *
+#else
+#define NUITKA_MODULE_INIT_FUNCTION __attribute__((visibility("default"))) PyObject *
+#endif
+
+#endif
+
+#else
+#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
+#endif
+
+/* The name of the entry point for DLLs changed between CPython versions, and
+ * this is here to hide that.
+ */
+#if PYTHON_VERSION < 300
+#define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION init##name(void)
+#else
+#define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION PyInit_##name(void)
+#endif
+
+/* The exported interface to CPython. On import of the module, this function
+ * gets called. It has to have an exact function name, in cases it's a shared
+ * library export. This is hidden behind the MOD_INIT_DECL macro.
+ */
+MOD_INIT_DECL(%(module_identifier)s) {
+    char const *module_full_name = "%(module_name)s";
+    if (_Py_PackageContext != NULL)
+    {
+        module_full_name = _Py_PackageContext;
+    }
+
+#if PYTHON_VERSION < 300
+    modulecode_%(module_identifier)s(module_full_name);
+#else
+    PyObject *result = modulecode_%(module_identifier)s(module_full_name);
+    return result;
+#endif
+}
 """
 
 template_module_exception_exit = """\
     module_exception_exit:
-    RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
-    return MOD_RETURN_VALUE( NULL );
+    RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+    return NULL;
 }"""
 
 template_module_noexception_exit = """\
