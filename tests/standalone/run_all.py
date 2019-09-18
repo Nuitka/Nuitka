@@ -198,6 +198,9 @@ def main():
             # TODO: Disabled due to lack of upstream support.
             reportSkip("PySide not supported yet", ".", filename)
             continue
+        elif filename == "Win32ComUsing.py":
+            # For the warnings.
+            extra_flags.append("ignore_warnings")
 
         if filename.startswith(("PySide", "PyQt")):
             if python_version.startswith("2.6"):
