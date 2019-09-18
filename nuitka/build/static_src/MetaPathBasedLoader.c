@@ -578,8 +578,8 @@ PyObject *callIntoShlibModule(const char *full_name, const char *filename) {
 static void loadTriggeredModule(char const *name, char const *trigger_name) {
     char trigger_module_name[2048];
 
-    strncpy(trigger_module_name, name, sizeof(trigger_module_name) - 1);
-    strncat(trigger_module_name, trigger_name, sizeof(trigger_module_name) - 1);
+    copyStringSafe(trigger_module_name, name, sizeof(trigger_module_name));
+    appendStringSafe(trigger_module_name, trigger_name, sizeof(trigger_module_name));
 
     struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(trigger_module_name);
 
