@@ -48,7 +48,10 @@ def _decode(data):
     except UnicodeDecodeError:
         import locale
 
-        return data.decode(locale.getpreferredencoding())
+        try:
+            return data.decode(locale.getpreferredencoding())
+        except UnicodeDecodeError:
+            return data.decode("utf8", "backslashreplace")
 
 
 def getArguments():
