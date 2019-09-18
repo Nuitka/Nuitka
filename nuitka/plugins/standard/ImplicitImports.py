@@ -525,10 +525,36 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "numpy", True
             yield "numpy.core", True
 
+        # uvicorn imports -----------------------------------------------------
+        elif full_name == "uvicorn":
+            yield "uvicorn.loops", False
+            yield "uvicorn.lifespan", False
+            yield "uvicorn.protocols", False
+        elif full_name == "uvicorn.lifespan":
+            yield "uvicorn.lifespan.off", False
+            yield "uvicorn.lifespan.on", False
+        elif full_name == "uvicorn.loops":
+            yield "uvicorn.loops.auto", False
+            yield "uvicorn.loops.uvloop", False
+        elif full_name == "uvicorn.protocols":
+            yield "uvicorn.protocols.http", False
+            yield "uvicorn.protocols.websockets", False
+        elif full_name == "uvicorn.protocols.http":
+            yield "uvicorn.protocols.http.auto", False
+            yield "uvicorn.protocols.http.h11_impl", False
+            yield "uvicorn.protocols.http.httptools_impl", False
+        elif full_name == "uvicorn.protocols.websockets":
+            yield "uvicorn.protocols.websockets.auto", False
+            yield "uvicorn.protocols.websockets.websockets_impl", False
+            yield "uvicorn.protocols.websockets.wsproto_impl", False
+
         # chainer imports -----------------------------------------------------
         elif full_name == "chainer":
-            yield "chainer.distributions", True
-            yield "chainer.distributions.utils", True
+            yield "chainer.distributions", False
+            yield "chainer.distributions.utils", False
+
+        elif full_name == "chainer.distributions":
+            yield "chainer.distributions.utils", False
 
         # numpy imports -------------------------------------------------------
         elif full_name == "numpy":
