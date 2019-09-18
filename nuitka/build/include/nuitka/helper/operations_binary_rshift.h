@@ -42,14 +42,15 @@ extern PyObject *BINARY_OPERATION_RSHIFT_LONG_OBJECT(PyObject *operand1, PyObjec
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *BINARY_OPERATION_RSHIFT_LONG_LONG(PyObject *operand1, PyObject *operand2);
 
-/* Code referring to "OBJECT" corresponds to any Python object and "SET" to Python 'set'. */
-extern PyObject *BINARY_OPERATION_RSHIFT_OBJECT_SET(PyObject *operand1, PyObject *operand2);
+#if PYTHON_VERSION < 300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_RSHIFT_LONG_INT(PyObject *operand1, PyObject *operand2);
+#endif
 
-/* Code referring to "SET" corresponds to Python 'set' and "OBJECT" to any Python object. */
-extern PyObject *BINARY_OPERATION_RSHIFT_SET_OBJECT(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "SET" corresponds to Python 'set' and "SET" to Python 'set'. */
-extern PyObject *BINARY_OPERATION_RSHIFT_SET_SET(PyObject *operand1, PyObject *operand2);
+#if PYTHON_VERSION < 300
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern PyObject *BINARY_OPERATION_RSHIFT_INT_LONG(PyObject *operand1, PyObject *operand2);
+#endif
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
 extern PyObject *BINARY_OPERATION_RSHIFT_OBJECT_LIST(PyObject *operand1, PyObject *operand2);

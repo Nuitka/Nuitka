@@ -42,6 +42,16 @@ extern PyObject *BINARY_OPERATION_POW_LONG_OBJECT(PyObject *operand1, PyObject *
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *BINARY_OPERATION_POW_LONG_LONG(PyObject *operand1, PyObject *operand2);
 
+#if PYTHON_VERSION < 300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_POW_LONG_INT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 300
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern PyObject *BINARY_OPERATION_POW_INT_LONG(PyObject *operand1, PyObject *operand2);
+#endif
+
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 extern PyObject *BINARY_OPERATION_POW_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2);
 

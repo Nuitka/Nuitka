@@ -271,10 +271,34 @@ return NULL;""" % (
                 return ""
 
         if slot == "nb_add":
-            # Tuple and list use sq_concat.
+            # Tuple and list, etc. use sq_concat.
+            # TODO: What about unicode_desc
             if cand in (
                 str_desc,
                 bytes_desc,
+                tuple_desc,
+                list_desc,
+                set_desc,
+                dict_desc,
+            ):
+                return ""
+
+        if slot in ("nb_and", "nb_or", "nb_xor"):
+            if cand in (
+                str_desc,
+                bytes_desc,
+                unicode_desc,
+                list_desc,
+                tuple_desc,
+                dict_desc,
+            ):
+                return ""
+
+        if slot in ("nb_lshift", "nb_rshift"):
+            if cand in (
+                str_desc,
+                bytes_desc,
+                unicode_desc,
                 tuple_desc,
                 list_desc,
                 set_desc,
@@ -866,6 +890,11 @@ def makeHelperOperations(template, helpers_set, operand, op_code, emit_h, emit_c
     emit()
 
     for helper_name in helpers_set:
+        assert helper_name.split("_")[:3] == ["BINARY", "OPERATION", op_code], (
+            op_code,
+            helper_name,
+        )
+
         left = findTypeFromCodeName(helper_name.split("_")[3])
         right = findTypeFromCodeName(helper_name.split("_")[4])
 

@@ -379,6 +379,8 @@ specialized_bitor_helpers_set = OrderedSet(
         "BINARY_OPERATION_BITOR_OBJECT_LONG",
         "BINARY_OPERATION_BITOR_LONG_OBJECT",
         "BINARY_OPERATION_BITOR_LONG_LONG",
+        "BINARY_OPERATION_BITOR_LONG_INT",
+        "BINARY_OPERATION_BITOR_INT_LONG",
         # Set containers can do this
         "BINARY_OPERATION_BITOR_OBJECT_SET",
         "BINARY_OPERATION_BITOR_SET_OBJECT",
@@ -387,6 +389,8 @@ specialized_bitor_helpers_set = OrderedSet(
         "BINARY_OPERATION_BITOR_LIST_OBJECT",
         "BINARY_OPERATION_BITOR_OBJECT_LIST",
         "BINARY_OPERATION_BITOR_LIST_OBJECT",
+        "BINARY_OPERATION_BITOR_OBJECT_TUPLE",
+        "BINARY_OPERATION_BITOR_TUPLE_OBJECT",
         # Default implementation.
         "BINARY_OPERATION_BITOR_OBJECT_OBJECT",
     )
@@ -406,16 +410,20 @@ nonspecialized_bitxor_helpers_set = OrderedSet(
     helper.replace("_BITOR_", "_BITXOR_") for helper in nonspecialized_bitor_helpers_set
 )
 specialized_lshift_helpers_set = OrderedSet(
-    helper.replace("_BITOR_", "_LSHIFT_") for helper in specialized_bitor_helpers_set
+    helper.replace("_BITOR_", "_LSHIFT_")
+    for helper in specialized_bitor_helpers_set
+    if "_SET" not in helper
+    if "_TUPLE" not in helper
 )
 nonspecialized_lshift_helpers_set = OrderedSet(
     helper.replace("_BITOR_", "_LSHIFT_") for helper in nonspecialized_bitor_helpers_set
 )
 specialized_rshift_helpers_set = OrderedSet(
-    helper.replace("_BITOR_", "_RSHIFT_") for helper in specialized_bitor_helpers_set
+    helper.replace("_LSHIFT_", "_RSHIFT_") for helper in specialized_lshift_helpers_set
 )
 nonspecialized_rshift_helpers_set = OrderedSet(
-    helper.replace("_BITOR_", "_RSHIFT_") for helper in nonspecialized_bitor_helpers_set
+    helper.replace("_LSHIFT_", "_RSHIFT_")
+    for helper in nonspecialized_lshift_helpers_set
 )
 specialized_pow_helpers_set = OrderedSet(
     (
@@ -425,6 +433,8 @@ specialized_pow_helpers_set = OrderedSet(
         "BINARY_OPERATION_POW_OBJECT_LONG",
         "BINARY_OPERATION_POW_LONG_OBJECT",
         "BINARY_OPERATION_POW_LONG_LONG",
+        "BINARY_OPERATION_POW_LONG_INT",
+        "BINARY_OPERATION_POW_INT_LONG",
         "BINARY_OPERATION_POW_OBJECT_FLOAT",
         "BINARY_OPERATION_POW_FLOAT_OBJECT",
         "BINARY_OPERATION_POW_FLOAT_FLOAT",

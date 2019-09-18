@@ -764,40 +764,39 @@ PyObject *BINARY_OPERATION_RSHIFT_LONG_LONG(PyObject *operand1, PyObject *operan
     return SLOT_nb_rshift_LONG_LONG(operand1, operand2);
 }
 
-static PyObject *SLOT_nb_rshift_SET_SET(PyObject *operand1, PyObject *operand2) {
-    PyObject *x = PySet_Type.tp_as_number->nb_rshift(operand1, operand2);
-    assert(x != Py_NotImplemented);
-    return x;
-}
-/* Code referring to "OBJECT" corresponds to any Python object and "SET" to Python 'set'. */
-PyObject *BINARY_OPERATION_RSHIFT_OBJECT_SET(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PySet_CheckExact(operand2));
 #if PYTHON_VERSION < 300
-    assert(!NEW_STYLE_NUMBER(operand2));
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+PyObject *BINARY_OPERATION_RSHIFT_LONG_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-    PyTypeObject *type1 = Py_TYPE(operand1);
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_rshift : NULL;
+    PyTypeObject *type1 = &PyLong_Type;
+    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_rshift;
 
-    PyTypeObject *type2 = &PySet_Type;
+    PyTypeObject *type2 = &PyInt_Type;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
+    if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = NULL;
+        slot2 = PyInt_Type.tp_as_number->nb_rshift;
 
-        if (slot1 == slot2) {
+        if (0) {
             slot2 = NULL;
         }
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_rshift_SET_SET(operand1, operand2);
+        return SLOT_nb_rshift_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -845,10 +844,9 @@ PyObject *BINARY_OPERATION_RSHIFT_OBJECT_SET(PyObject *operand1, PyObject *opera
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
-        coercion c =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+#if PYTHON_VERSION < 300 && (1 || 1)
+    if (!1 || !1) {
+        coercion c = PyLong_Type.tp_as_number->nb_coerce;
 
         if (c != NULL) {
             PyObject *coerced1 = operand1;
@@ -886,7 +884,7 @@ PyObject *BINARY_OPERATION_RSHIFT_OBJECT_SET(PyObject *operand1, PyObject *opera
             }
         }
 
-        c = NULL;
+        c = PyInt_Type.tp_as_number->nb_coerce;
 
         if (c != NULL) {
             PyObject *coerced1 = operand1;
@@ -926,43 +924,53 @@ PyObject *BINARY_OPERATION_RSHIFT_OBJECT_SET(PyObject *operand1, PyObject *opera
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for >>: '%s' and 'set'", type1->tp_name);
+#if PYTHON_VERSION < 300
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for >>: 'long' and 'int'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for >>: 'int' and 'int'");
+#endif
     return NULL;
 }
+#endif
 
-/* Code referring to "SET" corresponds to Python 'set' and "OBJECT" to any Python object. */
-PyObject *BINARY_OPERATION_RSHIFT_SET_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PySet_CheckExact(operand1));
 #if PYTHON_VERSION < 300
-    assert(!NEW_STYLE_NUMBER(operand1));
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+PyObject *BINARY_OPERATION_RSHIFT_INT_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
 
-    PyTypeObject *type1 = &PySet_Type;
-    binaryfunc slot1 = NULL;
+    PyTypeObject *type1 = &PyInt_Type;
+    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_rshift;
 
-    PyTypeObject *type2 = Py_TYPE(operand2);
+    PyTypeObject *type2 = &PyLong_Type;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
+    if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_rshift : NULL;
+        slot2 = PyLong_Type.tp_as_number->nb_rshift;
 
-        if (slot1 == slot2) {
+        if (0) {
             slot2 = NULL;
         }
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_rshift_SET_SET(operand1, operand2);
+        return SLOT_nb_rshift_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if (0) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -1005,9 +1013,9 @@ PyObject *BINARY_OPERATION_RSHIFT_SET_OBJECT(PyObject *operand1, PyObject *opera
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
-    if (!0 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c = NULL;
+#if PYTHON_VERSION < 300 && (1 || 1)
+    if (!1 || !1) {
+        coercion c = PyInt_Type.tp_as_number->nb_coerce;
 
         if (c != NULL) {
             PyObject *coerced1 = operand1;
@@ -1045,7 +1053,7 @@ PyObject *BINARY_OPERATION_RSHIFT_SET_OBJECT(PyObject *operand1, PyObject *opera
             }
         }
 
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+        c = PyLong_Type.tp_as_number->nb_coerce;
 
         if (c != NULL) {
             PyObject *coerced1 = operand1;
@@ -1085,31 +1093,15 @@ PyObject *BINARY_OPERATION_RSHIFT_SET_OBJECT(PyObject *operand1, PyObject *opera
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for >>: 'set' and '%s'", type2->tp_name);
+#if PYTHON_VERSION < 300
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for >>: 'int' and 'long'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for >>: 'int' and 'int'");
+#endif
     return NULL;
 }
-
-/* Code referring to "SET" corresponds to Python 'set' and "SET" to Python 'set'. */
-PyObject *BINARY_OPERATION_RSHIFT_SET_SET(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PySet_CheckExact(operand1));
-#if PYTHON_VERSION < 300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PySet_CheckExact(operand2));
-#if PYTHON_VERSION < 300
-    assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-    return SLOT_nb_rshift_SET_SET(operand1, operand2);
-}
-
-static PyObject *SLOT_nb_rshift_LIST_LIST(PyObject *operand1, PyObject *operand2) {
-    PyObject *x = PyList_Type.tp_as_number->nb_rshift(operand1, operand2);
-    assert(x != Py_NotImplemented);
-    return x;
-}
 /* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
 PyObject *BINARY_OPERATION_RSHIFT_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -1137,8 +1129,6 @@ PyObject *BINARY_OPERATION_RSHIFT_OBJECT_LIST(PyObject *operand1, PyObject *oper
         }
     } else {
         assert(type1 == type2);
-
-        return SLOT_nb_rshift_LIST_LIST(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1297,8 +1287,6 @@ PyObject *BINARY_OPERATION_RSHIFT_LIST_OBJECT(PyObject *operand1, PyObject *oper
         }
     } else {
         assert(type1 == type2);
-
-        return SLOT_nb_rshift_LIST_LIST(operand1, operand2);
     }
 
     if (slot1 != NULL) {
