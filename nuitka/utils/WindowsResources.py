@@ -251,6 +251,9 @@ def copyResourcesFromFileToFile(source_filename, target_filename, resource_kind)
 
 
 def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name):
+    import os
+    target_filename = os.path.abspath(target_filename)
+
     update_handle = _openFileWindowsResources(target_filename)
 
     _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, data)
