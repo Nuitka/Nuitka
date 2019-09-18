@@ -229,7 +229,7 @@ return NULL;""" % (
     def getSameTypeSpecializationCode(
         self, other, nb_slot, sq_slot, operand1, operand2
     ):
-        # Many cases, pylint: disable=too-many-return-statements
+        # Many cases, pylint: disable=too-many-branches,too-many-return-statements
 
         cand = self if self is not object_desc else other
 

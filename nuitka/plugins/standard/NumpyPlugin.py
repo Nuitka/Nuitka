@@ -34,6 +34,7 @@ from nuitka.utils.Utils import isWin32Windows
 # START
 # ------------------------------------------------------------------------------
 
+
 def get_sys_prefix():
     """ Return sys.prefix as guaranteed abspath format.
     """
@@ -179,9 +180,9 @@ class NumpyPlugin(NuitkaPluginBase):
             bin_total = len(binaries)  # anything there at all?
             if bin_total > 0:
                 msg = "Copied %i %s from 'numpy' installation." % (
-                      bin_total,
-                      "file" if bin_total < 2 else "files",
-                    )
+                    bin_total,
+                    "file" if bin_total < 2 else "files",
+                )
                 info(msg)
 
         if full_name == "scipy" and not self.scipy_copied:
@@ -200,7 +201,9 @@ class NumpyPlugin(NuitkaPluginBase):
             bin_total = len(binaries)
             if bin_total > 0:
                 msg = "Copied %i %s from 'scipy' installation." % (
-                    bin_total, "file" if bin_total < 2 else "files")
+                    bin_total,
+                    "file" if bin_total < 2 else "files",
+                )
                 info(msg)
 
         return ()

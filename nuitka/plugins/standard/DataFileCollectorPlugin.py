@@ -23,8 +23,7 @@ import os
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import listDir
-from nuitka.utils.FileOperations import getFileList
+from nuitka.utils.FileOperations import getFileList, listDir
 
 known_data_files = {
     # Key is the package name to trigger it
