@@ -28,9 +28,10 @@
 // The Nuitka_AsyncgenObject is the storage associated with a compiled
 // async generator object instance of which there can be many for each code.
 struct Nuitka_AsyncgenObject {
-    PyObject_VAR_HEAD
+    /* Python object folklore: */
+    PyObject_VAR_HEAD;
 
-        PyObject *m_name;
+    PyObject *m_name;
 
     // TODO: Only to make traceback for non-started throw
     PyObject *m_module;

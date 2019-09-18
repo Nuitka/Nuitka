@@ -28,9 +28,10 @@
 // The Nuitka_CoroutineObject is the storage associated with a compiled
 // coroutine object instance of which there can be many for each code.
 struct Nuitka_CoroutineObject {
-    PyObject_VAR_HEAD
+    /* Python object folklore: */
+    PyObject_VAR_HEAD;
 
-        PyObject *m_name;
+    PyObject *m_name;
 
     // TODO: Only to make traceback for non-started throw
     PyObject *m_module;
@@ -99,7 +100,10 @@ extern PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyO
 static inline bool Nuitka_Coroutine_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Coroutine_Type; }
 
 struct Nuitka_CoroutineWrapperObject {
-    PyObject_HEAD struct Nuitka_CoroutineObject *m_coroutine;
+    /* Python object folklore: */
+    PyObject_HEAD;
+
+    struct Nuitka_CoroutineObject *m_coroutine;
 };
 
 extern PyTypeObject Nuitka_CoroutineWrapper_Type;

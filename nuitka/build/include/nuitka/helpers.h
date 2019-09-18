@@ -38,7 +38,10 @@ extern PyObject *const_int_pos_1;
 // structure is normally private, but we need it for quick access to the module
 // dictionary.
 typedef struct {
-    PyObject_HEAD PyObject *md_dict;
+    /* Python object folklore: */
+    PyObject_HEAD;
+
+    PyObject *md_dict;
 } PyModuleObject;
 
 // Generated code helpers, used in static helper codes:

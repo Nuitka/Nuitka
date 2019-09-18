@@ -34,9 +34,10 @@ typedef PyObject *(*function_impl_code)(struct Nuitka_FunctionObject const *, Py
 // The Nuitka_FunctionObject is the storage associated with a compiled function
 // instance of which there can be many for each code.
 struct Nuitka_FunctionObject {
-    PyObject_VAR_HEAD
+    /* Python object folklore: */
+    PyObject_VAR_HEAD;
 
-        PyObject *m_name;
+    PyObject *m_name;
 
     PyObject *m_module;
     PyObject *m_doc;

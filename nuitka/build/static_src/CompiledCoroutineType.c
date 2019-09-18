@@ -1241,7 +1241,10 @@ PyObject *ASYNC_AWAIT(PyObject *awaitable, int await_kind) {
 
 /* Our "aiter" wrapper clone */
 struct Nuitka_AIterWrapper {
-    PyObject_HEAD PyObject *aw_aiter;
+    /* Python object folklore: */
+    PyObject_HEAD;
+
+    PyObject *aw_aiter;
 };
 
 static PyObject *Nuitka_AIterWrapper_tp_repr(struct Nuitka_AIterWrapper *aw) {
