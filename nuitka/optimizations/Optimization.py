@@ -357,23 +357,44 @@ def optimizeLocalsDictsHandles():
 def optimizeUnusedUserVariables(function_body):
     changed = False
 
-    for local_variable in (
-        function_body.getUserLocalVariables() + function_body.getOutlineLocalVariables()
-    ):
+    for local_variable in function_body.getUserLocalVariables():
         variable_traces = function_body.trace_collection.getVariableTraces(
             variable=local_variable
         )
 
         empty = areEmptyTraces(variable_traces)
         if empty:
+            function_body.removeUserVariable(local_variable)
+
             signalChange(
                 "var_usage",
                 function_body.getSourceReference(),
                 message="Remove unused local variable '%s'." % local_variable.getName(),
             )
 
-            function_body.removeUserVariable(local_variable)
             changed = True
+
+    outlines = function_body.getTraceCollection().getOutlineFunctions()
+
+    if outlines is not None:
+        for outline in outlines:
+            for local_variable in outline.getUserLocalVariables():
+                variable_traces = function_body.trace_collection.getVariableTraces(
+                    variable=local_variable
+                )
+
+                empty = areEmptyTraces(variable_traces)
+                if empty:
+                    outline.removeUserVariable(local_variable)
+
+                    signalChange(
+                        "var_usage",
+                        outline.getSourceReference(),
+                        message="Remove unused local variable '%s'."
+                        % local_variable.getName(),
+                    )
+
+                    changed = True
 
     return changed
 
