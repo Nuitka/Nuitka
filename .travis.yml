@@ -67,4 +67,4 @@ script:
   - '$PYTHON ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests'
   - 'if [ "$TRAVIS_PYTHON_VERSION" = "3.7" ]; then ./bin/check-nuitka-with-restlint; fi'
   - 'if [ "$TRAVIS_PYTHON_VERSION" = "3.7" ]; then ./bin/check-nuitka-with-codespell; fi'
-  - 'if [ "$TRAVIS_PYTHON_VERSION" = "3.7" || "$TRAVIS_PYTHON_VERSION" = "2.7" ]; then ./bin/check-nuitka-with-pylint; fi'
+  - 'if [ "$TRAVIS_PYTHON_VERSION" = "3.7" ] || [ "$TRAVIS_PYTHON_VERSION" = "2.7" ]; then ./bin/check-nuitka-with-pylint; fi'
