@@ -21,9 +21,18 @@
 """ Test that shows that the socket module can properly be used.
 
 """
+import signal
 import socket
+import sys
 
-socket.getfqdn("1.1.1.1")
+# Set up a timeout, seems to happen that below call stalls.
+def onTimeout(_signum, _frame):
+    sys.exit("Timeout occurred!")
+
+signal.signal(signal.SIGALRM, onTimeout)
+signal.alarm(5)
+
 
 # Call to socket.getfqdn with a non-local address will cause libresolv.so glibc
 # library to be loaded
+socket.getfqdn("1.1.1.1")
