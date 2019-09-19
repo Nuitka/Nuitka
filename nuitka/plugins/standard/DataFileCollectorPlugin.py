@@ -94,6 +94,7 @@ known_data_folders = {
     "boto3": (_get_subdir_files, "data"),
     "matplotlib": (_get_subdir_files, "mpl-data"),
     "sklearn.datasets": (_get_subdir_files, ("data", "descr")),
+    "osgeo": (_get_subdir_files, "data"),
 }
 
 

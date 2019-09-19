@@ -520,6 +520,16 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "boto3.s3.inject", False
             yield "boto3.s3.transfer", False
 
+        # GDAL imports ------------------------------------------------------
+
+        elif full_name == "osgeo":
+            yield "osgeo._gdal", False
+            yield "osgeo._gdalconst", False
+            yield "osgeo._gdal_array", False
+            yield "osgeo._gnm", False
+            yield "osgeo._ogr", False
+            yield "osgeo._osr", False
+
         # OpenCV imports ------------------------------------------------------
         elif full_name == "cv2":
             yield "numpy", True
