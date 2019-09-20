@@ -636,10 +636,10 @@ def _wrapForDebugger(*args):
 
 
 def executeMain(binary_filename, clean_path):
-    args = (binary_filename, binary_filename)
-
     if Options.shallRunInDebugger():
-        _wrapForDebugger(binary_filename)
+        args = _wrapForDebugger(binary_filename)
+    else:
+        args = (binary_filename, binary_filename)
 
     callExecPython(clean_path=clean_path, add_path=False, args=args)
 
