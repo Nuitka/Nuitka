@@ -1030,6 +1030,12 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             shutil.copy(xtwrapper_dll_path, dist_dll_path)
 
             return ((xtwrapper_dll_path, dist_dll_path, None),)
+        elif full_name == "gi._gi":
+            gtk_dll_path = locateDLL("gtk-3")
+            dist_dll_path = os.path.join(dist_dir, os.path.basename(gtk_dll_path))
+            shutil.copy(gtk_dll_path, dist_dll_path)
+
+            return ((gtk_dll_path, dist_dll_path, None),)
 
         return ()
 
