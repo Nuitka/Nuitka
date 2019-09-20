@@ -274,7 +274,7 @@ def pickSourceFilenames(source_dir, modules):
         if module.isPythonShlibModule():
             continue
 
-        base_filename = base_filename, collision_filename = _getModuleFilenames(module)
+        _base_filename, collision_filename = _getModuleFilenames(module)
 
         if collision_filename in seen_filenames:
             collision_filenames.add(collision_filename)
@@ -293,7 +293,7 @@ def pickSourceFilenames(source_dir, modules):
         if module.isPythonShlibModule():
             continue
 
-        base_filename = base_filename, collision_filename = _getModuleFilenames(module)
+        base_filename, collision_filename = _getModuleFilenames(module)
 
         if collision_filename in collision_filenames:
             collision_counts[collision_filename] = (
