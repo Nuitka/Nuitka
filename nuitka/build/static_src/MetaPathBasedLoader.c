@@ -879,11 +879,11 @@ static char *_kwlist_find_spec[] = {(char *)"fullname", (char *)"is_package", (c
 
 static PyObject *_path_unfreezer_find_spec(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
-    PyObject *unused1;
-    PyObject *unused2;
+    PyObject *unused1; // We ignore "is_package"
+    PyObject *unused2; // We ignore "path"
 
     int res =
-        PyArg_ParseTupleAndKeywords(args, kwds, "OO|O:find_spec", _kwlist_find_spec, &module_name, &unused1, &unused2);
+        PyArg_ParseTupleAndKeywords(args, kwds, "O|OO:find_spec", _kwlist_find_spec, &module_name, &unused1, &unused2);
 
     if (unlikely(res == 0)) {
         return NULL;
