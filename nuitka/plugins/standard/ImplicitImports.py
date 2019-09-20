@@ -617,6 +617,91 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "scipy._lib":
             yield "scipy._lib.messagestream", False
 
+        # pywt imports -----------------------------------------------
+        elif full_name == "pywt":
+            yield "pywt._extensions", False
+        elif full_name == "pywt._extensions":
+            yield "pywt._extensions._cwt", False
+            yield "pywt._extensions._dwt", False
+            yield "pywt._extensions._pywt", False
+            yield "pywt._extensions._swt", False
+
+        # scikit-image imports -----------------------------------------------
+        elif full_name == "skimage.draw":
+            yield "skimage.draw._draw", False
+
+        elif full_name == "skimage.external.tifffile":
+            yield "skimage.external.tifffile._tifffile", False
+
+        elif full_name == "skimage.feature":
+            yield "skimage.feature.brief_cy", False
+            yield "skimage.feature.censure_cy", False
+            yield "skimage.feature.corner_cy", False
+            yield "skimage.feature.orb_cy", False
+            yield "skimage.feature._cascade", False
+            yield "skimage.feature._haar", False
+            yield "skimage.feature._hessian_det_appx", False
+            yield "skimage.feature._hoghistogram", False
+            yield "skimage.feature._texture", False
+
+        elif full_name == "skimage.filters.rank":
+            yield "skimage.filters.rank.bilateral_cy", False
+            yield "skimage.filters.rank.core_cy", False
+            yield "skimage.filters.rank.generic_cy", False
+            yield "skimage.filters.rank.percentile_cy", False
+
+        elif full_name == "skimage.future.graph":
+            yield "skimage.future.graph._ncut_cy", False
+
+        elif full_name == "skimage.graph":
+            yield "skimage.graph.heap", False
+            yield "skimage.graph._mcp", False
+            yield "skimage.graph._spath", False
+
+        elif full_name == "skimage.io._plugins":
+            yield "skimage.io._plugins._colormixer", False
+            yield "skimage.io._plugins._histograms", False
+
+        elif full_name == "skimage.measure":
+            yield "skimage.measure._ccomp", False
+            yield "skimage.measure._find_contours_cy", False
+            yield "skimage.measure._marching_cubes_classic_cy", False
+            yield "skimage.measure._marching_cubes_lewiner_cy", False
+            yield "skimage.measure._moments_cy", False
+            yield "skimage.measure._pnpoly", False
+
+        elif full_name == "skimage.morphology":
+            yield "skimage.morphology._convex_hull", False
+            yield "skimage.morphology._extrema_cy", False
+            yield "skimage.morphology._flood_fill_cy", False
+            yield "skimage.morphology._greyreconstruct", False
+            yield "skimage.morphology._max_tree", False
+            yield "skimage.morphology._skeletonize_3d_cy", False
+            yield "skimage.morphology._skeletonize_cy", False
+            yield "skimage.morphology._watershed", False
+
+        elif full_name == "skimage.restoration":
+            yield "skimage.restoration._denoise_cy", False
+            yield "skimage.restoration._nl_means_denoising", False
+            yield "skimage.restoration._unwrap_1d", False
+            yield "skimage.restoration._unwrap_2d", False
+            yield "skimage.restoration._unwrap_3d", False
+
+        elif full_name == "skimage.segmentation":
+            yield "skimage.segmentation._felzenszwalb_cy", False
+            yield "skimage.segmentation._quickshift_cy", False
+            yield "skimage.segmentation._slic", False
+
+        elif full_name == "skimage.transform":
+            yield "skimage.transform._hough_transform", False
+            yield "skimage.transform._radon_transform", False
+            yield "skimage.transform._warps_cy", False
+
+        elif full_name == "skimage._shared":
+            yield "skimage._shared.geometry", False
+            yield "skimage._shared.interpolation", False
+            yield "skimage._shared.transform", False
+
         # scikit-learn imports ------------------------------------------------
         elif full_name == "sklearn.cluster":
             yield "sklearn.cluster._dbscan_inner", False

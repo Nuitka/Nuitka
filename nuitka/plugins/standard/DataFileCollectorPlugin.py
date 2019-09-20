@@ -20,6 +20,7 @@
 """
 
 import os
+from logging import warning
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -84,6 +85,14 @@ def _get_subdir_files(module, subdirs):
             data_dir = os.path.join(module_folder, subdir)
             file_list.extend(getFileList(data_dir))
 
+    if len(file_list) == 0:
+        msg = "No files found for '%s' in subfolder(s) '%s'." % (
+            module.getFullName(),
+            str(subdirs),
+        )
+        warning(msg)
+        return ()
+
     for f in file_list:
         yield f[filename_start:]
 
@@ -95,6 +104,8 @@ known_data_folders = {
     "matplotlib": (_get_subdir_files, "mpl-data"),
     "sklearn.datasets": (_get_subdir_files, ("data", "descr")),
     "osgeo": (_get_subdir_files, "data"),
+    "pywt": (_get_subdir_files, "data"),
+    "skimage": (_get_subdir_files, "data"),
 }
 
 
