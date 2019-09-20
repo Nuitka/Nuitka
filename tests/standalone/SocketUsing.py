@@ -29,9 +29,14 @@ import sys
 def onTimeout(_signum, _frame):
     sys.exit("Timeout occurred!")
 
-signal.signal(signal.SIGALRM, onTimeout)
-signal.alarm(5)
+# Not available on Windows, but there we didn't see the problem anyway,
+# not going to make this use threading for now.
+try:
+    signal.signal(signal.SIGALRM, onTimeout)
+except AttributeError:
+    pass
 
+signal.alarm(5)
 
 # Call to socket.getfqdn with a non-local address will cause libresolv.so glibc
 # library to be loaded
