@@ -136,17 +136,14 @@ def _openFileWindowsResources(filename):
     import ctypes
 
     if type(filename) is str and str is not bytes:
-        BeginUpdateResource = (
-            ctypes.windll.kernel32.BeginUpdateResourceW  # @UndefinedVariable
-        )
+        BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceW
+        BeginUpdateResource.argtypes = [ctypes.wintypes.LPCWSTR, ctypes.wintypes.BOOL]
     else:
-        BeginUpdateResource = (
-            ctypes.windll.kernel32.BeginUpdateResourceA  # @UndefinedVariable
-        )
-
-    BeginUpdateResource.argtypes = [ctypes.wintypes.LPVOID, ctypes.wintypes.BOOL]
+        BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceA
+        BeginUpdateResource.argtypes = [ctypes.wintypes.LPCSTR, ctypes.wintypes.BOOL]
 
     BeginUpdateResource.restype = ctypes.wintypes.HANDLE
+
     update_handle = BeginUpdateResource(filename, False)
 
     if not update_handle:
@@ -243,9 +240,6 @@ def copyResourcesFromFileToFile(source_filename, target_filename, resource_kind)
 
 
 def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name):
-    import os
-    target_filename = os.path.abspath(target_filename)
-
     update_handle = _openFileWindowsResources(target_filename)
 
     _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, data)
