@@ -28,16 +28,16 @@ import socket
 import ssl
 from threading import Thread
 
-import urllib3  # @UnresolvedImport
+import urllib3
 
 # nuitka-skip-unless-imports: urllib3
 
-# running on python2
 if str is bytes:
-	from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+    # running on python2, pylint: disable=import-error,I0021
+    from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 #running on python3
 else:
-	from http.server import HTTPServer, BaseHTTPRequestHandler
+    from http.server import HTTPServer, BaseHTTPRequestHandler
 
 started = False
 

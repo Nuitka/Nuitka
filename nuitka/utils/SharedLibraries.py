@@ -140,7 +140,7 @@ def getWindowsDLLVersion(filename):
         GetFileVersionInfoSizeW = ctypes.windll.version.GetFileVersionInfoSizeW
         GetFileVersionInfoSizeW.argtypes = [
             ctypes.wintypes.LPCWSTR,
-            ctypes.wintypes.LPDWORD,  # @UndefinedVariable
+            ctypes.wintypes.LPDWORD,
         ]
         GetFileVersionInfoSizeW.restype = ctypes.wintypes.HANDLE
         size = GetFileVersionInfoSizeW(filename, None)

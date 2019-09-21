@@ -51,7 +51,7 @@ def simpleFunction1():
 # an overwrite of that, trying that math again. This should cover local access
 # a bit.
 def simpleFunction2():
-    y = 3 * x  # @UnusedVariable
+    y = 3 * x
     y = 3
 
     return x * 2 * y
@@ -572,7 +572,7 @@ def simpleFunction63():
 
 def simpleFunction64():
     x = 2
-    y = 3  # @UnusedVariable
+    y = 3
     z = eval("x * y")
 
     return z
@@ -622,27 +622,27 @@ def simpleFunction69():
 def simpleFunction70():
     def gen():
         try:
-            undefined_yyy  # @UndefinedVariable
+            undefined_yyy
         except Exception:
             pass
 
         yield sys.exc_info()
 
     try:
-        undefined_xxx  # @UndefinedVariable
+        undefined_xxx
     except Exception:
         return list(gen())
 
 
 def simpleFunction71():
     try:
-        undefined_global  # @UndefinedVariable
+        undefined_global
     except Exception:
         try:
             try:
                 raise
             finally:
-                undefined_global  # @UndefinedVariable
+                undefined_global
         except Exception:
             pass
 
@@ -651,7 +651,7 @@ def simpleFunction72():
     try:
         for _i in range(10):
             try:
-                undefined_global  # @UndefinedVariable
+                undefined_global
             finally:
                 break
     except Exception:
@@ -661,7 +661,7 @@ def simpleFunction72():
 def simpleFunction73():
     for _i in range(10):
         try:
-            undefined_global  # @UndefinedVariable
+            undefined_global
         finally:
             return 7
 

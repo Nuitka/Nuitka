@@ -1119,12 +1119,8 @@ def getConstantsDefinitionCode(context):
         sys_exec_prefix = context.getConstantCode(sys.exec_prefix)
 
         if python_version >= 300:
-            sys_base_prefix = context.getConstantCode(
-                sys.base_prefix  # @UndefinedVariable
-            )
-            sys_base_exec_prefix = context.getConstantCode(
-                sys.base_exec_prefix  # @UndefinedVariable
-            )
+            sys_base_prefix = context.getConstantCode(sys.base_prefix)
+            sys_base_exec_prefix = context.getConstantCode(sys.base_exec_prefix)
 
     major, minor, micro = getNuitkaVersion().split(".")[:3]
 

@@ -123,14 +123,9 @@ def detectFunctionBodyKind(nodes, start_value=None):
 
         if node_class is ast.Yield:
             indications.add("Generator")
-        elif (
-            python_version >= 300 and node_class is ast.YieldFrom  # @UndefinedVariable
-        ):
+        elif python_version >= 300 and node_class is ast.YieldFrom:
             indications.add("Generator")
-        elif python_version >= 350 and node_class in (
-            ast.Await,  # @UndefinedVariable
-            ast.AsyncWith,  # @UndefinedVariable
-        ):
+        elif python_version >= 350 and node_class in (ast.Await, ast.AsyncWith):
             indications.add("Coroutine")
 
         # Recurse to children, but do not cross scope boundary doing so.
@@ -150,8 +145,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                 else:
                     assert False, (name, field, ast.dump(node))
         elif node_class in (ast.FunctionDef, ast.Lambda) or (
-            python_version >= 350
-            and node_class is ast.AsyncFunctionDef  # @UndefinedVariable
+            python_version >= 350 and node_class is ast.AsyncFunctionDef
         ):
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body"):
@@ -212,7 +206,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                     _check(field)
                 else:
                     assert False, (name, field, ast.dump(node))
-        elif python_version >= 270 and node_class is ast.SetComp:  # @UndefinedVariable
+        elif python_version >= 270 and node_class is ast.SetComp:
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body", "comparators", "elt"):
                     pass
@@ -220,7 +214,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                     _check(field[0].iter)
                 else:
                     assert False, (name, field, ast.dump(node))
-        elif python_version >= 270 and node_class is ast.DictComp:  # @UndefinedVariable
+        elif python_version >= 270 and node_class is ast.DictComp:
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body", "comparators", "key", "value"):
                     pass
@@ -231,7 +225,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
         elif node_class is ast.Name:
             if python_version >= 300 and node.id == "super":
                 flags.add("has_super")
-        elif python_version < 300 and node_class is ast.Exec:  # @UndefinedVariable
+        elif python_version < 300 and node_class is ast.Exec:
             flags.add("has_exec")
 
             if node.globals is None:
@@ -367,7 +361,7 @@ def buildAnnotationNode(provider, node, source_ref):
         # there is no accessible "ast.unparse", and this works as a hack
         # to convert our node to a string annotation, pylint: disable=exec-used
         m = {}
-        exec(r, m)  # @UndefinedVariable
+        exec(r, m)
 
         return makeConstantRefNode(
             constant=m["__annotations__"]["x"], source_ref=source_ref

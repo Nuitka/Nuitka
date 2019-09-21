@@ -124,9 +124,7 @@ def isUninstalledPython():
     if os.name == "nt":
         import ctypes.wintypes
 
-        GetSystemDirectory = (
-            ctypes.windll.kernel32.GetSystemDirectoryW
-        )  # @UndefinedVariable
+        GetSystemDirectory = ctypes.windll.kernel32.GetSystemDirectoryW
         GetSystemDirectory.argtypes = (ctypes.wintypes.LPWSTR, ctypes.wintypes.DWORD)
         GetSystemDirectory.restype = ctypes.wintypes.DWORD
 
@@ -148,7 +146,7 @@ def getRunningPythonDLLPath():
     MAX_PATH = 4096
     buf = ctypes.create_unicode_buffer(MAX_PATH)
 
-    GetModuleFileName = ctypes.windll.kernel32.GetModuleFileNameW  # @UndefinedVariable
+    GetModuleFileName = ctypes.windll.kernel32.GetModuleFileNameW
     GetModuleFileName.argtypes = (
         ctypes.wintypes.HANDLE,
         ctypes.wintypes.LPWSTR,
@@ -162,7 +160,7 @@ def getRunningPythonDLLPath():
         # Windows only code, pylint: disable=I0021,undefined-variable
         raise WindowsError(
             ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
-        )  # @UndefinedVariable
+        )
 
     dll_path = os.path.normcase(buf.value)
     assert os.path.exists(dll_path), dll_path

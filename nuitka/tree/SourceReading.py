@@ -39,7 +39,7 @@ def _readSourceCodeFromFilename3(source_filename):
     # Only using this for Python3, for Python2 it's too buggy.
     import tokenize
 
-    with tokenize.open(source_filename) as source_file:  # @UndefinedVariable
+    with tokenize.open(source_filename) as source_file:
         return source_file.read()
 
 

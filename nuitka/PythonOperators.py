@@ -56,13 +56,13 @@ binary_operator_functions = {
 
 # Python 2 only operator
 if python_version < 300:
-    binary_operator_functions["Div"] = operator.div  # @UndefinedVariable
-    binary_operator_functions["IDiv"] = operator.idiv  # @UndefinedVariable
+    binary_operator_functions["Div"] = operator.div
+    binary_operator_functions["IDiv"] = operator.idiv
 
 # Python 3.5 only operator
 if python_version >= 350:
-    binary_operator_functions["MatMult"] = operator.matmul  # @UndefinedVariable
-    binary_operator_functions["IMatMult"] = operator.imatmul  # @UndefinedVariable
+    binary_operator_functions["MatMult"] = operator.matmul
+    binary_operator_functions["IMatMult"] = operator.imatmul
 
 unary_operator_functions = {
     "UAdd": operator.pos,

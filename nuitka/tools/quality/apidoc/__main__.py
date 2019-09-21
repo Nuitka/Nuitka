@@ -69,7 +69,7 @@ Default is %default.""",
         sys.exit("Error, need to install Doxygen and add it to PATH for this to work.")
 
     try:
-        import doxypypy  # @UnusedImport pylint: disable=I0021,unused-import,unused-variable
+        import doxypypy  # pylint: disable=I0021,unused-import,unused-variable
     except ImportError:
         sys.exit("Error, needs to install doxypypy into this Python.")
 

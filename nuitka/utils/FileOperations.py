@@ -351,7 +351,7 @@ def getWindowsShortPathName(filename):
     """
     import ctypes.wintypes
 
-    GetShortPathNameW = ctypes.windll.kernel32.GetShortPathNameW  # @UndefinedVariable
+    GetShortPathNameW = ctypes.windll.kernel32.GetShortPathNameW
     GetShortPathNameW.argtypes = [
         ctypes.wintypes.LPCWSTR,
         ctypes.wintypes.LPWSTR,

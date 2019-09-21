@@ -23,7 +23,7 @@ if __name__ == "__main__":
     # On Windows this Scons variable must be set by us.
     os.environ["SCONS_LIB_DIR"] = sys.path[0]
 
-    import SCons.Script  # @UnresolvedImport
+    import SCons.Script  # pylint: disable=import-error
 
     # this does all the work, and calls sys.exit
     # with the proper exit status when done.

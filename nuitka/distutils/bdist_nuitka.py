@@ -19,13 +19,13 @@
 
 """
 
-import distutils.command.build  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
-import distutils.command.install  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+import distutils.command.build  # pylint: disable=I0021,import-error,no-name-in-module
+import distutils.command.install  # pylint: disable=I0021,import-error,no-name-in-module
 import os
 import subprocess
 import sys
 
-import wheel.bdist_wheel  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+import wheel.bdist_wheel  # pylint: disable=I0021,import-error,no-name-in-module
 
 
 def setuptools_build_hook(dist, keyword, value):

@@ -99,7 +99,7 @@ constructs fully away. Default is %default.""",
         "--skip-standalone-tests",
         action="store_false",
         dest="standalone_tests",
-        default=os.name != "posix" or os.uname()[0] != "NetBSD",  # @UndefinedVariable
+        default=os.name != "posix" or os.uname()[0] != "NetBSD",
         help="""\
 The standalone tests, execute these to check if Nuitka standalone mode, e.g.
 not referring to outside, important 3rd library packages like PyQt fine.

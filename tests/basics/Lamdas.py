@@ -40,7 +40,7 @@ def lamdaContainer(x):
     if "a" <= ("1" if x else "2") > "z":
         print("Yes2")
 
-    if "a" <= ("1" if x else "2") > "z" > undefined_global:  # @UndefinedVariable
+    if "a" <= ("1" if x else "2") > "z" > undefined_global:
         print("Yes3")
 
     z = lambda huhu=y: huhu

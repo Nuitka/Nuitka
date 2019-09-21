@@ -100,7 +100,7 @@ def tryScope5():
     print("Exception info is initially", sys.exc_info())
     try:
         try:
-            undefined_global += 1  # @UndefinedVariable
+            undefined_global += 1
         finally:
             print("Exception info in 'finally' clause is", sys.exc_info())
     except:

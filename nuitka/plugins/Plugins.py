@@ -365,7 +365,7 @@ def isObjectAUserPluginBaseClass(obj):
 def importFilePy3NewWay(filename):
     """ Import a file for Python versions 3.5+.
     """
-    import importlib.util  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+    import importlib.util  # pylint: disable=I0021,import-error,no-name-in-module
 
     spec = importlib.util.spec_from_file_location(filename, filename)
     user_plugin_module = importlib.util.module_from_spec(spec)
@@ -377,7 +377,7 @@ def importFilePy3OldWay(filename):
     """ Import a file for Python versions 3.x where x < 5.
     """
     from importlib.machinery import (  # pylint: disable=I0021,import-error,no-name-in-module
-        SourceFileLoader,  # @UnresolvedImport
+        SourceFileLoader,
     )
 
     # pylint: disable=I0021,deprecated-method

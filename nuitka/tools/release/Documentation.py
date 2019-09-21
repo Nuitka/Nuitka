@@ -93,7 +93,7 @@ def makeLogoImages():
 
 
 def checkRstLint(document):
-    import restructuredtext_lint  # @UnresolvedImport pylint: disable=I0021,import-error
+    import restructuredtext_lint  # pylint: disable=I0021,import-error
 
     print("Checking %r for proper restructed text ..." % document)
     lint_results = restructuredtext_lint.lint_file(document, encoding="utf8")

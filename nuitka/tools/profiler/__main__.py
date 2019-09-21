@@ -29,7 +29,7 @@ import runpy
 import sys
 import tempfile
 
-import vmprof  # @UnresolvedImport pylint: disable=I0021,import-error
+import vmprof  # pylint: disable=I0021,import-error
 
 
 def _namelen(e):

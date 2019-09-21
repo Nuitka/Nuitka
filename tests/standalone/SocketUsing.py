@@ -33,10 +33,10 @@ def onTimeout(_signum, _frame):
 # not going to make this use threading for now.
 try:
     signal.signal(signal.SIGALRM, onTimeout)
+    signal.alarm(5)
 except AttributeError:
     pass
 
-signal.alarm(5)
 
 # Call to socket.getfqdn with a non-local address will cause libresolv.so glibc
 # library to be loaded

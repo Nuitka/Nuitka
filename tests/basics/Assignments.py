@@ -186,7 +186,7 @@ def multiTargetInterrupt():
 
     print("Multiple, overlapping targets", end="")
 
-    d = c, d = a, b  # @UnusedVariable
+    d = c, d = a, b
     print(d, c, end="")
 
     del c

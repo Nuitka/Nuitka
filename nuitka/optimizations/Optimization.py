@@ -569,7 +569,7 @@ def makeOptimizationPass(initial_pass):
 
 
 def _checkXMLPersistence():
-    new_roots = ModuleRegistry.root_modules.__class__()  # @UndefinedVariable
+    new_roots = ModuleRegistry.root_modules.__class__()
 
     for module in tuple(ModuleRegistry.getDoneModules()):
         ModuleRegistry.root_modules.remove(module)

@@ -192,7 +192,7 @@ def attributeOrderCheck():
 
     print("Checking attribute assignment to unassigned value from unassigned:")
     try:
-        undefined_global_zzz.xxx = undefined_global_yyy  # @UndefinedVariable
+        undefined_global_zzz.xxx = undefined_global_yyy
     except Exception as e:
         print("Expected exception caught:", repr(e))
     else:
@@ -394,7 +394,7 @@ def unpackOrderCheck():
 def superOrderCheck():
     print("Built-in super:")
     try:
-        super(zzz, xxx)  # @UndefinedVariable
+        super(zzz, xxx)
     except Exception as e:
         print("Expected exception caught super 2", repr(e))
 
@@ -402,7 +402,7 @@ def superOrderCheck():
 def isinstanceOrderCheck():
     print("Built-in isinstance:")
     try:
-        isinstance(zzz, xxx)  # @UndefinedVariable
+        isinstance(zzz, xxx)
     except Exception as e:
         print("Expected exception caught isinstance 2", repr(e))
 
@@ -410,12 +410,12 @@ def isinstanceOrderCheck():
 def rangeOrderCheck():
     print("Built-in range:")
     try:
-        range(zzz, yyy, xxx)  # @UndefinedVariable
+        range(zzz, yyy, xxx)
     except Exception as e:
         print("Expected exception caught range 3", repr(e))
 
     try:
-        range(zzz, xxx)  # @UndefinedVariable
+        range(zzz, xxx)
     except Exception as e:
         print("Expected exception caught range 2", repr(e))
 
@@ -447,7 +447,7 @@ def importOrderCheck():
 def hasattrOrderCheck():
     print("Built-in hasattr:")
     try:
-        hasattr(zzz, yyy)  # @UndefinedVariable
+        hasattr(zzz, yyy)
     except Exception as e:
         print("Expected exception caught hasattr", repr(e))
 
@@ -455,12 +455,12 @@ def hasattrOrderCheck():
 def getattrOrderCheck():
     print("Built-in getattr:")
     try:
-        getattr(zzz, yyy)  # @UndefinedVariable
+        getattr(zzz, yyy)
     except Exception as e:
         print("Expected exception caught getattr 2", repr(e))
 
     try:
-        getattr(zzz, yyy, xxx)  # @UndefinedVariable
+        getattr(zzz, yyy, xxx)
     except Exception as e:
         print("Expected exception caught getattr 3", repr(e))
 
@@ -474,7 +474,7 @@ def getattrOrderCheck():
 def typeOrderCheck():
     print("Built-in type:")
     try:
-        type(zzz, yyy, xxx)  # @UndefinedVariable
+        type(zzz, yyy, xxx)
     except Exception as e:
         print("Expected exception caught type 3", repr(e))
 
@@ -482,7 +482,7 @@ def typeOrderCheck():
 def iterOrderCheck():
     print("Built-in iter:")
     try:
-        iter(zzz, xxx)  # @UndefinedVariable
+        iter(zzz, xxx)
     except Exception as e:
         print("Expected exception caught iter 2", repr(e))
 
@@ -490,7 +490,7 @@ def iterOrderCheck():
 def openOrderCheck():
     print("Built-in open:")
     try:
-        open(zzz, yyy, xxx)  # @UndefinedVariable
+        open(zzz, yyy, xxx)
     except Exception as e:
         print("Expected exception caught open 3", repr(e))
 
@@ -498,7 +498,7 @@ def openOrderCheck():
 def unicodeOrderCheck():
     print("Built-in unicode:")
     try:
-        unicode(zzz, yyy, xxx)  # @UndefinedVariable
+        unicode(zzz, yyy, xxx)
     except Exception as e:
         print("Expected exception caught unicode", repr(e))
 
@@ -506,7 +506,7 @@ def unicodeOrderCheck():
 def longOrderCheck():
     print("Built-in long:")
     try:
-        long(zzz, xxx)  # @UndefinedVariable
+        long(zzz, xxx)
     except Exception as e:
         print("Expected exception caught long 2", repr(e))
 
@@ -514,7 +514,7 @@ def longOrderCheck():
 def intOrderCheck():
     print("Built-in int:")
     try:
-        int(zzz, xxx)  # @UndefinedVariable
+        int(zzz, xxx)
     except Exception as e:
         print("Expected exception caught int", repr(e))
 
@@ -522,7 +522,7 @@ def intOrderCheck():
 def nextOrderCheck():
     print("Built-in next:")
     try:
-        next(zzz, xxx)  # @UndefinedVariable
+        next(zzz, xxx)
     except Exception as e:
         print("Expected exception caught next 2", repr(e))
 

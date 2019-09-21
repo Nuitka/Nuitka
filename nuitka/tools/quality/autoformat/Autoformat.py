@@ -136,10 +136,10 @@ def _updateCommentNode(comment_node):
 
 def _cleanupPyLintComments(filename, abort):
     from baron.parser import (  # pylint: disable=I0021,import-error,no-name-in-module
-        ParsingError,  # @UnresolvedImport
+        ParsingError,
     )
     from redbaron import (  # pylint: disable=I0021,import-error,no-name-in-module
-        RedBaron,  # @UnresolvedImport
+        RedBaron,
     )
 
     old_code = getFileContents(filename)

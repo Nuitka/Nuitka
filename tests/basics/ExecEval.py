@@ -56,7 +56,7 @@ print "eval in a for loop as iterator giver", functionEval3()
 
 print "exec on a global level",
 exec ("d=2+2")
-print "2+2=", d  # @UndefinedVariable
+print "2+2=", d
 
 
 def functionExec1():
@@ -87,7 +87,7 @@ f.close()
 
 execfile(tmp_filename)
 
-print "execfile with defaults f,g=", e, f  # @UndefinedVariable
+print "execfile with defaults f,g=", e, f
 
 global_vars = {"e": "0", "f": 0}
 local_vars = dict(global_vars)
@@ -295,7 +295,7 @@ def functionWithExecAffectingClosure():
     def closureMaker():
         return x
 
-    return d, closureMaker()  # @UndefinedVariable
+    return d, closureMaker()
 
 
 print "Closure in a function with exec to not none", functionWithExecAffectingClosure()
@@ -333,7 +333,7 @@ def makeAddPair(a, b):
 """ in locals()
 
     if sys.version_info < (3,):
-        assert makeAddPair  # @UndefinedVariable
+        assert makeAddPair
 
     return "yes"
 

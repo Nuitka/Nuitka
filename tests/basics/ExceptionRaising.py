@@ -73,7 +73,7 @@ print("Access an undefined global variable in a function:")
 
 
 def raiseNonGlobalError():
-    return undefined_value  # @UndefinedVariable
+    return undefined_value
 
 
 try:
@@ -426,7 +426,7 @@ def yieldExceptionInteraction2():
         yield sys.exc_info()[0]
 
     try:
-        undefined_global  # @UndefinedVariable
+        undefined_global
     except Exception:
         print("Checking from outside of generator with", sys.exc_info()[0])
         g = yield_raise()
@@ -522,7 +522,7 @@ def wideCatchMustPublishException():
     print("At entry, no exception", sys.exc_info())
 
     try:
-        undefined_global  # @UndefinedVariable
+        undefined_global
     except:
         print("Inside handler:", sys.exc_info())
 

@@ -50,7 +50,7 @@ def getStandardLibraryPaths():
         # Happens for virtualenv situation, some modules will come from the link
         # this points to.
         if os.path.islink(os_filename):
-            os_filename = os.readlink(os_filename)  # @UndefinedVariable
+            os_filename = os.readlink(os_filename)
             stdlib_paths.add(os.path.normcase(os.path.dirname(os_filename)))
 
         # Another possibility is "orig-prefix.txt" file near the os.py, which
@@ -85,11 +85,7 @@ def getStandardLibraryPaths():
         python_link_filename = os.path.join(os_path, "..", ".Python")
         if os.path.islink(python_link_filename):
             stdlib_paths.add(
-                os.path.normcase(
-                    os.path.join(
-                        os.readlink(python_link_filename), "lib"  # @UndefinedVariable
-                    )
-                )
+                os.path.normcase(os.path.join(os.readlink(python_link_filename), "lib"))
             )
 
         for stdlib_path in set(stdlib_paths):

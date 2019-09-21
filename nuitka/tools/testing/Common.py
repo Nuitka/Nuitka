@@ -825,7 +825,7 @@ def checkReferenceCount(checked_function, max_rounds=10):
     assert max_rounds > 0
     for count in range(max_rounds):
         gc.collect()
-        ref_count1 = sys.gettotalrefcount()  # @UndefinedVariable
+        ref_count1 = sys.gettotalrefcount()
 
         if explain and count == max_rounds - 1:
             snapObjRefCntMap(True)
@@ -840,7 +840,7 @@ def checkReferenceCount(checked_function, max_rounds=10):
         if explain and count == max_rounds - 1:
             snapObjRefCntMap(False)
 
-        ref_count2 = sys.gettotalrefcount()  # @UndefinedVariable
+        ref_count2 = sys.gettotalrefcount()
 
         if ref_count1 == ref_count2:
             result = True
@@ -1144,7 +1144,7 @@ except Exception as __e:
             continue
 
         if inside and line and line[0].isalnum() and not isOpener(line):
-            output.append(getTried("\n".join(chunk), line_number))  # @UndefinedVariable
+            output.append(getTried("\n".join(chunk), line_number))
 
             chunk = []
             inside = False
@@ -1250,7 +1250,7 @@ def async_iterate(g):
     while True:
         try:
             g.__anext__().__next__()
-        except StopAsyncIteration:  # @UndefinedVariable
+        except StopAsyncIteration:
             res.append("STOP")
             break
         except StopIteration as ex:

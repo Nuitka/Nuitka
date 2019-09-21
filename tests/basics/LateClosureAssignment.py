@@ -45,7 +45,7 @@ def closureTest2():
 
 def closureTest3():
     def subby():
-        return undefined_global  # @UndefinedVariable
+        return undefined_global
 
     try:
         return subby()

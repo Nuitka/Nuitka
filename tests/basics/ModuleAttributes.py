@@ -32,7 +32,7 @@ print("debug in builtins", __builtins__.__debug__)
 
 print("__initializing__", end=" ")
 try:
-    print(__initializing__)  # @UndefinedVariable
+    print(__initializing__)
 except NameError:
     print("not found")
 
