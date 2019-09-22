@@ -969,13 +969,18 @@ def checkDebugPython():
         sys.gettotalrefcount = lambda: 0
 
 
-def addToPythonPath(python_path):
+def addToPythonPath(python_path, in_front=False):
     if type(python_path) in (tuple, list):
         python_path = os.pathsep.join(python_path)
 
     if python_path:
         if "PYTHONPATH" in os.environ:
-            os.environ["PYTHONPATH"] += os.pathsep + python_path
+            if in_front:
+                os.environ["PYTHONPATH"] = (
+                    python_path + os.pathsep + os.environ["PYTHONPATH"]
+                )
+            else:
+                os.environ["PYTHONPATH"] += os.pathsep + python_path
         else:
             os.environ["PYTHONPATH"] = python_path
 
