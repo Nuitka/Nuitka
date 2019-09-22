@@ -259,7 +259,7 @@ PyObject *modulecode_%(module_identifier)s(char const *module_full_name) {
 #elif %(is_package)s
         PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
 
-        UPDATE_STRING_DICT1(
+        UPDATE_STRING_DICT0(
             moduledict_%(module_identifier)s,
             (Nuitka_StringObject *)const_str_plain___package__,
             module_name
