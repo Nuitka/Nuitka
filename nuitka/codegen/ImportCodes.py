@@ -156,12 +156,9 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
                 """\
 {
     PyObject *module = PyImport_ImportModule("%(module_name)s");
-    if (likely( module != NULL ))
-    {
-        %(to_name)s = PyObject_GetAttr( module, %(import_name)s );
-    }
-    else
-    {
+    if (likely(module != NULL)) {
+        %(to_name)s = PyObject_GetAttr(module, %(import_name)s);
+    } else {
         %(to_name)s = NULL;
     }
 }
@@ -246,17 +243,14 @@ def generateImportNameCode(to_name, expression, emit, context):
         if level and python_version >= 350:
             emit(
                 """\
-if ( PyModule_Check( %(from_arg_name)s ) )
-{
+if (PyModule_Check(%(from_arg_name)s)) {
    %(to_name)s = IMPORT_NAME_OR_MODULE(
         %(from_arg_name)s,
         (PyObject *)moduledict_%(module_identifier)s,
         %(import_name)s,
         %(import_level)s
     );
-}
-else
-{
+} else {
    %(to_name)s = IMPORT_NAME( %(from_arg_name)s, %(import_name)s );
 }
 """

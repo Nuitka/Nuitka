@@ -77,8 +77,8 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 template_function_exception_exit = """\
 function_exception_exit:
 %(function_cleanup)s\
-    assert( %(exception_type)s );
-    RESTORE_ERROR_OCCURRED( %(exception_type)s, %(exception_value)s, %(exception_tb)s );
+    assert(%(exception_type)s);
+    RESTORE_ERROR_OCCURRED(%(exception_type)s, %(exception_value)s, %(exception_tb)s);
 
     return NULL;
 """
@@ -90,13 +90,12 @@ function_return_exit:
 
    // Actual function exit with return value, making sure we did not make
    // the error status worse despite non-NULL return.
-   CHECK_OBJECT( tmp_return_value );
-   assert( had_error || !ERROR_OCCURRED() );
+   CHECK_OBJECT(tmp_return_value);
+   assert(had_error || !ERROR_OCCURRED());
    return tmp_return_value;"""
 
 function_direct_body_template = """\
-%(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s )
-{
+%(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s ) {
 #ifndef __NUITKA_NO_ASSERT__
     NUITKA_MAY_BE_UNUSED bool had_error = ERROR_OCCURRED();
     assert(!had_error); // Do not enter inlined functions with error set.

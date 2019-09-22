@@ -95,13 +95,10 @@ def generateExceptionCaughtTracebackCode(to_name, expression, emit, context):
         else:
             emit(
                 """\
-if ( %(keeper_tb)s != NULL )
-{
+if (%(keeper_tb)s != NULL) {
     %(to_name)s = (PyObject *)%(keeper_tb)s;
     Py_INCREF(%(to_name)s);
-}
-else
-{
+} else {
     %(to_name)s = (PyObject *)%(tb_making)s;
 }
 """

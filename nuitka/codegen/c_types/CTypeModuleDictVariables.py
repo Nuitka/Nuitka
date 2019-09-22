@@ -43,7 +43,7 @@ class CTypeModuleDictVariable(CTypeBase):
             emit("if (%s != %s) {" % (orig_name, tmp_name))
 
             emit(
-                "UPDATE_STRING_DICT_INPLACE( moduledict_%s, (Nuitka_StringObject *)%s, %s );"
+                "UPDATE_STRING_DICT_INPLACE(moduledict_%s, (Nuitka_StringObject *)%s, %s);"
                 % (
                     context.getModuleCodeName(),
                     context.getConstantCode(constant=value_name.code_name),
@@ -55,7 +55,7 @@ class CTypeModuleDictVariable(CTypeBase):
 
         else:
             emit(
-                "UPDATE_STRING_DICT%s( moduledict_%s, (Nuitka_StringObject *)%s, %s );"
+                "UPDATE_STRING_DICT%s(moduledict_%s, (Nuitka_StringObject *)%s, %s);"
                 % (
                     ref_count,
                     context.getModuleCodeName(),

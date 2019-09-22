@@ -80,8 +80,8 @@ def generateListOperationAppendCode(statement, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("assert( PyList_Check( %s ) );" % list_arg_name)
-    emit("%s = PyList_Append( %s, %s );" % (res_name, list_arg_name, value_arg_name))
+    emit("assert(PyList_Check(%s));" % list_arg_name)
+    emit("%s = PyList_Append(%s, %s);" % (res_name, list_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,
@@ -96,13 +96,13 @@ def generateListOperationExtendCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    emit("assert( PyList_Check( %s ) );" % list_arg_name)
+    emit("assert(PyList_Check(%s));" % list_arg_name)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "list_extend_result", expression, emit, context
     ) as result_name:
         emit(
-            "%s = _PyList_Extend( (PyListObject *)%s, %s );"
+            "%s = _PyList_Extend((PyListObject *)%s, %s);"
             % (result_name, list_arg_name, value_arg_name)
         )
 
@@ -121,7 +121,7 @@ def generateListOperationPopCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    emit("assert( PyList_Check( %s ) );" % list_arg_name)
+    emit("assert(PyList_Check( %s ));" % list_arg_name)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "list_extend_result", expression, emit, context
@@ -129,7 +129,7 @@ def generateListOperationPopCode(to_name, expression, emit, context):
 
         # TODO: Have a dedicated helper instead, this could be more efficient.
         emit(
-            '%s = PyObject_CallMethod(  %s, (char *)"pop", NULL );'
+            '%s = PyObject_CallMethod(%s, (char *)"pop", NULL);'
             % (result_name, list_arg_name)
         )
 

@@ -376,33 +376,31 @@ extern PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject
 """
 
 template_call_method_with_args_impl = """\
-PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_name, PyObject **args )
-{
-    CHECK_OBJECT( source );
-    CHECK_OBJECT( attr_name );
+PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_name, PyObject **args ) {
+    CHECK_OBJECT(source);
+    CHECK_OBJECT(attr_name);
 
     // Check if arguments are valid objects in debug mode.
 #ifndef __NUITKA_NO_ASSERT__
-    for (size_t i = 0; i < %(args_count)d; i++)
-    {
-        CHECK_OBJECT( args[ i ] );
+    for (size_t i = 0; i < %(args_count)d; i++) {
+        CHECK_OBJECT(args[ i ]);
     }
 #endif
 
-    PyTypeObject *type = Py_TYPE( source );
+    PyTypeObject *type = Py_TYPE(source);
 
-    if ( type->tp_getattro == PyObject_GenericGetAttr ) {
+    if (type->tp_getattro == PyObject_GenericGetAttr) {
         // Unfortunately this is required, although of cause rarely necessary.
-        if (unlikely( type->tp_dict == NULL )) {
-            if (unlikely( PyType_Ready( type ) < 0 )) {
+        if (unlikely(type->tp_dict == NULL)) {
+            if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
             }
         }
 
-        PyObject *descr = _PyType_Lookup( type, attr_name );
+        PyObject *descr = _PyType_Lookup(type, attr_name);
         descrgetfunc func = NULL;
 
-        if ( descr != NULL )
+        if (descr != NULL)
         {
             Py_INCREF(descr);
 
@@ -452,15 +450,15 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
             dict = *dictptr;
         }
 
-        if ( dict != NULL )
+        if (dict != NULL)
         {
-            CHECK_OBJECT( dict );
+            CHECK_OBJECT(dict);
 
             Py_INCREF(dict);
 
-            PyObject *called_object = PyDict_GetItem( dict, attr_name );
+            PyObject *called_object = PyDict_GetItem(dict, attr_name);
 
-            if ( called_object != NULL )
+            if (called_object != NULL)
             {
                 Py_INCREF(called_object);
                 Py_XDECREF(descr);
@@ -477,10 +475,8 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
             Py_DECREF(dict);
         }
 
-        if ( func != NULL )
-        {
-            if ( func == Nuitka_Function_Type.tp_descr_get )
-            {
+        if (func != NULL) {
+            if (func == Nuitka_Function_Type.tp_descr_get) {
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(
                     (struct Nuitka_FunctionObject const *)descr,
                     source,
@@ -491,11 +487,9 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
                 Py_DECREF(descr);
 
                 return result;
-            }
-            else
-            {
-                PyObject *called_object = func( descr, source, (PyObject *)type );
-                CHECK_OBJECT( called_object );
+            } else {
+                PyObject *called_object = func(descr, source, (PyObject *)type);
+                CHECK_OBJECT(called_object);
 
                 Py_DECREF(descr);
 
@@ -509,9 +503,8 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
             }
         }
 
-        if ( descr != NULL )
-        {
-            CHECK_OBJECT( descr );
+        if (descr != NULL) {
+            CHECK_OBJECT(descr);
 
             PyObject *result = CALL_FUNCTION_WITH_ARGS%(args_count)d(
                 descr,
@@ -540,14 +533,13 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
         return NULL;
     }
 #if PYTHON_VERSION < 300
-    else if ( type == &PyInstance_Type )
-    {
+    else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
         // The special cases have their own variant on the code generation level
         // as we are called with constants only.
-        assert( attr_name != const_str_plain___dict__ );
-        assert( attr_name != const_str_plain___class__ );
+        assert(attr_name != const_str_plain___dict__);
+        assert(attr_name != const_str_plain___class__);
 
         // Try the instance dict first.
         PyObject *called_object = GET_STRING_DICT_VALUE(
@@ -557,8 +549,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
 
         // Note: The "called_object" was found without taking a reference,
         // so we need not release it in this branch.
-        if ( called_object != NULL )
-        {
+        if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS%(args_count)d( called_object, args );
         }
 
@@ -570,12 +561,10 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
 
         // Note: The "called_object" was found without taking a reference,
         // so we need not release it in this branch.
-        if ( called_object != NULL )
-        {
+        if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE( called_object )->tp_descr_get;
 
-            if ( descr_get == Nuitka_Function_Type.tp_descr_get )
-            {
+            if ( descr_get == Nuitka_Function_Type.tp_descr_get ) {
                 return Nuitka_CallMethodFunctionPosArgs(
                     (struct Nuitka_FunctionObject const *)called_object,
                     source,
@@ -583,31 +572,25 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
                     %(args_count)d
                 );
             }
-            else if ( descr_get != NULL )
-            {
+            else if (descr_get != NULL) {
                 PyObject *method = descr_get(
                     called_object,
                     source,
                     (PyObject *)source_instance->in_class
                 );
 
-                if (unlikely( method == NULL ))
-                {
+                if (unlikely(method == NULL)) {
                     return NULL;
                 }
 
-                PyObject *result = CALL_FUNCTION_WITH_ARGS%(args_count)d( method, args );
+                PyObject *result = CALL_FUNCTION_WITH_ARGS%(args_count)d(method, args);
                 Py_DECREF(method);
                 return result;
-            }
-            else
-            {
-                return CALL_FUNCTION_WITH_ARGS%(args_count)d( called_object, args );
+            } else {
+                return CALL_FUNCTION_WITH_ARGS%(args_count)d(called_object, args);
             }
 
-        }
-        else if (unlikely( source_instance->in_class->cl_getattr == NULL ))
-        {
+        } else if (unlikely(source_instance->in_class->cl_getattr == NULL)) {
             PyErr_Format(
                 PyExc_AttributeError,
                 "%%s instance has no attribute '%%s'",
@@ -616,9 +599,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
             );
 
             return NULL;
-        }
-        else
-        {
+        } else {
             // Finally allow the "__getattr__" override to provide it or else
             // it's an error.
 
@@ -632,7 +613,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
                 args2
             );
 
-            if (unlikely( called_object == NULL ))
+            if (unlikely(called_object == NULL))
             {
                 return NULL;
             }
@@ -646,8 +627,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
         }
     }
 #endif
-    else if ( type->tp_getattro != NULL )
-    {
+    else if (type->tp_getattro != NULL) {
         PyObject *called_object = (*type->tp_getattro)(
             source,
             attr_name
@@ -669,10 +649,10 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
     {
         PyObject *called_object = (*type->tp_getattr)(
             source,
-            (char *)Nuitka_String_AsString_Unchecked( attr_name )
+            (char *)Nuitka_String_AsString_Unchecked(attr_name)
         );
 
-        if (unlikely( called_object == NULL ))
+        if (unlikely(called_object == NULL))
         {
             return NULL;
         }
@@ -683,14 +663,12 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
         );
         Py_DECREF(called_object);
         return result;
-    }
-    else
-    {
+    } else {
         PyErr_Format(
             PyExc_AttributeError,
             "'%%s' object has no attribute '%%s'",
             type->tp_name,
-            Nuitka_String_AsString_Unchecked( attr_name )
+            Nuitka_String_AsString_Unchecked(attr_name)
         );
 
         return NULL;

@@ -143,18 +143,14 @@ extern void _initCompiledAsyncgenTypes();
 extern PyTypeObject Nuitka_Loader_Type;
 
 // Internal entry point for module code.
-PyObject *modulecode_%(module_identifier)s(char const *module_full_name)
-{
+PyObject *modulecode_%(module_identifier)s(char const *module_full_name) {
 #if defined(_NUITKA_EXE) || PYTHON_VERSION >= 300
     static bool _init_done = false;
 
     // Modules might be imported repeatedly, which is to be ignored.
-    if (_init_done)
-    {
+    if (_init_done) {
         return module_%(module_identifier)s;
-    }
-    else
-    {
+    } else {
         _init_done = true;
     }
 #endif
@@ -300,14 +296,14 @@ PyObject *modulecode_%(module_identifier)s(char const *module_full_name)
 #endif
     }
 
-    CHECK_OBJECT( module_%(module_identifier)s );
+    CHECK_OBJECT(module_%(module_identifier)s);
 
 // Seems to work for Python2.7 out of the box, but for Python3, the module
 // doesn't automatically enter "sys.modules", so do it manually.
 #if PYTHON_VERSION >= 300
     {
         int r = PyDict_SetItemString(PyImport_GetModuleDict(), module_full_name, module_%(module_identifier)s);
-        assert( r != -1 );
+        assert(r != -1);
     }
 #endif
 
@@ -346,7 +342,7 @@ PyObject *modulecode_%(module_identifier)s(char const *module_full_name)
         Py_DECREF(bootstrap_module);
 
         PyObject *args[] = {
-            GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ ),
+            GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__),
             (PyObject *)&Nuitka_Loader_Type
         };
 
@@ -357,7 +353,7 @@ PyObject *modulecode_%(module_identifier)s(char const *module_full_name)
         Py_DECREF(module_spec_class);
 
         // We can assume this to never fail, or else we are in trouble anyway.
-        CHECK_OBJECT( spec_value );
+        CHECK_OBJECT(spec_value);
 
 // For packages set the submodule search locations as well, even if to empty
 // list, so investigating code will consider it a package.

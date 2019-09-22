@@ -351,14 +351,14 @@ def _addConstantInitCode(
     if Options.isDebug():
         emit(
             """\
-hash_%(constant_identifier)s = DEEP_HASH( %(constant_identifier)s );"""
+hash_%(constant_identifier)s = DEEP_HASH(%(constant_identifier)s);"""
             % {"constant_identifier": constant_identifier}
         )
 
         check(
             """\
-CHECK_OBJECT( %(constant_identifier)s );
-assert( hash_%(constant_identifier)s == DEEP_HASH( %(constant_identifier)s ) );"""
+CHECK_OBJECT(%(constant_identifier)s);
+assert(hash_%(constant_identifier)s == DEEP_HASH(%(constant_identifier)s));"""
             % {"constant_identifier": constant_identifier}
         )
 
@@ -399,13 +399,13 @@ def __addConstantInitCode(
         # existent with Python3 which would have covered it before.
         if 0 <= constant_value <= max_unsigned_long:
             emit(
-                "%s = PyLong_FromUnsignedLong( %sul );"
+                "%s = PyLong_FromUnsignedLong(%sul);"
                 % (constant_identifier, constant_value)
             )
 
             return
         elif 0 > constant_value >= min_signed_long:
-            emit("%s = PyLong_FromLong( %sl );" % (constant_identifier, constant_value))
+            emit("%s = PyLong_FromLong(%sl);" % (constant_identifier, constant_value))
 
             return
         elif constant_value == min_signed_long - 1:
@@ -413,9 +413,9 @@ def __addConstantInitCode(
             # MININT when used. We work around that warning here.
             emit(
                 """\
-%s = PyLong_FromLong( %sl ); // To be corrected with -1 in-place next lines.
-CHECK_OBJECT( const_int_pos_1 );
-%s = PyNumber_InPlaceSubtract( %s, PyLong_FromLong( 1 ) );"""
+%s = PyLong_FromLong(%sl); // To be corrected with -1 in-place next lines.
+CHECK_OBJECT(const_int_pos_1);
+%s = PyNumber_InPlaceSubtract(%s, PyLong_FromLong(1));"""
                 % (
                     constant_identifier,
                     min_signed_long,
@@ -583,12 +583,12 @@ CHECK_OBJECT( const_int_pos_1 );
 
             # TODO: Error checking for debug.
             emit(
-                "PyDict_SetItem( %s, %s, %s );"
+                "PyDict_SetItem(%s, %s, %s);"
                 % (constant_identifier, key_name, value_name)
             )
 
         emit(
-            "assert( PyDict_Size( %s ) == %d );"
+            "assert(PyDict_Size( %s ) == %d);"
             % (constant_identifier, len(constant_value))
         )
 
@@ -671,7 +671,7 @@ CHECK_OBJECT( const_int_pos_1 );
 
         # TODO: Hinting size is really not possible?
         emit(
-            "%s = %s( NULL );"
+            "%s = %s(NULL);"
             % (
                 constant_identifier,
                 "PySet_New" if constant_type is set else "PyFrozenSet_New",
@@ -691,11 +691,10 @@ CHECK_OBJECT( const_int_pos_1 );
                 context=context,
             )
 
-            emit("PySet_Add( %s, %s );" % (constant_identifier, element_name))
+            emit("PySet_Add(%s, %s);" % (constant_identifier, element_name))
 
         emit(
-            "assert( PySet_Size( %s ) == %d );"
-            % (constant_identifier, len(constant_value))
+            "assert(PySet_Size(%s) == %d);" % (constant_identifier, len(constant_value))
         )
 
         return
@@ -733,7 +732,7 @@ CHECK_OBJECT( const_int_pos_1 );
         )
 
         emit(
-            "%s = PySlice_New( %s, %s, %s );"
+            "%s = PySlice_New(%s, %s, %s);"
             % (constant_identifier, slice1_name, slice2_name, slice3_name)
         )
 
@@ -759,7 +758,7 @@ CHECK_OBJECT( const_int_pos_1 );
 
         if xrange is not range:
             emit(
-                "%s = MAKE_XRANGE( %s, %s, %s );"
+                "%s = MAKE_XRANGE(%s, %s, %s);"
                 % (constant_identifier, range_args[0], range_args[1], range_args[2])
             )
         else:
@@ -795,7 +794,7 @@ CHECK_OBJECT( const_int_pos_1 );
             )
 
             emit(
-                "%s = BUILTIN_XRANGE3( %s, %s, %s );"
+                "%s = BUILTIN_XRANGE3(%s, %s, %s);"
                 % (constant_identifier, range1_name, range2_name, range3_name)
             )
 
@@ -803,7 +802,7 @@ CHECK_OBJECT( const_int_pos_1 );
 
     if constant_type is bytearray:
         emit(
-            "%s = UNSTREAM_BYTEARRAY( %s );"
+            "%s = UNSTREAM_BYTEARRAY(%s);"
             % (
                 constant_identifier,
                 stream_data.getStreamDataCode(bytes(constant_value)),

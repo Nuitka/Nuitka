@@ -142,7 +142,7 @@ void createGlobalConstants( void )
         // The NULL value is not allowed for a capsule, so use something else.
         _sentinel_value = PyCapsule_New( (void *)27, "sentinel", NULL );
 #endif
-        assert( _sentinel_value );
+        assert(_sentinel_value);
 
         _createGlobalConstants();
     }

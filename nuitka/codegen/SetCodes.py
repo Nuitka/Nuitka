@@ -135,8 +135,8 @@ def generateSetOperationAddCode(statement, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("assert( PySet_Check( %s ) );" % set_arg_name)
-    emit("%s = PySet_Add( %s, %s );" % (res_name, set_arg_name, value_arg_name))
+    emit("assert(PySet_Check(%s));" % set_arg_name)
+    emit("%s = PySet_Add(%s, %s);" % (res_name, set_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,
@@ -153,8 +153,8 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    emit("assert( PySet_Check( %s ) );" % set_arg_name)
-    emit("%s = _PySet_Update( %s, %s );" % (res_name, set_arg_name, value_arg_name))
+    emit("assert(PySet_Check(%s));" % set_arg_name)
+    emit("%s = _PySet_Update(%s, %s);" % (res_name, set_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,

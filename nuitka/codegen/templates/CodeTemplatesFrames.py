@@ -21,14 +21,14 @@
 
 # Frame in a function
 template_frame_guard_full_block = """\
-MAKE_OR_REUSE_FRAME( %(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s );
+MAKE_OR_REUSE_FRAME(%(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s);
 %(frame_identifier)s = %(frame_cache_identifier)s;
 
 // Push the new frame as the currently active one.
-pushFrameStack( %(frame_identifier)s );
+pushFrameStack(%(frame_identifier)s);
 
 // Mark the frame object as in use, ref count 1 will be up for reuse.
-assert( Py_REFCNT( %(frame_identifier)s ) == 2 ); // Frame stack
+assert(Py_REFCNT(%(frame_identifier)s) == 2); // Frame stack
 
 // Framed code:
 %(codes)s
@@ -98,12 +98,12 @@ goto %(parent_exception_exit)s;
 # TODO: The once guard need not take a reference count in its frame class.
 template_frame_guard_once_block = """\
 // Frame without reuse.
-%(frame_identifier)s = MAKE_MODULE_FRAME( %(code_identifier)s, %(module_identifier)s );
+%(frame_identifier)s = MAKE_MODULE_FRAME(%(code_identifier)s, %(module_identifier)s);
 
 // Push the new frame as the currently active one, and we should be exclusively
 // owning it.
-pushFrameStack( %(frame_identifier)s );
-assert( Py_REFCNT( %(frame_identifier)s ) == 2 );
+pushFrameStack(%(frame_identifier)s);
+assert(Py_REFCNT(%(frame_identifier)s) == 2);
 
 // Framed code:
 %(codes)s
@@ -142,12 +142,12 @@ goto %(parent_exception_exit)s;
 
 # Frame in a generator, coroutine or asyncgen.
 template_frame_guard_generator = """\
-MAKE_OR_REUSE_FRAME( %(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s );
+MAKE_OR_REUSE_FRAME(%(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s);
 %(context_identifier)s->m_frame = %(frame_cache_identifier)s;
 
 // Mark the frame object as in use, ref count 1 will be up for reuse.
 Py_INCREF(%(context_identifier)s->m_frame);
-assert( Py_REFCNT( %(context_identifier)s->m_frame ) == 2 ); // Frame stack
+assert(Py_REFCNT(%(context_identifier)s->m_frame) == 2); // Frame stack
 
 #if PYTHON_VERSION >= 340
 %(context_identifier)s->m_frame->m_frame.f_gen = (PyObject *)%(context_identifier)s;

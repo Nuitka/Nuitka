@@ -28,10 +28,9 @@ struct %(function_identifier)s_locals {
 %(function_local_types)s
 };
 
-static PyObject *%(function_identifier)s_context( struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value )
-{
-    CHECK_OBJECT( (PyObject *)generator );
-    assert( Nuitka_Generator_Check( (PyObject *)generator ) );
+static PyObject *%(function_identifier)s_context( struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value ) {
+    CHECK_OBJECT((PyObject *)generator);
+    assert(Nuitka_Generator_Check( (PyObject *)generator ));
 
     // Heap access if used.
 %(heap_declaration)s
@@ -89,8 +88,8 @@ template_generator_exception_exit = """\
 
     function_exception_exit:
 %(function_cleanup)s\
-    assert( %(exception_type)s );
-    RESTORE_ERROR_OCCURRED( %(exception_type)s, %(exception_value)s, %(exception_tb)s );
+    assert(%(exception_type)s);
+    RESTORE_ERROR_OCCURRED(%(exception_type)s, %(exception_value)s, %(exception_tb)s);
 
     return NULL;
 """

@@ -50,12 +50,10 @@ def getBranchingCode(condition, emit, context):
 
         emit(
             """\
-if ( %s )
+if (%s)
 {
     goto %s;
-}
-else
-{
+} else {
     goto %s;
 }"""
             % (condition, true_target, false_target)

@@ -29,17 +29,15 @@ else if ( %(keeper_lineno)s != 0 ) {
 """
 
 template_error_catch_quick_exception = """\
-if ( %(condition)s )
+if (%(condition)s)
 {
     if (!ERROR_OCCURRED()) {
         %(exception_type)s = %(quick_exception)s;
         Py_INCREF(%(exception_type)s);
         %(exception_value)s = NULL;
         %(exception_tb)s = NULL;
-    }
-    else
-    {
-        FETCH_ERROR_OCCURRED( &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s );
+    } else {
+        FETCH_ERROR_OCCURRED(&%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
     }
 %(release_temps)s
 
@@ -51,9 +49,9 @@ if ( %(condition)s )
 template_error_catch_exception = """\
 if ( %(condition)s )
 {
-    assert( ERROR_OCCURRED() );
+    assert(ERROR_OCCURRED());
 
-    FETCH_ERROR_OCCURRED( &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s );
+    FETCH_ERROR_OCCURRED(&%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
 %(release_temps)s
 
 %(line_number_code)s

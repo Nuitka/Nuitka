@@ -67,7 +67,7 @@ class CTypeNuitkaBoolEnum(CTypeBase):
     @classmethod
     def emitValueAssertionCode(cls, value_name, emit, context):
         # Not using the context, pylint: disable=unused-argument
-        emit("assert( %s != NUITKA_BOOL_UNASSIGNED);" % value_name)
+        emit("assert(%s != NUITKA_BOOL_UNASSIGNED);" % value_name)
 
     @classmethod
     def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):

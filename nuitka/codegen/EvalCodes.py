@@ -50,7 +50,7 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
 
                 getErrorExitBoolCode(
                     condition="""\
-%s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_KeyError )"""
+%s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE(GET_ERROR_OCCURRED(), PyExc_KeyError)"""
                     % value_name,
                     emit=emit,
                     context=context,
@@ -60,7 +60,7 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
 
                 context.addCleanupTempName(value_name)
 
-            emit("if ( %s != NULL )" % value_name)
+            emit("if (%s != NULL)" % value_name)
             emit("{")
 
             getVariableAssignmentCode(

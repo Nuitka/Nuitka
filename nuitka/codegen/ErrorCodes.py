@@ -231,18 +231,18 @@ def getMustNotGetHereCode(reason, context, emit):
     provider = context.getEntryPoint()
 
     emit(
-        "NUITKA_CANNOT_GET_HERE( %(function_identifier)s );"
+        "NUITKA_CANNOT_GET_HERE(%(function_identifier)s);"
         % {"function_identifier": provider.getCodeName()}
     )
     emit("return NULL;")
 
 
 def getAssertionCode(check, emit):
-    emit("assert( %s );" % check)
+    emit("assert(%s);" % check)
 
 
 def getCheckObjectCode(check_name, emit):
-    emit("CHECK_OBJECT( %s );" % check_name)
+    emit("CHECK_OBJECT(%s);" % check_name)
 
 
 def getLocalVariableReferenceErrorCode(variable, condition, emit, context):

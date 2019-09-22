@@ -179,8 +179,8 @@ def generateDictOperationUpdateCode(statement, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("assert( PyDict_Check( %s ) );" % dict_arg_name)
-    emit("%s = PyDict_Update( %s, %s );" % (res_name, dict_arg_name, value_arg_name))
+    emit("assert(PyDict_Check(%s));" % dict_arg_name)
+    emit("%s = PyDict_Update(%s, %s);" % (res_name, dict_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
         condition="%s != 0" % res_name,
@@ -201,7 +201,7 @@ def generateDictOperationGetCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "dict_value", expression, emit, context
     ) as value_name:
-        emit("%s = DICT_GET_ITEM( %s, %s );" % (value_name, dict_name, key_name))
+        emit("%s = DICT_GET_ITEM(%s, %s);" % (value_name, dict_name, key_name))
 
         getErrorExitCode(
             check_name=value_name,
