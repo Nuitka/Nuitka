@@ -245,8 +245,8 @@ PyObject *modulecode_%(module_identifier)s(char const *module_full_name)
 
     moduledict_%(module_identifier)s = MODULE_DICT(module_%(module_identifier)s);
 
-    // Set "__compiled__" to what it we know.
-    UPDATE_STRING_DICT1(
+    // Set "__compiled__" to what version information we have.
+    UPDATE_STRING_DICT0(
         moduledict_%(module_identifier)s,
         (Nuitka_StringObject *)const_str_plain___compiled__,
         Nuitka_dunder_compiled_value
