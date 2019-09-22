@@ -131,7 +131,13 @@ def main():
             my_print("Skipping", filename)
             continue
 
-        extra_flags = ["expect_success", "standalone", "remove_output"]
+        extra_flags = [
+            "expect_success",
+            "standalone",
+            "remove_output",
+            # For enum plugin info
+            "ignore_infos",
+        ]
 
         # skip each test if their respective requirements are not met
         requirements_met, error_message = checkRequirements(filename)
@@ -173,13 +179,10 @@ def main():
                 continue
 
             # For the plug-in information.
-            extra_flags.append("ignore_infos")
             extra_flags.append("plugin_enable:tk-inter")
         elif filename == "FlaskUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
-            # For enum plugin info
-            extra_flags.append("ignore_infos")
         elif filename == "NumpyUsing.py":
             # TODO: Disabled for now.
             reportSkip("numpy.test not fully working yet", ".", filename)
@@ -208,11 +211,8 @@ def main():
                 continue
 
             # For the plug-in information.
-            extra_flags.append("ignore_infos")
-
             if getPythonVendor() != "Anaconda":
                 extra_flags.append("plugin_enable:qt-plugins")
-                # extra_flags.append("ignore_infos")
             else:
                 # For the plug-in not used information.
                 extra_flags.append("ignore_warnings")
