@@ -80,7 +80,7 @@ class build(distutils.command.build.build):
         package, main_filename, finding = findModule(
             importing=None,
             module_name=ModuleName(
-                self.compile_packages[0]
+                min(self.compile_packages)
                 if self.compile_packages
                 else self.py_modules[0]
             ),
