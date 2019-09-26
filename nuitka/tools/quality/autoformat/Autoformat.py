@@ -309,7 +309,12 @@ def _shouldNotFormatCode(filename):
     if "inline_copy" in parts:
         return True
     elif "tests" in parts and not "basics" in parts and "programs" not in parts:
-        return "run_all.py" not in parts and "compile_itself.py" not in parts
+        return parts[-1] not in (
+            "run_all.py",
+            "compile_itself.py",
+            "compile_python_modules.py",
+            "compile_extension_modules.py",
+        )
     else:
         return False
 

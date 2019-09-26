@@ -19,29 +19,40 @@
 #     limitations under the License.
 #
 
-import os, sys, tempfile, subprocess
+""" This test runner compiles all Python files as a module.
+
+This is a test to achieve some coverage, it will only find assertions of
+within Nuitka or warnings from the C compiler. Code will not be run
+normally.
+
+"""
+
+import os
+import sys
 
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
 
+# isort:start
+
+import subprocess
+import tempfile
+
+from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
-    setup,
-    my_print,
-    createSearchMode,
+    checkCompilesNotWithCPython,
     compileLibraryTest,
-    checkCompilesNotWithCPython
+    createSearchMode,
+    my_print,
+    setup,
 )
 
-setup(needs_io_encoding = True)
+setup(needs_io_encoding=True)
 search_mode = createSearchMode()
 
 tmp_dir = tempfile.gettempdir()
@@ -51,8 +62,8 @@ if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
     tmp_dir = "/var/tmp"
 
 blacklist = (
-    "__phello__.foo.py", # Triggers error for "." in module name
-    "idnadata",          # Avoid too complex code for main program.
+    "__phello__.foo.py",  # Triggers error for "." in module name
+    "idnadata",  # Avoid too complex code for main program.
     "joined_strings.py",
     # Incredible amount of memory in C compiler for test code
     "test_spin.py",
@@ -63,28 +74,28 @@ nosyntax_errors = (
     "_identifier.py",
     "bench.py",
     "_tweedie_compound_poisson.py",
-    "session.py"
+    "session.py",
 )
 
-def decide(root, filename):
-    return filename.endswith(".py") and \
-           filename not in blacklist and \
-           '(' not in filename
 
-def action(stage_dir, root, path):
+def decide(_root, filename):
+    return (
+        filename.endswith(".py")
+        and filename not in blacklist
+        and "(" not in filename
+        and filename.count(".") == 1
+    )
+
+
+def action(stage_dir, _root, path):
     command = [
         sys.executable,
-        os.path.join(
-            "..",
-            "..",
-            "bin",
-            "nuitka"
-        ),
+        os.path.join("..", "..", "bin", "nuitka"),
         "--module",
         "--output-dir",
         stage_dir,
         "--remove-output",
-        "--plugin-enable=pylint-warnings"
+        "--plugin-enable=pylint-warnings",
     ]
 
     command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
@@ -100,9 +111,7 @@ def action(stage_dir, root, path):
             my_print("Falling back to full comparison due to error exit.")
 
             checkCompilesNotWithCPython(
-                dirname     = None,
-                filename    = path,
-                search_mode = search_mode,
+                dirname=None, filename=path, search_mode=search_mode
             )
     else:
         my_print("OK")
@@ -112,22 +121,17 @@ def action(stage_dir, root, path):
         else:
             suffix = "so"
 
-        target_filename = os.path.basename(path).replace(".py",'.'+suffix)
-        target_filename = target_filename.replace('(',"").replace(')',"")
+        target_filename = os.path.basename(path).replace(".py", "." + suffix)
+        target_filename = target_filename.replace("(", "").replace(")", "")
 
-        os.unlink(
-            os.path.join(
-                stage_dir, target_filename
-            )
-        )
+        os.unlink(os.path.join(stage_dir, target_filename))
 
-from nuitka.PythonVersions import python_version
 
 compileLibraryTest(
-    search_mode = search_mode,
-    stage_dir   = os.path.join(tmp_dir, "compile_library_%s" % python_version ),
-    decide      = decide,
-    action      = action
+    search_mode=search_mode,
+    stage_dir=os.path.join(tmp_dir, "compile_library_%s" % python_version),
+    decide=decide,
+    action=action,
 )
 
 search_mode.finish()

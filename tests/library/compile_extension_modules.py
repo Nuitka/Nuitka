@@ -19,32 +19,41 @@
 #     limitations under the License.
 #
 
-import os, sys, tempfile, shutil
+""" This test runner compiles all extension modules for standalone mode.
+
+This is a test to reveal hidden dependencies on a system.
+
+"""
+
+
+import os
+import sys
 
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
+
+# isort:start
+
+import shutil
+import tempfile
 
 from nuitka.tools.testing.Common import (
-    setup,
-    my_print,
-    createSearchMode,
-    compileLibraryTest,
     check_output,
+    checkRuntimeLoadedFilesForOutsideAccesses,
     checkSucceedsWithCPython,
+    compileLibraryTest,
+    createSearchMode,
     getRuntimeTraceOfLoadedFiles,
-    checkRuntimeLoadedFilesForOutsideAccesses
+    my_print,
+    setup,
 )
 
-setup(needs_io_encoding = True)
+setup(needs_io_encoding=True)
 search_mode = createSearchMode()
 
 tmp_dir = tempfile.gettempdir()
@@ -54,18 +63,21 @@ if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
     tmp_dir = "/var/tmp"
 
 blacklist = (
-    "__phello__.foo.py", # Triggers error for "." in module name
-    "idnadata"           # Avoid too complex code for main program.
+    "__phello__.foo.py",  # Triggers error for "." in module name
+    "idnadata",  # Avoid too complex code for main program.
 )
 
 done = set()
+
 
 def decide(root, filename):
     if os.path.sep + "Cython" + os.path.sep in root:
         return False
 
-    if root.endswith(os.path.sep + "matplotlib") or \
-       os.path.sep + "matplotlib" + os.path.sep in root:
+    if (
+        root.endswith(os.path.sep + "matplotlib")
+        or os.path.sep + "matplotlib" + os.path.sep in root
+    ):
         return False
 
     if filename.endswith("linux-gnu_d.so"):
@@ -79,35 +91,30 @@ def decide(root, filename):
         return False
     done.add(first_part)
 
-    return filename.endswith((".so", ".pyd")) and \
-           not filename.startswith("libpython")
+    return filename.endswith((".so", ".pyd")) and not filename.startswith("libpython")
 
 
 current_dir = os.path.normpath(os.getcwd())
 current_dir = os.path.normcase(current_dir)
 
+
 def action(stage_dir, root, path):
     command = [
         sys.executable,
-        os.path.join(
-            "..",
-            "..",
-            "bin",
-            "nuitka"
-        ),
+        os.path.join("..", "..", "bin", "nuitka"),
         "--stand",
         "--run",
         "--output-dir",
         stage_dir,
         "--remove-output",
-        "--plugin-enable=pylint-warnings"
+        "--plugin-enable=pylint-warnings",
     ]
 
     filename = os.path.join(stage_dir, "importer.py")
 
     assert path.startswith(root)
 
-    module_name = path[len(root)+1:]
+    module_name = path[len(root) + 1 :]
     module_name = module_name.split(".")[0]
     module_name = module_name.replace(os.path.sep, ".")
 
@@ -122,25 +129,18 @@ def action(stage_dir, root, path):
     if checkSucceedsWithCPython(filename):
         try:
             output = check_output(command).splitlines()
-        except Exception:
+        except Exception:  # only trying to check for no exception, pylint: disable=try-except-raise
             raise
         else:
             assert os.path.exists(filename[:-3] + ".dist")
 
             loaded_filenames = getRuntimeTraceOfLoadedFiles(
-                path = os.path.join(
-                    filename[:-3] + ".dist",
-                     "importer.exe"
-                )
+                path=os.path.join(filename[:-3] + ".dist", "importer.exe")
             )
 
             outside_accesses = checkRuntimeLoadedFilesForOutsideAccesses(
                 loaded_filenames,
-                [
-                    filename[:-3] + ".dist",
-                    current_dir,
-                    os.path.expanduser("~/.config")
-                ]
+                [filename[:-3] + ".dist", current_dir, os.path.expanduser("~/.config")],
             )
 
             if output[-1] != b"OK":
@@ -156,10 +156,10 @@ def action(stage_dir, root, path):
 
 
 compileLibraryTest(
-    search_mode = search_mode,
-    stage_dir   = os.path.join(tmp_dir, "compile_extensions"),
-    decide      = decide,
-    action      = action
+    search_mode=search_mode,
+    stage_dir=os.path.join(tmp_dir, "compile_extensions"),
+    decide=decide,
+    action=action,
 )
 
 my_print("FINISHED, all extension modules compiled.")
