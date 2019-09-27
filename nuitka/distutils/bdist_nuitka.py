@@ -110,7 +110,7 @@ class build(distutils.command.build.build):
         ]
 
         command += [
-            "--include-package=%s" % package_name
+            "--include-package=%s" % package_name.replace("/", ".")
             for package_name in self.compile_packages
         ]
 
