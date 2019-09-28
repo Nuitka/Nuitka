@@ -89,7 +89,7 @@ def _get_subdir_files(module, subdirs):
             data_dir = os.path.join(module_folder, subdir)
             file_list.extend(getFileList(data_dir))
 
-    if len(file_list) == 0:
+    if file_list == []:
         msg = "No files found for '%s' in subfolder(s) '%s'." % (
             module.getFullName(),
             str(subdirs),
