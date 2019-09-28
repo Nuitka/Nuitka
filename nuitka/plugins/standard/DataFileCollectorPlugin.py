@@ -36,6 +36,10 @@ known_data_files = {
     "site": ((None, "orig-prefix.txt"),),
     "nose.core": ((None, "usage.txt"),),
     "scrapy": ((None, "VERSION"),),
+    "cairocffi": ((None, "VERSION"),),
+    "cairosvg": ((None, "VERSION"),),
+    "weasyprint": ((None, "VERSION"),),
+    "tinycss2": ((None, "VERSION"),),
     "requests": (("certifi", "../certifi/cacert.pem"),),
     "importlib_resources": ((None, "version.txt"),),
     "moto": (
@@ -104,8 +108,10 @@ known_data_folders = {
     "matplotlib": (_get_subdir_files, "mpl-data"),
     "sklearn.datasets": (_get_subdir_files, ("data", "descr")),
     "osgeo": (_get_subdir_files, "data"),
+    "pyphen": (_get_subdir_files, "dictionaries"),
     "pywt": (_get_subdir_files, "data"),
     "skimage": (_get_subdir_files, "data"),
+    "weasyprint": (_get_subdir_files, "css"),
 }
 
 
