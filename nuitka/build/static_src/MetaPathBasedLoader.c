@@ -34,6 +34,12 @@
 #endif
 
 #include "nuitka/prelude.h"
+// Include definition of PyInterpreterState, hidden since Python 3.8
+#if PYTHON_VERSION >= 380
+#define Py_BUILD_CORE
+#include "internal/pycore_pystate.h"
+#undef Py_BUILD_CORE
+#endif
 #include "nuitka/unfreezing.h"
 
 #ifdef _WIN32
