@@ -1596,7 +1596,7 @@ def discoverSourceFiles():
         return target_file
 
     # Scan for Nuitka created source files, and add them too.
-    for filename in os.listdir(source_dir):
+    for filename in sorted(os.listdir(source_dir)):
         # Only C files are of interest here.
         if not filename.endswith((".c", "cpp")) or not filename.startswith(
             ("module.", "__")
