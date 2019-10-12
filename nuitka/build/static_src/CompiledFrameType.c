@@ -352,10 +352,10 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
 
 static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc visit, void *arg) {
     Py_VISIT(frame->m_frame.f_back);
-    // Py_VISIT( frame->f_code );
+    // Py_VISIT(frame->f_code);
     Py_VISIT(frame->m_frame.f_builtins);
     Py_VISIT(frame->m_frame.f_globals);
-    // Py_VISIT( frame->f_locals );
+    // Py_VISIT(frame->f_locals);
     // TODO: Traverse attached locals too.
 
 #if PYTHON_VERSION < 370

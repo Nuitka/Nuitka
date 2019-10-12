@@ -1529,13 +1529,11 @@ static bool handleArgumentsPlain(struct Nuitka_FunctionObject const *function, P
 #if PYTHON_VERSION >= 300
         if (parameter_error == false) {
 #endif
-            PyObject **source = &PyTuple_GET_ITEM(function->m_defaults, 0);
-
             for (Py_ssize_t i = usable; i < arg_count; i++) {
                 assert(python_pars[i] == NULL);
                 assert(i + defaults_given >= arg_count);
 
-                python_pars[i] = source[defaults_given + i - arg_count];
+                python_pars[i] = PyTuple_GET_ITEM(function->m_defaults, defaults_given + i - arg_count);
                 Py_INCREF(python_pars[i]);
             }
 #if PYTHON_VERSION >= 300
@@ -1749,8 +1747,9 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
     result = handleArgumentsPlain(function, python_pars, kw, args, args_size, kw_found, kw_only_found);
 #endif
 
-    if (result == false)
+    if (result == false) {
         goto error_exit;
+    }
 
 #if PYTHON_VERSION >= 300
 

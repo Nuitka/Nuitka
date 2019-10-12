@@ -177,7 +177,7 @@ template_read_shared_known = """\
 template_read_mvar_unclear = """\
 %(tmp_name)s = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(var_name)s);
 
-if (unlikely( %(tmp_name)s == NULL )) {
+if (unlikely(%(tmp_name)s == NULL)) {
     %(tmp_name)s = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)%(var_name)s);
 }
 """
@@ -229,9 +229,9 @@ if (%(test_code)s) {
 
     UPDATE_STRING_DICT0((PyDictObject *)%(dict_name)s, (Nuitka_StringObject *)%(var_name)s, value);
 } else {
-    int res = PyDict_DelItem( %(dict_name)s, %(var_name)s );
+    int res = PyDict_DelItem(%(dict_name)s, %(var_name)s);
 
-    if ( res != 0 )
+    if (res != 0)
     {
         CLEAR_ERROR_OCCURRED();
     }

@@ -75,7 +75,7 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
 
         if seq_name is not None:
             emit(
-                "%s = TO_DICT( %s, %s );"
+                "%s = TO_DICT(%s, %s);"
                 % (value_name, seq_name, "NULL" if dict_name is None else dict_name)
             )
 
@@ -223,7 +223,7 @@ def generateDictOperationInCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("%s = PyDict_Contains( %s, %s );" % (res_name, key_name, dict_name))
+    emit("%s = PyDict_Contains(%s, %s);" % (res_name, key_name, dict_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,
@@ -266,7 +266,7 @@ def generateDictOperationSetCode(statement, emit, context):
     res_name = context.getIntResName()
 
     emit(
-        "%s = PyDict_SetItem( %s, %s, %s );"
+        "%s = PyDict_SetItem(%s, %s, %s);"
         % (res_name, dict_arg_name, key_arg_name, value_arg_name)
     )
 
@@ -301,7 +301,7 @@ def generateDictOperationRemoveCode(statement, emit, context):
 
     res_name = context.getBoolResName()
 
-    emit("%s = DICT_REMOVE_ITEM( %s, %s );" % (res_name, dict_arg_name, key_arg_name))
+    emit("%s = DICT_REMOVE_ITEM(%s, %s);" % (res_name, dict_arg_name, key_arg_name))
 
     getErrorExitBoolCode(
         condition="%s == false" % res_name,

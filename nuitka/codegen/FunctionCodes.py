@@ -382,7 +382,7 @@ def getDirectFunctionCallCode(
             """
 {
     PyObject *dir_call_args[] = {%s};
-    %s = %s( dir_call_args%s%s );
+    %s = %s(dir_call_args%s%s);
 }"""
             % (
                 ", ".join(str(arg_name) for arg_name in arg_names),
@@ -394,7 +394,7 @@ def getDirectFunctionCallCode(
         )
     else:
         emit(
-            "%s = %s( NULL%s%s );"
+            "%s = %s(NULL%s%s);"
             % (
                 to_name,
                 function_identifier,
@@ -454,7 +454,7 @@ def setupFunctionLocalVariables(
             variable_declaration = context.variable_storage.addVariableDeclarationTop(
                 variable_c_type.c_type,
                 variable_code_name,
-                variable_c_type.getInitValue("python_pars[ %d ]" % count),
+                variable_c_type.getInitValue("python_pars[%d]" % count),
             )
 
             context.setVariableType(variable, variable_declaration)

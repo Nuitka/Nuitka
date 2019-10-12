@@ -745,7 +745,7 @@ class PythonGlobalContext(object):
             # TODO: Maybe make this a mapping in nuitka.Builtins
 
             if constant is None:
-                key = "(PyObject *)Py_TYPE( Py_None )"
+                key = "(PyObject *)Py_TYPE(Py_None)"
             elif constant is object:
                 key = "(PyObject *)&PyBaseObject_Type"
             elif constant is staticmethod:

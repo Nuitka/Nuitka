@@ -301,16 +301,14 @@ static PyObject *Nuitka_YieldFromGeneratorCore(struct Nuitka_GeneratorObject *ge
         }
 
 #if 0
-        if ( ERROR_OCCURRED() )
+        if (ERROR_OCCURRED())
         {
-            yielded = ((generator_code)generator->m_code)( generator, NULL );
-        }
-        else
-        {
+            yielded = ((generator_code)generator->m_code)(generator, NULL);
+        } else {
             PyObject *yield_from_result = generator->m_returned;
             generator->m_returned = NULL;
 
-            yielded = ((generator_code)generator->m_code)( generator, yield_from_result );
+            yielded = ((generator_code)generator->m_code)(generator, yield_from_result);
         }
 #endif
     } else {

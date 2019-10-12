@@ -164,7 +164,7 @@ def generateStringContenationCode(to_name, expression, emit, context):
         )
 
         emit(
-            "%s = PyUnicode_Join( %s, %s );"
+            "%s = PyUnicode_Join(%s, %s);"
             % (value_name, context.getConstantCode(""), tuple_temp_name)
         )
 
@@ -201,8 +201,7 @@ def generateBuiltinFormatCode(to_name, expression, emit, context):
     ) as result_name:
 
         emit(
-            "%s = BUILTIN_FORMAT( %s, %s );"
-            % (result_name, value_name, format_spec_name)
+            "%s = BUILTIN_FORMAT(%s, %s);" % (result_name, value_name, format_spec_name)
         )
 
         getErrorExitCode(

@@ -47,8 +47,7 @@ if (%(condition)s)
 }"""
 
 template_error_catch_exception = """\
-if ( %(condition)s )
-{
+if (%(condition)s) {
     assert(ERROR_OCCURRED());
 
     FETCH_ERROR_OCCURRED(&%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
@@ -60,7 +59,7 @@ if ( %(condition)s )
 }"""
 
 template_error_format_string_exception = """\
-if ( %(condition)s )
+if (%(condition)s)
 {
 %(release_temps)s
 %(set_exception)s

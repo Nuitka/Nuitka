@@ -62,7 +62,7 @@ def getFrameLocalsStorageSize(type_descriptions):
     while candidates:
         # assert False, (type_descriptions, context.frame_variables_stack[-1])
 
-        result = "MAX( %s, %s )" % (result, candidates.pop())
+        result = "MAX(%s, %s)" % (result, candidates.pop())
 
     return result
 
@@ -436,7 +436,7 @@ def generateFramePreserveExceptionCode(statement, emit, context):
 
     if python_version < 300:
         emit(
-            "PRESERVE_FRAME_EXCEPTION( %(frame_identifier)s );"
+            "PRESERVE_FRAME_EXCEPTION(%(frame_identifier)s);"
             % {"frame_identifier": context.getFrameHandle()}
         )
     else:
@@ -481,7 +481,7 @@ def generateFrameRestoreExceptionCode(statement, emit, context):
         )
 
         emit(
-            "SET_CURRENT_EXCEPTION( %s, %s, %s );"
+            "SET_CURRENT_EXCEPTION(%s, %s, %s);"
             % (
                 exception_preserved_type,
                 exception_preserved_value,

@@ -69,7 +69,7 @@ def getTupleCreationCode(to_name, elements, emit, context):
             )
 
             if count == 0:
-                emit("%s = PyTuple_New( %d );" % (to_name, len(elements)))
+                emit("%s = PyTuple_New(%d);" % (to_name, len(elements)))
 
                 context.addCleanupTempName(to_name)
 
@@ -78,7 +78,7 @@ def getTupleCreationCode(to_name, elements, emit, context):
             else:
                 context.removeCleanupTempName(element_name)
 
-            emit("PyTuple_SET_ITEM( %s, %d, %s );" % (to_name, count, element_name))
+            emit("PyTuple_SET_ITEM(%s, %d, %s);" % (to_name, count, element_name))
 
 
 def generateBuiltinTupleCode(to_name, expression, emit, context):

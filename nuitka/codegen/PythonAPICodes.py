@@ -129,7 +129,7 @@ def getCAPIObjectCode(
         value_name = context.allocateTempName("capi_result")
 
     emit(
-        "%s = %s( %s );"
+        "%s = %s(%s);"
         % (value_name, capi, ", ".join(str(arg_name) for arg_name in arg_names))
     )
 

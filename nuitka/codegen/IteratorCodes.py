@@ -52,7 +52,7 @@ def generateBuiltinNext1Code(to_name, expression, emit, context):
         to_name, "next_value", expression, emit, context
     ) as result_name:
 
-        emit("%s = %s;" % (result_name, "ITERATOR_NEXT( %s )" % value_name))
+        emit("%s = %s;" % (result_name, "ITERATOR_NEXT(%s)" % value_name))
 
         getErrorExitCode(
             check_name=result_name,
@@ -66,7 +66,7 @@ def generateBuiltinNext1Code(to_name, expression, emit, context):
 
 
 def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
-    emit("%s = %s;" % (to_name, "ITERATOR_NEXT( %s )" % value))
+    emit("%s = %s;" % (to_name, "ITERATOR_NEXT(%s)" % value))
 
     getReleaseCode(release_name=value, emit=emit, context=context)
 
@@ -116,13 +116,13 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
     ) as result_name:
 
         if python_version < 350:
-            emit("%s = UNPACK_NEXT( %s, %s );" % (result_name, value_name, count - 1))
+            emit("%s = UNPACK_NEXT(%s, %s);" % (result_name, value_name, count - 1))
         else:
             starred = expression.getStarred()
             expected = expression.getExpected()
 
             emit(
-                "%s = UNPACK_NEXT%s( %s, %s, %s );"
+                "%s = UNPACK_NEXT%s(%s, %s, %s);"
                 % (
                     result_name,
                     "_STARRED" if starred else "",

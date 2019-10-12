@@ -48,7 +48,7 @@ def getTracebackMakingIdentifier(context, lineno_name):
     frame_handle = context.getFrameHandle()
     assert frame_handle is not None
 
-    return "MAKE_TRACEBACK( %s, %s )" % (frame_handle, lineno_name)
+    return "MAKE_TRACEBACK(%s, %s)" % (frame_handle, lineno_name)
 
 
 def generateExceptionCaughtTypeCode(to_name, expression, emit, context):
@@ -143,17 +143,14 @@ def generateExceptionPublishCode(statement, emit, context):
         }
     )
 
-    emit(
-        "NORMALIZE_EXCEPTION( &%s, &%s, &%s );" % (keeper_type, keeper_value, keeper_tb)
-    )
+    emit("NORMALIZE_EXCEPTION(&%s, &%s, &%s);" % (keeper_type, keeper_value, keeper_tb))
 
     if python_version >= 300:
         emit(
-            "PyException_SetTraceback( %s, (PyObject *)%s );"
-            % (keeper_value, keeper_tb)
+            "PyException_SetTraceback(%s, (PyObject *)%s);" % (keeper_value, keeper_tb)
         )
 
-    emit("PUBLISH_EXCEPTION( &%s, &%s, &%s );" % (keeper_type, keeper_value, keeper_tb))
+    emit("PUBLISH_EXCEPTION(&%s, &%s, &%s);" % (keeper_type, keeper_value, keeper_tb))
 
 
 def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):

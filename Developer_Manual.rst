@@ -1524,8 +1524,7 @@ by looking at the original CPython implementation.
 
 .. code-block:: C
 
-   PyObject *builtin_len(PyObject *self, PyObject *v)
-   {
+   PyObject *builtin_len(PyObject *self, PyObject *v) {
        Py_ssize_t res;
 
        res = PyObject_Size(v);
@@ -1539,8 +1538,7 @@ C/API function used in the ``builtin_len`` implementation:
 
 .. code-block:: C
 
-   Py_ssize_t PyObject_Size(PyObject *o)
-   {
+   Py_ssize_t PyObject_Size(PyObject *o) {
        PySequenceMethods *m;
 
        if (o == NULL) {
@@ -1563,8 +1561,7 @@ that fails, next up the mapping size is tried.
 
 .. code-block:: C
 
-   Py_ssize_t PyMapping_Size(PyObject *o)
-   {
+   Py_ssize_t PyMapping_Size(PyObject *o) {
        PyMappingMethods *m;
 
        if (o == NULL) {
@@ -2345,7 +2342,7 @@ am not sure, what ``__prepare__`` is allowed to return.
    # Keyword arguments go next, __metaclass__ is just one of them. In principle
    # we need to forward the others as well, but this is ignored for the sake of
    # brevity.
-   tmp_metaclass = select_metaclass(tmp_bases, SomeMetaClass )
+   tmp_metaclass = select_metaclass(tmp_bases, SomeMetaClass)
 
    tmp_prepared = tmp_metaclass.__prepare__("SomeClass", tmp_bases)
 
@@ -3003,7 +3000,7 @@ things are not affectable by aliasing in any way.
 
    b += 4 # a is not changed
 
-   a = [ 3 ]
+   a = [3]
    b = a
 
    b += [4] # a is changed indeed

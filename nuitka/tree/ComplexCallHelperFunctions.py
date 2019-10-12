@@ -1326,16 +1326,16 @@ def getFunctionCallHelperStarDict():
     # Note: Call in here is not the same, as it can go without checks directly
     # to PyObject_Call.
     #
-    # if not isinstance( star_arg_dict, dict ):
+    # if not isinstance(star_arg_dict, dict):
     #     try:
     #         tmp_keys =  star_arg_dict.keys()
     #     except AttributeError:
     #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
     #             get_callable_name_desc( function ),
-    #             type( star_arg_dict ).__name__
+    #             type(star_arg_dict).__name__
     #         )
     #
-    #     tmp_iter = iter( keys )
+    #     tmp_iter = iter(keys)
     #     tmp_dict = {}
     #
     #     while 1:
@@ -1344,11 +1344,11 @@ def getFunctionCallHelperStarDict():
     #         except StopIteration:
     #             break
     #
-    #         tmp_dict[ tmp_key ] = star_dict_arg[ tmp_key )
+    #         tmp_dict[tmp_key] = star_dict_arg[tmp_key]
     #
     #     star_arg_dict = new
     #
-    # return called( **star_arg_dict )
+    # return called(**star_arg_dict)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1423,16 +1423,16 @@ def getFunctionCallHelperPosStarDict():
     # Note: Call in here is not the same, as it can go without checks directly
     # to PyObject_Call.
     #
-    # if not isinstance( star_arg_dict, dict ):
+    # if not isinstance(star_arg_dict, dict):
     #     try:
     #         tmp_keys =  star_arg_dict.keys()
     #     except AttributeError:
     #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc( function ),
-    #             type( star_arg_dict ).__name__
+    #             get_callable_name_desc(function),
+    #             type(star_arg_dict).__name__
     #         )
     #
-    #     tmp_iter = iter( keys )
+    #     tmp_iter = iter(keys)
     #     tmp_dict = {}
     #
     #     while 1:
@@ -1441,11 +1441,11 @@ def getFunctionCallHelperPosStarDict():
     #         except StopIteration:
     #             break
     #
-    #         tmp_dict[ tmp_key ] = star_dict_arg[ tmp_key )
+    #         tmp_dict[tmp_key] = star_dict_arg[tmp_key]
     #
     #     star_arg_dict = new
     #
-    # return called( args, **star_arg_dict )
+    # return called(args, **star_arg_dict)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1527,19 +1527,19 @@ def getFunctionCallHelperKeywordsStarDict():
     # to PyObject_Call. One goal is to avoid copying "kw" unless really
     # necessary, and to take the slow route only for non-dictionaries.
     #
-    # if not isinstance( star_arg_dict, dict ):
+    # if not isinstance(star_arg_dict, dict):
     #     try:
     #         tmp_keys =  star_arg_dict.keys()
     #     except AttributeError:
     #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc( function ),
+    #             get_callable_name_desc(function),
     #             type( star_arg_dict ).__name__
     #         )
     #
     #     if keys:
-    #         kw = dict( kw )
+    #         kw = dict(kw)
     #
-    #         tmp_iter = iter( keys )
+    #         tmp_iter = iter(keys)
     #         tmp_dict = {}
     #
     #         while 1:
@@ -1550,16 +1550,16 @@ def getFunctionCallHelperKeywordsStarDict():
     #
     #             if tmp_key in kw:
     #                 raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                     get_callable_name_desc( function ),
+    #                     get_callable_name_desc(function),
     #                     tmp_key
     #                 )
     #
-    #             kw[ tmp_key ] = star_dict_arg[ tmp_key )
+    #             kw[tmp_key] = star_dict_arg[tmp_key)
     #
     # elif star_arg_dict:
     #    tmp_iter = star_arg_dict.iteritems()
     #
-    #    kw = dict( kw )
+    #    kw = dict(kw)
     #    while 1:
     #        try:
     #            tmp_key, tmp_value = tmp_iter.next()
@@ -1568,13 +1568,13 @@ def getFunctionCallHelperKeywordsStarDict():
     #
     #        if tmp_key in kw:
     #            raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                 get_callable_name_desc( function ),
+    #                 get_callable_name_desc(function),
     #                 tmp_key
     #            )
     #
-    #        kw[ tmp_key ] = tmp_value
+    #        kw[tmp_key] = tmp_value
     #
-    # return called( **kw  )
+    # return called(**kw)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1653,19 +1653,19 @@ def getFunctionCallHelperPosKeywordsStarDict():
     # to PyObject_Call. One goal is to avoid copying "kw" unless really
     # necessary, and to take the slow route only for non-dictionaries.
     #
-    # if not isinstance( star_arg_dict, dict ):
+    # if not isinstance(star_arg_dict, dict):
     #     try:
     #         tmp_keys =  star_arg_dict.keys()
     #     except AttributeError:
     #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc( function ),
-    #             type( star_arg_dict ).__name__
+    #             get_callable_name_desc(function),
+    #             type(star_arg_dict).__name__
     #         )
     #
     #     if keys:
-    #         kw = dict( kw )
+    #         kw = dict(kw)
     #
-    #         tmp_iter = iter( keys )
+    #         tmp_iter = iter(keys)
     #         tmp_dict = {}
     #
     #         while 1:
@@ -1676,16 +1676,16 @@ def getFunctionCallHelperPosKeywordsStarDict():
     #
     #             if tmp_key in kw:
     #                 raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                     get_callable_name_desc( function ),
+    #                     get_callable_name_desc(function),
     #                     tmp_key
     #                 )
     #
-    #             kw[ tmp_key ] = star_dict_arg[ tmp_key )
+    #             kw[tmp_key] = star_dict_arg[tmp_key]
     #
     # elif star_arg_dict:
     #    tmp_iter = star_arg_dict.iteritems()
     #
-    #    kw = dict( kw )
+    #    kw = dict(kw)
     #    while 1:
     #        try:
     #            tmp_key, tmp_value = tmp_iter.next()
@@ -1694,13 +1694,13 @@ def getFunctionCallHelperPosKeywordsStarDict():
     #
     #        if tmp_key in kw:
     #            raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                 get_callable_name_desc( function ),
+    #                 get_callable_name_desc(function),
     #                 tmp_key
     #            )
     #
-    #        kw[ tmp_key ] = tmp_value
+    #        kw[tmp_key] = tmp_value
     #
-    # return called( **kw  )
+    # return called(**kw )
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.

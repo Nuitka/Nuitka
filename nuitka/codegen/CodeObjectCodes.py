@@ -125,7 +125,7 @@ def getCodeObjectsInitCode(context):
         if Options.getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
             template = "module_filename_obj = %s;"
         else:
-            template = "module_filename_obj = MAKE_RELATIVE_PATH( %s );"
+            template = "module_filename_obj = MAKE_RELATIVE_PATH(%s);"
 
         statements.append(
             template % (context.getConstantCode(constant=module_filename))
@@ -141,7 +141,7 @@ def getCodeObjectsInitCode(context):
             ", ".join(str(s) for s in _getMakeCodeObjectArgs(code_object_key, context)),
         )
 
-        code = "%s = MAKE_CODEOBJ( %s, %s );" % args
+        code = "%s = MAKE_CODEOBJ(%s, %s);" % args
 
         statements.append(code)
 

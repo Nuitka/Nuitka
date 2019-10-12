@@ -134,13 +134,12 @@ void checkGlobalConstants( void )
 
 void createGlobalConstants( void )
 {
-    if ( _sentinel_value == NULL )
-    {
+    if (_sentinel_value == NULL) {
 #if PYTHON_VERSION < 300
-        _sentinel_value = PyCObject_FromVoidPtr( NULL, NULL );
+        _sentinel_value = PyCObject_FromVoidPtr(NULL, NULL);
 #else
         // The NULL value is not allowed for a capsule, so use something else.
-        _sentinel_value = PyCapsule_New( (void *)27, "sentinel", NULL );
+        _sentinel_value = PyCapsule_New((void *)27, "sentinel", NULL);
 #endif
         assert(_sentinel_value);
 

@@ -60,7 +60,7 @@ def _getYieldPreserveCode(
             )
 
         emit(
-            "Nuitka_PreserveHeap( %s, %s, NULL );"
+            "Nuitka_PreserveHeap(%s, %s, NULL);"
             % (
                 yield_tmp_storage,
                 ", ".join(
@@ -72,7 +72,7 @@ def _getYieldPreserveCode(
 
     if preserve_exception:
         emit(
-            "SAVE_%s_EXCEPTION( %s );"
+            "SAVE_%s_EXCEPTION(%s);"
             % (context.getContextObjectName().upper(), context.getContextObjectName())
         )
 
@@ -91,7 +91,7 @@ def _getYieldPreserveCode(
 
     if locals_preserved:
         emit(
-            "Nuitka_RestoreHeap( %s, %s, NULL );"
+            "Nuitka_RestoreHeap(%s, %s, NULL);"
             % (
                 yield_tmp_storage,
                 ", ".join(
@@ -115,7 +115,7 @@ def _getYieldPreserveCode(
 
     if preserve_exception:
         emit(
-            "RESTORE_%s_EXCEPTION( %s );"
+            "RESTORE_%s_EXCEPTION(%s);"
             % (context.getContextObjectName().upper(), context.getContextObjectName())
         )
 

@@ -19,6 +19,12 @@
  * This is responsible for deep copy and hashing of constants.
  */
 
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 PyObject *DEEP_COPY(PyObject *value) {
     if (PyDict_Check(value)) {
 #if PYTHON_VERSION < 330
@@ -357,7 +363,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
         Py_hash_t result = DEEP_HASH_INIT(value);
 
 #if 0
-        printf("Too simple deep hash: %s\n", Py_TYPE( value )->tp_name );
+        printf("Too simple deep hash: %s\n", Py_TYPE(value)->tp_name);
 #endif
 
         return result;

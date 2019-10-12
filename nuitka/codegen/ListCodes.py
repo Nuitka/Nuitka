@@ -121,7 +121,7 @@ def generateListOperationPopCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    emit("assert(PyList_Check( %s ));" % list_arg_name)
+    emit("assert(PyList_Check(%s));" % list_arg_name)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "list_extend_result", expression, emit, context

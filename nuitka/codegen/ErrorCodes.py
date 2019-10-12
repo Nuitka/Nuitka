@@ -176,7 +176,7 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
         set_exception = [
             "%s = %s;" % (exception_type, exception),
             "Py_INCREF(%s);" % exception_type,
-            "%s = Py%s_FromFormat( %s );"
+            "%s = Py%s_FromFormat(%s);"
             % (
                 exception_value,
                 "String" if python_version < 300 else "Unicode",
@@ -190,14 +190,14 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
 
         if keeper_vars[0] is not None:
             set_exception.append(
-                "ADD_EXCEPTION_CONTEXT( &%s, &%s );" % (keeper_vars[0], keeper_vars[1])
+                "ADD_EXCEPTION_CONTEXT(&%s, &%s);" % (keeper_vars[0], keeper_vars[1])
             )
         else:
             set_exception.append(
-                "NORMALIZE_EXCEPTION( &%s, &%s, &%s );"
+                "NORMALIZE_EXCEPTION(&%s, &%s, &%s);"
                 % (exception_type, exception_value, exception_tb)
             )
-            set_exception.append("CHAIN_EXCEPTION( %s );" % exception_value)
+            set_exception.append("CHAIN_EXCEPTION(%s);" % exception_value)
 
     emit(
         template_error_format_string_exception

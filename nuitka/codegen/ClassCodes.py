@@ -42,7 +42,7 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
     ) as value_name:
 
         emit(
-            "%s = SELECT_METACLASS( %s );"
+            "%s = SELECT_METACLASS(%s);"
             % (value_name, ", ".join(str(arg_name) for arg_name in arg_names))
         )
 
@@ -63,7 +63,7 @@ def generateBuiltinSuperCode(to_name, expression, emit, context):
     ) as value_name:
 
         emit(
-            "%s = BUILTIN_SUPER( %s, %s );"
+            "%s = BUILTIN_SUPER(%s, %s);"
             % (
                 value_name,
                 type_name if type_name is not None else "NULL",

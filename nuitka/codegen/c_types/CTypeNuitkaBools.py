@@ -110,6 +110,6 @@ class CTypeNuitkaBoolEnum(CTypeBase):
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
         emit(
-            "%(to_name)s = ( %(condition)s ) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;"
+            "%(to_name)s = (%(condition)s) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;"
             % {"to_name": to_name, "condition": condition}
         )

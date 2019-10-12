@@ -100,7 +100,7 @@ def generateLocalsDictSetCode(statement, emit, context):
 
     if is_dict:
         emit(
-            "%s = PyDict_SetItem( %s, %s, %s );"
+            "%s = PyDict_SetItem(%s, %s, %s);"
             % (
                 res_name,
                 locals_declaration,
@@ -110,7 +110,7 @@ def generateLocalsDictSetCode(statement, emit, context):
         )
     else:
         emit(
-            "%s = PyObject_SetItem( %s, %s, %s );"
+            "%s = PyObject_SetItem(%s, %s, %s);"
             % (
                 res_name,
                 locals_declaration,
@@ -141,7 +141,7 @@ def generateLocalsDictDelCode(statement, emit, context):
         res_name = context.getBoolResName()
 
         emit(
-            "%s = DICT_REMOVE_ITEM( %s, %s );"
+            "%s = DICT_REMOVE_ITEM(%s, %s);"
             % (
                 res_name,
                 dict_arg_name,
@@ -159,7 +159,7 @@ def generateLocalsDictDelCode(statement, emit, context):
         res_name = context.getIntResName()
 
         emit(
-            "%s = PyObject_DelItem( %s, %s );"
+            "%s = PyObject_DelItem(%s, %s);"
             % (
                 res_name,
                 dict_arg_name,
@@ -268,7 +268,7 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
     if is_dict:
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
             to_name=to_name,
-            condition="PyDict_GetItem( %(locals_dict)s, %(var_name)s )"
+            condition="PyDict_GetItem(%(locals_dict)s, %(var_name)s)"
             % {
                 "locals_dict": locals_declaration,
                 "var_name": context.getConstantCode(constant=variable_name),
@@ -279,7 +279,7 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
         tmp_name = context.getIntResName()
 
         template = """\
-%(tmp_name)s = MAPPING_HAS_ITEM( %(locals_dict)s, %(var_name)s );
+%(tmp_name)s = MAPPING_HAS_ITEM(%(locals_dict)s, %(var_name)s);
 """
 
         emit(
