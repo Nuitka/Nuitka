@@ -87,7 +87,8 @@ def main():
 
         filenames = list(
             scanTargets(
-                positional_args, (".py", ".scons", ".rst", ".txt", ".j2", ".md")
+                positional_args,
+                (".py", ".scons", ".rst", ".txt", ".j2", ".md", ".c", ".h"),
             )
         )
         if not filenames:
