@@ -177,11 +177,19 @@ extern PyObject *const_str_plain_exc_type, *const_str_plain_exc_value, *const_st
 // use in this file only.
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyObject *exception_type, PyObject *exception_value,
                                                               PyTracebackObject *exception_tb) {
+    CHECK_OBJECT_X(exception_type);
+    CHECK_OBJECT_X(exception_value);
+    CHECK_OBJECT_X(exception_tb);
+
     PyThreadState *thread_state = PyThreadState_GET();
 
     PyObject *old_type = EXC_TYPE(thread_state);
     PyObject *old_value = EXC_VALUE(thread_state);
     PyObject *old_tb = EXC_TRACEBACK(thread_state);
+
+    CHECK_OBJECT_X(old_type);
+    CHECK_OBJECT_X(old_value);
+    CHECK_OBJECT_X(old_tb);
 
     EXC_TYPE(thread_state) = exception_type;
     EXC_VALUE(thread_state) = exception_value;

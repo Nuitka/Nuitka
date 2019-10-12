@@ -56,6 +56,7 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject **args);
 
 // Helper to check that an object is valid and has positive reference count.
 #define CHECK_OBJECT(value) (assert(value != NULL), assert(Py_REFCNT(value) > 0));
+#define CHECK_OBJECT_X(value) (assert(value == NULL || Py_REFCNT(value) > 0));
 
 #include "nuitka/exceptions.h"
 
