@@ -15,11 +15,18 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Make a star import, and demonstrate that it has impact on the modules dict.
+
+"""
+
+from __future__ import print_function
+
+from .pyexpat import *  # pylint: disable=unused-wildcard-import,wildcard-import
+
 print("some_package.star_importing, doing the star import")
 
 print("Before", sorted(x for x in dir() if x != "__compiled__"))
 
-from .pyexpat import *
 
 lala = 1
 print("After", sorted(x for x in dir() if x != "__compiled__"))

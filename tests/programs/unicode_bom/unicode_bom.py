@@ -19,4 +19,4 @@
 # import unicodedata
 
 
-print( "This is from file with BOM unicode marker" )
+print("This is from file with BOM unicode marker")
