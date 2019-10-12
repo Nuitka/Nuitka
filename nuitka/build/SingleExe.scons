@@ -802,6 +802,10 @@ if gcc_mode:
     # to negative values.
     env.Append(CCFLAGS=["-fwrapv"])
 
+    # Save some memory for gcc by not tracing macro code locations at all.
+    if not debug_mode and not clang_mode:
+        env.Append(CCFLAGS=["-ftrack-macro-expansion=0"])
+
 # Support for clang.
 if "clang" in the_cc_name:
     env.Append(CCFLAGS=["-w"])
