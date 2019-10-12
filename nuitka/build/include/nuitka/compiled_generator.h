@@ -67,9 +67,6 @@ struct Nuitka_GeneratorObject {
 
     void *m_code;
 
-    PyObject *m_exception_type, *m_exception_value;
-    PyTracebackObject *m_exception_tb;
-
     struct Nuitka_FrameObject *m_frame;
     PyCodeObject *m_code_object;
 

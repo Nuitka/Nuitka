@@ -733,10 +733,6 @@ PyObject *Nuitka_Asyncgen_New(asyncgen_code code, PyObject *module, PyObject *na
     result->m_running = false;
     result->m_awaiting = false;
 
-    result->m_exception_type = NULL;
-    result->m_exception_value = NULL;
-    result->m_exception_tb = NULL;
-
     result->m_yield_return_index = 0;
 
     result->m_frame = NULL;
@@ -747,6 +743,12 @@ PyObject *Nuitka_Asyncgen_New(asyncgen_code code, PyObject *module, PyObject *na
     result->m_finalizer = NULL;
     result->m_hooks_init_done = false;
     result->m_closed = false;
+
+#if PYTHON_VERSION >= 370
+    result->m_exc_state.exc_type = NULL;
+    result->m_exc_state.exc_value = NULL;
+    result->m_exc_state.exc_traceback = NULL;
+#endif
 
     Nuitka_GC_Track(result);
     return (PyObject *)result;

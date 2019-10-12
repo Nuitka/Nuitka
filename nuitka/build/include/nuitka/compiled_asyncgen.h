@@ -49,9 +49,6 @@ struct Nuitka_AsyncgenObject {
 
     void *m_code;
 
-    PyObject *m_exception_type, *m_exception_value;
-    PyTracebackObject *m_exception_tb;
-
     // The parent frame of the coroutine, if created.
     struct Nuitka_FrameObject *m_frame;
 

@@ -1083,10 +1083,6 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
     result->m_status = status_Unused;
     result->m_running = false;
 
-    result->m_exception_type = NULL;
-    result->m_exception_value = NULL;
-    result->m_exception_tb = NULL;
-
     result->m_yield_return_index = 0;
 
 #if PYTHON_VERSION >= 300
@@ -1095,6 +1091,12 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
 
     result->m_frame = NULL;
     result->m_code_object = code_object;
+
+#if PYTHON_VERSION >= 370
+    result->m_exc_state.exc_type = NULL;
+    result->m_exc_state.exc_value = NULL;
+    result->m_exc_state.exc_traceback = NULL;
+#endif
 
     Nuitka_GC_Track(result);
     return (PyObject *)result;
