@@ -22,7 +22,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/nuitka/build/include",
-                "/usr/include/python2.7"
+                "/usr/include/python3.7"
             ],
             "defines": [
                 "_DEBUG",
