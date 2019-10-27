@@ -329,6 +329,12 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
         return False
 
 
+class StatementDictOperationSetKeyValue(StatementDictOperationSet):
+    kind = "STATEMENT_DICT_OPERATION_SET_KEY_VALUE"
+
+    named_children = ("key", "value", "dict")
+
+
 class StatementDictOperationRemove(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_REMOVE"
 

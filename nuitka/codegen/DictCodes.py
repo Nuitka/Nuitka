@@ -279,6 +279,46 @@ def generateDictOperationSetCode(statement, emit, context):
     )
 
 
+def generateDictOperationSetCodeKeyValue(statement, emit, context):
+    key_arg_name = context.allocateTempName("dictset_key", unique=True)
+    generateExpressionCode(
+        to_name=key_arg_name, expression=statement.getKey(), emit=emit, context=context
+    )
+
+    value_arg_name = context.allocateTempName("dictset_value", unique=True)
+    generateExpressionCode(
+        to_name=value_arg_name,
+        expression=statement.getValue(),
+        emit=emit,
+        context=context,
+    )
+
+    dict_arg_name = context.allocateTempName("dictset_dict", unique=True)
+    generateExpressionCode(
+        to_name=dict_arg_name,
+        expression=statement.getDict(),
+        emit=emit,
+        context=context,
+    )
+
+    context.setCurrentSourceCodeReference(statement.getSourceReference())
+
+    res_name = context.getIntResName()
+
+    emit(
+        "%s = PyDict_SetItem(%s, %s, %s);"
+        % (res_name, dict_arg_name, key_arg_name, value_arg_name)
+    )
+
+    getErrorExitBoolCode(
+        condition="%s != 0" % res_name,
+        release_names=(value_arg_name, dict_arg_name, key_arg_name),
+        emit=emit,
+        needs_check=not statement.getKey().isKnownToBeHashable(),
+        context=context,
+    )
+
+
 def generateDictOperationRemoveCode(statement, emit, context):
     dict_arg_name = context.allocateTempName("dictdel_dict", unique=True)
     generateExpressionCode(

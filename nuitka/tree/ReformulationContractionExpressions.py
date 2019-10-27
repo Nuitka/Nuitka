@@ -44,7 +44,10 @@ from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
     StatementSetOperationAdd,
 )
-from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
+from nuitka.nodes.DictionaryNodes import (
+    StatementDictOperationSet,
+    StatementDictOperationSetKeyValue,
+)
 from nuitka.nodes.FrameNodes import StatementsFrameFunction, StatementsFrameGenerator
 from nuitka.nodes.FunctionNodes import ExpressionFunctionRef
 from nuitka.nodes.GeneratorNodes import (
@@ -202,7 +205,9 @@ def buildDictContractionNode(provider, node, source_ref):
         provider=provider,
         node=node,
         name="<dictcontraction>",
-        emit_class=StatementDictOperationSet,
+        emit_class=StatementDictOperationSet
+        if python_version < 380
+        else StatementDictOperationSetKeyValue,
         start_value={},
         source_ref=source_ref,
     )
@@ -349,7 +354,7 @@ def _buildContractionBodyNode(
 
     # This uses lots of variables and branches. There is no good way
     # around that, and we deal with many cases, due to having generator
-    # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals
 
     # Note: The assign_provider is only to cover Python2 list contractions,
     # assigning one of the loop variables to the outside scope.
@@ -419,9 +424,7 @@ def _buildContractionBodyNode(
                 source_ref=source_ref,
             )
     else:
-        assert emit_class is StatementDictOperationSet
-
-        current_body = StatementDictOperationSet(
+        current_body = emit_class(
             dict_arg=ExpressionTempVariableRef(
                 variable=container_tmp, source_ref=source_ref
             ),

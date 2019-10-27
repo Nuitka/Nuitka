@@ -46,7 +46,7 @@ from nuitka.nodes.ConditionalNodes import (
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
-from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
+from nuitka.nodes.DictionaryNodes import StatementDictOperationSetKeyValue
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
     StatementRaiseException,
@@ -2229,7 +2229,7 @@ def getFunctionCallHelperDictionaryUnpacking():
             no_branch=None,
             source_ref=internal_source_ref,
         ),
-        StatementDictOperationSet(
+        StatementDictOperationSetKeyValue(
             dict_arg=ExpressionTempVariableRef(
                 variable=tmp_result_variable, source_ref=internal_source_ref
             ),

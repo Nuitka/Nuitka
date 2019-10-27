@@ -100,6 +100,7 @@ from .DictCodes import (
     generateDictOperationInCode,
     generateDictOperationRemoveCode,
     generateDictOperationSetCode,
+    generateDictOperationSetCodeKeyValue,
     generateDictOperationUpdateCode,
 )
 from .EvalCodes import (
@@ -707,6 +708,7 @@ setStatementDispatchDict(
         "STATEMENT_LIST_OPERATION_APPEND": generateListOperationAppendCode,
         "STATEMENT_SET_OPERATION_ADD": generateSetOperationAddCode,
         "STATEMENT_DICT_OPERATION_SET": generateDictOperationSetCode,
+        "STATEMENT_DICT_OPERATION_SET_KEY_VALUE": generateDictOperationSetCodeKeyValue,
         "STATEMENT_LOCALS_DICT_OPERATION_SET": generateLocalsDictSetCode,
         "STATEMENT_LOCALS_DICT_OPERATION_DEL": generateLocalsDictDelCode,
         "STATEMENT_LOOP": generateLoopCode,
