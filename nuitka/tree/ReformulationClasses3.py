@@ -631,6 +631,7 @@ def getClassBasesMroConversionHelper():
         parameters=ParameterSpec(
             ps_name=helper_name,
             ps_normal_args=("bases",),
+            ps_pos_only_args=(),
             ps_list_star_arg=None,
             ps_dict_star_arg=None,
             ps_default_count=0,

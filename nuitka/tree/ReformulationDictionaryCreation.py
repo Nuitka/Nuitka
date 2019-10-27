@@ -107,6 +107,7 @@ def getDictUnpackingHelper():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 

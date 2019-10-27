@@ -777,7 +777,7 @@ class ExpressionFunctionCreation(
                 star_list_arg=call_spec.getStarListArgumentName(),
                 star_dict_arg=call_spec.getStarDictArgumentName(),
                 num_defaults=call_spec.getDefaultCount(),
-                num_posonly=call_spec.getPositionalOnlyCount(),
+                num_posonly=call_spec.getPosOnlyParameterCount(),
                 positional=args_tuple,
                 pairs=(),
             )

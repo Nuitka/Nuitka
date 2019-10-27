@@ -140,6 +140,7 @@ def getCallableNameDescBody():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -989,6 +990,7 @@ def getFunctionCallHelperStarList():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1070,6 +1072,7 @@ def getFunctionCallHelperKeywordsStarList():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1157,6 +1160,7 @@ def getFunctionCallHelperPosStarList():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1250,6 +1254,7 @@ def getFunctionCallHelperPosKeywordsStarList():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1361,6 +1366,7 @@ def getFunctionCallHelperStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1458,6 +1464,7 @@ def getFunctionCallHelperPosStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1587,6 +1594,7 @@ def getFunctionCallHelperKeywordsStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1713,6 +1721,7 @@ def getFunctionCallHelperPosKeywordsStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1825,6 +1834,7 @@ def getFunctionCallHelperStarListStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1905,6 +1915,7 @@ def getFunctionCallHelperPosStarListStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -2000,6 +2011,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -2085,6 +2097,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -2181,6 +2194,7 @@ def getFunctionCallHelperDictionaryUnpacking():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
