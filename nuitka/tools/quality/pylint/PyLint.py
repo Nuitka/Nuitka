@@ -181,6 +181,13 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
             "\n"
         )
 
+    if pylint_version >= "2.4":
+        default_pylint_options += """\
+--disable=import-outside-toplevel\
+""".split(
+            "\n"
+        )
+
     if os.name != "nt":
         default_pylint_options.append("--rcfile=%s" % os.devnull)
 
@@ -202,9 +209,10 @@ def _cleanupPylintOutput(output):
     lines = [
         line
         for line in lines
+        if line
         if "Using config file" not in line
         if "Unable to import 'resource'" not in line
-        if line
+        if "Bad option value 'self-assigning-variable'" not in line
     ]
 
     try:

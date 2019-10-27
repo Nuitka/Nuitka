@@ -43,6 +43,7 @@
         "--disable=no-else-return",
         "--disable=c-extension-no-member,inconsistent-return-statements",
         "--disable=useless-object-inheritance,useless-return,assignment-from-no-return",
+        "--disable=import-outside-toplevel",
     ],
     "python.linting.ignorePatterns" : ["tests/CPython??/test/**"],
     "restructuredtext.confPath": "",

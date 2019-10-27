@@ -1,11 +1,11 @@
-# PyLint wouldn't be installable on 2.6 and not work with 3.3
+# PyLint wouldn't be installable on 2.6 and not work with too old Python3
 
 pylint == 1.9.5 ; python_version == '2.7'
-pylint == 2.3.1 ; python_version >= '3.6'
-astroid == 2.2.5 ; python_version >= '3.6'
+pylint == 2.4.3 ; python_version >= '3.6'
+astroid == 2.3.2 ; python_version >= '3.6'
 
 # linting rest code snippets
-Pygments == 2.4.2; python_version == '2.7' or python_version >= '3.6'
+Pygments == 2.4.2 ; python_version == '2.7' or python_version >= '3.6'
 doc8 == 0.8.0
 
 # Autoformat needs
@@ -18,7 +18,7 @@ baron == 0.9 ; python_version >= '2.7'
 doxypypy == 0.8.8.6 ; python_version >= '2.7'
 
 # Code and test generation tools
-Jinja2 == 2.10.1; python_version >= '2.7'
+Jinja2 == 2.10.1 ; python_version >= '2.7'
 
 # Codespell can be used as well, no need to fix version
-codespell; python_version >= '2.7'
+codespell ; python_version >= '2.7'
