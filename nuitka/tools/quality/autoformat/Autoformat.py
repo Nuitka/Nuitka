@@ -336,6 +336,20 @@ def _isPythonFile(filename):
     return False
 
 
+def transferBOM(source_filename, target_filename):
+    with open(source_filename, "rb") as f:
+        source_code = f.read()
+
+    if source_code.startswith(b"\xef\xbb\xbf"):
+        with open(target_filename, "rb") as f:
+            source_code = f.read()
+
+        if not source_code.startswith(b"\xef\xbb\xbf"):
+            with open(target_filename, "wb") as f:
+                f.write(b"\xef\xbb\xbf")
+                f.write(source_code)
+
+
 def autoformat(filename, git_stage, abort):
     # This does a lot of distinctions, pylint: disable=too-many-branches
 
@@ -406,6 +420,8 @@ def autoformat(filename, git_stage, abort):
             _cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)
             _cleanupWindowsNewlines(tmp_filename)
+
+        transferBOM(filename, tmp_filename)
 
         changed = False
         if old_code != getFileContents(tmp_filename, "rb"):

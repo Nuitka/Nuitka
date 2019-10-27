@@ -50,6 +50,7 @@ def _detectEncoding2(source_file):
     line1 = source_file.readline()
 
     if line1.startswith(b"\xef\xbb\xbf"):
+        # BOM marker makes it clear.
         encoding = "utf-8"
     else:
         line1_match = re.search(b"coding[:=]\\s*([-\\w.]+)", line1)
