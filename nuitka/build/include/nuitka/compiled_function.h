@@ -55,6 +55,10 @@ struct Nuitka_FunctionObject {
 
     function_impl_code m_c_code;
 
+#if PYTHON_VERSION >= 380
+    vectorcallfunc m_vectorcall;
+#endif
+
     PyObject *m_dict;
     PyObject *m_weakrefs;
 
