@@ -249,7 +249,8 @@ if "CC" in os.environ:
     cc_dirname = os.path.dirname(os.environ["CC"])
 
     if win_target and isGccName(os.path.basename(os.environ["CC"])):
-        print("Scons: Environment CC seems to be a gcc, enable mingw_mode.")
+        if show_scons_mode:
+            print("Scons: Environment CC seems to be a gcc, enable mingw_mode.")
         mingw_mode = True
 
     if os.path.isdir(cc_dirname):
@@ -268,7 +269,8 @@ if "CXX" in os.environ:
     cxx_dirname = os.path.dirname(os.environ["CXX"])
 
     if win_target and isGccName(os.path.basename(os.environ["CXX"])):
-        print("Scons: Environment CXX seems to be a gcc, enable mingw_mode.")
+        if show_scons_mode:
+            print("Scons: Environment CXX seems to be a gcc, enable mingw_mode.")
         mingw_mode = True
 
     if os.path.isdir(cxx_dirname):
