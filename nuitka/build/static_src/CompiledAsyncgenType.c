@@ -1300,11 +1300,13 @@ check_error:
 static PyObject *Nuitka_AsyncgenAthrow_throw(struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow, PyObject *args) {
     PyObject *retval;
 
+#if PYTHON_VERSION < 375
     if (asyncgen_athrow->m_state == AWAITABLE_STATE_INIT) {
         PyErr_Format(PyExc_RuntimeError, "can't send non-None value to a just-started coroutine");
 
         return NULL;
     }
+#endif
 
     if (asyncgen_athrow->m_state == AWAITABLE_STATE_CLOSED) {
         PyErr_SetNone(PyExc_StopIteration);
