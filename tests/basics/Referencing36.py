@@ -38,6 +38,7 @@ sys.path.insert(
 
 # isort:start
 
+import asyncio
 import types
 
 from nuitka.tools.testing.Common import (
@@ -48,6 +49,10 @@ from nuitka.tools.testing.Common import (
 )
 
 checkDebugPython()
+
+
+class AwaitException(Exception):
+    pass
 
 
 def run_until_complete(coro):
@@ -162,6 +167,42 @@ def simpleFunction5():
         rawdata += bytes(range(256))
 
     return C()
+
+
+# This refleaks big time, but the construct is rare enough to not bother
+# as this proves hard to find.
+def disabled_simpleFunction6():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(None)
+
+    async def waiter(timeout):
+        await asyncio.sleep(timeout)
+        yield 1
+
+    async def wait():
+        async for _ in waiter(1):
+            pass
+
+    t1 = loop.create_task(wait())
+    t2 = loop.create_task(wait())
+
+    loop.run_until_complete(asyncio.sleep(0.01))
+
+    t1.cancel()
+    t2.cancel()
+
+    try:
+        loop.run_until_complete(t1)
+    except asyncio.CancelledError:
+        pass
+    try:
+        loop.run_until_complete(t2)
+    except asyncio.CancelledError:
+        pass
+
+    loop.run_until_complete(loop.shutdown_asyncgens())
+
+    loop.close()
 
 
 # These need stderr to be wrapped.

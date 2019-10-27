@@ -812,10 +812,14 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 }
 
 void PRINT_REFCOUNT(PyObject *object) {
-    char buffer[1024];
-    snprintf(buffer, sizeof(buffer) - 1, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT(object));
+    if (object) {
+        char buffer[1024];
+        snprintf(buffer, sizeof(buffer) - 1, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT(object));
 
-    PRINT_STRING(buffer);
+        PRINT_STRING(buffer);
+    } else {
+        PRINT_STRING("<null>");
+    }
 }
 
 bool PRINT_STRING(char const *str) {
@@ -824,6 +828,17 @@ bool PRINT_STRING(char const *str) {
     Py_DECREF(tmp);
 
     return res;
+}
+
+bool PRINT_FORMAT(char const *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    // Only used for debug purposes, lets be unsafe here.
+    char buffer[4096];
+
+    vsprintf(buffer, fmt, args);
+    return PRINT_STRING(buffer);
 }
 
 bool PRINT_REPR(PyObject *object) {
@@ -873,12 +888,14 @@ void PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyObje
 void PRINT_CURRENT_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
+    PRINT_STRING("current_exc=");
     PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
 }
 
 void PRINT_PUBLISHED_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
+    PRINT_STRING("thread_exc=");
     PRINT_EXCEPTION(EXC_TYPE(tstate), EXC_VALUE(tstate), EXC_TRACEBACK(tstate));
 }
 
