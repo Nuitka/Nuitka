@@ -71,7 +71,7 @@ def main():
             autoformat(desc["src_path"], git_stage=desc, abort=options.abort)
     else:
         if not positional_args:
-            positional_args = ["bin", "nuitka", "tests/*/run_all.py"]
+            positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
 
         my_print("Working on:", positional_args)
 
