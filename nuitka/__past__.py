@@ -28,7 +28,7 @@ be a "in (str, unicode)" rather than making useless version checks.
 import sys
 from abc import ABCMeta
 
-# pylint: disable=I0021,invalid-name,redefined-builtin
+# pylint: disable=I0021,invalid-name,redefined-builtin,self-assigning-variable
 
 if str is bytes:
     import __builtin__ as builtins  # pylint: disable=I0021,import-error

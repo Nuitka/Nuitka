@@ -66,7 +66,7 @@ def _cleanupTrailingWhitespace(filename):
 
     """
     with open(filename, "r") as f:
-        source_lines = [line for line in f]
+        source_lines = list(f)
 
     clean_lines = [line.rstrip().replace("\t", "    ") for line in source_lines]
 

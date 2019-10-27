@@ -70,7 +70,7 @@ def simpleFunction1():
     async def gen1():
         try:
             yield
-        except:
+        except:  # pylint: disable=bare-except
             pass
 
     async def run():
@@ -89,7 +89,7 @@ def simpleFunction2():
         try:
             yield 1
             yield 1.1
-            1 / 0
+            1 / 0  # pylint: disable=pointless-statement
         finally:
             yield 2
             yield 3
@@ -110,7 +110,7 @@ def awaitable(*, throw=False):
 async def gen2():
     await awaitable()
     a = yield 123
-    # self.assertIs(a, None)
+    assert a is None
     await awaitable()
     yield 456
     await awaitable()
@@ -141,7 +141,7 @@ def simpleFunction4():
 
     try:
         ai.__anext__().__next__()
-    except StopIteration as ex:
+    except StopIteration as _ex:
         pass
 
     ai.__anext__().__next__()
@@ -150,12 +150,12 @@ def simpleFunction4():
 def simpleFunction5():
     t = 2
 
-    class C:
-        exec("u=2")
+    class C:  # pylint: disable=invalid-name
+        exec("u=2")  # pylint: disable=exec-used
         x: int = 2
         y: float = 2.0
 
-        z = x + y + t * u
+        z = x + y + t * u  # pylint: disable=undefined-variable
 
         rawdata = b"The quick brown fox jumps over the lazy dog.\r\n"
         # Be slow so we don't depend on other modules

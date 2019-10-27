@@ -288,8 +288,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                             )
 
                         break
-                    else:
-                        seen_function = True
+
+                    seen_function = True
         # Check if continue and break are properly in loops. If not, raise a
         # syntax error.
         elif node.isStatementLoopBreak() or node.isStatementLoopContinue():

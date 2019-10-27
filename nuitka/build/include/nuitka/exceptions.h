@@ -166,11 +166,20 @@ extern PyObject *const_str_plain_exc_type, *const_str_plain_exc_value, *const_st
 #define EXC_TYPE(x) (x->exc_type)
 #define EXC_VALUE(x) (x->exc_value)
 #define EXC_TRACEBACK(x) (x->exc_traceback)
+
+#define EXC_TYPE_F(x) (x->m_frame->m_frame.f_exc_type)
+#define EXC_VALUE_F(x) (x->m_frame->m_frame.f_exc_value)
+#define EXC_TRACEBACK_F(x) (x->m_frame->m_frame.f_exc_traceback)
+
 #else
 #define EXC_TYPE(x) (x->exc_state.exc_type)
 #define EXC_VALUE(x) (x->exc_state.exc_value)
 #define EXC_TRACEBACK(x) (x->exc_state.exc_traceback)
-#define EXC_STATE(x) (x->m_exc_state)
+
+#define EXC_TYPE_F(x) (x->m_exc_state.exc_type)
+#define EXC_VALUE_F(x) (x->m_exc_state.exc_value)
+#define EXC_TRACEBACK_F(x) (x->m_exc_state.exc_traceback)
+
 #endif
 
 // Helper that sets the current thread exception, releasing the current one, for

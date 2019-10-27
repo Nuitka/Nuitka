@@ -20,17 +20,15 @@
 """
 
 template_publish_exception_to_handler = """\
-if ( %(keeper_tb)s == NULL ) {
+if (%(keeper_tb)s == NULL) {
     %(keeper_tb)s = %(tb_making)s;
-}
-else if ( %(keeper_lineno)s != 0 ) {
+} else if (%(keeper_lineno)s != 0) {
     %(keeper_tb)s = ADD_TRACEBACK(%(keeper_tb)s, %(frame_identifier)s, %(keeper_lineno)s);
 }
 """
 
 template_error_catch_quick_exception = """\
-if (%(condition)s)
-{
+if (%(condition)s) {
     if (!ERROR_OCCURRED()) {
         %(exception_type)s = %(quick_exception)s;
         Py_INCREF(%(exception_type)s);
@@ -59,8 +57,7 @@ if (%(condition)s) {
 }"""
 
 template_error_format_string_exception = """\
-if (%(condition)s)
-{
+if (%(condition)s) {
 %(release_temps)s
 %(set_exception)s
 

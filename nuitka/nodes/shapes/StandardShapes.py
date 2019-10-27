@@ -861,8 +861,6 @@ class ShapeLoopCompleteAlternative(ShapeBase):
                     escape_description = ControlFlowDescriptionFullEscape
                 else:
                     assert False
-            else:
-                escape_description, = escape_description
 
             return ShapeLoopCompleteAlternative(result), escape_description
 

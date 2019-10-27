@@ -82,7 +82,7 @@ def get_numpy_core_binaries(module):
     libdir = os.path.join(numpy_dir, ".libs")
     suffix_start = len(libdir) + 1
     if os.path.isdir(libdir):
-        dlls_pkg = [f for f in os.listdir(libdir)]
+        dlls_pkg = os.listdir(libdir)
         binaries += [[os.path.join(libdir, f), suffix_start] for f in dlls_pkg]
 
     # then look for libraries in numpy.core package path
@@ -268,7 +268,7 @@ class NumpyPlugin(NuitkaPluginBase):
         # some special handling for matplotlib:
         # keep certain modules depending on whether Tk or Qt plugins are enabled
         if self.enabled_plugins is None:
-            self.enabled_plugins = [p for p in Options.getPluginsEnabled()]
+            self.enabled_plugins = Options.getPluginsEnabled()
 
         if "tk-inter" in self.enabled_plugins:
             if module_name in (

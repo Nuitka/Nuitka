@@ -146,19 +146,19 @@ def main():
             continue
 
         # catch error
-        elif filename == "Boto3Using.py":
+        if filename == "Boto3Using.py":
             reportSkip("boto3 test not fully working yet", ".", filename)
             continue
 
-        elif "Idna" in filename:
+        if "Idna" in filename:
             # For the warnings of Python2.
             if python_version.startswith("2"):
                 extra_flags.append("ignore_stderr")
 
-        elif filename == "CtypesUsing.py":
+        if filename == "CtypesUsing.py":
             extra_flags.append("plugin_disable:pylint-warnings")
 
-        elif filename == "GtkUsing.py":
+        if filename == "GtkUsing.py":
             # Don't test on platforms not supported by current Debian testing, and
             # which should be considered irrelevant by now.
             if python_version.startswith("2.6"):
@@ -168,40 +168,46 @@ def main():
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
-        elif filename.startswith("Win"):
+        if filename.startswith("Win"):
             if os.name != "nt":
                 reportSkip("Windows only test", ".", filename)
                 continue
 
-        elif filename == "TkInterUsing.py":
+        if filename == "TkInterUsing.py":
             if getOS() == "Darwin":
                 reportSkip("Not working macOS yet", ".", filename)
                 continue
 
             # For the plug-in information.
             extra_flags.append("plugin_enable:tk-inter")
-        elif filename == "FlaskUsing.py":
+
+        if filename == "FlaskUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
-        elif filename == "NumpyUsing.py":
+
+        if filename == "NumpyUsing.py":
             # TODO: Disabled for now.
             reportSkip("numpy.test not fully working yet", ".", filename)
             continue
 
             # extra_flags.append("plugin_enable:data-files")
-        elif filename == "PmwUsing.py":
+        if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
-        elif filename == "OpenGLUsing.py":
+
+        if filename == "OpenGLUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
-        elif filename == "PasslibUsing.py":
+
+        if filename == "PasslibUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
-        elif filename == "PySideUsing.py":
+
+        if filename == "PySideUsing.py":
             # TODO: Disabled due to lack of upstream support.
             reportSkip("PySide not supported yet", ".", filename)
             continue
-        elif filename == "Win32ComUsing.py":
+
+        if filename == "Win32ComUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
