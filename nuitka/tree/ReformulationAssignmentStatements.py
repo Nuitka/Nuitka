@@ -1128,12 +1128,16 @@ def buildNamedExprNode(provider, node, source_ref):
 
     value = buildNode(provider=provider, node=node.value, source_ref=source_ref)
 
+    locals_owner = provider
+    while locals_owner.isExpressionOutlineFunction():
+        locals_owner = locals_owner.getParentVariableProvider()
+
     statements = (
         StatementAssignmentVariable(
             variable=tmp_value, source=value, source_ref=source_ref
         ),
         StatementAssignmentVariableName(
-            provider=provider,
+            provider=locals_owner,
             variable_name=node.target.id,
             source=ExpressionTempVariableRef(variable=tmp_value, source_ref=source_ref),
             source_ref=source_ref,
