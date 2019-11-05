@@ -558,6 +558,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "uvicorn.protocols.websockets.websockets_impl", False
             yield "uvicorn.protocols.websockets.wsproto_impl", False
 
+        # vtk imports -----------------------------------------------------
+        elif full_name == "vtk":
+            yield "vtkmodules", False
+            yield "vtkmodules.all", False
+
         # chainer imports -----------------------------------------------------
         elif full_name == "chainer":
             yield "chainer.distributions", False
@@ -616,6 +621,47 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "scipy.sparse.csgraph._validation", False
         elif full_name == "scipy._lib":
             yield "scipy._lib.messagestream", False
+
+        # scipy imports -------------------------------------------------------
+        elif full_name == "statsmodels.nonparametric":
+            yield "statsmodels.nonparametric.linbin", False
+            yield "statsmodels.nonparametric._smoothers_lowess", False
+
+        elif full_name == "statsmodels.tsa":
+            yield "statsmodels.tsa._exponential_smoothers", False
+
+        elif full_name == "statsmodels.tsa.innovations":
+            yield "statsmodels.tsa.innovations._arma_innovations", False
+
+        elif full_name == "statsmodels.tsa.kalmanf":
+            yield "statsmodels.tsa.kalmanf.kalman_loglike", False
+
+        elif full_name == "statsmodels.tsa.regime_switching":
+            yield "statsmodels.tsa.regime_switching._hamilton_filter", False
+            yield "statsmodels.tsa.regime_switching._kim_smoother", False
+
+        elif full_name == "statsmodels.tsa.statespace":
+            yield "statsmodels.tsa.statespace._filters", False
+            yield "statsmodels.tsa.statespace._initialization", False
+            yield "statsmodels.tsa.statespace._kalman_filter", False
+            yield "statsmodels.tsa.statespace._kalman_smoother", False
+            yield "statsmodels.tsa.statespace._representation", False
+            yield "statsmodels.tsa.statespace._simulation_smoother", False
+            yield "statsmodels.tsa.statespace._smoothers", False
+            yield "statsmodels.tsa.statespace._tools", False
+
+        elif full_name == "statsmodels.tsa.statespace._filters":
+            yield "statsmodels.tsa.statespace._filters._conventional", False
+            yield "statsmodels.tsa.statespace._filters._inversions", False
+            yield "statsmodels.tsa.statespace._filters._univariate", False
+            yield "statsmodels.tsa.statespace._filters._univariate_diffuse", False
+
+        elif full_name == "statsmodels.tsa.statespace._smoothers":
+            yield "statsmodels.tsa.statespace._smoothers._alternative", False
+            yield "statsmodels.tsa.statespace._smoothers._classical", False
+            yield "statsmodels.tsa.statespace._smoothers._conventional", False
+            yield "statsmodels.tsa.statespace._smoothers._univariate", False
+            yield "statsmodels.tsa.statespace._smoothers._univariate_diffuse", False
 
         # pywt imports -----------------------------------------------
         elif full_name == "pywt":
