@@ -101,7 +101,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "_QOpenGLFunctions_2_1",
                 "_QOpenGLFunctions_4_1_Core",
             ):
-                yield elements[0] + ".QtCore", True
+                yield elements[0] + ".QtCore", False
 
             if child in (
                 "QtDeclarative",
@@ -117,15 +117,15 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "QtWebSockets",
                 "QtWebEngineWidgets",
             ):
-                yield elements[0] + ".QtNetwork", True
+                yield elements[0] + ".QtNetwork", False
 
             if child == "QtWebEngineWidgets":
-                yield elements[0] + ".QtWebEngineCore", True
-                yield elements[0] + ".QtWebChannel", True
-                yield elements[0] + ".QtPrintSupport", True
+                yield elements[0] + ".QtWebEngineCore", False
+                yield elements[0] + ".QtWebChannel", False
+                yield elements[0] + ".QtPrintSupport", False
 
             if child == "QtScriptTools":
-                yield elements[0] + ".QtScript", True
+                yield elements[0] + ".QtScript", False
 
             if child in (
                 "QtWidgets",
@@ -148,7 +148,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "_QOpenGLFunctions_2_1",
                 "_QOpenGLFunctions_4_1_Core",
             ):
-                yield elements[0] + ".QtGui", True
+                yield elements[0] + ".QtGui", False
 
             if full_name in (
                 "PyQt5.QtDesigner",
@@ -162,61 +162,61 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "PyQt5.QtQuickWidgets",
                 "PyQt5.QtSql",
             ):
-                yield "PyQt5.QtWidgets", True
+                yield "PyQt5.QtWidgets", False
 
             if full_name in ("PyQt5.QtPrintSupport",):
-                yield "PyQt5.QtSvg", True
+                yield "PyQt5.QtSvg", False
 
             if full_name in ("PyQt5.QtWebKitWidgets",):
-                yield "PyQt5.QtWebKit", True
-                yield "PyQt5.QtPrintSupport", True
+                yield "PyQt5.QtWebKit", False
+                yield "PyQt5.QtPrintSupport", False
 
             if full_name in ("PyQt5.QtMultimediaWidgets",):
-                yield "PyQt5.QtMultimedia", True
+                yield "PyQt5.QtMultimedia", False
 
             if full_name in ("PyQt5.QtQuick", "PyQt5.QtQuickWidgets"):
-                yield "PyQt5.QtQml", True
+                yield "PyQt5.QtQml", False
 
             if full_name in ("PyQt5.QtQuickWidgets", "PyQt5.QtQml"):
-                yield "PyQt5.QtQuick", True
+                yield "PyQt5.QtQuick", False
 
             if full_name == "PyQt5.Qt":
-                yield "PyQt5.QtCore", True
-                yield "PyQt5.QtDBus", True
-                yield "PyQt5.QtGui", True
-                yield "PyQt5.QtNetwork", True
+                yield "PyQt5.QtCore", False
+                yield "PyQt5.QtDBus", False
+                yield "PyQt5.QtGui", False
+                yield "PyQt5.QtNetwork", False
                 yield "PyQt5.QtNetworkAuth", False
                 yield "PyQt5.QtSensors", False
                 yield "PyQt5.QtSerialPort", False
-                yield "PyQt5.QtMultimedia", True
+                yield "PyQt5.QtMultimedia", False
                 yield "PyQt5.QtQml", False
-                yield "PyQt5.QtWidgets", True
+                yield "PyQt5.QtWidgets", False
 
         elif full_name == "sip" and python_version < 300:
             yield "enum", False
 
         elif full_name == "PySide.QtDeclarative":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtHelp":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtOpenGL":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtScriptTools":
-            yield "PySide.QtScript", True
-            yield "PySide.QtGui", True
+            yield "PySide.QtScript", False
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtSql":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtSvg":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtTest":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtUiTools":
-            yield "PySide.QtGui", True
-            yield "PySide.QtXml", True
+            yield "PySide.QtGui", False
+            yield "PySide.QtXml", False
         elif full_name == "PySide.QtWebKit":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.phonon":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "lxml.etree":
             yield "gzip", True
             yield "lxml._elementpath", True
@@ -559,9 +559,33 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "uvicorn.protocols.websockets.wsproto_impl", False
 
         # vtk imports -----------------------------------------------------
-        elif full_name == "vtk":
-            yield "vtkmodules", False
+        elif full_name == "vtkmodules":
             yield "vtkmodules.all", False
+            yield "vtkmodules.util", False
+
+        elif full_name == "vtkmodules.util":
+            yield "vtkmodules.util.misc", False
+            yield "vtkmodules.util.numpy_support", False
+            yield "vtkmodules.util.vtkAlgorithm", False
+            yield "vtkmodules.util.vtkConstants", False
+            yield "vtkmodules.util.vtkImageExportToArray", False
+            yield "vtkmodules.util.vtkImageImportFromArray", False
+            yield "vtkmodules.util.vtkMethodParser", False
+            yield "vtkmodules.util.vtkVariant", False
+
+        elif full_name == "vtkmodules.qt":
+            yield "vtkmodules.qt.QVTKRenderWindowInteractor", False
+
+        elif full_name == "vtkmodules.tk":
+            yield "vtkmodules.tk.vtkLoadPythonTkWidgets", False
+            yield "vtkmodules.tk.vtkTkImageViewerWidget", False
+            yield "vtkmodules.tk.vtkTkPhotoImage", False
+            yield "vtkmodules.tk.vtkTkRenderWidget", False
+            yield "vtkmodules.tk.vtkTkRenderWindowInteractor", False
+
+        elif full_name == "vtkmodules.wx":
+            yield "vtkmodules.wx.wxVTKRenderWindow", False
+            yield "vtkmodules.wx.wxVTKRenderWindowInteractor", False
 
         # chainer imports -----------------------------------------------------
         elif full_name == "chainer":
@@ -672,6 +696,54 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pywt._extensions._pywt", False
             yield "pywt._extensions._swt", False
 
+        # imageio imports -----------------------------------------------
+        elif full_name == "imageio":
+            yield "PIL.BlpImagePlugin", False
+            yield "PIL.BmpImagePlugin", False
+            yield "PIL.BufrStubImagePlugin", False
+            yield "PIL.CurImagePlugin", False
+            yield "PIL.DcxImagePlugin", False
+            yield "PIL.DdsImagePlugin", False
+            yield "PIL.EpsImagePlugin", False
+            yield "PIL.FitsStubImagePlugin", False
+            yield "PIL.FliImagePlugin", False
+            yield "PIL.FpxImagePlugin", False
+            yield "PIL.FtexImagePlugin", False
+            yield "PIL.GbrImagePlugin", False
+            yield "PIL.GifImagePlugin", False
+            yield "PIL.GribStubImagePlugin", False
+            yield "PIL.Hdf5StubImagePlugin", False
+            yield "PIL.IcnsImagePlugin", False
+            yield "PIL.IcoImagePlugin", False
+            yield "PIL.ImImagePlugin", False
+            yield "PIL.ImtImagePlugin", False
+            yield "PIL.IptcImagePlugin", False
+            yield "PIL.Jpeg2KImagePlugin", False
+            yield "PIL.JpegImagePlugin", False
+            yield "PIL.McIdasImagePlugin", False
+            yield "PIL.MicImagePlugin", False
+            yield "PIL.MpegImagePlugin", False
+            yield "PIL.MpoImagePlugin", False
+            yield "PIL.MspImagePlugin", False
+            yield "PIL.PalmImagePlugin", False
+            yield "PIL.PcdImagePlugin", False
+            yield "PIL.PcxImagePlugin", False
+            yield "PIL.PdfImagePlugin", False
+            yield "PIL.PixarImagePlugin", False
+            yield "PIL.PngImagePlugin", False
+            yield "PIL.PpmImagePlugin", False
+            yield "PIL.PsdImagePlugin", False
+            yield "PIL.SgiImagePlugin", False
+            yield "PIL.SpiderImagePlugin", False
+            yield "PIL.SunImagePlugin", False
+            yield "PIL.TgaImagePlugin", False
+            yield "PIL.TiffImagePlugin", False
+            yield "PIL.WebPImagePlugin", False
+            yield "PIL.WmfImagePlugin", False
+            yield "PIL.XbmImagePlugin", False
+            yield "PIL.XpmImagePlugin", False
+            yield "PIL.XVThumbImagePlugin", False
+
         # scikit-image imports -----------------------------------------------
         elif full_name == "skimage.draw":
             yield "skimage.draw._draw", False
@@ -704,9 +776,24 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "skimage.graph._mcp", False
             yield "skimage.graph._spath", False
 
+        elif full_name == "skimage.io":
+            yield "skimage.io._plugins", False
+
         elif full_name == "skimage.io._plugins":
             yield "skimage.io._plugins._colormixer", False
             yield "skimage.io._plugins._histograms", False
+            yield "skimage.io._plugins.fits_plugin", False
+            yield "skimage.io._plugins.gdal_plugin", False
+            yield "skimage.io._plugins.gtk_plugin", False
+            yield "skimage.io._plugins.imageio_plugin", False
+            yield "skimage.io._plugins.imread_plugin", False
+            yield "skimage.io._plugins.matplotlib_plugin", False
+            yield "skimage.io._plugins.pil_plugin", False
+            yield "skimage.io._plugins.qt_plugin", False
+            yield "skimage.io._plugins.simpleitk_plugin", False
+            yield "skimage.io._plugins.skivi_plugin", False
+            yield "skimage.io._plugins.tifffile_plugin", False
+            yield "skimage.io._plugins.util", False
 
         elif full_name == "skimage.measure":
             yield "skimage.measure._ccomp", False

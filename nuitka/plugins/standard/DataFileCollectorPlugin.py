@@ -47,6 +47,18 @@ known_data_files = {
         (None, "./ec2/resources/instance_types.json"),
         (None, "./ec2/resources/amis.json"),
     ),
+    "skimage": (
+        (None, "./io/_plugins/fits_plugin.ini"),
+        (None, "./io/_plugins/gdal_plugin.ini"),
+        (None, "./io/_plugins/gtk_plugin.ini"),
+        (None, "./io/_plugins/imageio_plugin.ini"),
+        (None, "./io/_plugins/imread_plugin.ini"),
+        (None, "./io/_plugins/matplotlib_plugin.ini"),
+        (None, "./io/_plugins/pil_plugin.ini"),
+        (None, "./io/_plugins/qt_plugin.ini"),
+        (None, "./io/_plugins/simpleitk_plugin.ini"),
+        (None, "./io/_plugins/tifffile_plugin.ini"),
+    ),
 }
 
 
