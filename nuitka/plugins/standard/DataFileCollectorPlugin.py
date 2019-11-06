@@ -36,6 +36,7 @@ known_data_files = {
     "site": ((None, "orig-prefix.txt"),),
     "nose.core": ((None, "usage.txt"),),
     "scrapy": ((None, "VERSION"),),
+    "dask": (("", "dask.yaml"),),
     "cairocffi": ((None, "VERSION"),),
     "cairosvg": ((None, "VERSION"),),
     "weasyprint": ((None, "VERSION"),),
