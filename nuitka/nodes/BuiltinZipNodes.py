@@ -67,7 +67,8 @@ class ExpressionBuiltinZip(ExpressionChildHavingBase):
 
         if values:
             for count, value in enumerate(values):
-                if not value.hasShapeSlotIter():
+                # Tri states are True, False, and None
+                if value.hasShapeSlotIter() is False:
                     return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                         template="zip argument #%d must support iteration"
                         % (count + 1),
