@@ -123,6 +123,7 @@ class ExpressionBuiltinZip(ExpressionChildHavingBase):
             name="builtin_zip",
             code_object=None,  # provider.getCodeObject(),
             flags=set(),
+            auto_release=None,
             source_ref=self.source_ref,
         )
 
