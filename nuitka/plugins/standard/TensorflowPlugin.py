@@ -86,8 +86,8 @@ class TensorflowPlugin(NuitkaPluginBase):
             create the actual application. Therefore, compilation makes no
             sense for it and the packages it references.
         """
-
-        for candidate in (
+        elements = module_name.split(".")
+        if elements[0] in (
             "tensor",
             "boto",
             "google",
@@ -96,8 +96,9 @@ class TensorflowPlugin(NuitkaPluginBase):
             "pandas",
             "matplotlib",
         ):
-            if module_name == candidate or module_name.startswith(candidate + "."):
-                return "bytecode"
+            return "bytecode"
+        else:
+            return "compiled"
 
 
 class TensorflowPluginDetector(NuitkaPluginBase):

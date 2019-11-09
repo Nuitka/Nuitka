@@ -32,6 +32,12 @@ from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import getOS
 
+def remove_suffix(mod_dir, mod_name):
+    if mod_name not in mod_dir:
+        return mod_dir
+    l = len(mod_name)
+    p = mod_dir.find(mod_name) + l
+    return mod_dir[:p]
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
@@ -47,7 +53,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         return True
 
     @staticmethod
-    def _getImportsByFullname(full_name):
+    def _getImportsByFullname(full_name, package_dir):
         """ Provides names of modules to imported implicitly.
 
         Notes:
@@ -217,9 +223,22 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "PySide.QtGui", False
         elif full_name == "PySide.phonon":
             yield "PySide.QtGui", False
+
+        elif full_name == "lxml":
+            yield "lxml.builder", False
+            yield "lxml.etree", False
+            yield "lxml.objectify", False
+            yield "lxml.sax", False
+            yield "lxml._elementpath", False
+
         elif full_name == "lxml.etree":
-            yield "gzip", True
-            yield "lxml._elementpath", True
+            yield "lxml._elementpath", False
+
+        elif full_name == "lxml.html":
+            yield "lxml.html.clean", False
+            yield "lxml.html.diff", False
+            yield "lxml.etree", False
+
         elif full_name == "gtk._gtk":
             yield "pangocairo", True
             yield "pango", True
@@ -934,6 +953,26 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pkg_resources._vendor.packaging.specifiers", True
             yield "pkg_resources._vendor.packaging.requirements", True
 
+        # pendulum imports -- START
+        elif full_name == "pendulum.locales":
+            locales_dir = os.path.join(package_dir, "locales")
+            idioms = os.listdir(locales_dir)
+            for idiom in idioms:
+                if (
+                    not os.path.isdir(os.path.join(locales_dir, idiom))
+                    or idiom == "__pycache__"
+                ):
+                    continue
+                yield "pendulum.locales." + idiom, False
+
+        elif (
+            full_name.startswith("pendulum.locales.")
+            and elements[2] != "locale"
+        ):  # only need the idiom folders
+            yield "pendulum.locales." + elements[2], False
+            yield "pendulum.locales." + elements[2] + ".locale", False
+        # pendulum imports -- STOP
+
         elif full_name == "uvloop.loop":
             yield "uvloop._noop", True
         elif full_name == "fitz.fitz":
@@ -997,7 +1036,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "passlib.hash":
             yield "passlib.handlers.sha2_crypt", True
 
-    def getImportsByFullname(self, full_name):
+    def getImportsByFullname(self, full_name, package_dir):
         """ Recursively create a set of imports for a fullname.
 
         Notes:
@@ -1006,19 +1045,22 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         """
         result = OrderedSet()
 
-        def checkImportsRecursive(module_name):
-            for item in self._getImportsByFullname(module_name):
+        def checkImportsRecursive(module_name, package_dir):
+            for item in self._getImportsByFullname(module_name, package_dir):
                 if item not in result:
                     result.add(item)
-                    checkImportsRecursive(item[0])
+                    checkImportsRecursive(item[0], package_dir)
 
-        checkImportsRecursive(full_name)
+        checkImportsRecursive(full_name, package_dir)
 
         return result
 
     def getImplicitImports(self, module):
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches
         full_name = module.getFullName()
+        elements = full_name.split(".")
+        module_dir = module.getCompileTimeDirectory()
+        package_dir = remove_suffix(module_dir, elements[0])
 
         if module.isPythonShlibModule():
             for used_module in module.getUsedModules():
@@ -1072,7 +1114,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         else:
             # create a flattened import set for full_name and yield from it
-            for item in self.getImportsByFullname(full_name):
+            for item in self.getImportsByFullname(full_name, package_dir):
                 yield item
 
     # We don't care about line length here, pylint: disable=line-too-long

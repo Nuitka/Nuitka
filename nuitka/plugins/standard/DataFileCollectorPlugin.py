@@ -112,7 +112,10 @@ def _get_subdir_files(module, subdirs):
         return ()
 
     for f in file_list:
-        yield f[filename_start:]
+        if "__pycache__" not in f and not f.endswith(
+            ".pyc"
+        ):  # this never makes any sense
+            yield f[filename_start:]
 
 
 # data files contained in subfolders named as the second item
@@ -123,6 +126,9 @@ known_data_folders = {
     "sklearn.datasets": (_get_subdir_files, ("data", "descr")),
     "osgeo": (_get_subdir_files, "data"),
     "pyphen": (_get_subdir_files, "dictionaries"),
+    "pendulum": (_get_subdir_files, "locales"),
+    "pytz": (_get_subdir_files, "zoneinfo"),
+    "pytzdata": (_get_subdir_files, "zoneinfo"),
     "pywt": (_get_subdir_files, "data"),
     "skimage": (_get_subdir_files, "data"),
     "weasyprint": (_get_subdir_files, "css"),
