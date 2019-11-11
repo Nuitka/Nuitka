@@ -24,7 +24,7 @@ from logging import warning
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import getFileList, listDir
+from nuitka.utils.FileOperations import getFileList, listDir, makePath
 
 known_data_files = {
     # Key is the package name to trigger it
@@ -65,7 +65,12 @@ known_data_files = {
 
 def _createEmptyDirText(filename):
     # We create the same content all the time, pylint: disable=unused-argument
-    return "This directory has to be present, even if otherwise empty.\n"
+    return ""
+
+
+def _createEmptyDirNone(filename):
+    # Returning None means no file creation should happen, pylint: disable=unused-argument
+    return None
 
 
 generated_data_files = {
@@ -76,7 +81,7 @@ generated_data_files = {
 }
 
 
-def _get_subdir_files(module, subdirs):
+def _get_subdir_files(module, subdirs, folders_only):
     """Yield filenames in given subdirs of the module.
 
     Notes:
@@ -84,14 +89,19 @@ def _get_subdir_files(module, subdirs):
         retrieved and returned shortened to begin with the string of subdir.
     Args:
         module: module object
-        subdir: sub folder name(s) - str or None or tuple
+        subdirs: sub folder name(s) - str or None or tuple
+        folders_only: (bool) indicate, whether just the folder structure should
+            be generated. In that case, an empty file named DUMMY will be
+            placed in each of these folders.
     Retruns:
-        Full path- / filenames recursively retrieved by walk, starting with the
-        subdir string.
+        Tuples of paths (source, dest) are yielded if folders_only is False,
+        else tuples (_createEmptyDirNone, dest) are yielded.
     """
     module_folder = module.getCompileTimeDirectory()
-    filename_start = len(module_folder) + 1
+    elements = module.getFullName().split(".")
+    filename_start = module_folder.find(elements[0])
     file_list = []
+    item_set = set()
 
     if subdirs is None:
         file_list = getFileList(module_folder)
@@ -104,34 +114,41 @@ def _get_subdir_files(module, subdirs):
             file_list.extend(getFileList(data_dir))
 
     if file_list == []:
-        msg = "No files found for '%s' in subfolder(s) '%s'." % (
+        msg = "No files or folders found for '%s' in subfolder(s) '%s'." % (
             module.getFullName(),
             str(subdirs),
         )
         warning(msg)
-        return ()
+        yield ()
 
     for f in file_list:
-        if "__pycache__" not in f and not f.endswith(
-            ".pyc"
-        ):  # this never makes any sense
-            yield f[filename_start:]
+        if "__pycache__" in f or f.endswith(".pyc"):  # never makes sense
+            continue
+
+        target = f[filename_start:]
+        if folders_only is False:
+            item_set.add((f, target))
+        else:
+            item_set.add((_createEmptyDirNone, target))
+
+    for f in item_set:
+        yield f
 
 
 # data files contained in subfolders named as the second item
 known_data_folders = {
-    "botocore": (_get_subdir_files, "data"),
-    "boto3": (_get_subdir_files, "data"),
-    "matplotlib": (_get_subdir_files, "mpl-data"),
-    "sklearn.datasets": (_get_subdir_files, ("data", "descr")),
-    "osgeo": (_get_subdir_files, "data"),
-    "pyphen": (_get_subdir_files, "dictionaries"),
-    "pendulum": (_get_subdir_files, "locales"),
-    "pytz": (_get_subdir_files, "zoneinfo"),
-    "pytzdata": (_get_subdir_files, "zoneinfo"),
-    "pywt": (_get_subdir_files, "data"),
-    "skimage": (_get_subdir_files, "data"),
-    "weasyprint": (_get_subdir_files, "css"),
+    "botocore": (_get_subdir_files, "data", False),
+    "boto3": (_get_subdir_files, "data", False),
+    "matplotlib": (_get_subdir_files, "mpl-data", False),
+    "sklearn.datasets": (_get_subdir_files, ("data", "descr"), False),
+    "osgeo": (_get_subdir_files, "data", False),
+    "pyphen": (_get_subdir_files, "dictionaries", False),
+    "pendulum": (_get_subdir_files, "locales", True),
+    "pytz": (_get_subdir_files, "zoneinfo", False),
+    "pytzdata": (_get_subdir_files, "zoneinfo", False),
+    "pywt": (_get_subdir_files, "data", False),
+    "skimage": (_get_subdir_files, "data", False),
+    "weasyprint": (_get_subdir_files, "css", False),
 }
 
 
@@ -164,13 +181,9 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     )
 
         if module_name in known_data_folders:
-            func, subdir = known_data_folders[module_name]
-            target_dir = module_name.replace(".", os.path.sep)
-            for filename in func(module, subdir):
-                yield (
-                    os.path.join(module_folder, filename),
-                    os.path.normpath(os.path.join(target_dir, filename)),
-                )
+            func, subdir, folders_only = known_data_folders[module_name]
+            for item in func(module, subdir, folders_only):
+                yield item
 
         if module_name in generated_data_files:
             for target_dir, filename, func in generated_data_files[module_name]:

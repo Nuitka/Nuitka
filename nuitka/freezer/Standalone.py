@@ -1561,9 +1561,10 @@ def copyDataFiles(dist_dir, data_files):
         if inspect.isfunction(source_desc):
             content = source_desc(target_filename)
 
-            with open(
-                target_filename, "wb" if type(content) is bytes else "w"
-            ) as output:
-                output.write(content)
+            if content is not None:  # support creation of empty directories
+                with open(
+                    target_filename, "wb" if type(content) is bytes else "w"
+                ) as output:
+                    output.write(content)
         else:
             shutil.copy2(source_desc, target_filename)
