@@ -425,7 +425,7 @@ static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObje
     PyObject *self;
     PyObject *klass = NULL;
 
-    if (!_PyArg_NoKeywords("instancemethod", kw)) {
+    if (!_PyArg_NoKeywords("compiled_method", kw)) {
         return NULL;
     } else if (!PyArg_UnpackTuple(args, "compiled_method", 2, 3, &func, &self, &klass)) {
         return NULL;
@@ -509,7 +509,14 @@ PyTypeObject Nuitka_Method_Type = {
 #endif
 };
 
-void _initCompiledMethodType(void) { PyType_Ready(&Nuitka_Method_Type); }
+void _initCompiledMethodType(void) {
+    PyType_Ready(&Nuitka_Method_Type);
+
+// TODO: Move this to a __nuitka__ module maybe
+#ifdef _NUITKA_EXE
+    PyObject_SetAttrString((PyObject *)builtin_module, "compiled_method", (PyObject *)&Nuitka_Method_Type);
+#endif
+}
 
 PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *object, PyObject *klass) {
     struct Nuitka_MethodObject *result;

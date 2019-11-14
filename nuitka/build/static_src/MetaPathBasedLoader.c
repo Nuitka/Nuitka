@@ -585,7 +585,7 @@ PyObject *callIntoShlibModule(const char *full_name, const char *filename) {
 
 #endif
 
-static void loadTriggeredModule(char const *name, char const *trigger_name) {
+static bool loadTriggeredModule(char const *name, char const *trigger_name) {
     char trigger_module_name[2048];
 
     copyStringSafe(trigger_module_name, name, sizeof(trigger_module_name));
@@ -601,10 +601,11 @@ static void loadTriggeredModule(char const *name, char const *trigger_name) {
         entry->python_initfunc(trigger_module_name);
 
         if (unlikely(ERROR_OCCURRED())) {
-            PyErr_Print();
-            abort();
+            return false;
         }
     }
+
+    return true;
 }
 
 #if PYTHON_VERSION >= 340
@@ -726,7 +727,9 @@ PyObject *IMPORT_EMBEDDED_MODULE(PyObject *module_name, char const *name) {
         // is from plug-ins typically, that want to modify things for the the
         // module before loading, to e.g. set a plug-in path, or do some monkey
         // patching in order to make things compatible.
-        loadTriggeredModule(name, "-preLoad");
+        if (loadTriggeredModule(name, "-preLoad") == false) {
+            return NULL;
+        }
     }
 
     PyObject *result = NULL;
@@ -756,7 +759,9 @@ PyObject *IMPORT_EMBEDDED_MODULE(PyObject *module_name, char const *name) {
         // is from plug-ins typically, that want to modify the module immediately
         // after loading, to e.g. set a plug-in path, or do some monkey patching
         // in order to make things compatible.
-        loadTriggeredModule(name, "-postLoad");
+        if (loadTriggeredModule(name, "-postLoad") == false) {
+            return NULL;
+        }
 
         return result;
     }

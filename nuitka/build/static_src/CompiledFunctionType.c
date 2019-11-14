@@ -577,7 +577,16 @@ PyTypeObject Nuitka_Function_Type = {
 #endif
 };
 
-void _initCompiledFunctionType(void) { PyType_Ready(&Nuitka_Function_Type); }
+void _initCompiledFunctionType(void) {
+
+    PyType_Ready(&Nuitka_Function_Type);
+
+// TODO: Move this to a __nuitka__ module maybe
+#ifdef _NUITKA_EXE
+    PyObject_SetAttrString((PyObject *)builtin_module, "compiled_function", (PyObject *)&Nuitka_Function_Type);
+#endif
+
+}
 
 // Shared implementation for empty functions. When a function body is empty, but
 // still needs to exist, e.g. overloaded functions, this is saving the effort to
