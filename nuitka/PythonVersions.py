@@ -29,7 +29,19 @@ import sys
 
 
 def getSupportedPythonVersions():
+    """ Officially supported Python versions for Nuitka.
+
+    """
+
     return ("2.6", "2.7", "3.3", "3.4", "3.5", "3.6", "3.7")
+
+
+def getPartiallySupportedPythonVersions():
+    """ Partially supported Python versions for Nuitka.
+
+    """
+
+    return ("3.8",)
 
 
 def getSupportedPythonVersionStr():
