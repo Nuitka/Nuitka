@@ -26,7 +26,7 @@ from nuitka.tree.TreeHelpers import (
     makeStatementsSequenceFromStatement,
 )
 
-from .AssignNodes import StatementAssignmentVariable, StatementReleaseVariable
+from .AssignNodes import StatementAssignmentVariable
 from .BuiltinIteratorNodes import ExpressionBuiltinIter1
 from .BuiltinNextNodes import ExpressionBuiltinNext1
 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
