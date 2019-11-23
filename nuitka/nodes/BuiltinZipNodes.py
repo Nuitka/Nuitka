@@ -127,6 +127,8 @@ class ExpressionBuiltinZip(ExpressionChildHavingBase):
             source_ref=self.source_ref,
         )
 
+        generator_body.getParentModule().addUsedFunction(generator_body)
+
         # Take closure of arg variable to use them in generator
         for variable in zip_arg_variables:
             generator_body.addClosureVariable(variable)
