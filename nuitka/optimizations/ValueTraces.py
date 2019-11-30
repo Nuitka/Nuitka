@@ -80,6 +80,9 @@ class ValueTraceBase(object):
 
     __del__ = InstanceCounters.counted_del()
 
+    def __repr__(self):
+        return "<%s of %s>" % (self.__class__.__name__, self.owner.getCodeName())
+
     def getOwner(self):
         return self.owner
 
@@ -170,9 +173,6 @@ class ValueTraceUninit(ValueTraceBase):
     def __init__(self, owner, previous):
         ValueTraceBase.__init__(self, owner=owner, previous=previous)
 
-    def __repr__(self):
-        return "<ValueTraceUninit of {owner}>".format(owner=self.owner)
-
     @staticmethod
     def getTypeShape():
         return ShapeUnknown
@@ -200,9 +200,6 @@ class ValueTraceInit(ValueTraceBase):
     def __init__(self, owner):
         ValueTraceBase.__init__(self, owner=owner, previous=None)
 
-    def __repr__(self):
-        return "<ValueTraceInit of {owner}>".format(owner=self.owner)
-
     @staticmethod
     def getTypeShape():
         return ShapeUnknown
@@ -226,9 +223,6 @@ class ValueTraceUnknown(ValueTraceBase):
 
     def __init__(self, owner, previous):
         ValueTraceBase.__init__(self, owner=owner, previous=previous)
-
-    def __repr__(self):
-        return "<ValueTraceUnknown of {owner}>".format(owner=self.owner)
 
     @staticmethod
     def getTypeShape():
@@ -277,7 +271,7 @@ class ValueTraceUnknown(ValueTraceBase):
                 self.previous.addPotentialUsage()
 
 
-class ValueTraceLoopInitial(ValueTraceBase):
+class ValueTraceLoopComplete(ValueTraceBase):
     # Need them all, pylint: disable=too-many-instance-attributes
 
     __slots__ = ("type_shapes", "type_shape", "incomplete")
@@ -290,13 +284,10 @@ class ValueTraceLoopInitial(ValueTraceBase):
         self.type_shapes = type_shapes
         self.type_shape = None
 
-        self.incomplete = True
-
         assert ShapeLoopCompleteAlternative not in type_shapes
         previous.addLoopUsage()
 
-    def __repr__(self):
-        return "<ValueTraceLoopInitial of {owner}>".format(owner=self.owner)
+        self.incomplete = False
 
     @staticmethod
     def isLoopTrace():
@@ -304,7 +295,10 @@ class ValueTraceLoopInitial(ValueTraceBase):
 
     def getTypeShape(self):
         if self.type_shape is None:
-            self.type_shape = ShapeLoopInitialAlternative(self.type_shapes)
+            if len(self.type_shapes) > 1:
+                self.type_shape = ShapeLoopCompleteAlternative(self.type_shapes)
+            else:
+                self.type_shape = next(iter(self.type_shapes))
 
         return self.type_shape
 
@@ -346,10 +340,8 @@ class ValueTraceLoopInitial(ValueTraceBase):
         for previous in continue_traces:
             previous.addLoopUsage()
 
-        self.incomplete = False
-
     def markLoopTraceComplete(self):
-        self.incomplete = False
+        pass
 
     def mustHaveValue(self):
         if self.incomplete is True:
@@ -370,20 +362,24 @@ class ValueTraceLoopInitial(ValueTraceBase):
             return True
 
 
-class ValueTraceLoopComplete(ValueTraceLoopInitial):
+class ValueTraceLoopInitial(ValueTraceLoopComplete):
     __slots__ = ()
 
-    def __repr__(self):
-        return "<ValueTraceLoopComplete of {owner}>".format(owner=self.owner)
+    def __init__(self, previous, type_shapes):
+        ValueTraceLoopComplete.__init__(self, previous, type_shapes)
+
+        # TODO: Do not use this attribute then, the inheritance is
+        # probably backwards.
+        self.incomplete = True
 
     def getTypeShape(self):
         if self.type_shape is None:
-            if len(self.type_shapes) > 1:
-                self.type_shape = ShapeLoopCompleteAlternative(self.type_shapes)
-            else:
-                self.type_shape = next(iter(self.type_shapes))
+            self.type_shape = ShapeLoopInitialAlternative(self.type_shapes)
 
         return self.type_shape
+
+    def markLoopTraceComplete(self):
+        self.incomplete = False
 
 
 class ValueTraceAssign(ValueTraceBase):
@@ -447,10 +443,7 @@ class ValueTraceMerge(ValueTraceBase):
         ValueTraceBase.__init__(self, owner=traces[0].owner, previous=tuple(traces))
 
     def __repr__(self):
-        return """\
-<ValueTraceMerge of {previous}>""".format(
-            previous=self.previous
-        )
+        return "<ValueTraceMerge of {previous}>".format(previous=self.previous)
 
     def getTypeShape(self):
         type_shapes = set()

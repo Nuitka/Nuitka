@@ -193,8 +193,8 @@ class StatementLoop(StatementChildHavingBase):
 
                     if loop_end_traces:
                         loop_entry_trace.addLoopContinueTraces(loop_end_traces)
-                    else:
-                        loop_entry_trace.markLoopTraceComplete()
+
+                    loop_entry_trace.markLoopTraceComplete()
 
             # If we break, the outer collections becomes a merge of all those breaks
             # or just the one, if there is only one.
