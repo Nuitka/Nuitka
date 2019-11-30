@@ -1311,13 +1311,13 @@ static bool _handleArgumentsPlainOnly(struct Nuitka_FunctionObject const *functi
 #if PYTHON_VERSION >= 300
     if (parameter_error == false) {
 #endif
-        PyObject **source = &PyTuple_GET_ITEM(function->m_defaults, 0);
+        PyObject *source = function->m_defaults;
 
         for (Py_ssize_t i = args_size; i < arg_count; i++) {
             assert(python_pars[i] == NULL);
             assert(i + defaults_given >= arg_count);
 
-            python_pars[i] = source[defaults_given + i - arg_count];
+            python_pars[i] = PyTuple_GET_ITEM(source, defaults_given + i - arg_count);
             Py_INCREF(python_pars[i]);
         }
 #if PYTHON_VERSION >= 300
