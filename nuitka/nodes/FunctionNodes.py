@@ -287,7 +287,7 @@ class ExpressionFunctionBodyBase(
 
         return Variables.LocalVariable(owner=self, variable_name=variable_name)
 
-    def addNonlocalsDeclaration(self, names, source_ref):
+    def addNonlocalsDeclaration(self, names, user_provided, source_ref):
         """ Add a nonlocal declared name.
 
             This happens during tree building, and is a Python3 only
@@ -297,7 +297,7 @@ class ExpressionFunctionBodyBase(
         if self.non_local_declarations is None:
             self.non_local_declarations = []
 
-        self.non_local_declarations.append((names, source_ref))
+        self.non_local_declarations.append((names, user_provided, source_ref))
 
     def consumeNonlocalDeclarations(self):
         """ Return the nonlocal declared names for this function.

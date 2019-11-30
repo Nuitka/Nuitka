@@ -65,14 +65,18 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     def _handleNonLocal(node):
         # Take closure variables for non-local declarations.
 
-        for non_local_names, source_ref in node.consumeNonlocalDeclarations():
+        for (
+            non_local_names,
+            user_provided,
+            source_ref,
+        ) in node.consumeNonlocalDeclarations():
             for non_local_name in non_local_names:
 
                 variable = node.takeVariableForClosure(variable_name=non_local_name)
 
                 node.registerProvidedVariable(variable)
 
-                if variable.isModuleVariable():
+                if variable.isModuleVariable() and user_provided:
                     raiseSyntaxError(
                         "no binding for nonlocal '%s' found" % (non_local_name),
                         source_ref,

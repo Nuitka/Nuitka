@@ -393,7 +393,9 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
             )
 
     provider.addNonlocalsDeclaration(
-        names=node.names, source_ref=source_ref.atColumnNumber(node.col_offset)
+        names=tuple(node.names),
+        user_provided=True,
+        source_ref=source_ref.atColumnNumber(node.col_offset),
     )
 
     # Drop this, not really part of our tree.

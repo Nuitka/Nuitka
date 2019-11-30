@@ -1132,13 +1132,23 @@ def buildNamedExprNode(provider, node, source_ref):
     while locals_owner.isExpressionOutlineFunction():
         locals_owner = locals_owner.getParentVariableProvider()
 
+    variable_name = node.target.id
+
+    if (
+        locals_owner.isExpressionGeneratorObjectBody()
+        and locals_owner.name == "<genexpr>"
+    ):
+        locals_owner.addNonlocalsDeclaration(
+            (variable_name,), user_provided=False, source_ref=source_ref
+        )
+
     statements = (
         StatementAssignmentVariable(
             variable=tmp_value, source=value, source_ref=source_ref
         ),
         StatementAssignmentVariableName(
             provider=locals_owner,
-            variable_name=node.target.id,
+            variable_name=variable_name,
             source=ExpressionTempVariableRef(variable=tmp_value, source_ref=source_ref),
             source_ref=source_ref,
         ),
