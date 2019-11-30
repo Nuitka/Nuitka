@@ -52,6 +52,12 @@ from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.AppDirs import getCacheDir
 
 
+def executeCommand(command):
+    my_print("Executing:", command, style="blue")
+
+    return os.system(command) == 0
+
+
 def gitClone(package, url, directory):
     """
     Update package with git if already existing in directory
@@ -59,17 +65,12 @@ def gitClone(package, url, directory):
     """
 
     os.chdir(directory)
-    if (
-        not os.system(
-            "cd %s && git fetch && git reset --hard origin && git clean -dfx" % package
-        )
-        == 0
+    if not executeCommand(
+        "cd %s && git fetch -q && git reset -q --hard origin && git clean -q -dfx"
+        % package
     ):
-        assert (
-            os.system(
-                "git clone %s %s --depth 1 --single-branch --no-tags" % (url, package)
-            )
-            == 0
+        assert executeCommand(
+            "git clone %s %s --depth 1 --single-branch --no-tags" % (url, package)
         ), ("Error while git cloning package %s, aborting..." % package)
 
 
@@ -143,7 +144,9 @@ def main():
             gitClone(package_name, details["url"], cache_dir)
 
             os.chdir(base_dir)
-            with withVirtualenv("venv_%s" % package_name, delete=True) as venv:
+            with withVirtualenv(
+                "venv_%s" % package_name, delete=False, style="blue"
+            ) as venv:
                 dist_dir = os.path.join(package_dir, "dist")
 
                 # delete ignored tests if any
@@ -188,7 +191,8 @@ def main():
                     commands=[
                         "cd %s" % package_dir,
                         "python -m pytest --disable-warnings",
-                    ]
+                    ],
+                    style="blue",
                 )
 
                 # clean up before building compiled .whl
@@ -218,10 +222,11 @@ def main():
                     commands=[
                         "cd %s" % package_dir,
                         "python -m pytest --disable-warnings",
-                    ]
+                    ],
+                    style="blue",
                 )
 
-                venv.runCommand(commands=["cd %s" % package_dir, "git clean -dfx"])
+                venv.runCommand(commands=["cd %s" % package_dir, "git clean -q -dfx"])
 
         except Exception as e:
             my_print(
