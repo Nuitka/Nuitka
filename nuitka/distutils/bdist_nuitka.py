@@ -44,25 +44,33 @@ def setuptools_build_hook(dist, keyword, value):
     dist.cmdclass["bdist_wheel"] = bdist_nuitka
 
 
-class py_package:
-    def __init__(self, module_name, related_packages=[]):
+class PyPackage(object):
+    """
+    Called by _find_to_build, represents a py_package to be built by _build
+    """
+
+    def __init__(self, module_name, related_packages=()):
         self.module_name = module_name  # string
-        self.related_packages = related_packages  # list
+        self.related_packages = related_packages  # tuple/list
 
     def __str__(self):
-        return "py_package(module_name=%s, related_packages=%s)" % (
+        return __class__.__name__ + "(module_name=%s, related_packages=%s)" % (
             self.module_name,
             self.related_packages,
         )
 
 
-class py_module:
-    def __init__(self, module_name, related_modules=[]):
+class PyModule(object):
+    """
+    Called by _find_to_build, represents a py_module to be built by _build
+    """
+
+    def __init__(self, module_name, related_modules=()):
         self.module_name = module_name  # string
-        self.related_modules = related_modules  # list
+        self.related_modules = related_modules  # tuple/list
 
     def __str__(self):
-        return "py_module(module_name=%s, related_modules=%s)" % (
+        return __class__.__name__ + "(module_name=%s, related_modules=%s)" % (
             self.module_name,
             self.related_modules,
         )
@@ -88,7 +96,7 @@ class build(distutils.command.build.build):
     def _find_to_build(self):
         """
         Helper for _build
-        Returns list containing py_package or py_module instances.
+        Returns list containing PyPackage or PyModule instances.
 
         Algorithm for finding distinct packages:
         1) Take minimum package
@@ -107,7 +115,7 @@ class build(distutils.command.build.build):
             current_package = min(py_packages)
             related = [p for p in py_packages if p.startswith(current_package)]
 
-            builds.append(py_package(current_package, related_packages=related))
+            builds.append(PyPackage(current_package, related_packages=related))
 
             for p in related:
                 py_packages.remove(p)
@@ -116,7 +124,7 @@ class build(distutils.command.build.build):
             current_module = min(py_modules)
             related = [m for m in py_modules if m.startswith(current_module)]
 
-            builds.append(py_module(current_module, related_modules=related))
+            builds.append(PyModule(current_module, related_modules=related))
 
             for m in related:
                 py_modules.remove(m)
@@ -124,7 +132,7 @@ class build(distutils.command.build.build):
         return builds
 
     def _build(self, build_lib):
-        # High complexity, pylint: disable=too-many-locals
+        # High complexity, pylint: disable=too-many-branches,too-many-locals
 
         # Nuitka wants the main package by filename, probably we should stop
         # needing that.
@@ -171,13 +179,13 @@ class build(distutils.command.build.build):
                 "--remove-output",
             ]
 
-            if type(to_build) is py_package:
+            if type(to_build) is PyPackage:
                 command += [
                     "--include-package=%s" % package_name.replace("/", ".")
                     for package_name in to_build.related_packages
                 ]
 
-            else:  # type(to_build) is py_module
+            else:  # type(to_build) is PyModule
                 command += [
                     "--include-module=%s" % module_name
                     for module_name in to_build.related_modules
@@ -205,7 +213,7 @@ class build(distutils.command.build.build):
             command.append(main_filename)
 
             # added for clarity
-            my_print("Nuitka:INFO:Building: %s" % to_build, style="yellow")
+            my_print("Building: %s" % to_build, style="yellow")
             subprocess.check_call(command, cwd=build_lib)
 
             for root, _, filenames in os.walk(build_lib):
