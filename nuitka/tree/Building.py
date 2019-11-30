@@ -181,8 +181,11 @@ def buildVariableReferenceNode(provider, node, source_ref):
 
 
 # Python3.4 or higher, True and False, are not given as variables anymore.
+# Python3.8, all kinds of constants are like this.
 def buildNamedConstantNode(node, source_ref):
-    return makeConstantRefNode(constant=node.value, source_ref=source_ref)
+    return makeConstantRefNode(
+        constant=node.value, source_ref=source_ref, user_provided=True
+    )
 
 
 def buildConditionNode(provider, node, source_ref):
