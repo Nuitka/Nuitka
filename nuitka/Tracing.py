@@ -81,7 +81,9 @@ def my_print(*args, **kwargs):
 
         del kwargs["style"]
 
-        print(*((style + args[0],) + args[1:] + ("\033[0m",)), **kwargs)
+        print(style, end="")
+        print(*args, **kwargs)
+        print("\033[0m", end="")
 
     else:
         print(*args, **kwargs)
