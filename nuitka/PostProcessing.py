@@ -77,7 +77,8 @@ def executePostProcessing(result_filename):
         python_dll_filename = "libpython" + python_abi_version + ".dylib"
         python_lib_path = os.path.join(sys.prefix, "lib")
 
-        callInstallNameToolAddRPath(result_filename, python_lib_path)
+        if os.path.exists(os.path.join(sys.prefix, 'conda-meta')):
+            callInstallNameToolAddRPath(result_filename, python_lib_path)
 
         callInstallNameTool(
             filename=result_filename,
