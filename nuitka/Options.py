@@ -369,7 +369,7 @@ def shallUseStaticLibPython():
 
     # For AnaConda default to trying static lib python library, which
     # normally is just not available or if it is even unusable.
-    return "Anaconda" in sys.version and os.name == "nt"
+    return os.path.exists(os.path.join(sys.prefix, 'conda-meta')) and not os.name == "nt"
 
 
 def shallTreatUninstalledPython():
