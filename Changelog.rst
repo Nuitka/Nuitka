@@ -1,6 +1,183 @@
 Nuitka Release 0.6.6 (Draft)
 ============================
 
+Bug Fixes
+---------
+
+- Fix, the top level module must not be bytecode. Otherwise we end up
+  violating the requirement for an entry point on the C level.
+
+- Fix, avoid optimizing calls with default values used. This is not yet
+  working and needed to be disabled for now.
+
+- Windows: Find win32com DLLs too, even if they live in sub folders of
+  site-packages, and otherwise not found. They are used by other DLLs
+  that are found.
+
+- Python3: Fix, missing keyword only arguments were not enforced to be
+  provided keyword only, and were not giving the compatible error message
+  when missing.
+
+- Standalone: Fixup for problem with standard library module in recent
+  AnaConda.
+
+- Scons: Fix, was using ``CXXFLAGS`` and ``CPPFLAGS`` even for the C
+  compiler, which is wrong.
+
+- Windows: Make --clang limited to ``clang-cl.exe`` as using it inside
+  a MinGW64 is not currently supported.
+
+- Standalone: Added support for using ``lib2to2.pgen``.
+
+- Standalone: Added paths used by openSUSE to the Tcl/Tk plugin.
+
+- Python3.6+: Fix, the ``__main__`` package was ``None``, but should
+  be ``""`` which allows relative imports from itself.
+
+- Python2: Fix, compile time optimization of floor division was using
+  normal division.
+
+- Python3: Fix, some run time operations with known type shapes, were
+  falsely reporting error message with ``unicode`` or ``long``, which
+  is of course not compatible.
+
+- Fix, was caching parent package, but these could be replaced e.g.
+  due to bytecode demotion later, causing crashes during their
+  optimization.
+
+- Standalone: Support for newest ``sklear`` was added.
+
+- macOS: Added resolver for run time variables in otool output, that
+  gets PyQt5 to work on it again.
+
+- Fix, floor division of run time calculations with float values should
+  not result in ``int``, but ``float`` values instead.
+
+New Features
+------------
+
+- Distutils: Added support for packages that are in a namespace and not
+  just top level.
+
+- Windows: Compare Python and C compiler architecture for MSVC too, and catch
+  the most common user error of mixing 32 and 64 bits.
+
+- Scons: Output variables used from the outside, so the debugging is easier.
+
+- Windows: Detect if clang installed inside MSVC automatically and use it if
+  requested via ``--clang`` option. This is only the 32 bits variant, but
+  currently the easy way to use it on Windows with Nuitka.
+
+Optimization
+------------
+
+- Added optimization for the ``abs`` built-in, which is also a numerical
+  operator.
+
+- Added optimization for the ``all`` built-in, adding a new concept of
+  iteration handle, for efficient checking that avoids looking at very
+  large sequences, of which properties can still be known.
+
+  .. code-block:: python
+
+    all(range(1,100000)) # no need to look at all of them
+
+- Added support for optimizing ``ImportError`` construction with keyword-only
+  arguments. Previously only used without these were optimized.
+
+  .. code-block:: python
+
+    raise aise ImportError(path="lala", name="lele") # now optimized
+
+- Added manual specialization for single argument calls, sovling a TODO, as
+  these will be very frequent.
+
+- Memory: Use single child form of node class where possible, the general class
+  now raises an error if used with used with only one child name.
+
+- Memory: Avoid list for non-local declarations in every function, these are
+  very rare, only have it if absolutely necessary.
+
+- Generate more compact code for potential ``NameError`` exceptions being
+  raised. These are very frequent, so this improves scalability with large
+  files.
+
+- Python2: Annotate comparison of ``None`` with ``int`` and ``str`` types
+  as not raising an exception.
+
+- Shared empty body functions and generators.
+
+  One shared implementation for all empty functions removes that burden from
+  the C compiler, and from the CPU instruction cache. All the shared C code
+  does is to release its arguments, or to return an empty generator function in
+  case of generator.
+
+- Memory: Added support for automatic releases of parameter variables from the
+  node tree. These are normally released in a try finally block, however, this
+  is now handled during code generation for much more compact C code generated.
+
+Cleanups
+--------
+
+- Use dedicated ``ModuleName`` type that makes the tests that check if
+  a given module name is inside a namespace as methods. This was hard
+  to get right and as a result, adopting this fixed a few bugs and or
+  inconsistent results.
+
+- Expand the use of ``nuitka.PostProcessing`` to cover all actions
+  needed to get a runnable binary. This includes using ``install_name_tool``
+  on macOS standalone, as well copying the Python DLL for acceleration
+  mode, cleaning the ``x`` bit for module mode. Previously only a part of
+  these lived there.
+
+- Avoid including the definitions of dynamically created helper functions
+  in the C code, instead just statically declare the ones expected to be
+  there. This resolves Visual Code complaining about it, and should make
+  life also easier for the compiler and caches like ``ccache``.
+
+- Create more helper code in closer form to what ``clang-format`` does,
+  so they are easier to compare to the static forms. We often create
+  hard coded variants for few arguments of call functions, and generate
+  them for many argument variations.
+
+- Moved setter/getter methods for Nuitka nodes consistently to the start
+  of the node class definitions.
+
+- Generate C code much closer to what ``clang-format`` would change it
+  to be.
+
+- Unified calling ``install_name_tool`` on macOS into one function that
+  takes care of all the things, including e.g. making the file writable.
+
+Tests
+-----
+
+- Added many more built-in tests for increased coverage of the newly
+  covered ones, some of them being generic tests that allow to test
+  all built-ins with typical uses.
+
+- Many tests have become more PyLint clean as a result of work with
+  Visual Code and it complaining about them.
+
+- Added test to check PyPI health of top 50 packages.
+
+- Output the standalone directory contents for Windows too in case of
+  a failure.
+
+- Added generated tests to fully cover operations on different type
+  shapes and their errors as well as results for typical values.
+
+- Added support for testing against installed version of Nuitka.
+
+Organisational
+--------------
+
+- Enhanced plugin documentation.
+
+- Use newest PyLint and clang-format.
+
+- Also check plugin documentation files for ReST errors.
+
 This release is not done yet.
 
 
