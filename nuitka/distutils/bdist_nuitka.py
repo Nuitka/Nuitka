@@ -54,7 +54,7 @@ class PyPackage(object):
         self.related_packages = related_packages  # tuple/list
 
     def __str__(self):
-        return __class__.__name__ + "(module_name=%s, related_packages=%s)" % (
+        return self.__class__.__name__ + "(module_name=%s, related_packages=%s)" % (
             self.module_name,
             self.related_packages,
         )
@@ -70,7 +70,7 @@ class PyModule(object):
         self.related_modules = related_modules  # tuple/list
 
     def __str__(self):
-        return __class__.__name__ + "(module_name=%s, related_modules=%s)" % (
+        return self.__class__.__name__ + "(module_name=%s, related_modules=%s)" % (
             self.module_name,
             self.related_modules,
         )
