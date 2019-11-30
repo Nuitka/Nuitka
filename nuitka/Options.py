@@ -361,7 +361,7 @@ def shallClearPythonPathEnvironment():
 
 
 def shallUseStaticLibPython():
-    """ *bool* = derived from sys.version
+    """ *bool* = derived from `sys.prefix` and `os.name`
 
     Notes:
         Currently only AnaConda on non-Windows can do this.
