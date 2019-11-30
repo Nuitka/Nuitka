@@ -62,7 +62,7 @@ struct Nuitka_FunctionObject {
     PyObject *m_dict;
     PyObject *m_weakrefs;
 
-    // List of defaults, for use in __defaults__ and parameter parsing.
+    // Tuple of defaults, for use in __defaults__ and parameter parsing.
     PyObject *m_defaults;
     Py_ssize_t m_defaults_given;
 
