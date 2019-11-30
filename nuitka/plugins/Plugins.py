@@ -36,6 +36,7 @@ from logging import info
 
 import nuitka.plugins.standard
 from nuitka import Options
+from nuitka.containers.odict import OrderedDict
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
@@ -331,6 +332,33 @@ class Plugins(object):
                 return value
 
         return "compiled"
+
+    @staticmethod
+    def getPreprocessorSymbols():
+        """ Let plugins provide C defines to be used in compilation.
+
+        Notes:
+            The plugins can each contribute, but are hopefully using
+            a namespace for their defines.
+
+        Returns:
+            OrderedDict(), where None value indicates no define value,
+            i.e. "-Dkey=value" vs. "-Dkey"
+        """
+        result = OrderedDict()
+
+        for plugin in active_plugin_list:
+            value = plugin.getPreprocessorSymbols()
+
+            if value is not None:
+                assert type(value) is dict
+
+                # We order per plugin, but from the plugins, lets just take a dict
+                # and achieve determism by ordering the defines by name.
+                for key, value in sorted(value.items()):
+                    result[key] = value
+
+        return result
 
 
 def listPlugins():

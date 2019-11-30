@@ -512,8 +512,8 @@ PyTypeObject Nuitka_Method_Type = {
 void _initCompiledMethodType(void) {
     PyType_Ready(&Nuitka_Method_Type);
 
-// TODO: Move this to a __nuitka__ module maybe
-#ifdef _NUITKA_EXE
+#ifdef _NUITKA_PLUGIN_DILL_ENABLED
+    // TODO: Move this to a __nuitka__ module maybe
     PyObject_SetAttrString((PyObject *)builtin_module, "compiled_method", (PyObject *)&Nuitka_Method_Type);
 #endif
 }

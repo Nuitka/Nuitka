@@ -575,6 +575,13 @@ def runScons(main_module, quiet):
     if abiflags:
         options["abiflags"] = abiflags
 
+    cpp_defines = Plugins.getPreprocessorSymbols()
+    if cpp_defines:
+        options["cpp_defines"] = ",".join(
+            "%s%s%s" % (key, "=" if value else "", value or "")
+            for key, value in cpp_defines.items()
+        )
+
     return SconsInterface.runScons(options, quiet), options
 
 

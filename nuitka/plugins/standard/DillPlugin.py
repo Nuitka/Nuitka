@@ -20,7 +20,6 @@
 """
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.PythonVersions import python_version
 
 
 class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
@@ -90,15 +89,17 @@ def save_compiled_function(pickler, obj):
                                 obj.__dict__), obj=obj)
         if _super: pickler._byref = _byref
         if _memo: pickler._recurse = _recurse
-
-        if OLDER and not _byref and (_super or (not _super and _memo) or (not _super and not _memo and _recurse)): pickler.clear_memo()
     else:
         dill._dill.StockPickler.save_global(pickler, obj)
 """
             return (
                 code,
                 """\
-Monkey patching "dill" for compiled types.""",
+Monkey patching "dill" for compiled types to be pickable as well.""",
             )
 
         return None, None
+
+    @staticmethod
+    def getPreprocessorSymbols():
+        return {"_NUITKA_PLUGIN_DILL_ENABLED": "1"}

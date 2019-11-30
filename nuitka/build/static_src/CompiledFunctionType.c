@@ -581,11 +581,10 @@ void _initCompiledFunctionType(void) {
 
     PyType_Ready(&Nuitka_Function_Type);
 
-// TODO: Move this to a __nuitka__ module maybe
-#ifdef _NUITKA_EXE
+#ifdef _NUITKA_PLUGIN_DILL_ENABLED
+    // TODO: Move this to a __nuitka__ module maybe
     PyObject_SetAttrString((PyObject *)builtin_module, "compiled_function", (PyObject *)&Nuitka_Function_Type);
 #endif
-
 }
 
 // Shared implementation for empty functions. When a function body is empty, but

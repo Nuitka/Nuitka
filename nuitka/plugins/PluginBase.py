@@ -312,6 +312,7 @@ class NuitkaPluginBase(object):
             module: the module object (serves as dict key)
             trigger_name: string ("-preload"/"-postload")
             code: the code string
+
         Returns
             trigger_module
         """
@@ -592,6 +593,21 @@ class NuitkaPluginBase(object):
             "compiled" or "bytecode" or None (default)
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def getPreprocessorSymbols(self):
+        """ Decide which C defines to be used in compilation.
+
+        Notes:
+            The plugins can each contribute, but are hopefully using
+            a namespace for their defines.
+
+        Returns:
+            None for no defines, otherwise dictionary of key to be
+            defined, and non-None values if any, i.e. no "-Dkey" only
+        """
+
+        # Virtual method, pylint: disable=no-self-use
         return None
 
     def warnUnusedPlugin(self, message):

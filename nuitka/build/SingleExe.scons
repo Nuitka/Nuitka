@@ -99,6 +99,16 @@ def getBoolOption(option_name, default=None):
     return value.lower() in ("yes", "true", "1")
 
 
+def getListOption(option_name, default=None):
+    """ Small helper for list mode options, default should be command separated str."""
+    if default is None:
+        value = ARGUMENTS[option_name]
+    else:
+        value = ARGUMENTS.get(option_name, default)
+
+    return value.split(",")
+
+
 # The directory to use for cache directory.
 cache_mode = getBoolOption("cache_mode", False)
 
@@ -127,7 +137,7 @@ python_debug = getBoolOption("python_debug", False)
 full_compat_mode = getBoolOption("full_compat", False)
 
 # Experimental indications. Do things that are not yet safe to do.
-experimental = ARGUMENTS.get("experimental", "").split(",")
+experimental = getListOption("experimental", "")
 
 # Tracing mode. Output program progress.
 trace_mode = getBoolOption("trace_mode", False)
@@ -220,6 +230,7 @@ python_sysflag_utf8 = getBoolOption("python_sysflag_utf8", False)
 # python_sysflag_optimize
 python_sysflag_optimize = getBoolOption("python_sysflag_optimize", False)
 
+cpp_defines = getListOption("cpp_defines", "")
 
 # Mode to only output compiler information, for use in "nuitka --version"
 # only.
@@ -1878,6 +1889,10 @@ if gcc_mode:
             tmpfile.write(env.subst("$SOURCES"))
 
     _makeGccUseLinkerFile()
+
+# Plugin contributed C defines should be used too.
+for cpp_define in cpp_defines:
+    env.Append(CPPDEFINES=cpp_define)
 
 Default(target)  # pylint: disable=undefined-variable
 
