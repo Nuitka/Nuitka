@@ -47,4 +47,5 @@
     ],
     "python.linting.ignorePatterns" : ["tests/CPython??/test/**"],
     "restructuredtext.confPath": "",
+    "python.formatting.provider": "black",
 }
