@@ -127,12 +127,17 @@ class StatementTry(StatementChildrenHavingBase):
 
         tried_may_raise = tried.mayRaiseException(BaseException)
         # Exception handling is useless if no exception is to be raised.
-        # TODO: signal the change.
         if not tried_may_raise:
             if except_handler is not None:
                 except_handler.finalize()
 
                 self.setBlockExceptHandler(None)
+                trace_collection.signalChange(
+                    tags="new_statements",
+                    message="Removed useless exception handler.",
+                    source_ref=except_handler.source_ref,
+                )
+
                 except_handler = None
 
         # If tried may raise, even empty exception handler has a meaning to
