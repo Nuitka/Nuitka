@@ -1006,7 +1006,13 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
         Py_INCREF(key);
         Py_INCREF(value);
 
-        for (Py_ssize_t i = 0; i < keywords_count; i++) {
+#if PYTHON_VERSION < 380
+        Py_ssize_t kw_arg_start = 0;
+#else
+        Py_ssize_t kw_arg_start = function->m_args_positional_count;
+#endif
+
+        for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
             if (function->m_varnames[i] == key) {
                 assert(python_pars[i] == NULL);
                 python_pars[i] = value;
@@ -1199,7 +1205,13 @@ static Py_ssize_t handleKeywordArgsWithStarDict(struct Nuitka_FunctionObject con
 
     PyObject **varnames = function->m_varnames;
 
-    for (Py_ssize_t i = 0; i < keywords_count; i++) {
+#if PYTHON_VERSION < 380
+    Py_ssize_t kw_arg_start = 0;
+#else
+    Py_ssize_t kw_arg_start = function->m_args_positional_count;
+#endif
+
+    for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
         PyObject *arg_name = varnames[i];
 
         PyObject *kw_arg_value = PyDict_GetItem(python_pars[dict_star_index], arg_name);
@@ -1618,8 +1630,9 @@ bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyObject **
 
     result = _handleArgumentsPlainOnly(function, python_pars, args, args_size);
 
-    if (result == false)
+    if (result == false) {
         goto error_exit;
+    }
 
 #if PYTHON_VERSION >= 300
 
@@ -1677,7 +1690,7 @@ bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function, PyObj
 
 #if PYTHON_VERSION >= 300
 
-    // For Python3.3 the keyword only errors are all reported at once.
+    // For Python3 the keyword only errors are all reported at once.
     kw_only_error = false;
 
     for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
