@@ -578,6 +578,9 @@ class PythonChildContextBase(PythonContextBase):
     def getFrameVariableCodeNames(self):
         return self.parent.getFrameVariableCodeNames()
 
+    def addFunctionCreationInfo(self, creation_info):
+        return self.parent.addFunctionCreationInfo(creation_info)
+
 
 def _getConstantDefaultPopulation():
     # Lots of cases, pylint: disable=too-many-branches
@@ -1007,6 +1010,8 @@ class PythonModuleContext(
 
         self.variable_storage = VariableStorage(heap_name=None)
 
+        self.function_table_entries = []
+
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.filename
 
@@ -1077,6 +1082,16 @@ class PythonModuleContext(
 
     def needsModuleFilenameObject(self):
         return self.needs_module_filename_object
+
+    def addFunctionCreationInfo(self, creation_info):
+        self.function_table_entries.append(creation_info)
+
+    def getFunctionCreationInfos(self):
+        result = self.function_table_entries
+
+        # Release the memory once possible.
+        del self.function_table_entries
+        return result
 
 
 class PythonFunctionContext(

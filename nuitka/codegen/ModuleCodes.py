@@ -112,6 +112,10 @@ def getModuleValues(
     else:
         module_exit = template_module_noexception_exit
 
+    function_table_entries_decl = []
+    for func_impl_identifier in context.getFunctionCreationInfos():
+        function_table_entries_decl.append("%s," % func_impl_identifier)
+
     module_body_template_values = {
         "module_name": module_name,
         "is_main_module": 1 if is_main_module else 0,
@@ -124,6 +128,7 @@ def getModuleValues(
         "module_identifier": module_identifier,
         "module_functions_decl": function_decl_codes,
         "module_functions_code": function_body_codes,
+        "module_function_table_entries": indented(function_table_entries_decl),
         "temps_decl": indented(local_var_inits),
         "module_code": indented(module_codes.codes),
         "module_exit": module_exit,

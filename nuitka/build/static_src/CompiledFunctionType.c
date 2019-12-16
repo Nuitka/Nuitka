@@ -279,6 +279,9 @@ static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *object, Py
         return -1;
     }
 
+// TODO: Do we actually need this ever, probably not, as we don't generate argument
+// parsing per function anymore.
+#ifndef _NUITKA_PLUGIN_DILL_ENABLED
     if (object->m_defaults == Py_None && value != Py_None) {
         PyErr_Format(PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes");
         return -1;
@@ -289,6 +292,7 @@ static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *object, Py
         PyErr_Format(PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes");
         return -1;
     }
+#endif
 
     PyObject *old = object->m_defaults;
     Py_INCREF(value);

@@ -173,6 +173,9 @@ def getFunctionMakerCode(
         "module_identifier": module_identifier,
     }
 
+    # TODO: Make it optional.
+    context.addFunctionCreationInfo(function_impl_identifier)
+
     return result
 
 

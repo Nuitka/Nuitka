@@ -49,10 +49,40 @@ def save_compiled_method(pickler, obj):
     else:
         pickler.save_reduce(compiled_method, (obj.im_func, obj.im_self, obj.im_class), obj=obj)
 
+def _create_compiled_function2(module_name, func_values, func_dict, func_defaults):
+    if module_name not in compiled_function_tables:
+        __import__(module_name)
+
+    func = compiled_function_tables[module_name][1](*func_values)
+    if func_dict:
+        for key, value in func_dict.items():
+            func[key] = value
+
+    func.__defaults__ = func_defaults
+
+    return func
+
+def _create_compiled_function3(module_name, func_values, func_dict, func_defaults, func_kwdefaults):
+    if module_name not in compiled_function_tables:
+        __import__(module_name)
+
+    func = compiled_function_tables[module_name][1](*func_values)
+    if func_dict:
+        for key, value in func_dict.items():
+            func[key] = value
+
+    func.__defaults__ = func_defaults
+    func.__kwdefaults__ = func_kwdefaults
+
+    return func
+
+
 # Compiled methods might have to be created or not.
 @dill.register(compiled_function)
 def save_compiled_function(pickler, obj):
     if not dill._dill._locate_function(obj):
+        stack = dill._dill.stack
+
         if getattr(pickler, '_recurse', False):
             from dill.detect import globalvars
             globs = globalvars(obj, recurse=True, builtin=True)
@@ -64,29 +94,40 @@ def save_compiled_function(pickler, obj):
         _byref = getattr(pickler, '_byref', None)
         _recurse = getattr(pickler, '_recurse', None)
         _memo = (id(obj) in stack) and (_recurse is not None)
-        stack = dill._dill.stack
         stack[id(obj)] = len(stack), obj
+
         if str is not bytes:
+            # Python3
             _super = ('super' in getattr(obj.__code__,'co_names',())) and (_byref is not None)
             if _super: pickler._byref = True
             if _memo: pickler._recurse = False
-            fkwdefaults = getattr(obj, '__kwdefaults__', None)
 
-            # TODO: Make compiled functions constructable via name
-            assert False
-            pickler.save_reduce(_create_function, (obj.__code__,
-                                globs, obj.__name__,
-                                obj.__defaults__, obj.__closure__,
-                                obj.__dict__, fkwdefaults), obj=obj)
+            pickler.save_reduce(
+                _create_compiled_function3,
+                (
+                    obj.__module__,
+                    compiled_function_tables[obj.__module__][0](obj),
+                    obj.__dict__,
+                    obj.__defaults__,
+                    obj.__kwdefaults__
+                )
+            )
         else:
-            _super = ('super' in getattr(obj.func_code,'co_names',())) and (_byref is not None) and getattr(pickler, '_recurse', False)
+            # Python2
+            _super = ('super' in getattr(obj.__code__,'co_names',())) and (_byref is not None) and getattr(pickler, '_recurse', False)
             if _super: pickler._byref = True
             if _memo: pickler._recurse = False
 
-            pickler.save_reduce(_create_function, (obj.func_code,
-                                globs, obj.func_name,
-                                obj.func_defaults, obj.func_closure,
-                                obj.__dict__), obj=obj)
+            pickler.save_reduce(
+                _create_compiled_function2,
+                (
+                    obj.__module__,
+                    compiled_function_tables[obj.__module__][0](obj),
+                    obj.__dict__,
+                    obj.__defaults__
+                )
+            )
+
         if _super: pickler._byref = _byref
         if _memo: pickler._recurse = _recurse
     else:
@@ -95,7 +136,7 @@ def save_compiled_function(pickler, obj):
             return (
                 code,
                 """\
-Monkey patching "dill" for compiled types to be pickable as well.""",
+Extending "dill" for compiled types to be pickable as well.""",
             )
 
         return None, None
