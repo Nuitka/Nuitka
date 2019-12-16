@@ -64,7 +64,7 @@ def enableImportTracing(normalize_paths=True, show_source=False):
         name,
         globals=None,
         locals=None,
-        fromlist=None,  # @ReservedAssignment
+        fromlist=None,
         level=-1 if sys.version_info[0] < 3 else 0,
     ):
         builtins.__import__ = original_import

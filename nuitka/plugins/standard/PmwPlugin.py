@@ -87,7 +87,7 @@ class NuitkaPluginPmw(NuitkaPluginBase):
 
     def _packagePmw(self, pmw_path):
         # From the "__init__.py" of Pwm:
-        def _hasLoader(dirname):  # @ReservedAssignment
+        def _hasLoader(dirname):
             # Only accept Pmw_V_R_P with single digits, since ordering will
             # not work correctly with multiple digits (for example, Pmw_10_0
             # will be before Pmw_9_9).

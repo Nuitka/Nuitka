@@ -25,7 +25,7 @@ except ImportError:
 # This kind of built-in overload will have to work.
 
 
-def len(x):  # @ReservedAssignment
+def len(x):
     print("Private built-in called with argument", repr(x))
 
     return _len(x)

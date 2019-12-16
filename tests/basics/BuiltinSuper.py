@@ -43,9 +43,7 @@ ClassWithUnderClassClosure().g()
 
 class ClassWithoutUnderClassClosure:
     def g(self):
-        __class__ = (
-            "Providing __class__ ourselves, then it must be used"
-        )  # @ReservedAssignment
+        __class__ = "Providing __class__ ourselves, then it must be used"
         print(__class__)
 
         try:
@@ -57,7 +55,7 @@ class ClassWithoutUnderClassClosure:
 ClassWithoutUnderClassClosure().g()
 
 # For Python2 only.
-__class__ = "Global __class__"  # @ReservedAssignment
+__class__ = "Global __class__"
 
 
 def deco(C):

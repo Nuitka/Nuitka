@@ -426,10 +426,10 @@ def importOrderCheck():
     def name():
         print("name", end=" ")
 
-    def globals():  # @ReservedAssignment
+    def globals():
         print("globals", end=" ")
 
-    def locals():  # @ReservedAssignment
+    def locals():
         print("locals", end=" ")
 
     def fromlist():

@@ -56,15 +56,13 @@ def iterItems(d):
 
 
 if str is not bytes:
-    raw_input = input  # @ReservedAssignment
-    xrange = range  # @ReservedAssignment
-    basestring = str  # @ReservedAssignment
+    raw_input = input
+    xrange = range
+    basestring = str
 else:
-    raw_input = raw_input  # @ReservedAssignment
-    xrange = xrange  # @ReservedAssignment pylint: disable=I0021,undefined-variable
-    basestring = (
-        basestring
-    )  # @ReservedAssignment pylint: disable=I0021,undefined-variable
+    raw_input = raw_input
+    xrange = xrange  # pylint: disable=I0021,undefined-variable
+    basestring = basestring  # pylint: disable=I0021,undefined-variable
 
 
 if str is bytes:
