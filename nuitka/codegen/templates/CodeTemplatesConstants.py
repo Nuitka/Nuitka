@@ -32,8 +32,7 @@ PyObject *Nuitka_dunder_compiled_value = NULL;
 
 %(constant_declarations)s
 
-static void _createGlobalConstants( void )
-{
+static void _createGlobalConstants(void) {
     NUITKA_MAY_BE_UNUSED PyObject *exception_type, *exception_value;
     NUITKA_MAY_BE_UNUSED PyTracebackObject *exception_tb;
 
@@ -126,14 +125,12 @@ static void _createGlobalConstants( void )
 // given moment. We typically do it at program exit, but we can add extra calls
 // for sanity.
 #ifndef __NUITKA_NO_ASSERT__
-void checkGlobalConstants( void )
-{
+void checkGlobalConstants(void) {
 %(constant_checks)s
 }
 #endif
 
-void createGlobalConstants( void )
-{
+void createGlobalConstants(void) {
     if (_sentinel_value == NULL) {
 #if PYTHON_VERSION < 300
         _sentinel_value = PyCObject_FromVoidPtr(NULL, NULL);

@@ -54,7 +54,7 @@ def generateBytecodeFrozenCode():
 
         frozen_defs.append(
             """\
-{{ "{module_name}", {start}, {size} }},""".format(
+{{"{module_name}", {start}, {size}}},""".format(
                 module_name=module_name,
                 start=stream_data.getStreamDataOffset(code_data),
                 size=size,

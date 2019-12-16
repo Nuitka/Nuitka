@@ -475,7 +475,6 @@ def generateHelpersCode(other_modules):
     calls_decl_code = getCallsDecls()
 
     loader_code = getMetapathLoaderBodyCode(other_modules)
-
     calls_body_code = getCallsCode()
 
     return calls_decl_code, calls_body_code + loader_code

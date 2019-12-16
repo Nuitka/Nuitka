@@ -20,7 +20,7 @@
 """
 
 template_genfunc_yielder_maker_decl = """\
-static PyObject *%(function_identifier)s_maker( void );
+static PyObject *%(function_identifier)s_maker(void);
 """
 
 template_genfunc_yielder_body_template = """
@@ -47,8 +47,7 @@ static PyObject *%(function_identifier)s_context( struct Nuitka_GeneratorObject 
 %(generator_exit)s
 }
 
-static PyObject *%(function_identifier)s_maker( void )
-{
+static PyObject *%(function_identifier)s_maker(void) {
     return Nuitka_Generator_New(
         %(function_identifier)s_context,
         %(generator_module)s,

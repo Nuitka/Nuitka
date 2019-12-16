@@ -372,7 +372,7 @@ def _getInstanceCallCodePosArgsQuick(
     emit(
         """\
 {
-    PyObject *call_args[] = { %s };
+    PyObject *call_args[] = {%s};
     %s = CALL_METHOD_WITH_ARGS%d(%s, %s, call_args);
 }
 """
@@ -419,7 +419,7 @@ def getCallCodePosArgsQuick(
         emit(
             """\
 {
-    PyObject *call_args[] = { %s };
+    PyObject *call_args[] = {%s};
     %s = CALL_FUNCTION_WITH_ARGS%d(%s, call_args);
 }
 """

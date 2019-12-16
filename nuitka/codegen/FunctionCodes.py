@@ -45,7 +45,7 @@ from .templates.CodeTemplatesFunction import (
     template_function_make_declaration,
     template_function_return_exit,
     template_make_function,
-    template_make_function_body,
+    template_maker_function_body,
 )
 from .TupleCodes import getTupleCreationCode
 from .VariableCodes import decideLocalVariableCodeType, getLocalVariableDeclaration
@@ -84,6 +84,10 @@ def getFunctionMakerDecl(
 
 def _getFunctionEntryPointIdentifier(function_identifier):
     return "impl_" + function_identifier
+
+
+def _getFunctionMakerIdentifier(function_identifier):
+    return "MAKE_FUNCTION_" + function_identifier
 
 
 def getFunctionQualnameObj(owner, context):
@@ -142,23 +146,31 @@ def getFunctionMakerCode(
             function_identifier=function_identifier
         )
 
-    result = template_make_function_body % {
+    function_maker_identifier = _getFunctionMakerIdentifier(
+        function_identifier=function_identifier
+    )
+
+    code_identifier = context.getCodeObjectHandle(
+        code_object=function_body.getCodeObject()
+    )
+
+    module_identifier = getModuleAccessCode(context=context)
+
+    result = template_maker_function_body % {
         "function_name_obj": context.getConstantCode(
             constant=function_body.getFunctionName()
         ),
         "function_qualname_obj": getFunctionQualnameObj(function_body, context),
-        "function_identifier": function_identifier,
+        "function_maker_identifier": function_maker_identifier,
         "function_impl_identifier": function_impl_identifier,
         "function_creation_args": ", ".join(function_creation_args),
-        "code_identifier": context.getCodeObjectHandle(
-            code_object=function_body.getCodeObject()
-        ),
+        "code_identifier": code_identifier,
         "function_doc": function_doc,
         "defaults": "defaults" if defaults_name else "NULL",
         "kw_defaults": "kw_defaults" if kw_defaults_name else "NULL",
         "annotations": "annotations" if annotations_name else "NULL",
         "closure_count": len(closure_variables),
-        "module_identifier": getModuleAccessCode(context=context),
+        "module_identifier": module_identifier,
     }
 
     return result
@@ -318,11 +330,15 @@ def getFunctionCreationCode(
         context=context,
     )
 
+    function_maker_identifier = _getFunctionMakerIdentifier(
+        function_identifier=function_identifier
+    )
+
     emit(
         template_make_function
         % {
             "to_name": to_name,
-            "function_identifier": function_identifier,
+            "function_maker_identifier": function_maker_identifier,
             "args": ", ".join(str(arg) for arg in args),
             "closure_copy": indented(closure_copy, 0, True),
         }

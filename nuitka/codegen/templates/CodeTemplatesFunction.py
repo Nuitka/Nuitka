@@ -27,8 +27,8 @@ template_function_direct_declaration = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s(%(direct_call_arg_spec)s);
 """
 
-template_make_function_body = """
-static PyObject *MAKE_FUNCTION_%(function_identifier)s(%(function_creation_args)s) {
+template_maker_function_body = """
+static PyObject *%(function_maker_identifier)s(%(function_creation_args)s) {
     struct Nuitka_FunctionObject *result = Nuitka_Function_New(
         %(function_impl_identifier)s,
         %(function_name_obj)s,
@@ -51,7 +51,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s(%(function_creation_args)
 """
 
 template_make_function = """\
-%(to_name)s = MAKE_FUNCTION_%(function_identifier)s(%(args)s);
+%(to_name)s = %(function_maker_identifier)s(%(args)s);
 %(closure_copy)s
 """
 

@@ -64,8 +64,7 @@ PyDictObject *moduledict_%(module_identifier)s;
 static bool constants_created = false;
 
 /* Function to create module private constants. */
-static void createModuleConstants( void )
-{
+static void createModuleConstants(void) {
 %(constant_init_codes)s
 
     constants_created = true;
@@ -73,8 +72,7 @@ static void createModuleConstants( void )
 
 /* Function to verify module private constants for non-corruption. */
 #ifndef __NUITKA_NO_ASSERT__
-void checkModuleConstants_%(module_identifier)s( void )
-{
+void checkModuleConstants_%(module_identifier)s(void) {
     // The module may not have been used at all, then ignore this.
     if (constants_created == false) return;
 
@@ -85,8 +83,7 @@ void checkModuleConstants_%(module_identifier)s( void )
 // The module code objects.
 %(module_code_objects_decl)s
 
-static void createModuleCodeObjects(void)
-{
+static void createModuleCodeObjects(void) {
 %(module_code_objects_init)s
 }
 
@@ -416,8 +413,7 @@ template_module_external_entry_point = r"""
  */
 MOD_INIT_DECL(%(module_identifier)s) {
     char const *module_full_name = "%(module_name)s";
-    if (_Py_PackageContext != NULL)
-    {
+    if (_Py_PackageContext != NULL) {
         module_full_name = _Py_PackageContext;
     }
 

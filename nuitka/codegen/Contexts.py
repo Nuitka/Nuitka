@@ -1138,9 +1138,6 @@ class PythonFunctionDirectContext(PythonFunctionContext):
     def isForDirectCall(self):
         return True
 
-    def isForCrossModuleUsage(self):
-        return self.function.isCrossModuleUsed()
-
     def isForCreatedFunction(self):
         return False
 
@@ -1151,9 +1148,6 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
 
     def isForDirectCall(self):
         return False
-
-    def isForCrossModuleUsage(self):
-        return self.function.isCrossModuleUsed()
 
     def isForCreatedFunction(self):
         return False

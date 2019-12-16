@@ -8155,7 +8155,7 @@ Bug fixes
 
   .. code-block:: python
 
-     { value }
+     {value}
 
   This apparently rarely used Python2.7 syntax didn't have code generation yet
   and crashed the compiler. `Issue#42 <http://bugs.nuitka.net/issue42>`__. Fixed

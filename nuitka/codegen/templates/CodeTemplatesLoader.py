@@ -46,8 +46,7 @@ static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] =
     {NULL, NULL, 0, 0, 0}
 };
 
-void setupMetaPathBasedLoader(void)
-{
+void setupMetaPathBasedLoader(void) {
     static bool init_done = false;
 
     if (init_done == false)

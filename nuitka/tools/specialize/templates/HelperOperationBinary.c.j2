@@ -21,7 +21,7 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
 
 {%if left.getTypeSpecializationCode(right, nb_slot, sq_slot1, "operand1", "operand2") %}
     {{left.getTypeSpecializationCode(right, nb_slot, sq_slot1, "operand1", "operand2"|indent)}}
-{%else %}
+{% else %}
     PyTypeObject *type1 = {{left.getTypeValueExpression("operand1")}};
     {{left.getSlotType(nb_slot)}} slot1 = {{left.getSlotValueExpression("type1", nb_slot)}};
 
@@ -169,7 +169,6 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
                 Py_DECREF(coerced2);
             }
         }
-
     }
 #endif
 

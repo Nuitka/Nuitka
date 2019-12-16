@@ -20,7 +20,7 @@
 """
 
 template_asyncgen_object_maker_template = """\
-static PyObject *%(function_identifier)s_maker( void );
+static PyObject *%(function_identifier)s_maker(void);
 """
 
 template_asyncgen_object_body_template = """
@@ -47,8 +47,7 @@ static PyObject *%(function_identifier)s_context( struct Nuitka_AsyncgenObject *
 %(asyncgen_exit)s
 }
 
-static PyObject *%(function_identifier)s_maker( void )
-{
+static PyObject *%(function_identifier)s_maker(void) {
     return Nuitka_Asyncgen_New(
         %(function_identifier)s_context,
         %(asyncgen_module)s,
