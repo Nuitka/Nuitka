@@ -57,13 +57,14 @@ def iterItems(d):
 
 if str is not bytes:
     raw_input = input  # @ReservedAssignment
+    xrange = range  # @ReservedAssignment
+    basestring = str  # @ReservedAssignment
 else:
     raw_input = raw_input  # @ReservedAssignment
-
-if str is bytes:
     xrange = xrange  # @ReservedAssignment pylint: disable=I0021,undefined-variable
-else:
-    xrange = range  # @ReservedAssignment
+    basestring = (
+        basestring
+    )  # @ReservedAssignment pylint: disable=I0021,undefined-variable
 
 
 if str is bytes:
@@ -74,10 +75,12 @@ else:
     from urllib.request import (  # pylint: disable=I0021,import-error,no-name-in-module
         urlretrieve,
     )
+
 if str is bytes:
     from cStringIO import StringIO  # pylint: disable=I0021,import-error
 else:
     from io import StringIO  # pylint: disable=I0021,import-error
+
 try:
     from functools import total_ordering
 except ImportError:

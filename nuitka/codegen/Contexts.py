@@ -25,6 +25,8 @@ import sys
 from abc import abstractmethod
 
 from nuitka import Options
+from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import xrange  # pylint: disable=I0021,redefined-builtin
 from nuitka.__past__ import getMetaClassBase, iterItems
 from nuitka.Builtins import (
     builtin_anon_codes,
@@ -760,15 +762,9 @@ class PythonGlobalContext(object):
                 key = "(PyObject *)&PyFrozenSet_Type"
             elif python_version >= 270 and constant is memoryview:
                 key = "(PyObject *)&PyMemoryView_Type"
-            elif (
-                python_version < 300
-                and constant is basestring  # pylint: disable=I0021,undefined-variable
-            ):
+            elif python_version < 300 and constant is basestring:
                 key = "(PyObject *)&PyBaseString_Type"
-            elif (
-                python_version < 300
-                and constant is xrange  # pylint: disable=I0021,undefined-variable
-            ):
+            elif python_version < 300 and constant is xrange:
                 key = "(PyObject *)&PyRange_Type"
             elif constant in builtin_anon_values:
                 key = "(PyObject *)" + builtin_anon_codes[builtin_anon_values[constant]]
