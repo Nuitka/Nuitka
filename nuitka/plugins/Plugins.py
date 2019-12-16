@@ -124,6 +124,16 @@ def loadStandardPlugins():
 
 class Plugins(object):
     @staticmethod
+    def isPluginActive(plugin_name):
+        """ Is a plugin activated. """
+
+        for plugin in active_plugin_list:
+            if plugin.plugin_name == plugin_name:
+                return True
+
+        return False
+
+    @staticmethod
     def considerImplicitImports(module, signal_change):
         for plugin in active_plugin_list:
             plugin.considerImplicitImports(module, signal_change)
