@@ -27,7 +27,10 @@ import sys
 from nuitka import Options
 from nuitka.codegen import ConstantCodes
 from nuitka.PythonVersions import getPythonABI, getTargetPythonDLLPath, python_version
-from nuitka.utils.SharedLibraries import callInstallNameTool, callInstallNameToolAddRPath
+from nuitka.utils.SharedLibraries import (
+    callInstallNameTool,
+    callInstallNameToolAddRPath,
+)
 from nuitka.utils.Utils import getOS, isWin32Windows
 from nuitka.utils.WindowsResources import (
     RT_MANIFEST,
@@ -77,7 +80,7 @@ def executePostProcessing(result_filename):
         python_dll_filename = "libpython" + python_abi_version + ".dylib"
         python_lib_path = os.path.join(sys.prefix, "lib")
 
-        if os.path.exists(os.path.join(sys.prefix, 'conda-meta')):
+        if os.path.exists(os.path.join(sys.prefix, "conda-meta")):
             callInstallNameToolAddRPath(result_filename, python_lib_path)
 
         callInstallNameTool(
