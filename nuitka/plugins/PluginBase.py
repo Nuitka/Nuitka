@@ -26,11 +26,11 @@ The base class will serve as documentation. And it will point to examples of
 it being used.
 """
 
-# This is heavily WIP.
+import os
 import sys
 from logging import info, warning
 
-from nuitka import Options
+from nuitka import Options, OutputDirectories
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.utils.FileOperations import relpath
@@ -342,6 +342,14 @@ class NuitkaPluginBase(object):
 
         if mode == "bytecode":
             trigger_module.setSourceCode(code)
+
+        if Options.isDebug():
+            source_path = os.path.join(
+                OutputDirectories.getSourceDirectoryPath(), module_name + ".py"
+            )
+
+            with open(source_path, "w") as output:
+                output.write(code)
 
         return trigger_module
 
