@@ -29,11 +29,14 @@ options = None
 positional_args = None
 extra_args = []
 is_nuitka_run = None
+is_debug = None
+is_nondebug = None
+is_fullcompat = None
 
 
 def parseArgs():
     # singleton with many cases, pylint: disable=global-statement,too-many-branches
-    global is_nuitka_run, options, positional_args, extra_args
+    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions()
 
@@ -117,6 +120,10 @@ sane default used inside the dist folder."""
 Error, icon path "%s" does not exist."""
                 % icon_path
             )
+
+    is_debug = isDebug()
+    is_nondebug = not is_debug
+    is_fullcompat = isFullCompat()
 
 
 def isVerbose():

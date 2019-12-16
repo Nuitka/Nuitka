@@ -25,9 +25,9 @@ abstract execution, and different from statements.
 
 from abc import abstractmethod
 
+from nuitka import Options
 from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
 from nuitka.Constants import isCompileTimeConstantValue
-from nuitka.Options import isFullCompat
 from nuitka.PythonVersions import python_version
 
 from .NodeBases import ChildrenHavingMixin, NodeBase
@@ -460,7 +460,7 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotFloat() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "float() argument must be a string or a number"
-                if isFullCompat() and python_version < 300
+                if Options.is_fullcompat and python_version < 300
                 else "float() argument must be a string or a number, not '%s'",
                 operation="long",
                 original_node=float_node,
@@ -508,7 +508,7 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotComplex() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "complex() argument must be a string or a number"
-                if isFullCompat() and python_version < 300
+                if Options.is_fullcompat and python_version < 300
                 else "complex() argument must be a string or a number, not '%s'",
                 operation="complex",
                 original_node=complex_node,
@@ -1187,7 +1187,7 @@ class ExpressionChildHavingBase(ExpressionBase):
             return ()
         elif type(value) is tuple:
             return value
-        elif isinstance(value, NodeBase):
+        elif Options.is_nondebug or isinstance(value, NodeBase):
             return (value,)
         else:
             raise AssertionError(self, "has illegal child", value, value.__class__)
