@@ -578,17 +578,17 @@ struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObject *mod
 extern PyObject *const_str_empty;
 extern PyObject *const_bytes_empty;
 
-#if PYTHON_VERSION < 300
-PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count,
-                           int flags)
-#elif PYTHON_VERSION < 380
-PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count,
-                           int kw_only_count, int flags)
-#else
-PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count,
-                           int pos_only_count, int kw_only_count, int flags)
+PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name, PyObject *argnames,
+                             int arg_count
+#if PYTHON_VERSION >= 300
+                             ,
+                             int kw_only_count
 #endif
-{
+#if PYTHON_VERSION >= 380
+                             ,
+                             int pos_only_count
+#endif
+) {
     CHECK_OBJECT(filename);
     assert(Nuitka_String_CheckExact(filename));
     CHECK_OBJECT(function_name);

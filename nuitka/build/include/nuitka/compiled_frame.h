@@ -23,15 +23,22 @@ extern struct Nuitka_FrameObject *MAKE_MODULE_FRAME(PyCodeObject *code, PyObject
 extern struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObject *module, Py_ssize_t locals_size);
 
 // Create a code object for the given filename and function name
+
 #if PYTHON_VERSION < 300
-extern PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames,
-                                  int arg_count, int flags);
+#define MAKE_CODEOBJECT(filename, line, flags, function_name, argnames, arg_count, kw_only_count, pos_only_count)      \
+    makeCodeObject(filename, line, flags, function_name, argnames, arg_count)
+extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
+                                    PyObject *argnames, int arg_count);
 #elif PYTHON_VERSION < 380
-extern PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames,
-                                  int arg_count, int kw_only_count, int flags);
+#define MAKE_CODEOBJECT(filename, line, flags, function_name, argnames, arg_count, kw_only_count, pos_only_count)      \
+    makeCodeObject(filename, line, flags, function_name, argnames, arg_count, kw_only_count)
+extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
+                                    PyObject *argnames, int arg_count, int kw_only_count);
 #else
-extern PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames,
-                                  int arg_count, int pos_only_count, int kw_only_count, int flags);
+#define MAKE_CODEOBJECT(filename, line, flags, function_name, argnames, arg_count, kw_only_count, pos_only_count)      \
+    makeCodeObject(filename, line, flags, function_name, argnames, arg_count, kw_only_count, pos_only_count)
+extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
+                                    PyObject *argnames, int arg_count, int kw_only_count, int pos_only_count);
 #endif
 
 extern PyTypeObject Nuitka_Frame_Type;
