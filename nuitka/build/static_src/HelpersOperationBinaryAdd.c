@@ -4367,6 +4367,12 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT(PyObject *operand1, PyObject *opera
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
 
+#if PYTHON_VERSION < 300
+    if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
+        return BINARY_OPERATION_ADD_INT_INT(operand1, operand2);
+    }
+#endif
+
     PyTypeObject *type1 = Py_TYPE(operand1);
     binaryfunc slot1 =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_add : NULL;
