@@ -374,3 +374,16 @@ Py_hash_t DEEP_HASH(PyObject *value) {
     }
 }
 #endif
+
+// Note: Not recursion safe, cannot do this everywhere.
+void CHECK_OBJECT_DEEP(PyObject *value) {
+    CHECK_OBJECT(value);
+
+    if (PyTuple_Check(value)) {
+        for (Py_ssize_t i = 0, size = PyTuple_GET_SIZE(value); i < size; i++) {
+            PyObject *element = PyTuple_GET_ITEM(value, i);
+
+            CHECK_OBJECT_DEEP(element);
+        }
+    }
+}
