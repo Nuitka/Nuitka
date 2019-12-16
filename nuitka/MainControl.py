@@ -54,12 +54,12 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import isWin32Windows
 
-from . import ModuleRegistry, Options, TreeXML
+from . import ModuleRegistry, Options, OutputDirectories, TreeXML
 from .build import SconsInterface
 from .codegen import CodeGeneration, ConstantCodes, Reports
 from .finalizations import Finalization
 from .freezer.BytecodeModuleFreezer import generateBytecodeFrozenCode
-from .freezer.Standalone import copyUsedDLLs, detectEarlyImports
+from .freezer.Standalone import copyUsedDLLs
 from .optimizations import Optimization
 from .tree import Building
 
@@ -80,23 +80,24 @@ def createNodeTree(filename):
         is_top=True,
         is_main=not Options.shallMakeModule(),
     )
+
     ModuleRegistry.addRootModule(main_module)
 
     # First remove old object files and old generated files, old binary or
     # module, and standalone mode program directory if any, they can only do
     # harm.
-    source_dir = getSourceDirectoryPath(main_module)
+    source_dir = OutputDirectories.getSourceDirectoryPath()
 
     if not Options.shallOnlyExecCCompilerCall():
         cleanSourceDirectory(source_dir)
 
     # Prepare the ".dist" directory, throwing away what was there before.
     if Options.isStandaloneMode():
-        standalone_dir = getStandaloneDirectoryPath(main_module)
+        standalone_dir = OutputDirectories.getStandaloneDirectoryPath()
         removeDirectory(path=standalone_dir, ignore_errors=True)
         makePath(standalone_dir)
 
-    deleteFile(path=getResultFullpath(main_module), must_exist=False)
+    deleteFile(path=OutputDirectories.getResultFullpath(), must_exist=False)
 
     # Second, do it for the directories given.
     for plugin_filename in Options.getShallFollowExtra():
@@ -156,58 +157,6 @@ def dumpTreeXML(tree):
     TreeXML.dump(xml_root)
 
 
-def getTreeFilenameWithSuffix(tree, suffix):
-    return tree.getOutputFilename() + suffix
-
-
-def getSourceDirectoryPath(main_module):
-    assert main_module.isCompiledPythonModule()
-
-    return Options.getOutputPath(
-        path=os.path.basename(getTreeFilenameWithSuffix(main_module, ".build"))
-    )
-
-
-def getStandaloneDirectoryPath(main_module):
-    return Options.getOutputPath(
-        path=os.path.basename(getTreeFilenameWithSuffix(main_module, ".dist"))
-    )
-
-
-def getResultBasepath(main_module):
-    assert main_module.isCompiledPythonModule()
-
-    if Options.isStandaloneMode():
-        return os.path.join(
-            getStandaloneDirectoryPath(main_module),
-            os.path.basename(getTreeFilenameWithSuffix(main_module, "")),
-        )
-    else:
-        return Options.getOutputPath(
-            path=os.path.basename(getTreeFilenameWithSuffix(main_module, ""))
-        )
-
-
-def getResultFullpath(main_module):
-    """ Get the final output binary result full path.
-
-    """
-
-    result = getResultBasepath(main_module)
-
-    if Options.shallMakeModule():
-        result += Utils.getSharedLibrarySuffix()
-    else:
-        if Options.getOutputFilename() is not None:
-            result = Options.getOutputFilename()
-        elif Utils.getOS() == "Windows":
-            result += ".exe"
-        elif not Options.isStandaloneMode():
-            result += ".bin"
-
-    return result
-
-
 def cleanSourceDirectory(source_dir):
     extensions = (
         ".bin",
@@ -230,8 +179,6 @@ def cleanSourceDirectory(source_dir):
         for path, _filename in listDir(source_dir):
             if hasFilenameExtension(path, extensions):
                 deleteFile(path, must_exist=True)
-    else:
-        makePath(source_dir)
 
 
 def pickSourceFilenames(source_dir, modules):
@@ -367,7 +314,7 @@ def makeSourceDirectory(main_module):
             Finalization.prepareCodeGeneration(module)
 
     # Pick filenames.
-    source_dir = getSourceDirectoryPath(main_module)
+    source_dir = OutputDirectories.getSourceDirectoryPath()
 
     module_filenames = pickSourceFilenames(
         source_dir=source_dir, modules=ModuleRegistry.getDoneModules()
@@ -413,7 +360,7 @@ def makeSourceDirectory(main_module):
                 info("Included compiled module '%s'." % module.getFullName())
         elif module.isPythonShlibModule():
             target_filename = os.path.join(
-                getStandaloneDirectoryPath(main_module),
+                OutputDirectories.getStandaloneDirectoryPath(),
                 *module.getFullName().split(".")
             )
             target_filename += Utils.getSharedLibrarySuffix()
@@ -466,9 +413,11 @@ def runScons(main_module, quiet):
     # pylint: disable=too-many-branches,too-many-statements
 
     options = {
-        "name": os.path.basename(getTreeFilenameWithSuffix(main_module, "")),
-        "result_name": getResultBasepath(main_module),
-        "source_dir": getSourceDirectoryPath(main_module),
+        "name": os.path.basename(
+            OutputDirectories.getTreeFilenameWithSuffix(main_module, "")
+        ),
+        "result_name": OutputDirectories.getResultBasepath(),
+        "source_dir": OutputDirectories.getSourceDirectoryPath(),
         "debug_mode": _asBoolStr(Options.isDebug()),
         "python_debug": _asBoolStr(Options.isPythonDebug()),
         "unstripped_mode": _asBoolStr(Options.isUnstripped()),
@@ -490,7 +439,7 @@ def runScons(main_module, quiet):
     }
 
     if not Options.shallMakeModule():
-        options["result_exe"] = getResultFullpath(main_module)
+        options["result_exe"] = OutputDirectories.getResultFullpath()
 
     # Ask Scons to cache on Windows, except where the directory is thrown
     # away. On non-Windows you can should use ccache instead.
@@ -663,7 +612,7 @@ def executeModule(tree, clean_path):
 
 
 def compileTree(main_module):
-    source_dir = getSourceDirectoryPath(main_module)
+    source_dir = OutputDirectories.getSourceDirectoryPath()
 
     if not Options.shallOnlyExecCCompilerCall():
         if Options.isShowProgress() or Options.isShowMemory():
@@ -688,7 +637,7 @@ def compileTree(main_module):
                 binary_data=ConstantCodes.stream_data.getBytes(),
             )
     else:
-        source_dir = getSourceDirectoryPath(main_module)
+        source_dir = OutputDirectories.getSourceDirectoryPath()
 
         if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
             sys.exit("Error, no previous build directory exists.")
@@ -762,12 +711,6 @@ def main():
         main_dir=os.path.dirname(os.path.abspath(filename))
     )
 
-    # Detect to be frozen modules if any, so we can consider to not recurse
-    # to them.
-    if Options.isStandaloneMode():
-        for module in detectEarlyImports():
-            ModuleRegistry.addUncompiledModule(module)
-
     # Turn that source code into a node tree structure.
     try:
         main_module = createNodeTree(filename=filename)
@@ -792,14 +735,14 @@ def main():
 
             sys.exit(0)
 
-        executePostProcessing(getResultFullpath(main_module))
+        executePostProcessing(OutputDirectories.getResultFullpath())
 
         if Options.isStandaloneMode():
             binary_filename = options["result_exe"]
 
             standalone_entry_points.insert(0, (binary_filename, binary_filename, None))
 
-            dist_dir = getStandaloneDirectoryPath(main_module)
+            dist_dir = OutputDirectories.getStandaloneDirectoryPath()
 
             for module in ModuleRegistry.getDoneUserModules():
                 standalone_entry_points.extend(
@@ -807,7 +750,7 @@ def main():
                 )
 
             copyUsedDLLs(
-                source_dir=getSourceDirectoryPath(main_module),
+                source_dir=OutputDirectories.getSourceDirectoryPath(),
                 dist_dir=dist_dir,
                 standalone_entry_points=standalone_entry_points,
             )
@@ -823,11 +766,11 @@ def main():
         # Remove the source directory (now build directory too) if asked to.
         if Options.isRemoveBuildDir():
             removeDirectory(
-                path=getSourceDirectoryPath(main_module), ignore_errors=False
+                path=OutputDirectories.getSourceDirectoryPath(), ignore_errors=False
             )
 
         if Options.shallMakeModule() and Options.shallCreatePyiFile():
-            pyi_filename = getResultBasepath(main_module) + ".pyi"
+            pyi_filename = OutputDirectories.getResultBasepath() + ".pyi"
 
             with open(pyi_filename, "w") as pyi_file:
                 pyi_file.write(
@@ -868,6 +811,6 @@ __name__ = ...
                 )
             else:
                 executeMain(
-                    binary_filename=getResultFullpath(main_module),
+                    binary_filename=OutputDirectories.getResultFullpath(),
                     clean_path=Options.shallClearPythonPathEnvironment(),
                 )

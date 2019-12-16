@@ -53,8 +53,9 @@ import os
 import sys
 from logging import info, warning
 
-from nuitka import Options, SourceCodeReferences
+from nuitka import Options, OutputDirectories, SourceCodeReferences
 from nuitka.__past__ import long, unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.freezer.Standalone import detectEarlyImports
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
@@ -1013,6 +1014,14 @@ def buildModuleTree(filename, package, is_top, is_main):
         is_main=is_main,
         is_shlib=False,
     )
+
+    if is_top:
+        OutputDirectories.setMainModule(module)
+
+        # Detect to be frozen modules if any, so we can consider to not recurse
+        # to them.
+        if Options.isStandaloneMode():
+            detectEarlyImports()
 
     # If there is source code associated (not the case for namespace packages of
     # Python3.3 or higher, then read it.

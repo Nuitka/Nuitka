@@ -184,6 +184,7 @@ def _detectedShlibFile(filename, module_name):
     if module_name == "__main__":
         return
 
+    # Cyclic dependency
     from nuitka import ModuleRegistry
 
     if ModuleRegistry.hasRootModule(module_name):
@@ -446,7 +447,7 @@ def scanStandardLibraryPath(stdlib_dir):
                 yield import_path + "." + dirname
 
 
-def detectEarlyImports():
+def _detectEarlyImports():
     encoding_names = [
         filename[:-3]
         for _path, filename in listDir(
@@ -543,6 +544,14 @@ for imp in imports:
     debug("Finished detecting early imports.")
 
     return result
+
+
+def detectEarlyImports():
+    # Cyclic dependency
+    from nuitka import ModuleRegistry
+
+    for module in _detectEarlyImports():
+        ModuleRegistry.addUncompiledModule(module)
 
 
 _detected_python_rpath = None
