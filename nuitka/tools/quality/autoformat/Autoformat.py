@@ -125,7 +125,7 @@ def _updateCommentNode(comment_node):
                     return pylint_token
 
             return part.group(1) + ",".join(
-                sorted(renamer(token) for token in part.group(2).split(","))
+                sorted(renamer(token) for token in part.group(2).split(",") if token)
             )
 
         new_value = str(comment_node.value).replace("pylint:disable", "pylint: disable")
@@ -404,8 +404,8 @@ def autoformat(filename, git_stage, abort):
             _cleanupWindowsNewlines(tmp_filename)
 
             if not _shouldNotFormatCode(filename):
-                _cleanupPyLintComments(tmp_filename, abort)
                 _cleanupImportSortOrder(tmp_filename)
+                _cleanupPyLintComments(tmp_filename, abort)
 
                 black_call = _getPythonBinaryCall("black")
 
