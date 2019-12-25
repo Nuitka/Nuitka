@@ -32,12 +32,14 @@ from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import getOS
 
+
 def remove_suffix(mod_dir, mod_name):
     if mod_name not in mod_dir:
         return mod_dir
     l = len(mod_name)
     p = mod_dir.find(mod_name) + l
     return mod_dir[:p]
+
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
@@ -966,8 +968,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield "pendulum.locales." + idiom, False
 
         elif (
-            full_name.startswith("pendulum.locales.")
-            and elements[2] != "locale"
+            full_name.startswith("pendulum.locales.") and elements[2] != "locale"
         ):  # only need the idiom folders
             yield "pendulum.locales." + elements[2], False
             yield "pendulum.locales." + elements[2] + ".locale", False

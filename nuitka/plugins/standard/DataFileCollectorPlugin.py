@@ -24,7 +24,7 @@ from logging import warning
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import getFileList, listDir, makePath
+from nuitka.utils.FileOperations import getFileList, listDir
 
 known_data_files = {
     # Key is the package name to trigger it
