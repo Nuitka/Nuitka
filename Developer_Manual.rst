@@ -649,6 +649,8 @@ For fine grained control, it has the following options::
                         Default is False.
   --no-python3.7        Do not use Python 3.7 even if available on the system.
                         Default is False.
+  --no-python3.8        Do not use Python 3.8 even if available on the system.
+                        Default is False.
   --coverage            Make a coverage analysis, that does not really check.
                         Default is False.
 
