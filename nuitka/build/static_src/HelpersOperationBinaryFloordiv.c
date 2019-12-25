@@ -53,13 +53,15 @@ static PyObject *SLOT_nb_floor_divide_INT_INT(PyObject *operand1, PyObject *oper
      */
 
     if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+        long a_div_b = a / b;
+        long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
 
-        /* We use C11 or C++03 which have no trouble doing floor with
-         * signs correctly.
-         */
-        long result = a / b;
+        if (a_mod_b && (b ^ a_mod_b) < 0) {
+            a_mod_b += b;
+            a_div_b -= 1;
+        }
 
-        return PyInt_FromLong(result);
+        return PyInt_FromLong(a_div_b);
     }
 
     PyObject *op1 = operand1;
