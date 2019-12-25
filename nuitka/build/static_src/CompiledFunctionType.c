@@ -672,6 +672,9 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 #if PYTHON_VERSION >= 300
     result->m_args_keywords_count += code_object->co_kwonlyargcount;
 #endif
+#if PYTHON_VERSION >= 380
+    result->m_args_pos_only_count = code_object->co_posonlyargcount;
+#endif
 
     result->m_args_overall_count = result->m_args_keywords_count + ((code_object->co_flags & CO_VARARGS) ? 1 : 0) +
                                    ((code_object->co_flags & CO_VARKEYWORDS) ? 1 : 0);
@@ -1013,7 +1016,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
 #if PYTHON_VERSION < 380
         Py_ssize_t kw_arg_start = 0;
 #else
-        Py_ssize_t kw_arg_start = function->m_args_positional_count;
+        Py_ssize_t kw_arg_start = function->m_args_pos_only_count;
 #endif
 
         for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
@@ -1212,7 +1215,7 @@ static Py_ssize_t handleKeywordArgsWithStarDict(struct Nuitka_FunctionObject con
 #if PYTHON_VERSION < 380
     Py_ssize_t kw_arg_start = 0;
 #else
-    Py_ssize_t kw_arg_start = function->m_args_positional_count;
+    Py_ssize_t kw_arg_start = function->m_args_pos_only_count;
 #endif
 
     for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
@@ -1767,7 +1770,9 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
         kw_found = handleKeywordArgsWithStarDict(function, python_pars, &kw_only_found, kw);
 #endif
         if (kw_found == -1)
+        {
             goto error_exit;
+        }
     } else if (kw == NULL || DICT_SIZE(kw) == 0) {
         kw_found = 0;
     } else {

@@ -50,6 +50,10 @@ struct Nuitka_FunctionObject {
     Py_ssize_t m_args_star_list_index;
     Py_ssize_t m_args_star_dict_index;
 
+#if PYTHON_VERSION >= 380
+    Py_ssize_t m_args_pos_only_count;
+#endif
+
     // Same as code_object->co_varnames
     PyObject **m_varnames;
 
