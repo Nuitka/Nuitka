@@ -757,6 +757,19 @@ To learn about plugin option specification consult
 `this document <https://github.com/Nuitka/Nuitka/blob/develop/Using-Plugin-Options.rst>`__.
 
 
+Working with the CPython suites
+===============================
+
+The CPython test suites are different branches of the same submodule. When you
+update your git checkout, they will frequently become detached. In this case,
+simply execute this command:
+
+.. code-block: sh
+
+    git submodule foreach 'git checkout $(basename $(pwd)) && \
+    git reset --hard origin/$(basename $(pwd))'
+
+
 Design Descriptions
 ===================
 
