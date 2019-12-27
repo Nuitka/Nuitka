@@ -1,6 +1,9 @@
 Nuitka Release 0.6.6 (Draft)
 ============================
 
+This release contains huge amounts of crucial bug fixes all across the board.
+There is also new optimization and many organisational improvements.
+
 Bug Fixes
 ---------
 
@@ -10,22 +13,22 @@ Bug Fixes
 - Fix, avoid optimizing calls with default values used. This is not yet
   working and needed to be disabled for now.
 
-- Windows: Find win32com DLLs too, even if they live in sub folders of
-  site-packages, and otherwise not found. They are used by other DLLs
-  that are found.
-
 - Python3: Fix, missing keyword only arguments were not enforced to be
   provided keyword only, and were not giving the compatible error message
   when missing.
 
-- Standalone: Fixup for problem with standard library module in recent
-  AnaConda.
+- Windows: Find ``win32com`` DLLs too, even if they live in sub folders of
+  site-packages, and otherwise not found. They are used by other DLLs that
+  are found.
+
+- Standalone: Fixup for problem with standard library module in most recent
+  AnaConda versions.
 
 - Scons: Fix, was using ``CXXFLAGS`` and ``CPPFLAGS`` even for the C
-  compiler, which is wrong.
+  compiler, which is wrong, and could lead to compilation errors.
 
-- Windows: Make --clang limited to ``clang-cl.exe`` as using it inside
-  a MinGW64 is not currently supported.
+- Windows: Make ``--clang`` limited to ``clang-cl.exe`` as using it inside a
+  MinGW64 is not currently supported.
 
 - Standalone: Added support for using ``lib2to2.pgen``.
 
@@ -45,19 +48,63 @@ Bug Fixes
   due to bytecode demotion later, causing crashes during their
   optimization.
 
-- Standalone: Support for newest ``sklear`` was added.
+- Fix, the value of ``__compiled__`` could be corrupted when being deleted,
+  which some modules wrappers do.
 
-- macOS: Added resolver for run time variables in otool output, that
+- Fix, the value of ``__package__`` could be corrupted when being deleted.
+
+- Scons: Make sure we can always output the compiler output, even if it
+  has a broken encoding. This should resolve MSVC issues on non-English
+  systems, e.g. German or Chinese.
+
+- Standalone: Support for newest ``sklearn`` was added.
+
+- macOS: Added resolver for run time variables in ``otool`` output, that
   gets PyQt5 to work on it again.
 
 - Fix, floor division of run time calculations with float values should
   not result in ``int``, but ``float`` values instead.
 
+- Standalone: Enhanced support for ``boto3`` data files.
+
+- Standalone: Added support for ``osgeo`` and ``gdal``.
+
+- Windows: Fix, there were issues with spurious errors attaching the constants
+  blob to the binary due to incorrect C types provided.
+
+- Distutils: Fix, need to allow ``/`` as separator for package names too.
+
+- Python3.6+: Fix reference losses in asyncgen when throwing exceptions into
+  them.
+
+- Standalone: Added support for ``dill``.
+
+- Standalone: Added support for ``scikit-image`` and ``skimage``.
+
+- Standalone: Added support for ``weasyprint``.
+
+- Standalone: Added support for ``dask``.
+
+- Standalone: Added support for ``pendulum``.
+
+- Standalone: Added support for ``pytz`` and ``pytzdata``.
+
+- Fix, ``--python-flags=no_docstrings`` no longer implies disabling the
+  assertions.
+
 New Features
 ------------
 
+- Added experimental support for Python 3.8, there is only very few things
+  missing for full support.
+
 - Distutils: Added support for packages that are in a namespace and not
   just top level.
+
+- Distutils: Added support for single modules, not only packages, by
+  supporting ``py_modules`` as well.
+
+- Distutils: Added support for distinct namespaces.
 
 - Windows: Compare Python and C compiler architecture for MSVC too, and catch
   the most common user error of mixing 32 and 64 bits.
@@ -70,6 +117,9 @@ New Features
 
 Optimization
 ------------
+
+- Loop variables were analysed, but results were only available on the inside
+  of the loop, preventing many optimization in these cases.
 
 - Added optimization for the ``abs`` built-in, which is also a numerical
   operator.
@@ -93,7 +143,8 @@ Optimization
   these will be very frequent.
 
 - Memory: Use single child form of node class where possible, the general class
-  now raises an error if used with used with only one child name.
+  now raises an error if used with used with only one child name, this will use
+  less memory at compile time.
 
 - Memory: Avoid list for non-local declarations in every function, these are
   very rare, only have it if absolutely necessary.
@@ -115,6 +166,18 @@ Optimization
 - Memory: Added support for automatic releases of parameter variables from the
   node tree. These are normally released in a try finally block, however, this
   is now handled during code generation for much more compact C code generated.
+
+- Added specialization for ``int`` and ``long`` operations ``%``, ``<<``,
+  ``>>``, ``|``, ``&``, ``^``, ``**``, ``@``.
+
+- Added dedicated nodes for representing and optimizing based on shapes for all
+  binary operations.
+
+- Disable gcc macro tracing unless in debug mode, to save memory during the
+  C compilation.
+
+- Restored Python2 fast path for ``int`` with unknown object types, restoring
+  performance for these.
 
 Cleanups
 --------
@@ -149,6 +212,14 @@ Cleanups
 - Unified calling ``install_name_tool`` on macOS into one function that
   takes care of all the things, including e.g. making the file writable.
 
+- Debug output from scons should be more consistent and complete now.
+
+- Sort files for compilation in scons for better reproducible results.
+
+- Create code objects version independent, avoiding python version checks
+  by pre-processor, hiding new stuff behind macros, that ignore things on
+  older Python versions.
+
 Tests
 -----
 
@@ -159,7 +230,8 @@ Tests
 - Many tests have become more PyLint clean as a result of work with
   Visual Code and it complaining about them.
 
-- Added test to check PyPI health of top 50 packages.
+- Added test to check PyPI health of top 50 packages. This is a major
+  GSoC 2019 result.
 
 - Output the standalone directory contents for Windows too in case of
   a failure.
@@ -169,16 +241,44 @@ Tests
 
 - Added support for testing against installed version of Nuitka.
 
+- Cleanup up tests, merging those for only Python 3.2 with 3.3 as we
+  no longer support that version anyway.
+
+- Execute the Python3 tests for macOS on Travis too.
+
 Organisational
 --------------
 
+- The donation sponsored machine called ``donatix`` had to be replaced due to
+  hardware breakage. It was replaced with a Raspberry-Pi 4.
+
 - Enhanced plugin documentation.
+
+- Added description of the git workflow to the Developer Manual.
+
+- Added checker script ``check-nuitka-with-codespell`` that reports
+  typos in the source code for easier use of ``codespell`` with
+  Nuitka.
 
 - Use newest PyLint and clang-format.
 
 - Also check plugin documentation files for ReST errors.
 
-This release is not done yet.
+- Much enhanced support for Visual Code configuration.
+
+- Trigger module code is now written into the build directory in
+  debug mode, to aid debugging.
+
+- Added deep check function that descends into tuples to check their
+  elements too.
+
+Summary
+-------
+
+This release comes after a long time of 4 months without a release, and has
+accumulated massive amounts of changes. The work on CPython 3.8 is not yet
+complete, and the performance work has yet to show actual fruit, but has also
+progressed on all fronts. Connecting the dots and pieces seems not far away.
 
 
 Nuitka Release 0.6.5
@@ -331,7 +431,7 @@ Cleanups
 Tests
 -----
 
-- Run the tests using Travis on macOS too.
+- Run the tests using Travis on macOS for Python2 too.
 
 - More standalone tests have been properly whitelisting to cover openSSL usage
   from local system.
