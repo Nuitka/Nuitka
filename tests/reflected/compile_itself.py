@@ -123,7 +123,10 @@ def diffRecursive(dir1, dir2):
 
             if diff_list:
                 for line in diff_list:
-                    my_print(line)
+                    try:
+                        my_print(line)
+                    except UnicodeEncodeError:
+                        my_print(repr(line))
 
                 result = True
         else:
