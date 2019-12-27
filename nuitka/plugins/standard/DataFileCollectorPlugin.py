@@ -93,7 +93,7 @@ def _get_subdir_files(module, subdirs, folders_only):
         folders_only: (bool) indicate, whether just the folder structure should
             be generated. In that case, an empty file named DUMMY will be
             placed in each of these folders.
-    Retruns:
+    Returns:
         Tuples of paths (source, dest) are yielded if folders_only is False,
         else tuples (_createEmptyDirNone, dest) are yielded.
     """

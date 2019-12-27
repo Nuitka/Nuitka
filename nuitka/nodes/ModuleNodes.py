@@ -169,7 +169,7 @@ class PythonModuleBase(NodeBase):
             the result, otherwise the containing directory
             is the result.
         Notes:
-            Use this to finde files nearby a module, mainly
+            Use this to find files nearby a module, mainly
             in plugin code.
         """
         result = self.getCompileTimeFilename()
