@@ -62,17 +62,11 @@ try:
             "--components=" + components,
             codename,
             "chroot",
-            mirror
+            mirror,
         ]
     )
 
-    subprocess.check_output(
-        [
-            "rm",
-            "-rf",
-            "chroot/var/cache/apt/archives",
-        ],
-    )
+    subprocess.check_output(["rm", "-rf", "chroot/var/cache/apt/archives"])
 
     os.makedirs("chroot/var/cache/apt/archives")
 
@@ -80,18 +74,10 @@ try:
     with open("chroot/etc/apt.conf.d/75mine", "w") as output_file:
         output_file.write('Acquire::Languages "none";\n')
 
-    subprocess.check_call(
-        [
-            "tar",
-            "czf",
-            "chroot.tgz",
-            "-C",
-            "chroot",
-            "."
-        ]
-    )
+    target_filename = codename + ".tgz"
+    subprocess.check_call(["tar", "czf", target_filename, "-C", "chroot", "."])
 
-    shutil.copy("chroot.tgz", os.path.join(start_dir, output))
+    shutil.copy(target_filename, os.path.join(start_dir, output))
 finally:
     os.chdir(start_dir)
     shutil.rmtree(stage)

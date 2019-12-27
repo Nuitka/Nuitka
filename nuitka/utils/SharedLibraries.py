@@ -20,6 +20,7 @@
 """
 
 import os
+import subprocess
 import sys
 from logging import warning
 
@@ -27,7 +28,8 @@ from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 
-from .Utils import getArchitecture, isAlpineLinux
+from .FileOperations import withMadeWritableFileMode
+from .Utils import getArchitecture, isAlpineLinux, isWin32Windows
 from .WindowsResources import RT_MANIFEST, deleteWindowsResources, getResourcesFromDLL
 
 
@@ -46,6 +48,9 @@ def locateDLL(dll_name):
     if dll_name is None:
         return None
 
+    if isWin32Windows():
+        return os.path.normpath(dll_name)
+
     if os.path.sep in dll_name:
         # Use this from ctypes instead of rolling our own.
         # pylint: disable=protected-access
@@ -61,8 +66,6 @@ def locateDLL(dll_name):
         return localDLLFromFilesystem(
             name=dll_name, paths=["/lib", "/usr/lib", "/usr/local/lib"]
         )
-
-    import subprocess
 
     process = subprocess.Popen(
         args=["/sbin/ldconfig", "-p"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -137,7 +140,7 @@ def getWindowsDLLVersion(filename):
         GetFileVersionInfoSizeW = ctypes.windll.version.GetFileVersionInfoSizeW
         GetFileVersionInfoSizeW.argtypes = [
             ctypes.wintypes.LPCWSTR,
-            ctypes.wintypes.LPDWORD,  # @UndefinedVariable
+            ctypes.wintypes.LPDWORD,
         ]
         GetFileVersionInfoSizeW.restype = ctypes.wintypes.HANDLE
         size = GetFileVersionInfoSizeW(filename, None)
@@ -217,14 +220,14 @@ def getWindowsDLLVersion(filename):
 def getPEFileInformation(filename):
     """ Return the PE file information of a Windows EXE or DLL
 
-        Args:
-            filename - The file to be investigated.
+    Args:
+        filename - The file to be investigated.
 
-        Notes:
-            Use of this is obviously only for Windows, although the module
-            will exist on other platforms too. We use the system version
-            of pefile in preference, but have an inline copy as a fallback
-            too.
+    Notes:
+        Use of this is obviously only for Windows, although the module
+        will exist on other platforms too. We use the system version
+        of pefile in preference, but have an inline copy as a fallback
+        too.
     """
 
     try:
@@ -273,3 +276,54 @@ def getPEFileInformation(filename):
         )
 
     return extracted
+
+
+def callInstallNameTool(filename, mapping):
+    """ Update the macOS shared library information for a binary or shared library.
+
+    Args:
+        filename - The file to be modified.
+        mapping  - old_path, new_path pairs of values that should be changed
+
+    Returns:
+        None
+
+    Notes:
+        This is obviously macOS specific.
+    """
+    command = ["install_name_tool"]
+    for old_path, new_path in mapping:
+        command += ["-change", old_path, new_path]
+    command.append(filename)
+
+    with withMadeWritableFileMode(filename):
+        result = subprocess.call(command, stdout=subprocess.PIPE)
+
+    if result != 0:
+        sys.exit(
+            "Error, call to 'install_name_tool' to fix shared library path failed."
+        )
+
+
+def callInstallNameToolAddRPath(filename, rpath):
+    """Adds the rpath path name `rpath` in the specified `filename` Mach-O
+    binary or shared library. If the Mach-O binary already contains the new
+    `rpath` path name, it is an error.
+
+    Args:
+        filename - Mach-O binary or shared library file name.
+        rpath  - rpath path name.
+
+    Returns:
+        None
+
+    Notes:
+        This is obviously macOS specific.
+    """
+    command = ["install_name_tool", "-add_rpath", os.path.join(rpath, "."), filename]
+
+    with withMadeWritableFileMode(filename):
+        result = subprocess.call(command, stdout=subprocess.PIPE)
+
+    if result != 0:
+        sys.exit("Error, call to 'install_name_tool' to add rpath failed.")

@@ -71,6 +71,18 @@ class ControlFlowDescriptionNoEscape(ControlFlowDescriptionBase):
         return False
 
 
+class ControlFlowDescriptionZeroDivisionNoEscape(ControlFlowDescriptionNoEscape):
+    @staticmethod
+    def getExceptionExit():
+        return ZeroDivisionError
+
+
+class ControlFlowDescriptionValueErrorNoEscape(ControlFlowDescriptionNoEscape):
+    @staticmethod
+    def getExceptionExit():
+        return ValueError
+
+
 class ControlFlowDescriptionComparisonUnorderable(ControlFlowDescriptionFullEscape):
     pass
 
@@ -110,6 +122,54 @@ class ControlFlowDescriptionFloorDivUnsupported(
 
 
 class ControlFlowDescriptionTrueDivUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionOldDivUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionModUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionPowUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionBitorUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionBitandUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionBitxorUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionLshiftUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionRshiftUnsupported(
     ControlFlowDescriptionOperationUnsupportedBase
 ):
     pass

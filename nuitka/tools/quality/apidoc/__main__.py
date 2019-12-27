@@ -25,26 +25,15 @@ from __future__ import print_function
 
 import os
 import shutil
+import stat
 import subprocess
 import sys
 from optparse import OptionParser
 
+from nuitka.tools.Basics import goHome
 from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import getFileContents, withTemporaryFile
 from nuitka.utils.Utils import getOS
-
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought be there.
-sys.path.insert(
-    0,
-    os.path.abspath(
-        os.path.normpath(
-            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
-        )
-    ),
-)
-
-from nuitka.tools.Basics import goHome  # isort:skip
 
 
 def main():
@@ -80,7 +69,7 @@ Default is %default.""",
         sys.exit("Error, need to install Doxygen and add it to PATH for this to work.")
 
     try:
-        import doxypypy  # @UnusedImport pylint: disable=I0021,unused-import,unused-variable
+        import doxypypy  # pylint: disable=I0021,unused-import,unused-variable
     except ImportError:
         sys.exit("Error, needs to install doxypypy into this Python.")
 
@@ -101,6 +90,9 @@ Default is %default.""",
                 )
 
         doxy_batch_filename = doxy_batch_file.name
+
+        st = os.stat(doxy_batch_filename)
+        os.chmod(doxy_batch_filename, st.st_mode | stat.S_IEXEC)
 
         doxy_config = doxy_config.replace("%DOXYPYPY%", doxy_batch_filename)
         doxy_file.write(doxy_config)

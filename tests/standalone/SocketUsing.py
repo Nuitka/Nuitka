@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Paweł Kierzkowski, mailto:<pk.pawelo@gmail.com>
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -18,10 +18,26 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Test that shows that the socket module can properly be used.
 
+"""
+import signal
 import socket
+import sys
 
-socket.getfqdn("1.1.1.1")
+# Set up a timeout, seems to happen that below call stalls.
+def onTimeout(_signum, _frame):
+    sys.exit("Timeout occurred!")
 
-# Call to socket.getfqdn with a non-local addresswill cause libresolv.so glibc
+# Not available on Windows, but there we didn't see the problem anyway,
+# not going to make this use threading for now.
+try:
+    signal.signal(signal.SIGALRM, onTimeout)
+    signal.alarm(5)
+except AttributeError:
+    pass
+
+
+# Call to socket.getfqdn with a non-local address will cause libresolv.so glibc
 # library to be loaded
+socket.getfqdn("1.1.1.1")

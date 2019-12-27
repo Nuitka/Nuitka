@@ -20,7 +20,7 @@
 """ Runner for program tests of Nuitka.
 
 Program tests are typically aiming at checking specific module constellations
-and making sure the details are being right there. These are syntetic small
+and making sure the details are being right there. These are synthetic small
 programs, each of which try to demonstrate one or more points or special
 behaviour.
 
@@ -104,6 +104,9 @@ def main():
             extra_flags = ["expect_success"]
         else:
             extra_flags = ["expect_failure"]
+
+        # We annotate some tests, use that to lower warnings.
+        extra_flags.append("plugin_enable:pylint-warnings")
 
         if filename in (
             "reimport_main_static",

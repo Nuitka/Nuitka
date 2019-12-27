@@ -130,10 +130,11 @@ def optimizeCompiledPythonModule(module):
 
 
 def optimizeUncompiledPythonModule(module):
+    full_name = module.getFullName()
     if _progress:
         info(
             "Doing module dependency considerations for '{module_name}':".format(
-                module_name=module.getFullName()
+                module_name=full_name
             )
         )
 
@@ -143,7 +144,7 @@ def optimizeUncompiledPythonModule(module):
         )
         ModuleRegistry.addUsedModule(used_module)
 
-    package_name = module.getPackage()
+    package_name = full_name.getPackageName()
 
     if package_name is not None:
         used_module = ImportCache.getImportedModuleByName(package_name)
@@ -172,48 +173,72 @@ def optimizeModule(module):
     return changed
 
 
+def areReadOnlyTraces(variable_traces):
+    """ Do these traces contain any writes.
+
+    """
+
+    # Many cases immediately return, that is how we do it here,
+    for variable_trace in variable_traces:
+        if variable_trace.isAssignTrace():
+            return False
+        elif variable_trace.isInitTrace():
+            pass
+        elif variable_trace.isUninitTrace():
+            # A "del" statement can do this, and needs to prevent variable
+            # from being not released.
+
+            return False
+        elif variable_trace.isUnknownTrace():
+            return False
+        elif variable_trace.isMergeTrace():
+            pass
+        elif variable_trace.isLoopTrace():
+            pass
+        else:
+            assert False, variable_trace
+
+    return True
+
+
 def areEmptyTraces(variable_traces):
-    empty = True
+    """ Do these traces contain any writes or accesses.
+
+    """
+    # Many cases immediately return, that is how we do it here,
+    # pylint: disable=too-many-return-statements
 
     for variable_trace in variable_traces:
         if variable_trace.isAssignTrace():
-            empty = False
-            break
+            return False
         elif variable_trace.isInitTrace():
-            empty = False
-            break
+            return False
         elif variable_trace.isUninitTrace():
             if variable_trace.getPrevious():
                 # A "del" statement can do this, and needs to prevent variable
                 # from being removed.
 
-                empty = False
-                break
+                return False
             elif variable_trace.hasDefiniteUsages():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
-                empty = False
-                break
+                return False
         elif variable_trace.isUnknownTrace():
             if variable_trace.hasDefiniteUsages():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
-                empty = False
-                break
+                return False
         elif variable_trace.isMergeTrace():
             if variable_trace.hasDefiniteUsages():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
-                empty = False
-                break
-
+                return False
         elif variable_trace.isLoopTrace():
-            empty = False
-            break
+            return False
         else:
             assert False, variable_trace
 
-    return empty
+    return True
 
 
 def optimizeUnusedClosureVariables(function_body):
@@ -245,6 +270,31 @@ def optimizeUnusedClosureVariables(function_body):
             )
 
             function_body.removeClosureVariable(closure_variable)
+
+    return changed
+
+
+def optimizeVariableReleases(function_body):
+    changed = False
+
+    for parameter_variable in function_body.getParameterVariablesWithManualRelease():
+
+        variable_traces = function_body.trace_collection.getVariableTraces(
+            variable=parameter_variable
+        )
+
+        read_only = areReadOnlyTraces(variable_traces)
+        if read_only:
+            changed = True
+
+            signalChange(
+                "var_usage",
+                function_body.getSourceReference(),
+                message="Schedule removal releases of unassigned parameter variable '%s'."
+                % parameter_variable.getName(),
+            )
+
+            function_body.removeVariableReleases(parameter_variable)
 
     return changed
 
@@ -307,23 +357,44 @@ def optimizeLocalsDictsHandles():
 def optimizeUnusedUserVariables(function_body):
     changed = False
 
-    for local_variable in (
-        function_body.getUserLocalVariables() + function_body.getOutlineLocalVariables()
-    ):
+    for local_variable in function_body.getUserLocalVariables():
         variable_traces = function_body.trace_collection.getVariableTraces(
             variable=local_variable
         )
 
         empty = areEmptyTraces(variable_traces)
         if empty:
+            function_body.removeUserVariable(local_variable)
+
             signalChange(
                 "var_usage",
                 function_body.getSourceReference(),
                 message="Remove unused local variable '%s'." % local_variable.getName(),
             )
 
-            function_body.removeUserVariable(local_variable)
             changed = True
+
+    outlines = function_body.getTraceCollection().getOutlineFunctions()
+
+    if outlines is not None:
+        for outline in outlines:
+            for local_variable in outline.getUserLocalVariables():
+                variable_traces = function_body.trace_collection.getVariableTraces(
+                    variable=local_variable
+                )
+
+                empty = areEmptyTraces(variable_traces)
+                if empty:
+                    outline.removeUserVariable(local_variable)
+
+                    signalChange(
+                        "var_usage",
+                        outline.getSourceReference(),
+                        message="Remove unused local variable '%s'."
+                        % local_variable.getName(),
+                    )
+
+                    changed = True
 
     return changed
 
@@ -371,6 +442,9 @@ def optimizeVariables(module):
                         changed = True
 
                     if optimizeUnusedClosureVariables(function_body):
+                        changed = True
+
+                    if optimizeVariableReleases(function_body):
                         changed = True
 
                 if optimizeUnusedTempVariables(function_body):
@@ -495,7 +569,7 @@ def makeOptimizationPass(initial_pass):
 
 
 def _checkXMLPersistence():
-    new_roots = ModuleRegistry.root_modules.__class__()  # @UndefinedVariable
+    new_roots = ModuleRegistry.root_modules.__class__()
 
     for module in tuple(ModuleRegistry.getDoneModules()):
         ModuleRegistry.root_modules.remove(module)
@@ -550,7 +624,10 @@ def optimize(output_filename):
     # Demote compiled modules to bytecode, now that imports had a chance to be resolved, and
     # dependencies were handled.
     for module in ModuleRegistry.getDoneUserModules():
-        if module.isCompiledPythonModule() and module.mode == "bytecode":
+        if (
+            module.isCompiledPythonModule()
+            and module.getCompilationMode() == "bytecode"
+        ):
             demoteCompiledModuleToBytecode(module)
 
     if _progress:

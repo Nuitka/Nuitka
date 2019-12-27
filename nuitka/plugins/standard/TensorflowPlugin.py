@@ -17,28 +17,11 @@
 #
 """ Details see below in class definition.
 """
-import os
-import pkgutil
 import sys
 from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-
-
-def get_module_file_attribute(package):
-    """ Get the absolute path of the module with the passed-in name.
-
-    Args:
-        package: the fully-qualified name of this module.
-    Returns:
-        absolute path of this module.
-    """
-    loader = pkgutil.find_loader(package)
-    attr = loader.get_filename(package)
-    if not attr:
-        raise ImportError
-    return os.path.dirname(attr)
 
 
 class TensorflowPlugin(NuitkaPluginBase):
@@ -62,17 +45,11 @@ class TensorflowPlugin(NuitkaPluginBase):
         self.files_copied = False
         return None
 
-    def onModuleEncounter(
-        self, module_filename, module_name, module_package, module_kind
-    ):
-        if module_package is not None:
-            full_name = module_package + "." + module_name
-        else:
-            full_name = module_name
+    def onModuleEncounter(self, module_filename, module_name, module_kind):
 
         for candidate in ("tensor", "google"):
-            if full_name == candidate or full_name.startswith(candidate + "."):
-                return True, "accept everything from %s" % candidate
+            if module_name.hasNamespace(candidate):
+                return True, "Accept everything from %s" % candidate
 
     def onModuleSourceCode(self, module_name, source_code):
         """ Neutralize some path magic in tensorflow.
@@ -109,8 +86,8 @@ class TensorflowPlugin(NuitkaPluginBase):
             create the actual application. Therefore, compilation makes no
             sense for it and the packages it references.
         """
-
-        for candidate in (
+        elements = module_name.split(".")
+        if elements[0] in (
             "tensor",
             "boto",
             "google",
@@ -119,8 +96,9 @@ class TensorflowPlugin(NuitkaPluginBase):
             "pandas",
             "matplotlib",
         ):
-            if module_name == candidate or module_name.startswith(candidate + "."):
-                return "bytecode"
+            return "bytecode"
+        else:
+            return "compiled"
 
 
 class TensorflowPluginDetector(NuitkaPluginBase):

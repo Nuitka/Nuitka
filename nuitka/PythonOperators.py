@@ -31,7 +31,7 @@ binary_operator_functions = {
     "Sub": operator.sub,
     "Pow": operator.pow,
     "Mult": operator.mul,
-    "FloorDiv": operator.div if python_version < 300 else operator.floordiv,
+    "FloorDiv": operator.floordiv,
     "TrueDiv": operator.truediv,
     "Mod": operator.mod,
     "LShift": operator.lshift,
@@ -44,7 +44,7 @@ binary_operator_functions = {
     "ISub": operator.isub,
     "IPow": operator.ipow,
     "IMult": operator.imul,
-    "IFloorDiv": operator.idiv if python_version < 300 else operator.ifloordiv,
+    "IFloorDiv": operator.ifloordiv,
     "ITrueDiv": operator.itruediv,
     "IMod": operator.imod,
     "ILShift": operator.ilshift,
@@ -56,13 +56,13 @@ binary_operator_functions = {
 
 # Python 2 only operator
 if python_version < 300:
-    binary_operator_functions["Div"] = operator.div  # @UndefinedVariable
-    binary_operator_functions["IDiv"] = operator.idiv  # @UndefinedVariable
+    binary_operator_functions["Div"] = operator.div
+    binary_operator_functions["IDiv"] = operator.idiv
 
 # Python 3.5 only operator
 if python_version >= 350:
-    binary_operator_functions["MatMult"] = operator.matmul  # @UndefinedVariable
-    binary_operator_functions["IMatMult"] = operator.imatmul  # @UndefinedVariable
+    binary_operator_functions["MatMult"] = operator.matmul
+    binary_operator_functions["IMatMult"] = operator.imatmul
 
 unary_operator_functions = {
     "UAdd": operator.pos,
@@ -71,6 +71,7 @@ unary_operator_functions = {
     "Repr": repr,
     # Boolean not is treated an unary operator.
     "Not": operator.not_,
+    "Abs": operator.abs,
 }
 
 

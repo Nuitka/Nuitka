@@ -15,17 +15,16 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 try:
-   import some_module
+    import some_module
 except ImportError:
-   print("Cannot import wrongly cased module.")
+    print("Cannot import wrongly cased module.")
 else:
-   print("OK, imported wrongly cased module.")
+    print("OK, imported wrongly cased module.")
 
 try:
     import some_package
 except ImportError:
-   print("Cannot import wrongly cased package.")
+    print("Cannot import wrongly cased package.")
 else:
-   print("OK, imported wrongly cased package.")
+    print("OK, imported wrongly cased package.")

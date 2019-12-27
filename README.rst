@@ -896,7 +896,7 @@ of the exception, making it:
 
 .. code-block:: python
 
-   e = ValueError( "range() step argument must not be zero" )
+   e = ValueError("range() step argument must not be zero")
    print e
 
 .. admonition:: Status

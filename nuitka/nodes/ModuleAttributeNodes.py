@@ -27,6 +27,8 @@ modes these node become constants quickly, in others they
 will present boundaries for optimization.
 """
 
+import os
+
 from nuitka import Options
 
 from .ConstantRefNodes import makeConstantRefNode
@@ -103,7 +105,7 @@ class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
 
         if not Options.shallMakeModule():
             result = makeConstantRefNode(
-                constant=self.variable.getModule().getFullName(),
+                constant=self.variable.getModule().getFullName().asString(),
                 source_ref=self.getSourceReference(),
             )
 
@@ -129,9 +131,21 @@ class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
             provider = self.variable.getModule()
 
             if provider.isCompiledPythonPackage():
-                value = provider.getFullName()
+                value = provider.getFullName().asString()
             else:
-                value = provider.getPackage()
+                value = provider.getFullName().getPackageName()
+
+                if value is not None:
+                    value = value.asString()
+                else:
+                    if (
+                        provider.getFullName() == "__main__"
+                        and os.path.basename(provider.getCompileTimeFilename())
+                        == "__main__.py"
+                    ):
+                        value = ""
+                    else:
+                        value = None
 
             result = makeConstantRefNode(constant=value, source_ref=self.source_ref)
 

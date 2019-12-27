@@ -15,41 +15,49 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import sys, os
+""" Reference counting tests.
+
+These contain functions that do specific things, where we have a suspect
+that references may be lost or corrupted. Executing them repeatedly and
+checking the reference count is how they are used.
+
+These are for Python2 only constructs, which will give SyntaxError on
+other versions.
+"""
+
+import os
+import sys
 
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
-from nuitka.tools.testing.Common import (
-    executeReferenceChecked,
-    checkDebugPython
-)
+
+# isort:start
+
+from nuitka.tools.testing.Common import checkDebugPython, executeReferenceChecked
 
 checkDebugPython()
-
 
 x = 17
 
 # Python2 only syntax things are here.
 def simpleFunction1():
     try:
-        raise TypeError, (3,x,x,x)
+        raise TypeError, (3, x, x, x)
     except TypeError:
         pass
 
+
 def simpleFunction2():
     try:
-        raise ValueError(1,2,3), ValueError(1,2,3)
+        raise ValueError(1, 2, 3), ValueError(1, 2, 3)
     except Exception:
         pass
+
 
 def simpleFunction3():
     try:
@@ -57,20 +65,23 @@ def simpleFunction3():
     except Exception:
         pass
 
+
 def simpleFunction4():
     try:
         raise ValueError, 2, 3
     except Exception:
         pass
 
+
 def simpleFunction5():
-    def nested_args_function((a,b), c):
+    def nested_args_function((a, b), c):
         return a, b, c
 
     nested_args_function((1, 2), 3)
 
+
 def simpleFunction6():
-    def nested_args_function((a,b), c):
+    def nested_args_function((a, b), c):
         return a, b, c
 
     try:
@@ -78,8 +89,9 @@ def simpleFunction6():
     except ValueError:
         pass
 
+
 def simpleFunction7():
-    def nested_args_function((a,b), c):
+    def nested_args_function((a, b), c):
         return a, b, c
 
     try:
@@ -95,10 +107,10 @@ tests_stderr = ()
 tests_skipped = {}
 
 result = executeReferenceChecked(
-    prefix        = "simpleFunction",
-    names         = globals(),
-    tests_skipped = tests_skipped,
-    tests_stderr  = tests_stderr
+    prefix="simpleFunction",
+    names=globals(),
+    tests_skipped=tests_skipped,
+    tests_stderr=tests_stderr,
 )
 
 sys.exit(0 if result else 1)

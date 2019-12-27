@@ -33,6 +33,14 @@ from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import getOS
 
 
+def remove_suffix(mod_dir, mod_name):
+    if mod_name not in mod_dir:
+        return mod_dir
+    l = len(mod_name)
+    p = mod_dir.find(mod_name) + l
+    return mod_dir[:p]
+
+
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
 
@@ -47,7 +55,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         return True
 
     @staticmethod
-    def _getImportsByFullname(full_name):
+    def _getImportsByFullname(full_name, package_dir):
         """ Provides names of modules to imported implicitly.
 
         Notes:
@@ -101,7 +109,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "_QOpenGLFunctions_2_1",
                 "_QOpenGLFunctions_4_1_Core",
             ):
-                yield elements[0] + ".QtCore", True
+                yield elements[0] + ".QtCore", False
 
             if child in (
                 "QtDeclarative",
@@ -115,11 +123,17 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "QtQuick",
                 "QtQuickWidgets",
                 "QtWebSockets",
+                "QtWebEngineWidgets",
             ):
-                yield elements[0] + ".QtNetwork", True
+                yield elements[0] + ".QtNetwork", False
+
+            if child == "QtWebEngineWidgets":
+                yield elements[0] + ".QtWebEngineCore", False
+                yield elements[0] + ".QtWebChannel", False
+                yield elements[0] + ".QtPrintSupport", False
 
             if child == "QtScriptTools":
-                yield elements[0] + ".QtScript", True
+                yield elements[0] + ".QtScript", False
 
             if child in (
                 "QtWidgets",
@@ -142,7 +156,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "_QOpenGLFunctions_2_1",
                 "_QOpenGLFunctions_4_1_Core",
             ):
-                yield elements[0] + ".QtGui", True
+                yield elements[0] + ".QtGui", False
 
             if full_name in (
                 "PyQt5.QtDesigner",
@@ -156,64 +170,77 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "PyQt5.QtQuickWidgets",
                 "PyQt5.QtSql",
             ):
-                yield "PyQt5.QtWidgets", True
+                yield "PyQt5.QtWidgets", False
 
             if full_name in ("PyQt5.QtPrintSupport",):
-                yield "PyQt5.QtSvg", True
+                yield "PyQt5.QtSvg", False
 
             if full_name in ("PyQt5.QtWebKitWidgets",):
-                yield "PyQt5.QtWebKit", True
-                yield "PyQt5.QtPrintSupport", True
+                yield "PyQt5.QtWebKit", False
+                yield "PyQt5.QtPrintSupport", False
 
             if full_name in ("PyQt5.QtMultimediaWidgets",):
-                yield "PyQt5.QtMultimedia", True
+                yield "PyQt5.QtMultimedia", False
 
             if full_name in ("PyQt5.QtQuick", "PyQt5.QtQuickWidgets"):
-                yield "PyQt5.QtQml", True
+                yield "PyQt5.QtQml", False
 
             if full_name in ("PyQt5.QtQuickWidgets", "PyQt5.QtQml"):
-                yield "PyQt5.QtQuick", True
+                yield "PyQt5.QtQuick", False
 
             if full_name == "PyQt5.Qt":
-                yield "PyQt5.QtCore", True
-                yield "PyQt5.QtDBus", True
-                yield "PyQt5.QtGui", True
-                yield "PyQt5.QtNetwork", True
+                yield "PyQt5.QtCore", False
+                yield "PyQt5.QtDBus", False
+                yield "PyQt5.QtGui", False
+                yield "PyQt5.QtNetwork", False
                 yield "PyQt5.QtNetworkAuth", False
                 yield "PyQt5.QtSensors", False
                 yield "PyQt5.QtSerialPort", False
-                yield "PyQt5.QtMultimedia", True
+                yield "PyQt5.QtMultimedia", False
                 yield "PyQt5.QtQml", False
-                yield "PyQt5.QtWidgets", True
+                yield "PyQt5.QtWidgets", False
 
         elif full_name == "sip" and python_version < 300:
             yield "enum", False
 
         elif full_name == "PySide.QtDeclarative":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtHelp":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtOpenGL":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtScriptTools":
-            yield "PySide.QtScript", True
-            yield "PySide.QtGui", True
+            yield "PySide.QtScript", False
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtSql":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtSvg":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtTest":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.QtUiTools":
-            yield "PySide.QtGui", True
-            yield "PySide.QtXml", True
+            yield "PySide.QtGui", False
+            yield "PySide.QtXml", False
         elif full_name == "PySide.QtWebKit":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
         elif full_name == "PySide.phonon":
-            yield "PySide.QtGui", True
+            yield "PySide.QtGui", False
+
+        elif full_name == "lxml":
+            yield "lxml.builder", False
+            yield "lxml.etree", False
+            yield "lxml.objectify", False
+            yield "lxml.sax", False
+            yield "lxml._elementpath", False
+
         elif full_name == "lxml.etree":
-            yield "gzip", True
-            yield "lxml._elementpath", True
+            yield "lxml._elementpath", False
+
+        elif full_name == "lxml.html":
+            yield "lxml.html.clean", False
+            yield "lxml.html.diff", False
+            yield "lxml.etree", False
+
         elif full_name == "gtk._gtk":
             yield "pangocairo", True
             yield "pango", True
@@ -504,52 +531,421 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         # end of tensorflow imports -------------------------------------------
 
+        # boto3 imports ------------------------------------------------------
+        elif full_name == "boto3":
+            yield "boto3.ec2", False
+            yield "boto3.ec2.createtags", False
+            yield "boto3.ec2.deletetags", False
+            yield "boto3.dynamodb", False
+            yield "boto3.s3", False
+            yield "boto3.s3.inject", False
+            yield "boto3.s3.transfer", False
+
+        # GDAL imports ------------------------------------------------------
+
+        elif full_name == "osgeo":
+            yield "osgeo._gdal", False
+            yield "osgeo._gdalconst", False
+            yield "osgeo._gdal_array", False
+            yield "osgeo._gnm", False
+            yield "osgeo._ogr", False
+            yield "osgeo._osr", False
+
         # OpenCV imports ------------------------------------------------------
         elif full_name == "cv2":
             yield "numpy", True
             yield "numpy.core", True
 
+        # uvicorn imports -----------------------------------------------------
+        elif full_name == "uvicorn":
+            yield "uvicorn.loops", False
+            yield "uvicorn.lifespan", False
+            yield "uvicorn.protocols", False
+        elif full_name == "uvicorn.lifespan":
+            yield "uvicorn.lifespan.off", False
+            yield "uvicorn.lifespan.on", False
+        elif full_name == "uvicorn.loops":
+            yield "uvicorn.loops.auto", False
+            yield "uvicorn.loops.uvloop", False
+        elif full_name == "uvicorn.protocols":
+            yield "uvicorn.protocols.http", False
+            yield "uvicorn.protocols.websockets", False
+        elif full_name == "uvicorn.protocols.http":
+            yield "uvicorn.protocols.http.auto", False
+            yield "uvicorn.protocols.http.h11_impl", False
+            yield "uvicorn.protocols.http.httptools_impl", False
+        elif full_name == "uvicorn.protocols.websockets":
+            yield "uvicorn.protocols.websockets.auto", False
+            yield "uvicorn.protocols.websockets.websockets_impl", False
+            yield "uvicorn.protocols.websockets.wsproto_impl", False
+
+        # vtk imports -----------------------------------------------------
+        elif full_name == "vtkmodules":
+            yield "vtkmodules.all", False
+            yield "vtkmodules.util", False
+
+        elif full_name == "vtkmodules.util":
+            yield "vtkmodules.util.misc", False
+            yield "vtkmodules.util.numpy_support", False
+            yield "vtkmodules.util.vtkAlgorithm", False
+            yield "vtkmodules.util.vtkConstants", False
+            yield "vtkmodules.util.vtkImageExportToArray", False
+            yield "vtkmodules.util.vtkImageImportFromArray", False
+            yield "vtkmodules.util.vtkMethodParser", False
+            yield "vtkmodules.util.vtkVariant", False
+
+        elif full_name == "vtkmodules.qt":
+            yield "vtkmodules.qt.QVTKRenderWindowInteractor", False
+
+        elif full_name == "vtkmodules.tk":
+            yield "vtkmodules.tk.vtkLoadPythonTkWidgets", False
+            yield "vtkmodules.tk.vtkTkImageViewerWidget", False
+            yield "vtkmodules.tk.vtkTkPhotoImage", False
+            yield "vtkmodules.tk.vtkTkRenderWidget", False
+            yield "vtkmodules.tk.vtkTkRenderWindowInteractor", False
+
+        elif full_name == "vtkmodules.wx":
+            yield "vtkmodules.wx.wxVTKRenderWindow", False
+            yield "vtkmodules.wx.wxVTKRenderWindowInteractor", False
+
         # chainer imports -----------------------------------------------------
         elif full_name == "chainer":
-            yield "chainer.distributions", True
-            yield "chainer.distributions.utils", True
+            yield "chainer.distributions", False
+            yield "chainer.distributions.utils", False
+
+        elif full_name == "chainer.distributions":
+            yield "chainer.distributions.utils", False
 
         # numpy imports -------------------------------------------------------
         elif full_name == "numpy":
             yield "numpy._mklinit", False
+            yield "numpy.compat", False
+            yield "numpy.lib", False
+            yield "numpy.linalg", False
+            yield "numpy.fft", False
+            yield "numpy.polynomial", False
+            yield "numpy.random", False
+            yield "numpy.ctypeslib", False
+            yield "numpy.ma", False
+            yield "numpy.matrixlib", False
+
         elif full_name == "numpy.core":
             yield "numpy.core._dtype_ctypes", False
+            yield "numpy.core._multiarray_tests", False
+
+        elif full_name == "numpy.random":
+            yield "numpy.random.bit_generator", False
+            yield "numpy.random.bounded_integers", False
+            yield "numpy.random.common", False
+            yield "numpy.random.entropy", False
+            yield "numpy.random.generator", False
+            yield "numpy.random.mt19937", False
+            yield "numpy.random.mtrand", False
+            yield "numpy.random.pcg64", False
+            yield "numpy.random.philox", False
+            yield "numpy.random.sfc64", False
 
         # matplotlib imports --------------------------------------------------
         elif full_name == "matplotlib":
             yield "matplotlib.backend_managers", True
             yield "matplotlib.backend_bases", True
+            yield "mpl_toolkits", False
 
         elif full_name == "matplotlib.backends.backend_agg":
-            yield "matplotlib.backends._backend_agg", True
-            yield "matplotlib.backends._tkagg", True
-            yield "matplotlib.backends.backend_tkagg", True
+            yield "matplotlib.backends._backend_agg", False
+            yield "matplotlib.backends._tkagg", False
+            yield "matplotlib.backends.backend_tkagg", False
 
         # scipy imports -------------------------------------------------------
         elif full_name == "scipy.special":
-            yield "scipy.special._ufuncs_cxx", True
+            yield "scipy.special._ufuncs_cxx", False
         elif full_name == "scipy.linalg":
-            yield "scipy.linalg.cython_blas", True
-            yield "scipy.linalg.cython_lapack", True
+            yield "scipy.linalg.cython_blas", False
+            yield "scipy.linalg.cython_lapack", False
         elif full_name == "scipy.sparse.csgraph":
-            yield "scipy.sparse.csgraph._validation", True
+            yield "scipy.sparse.csgraph._validation", False
         elif full_name == "scipy._lib":
-            yield "scipy._lib.messagestream", True
+            yield "scipy._lib.messagestream", False
+
+        # scipy imports -------------------------------------------------------
+        elif full_name == "statsmodels.nonparametric":
+            yield "statsmodels.nonparametric.linbin", False
+            yield "statsmodels.nonparametric._smoothers_lowess", False
+
+        elif full_name == "statsmodels.tsa":
+            yield "statsmodels.tsa._exponential_smoothers", False
+
+        elif full_name == "statsmodels.tsa.innovations":
+            yield "statsmodels.tsa.innovations._arma_innovations", False
+
+        elif full_name == "statsmodels.tsa.kalmanf":
+            yield "statsmodels.tsa.kalmanf.kalman_loglike", False
+
+        elif full_name == "statsmodels.tsa.regime_switching":
+            yield "statsmodels.tsa.regime_switching._hamilton_filter", False
+            yield "statsmodels.tsa.regime_switching._kim_smoother", False
+
+        elif full_name == "statsmodels.tsa.statespace":
+            yield "statsmodels.tsa.statespace._filters", False
+            yield "statsmodels.tsa.statespace._initialization", False
+            yield "statsmodels.tsa.statespace._kalman_filter", False
+            yield "statsmodels.tsa.statespace._kalman_smoother", False
+            yield "statsmodels.tsa.statespace._representation", False
+            yield "statsmodels.tsa.statespace._simulation_smoother", False
+            yield "statsmodels.tsa.statespace._smoothers", False
+            yield "statsmodels.tsa.statespace._tools", False
+
+        elif full_name == "statsmodels.tsa.statespace._filters":
+            yield "statsmodels.tsa.statespace._filters._conventional", False
+            yield "statsmodels.tsa.statespace._filters._inversions", False
+            yield "statsmodels.tsa.statespace._filters._univariate", False
+            yield "statsmodels.tsa.statespace._filters._univariate_diffuse", False
+
+        elif full_name == "statsmodels.tsa.statespace._smoothers":
+            yield "statsmodels.tsa.statespace._smoothers._alternative", False
+            yield "statsmodels.tsa.statespace._smoothers._classical", False
+            yield "statsmodels.tsa.statespace._smoothers._conventional", False
+            yield "statsmodels.tsa.statespace._smoothers._univariate", False
+            yield "statsmodels.tsa.statespace._smoothers._univariate_diffuse", False
+
+        # pywt imports -----------------------------------------------
+        elif full_name == "pywt":
+            yield "pywt._extensions", False
+        elif full_name == "pywt._extensions":
+            yield "pywt._extensions._cwt", False
+            yield "pywt._extensions._dwt", False
+            yield "pywt._extensions._pywt", False
+            yield "pywt._extensions._swt", False
+
+        # imageio imports -----------------------------------------------
+        elif full_name == "imageio":
+            yield "PIL.BlpImagePlugin", False
+            yield "PIL.BmpImagePlugin", False
+            yield "PIL.BufrStubImagePlugin", False
+            yield "PIL.CurImagePlugin", False
+            yield "PIL.DcxImagePlugin", False
+            yield "PIL.DdsImagePlugin", False
+            yield "PIL.EpsImagePlugin", False
+            yield "PIL.FitsStubImagePlugin", False
+            yield "PIL.FliImagePlugin", False
+            yield "PIL.FpxImagePlugin", False
+            yield "PIL.FtexImagePlugin", False
+            yield "PIL.GbrImagePlugin", False
+            yield "PIL.GifImagePlugin", False
+            yield "PIL.GribStubImagePlugin", False
+            yield "PIL.Hdf5StubImagePlugin", False
+            yield "PIL.IcnsImagePlugin", False
+            yield "PIL.IcoImagePlugin", False
+            yield "PIL.ImImagePlugin", False
+            yield "PIL.ImtImagePlugin", False
+            yield "PIL.IptcImagePlugin", False
+            yield "PIL.Jpeg2KImagePlugin", False
+            yield "PIL.JpegImagePlugin", False
+            yield "PIL.McIdasImagePlugin", False
+            yield "PIL.MicImagePlugin", False
+            yield "PIL.MpegImagePlugin", False
+            yield "PIL.MpoImagePlugin", False
+            yield "PIL.MspImagePlugin", False
+            yield "PIL.PalmImagePlugin", False
+            yield "PIL.PcdImagePlugin", False
+            yield "PIL.PcxImagePlugin", False
+            yield "PIL.PdfImagePlugin", False
+            yield "PIL.PixarImagePlugin", False
+            yield "PIL.PngImagePlugin", False
+            yield "PIL.PpmImagePlugin", False
+            yield "PIL.PsdImagePlugin", False
+            yield "PIL.SgiImagePlugin", False
+            yield "PIL.SpiderImagePlugin", False
+            yield "PIL.SunImagePlugin", False
+            yield "PIL.TgaImagePlugin", False
+            yield "PIL.TiffImagePlugin", False
+            yield "PIL.WebPImagePlugin", False
+            yield "PIL.WmfImagePlugin", False
+            yield "PIL.XbmImagePlugin", False
+            yield "PIL.XpmImagePlugin", False
+            yield "PIL.XVThumbImagePlugin", False
+
+        # scikit-image imports -----------------------------------------------
+        elif full_name == "skimage.draw":
+            yield "skimage.draw._draw", False
+
+        elif full_name == "skimage.external.tifffile":
+            yield "skimage.external.tifffile._tifffile", False
+
+        elif full_name == "skimage.feature":
+            yield "skimage.feature.brief_cy", False
+            yield "skimage.feature.censure_cy", False
+            yield "skimage.feature.corner_cy", False
+            yield "skimage.feature.orb_cy", False
+            yield "skimage.feature._cascade", False
+            yield "skimage.feature._haar", False
+            yield "skimage.feature._hessian_det_appx", False
+            yield "skimage.feature._hoghistogram", False
+            yield "skimage.feature._texture", False
+
+        elif full_name == "skimage.filters.rank":
+            yield "skimage.filters.rank.bilateral_cy", False
+            yield "skimage.filters.rank.core_cy", False
+            yield "skimage.filters.rank.generic_cy", False
+            yield "skimage.filters.rank.percentile_cy", False
+
+        elif full_name == "skimage.future.graph":
+            yield "skimage.future.graph._ncut_cy", False
+
+        elif full_name == "skimage.graph":
+            yield "skimage.graph.heap", False
+            yield "skimage.graph._mcp", False
+            yield "skimage.graph._spath", False
+
+        elif full_name == "skimage.io":
+            yield "skimage.io._plugins", False
+
+        elif full_name == "skimage.io._plugins":
+            yield "skimage.io._plugins._colormixer", False
+            yield "skimage.io._plugins._histograms", False
+            yield "skimage.io._plugins.fits_plugin", False
+            yield "skimage.io._plugins.gdal_plugin", False
+            yield "skimage.io._plugins.gtk_plugin", False
+            yield "skimage.io._plugins.imageio_plugin", False
+            yield "skimage.io._plugins.imread_plugin", False
+            yield "skimage.io._plugins.matplotlib_plugin", False
+            yield "skimage.io._plugins.pil_plugin", False
+            yield "skimage.io._plugins.qt_plugin", False
+            yield "skimage.io._plugins.simpleitk_plugin", False
+            yield "skimage.io._plugins.skivi_plugin", False
+            yield "skimage.io._plugins.tifffile_plugin", False
+            yield "skimage.io._plugins.util", False
+
+        elif full_name == "skimage.measure":
+            yield "skimage.measure._ccomp", False
+            yield "skimage.measure._find_contours_cy", False
+            yield "skimage.measure._marching_cubes_classic_cy", False
+            yield "skimage.measure._marching_cubes_lewiner_cy", False
+            yield "skimage.measure._moments_cy", False
+            yield "skimage.measure._pnpoly", False
+
+        elif full_name == "skimage.morphology":
+            yield "skimage.morphology._convex_hull", False
+            yield "skimage.morphology._extrema_cy", False
+            yield "skimage.morphology._flood_fill_cy", False
+            yield "skimage.morphology._greyreconstruct", False
+            yield "skimage.morphology._max_tree", False
+            yield "skimage.morphology._skeletonize_3d_cy", False
+            yield "skimage.morphology._skeletonize_cy", False
+            yield "skimage.morphology._watershed", False
+
+        elif full_name == "skimage.restoration":
+            yield "skimage.restoration._denoise_cy", False
+            yield "skimage.restoration._nl_means_denoising", False
+            yield "skimage.restoration._unwrap_1d", False
+            yield "skimage.restoration._unwrap_2d", False
+            yield "skimage.restoration._unwrap_3d", False
+
+        elif full_name == "skimage.segmentation":
+            yield "skimage.segmentation._felzenszwalb_cy", False
+            yield "skimage.segmentation._quickshift_cy", False
+            yield "skimage.segmentation._slic", False
+
+        elif full_name == "skimage.transform":
+            yield "skimage.transform._hough_transform", False
+            yield "skimage.transform._radon_transform", False
+            yield "skimage.transform._warps_cy", False
+
+        elif full_name == "skimage._shared":
+            yield "skimage._shared.geometry", False
+            yield "skimage._shared.interpolation", False
+            yield "skimage._shared.transform", False
 
         # scikit-learn imports ------------------------------------------------
+        elif full_name == "sklearn.cluster":
+            yield "sklearn.cluster._dbscan_inner", False
+            yield "sklearn.cluster._hierarchical", False
+            yield "sklearn.cluster._k_means", False
+            yield "sklearn.cluster._k_means_elkan", False
+
+        elif full_name == "sklearn.datasets":
+            yield "sklearn.datasets._svmlight_format", False
+
+        elif full_name == "sklearn.decomposition":
+            yield "sklearn.decomposition.cdnmf_fast", False
+            yield "sklearn.decomposition._online_lda", False
+
+        elif full_name == "sklearn.ensemble":
+            yield "sklearn.ensemble._gradient_boosting", False
+
+        elif full_name == "sklearn.externals":
+            yield "sklearn.externals.joblib", False
+
+        elif full_name == "sklearn.externals.joblib":
+            yield "sklearn.externals.joblib.numpy_pickle", False
+
+        elif full_name == "sklearn.ensemble._hist_gradient_boosting":
+            yield "sklearn.ensemble._hist_gradient_boosting.histogram", False
+            yield "sklearn.ensemble._hist_gradient_boosting.splitting", False
+            yield "sklearn.ensemble._hist_gradient_boosting.types", False
+            yield "sklearn.ensemble._hist_gradient_boosting.utils", False
+            yield "sklearn.ensemble._hist_gradient_boosting._binning", False
+            yield "sklearn.ensemble._hist_gradient_boosting._gradient_boosting", False
+            yield "sklearn.ensemble._hist_gradient_boosting._loss", False
+            yield "sklearn.ensemble._hist_gradient_boosting._predictor", False
+
+        elif full_name == "sklearn.feature_extraction":
+            yield "sklearn.feature_extraction._hashing", False
+
+        elif full_name == "sklearn.linear_model":
+            yield "sklearn.linear_model.cd_fast", False
+            yield "sklearn.linear_model.sag_fast", False
+            yield "sklearn.linear_model.sgd_fast", False
+
+        elif full_name == "sklearn.manifold":
+            yield "sklearn.manifold._barnes_hut_tsne", False
+            yield "sklearn.manifold._utils", False
+
+        elif full_name == "sklearn.metrics":
+            yield "sklearn.metrics.pairwise_fast", False
+
+        elif full_name == "sklearn.metrics.cluster":
+            yield "sklearn.metrics.cluster.expected_mutual_info_fast", False
+
+        elif full_name == "sklearn.neighbors":
+            yield "sklearn.neighbors.ball_tree", False
+            yield "sklearn.neighbors.dist_metrics", False
+            yield "sklearn.neighbors.kd_tree", False
+            yield "sklearn.neighbors.quad_tree", False
+            yield "sklearn.neighbors.typedefs", False
+
+        elif full_name == "sklearn.preprocessing":
+            yield "sklearn.preprocessing._csr_polynomial_expansion", False
+
+        elif full_name == "sklearn.svm":
+            yield "sklearn.svm.liblinear", False
+            yield "sklearn.svm.libsvm", False
+            yield "sklearn.svm.libsvm_sparse", False
+
+        elif full_name == "sklearn.tree":
+            yield "sklearn.tree._criterion", False
+            yield "sklearn.tree._splitter", False
+            yield "sklearn.tree._tree", False
+            yield "sklearn.tree._utils", False
+
+        elif full_name == "sklearn.utils":
+            yield "sklearn.utils.arrayfuncs", False
+            yield "sklearn.utils.fast_dict", False
+            yield "sklearn.utils.graph_shortest_path", False
+            yield "sklearn.utils.lgamma", False
+            yield "sklearn.utils.murmurhash", False
+            yield "sklearn.utils.seq_dataset", False
+            yield "sklearn.utils.sparsefuncs_fast", False
+            yield "sklearn.utils.weight_vector", False
+            yield "sklearn.utils._cython_blas", False
+            yield "sklearn.utils._logistic_sigmoid", False
+            yield "sklearn.utils._random", False
+
         elif full_name == "sklearn.utils.sparsetools":
             yield "sklearn.utils.sparsetools._graph_validation", True
             yield "sklearn.utils.sparsetools._graph_tools", True
 
-        elif full_name == "sklearn.utils":
-            yield "sklearn.utils.lgamma", True
-            yield "sklearn.utils.weight_vector", True
-            yield "sklearn.utils._unittest_backport", False
+        # end of scikit-learn imports -----------------------------------------
 
         elif full_name == "PIL._imagingtk":
             yield "PIL._tkinter_finder", True
@@ -558,6 +954,25 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pkg_resources._vendor.packaging.version", True
             yield "pkg_resources._vendor.packaging.specifiers", True
             yield "pkg_resources._vendor.packaging.requirements", True
+
+        # pendulum imports -- START
+        elif full_name == "pendulum.locales":
+            locales_dir = os.path.join(package_dir, "locales")
+            idioms = os.listdir(locales_dir)
+            for idiom in idioms:
+                if (
+                    not os.path.isdir(os.path.join(locales_dir, idiom))
+                    or idiom == "__pycache__"
+                ):
+                    continue
+                yield "pendulum.locales." + idiom, False
+
+        elif (
+            full_name.startswith("pendulum.locales.") and elements[2] != "locale"
+        ):  # only need the idiom folders
+            yield "pendulum.locales." + elements[2], False
+            yield "pendulum.locales." + elements[2] + ".locale", False
+        # pendulum imports -- STOP
 
         elif full_name == "uvloop.loop":
             yield "uvloop._noop", True
@@ -572,8 +987,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "zmq.backend.cython", True
 
         # Support for both pycryotodome (module name Crypto) and pycyptodomex (module name Cryptodome)
-        elif full_name.split(".")[0] in ("Crypto", "Cryptodome"):
-            crypto_module_name = full_name.split(".")[0]
+        elif elements[0] in ("Crypto", "Cryptodome"):
+            crypto_module_name = elements[0]
+
             if full_name == crypto_module_name + ".Util._raw_api":
                 for module_name in (
                     "_raw_aes",
@@ -621,7 +1037,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "passlib.hash":
             yield "passlib.handlers.sha2_crypt", True
 
-    def getImportsByFullname(self, full_name):
+    def getImportsByFullname(self, full_name, package_dir):
         """ Recursively create a set of imports for a fullname.
 
         Notes:
@@ -630,19 +1046,22 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         """
         result = OrderedSet()
 
-        def checkImportsRecursive(module_name):
-            for item in self._getImportsByFullname(module_name):
+        def checkImportsRecursive(module_name, package_dir):
+            for item in self._getImportsByFullname(module_name, package_dir):
                 if item not in result:
                     result.add(item)
-                    checkImportsRecursive(item[0])
+                    checkImportsRecursive(item[0], package_dir)
 
-        checkImportsRecursive(full_name)
+        checkImportsRecursive(full_name, package_dir)
 
         return result
 
     def getImplicitImports(self, module):
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches
         full_name = module.getFullName()
+        elements = full_name.split(".")
+        module_dir = module.getCompileTimeDirectory()
+        package_dir = remove_suffix(module_dir, elements[0])
 
         if module.isPythonShlibModule():
             for used_module in module.getUsedModules():
@@ -696,7 +1115,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         else:
             # create a flattened import set for full_name and yield from it
-            for item in self.getImportsByFullname(full_name):
+            for item in self.getImportsByFullname(full_name, package_dir):
                 yield item
 
     # We don't care about line length here, pylint: disable=line-too-long
@@ -872,6 +1291,12 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             shutil.copy(xtwrapper_dll_path, dist_dll_path)
 
             return ((xtwrapper_dll_path, dist_dll_path, None),)
+        elif full_name == "gi._gi":
+            gtk_dll_path = locateDLL("gtk-3")
+            dist_dll_path = os.path.join(dist_dir, os.path.basename(gtk_dll_path))
+            shutil.copy(gtk_dll_path, dist_dll_path)
+
+            return ((gtk_dll_path, dist_dll_path, None),)
 
         return ()
 

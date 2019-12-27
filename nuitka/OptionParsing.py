@@ -548,7 +548,8 @@ c_compiler_group.add_option(
     dest="clang",
     default=False,
     help="""\
-Enforce the use of clang (needs clang 3.2 or higher).
+Enforce the use of clang. On Windows this requires a working Visual
+Studio version to piggy back.
 Defaults to off.""",
 )
 

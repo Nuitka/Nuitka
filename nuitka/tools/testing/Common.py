@@ -260,7 +260,12 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("27.py") and _python_version.startswith("2.6"):
         return False
 
+    # Skip tests that require Python 2 at maximum.
     if filename.endswith("_2.py") and _python_version.startswith("3"):
+        return False
+
+    # Skip tests that require Python 3.7 at maximum.
+    if filename.endswith("_37.py") and _python_version >= "3.8":
         return False
 
     # Skip tests that require Python 3.2 at least.
@@ -294,6 +299,18 @@ def decideFilenameVersionSkip(filename):
     return True
 
 
+def decideNeeds2to3(filename):
+    return (
+        _python_version.startswith("3")
+        and not filename.endswith("32.py")
+        and not filename.endswith("33.py")
+        and not filename.endswith("35.py")
+        and not filename.endswith("36.py")
+        and not filename.endswith("37.py")
+        and not filename.endswith("38.py")
+    )
+
+
 def _removeCPythonTestSuiteDir():
     # Cleanup, some tests apparently forget that.
     try:
@@ -323,6 +340,8 @@ def compareWithCPython(
 
     """
 
+    # Many cases to consider here, pylint: disable=too-many-branches
+
     if dirname is None:
         path = filename
     else:
@@ -334,12 +353,20 @@ def compareWithCPython(
     else:
         converted = False
 
-    command = [
-        sys.executable,
-        os.path.join("..", "..", "bin", "compare_with_cpython"),
-        path,
-        "silent",
-    ]
+    if os.getenv("NUITKA_TEST_INSTALLED", "") == "1":
+        command = [
+            sys.executable,
+            "-m",
+            "nuitka.tools.testing.compare_with_cpython",
+            path,
+            "silent",
+        ]
+    else:
+        compare_with_cpython = os.path.join("..", "..", "bin", "compare_with_cpython")
+        if os.path.exists(compare_with_cpython):
+            command = [sys.executable, compare_with_cpython, path, "silent"]
+        else:
+            sys.exit("Error, cannot find Nuitka comparison runner.")
 
     if extra_flags is not None:
         command += extra_flags
@@ -798,7 +825,7 @@ def checkReferenceCount(checked_function, max_rounds=10):
     assert max_rounds > 0
     for count in range(max_rounds):
         gc.collect()
-        ref_count1 = sys.gettotalrefcount()  # @UndefinedVariable
+        ref_count1 = sys.gettotalrefcount()
 
         if explain and count == max_rounds - 1:
             snapObjRefCntMap(True)
@@ -813,7 +840,7 @@ def checkReferenceCount(checked_function, max_rounds=10):
         if explain and count == max_rounds - 1:
             snapObjRefCntMap(False)
 
-        ref_count2 = sys.gettotalrefcount()  # @UndefinedVariable
+        ref_count2 = sys.gettotalrefcount()
 
         if ref_count1 == ref_count2:
             result = True
@@ -942,13 +969,18 @@ def checkDebugPython():
         sys.gettotalrefcount = lambda: 0
 
 
-def addToPythonPath(python_path):
+def addToPythonPath(python_path, in_front=False):
     if type(python_path) in (tuple, list):
         python_path = os.pathsep.join(python_path)
 
     if python_path:
         if "PYTHONPATH" in os.environ:
-            os.environ["PYTHONPATH"] += os.pathsep + python_path
+            if in_front:
+                os.environ["PYTHONPATH"] = (
+                    python_path + os.pathsep + os.environ["PYTHONPATH"]
+                )
+            else:
+                os.environ["PYTHONPATH"] += os.pathsep + python_path
         else:
             os.environ["PYTHONPATH"] = python_path
 
@@ -1117,7 +1149,7 @@ except Exception as __e:
             continue
 
         if inside and line and line[0].isalnum() and not isOpener(line):
-            output.append(getTried("\n".join(chunk), line_number))  # @UndefinedVariable
+            output.append(getTried("\n".join(chunk), line_number))
 
             chunk = []
             inside = False
@@ -1223,7 +1255,7 @@ def async_iterate(g):
     while True:
         try:
             g.__anext__().__next__()
-        except StopAsyncIteration:  # @UndefinedVariable
+        except StopAsyncIteration:
             res.append("STOP")
             break
         except StopIteration as ex:

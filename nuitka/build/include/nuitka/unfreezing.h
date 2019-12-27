@@ -25,11 +25,7 @@
 #define NUITKA_PACKAGE_FLAG 2
 #define NUITKA_BYTECODE_FLAG 4
 
-#if PYTHON_VERSION < 300
-typedef void (*module_initfunc)(void);
-#else
-typedef PyObject *(*module_initfunc)(void);
-#endif
+typedef PyObject *(*module_initfunc)(char const *module_full_name);
 
 struct Nuitka_MetaPathBasedLoaderEntry {
     /* Full module name, including package name. */
@@ -50,7 +46,5 @@ struct Nuitka_MetaPathBasedLoaderEntry {
  * program/package only.
  */
 extern void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *loader_entries);
-
-extern PyObject *Nuitka_Loader_New(PyObject *module_name);
 
 #endif

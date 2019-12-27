@@ -46,7 +46,7 @@ void copyFrozenModulesTo( struct _frozen *destination )
 {
     struct frozen_desc frozen_modules[] = {
 %(frozen_modules)s
-        { NULL, 0, 0 }
+        {NULL, 0, 0}
     };
 
     struct frozen_desc *current = frozen_modules;

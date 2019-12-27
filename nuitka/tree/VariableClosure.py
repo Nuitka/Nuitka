@@ -28,7 +28,7 @@ from nuitka.nodes.AssignNodes import StatementAssignmentVariable, StatementDelVa
 from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.nodes.LocalsDictNodes import (
     ExpressionLocalsVariableRef,
-    ExpressionLocalsVariableRefORFallback,
+    ExpressionLocalsVariableRefOrFallback,
     StatementLocalsDictOperationDel,
     StatementLocalsDictOperationSet,
 )
@@ -65,14 +65,18 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     def _handleNonLocal(node):
         # Take closure variables for non-local declarations.
 
-        for non_local_names, source_ref in node.consumeNonlocalDeclarations():
+        for (
+            non_local_names,
+            user_provided,
+            source_ref,
+        ) in node.consumeNonlocalDeclarations():
             for non_local_name in non_local_names:
 
                 variable = node.takeVariableForClosure(variable_name=non_local_name)
 
                 node.registerProvidedVariable(variable)
 
-                if variable.isModuleVariable():
+                if variable.isModuleVariable() and user_provided:
                     raiseSyntaxError(
                         "no binding for nonlocal '%s' found" % (non_local_name),
                         source_ref,
@@ -205,7 +209,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         variable_name=node.getVariableName()
                     )
 
-                    new_node = ExpressionLocalsVariableRefORFallback(
+                    new_node = ExpressionLocalsVariableRefOrFallback(
                         locals_scope=provider.getFunctionLocalsScope(),
                         variable_name=node.getVariableName(),
                         fallback=ExpressionVariableRef(
@@ -230,7 +234,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             if node.getVariable().getOwner() != node.getParentVariableProvider():
                 node.getParentVariableProvider().addClosureVariable(node.getVariable())
         elif node.isExpressionGeneratorObjectBody():
-            self._handleNonLocal(node)
+            if python_version >= 300:
+                self._handleNonLocal(node)
 
             # Only Python3.4 or later allows for generators to have qualname.
             if python_version >= 340:
@@ -244,14 +249,16 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             self._handleQualnameSetup(node)
         elif node.isExpressionClassBody():
-            self._handleNonLocal(node)
+            if python_version >= 300:
+                self._handleNonLocal(node)
 
             # Python3.4 allows for class declarations to be made global, even
             # after they were declared, so we need to fix this up.
             if python_version >= 340:
                 self._handleQualnameSetup(node)
         elif node.isExpressionFunctionBody():
-            self._handleNonLocal(node)
+            if python_version >= 300:
+                self._handleNonLocal(node)
 
             # Python 3.4 allows for class declarations to be made global, even
             # after they were declared, so we need to fix this up.
@@ -285,8 +292,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                             )
 
                         break
-                    else:
-                        seen_function = True
+
+                    seen_function = True
         # Check if continue and break are properly in loops. If not, raise a
         # syntax error.
         elif node.isStatementLoopBreak() or node.isStatementLoopContinue():
@@ -358,7 +365,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
             except MaybeLocalVariableUsage:
                 variable_name = node.getVariableName()
 
-                new_node = ExpressionLocalsVariableRefORFallback(
+                new_node = ExpressionLocalsVariableRefOrFallback(
                     locals_scope=provider.getFunctionLocalsScope(),
                     variable_name=variable_name,
                     fallback=ExpressionVariableRef(

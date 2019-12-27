@@ -15,23 +15,35 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import sys, os, types
+""" Reference counting tests.
+
+These contain functions that do specific things, where we have a suspect
+that references may be lost or corrupted. Executing them repeatedly and
+checking the reference count is how they are used.
+
+These are Python3.5 specific constructs, that will give a SyntaxError or
+not be relevant on older versions.
+"""
+
+import os
+import sys
 
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
+
+# isort:start
+
+import types
+
 from nuitka.tools.testing.Common import (
-    executeReferenceChecked,
     checkDebugPython,
-    run_async
+    executeReferenceChecked,
+    run_async,
 )
 
 checkDebugPython()
@@ -42,20 +54,24 @@ def raisy():
 
 
 def simpleFunction1():
-    async def foo():
+    async def someCoroutine():
         return
 
-    run_async(foo())
+    run_async(someCoroutine())
+
 
 ####################################
+
 
 def simpleFunction2():
-    async def foo():
+    async def someCoroutine():
         return 7
 
-    run_async(foo())
+    run_async(someCoroutine())
+
 
 ####################################
+
 
 class AsyncIteratorWrapper:
     def __init__(self, obj):
@@ -81,33 +97,40 @@ def simpleFunction3():
             async for letter in AsyncIteratorWrapper("abcdefg"):
                 result.append(letter)
         except TypeError:
-            assert sys.version_info < (3,5,2)
+            assert sys.version_info < (3, 5, 2)
 
         return result
 
     run_async(f())
 
+
 ####################################
 
+
 def simpleFunction4():
-    async def foo():
+    async def someCoroutine():
         raise StopIteration
 
     try:
-        run_async(foo())
+        run_async(someCoroutine())
     except RuntimeError:
         pass
 
+
 ####################################
+
 
 class ClassWithAsyncMethod:
     async def async_method(self):
         return self
 
+
 def simpleFunction5():
     run_async(ClassWithAsyncMethod().async_method())
 
+
 ####################################
+
 
 class BadAsyncIter:
     def __init__(self):
@@ -119,38 +142,35 @@ class BadAsyncIter:
     def __anext__(self):
         return ()
 
+
 def simpleFunction7():
-    async def foo():
+    async def someCoroutine():
         async for i in BadAsyncIter():
-            print('never going to happen')
+            print("never going to happen")
 
     try:
-        run_async(foo())
+        run_async(someCoroutine())
     except TypeError:
         pass
 
+
 def simpleFunction8():
-    async def bar():
+    async def someCoroutine():
         return ("some", "thing")
 
     @types.coroutine
-    def foo():
-        yield from bar()
+    def someDecoratorCoroutine():
+        yield from someCoroutine()
 
-    run_async(foo())
+    run_async(someDecoratorCoroutine())
 
 
 def simpleFunction9():
-    a = {
-        'a': 1,
-        'b': 2
-    }
-    b = {
-        'c': 3,
-        **a
-    }
+    a = {"a": 1, "b": 2}
+    b = {"c": 3, **a}
 
     return b
+
 
 # These need stderr to be wrapped.
 tests_stderr = ()
@@ -159,10 +179,10 @@ tests_stderr = ()
 tests_skipped = {}
 
 result = executeReferenceChecked(
-    prefix        = "simpleFunction",
-    names         = globals(),
-    tests_skipped = tests_skipped,
-    tests_stderr  = tests_stderr
+    prefix="simpleFunction",
+    names=globals(),
+    tests_skipped=tests_skipped,
+    tests_stderr=tests_stderr,
 )
 
 sys.exit(0 if result else 1)

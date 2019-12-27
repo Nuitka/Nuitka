@@ -51,15 +51,13 @@ def getResourcesFromDLL(filename, resource_kind, with_data=False):
     import ctypes.wintypes
 
     if type(filename) is str and str is not bytes:
-        LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExW  # @UndefinedVariable
+        LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExW
     else:
-        LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExA  # @UndefinedVariable
+        LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExA
 
-    EnumResourceNames = ctypes.windll.kernel32.EnumResourceNamesA  # @UndefinedVariable
-    EnumResourceLanguages = (
-        ctypes.windll.kernel32.EnumResourceLanguagesA  # @UndefinedVariable
-    )
-    FreeLibrary = ctypes.windll.kernel32.FreeLibrary  # @UndefinedVariable
+    EnumResourceNames = ctypes.windll.kernel32.EnumResourceNamesA
+    EnumResourceLanguages = ctypes.windll.kernel32.EnumResourceLanguagesA
+    FreeLibrary = ctypes.windll.kernel32.FreeLibrary
 
     EnumResourceNameCallback = ctypes.WINFUNCTYPE(
         ctypes.wintypes.BOOL,
@@ -114,21 +112,15 @@ def getResourcesFromDLL(filename, resource_kind, with_data=False):
         lang_id = langs[0]
 
         if with_data:
-            hResource = ctypes.windll.kernel32.FindResourceA(  # @UndefinedVariable
-                hModule, lpName, lpType
-            )
-            size = ctypes.windll.kernel32.SizeofResource(  # @UndefinedVariable
-                hModule, hResource
-            )
-            hData = ctypes.windll.kernel32.LoadResource(  # @UndefinedVariable
-                hModule, hResource
-            )
+            hResource = ctypes.windll.kernel32.FindResourceA(hModule, lpName, lpType)
+            size = ctypes.windll.kernel32.SizeofResource(hModule, hResource)
+            hData = ctypes.windll.kernel32.LoadResource(hModule, hResource)
 
             try:
-                ptr = ctypes.windll.kernel32.LockResource(hData)  # @UndefinedVariable
+                ptr = ctypes.windll.kernel32.LockResource(hData)
                 result.append((lpType, lpName, lang_id, ctypes.string_at(ptr, size)))
             finally:
-                ctypes.windll.kernel32.FreeResource(hData)  # @UndefinedVariable
+                ctypes.windll.kernel32.FreeResource(hData)
         else:
             result.append((lpName, lang_id))
 
@@ -144,17 +136,14 @@ def _openFileWindowsResources(filename):
     import ctypes
 
     if type(filename) is str and str is not bytes:
-        BeginUpdateResource = (
-            ctypes.windll.kernel32.BeginUpdateResourceW  # @UndefinedVariable
-        )
+        BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceW
+        BeginUpdateResource.argtypes = [ctypes.wintypes.LPCWSTR, ctypes.wintypes.BOOL]
     else:
-        BeginUpdateResource = (
-            ctypes.windll.kernel32.BeginUpdateResourceA  # @UndefinedVariable
-        )
-
-    BeginUpdateResource.argtypes = [ctypes.wintypes.LPVOID, ctypes.wintypes.BOOL]
+        BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceA
+        BeginUpdateResource.argtypes = [ctypes.wintypes.LPCSTR, ctypes.wintypes.BOOL]
 
     BeginUpdateResource.restype = ctypes.wintypes.HANDLE
+
     update_handle = BeginUpdateResource(filename, False)
 
     if not update_handle:
@@ -170,9 +159,7 @@ def _closeFileWindowsResources(update_handle):
         ctypes.wintypes.HANDLE,
         ctypes.wintypes.BOOL,
     ]
-    ret = ctypes.windll.kernel32.EndUpdateResourceA(  # @UndefinedVariable
-        update_handle, False
-    )
+    ret = ctypes.windll.kernel32.EndUpdateResourceA(update_handle, False)
 
     if not ret:
         raise ctypes.WinError()
@@ -186,7 +173,9 @@ def _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, data
     else:
         size = len(data)
 
-    UpdateResourceA = ctypes.windll.kernel32.UpdateResourceA  # @UndefinedVariable
+        assert type(data) is bytes
+
+    UpdateResourceA = ctypes.windll.kernel32.UpdateResourceA
 
     UpdateResourceA.argtypes = [
         ctypes.wintypes.HANDLE,

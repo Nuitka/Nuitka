@@ -15,23 +15,26 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 def tupleUnpacking():
     return (*a, b, *c)
+
 
 def listUnpacking():
     return [*a, b, *c]
 
+
 def setUnpacking():
     return {*a, b, *c}
 
+
 def dictUnpacking():
-    return {"a" : 1, **d}
+    return {"a": 1, **d}
+
 
 a = range(3)
 b = 5
-c = range(8,10)
-d = {"a" : 2}
+c = range(8, 10)
+d = {"a": 2}
 
 print("Tuple unpacked", tupleUnpacking())
 print("List unpacked", listUnpacking())
@@ -41,27 +44,31 @@ print("Dict unpacked", dictUnpacking())
 
 non_iterable = 2.0
 
+
 def tupleUnpackingError():
     try:
-        return (*a,*non_iterable,*c)
+        return (*a, *non_iterable, *c)
     except Exception as e:
         return e
+
 
 def listUnpackingError():
     try:
-        return [*a,*non_iterable,*c]
+        return [*a, *non_iterable, *c]
     except Exception as e:
         return e
+
 
 def setUnpackingError():
     try:
-        return {*a,*non_iterable,*c}
+        return {*a, *non_iterable, *c}
     except Exception as e:
         return e
 
+
 def dictUnpackingError():
     try:
-        return {"a" : 1, **non_iterable}
+        return {"a": 1, **non_iterable}
     except Exception as e:
         return e
 

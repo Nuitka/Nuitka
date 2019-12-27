@@ -150,11 +150,9 @@ def _getConstantInitValueCode(constant_value, constant_type):
             encoded = constant_value.encode("utf-8")
 
             if str is bytes:
-                return "UNSTREAM_UNICODE( %s )" % (
-                    stream_data.getStreamDataCode(encoded)
-                )
+                return "UNSTREAM_UNICODE(%s)" % (stream_data.getStreamDataCode(encoded))
             else:
-                return "UNSTREAM_STRING( %s, %d, %d )" % (
+                return "UNSTREAM_STRING(%s, %d, %d)" % (
                     stream_data.getStreamDataCode(encoded, fixed_size=True),
                     len(constant_value),
                     1 if _isAttributeName(constant_value) else 0,
@@ -166,19 +164,19 @@ def _getConstantInitValueCode(constant_value, constant_type):
         assert str is bytes
 
         if len(constant_value) == 1:
-            return "UNSTREAM_CHAR( %d, %d )" % (
+            return "UNSTREAM_CHAR(%d, %d)" % (
                 ord(constant_value[0]),
                 1 if _isAttributeName(constant_value) else 0,
             )
         else:
-            return "UNSTREAM_STRING( %s, %d )" % (
+            return "UNSTREAM_STRING(%s, %d)" % (
                 stream_data.getStreamDataCode(constant_value),
                 1 if _isAttributeName(constant_value) else 0,
             )
     elif constant_type is bytes:
         assert str is not bytes
 
-        return "UNSTREAM_BYTES( %s )" % (stream_data.getStreamDataCode(constant_value))
+        return "UNSTREAM_BYTES(%s)" % (stream_data.getStreamDataCode(constant_value))
     else:
         return None
 
@@ -268,7 +266,7 @@ def getMarshalCode(constant_identifier, constant_value, emit):
     assert compareConstants(constant_value, restored)
 
     emit(
-        "%s = PyMarshal_ReadObjectFromString( (char *)%s );"
+        "%s = PyMarshal_ReadObjectFromString((char *)%s);"
         % (constant_identifier, stream_data.getStreamDataCode(marshal_value))
     )
 
@@ -293,7 +291,7 @@ def attemptToMarshal(constant_identifier, constant_value, emit):
         return False
 
     emit(
-        "%s = PyMarshal_ReadObjectFromString( (char *)%s );"
+        "%s = PyMarshal_ReadObjectFromString((char *)%s);"
         % (constant_identifier, stream_data.getStreamDataCode(marshal_value))
     )
 
@@ -351,14 +349,14 @@ def _addConstantInitCode(
     if Options.isDebug():
         emit(
             """\
-hash_%(constant_identifier)s = DEEP_HASH( %(constant_identifier)s );"""
+hash_%(constant_identifier)s = DEEP_HASH(%(constant_identifier)s);"""
             % {"constant_identifier": constant_identifier}
         )
 
         check(
             """\
-CHECK_OBJECT( %(constant_identifier)s );
-assert( hash_%(constant_identifier)s == DEEP_HASH( %(constant_identifier)s ) );"""
+CHECK_OBJECT(%(constant_identifier)s);
+assert(hash_%(constant_identifier)s == DEEP_HASH(%(constant_identifier)s));"""
             % {"constant_identifier": constant_identifier}
         )
 
@@ -399,13 +397,13 @@ def __addConstantInitCode(
         # existent with Python3 which would have covered it before.
         if 0 <= constant_value <= max_unsigned_long:
             emit(
-                "%s = PyLong_FromUnsignedLong( %sul );"
+                "%s = PyLong_FromUnsignedLong(%sul);"
                 % (constant_identifier, constant_value)
             )
 
             return
         elif 0 > constant_value >= min_signed_long:
-            emit("%s = PyLong_FromLong( %sl );" % (constant_identifier, constant_value))
+            emit("%s = PyLong_FromLong(%sl);" % (constant_identifier, constant_value))
 
             return
         elif constant_value == min_signed_long - 1:
@@ -413,9 +411,9 @@ def __addConstantInitCode(
             # MININT when used. We work around that warning here.
             emit(
                 """\
-%s = PyLong_FromLong( %sl ); // To be corrected with -1 in-place next lines.
-CHECK_OBJECT( const_int_pos_1 );
-%s = PyNumber_InPlaceSubtract( %s, PyLong_FromLong( 1 ) );"""
+%s = PyLong_FromLong(%sl); // To be corrected with -1 in-place next lines.
+CHECK_OBJECT(const_int_pos_1);
+%s = PyNumber_InPlaceSubtract(%s, PyLong_FromLong(1));"""
                 % (
                     constant_identifier,
                     min_signed_long,
@@ -435,7 +433,7 @@ CHECK_OBJECT( const_int_pos_1 );
             return
     elif constant_type is int:
         if constant_value >= min_signed_long:
-            emit("%s = PyInt_FromLong( %sl );" % (constant_identifier, constant_value))
+            emit("%s = PyInt_FromLong(%sl);" % (constant_identifier, constant_value))
 
             return
         else:
@@ -445,8 +443,8 @@ CHECK_OBJECT( const_int_pos_1 );
 
             emit(
                 """\
-%s = PyInt_FromLong( %sl );  // To be corrected in next line.
-%s = PyNumber_InPlaceSubtract( %s, PyInt_FromLong( 1 ) );"""
+%s = PyInt_FromLong(%sl);  // To be corrected in next line.
+%s = PyNumber_InPlaceSubtract(%s, PyInt_FromLong(1));"""
                 % (
                     constant_identifier,
                     min_signed_long,
@@ -463,13 +461,13 @@ CHECK_OBJECT( const_int_pos_1 );
 
             if str is bytes:
                 emit(
-                    "%s = UNSTREAM_UNICODE( %s );"
+                    "%s = UNSTREAM_UNICODE(%s);"
                     % (constant_identifier, stream_data.getStreamDataCode(encoded))
                 )
             else:
                 if str is not bytes and len(constant_value) == len(encoded):
                     emit(
-                        "%s = UNSTREAM_STRING_ASCII( %s, %d );"
+                        "%s = UNSTREAM_STRING_ASCII(%s, %d);"
                         % (
                             constant_identifier,
                             stream_data.getStreamDataCode(encoded),
@@ -478,7 +476,7 @@ CHECK_OBJECT( const_int_pos_1 );
                     )
                 else:
                     emit(
-                        "%s = UNSTREAM_STRING( %s, %d );"
+                        "%s = UNSTREAM_STRING(%s, %d);"
                         % (
                             constant_identifier,
                             stream_data.getStreamDataCode(encoded),
@@ -504,7 +502,7 @@ CHECK_OBJECT( const_int_pos_1 );
 
         if len(constant_value) == 1:
             emit(
-                "%s = UNSTREAM_CHAR( %d, %d );"
+                "%s = UNSTREAM_CHAR(%d, %d);"
                 % (
                     constant_identifier,
                     ord(constant_value[0]),
@@ -513,7 +511,7 @@ CHECK_OBJECT( const_int_pos_1 );
             )
         else:
             emit(
-                "%s = UNSTREAM_STRING( %s, %d );"
+                "%s = UNSTREAM_STRING(%s, %d);"
                 % (
                     constant_identifier,
                     stream_data.getStreamDataCode(constant_value),
@@ -527,7 +525,7 @@ CHECK_OBJECT( const_int_pos_1 );
         assert str is not bytes
 
         emit(
-            "%s = UNSTREAM_BYTES( %s );"
+            "%s = UNSTREAM_BYTES(%s);"
             % (constant_identifier, stream_data.getStreamDataCode(constant_value))
         )
 
@@ -535,7 +533,7 @@ CHECK_OBJECT( const_int_pos_1 );
 
     if constant_type is float:
         emit(
-            "%s = UNSTREAM_FLOAT( %s );"
+            "%s = UNSTREAM_FLOAT(%s);"
             % (
                 constant_identifier,
                 stream_data.getStreamDataCode(
@@ -583,12 +581,12 @@ CHECK_OBJECT( const_int_pos_1 );
 
             # TODO: Error checking for debug.
             emit(
-                "PyDict_SetItem( %s, %s, %s );"
+                "PyDict_SetItem(%s, %s, %s);"
                 % (constant_identifier, key_name, value_name)
             )
 
         emit(
-            "assert( PyDict_Size( %s ) == %d );"
+            "assert(PyDict_Size(%s) == %d);"
             % (constant_identifier, len(constant_value))
         )
 
@@ -601,7 +599,7 @@ CHECK_OBJECT( const_int_pos_1 );
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
 
-        emit("%s = PyTuple_New( %d );" % (constant_identifier, len(constant_value)))
+        emit("%s = PyTuple_New(%d);" % (constant_identifier, len(constant_value)))
 
         for count, element_value in enumerate(constant_value):
             element_name = context.getConstantCode(constant=element_value)
@@ -618,7 +616,7 @@ CHECK_OBJECT( const_int_pos_1 );
 
             # Do not take references, these won't be deleted ever.
             emit(
-                "PyTuple_SET_ITEM( %s, %d, %s ); Py_INCREF( %s );"
+                "PyTuple_SET_ITEM(%s, %d, %s); Py_INCREF(%s);"
                 % (constant_identifier, count, element_name, element_name)
             )
 
@@ -631,7 +629,7 @@ CHECK_OBJECT( const_int_pos_1 );
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
 
-        emit("%s = PyList_New( %d );" % (constant_identifier, len(constant_value)))
+        emit("%s = PyList_New(%d);" % (constant_identifier, len(constant_value)))
 
         for count, element_value in enumerate(constant_value):
             element_name = context.getConstantCode(constant=element_value)
@@ -648,7 +646,7 @@ CHECK_OBJECT( const_int_pos_1 );
 
             # Do not take references, these won't be deleted ever.
             emit(
-                "PyList_SET_ITEM( %s, %d, %s ); Py_INCREF( %s );"
+                "PyList_SET_ITEM(%s, %d, %s); Py_INCREF(%s);"
                 % (constant_identifier, count, element_name, element_name)
             )
 
@@ -671,7 +669,7 @@ CHECK_OBJECT( const_int_pos_1 );
 
         # TODO: Hinting size is really not possible?
         emit(
-            "%s = %s( NULL );"
+            "%s = %s(NULL);"
             % (
                 constant_identifier,
                 "PySet_New" if constant_type is set else "PyFrozenSet_New",
@@ -691,11 +689,10 @@ CHECK_OBJECT( const_int_pos_1 );
                 context=context,
             )
 
-            emit("PySet_Add( %s, %s );" % (constant_identifier, element_name))
+            emit("PySet_Add(%s, %s);" % (constant_identifier, element_name))
 
         emit(
-            "assert( PySet_Size( %s ) == %d );"
-            % (constant_identifier, len(constant_value))
+            "assert(PySet_Size(%s) == %d);" % (constant_identifier, len(constant_value))
         )
 
         return
@@ -733,7 +730,7 @@ CHECK_OBJECT( const_int_pos_1 );
         )
 
         emit(
-            "%s = PySlice_New( %s, %s, %s );"
+            "%s = PySlice_New(%s, %s, %s);"
             % (constant_identifier, slice1_name, slice2_name, slice3_name)
         )
 
@@ -759,7 +756,7 @@ CHECK_OBJECT( const_int_pos_1 );
 
         if xrange is not range:
             emit(
-                "%s = MAKE_XRANGE( %s, %s, %s );"
+                "%s = MAKE_XRANGE(%s, %s, %s);"
                 % (constant_identifier, range_args[0], range_args[1], range_args[2])
             )
         else:
@@ -795,7 +792,7 @@ CHECK_OBJECT( const_int_pos_1 );
             )
 
             emit(
-                "%s = BUILTIN_XRANGE3( %s, %s, %s );"
+                "%s = BUILTIN_XRANGE3(%s, %s, %s);"
                 % (constant_identifier, range1_name, range2_name, range3_name)
             )
 
@@ -803,7 +800,7 @@ CHECK_OBJECT( const_int_pos_1 );
 
     if constant_type is bytearray:
         emit(
-            "%s = UNSTREAM_BYTEARRAY( %s );"
+            "%s = UNSTREAM_BYTEARRAY(%s);"
             % (
                 constant_identifier,
                 stream_data.getStreamDataCode(bytes(constant_value)),
@@ -835,7 +832,7 @@ CHECK_OBJECT( const_int_pos_1 );
             context=context,
         )
 
-        emit("%s = LOOKUP_BUILTIN( %s );" % (constant_identifier, builtin_identifier))
+        emit("%s = LOOKUP_BUILTIN(%s);" % (constant_identifier, builtin_identifier))
 
         return
 
@@ -918,18 +915,18 @@ def getConstantAccess(to_name, constant, emit, context):
                 needs_deep = False
 
             if needs_deep:
-                code = "DEEP_COPY( %s )" % context.getConstantCode(constant)
+                code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
             else:
-                code = "PyDict_Copy( %s )" % context.getConstantCode(constant)
+                code = "PyDict_Copy(%s)" % context.getConstantCode(constant)
         else:
             code = "PyDict_New()"
 
         ref_count = 1
     elif type(constant) is set:
         if constant:
-            code = "PySet_New( %s )" % context.getConstantCode(constant)
+            code = "PySet_New(%s)" % context.getConstantCode(constant)
         else:
-            code = "PySet_New( NULL )"
+            code = "PySet_New(NULL)"
 
         ref_count = 1
     elif type(constant) is list:
@@ -942,11 +939,11 @@ def getConstantAccess(to_name, constant, emit, context):
                 needs_deep = False
 
             if needs_deep:
-                code = "DEEP_COPY( %s )" % context.getConstantCode(constant)
+                code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
             else:
-                code = "LIST_COPY( %s )" % context.getConstantCode(constant)
+                code = "LIST_COPY(%s)" % context.getConstantCode(constant)
         else:
-            code = "PyList_New( 0 )"
+            code = "PyList_New(0)"
 
         ref_count = 1
     elif type(constant) is tuple:
@@ -958,7 +955,7 @@ def getConstantAccess(to_name, constant, emit, context):
             needs_deep = False
 
         if needs_deep:
-            code = "DEEP_COPY( %s )" % context.getConstantCode(constant)
+            code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
 
             ref_count = 1
         else:
@@ -966,7 +963,7 @@ def getConstantAccess(to_name, constant, emit, context):
 
             ref_count = 0
     elif type(constant) is bytearray:
-        code = "BYTEARRAY_COPY( %s )" % context.getConstantCode(constant)
+        code = "BYTEARRAY_COPY(%s)" % context.getConstantCode(constant)
         ref_count = 1
     else:
         code = context.getConstantCode(constant=constant)
@@ -1119,12 +1116,8 @@ def getConstantsDefinitionCode(context):
         sys_exec_prefix = context.getConstantCode(sys.exec_prefix)
 
         if python_version >= 300:
-            sys_base_prefix = context.getConstantCode(
-                sys.base_prefix  # @UndefinedVariable
-            )
-            sys_base_exec_prefix = context.getConstantCode(
-                sys.base_exec_prefix  # @UndefinedVariable
-            )
+            sys_base_prefix = context.getConstantCode(sys.base_prefix)
+            sys_base_exec_prefix = context.getConstantCode(sys.base_exec_prefix)
 
     major, minor, micro = getNuitkaVersion().split(".")[:3]
 

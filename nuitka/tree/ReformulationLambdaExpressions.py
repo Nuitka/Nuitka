@@ -26,7 +26,7 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable,
 )
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNot
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
 from nuitka.nodes.FrameNodes import StatementsFrameFunction, StatementsFrameGenerator
@@ -81,7 +81,8 @@ def buildLambdaNode(provider, node, source_ref):
             provider=function_body,
             name="<lambda>",
             code_object=code_object,
-            flags=set(),
+            flags=None,
+            auto_release=None,
             source_ref=source_ref,
         )
         code_body.qualname_provider = provider
@@ -119,7 +120,7 @@ def buildLambdaNode(provider, node, source_ref):
                     variable=tmp_return_value, source=body, source_ref=source_ref
                 ),
                 makeStatementConditional(
-                    condition=ExpressionComparisonIsNOT(
+                    condition=ExpressionComparisonIsNot(
                         left=ExpressionTempVariableRef(
                             variable=tmp_return_value, source_ref=source_ref
                         ),

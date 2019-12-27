@@ -91,32 +91,23 @@ def _getPythonSconsExePathWindows():
 
     # Windows only code, pylint: disable=I0021,import-error,undefined-variable
     if python_version < 300:
-        import _winreg as winreg  # @UnresolvedImport @UnusedImport pylint: disable=I0021,import-error,no-name-in-module
+        import _winreg as winreg  # pylint: disable=I0021,import-error,no-name-in-module
     else:
-        import winreg  # @Reimport @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+        import winreg  # pylint: disable=I0021,import-error,no-name-in-module
 
     for search in scons_supported:
-        for hkey_branch in (
-            winreg.HKEY_LOCAL_MACHINE,  # @UndefinedVariable
-            winreg.HKEY_CURRENT_USER,  # @UndefinedVariable
-        ):
-            for arch_key in (
-                0,
-                winreg.KEY_WOW64_32KEY,  # @UndefinedVariable
-                winreg.KEY_WOW64_64KEY,  # @UndefinedVariable
-            ):  # @UndefinedVariable
+        for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+            for arch_key in (0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY):
                 try:
-                    key = winreg.OpenKey(  # @UndefinedVariable
+                    key = winreg.OpenKey(
                         hkey_branch,
                         r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
                         0,
-                        winreg.KEY_READ | arch_key,  # @UndefinedVariable
+                        winreg.KEY_READ | arch_key,
                     )
 
-                    return os.path.join(
-                        winreg.QueryValue(key, ""), "python.exe"  # @UndefinedVariable
-                    )
-                except WindowsError:  # @UndefinedVariable
+                    return os.path.join(winreg.QueryValue(key, ""), "python.exe")
+                except WindowsError:
                     pass
 
 

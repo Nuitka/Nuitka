@@ -60,6 +60,8 @@ class ParameterSpec(object):
         "default_count",
         "kw_only_args",
         "kw_only_variables",
+        "pos_only_args",
+        "pos_only_variables",
     )
 
     @counted_init
@@ -67,6 +69,7 @@ class ParameterSpec(object):
         self,
         ps_name,
         ps_normal_args,
+        ps_pos_only_args,
         ps_kw_only_args,
         ps_list_star_arg,
         ps_dict_star_arg,
@@ -110,12 +113,16 @@ class ParameterSpec(object):
         self.kw_only_args = tuple(ps_kw_only_args)
         self.kw_only_variables = None
 
+        self.pos_only_args = tuple(ps_pos_only_args)
+        self.pos_only_variables = None
+
     __del__ = counted_del()
 
     def makeClone(self):
         return ParameterSpec(
             ps_name=self.name,
             ps_normal_args=self.normal_args,
+            ps_pos_only_args=self.pos_only_args,
             ps_kw_only_args=self.kw_only_args,
             ps_list_star_arg=self.list_star_arg,
             ps_dict_star_arg=self.dict_star_arg,
@@ -126,6 +133,7 @@ class ParameterSpec(object):
         return {
             "ps_name": self.name,
             "ps_normal_args": ",".join(self.normal_args),
+            "ps_pos_only_args": self.pos_only_args,
             "ps_kw_only_args": ",".join(self.kw_only_args),
             "ps_list_star_arg": self.list_star_arg
             if self.list_star_arg is not None
@@ -147,7 +155,11 @@ class ParameterSpec(object):
         return None
 
     def __repr__(self):
-        parts = [str(normal_arg) for normal_arg in self.normal_args]
+        parts = [str(normal_arg) for normal_arg in self.pos_only_args]
+        if parts:
+            parts.append("/")
+
+        parts += [str(normal_arg) for normal_arg in self.normal_args]
 
         if self.list_star_arg is not None:
             parts.append("*%s" % self.list_star_arg)
@@ -159,9 +171,6 @@ class ParameterSpec(object):
             return "<ParameterSpec '%s'>" % ",".join(parts)
         else:
             return "<NoParameters>"
-
-    def getArgumentCount(self):
-        return len(self.normal_args)
 
     def setOwner(self, owner):
         if self.owner is not None:
@@ -199,22 +208,23 @@ class ParameterSpec(object):
             for kw_only_arg in self.kw_only_args
         ]
 
+        self.pos_only_variables = [
+            Variables.ParameterVariable(owner=self.owner, parameter_name=pos_only_arg)
+            for pos_only_arg in self.pos_only_args
+        ]
+
     def getDefaultCount(self):
         return self.default_count
-
-    def getPositionalOnlyCount(self):
-        # Virtual method, pylint: disable=no-self-use
-        return 0
 
     def hasDefaultParameters(self):
         return self.getDefaultCount() > 0
 
     def getTopLevelVariables(self):
-        return self.normal_variables + self.kw_only_variables
+        return self.pos_only_variables + self.normal_variables + self.kw_only_variables
 
     def getAllVariables(self):
-        result = list(self.normal_variables)
-
+        result = list(self.pos_only_variables)
+        result += self.normal_variables
         result += self.kw_only_variables
 
         if self.list_star_variable is not None:
@@ -226,7 +236,7 @@ class ParameterSpec(object):
         return result
 
     def getParameterNames(self):
-        result = list(self.normal_args)
+        result = list(self.pos_only_args + self.normal_args)
 
         result += self.kw_only_args
 
@@ -261,23 +271,25 @@ class ParameterSpec(object):
         return "%s() takes no keyword arguments" % self.name
 
     def getArgumentNames(self):
-        return self.normal_args
+        return self.pos_only_args + self.normal_args
+
+    def getArgumentCount(self):
+        return len(self.normal_args) + len(self.pos_only_args)
 
     def getKwOnlyParameterNames(self):
         return self.kw_only_args
 
-    def getPosOnlyParameterCount(self):
-        # TODO: Add support for new Python3.8 feature, pylint: disable=no-self-use
-        return 0
-
     def getKwOnlyParameterCount(self):
         return len(self.kw_only_args)
 
+    def getPosOnlyParameterCount(self):
+        return len(self.pos_only_args)
 
-# Note: Based loosely on "inspect.getcallargs" with corrections.
+
 def matchCall(
     func_name,
     args,
+    kw_only_args,
     star_list_arg,
     star_dict_arg,
     num_defaults,
@@ -286,6 +298,25 @@ def matchCall(
     pairs,
     improved=False,
 ):
+    """ Match a call arguments to a signature.
+
+    Args:
+        func_name - Name of the function being matched, used to construct exception texts.
+        args - normal argument names
+        kw_only_args -  keyword only argument names (Python3)
+        star_list_arg - name of star list argument if any
+        star_dict_arg - name of star dict argument if any
+        num_defaults - amount of arguments that have default values
+        num_posonly - amount of arguments that must be given by position
+        positional - tuple of argument values given for simulated call
+        pairs - tuple of pairs arg argument name and argument values
+        improved - (bool) should we give better errors than CPython or not.
+    Returns:
+        Dictionary of argument name to value mappings
+    Notes:
+        Based loosely on "inspect.getcallargs" with corrections.
+    """
+
     # This is of incredible code complexity, but there really is no other way to
     # express this with less statements, branches, or variables.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
@@ -349,7 +380,7 @@ def matchCall(
     if python_version >= 300 and not star_dict_arg:
         for pair in pairs:
             try:
-                arg_index = args.index(pair[0])
+                arg_index = (args + kw_only_args).index(pair[0])
             except ValueError:
                 if improved or python_version >= 370:
                     message = "'%s' is an invalid keyword argument for %s()" % (
@@ -424,7 +455,7 @@ def matchCall(
 
     named_argument_names = [pair[0] for pair in pairs]
 
-    for arg in args:
+    for arg in args + kw_only_args:
         if type(arg) is str and arg in named_argument_names:
             if isAssigned(arg):
                 raise TooManyArguments(
@@ -448,7 +479,7 @@ def matchCall(
 
     # Fill in any missing values with the None to indicate "default".
     if num_defaults > 0:
-        for arg in args[-num_defaults:]:
+        for arg in (kw_only_args + args)[-num_defaults:]:
             if not isAssigned(arg):
                 assign(arg, None)
 
@@ -511,6 +542,25 @@ def matchCall(
                     else "exactly ",
                     "%d arguments" % num_required,
                     num_total,
+                )
+            )
+        )
+
+    unassigned = len(kw_only_args) - len(
+        [arg for arg in kw_only_args if isAssigned(arg)]
+    )
+    if unassigned:
+        raise TooManyArguments(
+            TypeError(
+                "%s missing %d required keyword-only argument%s: %s"
+                % (
+                    func_name,
+                    unassigned,
+                    "s" if unassigned > 1 else "",
+                    " and ".join(
+                        "'%s'"
+                        % [arg.getName() for arg in kw_only_args if not isAssigned(arg)]
+                    ),
                 )
             )
         )

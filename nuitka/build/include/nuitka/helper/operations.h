@@ -70,14 +70,26 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION(binary_api api, PyObject 
 
 // Generated helpers to execute operations on fully or partially known types.
 #include "nuitka/helper/operations_binary_add.h"
+#include "nuitka/helper/operations_binary_bitand.h"
+#include "nuitka/helper/operations_binary_bitor.h"
+#include "nuitka/helper/operations_binary_bitxor.h"
 #include "nuitka/helper/operations_binary_floordiv.h"
+#include "nuitka/helper/operations_binary_lshift.h"
+#include "nuitka/helper/operations_binary_mod.h"
 #include "nuitka/helper/operations_binary_mul.h"
+#include "nuitka/helper/operations_binary_pow.h"
+#include "nuitka/helper/operations_binary_rshift.h"
 #include "nuitka/helper/operations_binary_sub.h"
 #include "nuitka/helper/operations_binary_truediv.h"
 
 #if PYTHON_VERSION < 300
 // Classical division is Python2 only.
 #include "nuitka/helper/operations_binary_olddiv.h"
+#endif
+
+#if PYTHON_VERSION >= 350
+// Matrix multiplication is Python3.5 or higher only.
+#include "nuitka/helper/operations_binary_matmult.h"
 #endif
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_INPLACE(binary_api api, PyObject **operand1, PyObject *operand2) {
@@ -271,123 +283,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_DIV(PyObject *operand1, P
     return NULL;
 }
 #endif
-
-NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_REMAINDER(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_remainder;
-    }
-
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_remainder;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 300
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
-
-        if (unlikely(err < 0)) {
-            return NULL;
-        }
-
-        if (err == 0) {
-            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
-
-            if (mv) {
-                binaryfunc slot = mv->nb_remainder;
-
-                if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
-
-                    Py_DECREF(operand1);
-                    Py_DECREF(operand2);
-
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-            }
-
-            // CoerceEx did that
-            Py_DECREF(operand1);
-            Py_DECREF(operand2);
-        }
-    }
-#endif
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and '%s'", type1->tp_name, type2->tp_name);
-
-    return NULL;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION(PyObject *operand1, PyObject *operand2) {
-    PyObject *result = PyNumber_Power(operand1, operand2, Py_None);
-
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-    return result;
-}
 
 NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION2(PyObject *operand1, PyObject *operand2) {
     PyObject *result = PyNumber_InPlacePower(operand1, operand2, Py_None);

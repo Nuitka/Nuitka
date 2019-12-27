@@ -33,6 +33,8 @@ class StatementLoop(StatementChildHavingBase):
     kind = "STATEMENT_LOOP"
 
     named_child = "body"
+    getLoopBody = StatementChildHavingBase.childGetter("body")
+    setLoopBody = StatementChildHavingBase.childSetter("body")
 
     checker = checkStatementsSequenceOrNone
 
@@ -43,9 +45,6 @@ class StatementLoop(StatementChildHavingBase):
 
         self.loop_variables = None
         self.loop_memory = None
-
-    getLoopBody = StatementChildHavingBase.childGetter("body")
-    setLoopBody = StatementChildHavingBase.childSetter("body")
 
     def mayReturn(self):
         loop_body = self.getLoopBody()
@@ -194,8 +193,8 @@ class StatementLoop(StatementChildHavingBase):
 
                     if loop_end_traces:
                         loop_entry_trace.addLoopContinueTraces(loop_end_traces)
-                    else:
-                        loop_entry_trace.markLoopTraceComplete()
+
+                    loop_entry_trace.markLoopTraceComplete()
 
             # If we break, the outer collections becomes a merge of all those breaks
             # or just the one, if there is only one.

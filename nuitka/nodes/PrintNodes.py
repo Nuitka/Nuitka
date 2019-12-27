@@ -37,6 +37,9 @@ class StatementPrintValue(StatementChildrenHavingBase):
     kind = "STATEMENT_PRINT_VALUE"
 
     named_children = ("dest", "value")
+    getDestination = StatementChildrenHavingBase.childGetter("dest")
+    getValue = StatementChildrenHavingBase.childGetter("value")
+    setValue = StatementChildrenHavingBase.childSetter("value")
 
     def __init__(self, dest, value, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -44,11 +47,6 @@ class StatementPrintValue(StatementChildrenHavingBase):
         )
 
         assert value is not None
-
-    getDestination = StatementChildrenHavingBase.childGetter("dest")
-
-    getValue = StatementChildrenHavingBase.childGetter("value")
-    setValue = StatementChildrenHavingBase.childSetter("value")
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(expression=self.getDestination(), allow_none=True)
@@ -137,11 +135,10 @@ class StatementPrintNewline(StatementChildHavingBase):
     kind = "STATEMENT_PRINT_NEWLINE"
 
     named_child = "dest"
+    getDestination = StatementChildHavingBase.childGetter("dest")
 
     def __init__(self, dest, source_ref):
         StatementChildHavingBase.__init__(self, value=dest, source_ref=source_ref)
-
-    getDestination = StatementChildHavingBase.childGetter("dest")
 
     def computeStatement(self, trace_collection):
         # TODO: Reactivate below optimizations for prints.

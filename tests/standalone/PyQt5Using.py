@@ -21,8 +21,8 @@ from __future__ import print_function
 
 import sys
 
-from PyQt5.QtCore import QCoreApplication  # @UnresolvedImport
-from PyQt5.QtCore import QSettings  # @UnresolvedImport
+from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QSettings
 from PyQt5.QtCore import QMetaObject, QObject, pyqtSignal, pyqtSlot
 
 # This test is playing with configuration settings and checking that works.

@@ -34,13 +34,22 @@
 #include "HelpersPathTools.c"
 #include "HelpersStrings.c"
 
-void copyStringSafe(char *buffer, char *source, size_t buffer_size) {
-    if (strlen(source) >= buffer_size)
+void copyStringSafe(char *buffer, char const *source, size_t buffer_size) {
+    if (strlen(source) >= buffer_size) {
         abort();
+    }
     strcpy(buffer, source);
 }
 
-void appendStringSafe(char *buffer, char *source, size_t buffer_size) {
+void copyStringSafeN(char *buffer, char const *source, size_t n, size_t buffer_size) {
+    if (n >= buffer_size - 1) {
+        abort();
+    }
+    strncpy(buffer, source, n);
+    buffer[n] = 0;
+}
+
+void appendStringSafe(char *buffer, char const *source, size_t buffer_size) {
     if (strlen(source) + strlen(buffer) >= buffer_size)
         abort();
     strcat(buffer, source);
@@ -541,6 +550,43 @@ PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step) {
 #endif
 }
 
+PyObject *BUILTIN_ALL(PyObject *value) {
+    CHECK_OBJECT(value);
+
+    PyObject *it = PyObject_GetIter(value);
+
+    if (unlikely((it == NULL))) {
+        return NULL;
+    }
+
+    iternextfunc iternext = Py_TYPE(it)->tp_iternext;
+    for (;;) {
+        PyObject *item = iternext(it);
+
+        if (unlikely((item == NULL)))
+            break;
+        int cmp = PyObject_IsTrue(item);
+        Py_DECREF(item);
+        if (unlikely(cmp < 0)) {
+            Py_DECREF(it);
+            return NULL;
+        }
+        if (cmp == 0) {
+            Py_DECREF(it);
+            Py_INCREF(Py_False);
+            return Py_False;
+        }
+    }
+
+    Py_DECREF(it);
+    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED())) {
+        return NULL;
+    }
+
+    Py_INCREF(Py_True);
+    return Py_True;
+}
+
 PyObject *BUILTIN_LEN(PyObject *value) {
     CHECK_OBJECT(value);
 
@@ -588,6 +634,17 @@ PyObject *BUILTIN_ANY(PyObject *value) {
 
     Py_INCREF(Py_False);
     return Py_False;
+}
+
+PyObject *BUILTIN_ABS(PyObject *o) {
+    CHECK_OBJECT(o)
+
+    PyNumberMethods *m = o->ob_type->tp_as_number;
+    if (likely(m && m->nb_absolute)) {
+        return m->nb_absolute(o);
+    }
+
+    return PyErr_Format(PyExc_TypeError, "bad operand type for abs(): '%s'", Py_TYPE(o)->tp_name);
 }
 
 NUITKA_DEFINE_BUILTIN(format);
@@ -755,10 +812,14 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 }
 
 void PRINT_REFCOUNT(PyObject *object) {
-    char buffer[1024];
-    snprintf(buffer, sizeof(buffer) - 1, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT(object));
+    if (object) {
+        char buffer[1024];
+        snprintf(buffer, sizeof(buffer) - 1, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT(object));
 
-    PRINT_STRING(buffer);
+        PRINT_STRING(buffer);
+    } else {
+        PRINT_STRING("<null>");
+    }
 }
 
 bool PRINT_STRING(char const *str) {
@@ -767,6 +828,17 @@ bool PRINT_STRING(char const *str) {
     Py_DECREF(tmp);
 
     return res;
+}
+
+bool PRINT_FORMAT(char const *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    // Only used for debug purposes, lets be unsafe here.
+    char buffer[4096];
+
+    vsprintf(buffer, fmt, args);
+    return PRINT_STRING(buffer);
 }
 
 bool PRINT_REPR(PyObject *object) {
@@ -816,12 +888,14 @@ void PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyObje
 void PRINT_CURRENT_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
+    PRINT_STRING("current_exc=");
     PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
 }
 
 void PRINT_PUBLISHED_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
+    PRINT_STRING("thread_exc=");
     PRINT_EXCEPTION(EXC_TYPE(tstate), EXC_VALUE(tstate), EXC_TRACEBACK(tstate));
 }
 
@@ -2031,9 +2105,18 @@ void _initSlotIternext() {
 #include "HelpersOperationBinaryMul.c"
 #include "HelpersOperationBinarySub.c"
 #include "HelpersOperationBinaryTruediv.c"
-
 #if PYTHON_VERSION < 300
 #include "HelpersOperationBinaryOlddiv.c"
+#endif
+#include "HelpersOperationBinaryBitand.c"
+#include "HelpersOperationBinaryBitor.c"
+#include "HelpersOperationBinaryBitxor.c"
+#include "HelpersOperationBinaryLshift.c"
+#include "HelpersOperationBinaryMod.c"
+#include "HelpersOperationBinaryPow.c"
+#include "HelpersOperationBinaryRshift.c"
+#if PYTHON_VERSION >= 350
+#include "HelpersOperationBinaryMatmult.c"
 #endif
 
 #include "HelpersOperationBinaryInplaceAdd.c"

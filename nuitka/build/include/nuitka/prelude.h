@@ -168,32 +168,6 @@
 #define NUITKA_MODULE_ENTRY_FUNCTION PyObject *
 #endif
 
-#if defined(_NUITKA_EXE)
-
-#if PYTHON_VERSION < 300
-#define NUITKA_MODULE_INIT_FUNCTION void
-#else
-#define NUITKA_MODULE_INIT_FUNCTION PyObject *
-#endif
-
-#elif defined(__GNUC__)
-
-#if PYTHON_VERSION < 300
-#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility("default")))
-#else
-#ifdef __cplusplus
-#define NUITKA_MODULE_INIT_FUNCTION extern "C" __attribute__((visibility("default"))) PyObject *
-#else
-#define NUITKA_MODULE_INIT_FUNCTION __attribute__((visibility("default"))) PyObject *
-#endif
-#endif
-
-#else
-
-#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
-
-#endif
-
 /* Avoid gcc warnings about using an integer as a bool. This is a cherry-pick.
  *
  * This might apply to more versions. I am seeing this on 3.3.2, and it was
@@ -207,25 +181,6 @@
 
 #undef PyMem_REALLOC
 #define PyMem_REALLOC(p, n) ((size_t)(n) > (size_t)PY_SSIZE_T_MAX ? NULL : realloc((p), ((n) != 0) ? (n) : 1))
-
-#endif
-
-/* The name of the entry point for DLLs changed between CPython versions, and
- * this is here to hide that.
- */
-#if PYTHON_VERSION < 300
-
-#define MOD_INIT_NAME(name) init##name
-#define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION init##name(void)
-#define MOD_ENTRY_DECL(name) NUITKA_MODULE_ENTRY_FUNCTION init##name(void)
-#define MOD_RETURN_VALUE(value)
-
-#else
-
-#define MOD_INIT_NAME(name) PyInit_##name
-#define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION PyInit_##name(void)
-#define MOD_ENTRY_DECL(name) NUITKA_MODULE_ENTRY_FUNCTION PyInit_##name(void)
-#define MOD_RETURN_VALUE(value) value
 
 #endif
 
@@ -289,8 +244,9 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #endif
 
 /* Safe to use function to copy a string, will abort program for overflow. */
-extern void copyStringSafe(char *buffer, char *source, size_t buffer_size);
+extern void copyStringSafe(char *buffer, char const *source, size_t buffer_size);
+extern void copyStringSafeN(char *buffer, char const *source, size_t n, size_t buffer_size);
 /* Safe to use function to append a string, will abort program for overflow. */
-extern void appendStringSafe(char *buffer, char *source, size_t buffer_size);
+extern void appendStringSafe(char *buffer, char const *source, size_t buffer_size);
 
 #endif

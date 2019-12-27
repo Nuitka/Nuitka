@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import sys
 
+
 def someFunction():
     a = 2
     print("Simple assignment to variable:", a)
@@ -40,11 +41,11 @@ def someFunction():
     j = [h, i] = (7, 9)
     print("Complex Assignment from variable list:", j, type(j), h, i)
 
-    a, (b,c) = 1, (2,3)
+    a, (b, c) = 1, (2, 3)
     print("Assignment to nested tuples:", a, b, c)
 
     v = [1, 2, 3, 4]
-    v[2:3] = (8,9)
+    v[2:3] = (8, 9)
     print("Assignment to list slice", v)
 
 
@@ -61,12 +62,12 @@ def otherFunction():
 
     a, b, c = Iterable()
 
-    print("Assignments from iterable", a ,b ,c)
+    print("Assignments from iterable", a, b, c)
 
-    print("Assignments from too small iterable",end = ' ')
+    print("Assignments from too small iterable", end=" ")
 
     try:
-        f, g = 1,
+        f, g = (1,)
     except Exception as e:
         print("gave", type(e), repr(e))
 
@@ -80,7 +81,7 @@ def otherFunction():
         except UnboundLocalError:
             print("Variable g is untouched")
 
-    print("Assignments from too large iterable", end = ' ')
+    print("Assignments from too large iterable", end=" ")
 
     try:
         d, j = 1, 2, 3
@@ -101,6 +102,7 @@ def otherFunction():
         def __init__(self, n):
             self.n = n
             self.i = 0
+
         def __next__(self):
             res = self.i
             if res >= self.n:
@@ -109,12 +111,14 @@ def otherFunction():
             return res
 
         if sys.version_info[0] < 3:
+
             def next(self):
                 return self.__next__()
 
     class IteratingSequenceClass:
         def __init__(self, n):
             self.n = n
+
         def __iter__(self):
             return BasicIterClass(self.n)
 
@@ -127,11 +131,11 @@ def otherFunction():
 def anotherFunction():
     d = {}
 
-    print("Assignment to dictionary with comma subscript:", end = "")
+    print("Assignment to dictionary with comma subscript:", end="")
     # d[ "f" ] = 3
 
-    d['a', 'b'] = 6
-    d['c', 'b'] = 9
+    d["a", "b"] = 6
+    d["c", "b"] = 9
 
     print(sorted(d.items()))
 
@@ -145,14 +149,15 @@ def swapVariables():
 
     print(a, b)
 
+
 def interuptedUnpack():
     a = 1
     b = 2
 
-    print("Assignment from a too short tuple to multiple targets:", end = ' ')
+    print("Assignment from a too short tuple to multiple targets:", end=" ")
 
     try:
-        s = a,
+        s = (a,)
 
         c, d = s
     except ValueError as e:
@@ -174,14 +179,15 @@ def interuptedUnpack():
     except AttributeError:
         print("Interrupted unpack, leaves value assigned", a)
 
+
 def multiTargetInterrupt():
     a = 1
     b = 2
 
-    print("Multiple, overlapping targets", end = "")
+    print("Multiple, overlapping targets", end="")
 
-    d = c, d = a, b  # @UnusedVariable
-    print(d, c, end = "")
+    d = c, d = a, b
+    print(d, c, end="")
 
     del c
     del d
@@ -189,7 +195,7 @@ def multiTargetInterrupt():
     c, d = d = a, b
     print(d, c)
 
-    print("Error during multiple assignments", end = "")
+    print("Error during multiple assignments", end="")
 
     del c
     del d
@@ -205,7 +211,7 @@ def multiTargetInterrupt():
     del d
     e = 9
 
-    print("Error during multiple assignments", end = "")
+    print("Error during multiple assignments", end="")
 
     try:
         c, d = z.a, e = a, b
@@ -220,6 +226,7 @@ def optimizeableTargets():
 
     print("Optimizable slice operation, results in", a)
 
+
 def complexDel():
     a = b = c = d = 1
 
@@ -230,6 +237,7 @@ def complexDel():
     except UnboundLocalError as e:
         print("yes, del worked", repr(e))
 
+
 def sliceDel():
     # Python3 ranges are not lists.
     a = list(range(6))
@@ -237,6 +245,7 @@ def sliceDel():
     del a[2:4]
 
     print("Del slice operation, results in", a)
+
 
 def globalErrors():
     global unassigned_1, unassigned_2
@@ -246,7 +255,6 @@ def globalErrors():
     except NameError as e:
         print("Accessing unassigned global gives", repr(e))
 
-
     try:
         del unassigned_2
     except NameError as e:
@@ -254,7 +262,7 @@ def globalErrors():
 
 
 someFunction()
-varargsFunction(1,2,3,4)
+varargsFunction(1, 2, 3, 4)
 otherFunction()
 anotherFunction()
 swapVariables()

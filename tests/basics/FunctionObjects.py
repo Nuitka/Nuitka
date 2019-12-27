@@ -15,12 +15,17 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Test that covers attributes if function objects.
+
+"""
+
+
 from __future__ import print_function
 
-def func(arg1, arg2, arg3, **star):
+
+def func(_arg1, _arg2, _arg3, **_star):
     """ Some documentation. """
 
-    pass
 
 print("Starting out: func, __name__:", func, func.__name__)
 
@@ -29,12 +34,12 @@ func.__name__ = "renamed"
 
 print("With new name: func, __name__:", func, func.__name__)
 
-print("Documentation initially:",  func.__doc__)
+print("Documentation initially:", func.__doc__)
 
 print("Changing its doc:")
 func.__doc__ = "changed doc" + chr(0) + " with 0 character"
 
-print("Documentation updated:",  repr(func.__doc__))
+print("Documentation updated:", repr(func.__doc__))
 
 print("Setting its dict")
 func.my_value = "attached value"
@@ -43,9 +48,11 @@ print("Reading its dict", func.my_value)
 print("__code__ dir")
 print(dir(func.__code__))
 
-def func2(arg1, arg2 = "default_arg2", arg3 = "default_arg3"):
+
+def func2(_arg1, arg2="default_arg2", arg3="default_arg3"):
     x = arg2 + arg3
     return x
+
 
 print("func __defaults__", func2.__defaults__)
 

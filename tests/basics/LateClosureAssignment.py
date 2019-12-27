@@ -17,6 +17,7 @@
 #
 from __future__ import print_function
 
+
 def closureTest1():
     # Assign, but the value is not supposed to be used by the function, instead the later
     # update is effective.
@@ -25,7 +26,7 @@ def closureTest1():
     def subby():
         return d
 
-    d = 22222*2222
+    d = 22222 * 2222
 
     return subby()
 
@@ -37,20 +38,23 @@ def closureTest2():
     def subby():
         return d
 
-    d = 2222*2222
+    d = 2222 * 2222
 
     return subby()
 
+
 def closureTest3():
     def subby():
-        return undefined_global  # @UndefinedVariable
+        return undefined_global
 
     try:
         return subby()
     except NameError:
         return 88
 
+
 d = 1
+
 
 def scopeTest4():
     try:
@@ -72,6 +76,7 @@ print("Scope test where UnboundLocalError is expected:", scopeTest4())
 def function():
     pass
 
+
 class ClosureLocalizerClass:
     print("Function before assigned in a class:", function)
 
@@ -79,7 +84,9 @@ class ClosureLocalizerClass:
 
     print("Function after it was assigned in class:", function)
 
+
 ClosureLocalizerClass()
+
 
 def ClosureLocalizerFunction():
     try:
@@ -87,13 +94,19 @@ def ClosureLocalizerFunction():
 
         print("Function didn't give unbound local error")
     except UnboundLocalError as e:
-        print("Function gave unbound local error when accessing function before assignment:", repr(e))
+        print(
+            "Function gave unbound local error when accessing function before assignment:",
+            repr(e),
+        )
+
 
 ClosureLocalizerFunction()
+
 
 class X:
     def __init__(self, x):
         self.x = x
+
 
 def changingClosure():
     print("Changing a closure taken value after it was taken.")
@@ -104,9 +117,10 @@ def changingClosure():
         return X(a)
 
     x = closureTaker()
-    a=2
+    a = 2
     print("Closure value first time:", x.x)
     x = closureTaker()
     print("Closure value second time:", x.x)
+
 
 changingClosure()

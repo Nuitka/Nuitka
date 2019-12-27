@@ -1,26 +1,56 @@
 # Python project, check against all supported things.
 language: python
 
-python:
-#  - 2.6
-  - 2.7
-#  - 3.3
-  - 3.4
-  - 3.5
-  - 3.6
-
 matrix:
   include:
     - os: linux
+      python: 2.7
+      dist: xenial
+      sudo: required
+      env: PYTHON=python2.7
+      cache: ccache
+    - os: linux
+      python: 3.4
+      dist: xenial
+      sudo: required
+      env: PYTHON=python3.4
+      cache: ccache
+    - os: linux
+      python: 3.5
+      dist: xenial
+      sudo: required
+      env: PYTHON=python3.5
+      cache: ccache
+    - os: linux
+      python: 3.6
+      dist: xenial
+      sudo: required
+      env: PYTHON=python3.6
+      cache: ccache
+    - os: linux
       python: 3.7
-      dist: xenial    # required for Python 3.7 (travis-ci/travis-ci#9069)
-      sudo: required  # required for Python 3.7 (travis-ci/travis-ci#9069)
+      dist: xenial
+      sudo: required
+      env: PYTHON=python3.7
+      cache: ccache
     - os: osx
       osx_image: xcode11
       language: shell
       before_install:
       - brew update -q
       - brew outdated python || brew upgrade python
+      - brew install ccache
+      - export PATH="/usr/local/opt/ccache/libexec:$PATH"
+      env: PYTHON=python
+    - os: osx
+      osx_image: xcode11
+      language: shell
+      before_install:
+      - brew update -q
+      - brew outdated python@3 || brew upgrade python@3
+      - brew install ccache
+      - export PATH="/usr/local/opt/ccache/libexec:$PATH"
+      env: PYTHON=python3
 
 # disable submodules from git
 git:
@@ -28,11 +58,13 @@ git:
 # commands to install dependencies
 install:
   - 'if [ -x "$(command -v apt-get)" ]; then sudo apt-get install scons chrpath; fi'
-  # This will install PyLint but not where it does not work. It will fail
-  # to install 2.6 and be buggy for 3.3
   - "pip install -r requirements-devel.txt"
   - "pip install ."
 # commands to run tests
 script:
-  - ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
-  - ./bin/check-nuitka-with-pylint --not-installed-is-no-error
+  - '$PYTHON -m nuitka --version'
+  - 'env | sort'
+  - '$PYTHON ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests'
+  - 'if [ "$TRAVIS_PYTHON_VERSION" = "3.7" ]; then ./bin/check-nuitka-with-restlint; fi'
+  - 'if [ "$TRAVIS_PYTHON_VERSION" = "3.7" ]; then ./bin/check-nuitka-with-codespell; fi'
+  - 'if [ "$TRAVIS_PYTHON_VERSION" = "3.7" ] || [ "$TRAVIS_PYTHON_VERSION" = "2.7" ]; then ./bin/check-nuitka-with-pylint; fi'

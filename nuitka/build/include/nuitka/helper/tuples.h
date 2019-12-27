@@ -51,4 +51,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_CONCAT(PyObject *t1, PyObject *t2) {
     return (PyObject *)result;
 }
 
+#define PyTuple_SET_ITEM0(tuple, index, value)                                                                         \
+    {                                                                                                                  \
+        PyObject *tmp = value;                                                                                         \
+        Py_INCREF(tmp);                                                                                                \
+        PyTuple_SET_ITEM(tuple, index, tmp);                                                                           \
+    }
+
 #endif

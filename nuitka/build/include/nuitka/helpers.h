@@ -38,14 +38,27 @@ extern PyObject *const_int_pos_1;
 // structure is normally private, but we need it for quick access to the module
 // dictionary.
 typedef struct {
-    PyObject_HEAD PyObject *md_dict;
+    /* Python object folklore: */
+    PyObject_HEAD;
+
+    PyObject *md_dict;
 } PyModuleObject;
+
+// Generated code helpers, used in static helper codes:
+extern PyObject *CALL_FUNCTION_WITH_ARGS1(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject **args);
 
 // Most fundamental, because we use it for debugging in everything else.
 #include "nuitka/helper/printing.h"
 
 // Helper to check that an object is valid and has positive reference count.
-#define CHECK_OBJECT(value) (assert(value != NULL), assert(Py_REFCNT(value) > 0));
+#define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0));
+#define CHECK_OBJECT_X(value) (assert((value) == NULL || Py_REFCNT(value) > 0));
+
+extern void CHECK_OBJECT_DEEP(PyObject *value);
 
 #include "nuitka/exceptions.h"
 
@@ -67,6 +80,7 @@ extern void stopProfiling(void);
 #include "nuitka/helper/boolean.h"
 #include "nuitka/helper/dictionaries.h"
 #include "nuitka/helper/mappings.h"
+#include "nuitka/helper/sets.h"
 
 #include "nuitka/helper/raising.h"
 
@@ -253,6 +267,9 @@ extern PyObject *BUILTIN_ANY(PyObject *value);
 // For built-in built-in super() functionality.
 extern PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object);
 
+// For built-in built-in all() functionality.
+extern PyObject *BUILTIN_ALL(PyObject *value);
+
 // The patched isinstance() functionality used for the built-in.
 extern int Nuitka_IsInstance(PyObject *inst, PyObject *cls);
 
@@ -272,6 +289,9 @@ extern PyObject *BUILTIN_HASH(PyObject *value);
 // For built-in sum() functionality.
 extern PyObject *BUILTIN_SUM1(PyObject *sequence);
 extern PyObject *BUILTIN_SUM2(PyObject *sequence, PyObject *start);
+
+// For built-in built-in abs() functionality.
+extern PyObject *BUILTIN_ABS(PyObject *o);
 
 // For built-in bytes() functionality.
 #if PYTHON_VERSION >= 300

@@ -33,7 +33,7 @@ from .NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
     wrapStatementWithSideEffects,
 )
-from .OperatorNodes import ExpressionOperationNOT
+from .OperatorNodes import ExpressionOperationNot
 from .StatementNodes import StatementsSequence
 
 
@@ -41,6 +41,9 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CONDITIONAL"
 
     named_children = ("condition", "expression_yes", "expression_no")
+    getCondition = ExpressionChildrenHavingBase.childGetter("condition")
+    getExpressionYes = ExpressionChildrenHavingBase.childGetter("expression_yes")
+    getExpressionNo = ExpressionChildrenHavingBase.childGetter("expression_no")
 
     def __init__(self, condition, expression_yes, expression_no, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -55,11 +58,6 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
 
     def getBranches(self):
         return (self.getExpressionYes(), self.getExpressionNo())
-
-    getExpressionYes = ExpressionChildrenHavingBase.childGetter("expression_yes")
-    getExpressionNo = ExpressionChildrenHavingBase.childGetter("expression_no")
-
-    getCondition = ExpressionChildrenHavingBase.childGetter("condition")
 
     def computeExpressionRaw(self, trace_collection):
         # This is rather complex stuff, pylint: disable=too-many-branches
@@ -236,14 +234,13 @@ Convert conditional expression with unused result into conditional statement."""
 
 class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
     named_children = ("left", "right")
+    getLeft = ExpressionChildrenHavingBase.childGetter("left")
+    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     def __init__(self, left, right, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self, values={"left": left, "right": right}, source_ref=source_ref
         )
-
-    getLeft = ExpressionChildrenHavingBase.childGetter("left")
-    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     def computeExpressionRaw(self, trace_collection):
         # Query the truth value after the expression is evaluated, once it is
@@ -353,7 +350,7 @@ branches."""
         return False
 
 
-class ExpressionConditionalOR(ExpressionConditionalBoolBase):
+class ExpressionConditionalOr(ExpressionConditionalBoolBase):
     kind = "EXPRESSION_CONDITIONAL_OR"
 
     def __init__(self, left, right, source_ref):
@@ -383,7 +380,7 @@ Convert conditional 'or' expression with unused result into conditional statemen
         )
 
 
-class ExpressionConditionalAND(ExpressionConditionalBoolBase):
+class ExpressionConditionalAnd(ExpressionConditionalBoolBase):
     kind = "EXPRESSION_CONDITIONAL_AND"
 
     def __init__(self, left, right, source_ref):
@@ -417,6 +414,11 @@ class StatementConditional(StatementChildrenHavingBase):
     kind = "STATEMENT_CONDITIONAL"
 
     named_children = ("condition", "yes_branch", "no_branch")
+    getCondition = StatementChildrenHavingBase.childGetter("condition")
+    getBranchYes = StatementChildrenHavingBase.childGetter("yes_branch")
+    setBranchYes = StatementChildrenHavingBase.childSetter("yes_branch")
+    getBranchNo = StatementChildrenHavingBase.childGetter("no_branch")
+    setBranchNo = StatementChildrenHavingBase.childSetter("no_branch")
 
     checkers = {
         "yes_branch": checkStatementsSequenceOrNone,
@@ -433,12 +435,6 @@ class StatementConditional(StatementChildrenHavingBase):
             },
             source_ref=source_ref,
         )
-
-    getCondition = StatementChildrenHavingBase.childGetter("condition")
-    getBranchYes = StatementChildrenHavingBase.childGetter("yes_branch")
-    setBranchYes = StatementChildrenHavingBase.childSetter("yes_branch")
-    getBranchNo = StatementChildrenHavingBase.childGetter("no_branch")
-    setBranchNo = StatementChildrenHavingBase.childSetter("no_branch")
 
     def isStatementAborting(self):
         yes_branch = self.getBranchYes()
@@ -694,7 +690,7 @@ Condition for branch statement was predicted to be always %s."""
             assert no_branch is not None
 
             new_statement = makeStatementConditional(
-                condition=ExpressionOperationNOT(
+                condition=ExpressionOperationNot(
                     operand=condition, source_ref=condition.getSourceReference()
                 ),
                 yes_branch=no_branch,
@@ -763,7 +759,7 @@ def makeStatementConditional(condition, yes_branch, no_branch, source_ref):
     """
 
     if yes_branch is None:
-        condition = ExpressionOperationNOT(
+        condition = ExpressionOperationNot(
             operand=condition, source_ref=condition.getSourceReference()
         )
 

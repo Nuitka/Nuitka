@@ -40,7 +40,7 @@ def generateReturnCode(statement, emit, context):
         return_value_name = context.getReturnValueName()
 
         if context.getReturnReleaseMode():
-            emit("Py_DECREF( %s );" % return_value_name)
+            emit("Py_DECREF(%s);" % return_value_name)
 
         generateExpressionCode(
             to_name=return_value_name,
@@ -52,7 +52,7 @@ def generateReturnCode(statement, emit, context):
         if context.needsCleanup(return_value_name):
             context.removeCleanupTempName(return_value_name)
         else:
-            emit("Py_INCREF( %s );" % return_value_name)
+            emit("Py_INCREF(%s);" % return_value_name)
 
     getGotoCode(label=context.getReturnTarget(), emit=emit)
 
@@ -63,7 +63,7 @@ def generateReturnConstantCode(statement, emit, context):
     return_value_name = context.getReturnValueName()
 
     if context.getReturnReleaseMode():
-        emit("Py_DECREF( %s );" % return_value_name)
+        emit("Py_DECREF(%s);" % return_value_name)
 
     getConstantAccess(
         to_name=return_value_name,
@@ -75,7 +75,7 @@ def generateReturnConstantCode(statement, emit, context):
     if context.needsCleanup(return_value_name):
         context.removeCleanupTempName(return_value_name)
     else:
-        emit("Py_INCREF( %s );" % return_value_name)
+        emit("Py_INCREF(%s);" % return_value_name)
 
     getGotoCode(label=context.getReturnTarget(), emit=emit)
 
@@ -98,7 +98,7 @@ def generateGeneratorReturnValueCode(statement, emit, context):
         expression = statement.getExpression()
 
         if context.getReturnReleaseMode():
-            emit("Py_DECREF( %s );" % return_value_name)
+            emit("Py_DECREF(%s);" % return_value_name)
 
         generateExpressionCode(
             to_name=return_value_name, expression=expression, emit=emit, context=context
@@ -107,7 +107,7 @@ def generateGeneratorReturnValueCode(statement, emit, context):
         if context.needsCleanup(return_value_name):
             context.removeCleanupTempName(return_value_name)
         else:
-            emit("Py_INCREF( %s );" % return_value_name)
+            emit("Py_INCREF(%s);" % return_value_name)
     elif statement.getParentVariableProvider().needsGeneratorReturnHandling():
         return_value_name = context.getGeneratorReturnValueName()
 
@@ -127,7 +127,7 @@ def generateGeneratorReturnNoneCode(statement, emit, context):
         return_value_name = context.getGeneratorReturnValueName()
 
         if context.getReturnReleaseMode():
-            emit("Py_DECREF( %s );" % return_value_name)
+            emit("Py_DECREF(%s);" % return_value_name)
 
         getConstantAccess(
             to_name=return_value_name, constant=None, emit=emit, context=context
@@ -136,7 +136,7 @@ def generateGeneratorReturnNoneCode(statement, emit, context):
         if context.needsCleanup(return_value_name):
             context.removeCleanupTempName(return_value_name)
         else:
-            emit("Py_INCREF( %s );" % return_value_name)
+            emit("Py_INCREF(%s);" % return_value_name)
     elif statement.getParentVariableProvider().needsGeneratorReturnHandling():
         return_value_name = context.getGeneratorReturnValueName()
 

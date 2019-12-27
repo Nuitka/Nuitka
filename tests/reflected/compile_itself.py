@@ -123,7 +123,10 @@ def diffRecursive(dir1, dir2):
 
             if diff_list:
                 for line in diff_list:
-                    my_print(line)
+                    try:
+                        my_print(line)
+                    except UnicodeEncodeError:
+                        my_print(repr(line))
 
                 result = True
         else:
@@ -279,7 +282,11 @@ def compileAndCompareWith(nuitka):
 
                 # TODO: Temporary, until we have something better than marshal which behaves
                 # differently in compiled Nuitka:
-                if has_diff and filename not in ("Contexts.py", "Whitelisting.py"):
+                if has_diff and filename not in (
+                    "Contexts.py",
+                    "Whitelisting.py",
+                    "ImplicitImports.py",
+                ):
                     sys.exit("There were differences!")
 
                 shutil.rmtree(target_dir)

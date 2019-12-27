@@ -17,6 +17,10 @@
 #     limitations under the License.
 #
 
+""" Launcher for git hook installer tool.
+
+"""
+
 import sys
 import os
 
@@ -26,7 +30,6 @@ sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), ".."
 
 # isort:start
 
-import pipes
 import stat
 
 from nuitka.tools.Basics import goHome

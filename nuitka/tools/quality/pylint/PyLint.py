@@ -71,11 +71,11 @@ def checkVersion():
 # I0012: Locally enabling W....
 # Sure, we disabled it for a block, and re-enabled it then.
 #
-# C0326: No space allowed...
+# bad-whitespace: No space allowed...
 # Our spaces before keyword argument calls are not allowed, and this is
 # not possible to distinguish.
 #
-# C0330: Wrong hanging line indentation
+# bad-continuation: Wrong hanging line indentation
 # No it's not wrong.
 #
 # E1120 / E1123: ....
@@ -101,7 +101,7 @@ def checkVersion():
 # There is no harm to this and imports are deal with by "isort" binary.
 #
 # R0204: Redefinition of var type from x to y
-# I do this all the time, e.g. to convert "str" to "unicode", or "list" to "str".
+# We do this all the time, e.g. to convert "str" to "unicode", or "list" to "str".
 #
 # R1705: Unnecessary "else" after "return"
 # Frequently we use multiple branches where each returns.
@@ -131,7 +131,7 @@ def getOptions():
 
     default_pylint_options = """\
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
---disable=I0011,I0012,no-init,C0326,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,\
+--disable=I0011,I0012,no-init,bad-whitespace,bad-continuation,E1103,W0632,W1504,C0123,C0411,C0413,R0204,\
 similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
@@ -181,6 +181,13 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
             "\n"
         )
 
+    if pylint_version >= "2.4":
+        default_pylint_options += """\
+--disable=import-outside-toplevel\
+""".split(
+            "\n"
+        )
+
     if os.name != "nt":
         default_pylint_options.append("--rcfile=%s" % os.devnull)
 
@@ -202,9 +209,10 @@ def _cleanupPylintOutput(output):
     lines = [
         line
         for line in lines
+        if line
         if "Using config file" not in line
         if "Unable to import 'resource'" not in line
-        if line
+        if "Bad option value 'self-assigning-variable'" not in line
     ]
 
     try:

@@ -21,6 +21,12 @@
  * SLOT_nb_multiply_LONG_INT that is optimal too.
  */
 
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 #include "longintrepr.h"
 
 static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {

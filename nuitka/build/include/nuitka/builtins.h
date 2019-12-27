@@ -18,8 +18,6 @@
 #ifndef __NUITKA_BUILTINS_H__
 #define __NUITKA_BUILTINS_H__
 
-#include "__helpers.h"
-
 extern PyModuleObject *builtin_module;
 extern PyDictObject *dict_builtin;
 

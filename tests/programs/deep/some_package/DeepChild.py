@@ -17,9 +17,11 @@
 #
 from __future__ import print_function
 
-print( "Importing child." )
+print("Importing child.")
+
 
 class A:
     pass
+
 
 print("Class defined here, has these vars", vars(A))

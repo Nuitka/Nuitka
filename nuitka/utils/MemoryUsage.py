@@ -60,7 +60,7 @@ def getOwnProcessMemoryUsage():
 
         counters = PROCESS_MEMORY_COUNTERS_EX()
         rv = GetProcessMemoryInfo(
-            ctypes.windll.kernel32.GetCurrentProcess(),  # @UndefinedVariable
+            ctypes.windll.kernel32.GetCurrentProcess(),
             ctypes.byref(counters),
             ctypes.sizeof(counters),
         )
@@ -70,7 +70,7 @@ def getOwnProcessMemoryUsage():
 
         return counters.PrivateUsage
     else:
-        import resource  # Posix only code, @UnresolvedImport pylint: disable=I0021,import-error
+        import resource  # Posix only code, pylint: disable=I0021,import-error
 
         # The value is from "getrusage", which has OS dependent scaling, at least
         # macOS and Linux are different. Others maybe too.
@@ -110,7 +110,7 @@ class MemoryWatch(object):
 
 def startMemoryTracing():
     try:
-        import tracemalloc  # @UnresolvedImport
+        import tracemalloc
     except ImportError:
         pass
     else:
@@ -119,7 +119,7 @@ def startMemoryTracing():
 
 def showMemoryTrace():
     try:
-        import tracemalloc  # @UnresolvedImport
+        import tracemalloc
     except ImportError:
         pass
     else:

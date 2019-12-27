@@ -40,6 +40,20 @@ class StatementTry(StatementChildrenHavingBase):
         "continue_handler",
         "return_handler",
     )
+    getBlockTry = StatementChildrenHavingBase.childGetter("tried")
+    setBlockTry = StatementChildrenHavingBase.childSetter("tried")
+    getBlockExceptHandler = StatementChildrenHavingBase.childGetter("except_handler")
+    setBlockExceptHandler = StatementChildrenHavingBase.childSetter("except_handler")
+    getBlockBreakHandler = StatementChildrenHavingBase.childGetter("break_handler")
+    setBlockBreakHandler = StatementChildrenHavingBase.childSetter("break_handler")
+    getBlockContinueHandler = StatementChildrenHavingBase.childGetter(
+        "continue_handler"
+    )
+    setBlockContinueHandler = StatementChildrenHavingBase.childSetter(
+        "continue_handler"
+    )
+    getBlockReturnHandler = StatementChildrenHavingBase.childGetter("return_handler")
+    setBlockReturnHandler = StatementChildrenHavingBase.childSetter("return_handler")
 
     checkers = {
         "tried": checkStatementsSequence,
@@ -69,25 +83,6 @@ class StatementTry(StatementChildrenHavingBase):
             },
             source_ref=source_ref,
         )
-
-    getBlockTry = StatementChildrenHavingBase.childGetter("tried")
-    setBlockTry = StatementChildrenHavingBase.childSetter("tried")
-
-    getBlockExceptHandler = StatementChildrenHavingBase.childGetter("except_handler")
-    setBlockExceptHandler = StatementChildrenHavingBase.childSetter("except_handler")
-
-    getBlockBreakHandler = StatementChildrenHavingBase.childGetter("break_handler")
-    setBlockBreakHandler = StatementChildrenHavingBase.childSetter("break_handler")
-
-    getBlockContinueHandler = StatementChildrenHavingBase.childGetter(
-        "continue_handler"
-    )
-    setBlockContinueHandler = StatementChildrenHavingBase.childSetter(
-        "continue_handler"
-    )
-
-    getBlockReturnHandler = StatementChildrenHavingBase.childGetter("return_handler")
-    setBlockReturnHandler = StatementChildrenHavingBase.childSetter("return_handler")
 
     def computeStatement(self, trace_collection):
         # This node has many children to handle, pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
@@ -132,12 +127,17 @@ class StatementTry(StatementChildrenHavingBase):
 
         tried_may_raise = tried.mayRaiseException(BaseException)
         # Exception handling is useless if no exception is to be raised.
-        # TODO: signal the change.
         if not tried_may_raise:
             if except_handler is not None:
                 except_handler.finalize()
 
                 self.setBlockExceptHandler(None)
+                trace_collection.signalChange(
+                    tags="new_statements",
+                    message="Removed useless exception handler.",
+                    source_ref=except_handler.source_ref,
+                )
+
                 except_handler = None
 
         # If tried may raise, even empty exception handler has a meaning to

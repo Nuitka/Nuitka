@@ -22,34 +22,32 @@ import sys
 
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
-sys.path.insert(
-    0,
-    os.path.normpath(
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-        )
-    )
-)
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
+
+# isort:start
 
 import shutil
-import subprocess
 from optparse import OptionParser
 
-from nuitka.tools.release.Release import checkAtHome, checkBranchName
 from nuitka.tools.release.Debian import checkChangeLog
 from nuitka.tools.release.Documentation import createReleaseDocumentation
+from nuitka.tools.release.Release import (
+    checkAtHome,
+    checkBranchName,
+    checkNuitkaChangelog,
+)
+from nuitka.Version import getNuitkaVersion
 
 parser = OptionParser()
 
 parser.add_option(
     "--use-as-ds-source",
-    action  = "store",
-    dest    = "ds_source",
-    default = None,
-    help    = """\
+    action="store",
+    dest="ds_source",
+    default=None,
+    help="""\
 When given, use this as the source for the Debian package instead. Default \
-%default."""
+%default.""",
 )
 
 options, positional_args = parser.parse_args()
@@ -58,17 +56,17 @@ assert not positional_args, positional_args
 
 checkAtHome()
 
-from nuitka.Version import getNuitkaVersion
 nuitka_version = getNuitkaVersion()
 
 branch_name = checkBranchName()
 
-from nuitka.tools.release.Release import checkNuitkaChangelog
 
-if branch_name.startswith("release") or \
-   branch_name == "master" or \
-   branch_name.startswith("hotfix/"):
-    if nuitka_version.count('.') == 2:
+if (
+    branch_name.startswith("release")
+    or branch_name == "master"
+    or branch_name.startswith("hotfix/")
+):
+    if nuitka_version.count(".") == 2:
         assert checkChangeLog("New upstream release.")
     else:
         assert checkChangeLog("New upstream hotfix release.")
@@ -78,8 +76,8 @@ else:
     assert checkChangeLog("New upstream pre-release."), branch_name
     assert checkNuitkaChangelog() == "draft", checkNuitkaChangelog()
 
-shutil.rmtree("dist", ignore_errors = True)
-shutil.rmtree("build", ignore_errors = True)
+shutil.rmtree("dist", ignore_errors=True)
+shutil.rmtree("build", ignore_errors=True)
 
 createReleaseDocumentation()
 assert 0 == os.system("python setup.py sdist --formats=bztar,gztar,zip")
@@ -101,16 +99,17 @@ if os.path.exists("deb_dist"):
 
 # Then run "py2dsc" on it.
 
-for filename in os.listdir('.'):
+for filename in os.listdir("."):
     if filename.endswith(".tar.gz"):
         new_name = filename[:-7] + "+ds.tar.gz"
 
         shutil.copy(filename, new_name)
         assert 0 == os.system("gunzip " + new_name)
         assert 0 == os.system(
-            "tar --wildcards --delete --file " + new_name[:-3] + \
-            " Nuitka*/*.pdf" + \
-            " Nuitka*/build/inline_copy"
+            "tar --wildcards --delete --file "
+            + new_name[:-3]
+            + " Nuitka*/*.pdf"
+            + " Nuitka*/build/inline_copy"
         )
         assert 0 == os.system("gzip -9 -n " + new_name[:-3])
 
@@ -118,25 +117,24 @@ for filename in os.listdir('.'):
 
         # Fixup for py2dsc not taking our custom suffix into account, so we need
         # to rename it ourselves.
-        before_deb_name = filename[:-7].lower().replace('-', '_')
+        before_deb_name = filename[:-7].lower().replace("-", "_")
         after_deb_name = before_deb_name.replace("rc", "~rc")
 
         assert 0 == os.system(
-            "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'" % (
-                before_deb_name, after_deb_name
-            )
+            "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'"
+            % (before_deb_name, after_deb_name)
         )
 
-        assert 0 == os.system(
-            "rm -f deb_dist/*_source*"
-        )
+        assert 0 == os.system("rm -f deb_dist/*_source*")
 
         # Remove the now useless input, py2dsc has copied it, and we don't
         # publish it.
         os.unlink(new_name)
 
         if options.ds_source is not None:
-            shutil.copyfile(options.ds_source, "deb_dist/%s+ds.orig.tar.gz" % after_deb_name)
+            shutil.copyfile(
+                options.ds_source, "deb_dist/%s+ds.orig.tar.gz" % after_deb_name
+            )
 
         break
 else:
@@ -145,10 +143,16 @@ else:
 os.chdir("deb_dist")
 
 # Assert that the unpacked directory is there and file it. Otherwise fail badly.
-for entry in os.listdir('.'):
-    if os.path.isdir(entry) and entry.startswith("nuitka") and not entry.endswith(".orig"):
+entry = None
+for entry in os.listdir("."):
+    if (
+        os.path.isdir(entry)
+        and entry.startswith("nuitka")
+        and not entry.endswith(".orig")
+    ):
         break
-else:
+
+if entry is None:
     assert False
 
 # Import the "debian" directory from above. It's not in the original tar and
@@ -172,9 +176,7 @@ assert os.path.exists("dist/deb_dist")
 
 # Check with pylint in pedantic mode and don't proceed if there were any
 # warnings given. Nuitka is lintian clean and shall remain that way.
-assert 0 == os.system(
-    "lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes"
-)
+assert 0 == os.system("lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes")
 
 os.system("cp dist/deb_dist/*.deb dist/")
 
@@ -191,6 +193,6 @@ for filename in os.listdir("dist"):
         )
 
 # Cleanup the build directory, not needed.
-shutil.rmtree("build", ignore_errors = True)
+shutil.rmtree("build", ignore_errors=True)
 
 print("Finished.")

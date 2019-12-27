@@ -28,6 +28,7 @@ from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils import Utils
+from nuitka.utils.ModuleNames import ModuleName
 
 
 class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
@@ -115,23 +116,20 @@ Monkey patching "multiprocessing" for compiled methods.""",
 
         # First, build the module node and then read again from the
         # source code.
-        module_name = "__parents_main__"
+        module_name = ModuleName("__parents_main__")
         source_ref = root_module.getSourceReference()
 
         mode = Plugins.decideCompilation(module_name, source_ref)
 
         slave_main_module = CompiledPythonModule(
-            name=module_name,
-            package_name=None,
+            module_name=module_name,
             is_top=False,
             mode=mode,
             future_spec=None,
             source_ref=root_module.getSourceReference(),
         )
 
-        source_code = readSourceCodeFromFilename(
-            "__parents_main__", root_module.getFilename()
-        )
+        source_code = readSourceCodeFromFilename(module_name, root_module.getFilename())
 
         # For the call stack, this may look bad or different to what
         # CPython does. Using the "__import__" built-in to not spoil
@@ -156,14 +154,8 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
         # This is an alternative entry point of course.
         addRootModule(slave_main_module)
 
-    def onModuleEncounter(
-        self, module_filename, module_name, module_package, module_kind
-    ):
-        if (
-            module_name == "multiprocessing"
-            and module_package is None
-            and not self.multiprocessing_added
-        ):
+    def onModuleEncounter(self, module_filename, module_name, module_kind):
+        if module_name == "multiprocessing" and not self.multiprocessing_added:
             self.multiprocessing_added = True
 
             from nuitka.ModuleRegistry import getRootModules
@@ -175,18 +167,11 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
             else:
                 assert False
 
-        if module_package is None:
-            if module_name == "multiprocessing":
-                return True, "Multiprocessing plugin needs this to monkey patch it."
-        elif module_package == "multiprocessing" or module_package.startswith(
-            "multiprocessing."
-        ):
+        if module_name.hasNamespace("multiprocessing"):
             return True, "Multiprocessing plugin needs this to monkey patch it."
 
     def decideCompilation(self, module_name, source_ref):
-        if module_name == "multiprocessing" or module_name.startswith(
-            "multiprocessing."
-        ):
+        if module_name.hasNamespace("multiprocessing"):
             return "bytecode"
 
         # TODO: Make this demotable too.
@@ -200,11 +185,9 @@ class NuitkaPluginDetectorMultiprocessingWorkarounds(NuitkaPluginBase):
     def isRelevant():
         return Utils.getOS() == "Windows" and not Options.shallMakeModule()
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def checkModuleSourceCode(self, module_name, source_code):
         if module_name == "__main__":
-            if "multiprocessing" in source_code and "freeze_support" in source_code:
+            if "multiprocessing" in source_code:
                 self.warnUnusedPlugin(
                     "Multiprocessing workarounds for compiled code on Windows."
                 )
-
-        return source_code

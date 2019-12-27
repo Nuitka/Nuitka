@@ -17,7 +17,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import Pmw  # @UnresolvedImport
+import Pmw
 
 # nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")
 # nuitka-skip-unless-imports: Pmw

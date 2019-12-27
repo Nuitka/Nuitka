@@ -56,11 +56,8 @@ from nuitka.tools.testing.Common import (
     reportSkip,
     setup,
 )
-from nuitka.utils.FileOperations import (
-    areSamePaths,
-    getFileContentByLine,
-    removeDirectory,
-)
+from nuitka.tree.SourceReading import readSourceCodeFromFilename
+from nuitka.utils.FileOperations import areSamePaths, removeDirectory
 from nuitka.utils.Utils import getOS
 
 
@@ -70,7 +67,7 @@ from nuitka.utils.Utils import getOS
 #       OR
 #     "# nuitka-skip-unless-imports: module1,module2,..."
 def checkRequirements(filename):
-    for line in getFileContentByLine(filename):
+    for line in readSourceCodeFromFilename(None, filename).splitlines():
         if line.startswith("# nuitka-skip-unless-"):
             if line[21:33] == "expression: ":
                 expression = line[33:]
@@ -104,7 +101,13 @@ def displayError(dirname, filename):
     assert dirname is None
 
     my_print("Listing of dist folder:")
-    os.system("ls -Rla %s" % filename[:-3] + ".dist")
+
+    if os.name == "nt":
+        command = "dir /b /s /a:-D %s"
+    else:
+        command = "ls -Rla %s"
+
+    os.system(command % filename)
 
 
 def main():
@@ -128,7 +131,13 @@ def main():
             my_print("Skipping", filename)
             continue
 
-        extra_flags = ["expect_success", "standalone", "remove_output"]
+        extra_flags = [
+            "expect_success",
+            "standalone",
+            "remove_output",
+            # For enum plugin info
+            "ignore_infos",
+        ]
 
         # skip each test if their respective requirements are not met
         requirements_met, error_message = checkRequirements(filename)
@@ -137,19 +146,19 @@ def main():
             continue
 
         # catch error
-        elif filename == "Boto3Using.py":
+        if filename == "Boto3Using.py":
             reportSkip("boto3 test not fully working yet", ".", filename)
             continue
 
-        elif "Idna" in filename:
+        if "Idna" in filename:
             # For the warnings of Python2.
             if python_version.startswith("2"):
                 extra_flags.append("ignore_stderr")
 
-        elif filename == "CtypesUsing.py":
+        if filename == "CtypesUsing.py":
             extra_flags.append("plugin_disable:pylint-warnings")
 
-        elif filename == "GtkUsing.py":
+        if filename == "GtkUsing.py":
             # Don't test on platforms not supported by current Debian testing, and
             # which should be considered irrelevant by now.
             if python_version.startswith("2.6"):
@@ -159,42 +168,48 @@ def main():
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
-        elif filename.startswith("Win"):
+        if filename.startswith("Win"):
             if os.name != "nt":
                 reportSkip("Windows only test", ".", filename)
                 continue
 
-        elif filename == "TkInterUsing.py":
+        if filename == "TkInterUsing.py":
             if getOS() == "Darwin":
                 reportSkip("Not working macOS yet", ".", filename)
                 continue
 
             # For the plug-in information.
-            extra_flags.append("ignore_infos")
             extra_flags.append("plugin_enable:tk-inter")
-        elif filename == "FlaskUsing.py":
+
+        if filename == "FlaskUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
-            # For enum plugin info
-            extra_flags.append("ignore_infos")
-        elif filename == "NumpyUsing.py":
+
+        if filename == "NumpyUsing.py":
             # TODO: Disabled for now.
             reportSkip("numpy.test not fully working yet", ".", filename)
             continue
 
             # extra_flags.append("plugin_enable:data-files")
-        elif filename == "PmwUsing.py":
+        if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
-        elif filename == "OpenGLUsing.py":
+
+        if filename == "OpenGLUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
-        elif filename == "PasslibUsing.py":
+
+        if filename == "PasslibUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
-        elif filename == "PySideUsing.py":
+
+        if filename == "PySideUsing.py":
             # TODO: Disabled due to lack of upstream support.
             reportSkip("PySide not supported yet", ".", filename)
             continue
+
+        if filename == "Win32ComUsing.py":
+            # For the warnings.
+            extra_flags.append("ignore_warnings")
 
         if filename.startswith(("PySide", "PyQt")):
             if python_version.startswith("2.6"):
@@ -202,13 +217,8 @@ def main():
                 continue
 
             # For the plug-in information.
-            extra_flags.append("ignore_infos")
-
-            if getPythonVendor() != "Anaconda" and (
-                "Plugins" in filename or "SSL" in filename
-            ):
+            if getPythonVendor() != "Anaconda":
                 extra_flags.append("plugin_enable:qt-plugins")
-                # extra_flags.append("ignore_infos")
             else:
                 # For the plug-in not used information.
                 extra_flags.append("ignore_warnings")
@@ -225,7 +235,7 @@ def main():
             on_error=displayError,
         )
 
-        # Second check if glibc libraries haven't been accidentaly
+        # Second check if glibc libraries haven't been accidentally
         # shipped with the standalone executable
         found_glibc_libs = []
         for dist_filename in os.listdir(os.path.join(filename[:-3] + ".dist")):
@@ -574,7 +584,11 @@ def main():
                 continue
 
             # macOS uses these:
-            if loaded_basename in ("libcrypto.1.0.0.dylib", "libssl.1.0.0.dylib"):
+            if loaded_basename in (
+                "libcrypto.1.0.0.dylib",
+                "libssl.1.0.0.dylib",
+                "libcrypto.1.1.dylib",
+            ):
                 continue
 
             # MSVC run time DLLs, seem to sometimes come from system.

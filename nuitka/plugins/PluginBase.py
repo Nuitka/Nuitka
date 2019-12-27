@@ -26,14 +26,15 @@ The base class will serve as documentation. And it will point to examples of
 it being used.
 """
 
-# This is heavily WIP.
+import os
 import sys
 from logging import info, warning
 
-from nuitka import Options
+from nuitka import Options, OutputDirectories
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.utils.FileOperations import relpath
+from nuitka.utils.ModuleNames import ModuleName
 
 pre_modules = {}
 post_modules = {}
@@ -170,14 +171,10 @@ class NuitkaPluginBase(object):
         from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 
         for full_name, required in self.getImplicitImports(module):
-            module_name = full_name.split(".")[-1]
-            module_package = ".".join(full_name.split(".")[:-1]) or None
+            full_name = ModuleName(full_name)
 
             module_filename = self.locateModule(
-                importing=module,
-                module_name=module_name,
-                module_package=module_package,
-                warn=required,
+                importing=module, module_name=full_name, warn=required
             )
 
             if module_filename is None:
@@ -197,14 +194,13 @@ class NuitkaPluginBase(object):
             # preempt or override the decision.
             decision, reason = self.decideRecursion(
                 module_filename=module_filename,
-                module_name=module_name,
-                module_package=module_package,
+                module_name=full_name,
                 module_kind=module_kind,
             )
 
             if decision:
                 self.recurseTo(
-                    module_package=module_package,
+                    module_package=full_name.getPackageName(),
                     module_filename=module_filename,
                     module_kind=module_kind,
                     reason=reason,
@@ -282,7 +278,7 @@ class NuitkaPluginBase(object):
         """ Inspect or modify frozen module source code.
 
         Args:
-            module_name: (str) name of module
+            module_name: (str) full name of module
             is_package: (bool) True indicates a package
             source_code: (str) its source code
         Returns:
@@ -316,6 +312,7 @@ class NuitkaPluginBase(object):
             module: the module object (serves as dict key)
             trigger_name: string ("-preload"/"-postload")
             code: the code string
+
         Returns
             trigger_module
         """
@@ -323,14 +320,13 @@ class NuitkaPluginBase(object):
         from nuitka.nodes.ModuleNodes import CompiledPythonModule
         from .Plugins import Plugins
 
-        module_name = module.getName() + trigger_name
+        module_name = ModuleName(module.getFullName() + trigger_name)
         source_ref = fromFilename(module.getCompileTimeFilename() + trigger_name)
 
         mode = Plugins.decideCompilation(module_name, source_ref)
 
         trigger_module = CompiledPythonModule(
-            name=module_name,
-            package_name=module.getPackage(),
+            module_name=module_name,
             is_top=False,
             mode=mode,
             future_spec=None,
@@ -346,6 +342,14 @@ class NuitkaPluginBase(object):
 
         if mode == "bytecode":
             trigger_module.setSourceCode(code)
+
+        if Options.isDebug():
+            source_path = os.path.join(
+                OutputDirectories.getSourceDirectoryPath(), module_name + ".py"
+            )
+
+            with open(source_path, "w") as output:
+                output.write(code)
 
         return trigger_module
 
@@ -425,15 +429,12 @@ class NuitkaPluginBase(object):
                 module=module, trigger_name="-postLoad", code=post_code
             )
 
-    def onModuleEncounter(
-        self, module_filename, module_name, module_package, module_kind
-    ):
+    def onModuleEncounter(self, module_filename, module_name, module_kind):
         """ Help decide whether to include a module.
 
         Args:
             module_filename: filename
-            module_name: module name
-            module_package: package name
+            module_name: full module name
             module_kind: one of "py", "shlib" (shared library)
         Returns:
             True or False
@@ -442,13 +443,12 @@ class NuitkaPluginBase(object):
         return None
 
     @staticmethod
-    def locateModule(importing, module_name, module_package, warn):
+    def locateModule(importing, module_name, warn):
         """ Provide a filename / -path for a to-be-imported module.
 
         Args:
             importing: module object
-            module_name: (str) name of module
-            module_package: (str) package name
+            module_name: (str or ModuleName) full name of module
             warn: (bool) True if required module
         Returns:
             filename for module
@@ -457,8 +457,8 @@ class NuitkaPluginBase(object):
 
         _module_package, module_filename, _finding = Importing.findModule(
             importing=importing,
-            module_name=module_name,
-            parent_package=module_package,
+            module_name=ModuleName(module_name),
+            parent_package=None,
             level=-1,
             warn=warn,
         )
@@ -466,13 +466,12 @@ class NuitkaPluginBase(object):
         return module_filename
 
     @staticmethod
-    def decideRecursion(module_filename, module_name, module_package, module_kind):
+    def decideRecursion(module_filename, module_name, module_kind):
         """ Decide whether Nuitka should recurse down to a given module.
 
         Args:
             module_filename: filename
-            module_name: module name
-            module_package: package name
+            module_name: full module name
             module_kind: one of "py" or "shlib" (shared library)
         Returns:
             (decision, reason) where decision is either a bool or None, and reason is a string message.
@@ -482,7 +481,6 @@ class NuitkaPluginBase(object):
         decision, reason = Recursion.decideRecursion(
             module_filename=module_filename,
             module_name=module_name,
-            module_package=module_package,
             module_kind=module_kind,
         )
 
@@ -603,6 +601,21 @@ class NuitkaPluginBase(object):
             "compiled" or "bytecode" or None (default)
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def getPreprocessorSymbols(self):
+        """ Decide which C defines to be used in compilation.
+
+        Notes:
+            The plugins can each contribute, but are hopefully using
+            a namespace for their defines.
+
+        Returns:
+            None for no defines, otherwise dictionary of key to be
+            defined, and non-None values if any, i.e. no "-Dkey" only
+        """
+
+        # Virtual method, pylint: disable=no-self-use
         return None
 
     def warnUnusedPlugin(self, message):

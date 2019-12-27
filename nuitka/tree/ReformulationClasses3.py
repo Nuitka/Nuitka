@@ -178,7 +178,7 @@ def buildClassNode3(provider, node, source_ref):
             provider=class_creation_function,
             variable_name="__module__",
             source=makeConstantRefNode(
-                constant=provider.getParentModule().getFullName(),
+                constant=provider.getParentModule().getFullName().asString(),
                 source_ref=source_ref,
                 user_provided=True,
             ),
@@ -631,6 +631,7 @@ def getClassBasesMroConversionHelper():
         parameters=ParameterSpec(
             ps_name=helper_name,
             ps_normal_args=("bases",),
+            ps_pos_only_args=(),
             ps_list_star_arg=None,
             ps_dict_star_arg=None,
             ps_default_count=0,

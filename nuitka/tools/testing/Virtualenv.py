@@ -30,7 +30,7 @@ from contextlib import contextmanager
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.utils.FileOperations import removeDirectory
 
-from .Common import withDirectoryChange
+from .Common import my_print, withDirectoryChange
 
 
 class Virtualenv(object):
@@ -48,18 +48,44 @@ class Virtualenv(object):
                 commands = [". bin/activate"] + commands
 
             command = " && ".join(commands)
-
             assert os.system(command) == 0, command
+
+    def runCommandWithOutput(self, commands, style=None):
+        """
+        Returns the stdout,stderr from process.communicate()
+        """
+        if type(commands) in (str, unicode):
+            commands = [commands]
+
+        with withDirectoryChange(self.env_dir):
+            if os.name == "nt":
+                commands = [r"call scripts\activate.bat"] + commands
+            else:
+                commands = [". bin/activate"] + commands
+
+            popen_arg = " && ".join(commands)
+
+            if style is not None:
+                my_print("Executing: %s" % popen_arg, style=style)
+
+            # Use subprocess and also return outputs, stdout, stderr, result
+            process = subprocess.Popen(
+                args=popen_arg,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                shell=True,
+            )
+            return process.communicate()
 
     def getVirtualenvDir(self):
         return self.env_dir
 
 
 @contextmanager
-def withVirtualenv(env_name, base_dir=None, python=None):
+def withVirtualenv(env_name, base_dir=None, python=None, delete=True, style=None):
     """ Create a virtualenv and change into it.
 
-        Activating it will be your task.
+        Activating for actual use will be your task.
     """
 
     print("Creating virtualenv for quick test:")
@@ -75,8 +101,12 @@ def withVirtualenv(env_name, base_dir=None, python=None):
     removeDirectory(env_dir, ignore_errors=False)
 
     with withDirectoryChange(base_dir, allow_none=True):
-        subprocess.check_call([python, "-m", "virtualenv", env_name])
+        command = [python, "-m", "virtualenv", env_name]
+        if style is not None:
+            my_print("Executing: %s" % " ".join(command))
+        subprocess.check_call(command)
 
         yield Virtualenv(env_dir)
 
-    removeDirectory(env_dir, ignore_errors=False)
+    if delete:
+        removeDirectory(env_dir, ignore_errors=False)

@@ -15,10 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 import sys
+
+import ImportItselfStaticMain
 
 print("Here I am before import", __name__)
 
-import ImportItselfStaticMain
 print("Here I am after import", __name__)

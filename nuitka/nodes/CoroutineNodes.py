@@ -22,22 +22,23 @@ whose implementation lives here. The creation itself also lives here.
 
 """
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildHavingBase
 from .FunctionNodes import ExpressionFunctionEntryPointBase
 
 
-class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
+class ExpressionMakeCoroutineObject(ExpressionChildHavingBase):
     kind = "EXPRESSION_MAKE_COROUTINE_OBJECT"
 
-    named_children = ("coroutine_ref",)
+    named_child = "coroutine_ref"
+    getCoroutineRef = ExpressionChildHavingBase.childGetter("coroutine_ref")
 
-    getCoroutineRef = ExpressionChildrenHavingBase.childGetter("coroutine_ref")
+    __slots__ = ("variable_closure_traces",)
 
     def __init__(self, coroutine_ref, source_ref):
         assert coroutine_ref.getFunctionBody().isExpressionCoroutineObjectBody()
 
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"coroutine_ref": coroutine_ref}, source_ref=source_ref
+        ExpressionChildHavingBase.__init__(
+            self, value=coroutine_ref, source_ref=source_ref
         )
 
         self.variable_closure_traces = None
@@ -74,7 +75,7 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionEntryPointBase):
 
     qualname_setup = None
 
-    def __init__(self, provider, name, code_object, flags, source_ref):
+    def __init__(self, provider, name, code_object, flags, auto_release, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
             self,
             provider=provider,
@@ -82,6 +83,7 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionEntryPointBase):
             code_object=code_object,
             code_prefix="coroutine",
             flags=flags,
+            auto_release=auto_release,
             source_ref=source_ref,
         )
 
@@ -108,14 +110,17 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionEntryPointBase):
         return False
 
 
-class ExpressionAsyncWait(ExpressionChildrenHavingBase):
+class ExpressionAsyncWait(ExpressionChildHavingBase):
     kind = "EXPRESSION_ASYNC_WAIT"
 
-    named_children = ("expression",)
+    named_child = "expression"
+    getValue = ExpressionChildHavingBase.childGetter("expression")
+
+    __slots__ = ("exception_preserving",)
 
     def __init__(self, expression, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"expression": expression}, source_ref=source_ref
+        ExpressionChildHavingBase.__init__(
+            self, value=expression, source_ref=source_ref
         )
 
         self.exception_preserving = False
@@ -130,8 +135,6 @@ class ExpressionAsyncWait(ExpressionChildrenHavingBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
-
-    getValue = ExpressionChildrenHavingBase.childGetter("expression")
 
 
 class ExpressionAsyncWaitEnter(ExpressionAsyncWait):

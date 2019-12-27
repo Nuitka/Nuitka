@@ -41,6 +41,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceLine
 from nuitka.utils.FileOperations import relpath
 from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.ModuleNames import ModuleName
 
 from .ValueTraces import (
     ValueTraceAssign,
@@ -806,7 +807,7 @@ class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):
         )
 
     def onUsedModule(self, module_name, module_relpath):
-        assert type(module_name) is str, module_name
+        assert type(module_name) is ModuleName, module_name
 
         # TODO: Make users provide this through a method that has already
         # done this.

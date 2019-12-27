@@ -32,8 +32,8 @@ class MarkUnoptimizedFunctionIndicatorMixin(object):
     """
 
     def __init__(self, flags):
-        self.unoptimized_locals = "has_exec" in flags
-        self.unqualified_exec = "has_unqualified_exec" in flags
+        self.unoptimized_locals = flags is not None and "has_exec" in flags
+        self.unqualified_exec = flags is not None and "has_unqualified_exec" in flags
 
     def isUnoptimized(self):
         return self.unoptimized_locals

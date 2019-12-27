@@ -15,11 +15,17 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Generator expression tests
+
+"""
+
 from __future__ import print_function
 
 import inspect
 
 print("Generator expression that demonstrates the timing:")
+
+
 def iteratorCreationTiming():
     def getIterable(x):
         print("Getting iterable", x)
@@ -27,7 +33,7 @@ def iteratorCreationTiming():
 
     class Iterable:
         def __init__(self, x):
-            self.x = x
+            self.x = x  # pylint: disable=invalid-name
             self.values = list(range(x))
             self.count = 0
 
@@ -42,7 +48,7 @@ def iteratorCreationTiming():
             if len(self.values) > self.count:
                 self.count += 1
 
-                return self.values[ self.count - 1 ]
+                return self.values[self.count - 1]
             else:
                 print("Raising StopIteration for", self.x)
 
@@ -54,15 +60,14 @@ def iteratorCreationTiming():
         def __del__(self):
             print("Deleting", self.x)
 
-
-    gen = ( (y,z) for y in getIterable(3) for z in getIterable(2) )
+    gen = ((y, z) for y in getIterable(3) for z in getIterable(2))
 
     print("Using generator", gen)
     next(gen)
     res = tuple(gen)
     print(res)
 
-    print('*' * 20)
+    print("*" * 20)
 
     try:
         next(gen)
@@ -70,7 +75,7 @@ def iteratorCreationTiming():
         print("Usage past end gave StopIteration exception as expected.")
 
         try:
-            print("Generator state then is", inspect.getgeneratorstate(gen))  # @UndefinedVariable
+            print("Generator state then is", inspect.getgeneratorstate(gen))
         except AttributeError:
             pass
 
@@ -78,27 +83,29 @@ def iteratorCreationTiming():
 
     print("Early aborting generator:")
 
-    gen2 = ( (y,z) for y in getIterable(3) for z in getIterable(2) )
+    gen2 = ((y, z) for y in getIterable(3) for z in getIterable(2))
     del gen2
+
 
 iteratorCreationTiming()
 
 print("Generator expressions that demonstrate the use of conditions:")
 
-print(tuple( x for x in range(8) if x % 2 == 1 ))
-print(tuple( x for x in range(8) if x % 2 == 1 for z in range(8) if z == x  ))
+print(tuple(x for x in range(8) if x % 2 == 1))
+print(tuple(x for x in range(8) if x % 2 == 1 for z in range(8) if z == x))
 
-print(tuple( x for (x,y) in zip(list(range(2)),list(range(4)))))
+print(tuple(x for (x, y) in zip(list(range(2)), list(range(4)))))
 
 print("Directory of generator expressions:")
-for_dir = ( x for x in [1] )
+for_dir = (x for x in [1])
 
 gen_dir = dir(for_dir)
 
-print(sorted( g for g in gen_dir ))
+print(sorted(g for g in gen_dir))
+
 
 def genexprSend():
-    x = ( x for x in range(9) )
+    x = (x for x in range(9))
 
     print("Sending too early:")
     try:
@@ -107,6 +114,7 @@ def genexprSend():
         print("Gave expected TypeError with text:", e)
 
     z = next(x)
+    print("Next retrun value", z)
 
     y = x.send(3)
 
@@ -132,7 +140,6 @@ def genexprSend():
     except StopIteration as e:
         print("Gave expected stop iteration after throwing exception in it:", e)
 
-
     print("Throwing another exception from it.")
     try:
         x.throw(ValueError(5))
@@ -144,8 +151,9 @@ print("Generator expressions have send too:")
 
 genexprSend()
 
+
 def genexprClose():
-    x = ( x for x in range(9) )
+    x = (x for x in range(9))
 
     print("Immediate close:")
 
@@ -155,32 +163,37 @@ def genexprClose():
     x.close()
     print("Closed again without any trouble")
 
+
 genexprClose()
 
-def genexprThrown():
 
+def genexprThrown():
     def checked(z):
         if z == 3:
             raise ValueError
 
         return z
 
-    x = ( checked(x) for x in range(9) )
+    x = (checked(x) for x in range(9))
 
     try:
         for count, value in enumerate(x):
             print(count, value)
     except ValueError:
-        print(count+1, ValueError)
+        print(count + 1, ValueError)
 
     try:
         next(x)
 
-        print("Allowed to do next() after raised exception from the generator expression")
+        print(
+            "Allowed to do next() after raised exception from the generator expression"
+        )
     except StopIteration:
         print("Exception in generator, disallowed next() afterwards.")
 
+
 genexprThrown()
+
 
 def nestedExpressions():
     a = [x for x in range(10)]
@@ -188,20 +201,24 @@ def nestedExpressions():
 
     print("nested generator expression", list(b))
 
+
 nestedExpressions()
+
 
 def lambdaGenerators():
     a = 1
 
-    x = lambda : (yield a)
+    x = lambda: (yield a)
 
     print("Simple lambda generator", x, x(), list(x()))
 
-    y = lambda : ((yield 1),(yield 2))
+    y = lambda: ((yield 1), (yield 2))
 
     print("Complex lambda generator", y, y(), list(y()))
 
+
 lambdaGenerators()
+
 
 def functionGenerators():
     # Like lambdaGenerators, to show how functions behave differently if at all.
@@ -214,17 +231,9 @@ def functionGenerators():
     print("Simple function generator", x, x(), list(x()))
 
     def y():
-        yield((yield 1),(yield 2))
+        yield ((yield 1), (yield 2))
 
     print("Complex function generator", y, y(), list(y()))
 
+
 functionGenerators()
-
-
-def strangeLambdaGeneratorExpression():
-    x = ((yield) for i in (1,2) if (yield))
-
-    print("Strange lambda generator expression")
-    print(list(x))
-
-strangeLambdaGeneratorExpression()

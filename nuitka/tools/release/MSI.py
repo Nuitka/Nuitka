@@ -26,7 +26,10 @@ import shutil
 import subprocess
 import sys
 
-from nuitka.PythonVersions import getSupportedPythonVersions
+from nuitka.PythonVersions import (
+    getPartiallySupportedPythonVersions,
+    getSupportedPythonVersions,
+)
 
 from .Release import checkBranchName
 
@@ -34,7 +37,9 @@ from .Release import checkBranchName
 def makeMsiCompatibleFilename(filename):
     filename = filename[:-4]
 
-    for supported_version in getSupportedPythonVersions():
+    for supported_version in (
+        getSupportedPythonVersions() + getPartiallySupportedPythonVersions()
+    ):
         filename = filename.replace("-py" + supported_version, "")
 
     filename = filename.replace("Nuitka32", "Nuitka")

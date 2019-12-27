@@ -38,15 +38,15 @@ from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonIn,
-    ExpressionComparisonIsNOT,
+    ExpressionComparisonIsNot,
 )
 from nuitka.nodes.ConditionalNodes import (
-    ExpressionConditionalOR,
+    ExpressionConditionalOr,
     makeStatementConditional,
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
-from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
+from nuitka.nodes.DictionaryNodes import StatementDictOperationSetKeyValue
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
     StatementRaiseException,
@@ -140,6 +140,7 @@ def getCallableNameDescBody():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -350,7 +351,7 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
 def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
     if python_version >= 350:
         non_tuple_code = makeStatementConditional(
-            condition=ExpressionConditionalOR(
+            condition=ExpressionConditionalOr(
                 left=ExpressionAttributeCheck(
                     object_arg=ExpressionVariableRef(
                         variable=star_list_variable, source_ref=internal_source_ref
@@ -402,7 +403,7 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
         )
 
     return makeStatementConditional(
-        condition=ExpressionComparisonIsNOT(
+        condition=ExpressionComparisonIsNot(
             left=ExpressionBuiltinType1(
                 value=ExpressionVariableRef(
                     variable=star_list_variable, source_ref=internal_source_ref
@@ -583,7 +584,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
     )
 
     tried = makeStatementConditional(
-        condition=ExpressionComparisonIsNOT(
+        condition=ExpressionComparisonIsNot(
             left=ExpressionBuiltinType1(
                 value=ExpressionVariableRef(
                     variable=star_dict_variable, source_ref=internal_source_ref
@@ -937,7 +938,7 @@ def _makeStarDictArgumentMergeToKwStatement(
     )
 
     tried = makeStatementConditional(
-        condition=ExpressionComparisonIsNOT(
+        condition=ExpressionComparisonIsNot(
             left=ExpressionBuiltinType1(
                 value=ExpressionVariableRef(
                     variable=star_dict_variable, source_ref=internal_source_ref
@@ -989,6 +990,7 @@ def getFunctionCallHelperStarList():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1070,6 +1072,7 @@ def getFunctionCallHelperKeywordsStarList():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1157,6 +1160,7 @@ def getFunctionCallHelperPosStarList():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1250,6 +1254,7 @@ def getFunctionCallHelperPosKeywordsStarList():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1326,16 +1331,16 @@ def getFunctionCallHelperStarDict():
     # Note: Call in here is not the same, as it can go without checks directly
     # to PyObject_Call.
     #
-    # if not isinstance( star_arg_dict, dict ):
+    # if not isinstance(star_arg_dict, dict):
     #     try:
     #         tmp_keys =  star_arg_dict.keys()
     #     except AttributeError:
     #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
     #             get_callable_name_desc( function ),
-    #             type( star_arg_dict ).__name__
+    #             type(star_arg_dict).__name__
     #         )
     #
-    #     tmp_iter = iter( keys )
+    #     tmp_iter = iter(keys)
     #     tmp_dict = {}
     #
     #     while 1:
@@ -1344,11 +1349,11 @@ def getFunctionCallHelperStarDict():
     #         except StopIteration:
     #             break
     #
-    #         tmp_dict[ tmp_key ] = star_dict_arg[ tmp_key )
+    #         tmp_dict[tmp_key] = star_dict_arg[tmp_key]
     #
     #     star_arg_dict = new
     #
-    # return called( **star_arg_dict )
+    # return called(**star_arg_dict)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1361,6 +1366,7 @@ def getFunctionCallHelperStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1423,16 +1429,16 @@ def getFunctionCallHelperPosStarDict():
     # Note: Call in here is not the same, as it can go without checks directly
     # to PyObject_Call.
     #
-    # if not isinstance( star_arg_dict, dict ):
+    # if not isinstance(star_arg_dict, dict):
     #     try:
     #         tmp_keys =  star_arg_dict.keys()
     #     except AttributeError:
     #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc( function ),
-    #             type( star_arg_dict ).__name__
+    #             get_callable_name_desc(function),
+    #             type(star_arg_dict).__name__
     #         )
     #
-    #     tmp_iter = iter( keys )
+    #     tmp_iter = iter(keys)
     #     tmp_dict = {}
     #
     #     while 1:
@@ -1441,11 +1447,11 @@ def getFunctionCallHelperPosStarDict():
     #         except StopIteration:
     #             break
     #
-    #         tmp_dict[ tmp_key ] = star_dict_arg[ tmp_key )
+    #         tmp_dict[tmp_key] = star_dict_arg[tmp_key]
     #
     #     star_arg_dict = new
     #
-    # return called( args, **star_arg_dict )
+    # return called(args, **star_arg_dict)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1458,6 +1464,7 @@ def getFunctionCallHelperPosStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1527,19 +1534,19 @@ def getFunctionCallHelperKeywordsStarDict():
     # to PyObject_Call. One goal is to avoid copying "kw" unless really
     # necessary, and to take the slow route only for non-dictionaries.
     #
-    # if not isinstance( star_arg_dict, dict ):
+    # if not isinstance(star_arg_dict, dict):
     #     try:
     #         tmp_keys =  star_arg_dict.keys()
     #     except AttributeError:
     #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc( function ),
+    #             get_callable_name_desc(function),
     #             type( star_arg_dict ).__name__
     #         )
     #
     #     if keys:
-    #         kw = dict( kw )
+    #         kw = dict(kw)
     #
-    #         tmp_iter = iter( keys )
+    #         tmp_iter = iter(keys)
     #         tmp_dict = {}
     #
     #         while 1:
@@ -1550,16 +1557,16 @@ def getFunctionCallHelperKeywordsStarDict():
     #
     #             if tmp_key in kw:
     #                 raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                     get_callable_name_desc( function ),
+    #                     get_callable_name_desc(function),
     #                     tmp_key
     #                 )
     #
-    #             kw[ tmp_key ] = star_dict_arg[ tmp_key )
+    #             kw[tmp_key] = star_dict_arg[tmp_key)
     #
     # elif star_arg_dict:
     #    tmp_iter = star_arg_dict.iteritems()
     #
-    #    kw = dict( kw )
+    #    kw = dict(kw)
     #    while 1:
     #        try:
     #            tmp_key, tmp_value = tmp_iter.next()
@@ -1568,13 +1575,13 @@ def getFunctionCallHelperKeywordsStarDict():
     #
     #        if tmp_key in kw:
     #            raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                 get_callable_name_desc( function ),
+    #                 get_callable_name_desc(function),
     #                 tmp_key
     #            )
     #
-    #        kw[ tmp_key ] = tmp_value
+    #        kw[tmp_key] = tmp_value
     #
-    # return called( **kw  )
+    # return called(**kw)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1587,6 +1594,7 @@ def getFunctionCallHelperKeywordsStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1653,19 +1661,19 @@ def getFunctionCallHelperPosKeywordsStarDict():
     # to PyObject_Call. One goal is to avoid copying "kw" unless really
     # necessary, and to take the slow route only for non-dictionaries.
     #
-    # if not isinstance( star_arg_dict, dict ):
+    # if not isinstance(star_arg_dict, dict):
     #     try:
     #         tmp_keys =  star_arg_dict.keys()
     #     except AttributeError:
     #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc( function ),
-    #             type( star_arg_dict ).__name__
+    #             get_callable_name_desc(function),
+    #             type(star_arg_dict).__name__
     #         )
     #
     #     if keys:
-    #         kw = dict( kw )
+    #         kw = dict(kw)
     #
-    #         tmp_iter = iter( keys )
+    #         tmp_iter = iter(keys)
     #         tmp_dict = {}
     #
     #         while 1:
@@ -1676,16 +1684,16 @@ def getFunctionCallHelperPosKeywordsStarDict():
     #
     #             if tmp_key in kw:
     #                 raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                     get_callable_name_desc( function ),
+    #                     get_callable_name_desc(function),
     #                     tmp_key
     #                 )
     #
-    #             kw[ tmp_key ] = star_dict_arg[ tmp_key )
+    #             kw[tmp_key] = star_dict_arg[tmp_key]
     #
     # elif star_arg_dict:
     #    tmp_iter = star_arg_dict.iteritems()
     #
-    #    kw = dict( kw )
+    #    kw = dict(kw)
     #    while 1:
     #        try:
     #            tmp_key, tmp_value = tmp_iter.next()
@@ -1694,13 +1702,13 @@ def getFunctionCallHelperPosKeywordsStarDict():
     #
     #        if tmp_key in kw:
     #            raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                 get_callable_name_desc( function ),
+    #                 get_callable_name_desc(function),
     #                 tmp_key
     #            )
     #
-    #        kw[ tmp_key ] = tmp_value
+    #        kw[tmp_key] = tmp_value
     #
-    # return called( **kw  )
+    # return called(**kw )
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1713,6 +1721,7 @@ def getFunctionCallHelperPosKeywordsStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1825,6 +1834,7 @@ def getFunctionCallHelperStarListStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -1905,6 +1915,7 @@ def getFunctionCallHelperPosStarListStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -2000,6 +2011,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -2085,6 +2097,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -2181,6 +2194,7 @@ def getFunctionCallHelperDictionaryUnpacking():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 
@@ -2197,7 +2211,7 @@ def getFunctionCallHelperDictionaryUnpacking():
 
     update_body = (
         makeStatementConditional(
-            condition=ExpressionComparisonIsNOT(
+            condition=ExpressionComparisonIsNot(
                 left=ExpressionBuiltinType1(
                     value=ExpressionTempVariableRef(
                         variable=tmp_key_variable, source_ref=internal_source_ref
@@ -2229,7 +2243,7 @@ def getFunctionCallHelperDictionaryUnpacking():
             no_branch=None,
             source_ref=internal_source_ref,
         ),
-        StatementDictOperationSet(
+        StatementDictOperationSetKeyValue(
             dict_arg=ExpressionTempVariableRef(
                 variable=tmp_result_variable, source_ref=internal_source_ref
             ),

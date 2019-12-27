@@ -31,7 +31,7 @@ def getOS():
     if os.name == "nt":
         return "Windows"
     elif os.name == "posix":
-        result = os.uname()[0]  # @UndefinedVariable
+        result = os.uname()[0]
 
         # Handle msys2 posix nature still meaning it's Windows.
         if result.startswith(("MSYS_NT-", "MINGW64_NT-")):
@@ -79,7 +79,7 @@ def getArchitecture():
         else:
             return "x86"
     else:
-        return os.uname()[4]  # @UndefinedVariable
+        return os.uname()[4]
 
 
 def getSharedLibrarySuffix():
@@ -97,7 +97,7 @@ def getSharedLibrarySuffix():
 
         return result
     else:
-        import importlib.machinery  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+        import importlib.machinery  # pylint: disable=I0021,import-error,no-name-in-module
 
         result = None
 

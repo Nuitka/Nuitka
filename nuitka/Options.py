@@ -22,17 +22,21 @@ import os
 import sys
 
 from nuitka.OptionParsing import parseOptions
+from nuitka.PythonVersions import isUninstalledPython
 from nuitka.utils import Utils
 
 options = None
 positional_args = None
 extra_args = []
 is_nuitka_run = None
+is_debug = None
+is_nondebug = None
+is_fullcompat = None
 
 
 def parseArgs():
     # singleton with many cases, pylint: disable=global-statement,too-many-branches
-    global is_nuitka_run, options, positional_args, extra_args
+    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions()
 
@@ -116,6 +120,10 @@ sane default used inside the dist folder."""
 Error, icon path "%s" does not exist."""
                 % icon_path
             )
+
+    is_debug = isDebug()
+    is_nondebug = not is_debug
+    is_fullcompat = isFullCompat()
 
 
 def isVerbose():
@@ -352,6 +360,34 @@ def shallClearPythonPathEnvironment():
     return not options.keep_pythonpath
 
 
+def shallUseStaticLibPython():
+    """ *bool* = derived from sys.version
+
+    Notes:
+        Currently only AnaConda on non-Windows can do this.
+    """
+
+    # For AnaConda default to trying static lib python library, which
+    # normally is just not available or if it is even unusable.
+    return "Anaconda" in sys.version and os.name == "nt"
+
+
+def shallTreatUninstalledPython():
+    """ *bool* = derived from Python installation and modes
+
+    Notes:
+        Not done for standalone mode obviously.
+
+        Also not done for extension modules, they are loaded with
+        a Python runtime available.
+
+        Most often uninstalled Python versions are self compiled or
+        from AnaConda.
+    """
+
+    return not isStandaloneMode() and not shallMakeModule() and isUninstalledPython()
+
+
 def isShowScons():
     """ *bool* = "--show-scons"
     """
@@ -507,7 +543,9 @@ def getPythonFlags():
                     _python_flags.add("no_warnings")
                 elif part in ("-O", "no_asserts", "noasserts"):
                     _python_flags.add("no_asserts")
-                elif part in ("-OO", "no_docstrings", "nodocstrings"):
+                elif part in ("no_docstrings", "nodocstrings"):
+                    _python_flags.add("no_docstrings")
+                elif part in ("-OO",):
                     _python_flags.add("no_docstrings")
                     _python_flags.add("no_asserts")
                 else:

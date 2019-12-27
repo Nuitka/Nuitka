@@ -32,7 +32,7 @@ try:
             wait,
             as_completed,
             FIRST_EXCEPTION,
-        )  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module,unused-import
+        )  # pylint: disable=I0021,import-error,no-name-in-module,unused-import
 
         def waitWorkers(workers):
             wait(workers, return_when=FIRST_EXCEPTION)

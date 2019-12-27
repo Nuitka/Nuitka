@@ -49,6 +49,33 @@ class IterationHandleBase(getMetaClassBase("IterationHandle")):
             return StopIteration
         return iteration_value.getTruthValue()
 
+    def getAllElementTruthValue(self):
+        """Returns truth value for 'all' on 'lists'. It returns
+        True: if all the elements of the list are True,
+        False: if any element in the list is False,
+        None: if number of elements in the list is greater than
+        256 or any element is Unknown.
+        """
+        all_true = True
+        count = 0
+        while True:
+            truth_value = self.getNextValueTruth()
+            if truth_value is StopIteration:
+                break
+
+            if count > 256:
+                return None
+
+            if truth_value is False:
+                return False
+
+            if truth_value is None:
+                all_true = None
+
+            count += 1
+
+        return all_true
+
 
 class ConstantIterationHandleBase(IterationHandleBase):
     """Base class for the Constant Iteration Handles.
@@ -263,6 +290,10 @@ class ConstantRangeIterationHandleBase(IterationHandleBase):
             return StopIteration
         return bool(iteration_value)
 
+    @staticmethod
+    def getAllElementTruthValue():
+        return True
+
 
 class ConstantIterationHandleRange1(ConstantRangeIterationHandleBase):
     """Iteration handle for range(low,)"""
@@ -274,6 +305,10 @@ class ConstantIterationHandleRange1(ConstantRangeIterationHandleBase):
 
     def getIterationLength(self):
         return max(0, self.low)
+
+    @staticmethod
+    def getAllElementTruthValue():
+        return False
 
 
 class ConstantIterationHandleRange2(ConstantRangeIterationHandleBase):

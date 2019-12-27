@@ -15,9 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from foo import bar, bar2, not_overloaded
 
-from foo import bar, not_overloaded
 print(bar, not_overloaded)
 
-from foo import bar2, not_overloaded
-print( bar2 )
+print(bar2)

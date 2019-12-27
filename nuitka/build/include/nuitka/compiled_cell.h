@@ -27,7 +27,11 @@ extern PyTypeObject Nuitka_Cell_Type;
 static inline bool Nuitka_Cell_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Cell_Type; }
 
 struct Nuitka_CellObject {
-    PyObject_HEAD PyObject *ob_ref; /* Content of the cell or NULL when empty */
+    /* Python object folklore: */
+    PyObject_HEAD;
+
+    /* Content of the cell or NULL when empty */
+    PyObject *ob_ref;
 };
 
 extern struct Nuitka_CellObject *Nuitka_Cell_New(void);

@@ -15,15 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-
 def someFunctionThatReturnsDeletedValueViaMaxtrixMult():
     class C:
         def __matmul__(self, other):
             nonlocal a
             del a
-    c = C()
 
+    c = C()
 
     a = 1
     c @ 1
@@ -43,8 +41,8 @@ def someFunctionThatReturnsDeletedValueViaInplaceMaxtrixMult():
         def __imatmul__(self, other):
             nonlocal a
             del a
-    c = C()
 
+    c = C()
 
     a = 1
     c @= 1

@@ -17,4 +17,4 @@
 #
 from __future__ import braces
 
-print( "Look ma, braces." )
+print("Look ma, braces.")

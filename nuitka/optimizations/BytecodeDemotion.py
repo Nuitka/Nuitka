@@ -37,7 +37,7 @@ def demoteCompiledModuleToBytecode(module):
     full_name = module.getFullName()
     filename = module.getCompileTimeFilename()
 
-    if Options.isShowProgress() or Options.isDebug():
+    if Options.isShowProgress():
         info("Demoting module '%s' to bytecode from '%s'." % (full_name, filename))
 
     source_code = module.getSourceCode()

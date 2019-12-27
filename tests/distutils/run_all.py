@@ -48,6 +48,7 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     decideFilenameVersionSkip,
     my_print,
+    reportSkip,
     setup,
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
@@ -56,9 +57,9 @@ from nuitka.utils.FileOperations import removeDirectory
 
 
 def main():
-    # Complex stuff, pylint: disable=too-many-locals,too-many-statements
+    # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    _python_version = setup(needs_io_encoding=True)
+    python_version = setup(needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
@@ -67,8 +68,8 @@ def main():
     for filename in sorted(os.listdir(".")):
         if (
             not os.path.isdir(filename)
-            or filename.endswith(".build")
-            or filename.endswith(".dist")
+            or filename.endswith((".build", ".dist"))
+            or filename.startswith("venv_")
         ):
             continue
 
@@ -81,6 +82,11 @@ def main():
 
         if active:
             my_print("Consider distutils example:", filename)
+
+            if python_version < "3":
+                if filename == "example_3":
+                    reportSkip("Skipped, only relevant for Python3", ".", filename)
+                    continue
 
             case_dir = os.path.join(os.getcwd(), filename)
 
@@ -231,7 +237,7 @@ def main():
             if exit_code_return:
                 my_print(
                     """\
-    Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
+Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
                         exit_cpython=exit_cpython, exit_nuitka=exit_nuitka
                     )
                 )
@@ -240,6 +246,9 @@ def main():
 
             if exit_code:
                 sys.exit("Error, outputs differed.")
+
+        if search_mode.abortIfExecuted():
+            break
 
     search_mode.finish()
 

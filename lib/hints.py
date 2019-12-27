@@ -15,6 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" The hints module should contain functions to call in your code.
+
+In reality, right now it does only contain an import tracing mechanism
+that helps us with debugging.
+"""
+
 from __future__ import print_function
 
 import os
@@ -60,15 +66,18 @@ def _moduleRepr(module):
 
 
 def enableImportTracing(normalize_paths=True, show_source=False):
+    # pylint: disable=redefined-builtin
+
     def _ourimport(
         name,
         globals=None,
         locals=None,
-        fromlist=None,  # @ReservedAssignment
+        fromlist=None,
         level=-1 if sys.version_info[0] < 3 else 0,
     ):
         builtins.__import__ = original_import
 
+        # Singleton, pylint: disable=global-statement
         global _indentation
         try:
             _indentation += 1

@@ -84,7 +84,7 @@ About 60 methods are available to access option information for the
 current Nuitka execution. Import the ``Options`` module
 (``"from nuitka import Options"``) and use one of the following.
 
-Please note that ``str`` results in general may return ``None``.
+Please note that ``str`` results may return ``None``.
 Except very few, the methods have no argument.
 
 ===================================== ======================================================================================

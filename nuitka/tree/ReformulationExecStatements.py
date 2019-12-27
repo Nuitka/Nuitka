@@ -380,4 +380,4 @@ exec: arg 1 must be a string, file, or code object""",
 
 
 # This is here, to make sure it can register, pylint: disable=W0611
-import nuitka.optimizations.OptimizeBuiltinCalls  # isort:skip @UnusedImport
+import nuitka.optimizations.OptimizeBuiltinCalls  # isort:skip

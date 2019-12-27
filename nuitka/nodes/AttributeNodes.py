@@ -55,6 +55,8 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
 
     named_children = ("source", "expression")
+    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
+    getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
     def __init__(self, expression, attribute_name, source, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -73,9 +75,6 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
 
     def setAttributeName(self, attribute_name):
         self.attribute_name = attribute_name
-
-    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
-    getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -109,6 +108,7 @@ class StatementDelAttribute(StatementChildHavingBase):
     kind = "STATEMENT_DEL_ATTRIBUTE"
 
     named_child = "expression"
+    getLookupSource = StatementChildHavingBase.childGetter("expression")
 
     __slots__ = ("attribute_name",)
 
@@ -125,8 +125,6 @@ class StatementDelAttribute(StatementChildHavingBase):
 
     def setAttributeName(self, attribute_name):
         self.attribute_name = attribute_name
-
-    getLookupSource = StatementChildHavingBase.childGetter("expression")
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -146,7 +144,7 @@ class StatementDelAttribute(StatementChildHavingBase):
         return "attribute del statement"
 
 
-class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
+class ExpressionAttributeLookup(ExpressionChildHavingBase):
     """ Looking up an attribute of an object.
 
         Typically code like: source.attribute_name
@@ -154,12 +152,11 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
 
-    named_children = ("source",)
+    named_child = "source"
+    __slots__ = ("attribute_name",)
 
     def __init__(self, source, attribute_name, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"source": source}, source_ref=source_ref
-        )
+        ExpressionChildHavingBase.__init__(self, value=source, source_ref=source_ref)
 
         self.attribute_name = attribute_name
 
@@ -172,7 +169,7 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
     def getDetails(self):
         return {"attribute_name": self.getAttributeName()}
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
+    getLookupSource = ExpressionChildHavingBase.childGetter("source")
 
     def computeExpression(self, trace_collection):
         return self.getLookupSource().computeExpressionAttribute(
@@ -222,6 +219,9 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_GETATTR"
 
     named_children = ("object", "name", "default")
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("object")
+    getAttribute = ExpressionChildrenHavingBase.childGetter("name")
+    getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, object_arg, name, default, source_ref):
@@ -230,10 +230,6 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
             values={"object": object_arg, "name": name, "default": default},
             source_ref=source_ref,
         )
-
-    getLookupSource = ExpressionChildrenHavingBase.childGetter("object")
-    getAttribute = ExpressionChildrenHavingBase.childGetter("name")
-    getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -285,6 +281,9 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_SETATTR"
 
     named_children = ("source", "attribute", "value")
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
+    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, object_arg, name, value, source_ref):
@@ -293,10 +292,6 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
             values={"source": object_arg, "attribute": name, "value": value},
             source_ref=source_ref,
         )
-
-    getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
-    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -309,6 +304,8 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_HASATTR"
 
     named_children = ("source", "attribute")
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
+    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, object_arg, name, source_ref):
@@ -317,9 +314,6 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
             values={"source": object_arg, "attribute": name},
             source_ref=source_ref,
         )
-
-    getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
-    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
 
     def computeExpression(self, trace_collection):
         # We do at least for compile time constants optimization here, but more
@@ -361,6 +355,7 @@ class ExpressionAttributeCheck(ExpressionChildHavingBase):
     kind = "EXPRESSION_ATTRIBUTE_CHECK"
 
     named_child = "source"
+    getLookupSource = ExpressionChildHavingBase.childGetter("source")
 
     __slots__ = ("attribute_name",)
 
@@ -371,8 +366,6 @@ class ExpressionAttributeCheck(ExpressionChildHavingBase):
         )
 
         self.attribute_name = attribute_name
-
-    getLookupSource = ExpressionChildHavingBase.childGetter("source")
 
     def computeExpression(self, trace_collection):
         # We do at least for compile time constants optimization here, but more

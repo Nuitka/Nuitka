@@ -15,14 +15,22 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Setup file for Nuitka.
 
+This applies a few tricks. First, the Nuitka version is read from
+the source code. Second, the packages are scanned from the filesystem
+with a black list. And third, the byte code compilation is avoided
+for inline copies of scons with mismatching Python major versions.
+
+"""
 import os
-import sys
 import re
+import sys
+
 from setuptools import setup
 from setuptools.command import easy_install
 
-os.chdir(os.path.dirname(__file__) or '.')
+os.chdir(os.path.dirname(__file__) or ".")
 
 scripts = []
 
@@ -35,15 +43,10 @@ if os.name == "nt":
 # don't mean to pollute with ".pyc" files and similar effects.
 def detectVersion():
     with open("nuitka/Version.py") as version_file:
-        version_line, = [
-            line
-            for line in
-            version_file
+        version_line, = [line for line in version_file if line.startswith("Nuitka V")]
 
-            if line.startswith("Nuitka V")
-        ]
+        return version_line.split("V")[1].strip()
 
-        return version_line.split('V')[1].strip()
 
 version = detectVersion()
 
@@ -54,17 +57,16 @@ if os.name == "nt" and "bdist_msi" in sys.argv:
     # Pre-releases are always smaller, official releases get the "1".
     middle = 1 if "rc" not in version else 0
     version = version.replace("rc", "")
-    parts = version.split('.')
+    parts = version.split(".")
     major, first, last = parts[:3]
     hotfix = parts[3] if len(parts) > 3 else 0
 
-    version = '.'.join(
+    version = ".".join(
         "%s" % value
-        for value in
-        (
-            int(major)*10+int(first),
+        for value in (
+            int(major) * 10 + int(first),
             middle,
-            int(last)*10+int(hotfix)
+            int(last) * 10 + int(hotfix),
         )
     )
 
@@ -89,16 +91,17 @@ def findNuitkaPackages():
         if "quality" in dirnames:
             dirnames.remove("quality")
 
-        result.append(
-            root.replace(os.path.sep,'.')
-        )
+        result.append(root.replace(os.path.sep, "."))
 
     return result
 
-if os.path.exists("/usr/bin/scons") and \
-   "sdist" not in sys.argv and \
-   "bdist_wininst" not in sys.argv and \
-   "bdist_msi" not in sys.argv:
+
+if (
+    os.path.exists("/usr/bin/scons")
+    and "sdist" not in sys.argv
+    and "bdist_wininst" not in sys.argv
+    and "bdist_msi" not in sys.argv
+):
     scons_files = []
 else:
     scons_files = [
@@ -124,11 +127,7 @@ if sys.version_info >= (3,):
     real_byte_compile = util.byte_compile
 
     def byte_compile(py_files, *args, **kw):
-        py_files = [
-            py_file
-            for py_file in py_files
-            if "inline_copy" not in py_file
-        ]
+        py_files = [py_file for py_file in py_files if "inline_copy" not in py_file]
 
         real_byte_compile(py_files, *args, **kw)
 
@@ -156,15 +155,18 @@ def get_args(cls, dist, header=None):
     if header is None:
         header = cls.get_header()
 
-    for type_ in 'console', 'gui':
-        group = type_ + '_scripts'
+    for type_ in "console", "gui":
+        group = type_ + "_scripts"
 
         for name, _ep in dist.get_entry_map(group).items():
             script_text = runner_script_template
 
-            args = cls._get_script_args(type_, name, header, script_text)
+            args = cls._get_script_args(
+                type_, name, header, script_text
+            )  # pylint: disable=protected-access
             for res in args:
                 yield res
+
 
 try:
     easy_install.ScriptWriter.get_args = get_args
@@ -175,29 +177,33 @@ except AttributeError:
 def get_script_args(dist, executable=os.path.normpath(sys.executable), wininst=False):
     """Yield write_script() argument tuples for a distribution's entrypoints"""
     header = easy_install.get_script_header("", executable, wininst)
-    for group in 'console_scripts', 'gui_scripts':
+    for group in "console_scripts", "gui_scripts":
         for name, _ep in dist.get_entry_map(group).items():
             script_text = runner_script_template
-            if sys.platform=='win32' or wininst:
+            if sys.platform == "win32" or wininst:
                 # On Windows/wininst, add a .py extension and an .exe launcher
-                if group=='gui_scripts':
-                    launcher_type = 'gui'
-                    ext = '-script.pyw'
-                    old = ['.pyw']
-                    new_header = re.sub('(?i)python.exe','pythonw.exe',header)
+                if group == "gui_scripts":
+                    launcher_type = "gui"
+                    ext = "-script.pyw"
+                    old = [".pyw"]
+                    new_header = re.sub("(?i)python.exe", "pythonw.exe", header)
                 else:
-                    launcher_type = 'cli'
-                    ext = '-script.py'
-                    old = ['.py','.pyc','.pyo']
-                    new_header = re.sub('(?i)pythonw.exe','python.exe',header)
-                if os.path.exists(new_header[2:-1].strip('"')) or sys.platform!='win32':
+                    launcher_type = "cli"
+                    ext = "-script.py"
+                    old = [".py", ".pyc", ".pyo"]
+                    new_header = re.sub("(?i)pythonw.exe", "python.exe", header)
+                if (
+                    os.path.exists(new_header[2:-1].strip('"'))
+                    or sys.platform != "win32"
+                ):
                     hdr = new_header
                 else:
                     hdr = header
-                yield (name+ext, hdr+script_text, 't', [name+x for x in old])
+                yield (name + ext, hdr + script_text, "t", [name + x for x in old])
                 yield (
-                    name+'.exe', easy_install.get_win_launcher(launcher_type),
-                    'b' # write in binary mode
+                    name + ".exe",
+                    easy_install.get_win_launcher(launcher_type),
+                    "b",  # write in binary mode
                 )
                 if not easy_install.is_64bit():
                     # install a manifest for the launcher to prevent Windows
@@ -205,12 +211,13 @@ def get_script_args(dist, executable=os.path.normpath(sys.executable), wininst=F
                     #  launchers like easy_install.exe). Consider only
                     #  adding a manifest for launchers detected as installers.
                     #  See Distribute #143 for details.
-                    m_name = name + '.exe.manifest'
-                    yield (m_name, easy_install.load_launcher_manifest(name), 't')
+                    m_name = name + ".exe.manifest"
+                    yield (m_name, easy_install.load_launcher_manifest(name), "t")
             else:
                 # On other platforms, we assume the right thing to do is to
                 # just write the stub with no extension.
-                yield (name, header+script_text)
+                yield (name, header + script_text)
+
 
 try:
     easy_install.get_script_args
@@ -223,61 +230,50 @@ else:
 binary_suffix = "" if sys.version_info[0] == 2 else sys.version_info[0]
 
 setup(
-    name         = project_name,
-    license      = "Apache License, Version 2.0",
-    version      = version,
-    classifiers  = [
+    name=project_name,
+    license="Apache License, Version 2.0",
+    version=version,
+    classifiers=[
         # Nuitka is mature even
         "Development Status :: 5 - Production/Stable",
-
         # Indicate who Nuitka is for
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
-
         # Nuitka is a compiler and a build tool as such.
         "Topic :: Software Development :: Compilers",
         "Topic :: Software Development :: Build Tools",
-
         # Is has a weak subset of PyLint, but aims for more long term
         "Topic :: Software Development :: Quality Assurance",
-
         # Nuitka standalone mode aims at distribution
         "Topic :: System :: Software Distribution",
-
         # Python2 supported versions.
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
-
         # Python3 supported versions.
         "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
-
         # We depend on CPython.
         "Programming Language :: Python :: Implementation :: CPython",
-
         # We generate C intermediate code and implement part of the
         # run time environment in C. Actually C11.
         "Programming Language :: C",
-
         # Supported OSes are many
         "Operating System :: POSIX :: Linux",
         "Operating System :: POSIX :: BSD :: FreeBSD",
         "Operating System :: POSIX :: BSD :: NetBSD",
         "Operating System :: POSIX :: BSD :: OpenBSD",
         "Operating System :: Microsoft :: Windows",
-
         # License
         "License :: OSI Approved :: Apache Software License",
-
     ],
-    packages     = findNuitkaPackages(),
-    package_data = {
+    packages=findNuitkaPackages(),
+    package_data={
         # Include extra files
-        "" : ["*.txt", "*.rst", "*.c", "*.h", "*.ui"],
-        "nuitka.build" : [
+        "": ["*.txt", "*.rst", "*.c", "*.h", "*.ui"],
+        "nuitka.build": [
             "SingleExe.scons",
             "static_src/*.c",
             "static_src/*/*.c",
@@ -287,29 +283,29 @@ setup(
             "include/*.h",
             "include/*/*.h",
             "include/*/*/*.h",
-        ] + scons_files
+        ]
+        + scons_files,
     },
-
     # metadata for upload to PyPI
-    author       = "Kay Hayen",
-    author_email = "Kay.Hayen@gmail.com",
-    url          = "http://nuitka.net",
-    description  = """\
+    author="Kay Hayen",
+    author_email="Kay.Hayen@gmail.com",
+    url="http://nuitka.net",
+    description="""\
 Python compiler with full language support and CPython compatibility""",
-    keywords     = "compiler,python,nuitka",
-    zip_safe     = False,
-    scripts      = scripts,
-    entry_points = {
+    keywords="compiler,python,nuitka",
+    zip_safe=False,
+    scripts=scripts,
+    entry_points={
         "distutils.commands": [
-            'bdist_nuitka = \
-             nuitka.distutils.bdist_nuitka:bdist_nuitka'
+            "bdist_nuitka = \
+             nuitka.distutils.bdist_nuitka:bdist_nuitka"
         ],
         "distutils.setup_keywords": [
             "build_with_nuitka = nuitka.distutils.bdist_nuitka:setuptools_build_hook"
         ],
         "console_scripts": [
             "nuitka%s = nuitka.__main__:main" % binary_suffix,
-            "nuitka%s-run = nuitka.__main__:main" % binary_suffix
+            "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
         ],
     },
 )

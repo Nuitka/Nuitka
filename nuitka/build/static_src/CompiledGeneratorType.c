@@ -301,16 +301,14 @@ static PyObject *Nuitka_YieldFromGeneratorCore(struct Nuitka_GeneratorObject *ge
         }
 
 #if 0
-        if ( ERROR_OCCURRED() )
+        if (ERROR_OCCURRED())
         {
-            yielded = ((generator_code)generator->m_code)( generator, NULL );
-        }
-        else
-        {
+            yielded = ((generator_code)generator->m_code)(generator, NULL);
+        } else {
             PyObject *yield_from_result = generator->m_returned;
             generator->m_returned = NULL;
 
-            yielded = ((generator_code)generator->m_code)( generator, yield_from_result );
+            yielded = ((generator_code)generator->m_code)(generator, yield_from_result);
         }
 #endif
     } else {
@@ -1085,10 +1083,6 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
     result->m_status = status_Unused;
     result->m_running = false;
 
-    result->m_exception_type = NULL;
-    result->m_exception_value = NULL;
-    result->m_exception_tb = NULL;
-
     result->m_yield_return_index = 0;
 
 #if PYTHON_VERSION >= 300
@@ -1098,6 +1092,28 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
     result->m_frame = NULL;
     result->m_code_object = code_object;
 
+#if PYTHON_VERSION >= 370
+    result->m_exc_state.exc_type = NULL;
+    result->m_exc_state.exc_value = NULL;
+    result->m_exc_state.exc_traceback = NULL;
+#endif
+
     Nuitka_GC_Track(result);
     return (PyObject *)result;
+}
+
+static PyObject *_EMPTY_GENERATOR_CONTEXT(struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value) {
+    return NULL;
+}
+
+PyObject *Nuitka_Generator_NewEmpty(PyObject *module, PyObject *name,
+#if PYTHON_VERSION >= 350
+                                    PyObject *qualname,
+#endif
+                                    PyCodeObject *code_object, Py_ssize_t closure_given) {
+    return Nuitka_Generator_New(_EMPTY_GENERATOR_CONTEXT, module, name,
+#if PYTHON_VERSION >= 350
+                                qualname,
+#endif
+                                code_object, closure_given, 0);
 }

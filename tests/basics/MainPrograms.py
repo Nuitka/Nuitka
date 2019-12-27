@@ -19,8 +19,10 @@ from __future__ import print_function
 
 print("Module name is", __name__)
 
+
 class SomeClass:
     pass
+
 
 print("Class inside main module names its module as", repr(SomeClass.__module__))
 
@@ -32,10 +34,12 @@ if __name__ == "__main__":
     # The sys.argv[0] might contain ".exe", ".py" or no suffix at all.
     # Remove it, so the "diff" output is more acceptable.
     args = sys.argv[:]
-    args[0] = os.path.basename(args[0]).\
-      replace(".exe", ".py").\
-      replace(".bin", ".py").\
-      replace(".py", "")
+    args[0] = (
+        os.path.basename(args[0])
+        .replace(".exe", ".py")
+        .replace(".bin", ".py")
+        .replace(".py", "")
+    )
 
     print("Arguments were (stripped argv[0] suffix):", repr(args))
 

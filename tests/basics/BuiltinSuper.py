@@ -15,11 +15,11 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 from __future__ import print_function
 
 # Python2 will fallback to this variable, which Python3 will ignore.
-__class__ = "Using module level __class__ variable, would be wrong for Python3"  # @ReservedAssignment
+__class__ = "Using module level __class__ variable, would be wrong for Python3"
+
 
 class ClassWithUnderClassClosure:
     def g(self):
@@ -29,7 +29,10 @@ class ClassWithUnderClassClosure:
         h()
 
         try:
-            print("ClassWithUnderClassClosure: Super in ClassWithUnderClassClosure is", super())
+            print(
+                "ClassWithUnderClassClosure: Super in ClassWithUnderClassClosure is",
+                super(),
+            )
         except Exception as e:
             print("ClassWithUnderClassClosure: Occurred during super call", repr(e))
 
@@ -37,9 +40,10 @@ class ClassWithUnderClassClosure:
 print("Class with a method that has a local function accessing __class__:")
 ClassWithUnderClassClosure().g()
 
+
 class ClassWithoutUnderClassClosure:
     def g(self):
-        __class__ = "Providing __class__ ourselves, then it must be used"  # @ReservedAssignment
+        __class__ = "Providing __class__ ourselves, then it must be used"
         print(__class__)
 
         try:
@@ -51,7 +55,8 @@ class ClassWithoutUnderClassClosure:
 ClassWithoutUnderClassClosure().g()
 
 # For Python2 only.
-__class__ = "Global __class__"  # @ReservedAssignment
+__class__ = "Global __class__"
+
 
 def deco(C):
     print("Decorating", repr(C))
@@ -60,6 +65,7 @@ def deco(C):
         pass
 
     return D
+
 
 @deco
 class X:
@@ -86,6 +92,7 @@ class X:
             print("f4", super().__self__)
         except TypeError:
             import sys
+
             assert sys.version_info < (3,)
 
     f5 = lambda x: __class__
@@ -95,6 +102,7 @@ class X:
             print("f6", super())
         except TypeError:
             import sys
+
             assert sys.version_info < (3,)
 
     def f7(self):
@@ -102,6 +110,7 @@ class X:
             yield super()
         except TypeError:
             import sys
+
             assert sys.version_info < (3,)
 
     print("Early pre-class calls begin")
@@ -111,6 +120,7 @@ class X:
     print("Early pre-class calls end")
 
     del __class__
+
 
 x = X()
 x.f1()

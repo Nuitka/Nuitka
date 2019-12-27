@@ -461,7 +461,10 @@ PyObject *BUILTIN_BYTEARRAY3(PyObject *string, PyObject *encoding, PyObject *err
 
 // From CPython:
 typedef struct {
-    PyObject_HEAD PyObject *it_callable;
+    /* Python object folklore: */
+    PyObject_HEAD;
+
+    PyObject *it_callable;
     PyObject *it_sentinel;
 } calliterobject;
 
@@ -551,7 +554,10 @@ PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, 
  **/
 
 typedef struct {
-    PyObject_HEAD PyTypeObject *type;
+    /* Python object folklore: */
+    PyObject_HEAD;
+
+    PyTypeObject *type;
     PyObject *obj;
     PyTypeObject *obj_type;
 } superobject;

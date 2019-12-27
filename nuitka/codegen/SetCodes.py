@@ -51,14 +51,14 @@ def generateSetCreationCode(to_name, expression, emit, context):
             )
 
             if count == 0:
-                emit("%s = PySet_New( NULL );" % (result_name,))
+                emit("%s = PySet_New(NULL);" % (result_name,))
                 getAssertionCode(result_name, emit)
 
                 context.addCleanupTempName(to_name)
 
             res_name = context.getIntResName()
 
-            emit("%s = PySet_Add( %s, %s );" % (res_name, to_name, element_name))
+            emit("%s = PySet_Add(%s, %s);" % (res_name, to_name, element_name))
 
             getErrorExitBoolCode(
                 condition="%s != 0" % res_name,
@@ -68,7 +68,7 @@ def generateSetCreationCode(to_name, expression, emit, context):
             )
 
             if context.needsCleanup(element_name):
-                emit("Py_DECREF( %s );" % element_name)
+                emit("Py_DECREF(%s);" % element_name)
                 context.removeCleanupTempName(element_name)
 
 
@@ -80,7 +80,7 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
         to_name, "set_result", expression, emit, context
     ) as result_name:
 
-        emit("%s = PySet_New( NULL );" % (result_name,))
+        emit("%s = PySet_New(NULL);" % (result_name,))
 
         context.addCleanupTempName(result_name)
 
@@ -100,20 +100,18 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
             element_name = element_names[len(elements) - count - 1]
 
             if element.isKnownToBeHashable():
-                emit("PySet_Add( %s, %s );" % (result_name, element_name))
+                emit("PySet_Add(%s, %s);" % (result_name, element_name))
             else:
                 res_name = context.getIntResName()
 
-                emit(
-                    "%s = PySet_Add( %s, %s );" % (res_name, result_name, element_name)
-                )
+                emit("%s = PySet_Add(%s, %s);" % (res_name, result_name, element_name))
 
                 getErrorExitBoolCode(
                     condition="%s != 0" % res_name, emit=emit, context=context
                 )
 
             if context.needsCleanup(element_name):
-                emit("Py_DECREF( %s );" % element_name)
+                emit("Py_DECREF(%s);" % element_name)
                 context.removeCleanupTempName(element_name)
 
 
@@ -135,8 +133,8 @@ def generateSetOperationAddCode(statement, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("assert( PySet_Check( %s ) );" % set_arg_name)
-    emit("%s = PySet_Add( %s, %s );" % (res_name, set_arg_name, value_arg_name))
+    emit("assert(PySet_Check(%s));" % set_arg_name)
+    emit("%s = PySet_Add(%s, %s);" % (res_name, set_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,
@@ -153,8 +151,8 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    emit("assert( PySet_Check( %s ) );" % set_arg_name)
-    emit("%s = _PySet_Update( %s, %s );" % (res_name, set_arg_name, value_arg_name))
+    emit("assert(PySet_Check(%s));" % set_arg_name)
+    emit("%s = _PySet_Update(%s, %s);" % (res_name, set_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,

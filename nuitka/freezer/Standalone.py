@@ -60,7 +60,9 @@ from nuitka.utils.FileOperations import (
     makePath,
     withFileLock,
 )
+from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
+    callInstallNameTool,
     getPEFileInformation,
     getWindowsDLLVersion,
     removeSxsFromDLL,
@@ -120,7 +122,7 @@ def _detectedSourceFile(filename, module_name, result, user_provided, technical)
     if module_name == "collections.abc":
         _detectedSourceFile(
             filename=filename,
-            module_name="_collections_abc",
+            module_name=ModuleName("_collections_abc"),
             result=result,
             user_provided=user_provided,
             technical=technical,
@@ -182,24 +184,15 @@ def _detectedShlibFile(filename, module_name):
     if module_name == "__main__":
         return
 
+    # Cyclic dependency
     from nuitka import ModuleRegistry
 
     if ModuleRegistry.hasRootModule(module_name):
         return
 
-    parts = module_name.split(".")
-    if len(parts) == 1:
-        package_name = None
-        name = module_name
-    else:
-        package_name = ".".join(parts[:-1])
-        name = parts[-1]
-
     source_ref = SourceCodeReferences.fromFilename(filename=filename)
 
-    shlib_module = PythonShlibModule(
-        name=name, package_name=package_name, source_ref=source_ref
-    )
+    shlib_module = PythonShlibModule(module_name=module_name, source_ref=source_ref)
 
     ModuleRegistry.addRootModule(shlib_module)
     ImportCache.addImportedModule(shlib_module)
@@ -279,6 +272,8 @@ def _detectImports(command, user_provided, technical):
             if python_version >= 300:
                 module_name = module_name.decode("utf-8")
 
+            module_name = ModuleName(module_name)
+
             if origin == b"precompiled":
                 # This is a ".pyc" file that was imported, even before we have a
                 # chance to do anything, we need to preserve it.
@@ -308,7 +303,7 @@ def _detectImports(command, user_provided, technical):
                     # clashes with "decimal" proper
                     if python_version >= 300:
                         if module_name == "decimal":
-                            module_name = "_decimal"
+                            module_name = ModuleName("_decimal")
 
                     detections.append((module_name, 2, "shlib", filename))
             elif origin == b"dynamically":
@@ -406,6 +401,11 @@ def scanStandardLibraryPath(stdlib_dir):
             if "test" in dirs:
                 dirs.remove("test")
 
+        if import_path == "distutils.command":
+            # Misbehaving and crashing while importing the world.
+            if "bdist_conda.py" in filenames:
+                filenames.remove("bdist_conda.py")
+
         if import_path in ("lib2to3", "json", "distutils"):
             if "tests" in dirs:
                 dirs.remove("tests")
@@ -447,7 +447,7 @@ def scanStandardLibraryPath(stdlib_dir):
                 yield import_path + "." + dirname
 
 
-def detectEarlyImports():
+def _detectEarlyImports():
     encoding_names = [
         filename[:-3]
         for _path, filename in listDir(
@@ -520,6 +520,9 @@ for imp in imports:
         __import__(imp)
     except (ImportError, SyntaxError):
         failed.add(imp)
+    except Exception:
+        sys.stderr("PROBLEM with '%%s'\\n" %% imp)
+        raise
 
     for fail in failed:
         if fail in sys.modules:
@@ -541,6 +544,14 @@ for imp in imports:
     debug("Finished detecting early imports.")
 
     return result
+
+
+def detectEarlyImports():
+    # Cyclic dependency
+    from nuitka import ModuleRegistry
+
+    for module in _detectEarlyImports():
+        ModuleRegistry.addUncompiledModule(module)
 
 
 _detected_python_rpath = None
@@ -668,7 +679,7 @@ def _detectBinaryPathDLLsPosix(dll_filename):
     return sub_result
 
 
-def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
+def _detectBinaryPathDLLsMacOS(original_dir, binary_filename, keep_unresolved):
     result = set()
 
     process = subprocess.Popen(
@@ -680,7 +691,7 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
     stdout, _stderr = process.communicate()
     system_paths = (b"/usr/lib/", b"/System/Library/Frameworks/")
 
-    for line in stdout.split(b"\n")[2:]:
+    for line in stdout.split(b"\n")[1:]:
         if not line:
             continue
 
@@ -694,13 +705,69 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
             if python_version >= 300:
                 filename = filename.decode("utf-8")
 
-            if filename.startswith("@rpath/"):
-                filename = os.path.join(original_dir, filename[7:])
-            elif filename.startswith("@loader_path/"):
-                filename = os.path.join(original_dir, filename[13:])
-
-            # print "adding", filename
+            # print("adding", filename)
             result.add(filename)
+
+    resolved_result = _resolveBinaryPathDLLsMacOS(
+        original_dir, binary_filename, result, keep_unresolved
+    )
+    return resolved_result
+
+
+def _resolveBinaryPathDLLsMacOS(original_dir, binary_filename, paths, keep_unresolved):
+    if keep_unresolved:
+        result = {}
+    else:
+        result = set()
+
+    rpaths = _detectBinaryRPathsMacOS(original_dir, binary_filename)
+
+    for path in paths:
+        if path.startswith("@rpath/"):
+            for rpath in rpaths:
+                if os.path.isfile(os.path.join(rpath, path[7:])):
+                    resolved_path = os.path.join(rpath, path[7:])
+                    break
+            else:
+                resolved_path = os.path.join(original_dir, path[7:])
+
+        elif path.startswith("@loader_path/"):
+            resolved_path = os.path.join(original_dir, path[13:])
+        else:
+            resolved_path = path
+        if keep_unresolved:
+            result.update({resolved_path: path})
+        else:
+            result.add(resolved_path)
+    return result
+
+
+def _detectBinaryRPathsMacOS(original_dir, binary_filename):
+    result = set()
+
+    process = subprocess.Popen(
+        args=["otool", "-l", binary_filename],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    stdout, _stderr = process.communicate()
+
+    lines = stdout.split(b"\n")
+
+    for i, o in enumerate(lines):
+        if o.endswith(b"cmd LC_RPATH"):
+            line = lines[i + 2]
+            if python_version >= 300:
+                line = line.decode("utf-8")
+
+            line = line.split("path ")[1]
+            line = line.split(" (offset")[0]
+            if line.startswith("@loader_path"):
+                line = os.path.join(original_dir, line[13:])
+            elif line.startswith("@executable_path"):
+                continue
+            result.add(line)
 
     return result
 
@@ -806,10 +873,23 @@ def _parseDependsExeOutput(filename, result):
     _parseDependsExeOutput2(getFileContentByLine(filename), result)
 
 
+def _getPyWin32Dir():
+    for path_element in sys.path:
+        if not path_element:
+            continue
+
+        candidate = os.path.join(path_element, "pywin32_system32")
+
+        if os.path.isdir(candidate):
+            return candidate
+
+
 _scan_dir_cache = {}
 
 
 def getScanDirectories(package_name, original_dir):
+    # Many cases, pylint: disable=too-many-branches
+
     cache_key = package_name, original_dir
 
     if cache_key in _scan_dir_cache:
@@ -842,6 +922,16 @@ def getScanDirectories(package_name, original_dir):
             continue
 
         scan_dirs.append(path_dir)
+
+    if (
+        Utils.isWin32Windows()
+        and package_name is not None
+        and package_name.isBelowNamespace("win32com")
+    ):
+        pywin32_dir = _getPyWin32Dir()
+
+        if pywin32_dir is not None:
+            scan_dirs.append(pywin32_dir)
 
     result = []
 
@@ -1146,6 +1236,7 @@ def detectBinaryDLLs(
         return _detectBinaryPathDLLsMacOS(
             original_dir=os.path.dirname(original_filename),
             binary_filename=original_filename,
+            keep_unresolved=False,
         )
     else:
         # Support your platform above.
@@ -1215,28 +1306,28 @@ manually."""
     return result
 
 
-def fixupBinaryDLLPaths(binary_filename, is_exe, dll_map):
+def fixupBinaryDLLPathsMacOS(binary_filename, dll_map, original_location):
     """ For macOS, the binary needs to be told to use relative DLL paths """
 
     # There may be nothing to do, in case there are no DLLs.
     if not dll_map:
         return
 
-    command = ["install_name_tool"]
-
-    for original_path, dist_path in dll_map:
-        command += ["-change", original_path, "@executable_path/" + dist_path]
-
-    os.chmod(binary_filename, int("644", 8))
-    command.append(binary_filename)
-    process = subprocess.Popen(
-        args=command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    rpath_map = _detectBinaryPathDLLsMacOS(
+        original_dir=os.path.dirname(original_location),
+        binary_filename=original_location,
+        keep_unresolved=True,
     )
-    _stdout, stderr = process.communicate()
-    os.chmod(binary_filename, int("755" if is_exe else "444", 8))
+    for i, o in enumerate(dll_map):
+        dll_map[i] = (rpath_map.get(o[0], o[0]), o[1])
 
-    # Don't let errors here go unnoticed.
-    assert process.returncode == 0, stderr
+    callInstallNameTool(
+        filename=binary_filename,
+        mapping=(
+            (original_path, "@executable_path/" + dist_path)
+            for (original_path, dist_path) in dll_map
+        ),
+    )
 
 
 def getSharedLibraryRPATH(filename):
@@ -1417,17 +1508,17 @@ different from
         # For macOS, the binary and the DLLs needs to be changed to reflect
         # the relative DLL location in the ".dist" folder.
         for standalone_entry_point in standalone_entry_points:
-            fixupBinaryDLLPaths(
+            fixupBinaryDLLPathsMacOS(
                 binary_filename=standalone_entry_point[1],
-                is_exe=standalone_entry_point is standalone_entry_points[0],
                 dll_map=dll_map,
+                original_location=standalone_entry_point[0],
             )
 
-        for _original_path, dll_filename in dll_map:
-            fixupBinaryDLLPaths(
+        for original_path, dll_filename in dll_map:
+            fixupBinaryDLLPathsMacOS(
                 binary_filename=os.path.join(dist_dir, dll_filename),
-                is_exe=False,
                 dll_map=dll_map,
+                original_location=original_path,
             )
 
     if Utils.getOS() == "Linux":
@@ -1470,9 +1561,10 @@ def copyDataFiles(dist_dir, data_files):
         if inspect.isfunction(source_desc):
             content = source_desc(target_filename)
 
-            with open(
-                target_filename, "wb" if type(content) is bytes else "w"
-            ) as output:
-                output.write(content)
+            if content is not None:  # support creation of empty directories
+                with open(
+                    target_filename, "wb" if type(content) is bytes else "w"
+                ) as output:
+                    output.write(content)
         else:
             shutil.copy2(source_desc, target_filename)

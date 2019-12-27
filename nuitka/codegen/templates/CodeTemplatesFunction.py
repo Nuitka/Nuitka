@@ -20,16 +20,15 @@
 """
 
 template_function_make_declaration = """\
-static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg_spec)s );
+static PyObject *MAKE_FUNCTION_%(function_identifier)s(%(function_creation_arg_spec)s);
 """
 
 template_function_direct_declaration = """\
-%(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s );
+%(file_scope)s PyObject *impl_%(function_identifier)s(%(direct_call_arg_spec)s);
 """
 
-template_make_function_body = """
-static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
-{
+template_maker_function_body = """
+static PyObject *%(function_maker_identifier)s(%(function_creation_args)s) {
     struct Nuitka_FunctionObject *result = Nuitka_Function_New(
         %(function_impl_identifier)s,
         %(function_name_obj)s,
@@ -52,13 +51,12 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 """
 
 template_make_function = """\
-%(to_name)s = MAKE_FUNCTION_%(function_identifier)s( %(args)s );
+%(to_name)s = %(function_maker_identifier)s(%(args)s);
 %(closure_copy)s
 """
 
 template_function_body = """\
-static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
-{
+static PyObject *impl_%(function_identifier)s(%(parameter_objects_decl)s) {
     // Preserve error status for checks
 #ifndef __NUITKA_NO_ASSERT__
     NUITKA_MAY_BE_UNUSED bool had_error = ERROR_OCCURRED();
@@ -77,8 +75,8 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 template_function_exception_exit = """\
 function_exception_exit:
 %(function_cleanup)s\
-    assert( %(exception_type)s );
-    RESTORE_ERROR_OCCURRED( %(exception_type)s, %(exception_value)s, %(exception_tb)s );
+    assert(%(exception_type)s);
+    RESTORE_ERROR_OCCURRED(%(exception_type)s, %(exception_value)s, %(exception_tb)s);
 
     return NULL;
 """
@@ -90,13 +88,12 @@ function_return_exit:
 
    // Actual function exit with return value, making sure we did not make
    // the error status worse despite non-NULL return.
-   CHECK_OBJECT( tmp_return_value );
-   assert( had_error || !ERROR_OCCURRED() );
+   CHECK_OBJECT(tmp_return_value);
+   assert(had_error || !ERROR_OCCURRED());
    return tmp_return_value;"""
 
 function_direct_body_template = """\
-%(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s )
-{
+%(file_scope)s PyObject *impl_%(function_identifier)s(%(direct_call_arg_spec)s) {
 #ifndef __NUITKA_NO_ASSERT__
     NUITKA_MAY_BE_UNUSED bool had_error = ERROR_OCCURRED();
     assert(!had_error); // Do not enter inlined functions with error set.

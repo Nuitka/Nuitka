@@ -36,8 +36,10 @@ from logging import info
 
 import nuitka.plugins.standard
 from nuitka import Options
+from nuitka.containers.odict import OrderedDict
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.PythonVersions import python_version
+from nuitka.utils.ModuleNames import ModuleName
 
 from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
 
@@ -121,6 +123,16 @@ def loadStandardPlugins():
 
 
 class Plugins(object):
+    @staticmethod
+    def isPluginActive(plugin_name):
+        """ Is a plugin activated. """
+
+        for plugin in active_plugin_list:
+            if plugin.plugin_name == plugin_name:
+                return True
+
+        return False
+
     @staticmethod
     def considerImplicitImports(module, signal_change):
         for plugin in active_plugin_list:
@@ -209,7 +221,7 @@ class Plugins(object):
 
     @staticmethod
     def onModuleSourceCode(module_name, source_code):
-        assert type(module_name) is str
+        assert type(module_name) is ModuleName
         assert type(source_code) is str
 
         for plugin in active_plugin_list:
@@ -220,7 +232,7 @@ class Plugins(object):
 
     @staticmethod
     def onFrozenModuleSourceCode(module_name, is_package, source_code):
-        assert type(module_name) is str
+        assert type(module_name) is ModuleName
         assert type(source_code) is str
 
         for plugin in active_plugin_list:
@@ -233,7 +245,7 @@ class Plugins(object):
 
     @staticmethod
     def onFrozenModuleBytecode(module_name, is_package, bytecode):
-        assert type(module_name) is str
+        assert type(module_name) is ModuleName
         assert bytecode.__class__.__name__ == "code"
 
         for plugin in active_plugin_list:
@@ -243,12 +255,12 @@ class Plugins(object):
         return bytecode
 
     @staticmethod
-    def onModuleEncounter(module_filename, module_name, module_package, module_kind):
+    def onModuleEncounter(module_filename, module_name, module_kind):
         result = False
 
         for plugin in active_plugin_list:
             must_recurse = plugin.onModuleEncounter(
-                module_filename, module_name, module_package, module_kind
+                module_filename, module_name, module_kind
             )
 
             result = result or must_recurse
@@ -261,7 +273,7 @@ class Plugins(object):
             new_module_name = plugin.considerFailedImportReferrals(module_name)
 
             if new_module_name is not None:
-                return new_module_name
+                return ModuleName(new_module_name)
 
         return None
 
@@ -331,6 +343,33 @@ class Plugins(object):
 
         return "compiled"
 
+    @staticmethod
+    def getPreprocessorSymbols():
+        """ Let plugins provide C defines to be used in compilation.
+
+        Notes:
+            The plugins can each contribute, but are hopefully using
+            a namespace for their defines.
+
+        Returns:
+            OrderedDict(), where None value indicates no define value,
+            i.e. "-Dkey=value" vs. "-Dkey"
+        """
+        result = OrderedDict()
+
+        for plugin in active_plugin_list:
+            value = plugin.getPreprocessorSymbols()
+
+            if value is not None:
+                assert type(value) is dict
+
+                # We order per plugin, but from the plugins, lets just take a dict
+                # and achieve determism by ordering the defines by name.
+                for key, value in sorted(value.items()):
+                    result[key] = value
+
+        return result
+
 
 def listPlugins():
     """ Print available standard plugins.
@@ -364,7 +403,7 @@ def isObjectAUserPluginBaseClass(obj):
 def importFilePy3NewWay(filename):
     """ Import a file for Python versions 3.5+.
     """
-    import importlib.util  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+    import importlib.util  # pylint: disable=I0021,import-error,no-name-in-module
 
     spec = importlib.util.spec_from_file_location(filename, filename)
     user_plugin_module = importlib.util.module_from_spec(spec)
@@ -376,7 +415,7 @@ def importFilePy3OldWay(filename):
     """ Import a file for Python versions 3.x where x < 5.
     """
     from importlib.machinery import (  # pylint: disable=I0021,import-error,no-name-in-module
-        SourceFileLoader,  # @UnresolvedImport
+        SourceFileLoader,
     )
 
     # pylint: disable=I0021,deprecated-method

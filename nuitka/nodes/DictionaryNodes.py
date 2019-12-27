@@ -29,7 +29,7 @@ from nuitka.PythonVersions import python_version
 
 from .AttributeNodes import ExpressionAttributeLookup
 from .BuiltinHashNodes import ExpressionBuiltinHash
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
 from .NodeBases import SideEffectsFromChildrenMixin, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
@@ -45,18 +45,19 @@ class ExpressionKeyValuePair(
 ):
     kind = "EXPRESSION_KEY_VALUE_PAIR"
 
+    # They changed the order of evaluation with 3.5 to what you normally would expect.
     if python_version < 350:
         named_children = ("value", "key")
     else:
         named_children = ("key", "value")
 
+    getKey = ExpressionChildrenHavingBase.childGetter("key")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
+
     def __init__(self, key, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self, values={"key": key, "value": value}, source_ref=source_ref
         )
-
-    getKey = ExpressionChildrenHavingBase.childGetter("key")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, trace_collection):
         key = self.getKey()
@@ -100,17 +101,16 @@ class ExpressionKeyValuePair(
             return key_part + self.subnode_value.extractSideEffects()
 
 
-class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase):
+class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildHavingBase):
     kind = "EXPRESSION_MAKE_DICT"
 
-    named_children = ("pairs",)
+    named_child = "pairs"
+    getPairs = ExpressionChildHavingBase.childGetter("pairs")
 
     def __init__(self, pairs, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"pairs": tuple(pairs)}, source_ref=source_ref
+        ExpressionChildHavingBase.__init__(
+            self, value=tuple(pairs), source_ref=source_ref
         )
-
-    getPairs = ExpressionChildrenHavingBase.childGetter("pairs")
 
     def computeExpression(self, trace_collection):
         pairs = self.getPairs()
@@ -280,6 +280,9 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_SET"
 
     named_children = ("value", "dict", "key")
+    getDict = StatementChildrenHavingBase.childGetter("dict")
+    getKey = StatementChildrenHavingBase.childGetter("key")
+    getValue = StatementChildrenHavingBase.childGetter("value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, key, value, source_ref):
@@ -292,10 +295,6 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
             values={"dict": dict_arg, "key": key, "value": value},
             source_ref=source_ref,
         )
-
-    getDict = StatementChildrenHavingBase.childGetter("dict")
-    getKey = StatementChildrenHavingBase.childGetter("key")
-    getValue = StatementChildrenHavingBase.childGetter("value")
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -330,10 +329,18 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
         return False
 
 
+class StatementDictOperationSetKeyValue(StatementDictOperationSet):
+    kind = "STATEMENT_DICT_OPERATION_SET_KEY_VALUE"
+
+    named_children = ("key", "value", "dict")
+
+
 class StatementDictOperationRemove(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_REMOVE"
 
     named_children = ("dict", "key")
+    getDict = StatementChildrenHavingBase.childGetter("dict")
+    getKey = StatementChildrenHavingBase.childGetter("key")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, key, source_ref):
@@ -343,9 +350,6 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
         StatementChildrenHavingBase.__init__(
             self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
         )
-
-    getDict = StatementChildrenHavingBase.childGetter("dict")
-    getKey = StatementChildrenHavingBase.childGetter("key")
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -376,6 +380,8 @@ class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_DICT_OPERATION_GET"
 
     named_children = ("dict", "key")
+    getDict = ExpressionChildrenHavingBase.childGetter("dict")
+    getKey = ExpressionChildrenHavingBase.childGetter("key")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, key, source_ref):
@@ -385,9 +391,6 @@ class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
         ExpressionChildrenHavingBase.__init__(
             self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
         )
-
-    getDict = ExpressionChildrenHavingBase.childGetter("dict")
-    getKey = ExpressionChildrenHavingBase.childGetter("key")
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -406,6 +409,8 @@ class StatementDictOperationUpdate(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_UPDATE"
 
     named_children = ("dict", "value")
+    getDict = StatementChildrenHavingBase.childGetter("dict")
+    getValue = StatementChildrenHavingBase.childGetter("value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, value, source_ref):
@@ -415,9 +420,6 @@ class StatementDictOperationUpdate(StatementChildrenHavingBase):
         StatementChildrenHavingBase.__init__(
             self, values={"dict": dict_arg, "value": value}, source_ref=source_ref
         )
-
-    getDict = StatementChildrenHavingBase.childGetter("dict")
-    getValue = StatementChildrenHavingBase.childGetter("value")
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -438,6 +440,8 @@ class ExpressionDictOperationIn(ExpressionChildrenHavingBase):
     # Follow the reversed nature of "in", with the dictionary on the right
     # side of things.
     named_children = ("key", "dict")
+    getDict = ExpressionChildrenHavingBase.childGetter("dict")
+    getKey = ExpressionChildrenHavingBase.childGetter("key")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, key, dict_arg, source_ref):
@@ -447,9 +451,6 @@ class ExpressionDictOperationIn(ExpressionChildrenHavingBase):
         ExpressionChildrenHavingBase.__init__(
             self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
         )
-
-    getDict = ExpressionChildrenHavingBase.childGetter("dict")
-    getKey = ExpressionChildrenHavingBase.childGetter("key")
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -457,12 +458,14 @@ class ExpressionDictOperationIn(ExpressionChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionDictOperationNOTIn(ExpressionChildrenHavingBase):
+class ExpressionDictOperationNotIn(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_DICT_OPERATION_NOT_IN"
 
     # Follow the reversed nature of "in", with the dictionary on the right
     # side of things.
     named_children = ("key", "dict")
+    getDict = ExpressionChildrenHavingBase.childGetter("dict")
+    getKey = ExpressionChildrenHavingBase.childGetter("key")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, key, dict_arg, source_ref):
@@ -472,9 +475,6 @@ class ExpressionDictOperationNOTIn(ExpressionChildrenHavingBase):
         ExpressionChildrenHavingBase.__init__(
             self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
         )
-
-    getDict = ExpressionChildrenHavingBase.childGetter("dict")
-    getKey = ExpressionChildrenHavingBase.childGetter("key")
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)

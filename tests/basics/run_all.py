@@ -41,6 +41,7 @@ from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
     decideFilenameVersionSkip,
+    decideNeeds2to3,
     hasDebugPython,
     my_print,
     setup,
@@ -48,20 +49,9 @@ from nuitka.tools.testing.Common import (
 
 
 def main():
-    # Complex stuff, pylint: disable=too-many-branches
-
-    python_version = setup(suite="basics", needs_io_encoding=True)
+    _python_version = setup(suite="basics", needs_io_encoding=True)
 
     search_mode = createSearchMode()
-
-    # Create large constants test on the fly, if it's not there, not going to
-    # add it to release archives for no good reason.
-    if not os.path.exists("BigConstants.py"):
-        with open("BigConstants.py", "w") as output:
-            output.write(
-                "# Automatically generated test, not part of releases or git.\n\n"
-            )
-            output.write("print('%s')\n" % ("1234" * 17000))
 
     # Now run all the tests in this directory.
     for filename in sorted(os.listdir(".")):
@@ -84,6 +74,8 @@ def main():
             "original_file",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
+            # We annotate some tests, use that to lower warnings.
+            "plugin_enable:pylint-warnings",
         ]
 
         # This test should be run with the debug Python, and makes outputs to
@@ -120,20 +112,12 @@ def main():
                 my_print("Skipped (no debug Python)")
                 continue
 
-            needs_2to3 = (
-                python_version.startswith("3")
-                and not filename.endswith("32.py")
-                and not filename.endswith("33.py")
-                and not filename.endswith("35.py")
-                and not filename.endswith("36.py")
-            )
-
             compareWithCPython(
                 dirname=None,
                 filename=filename,
                 extra_flags=extra_flags,
                 search_mode=search_mode,
-                needs_2to3=needs_2to3,
+                needs_2to3=decideNeeds2to3(filename),
             )
 
             if search_mode.abortIfExecuted():

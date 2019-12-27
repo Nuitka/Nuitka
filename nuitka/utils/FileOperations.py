@@ -171,7 +171,7 @@ def getFileList(path):
         filenames.sort()
 
         for filename in filenames:
-            result.append(os.path.join(root, filename))
+            result.append(os.path.normpath(os.path.join(root, filename)))
 
     return result
 
@@ -293,6 +293,13 @@ def withPreserveFileMode(filename):
     os.chmod(filename, old_mode)
 
 
+@contextmanager
+def withMadeWritableFileMode(filename):
+    with withPreserveFileMode(filename):
+        os.chmod(filename, int("644", 8))
+        yield
+
+
 def renameFile(source_filename, dest_filename):
     # There is no way to safely update a file on Windows, but lets
     # try on Linux at least.
@@ -344,7 +351,7 @@ def getWindowsShortPathName(filename):
     """
     import ctypes.wintypes
 
-    GetShortPathNameW = ctypes.windll.kernel32.GetShortPathNameW  # @UndefinedVariable
+    GetShortPathNameW = ctypes.windll.kernel32.GetShortPathNameW
     GetShortPathNameW.argtypes = [
         ctypes.wintypes.LPCWSTR,
         ctypes.wintypes.LPWSTR,

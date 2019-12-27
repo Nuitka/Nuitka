@@ -55,8 +55,37 @@ def my_print(*args, **kwargs):
     """ Make sure we flush after every print.
 
     Not even the "-u" option does more than that and this is easy enough.
+
+    Use kwarg style=[option] to print in a style listed below
     """
 
-    print(*args, **kwargs)
+    if "style" in kwargs:
+        if kwargs["style"] == "pink":
+            style = "\033[95m"
+        elif kwargs["style"] == "blue":
+            style = "\033[94m"
+        elif kwargs["style"] == "green":
+            style = "\033[92m"
+        elif kwargs["style"] == "yellow":
+            style = "\033[93m"
+        elif kwargs["style"] == "red":
+            style = "\033[91m"
+        elif kwargs["style"] == "bold":
+            style = "\033[1m"
+        elif kwargs["style"] == "underline":
+            style = "\033[4m"
+        else:
+            raise ValueError(
+                "%s is an invalid value for keyword argument style" % kwargs["style"]
+            )
+
+        del kwargs["style"]
+
+        print(style, end="")
+        print(*args, **kwargs)
+        print("\033[0m", end="")
+
+    else:
+        print(*args, **kwargs)
 
     flushStdout()

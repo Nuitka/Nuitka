@@ -35,8 +35,8 @@ import signal
 import subprocess
 import sys
 
-import SCons  # @UnresolvedImport @UnusedImport pylint: disable=import-error
-import SCons.Tool.gcc  # @UnresolvedImport @UnusedImport pylint: disable=import-error
+import SCons  # pylint: disable=import-error
+import SCons.Tool.gcc  # pylint: disable=import-error
 
 
 def _decode(data):
@@ -48,14 +48,17 @@ def _decode(data):
     except UnicodeDecodeError:
         import locale
 
-        return data.decode(locale.getpreferredencoding())
+        try:
+            return data.decode(locale.getpreferredencoding())
+        except UnicodeDecodeError:
+            return data.decode("utf8", "backslashreplace")
 
 
 def getArguments():
     arg_encoding = ARGUMENTS.get("argument_encoding")
 
     result = {}
-    for key, value in ARGUMENTS.items():  # @UndefinedVariable
+    for key, value in ARGUMENTS.items():
         if arg_encoding is not None:
             value = _decode(value)
         result[key] = value
@@ -96,6 +99,16 @@ def getBoolOption(option_name, default=None):
     return value.lower() in ("yes", "true", "1")
 
 
+def getListOption(option_name, default=None):
+    """ Small helper for list mode options, default should be command separated str."""
+    if default is None:
+        value = ARGUMENTS[option_name]
+    else:
+        value = ARGUMENTS.get(option_name, default)
+
+    return value.split(",")
+
+
 # The directory to use for cache directory.
 cache_mode = getBoolOption("cache_mode", False)
 
@@ -124,7 +137,7 @@ python_debug = getBoolOption("python_debug", False)
 full_compat_mode = getBoolOption("full_compat", False)
 
 # Experimental indications. Do things that are not yet safe to do.
-experimental = ARGUMENTS.get("experimental", "").split(",")
+experimental = getListOption("experimental", "")
 
 # Tracing mode. Output program progress.
 trace_mode = getBoolOption("trace_mode", False)
@@ -161,6 +174,12 @@ target_arch = ARGUMENTS["target_arch"]
 clang_mode = getBoolOption("clang_mode", False)
 if macosx_target or ("freebsd" in sys.platform and target_arch != "powerpc"):
     clang_mode = True
+
+# Clang on Windows is always clang-cl for now.
+clangcl_mode = False
+if win_target and clang_mode:
+    clang_mode = False
+    clangcl_mode = True
 
 # MinGW compiler mode, optional and interesting to Windows only.
 mingw_mode = getBoolOption("mingw_mode", False)
@@ -211,6 +230,7 @@ python_sysflag_utf8 = getBoolOption("python_sysflag_utf8", False)
 # python_sysflag_optimize
 python_sysflag_optimize = getBoolOption("python_sysflag_optimize", False)
 
+cpp_defines = getListOption("cpp_defines", "")
 
 # Mode to only output compiler information, for use in "nuitka --version"
 # only.
@@ -219,13 +239,11 @@ compiler_version_mode = getBoolOption("compiler_version", False)
 
 def printCompilerVersionOutput(*args):
     if compiler_version_mode or show_scons_mode:
-        print("SCONS: ", *args)
+        print("Scons:", *args)
 
 
 # Amount of jobs to use.
-job_count = GetOption(  # @UndefinedVariable pylint: disable=undefined-variable
-    "num_jobs"
-)
+job_count = GetOption("num_jobs")  # pylint: disable=undefined-variable
 
 
 def isGccName(cc_name):
@@ -242,6 +260,8 @@ if "CC" in os.environ:
     cc_dirname = os.path.dirname(os.environ["CC"])
 
     if win_target and isGccName(os.path.basename(os.environ["CC"])):
+        if show_scons_mode:
+            print("Scons: Environment CC seems to be a gcc, enable mingw_mode.")
         mingw_mode = True
 
     if os.path.isdir(cc_dirname):
@@ -260,6 +280,8 @@ if "CXX" in os.environ:
     cxx_dirname = os.path.dirname(os.environ["CXX"])
 
     if win_target and isGccName(os.path.basename(os.environ["CXX"])):
+        if show_scons_mode:
+            print("Scons: Environment CXX seems to be a gcc, enable mingw_mode.")
         mingw_mode = True
 
     if os.path.isdir(cxx_dirname):
@@ -308,9 +330,7 @@ def getExecutablePath(filename, initial):
 
 # Patch the compiler detection.
 
-orig_detect = (
-    Environment.Detect  # @UndefinedVariable pylint: disable=undefined-variable
-)
+orig_detect = Environment.Detect  # pylint: disable=undefined-variable
 found_gcc = False
 gcc_version = None
 
@@ -371,7 +391,7 @@ def detectVersion(env, cc):  # pylint: disable=redefined-outer-name
         return v_cache[clvar]
 
     if show_scons_mode:
-        print("Scons CC %r version check:" % cc)
+        print("Scons: CC %r version check:" % cc)
 
     clvar0 = os.path.basename(clvar[0])
 
@@ -400,7 +420,7 @@ def detectVersion(env, cc):  # pylint: disable=redefined-outer-name
         version = line.strip()
 
     if show_scons_mode:
-        print("Scons CC %r version check gives %r from %r" % (cc, version, line))
+        print("Scons: CC %r version check gives %r from %r" % (cc, version, line))
 
     # Non-GNU compiler's output (like AIX xlc's) may exceed the stdout buffer:
     # So continue with reading to let the child process actually terminate.
@@ -465,7 +485,7 @@ def myDetect(self, progs):
     return result
 
 
-Environment.Detect = myDetect  # @UndefinedVariable pylint: disable=undefined-variable
+Environment.Detect = myDetect  # pylint: disable=undefined-variable
 
 
 def createEnvironment(tools):
@@ -484,7 +504,7 @@ def createEnvironment(tools):
 
         args["MSVC_USE_SCRIPT"] = False
 
-    return Environment(  # @UndefinedVariable pylint: disable=undefined-variable
+    return Environment(  # pylint: disable=undefined-variable
         # We want the outside environment to be passed through.
         ENV=os.environ,
         # Extra tools configuration for scons.
@@ -532,19 +552,39 @@ if win_target and getExecutablePath(env["CC"], initial=False) is None:
         printCompilerVersionOutput("CC not found, attempting installed CondaCC")
 
 if show_scons_mode:
-    print("Initial CC:", env.get("CC", None))
-    print("Initial CCVERSION:", env.get("CCVERSION", None))
-    print("Initial CXX:", env.get("CXX", None))
-    print("Initial CXXVERSION:", env.get("CXXVERSION", None))
+    print("Scons: Initial CC:", env.get("CC", None))
+    print("Scons: Initial CCVERSION:", env.get("CCVERSION", None))
+    print("Scons: Initial CXX:", env.get("CXX", None))
+    print("Scons: Initial CXXVERSION:", env.get("CXXVERSION", None))
 
 if "CC" in os.environ:
     # If the environment variable CC is set, use that.
     env["CC"] = os.path.expanduser(os.environ["CC"])
     env["CCVERSION"] = None
     found_gcc = True
+elif clangcl_mode:
+    clang_exe = getExecutablePath(env["CC"], initial=False)
+
+    clang_dir = clang_exe = os.path.join(
+        clang_exe[: clang_exe.lower().rfind("msvc")],
+        "LLVM",
+        "8.0.0",  # TODO: Observe this and/or use latest
+        "bin",
+    )
+
+    env._dict["ENV"]["PATH"] = os.pathsep.join(  # pylint: disable=protected-access
+        env._dict["ENV"]["PATH"].split(os.pathsep)  # pylint: disable=protected-access
+        + [clang_dir]
+    )
+
+    env["CC"] = "clang-cl"
+    env["LINK"] = "lld-link"
+
+    env["CCVERSION"] = None
 elif clang_mode:
     # If requested by the user, use the clang compiler, overriding what was
     # said in environment.
+
     env["CC"] = "clang"
     env["CCVERSION"] = None
 
@@ -655,6 +695,17 @@ if "clang" in the_cc_name and "-cl" not in the_cc_name:
 # be compatible.
 gcc_mode = isGccName(the_cc_name) or clang_mode
 
+# Make a check, to discover the currently unsupported combination.
+if clangcl_mode and gcc_mode:
+    sys.exit(
+        """\
+Error, you cannot combine a gcc C compiler with clang on Windows with Nuita
+yet. So far it was found to be only slower than pure MinGW64. If you want
+to use it, you need to install Visual Studio, and use it instead, then the
+clang mode will piggy back it.
+"""
+    )
+
 # Only use MSVC if not already clear, we are using MinGW.
 msvc_mode = win_target and not gcc_mode
 mingw_mode = win_target and gcc_mode
@@ -690,7 +741,9 @@ clang-cl will only work if MSVC already worked.
         sys.exit("Error, cannot locate suitable C compiler.")
 
 # Do we use C11 for source files, or C++.
-if msvc_mode:
+if clangcl_mode:
+    c11_mode = True
+elif msvc_mode:
     c11_mode = False
 elif mingw_mode and found_gcc:
     c11_mode = True
@@ -701,12 +754,15 @@ elif gcc_mode and found_gcc:
 else:
     c11_mode = False
 
+if show_scons_mode:
+    print("Scons: Using C11 mode:", c11_mode)
+
 no_import_lib = False
 
 if msvc_mode:
 
     def getMsvcVersionString():
-        import SCons.Tool.MSCommon.vc  # @UnresolvedImport pylint: disable=import-error,redefined-outer-name
+        import SCons.Tool.MSCommon.vc  # pylint: disable=import-error,redefined-outer-name
 
         return SCons.Tool.MSCommon.vc.get_default_version(env)
 
@@ -718,7 +774,7 @@ if msvc_mode:
 
 
 if show_scons_mode:
-    print("Scons compiler: Using", end=" ")
+    print("Scons: Compiler used", end=" ")
     print(getExecutablePath(the_compiler, initial=False), end=" ")
 
     if win_target and msvc_mode:
@@ -758,6 +814,10 @@ if gcc_mode:
     # Make it clear how to handle integer overflows, namely by wrapping around
     # to negative values.
     env.Append(CCFLAGS=["-fwrapv"])
+
+    # Save some memory for gcc by not tracing macro code locations at all.
+    if not debug_mode and not clang_mode:
+        env.Append(CCFLAGS=["-ftrack-macro-expansion=0"])
 
 # Support for clang.
 if "clang" in the_cc_name:
@@ -811,6 +871,9 @@ version for lto mode (>= 4.6)."""
             % (env["CXX"], env["CXXVERSION"])
         )
 
+    if lto_mode and mingw_mode:
+        sys.exit("""The gcc compiler on Windows, doesn't currently support lto mode.""")
+
     # For g++ 4.6 there are some new interesting functions.
     if gcc_version >= "4.6":
         env.Append(CCFLAGS=["-fpartial-inlining"])
@@ -860,14 +923,11 @@ version for lto mode (>= 4.6)."""
     # can enable it. TODO: Does this cause a performance loss?
     env.Append(CCFLAGS=["-fno-var-tracking"])
 
-if gcc_mode and not noelf_mode and not clang_mode:
+if gcc_mode and not noelf_mode and not macosx_target:
     env.Append(LINKFLAGS=["-z", "noexecstack"])
 
 if msvc_mode:
     # With Clang on Windows, there is also an linker to use.
-    if "clang" in the_cc_name and "-cl" in the_cc_name:
-        env["LINK"] = "lld-link"
-
     env.Append(CCFLAGS=["/EHsc", "/J", "/Gd"])
 
     # No incremental linking.
@@ -917,11 +977,17 @@ if debug_mode:
                 # and has little use anyway.
                 "-Wno-error=format",
                 "-Wno-format",
-                # For large files, these can issue warnings about disabling
-                # itself, while we do not need it
-                "-Wno-misleading-indentation",
             ]
         )
+
+        if not clang_mode and gcc_version >= "6":
+            env.Append(
+                CCFLAGS=[
+                    # For large files, these can issue warnings about disabling
+                    # itself, while we do not need it
+                    "-Wno-misleading-indentation"
+                ]
+            )
     elif msvc_mode:
         # Disable warnings that system headers already show.
         env.Append(
@@ -1078,10 +1144,7 @@ if gcc_mode and "linux" in sys.platform:
 
 if not win_target and os.path.islink(os.path.join(python_prefix, ".Python")):
     python_prefix = os.path.normpath(
-        os.path.join(
-            os.readlink(os.path.join(python_prefix, ".Python")),  # @UndefinedVariable
-            "..",
-        )
+        os.path.join(os.readlink(os.path.join(python_prefix, ".Python")), "..")
     )
 
 # Some virtualenv created by "venv" seem to have a different structure, where
@@ -1162,11 +1225,7 @@ if win_target:
 
     if gcc_mode and static_libpython and os.path.exists(static_lib_filename):
         env.Append(
-            LIBS=[
-                File(  # @UndefinedVariable pylint: disable=undefined-variable
-                    static_lib_filename
-                )
-            ]
+            LIBS=[File(static_lib_filename)]  # pylint: disable=undefined-variable
         )
     else:
 
@@ -1201,11 +1260,7 @@ elif not module_mode or (macosx_target and not static_libpython):
 
     if not module_mode and static_libpython and os.path.exists(static_lib_filename):
         env.Append(
-            LIBS=[
-                File(  # @UndefinedVariable pylint: disable=undefined-variable
-                    static_lib_filename
-                )
-            ]
+            LIBS=[File(static_lib_filename)]  # pylint: disable=undefined-variable
         )
     else:
         # Debian and Ubuntu distinguish the system libraries like this.
@@ -1358,25 +1413,60 @@ _compiler_arch = None
 
 
 def getCompilerArch():
-    # Singleton, pylint: disable=global-statement
-    global _compiler_arch_determined, _compiler_arch
+    if mingw_mode:
+        # Singleton, pylint: disable=global-statement
+        global _compiler_arch_determined, _compiler_arch
 
-    if not _compiler_arch_determined:
-        _compiler_arch = _getBinaryArch(getExecutablePath(the_compiler, initial=False))
-        _compiler_arch_determined = True
+        if not _compiler_arch_determined:
+            _compiler_arch = _getBinaryArch(
+                getExecutablePath(the_compiler, initial=False)
+            )
+            _compiler_arch_determined = True
+    elif msvc_mode:
+        cmdline = [getExecutablePath(the_compiler, initial=False)]
+
+        if "-cl" in the_cc_name:
+            cmdline.append("--version")
+
+        proc = subprocess.Popen(
+            cmdline,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+        )
+
+        # The cl.exe without further args will give error output indicating
+        # arch.
+        data, err = proc.communicate()
+        _rv = proc.wait()
+
+        if b"x86" in err or b"i686" in data:
+            _compiler_arch = "x86"
+            _compiler_arch_determined = True
+        elif b"x64" in err:
+            _compiler_arch = "x86_64"
+            _compiler_arch_determined = True
+        else:
+            _compiler_arch_determined = True
+    else:
+        assert False, the_compiler
 
     return _compiler_arch
 
 
-if win_target and mingw_mode:
+if win_target:
     # Check most common user error related to MinGW64. People install 32 and
     # 64 variants and do not consider that MinGW64 could be 32 bits too.
 
-    if getLinkerArch() != getCompilerArch():
+    if (getLinkerArch() or target_arch) != getCompilerArch():
         sys.exit(
-            "Error, mismatch between Python %s and MinGW64 ('%s') arches."
+            "Error, mismatch between Python ('%s') and C compiler ('%s') arches."
             % (
-                "%s" % (getLinkerArch() or "unknown, but likely 'pei-x86-64'"),
+                "%s"
+                % (
+                    getLinkerArch() or target_arch or "unknown, but likely 'pei-x86-64'"
+                ),
                 getCompilerArch(),
             )
         )
@@ -1491,7 +1581,7 @@ def discoverSourceFiles():
             src = os.path.abspath(src)
 
             try:
-                link_target = os.readlink(dst)  # @UndefinedVariable
+                link_target = os.readlink(dst)
 
                 # If it's already a proper link, do nothing then.
                 if link_target == src:
@@ -1507,7 +1597,7 @@ def discoverSourceFiles():
                     pass
 
             try:
-                os.symlink(src, dst)  # @UndefinedVariable
+                os.symlink(src, dst)
             except OSError:
                 shutil.copy(src, dst)
 
@@ -1523,7 +1613,7 @@ def discoverSourceFiles():
         return target_file
 
     # Scan for Nuitka created source files, and add them too.
-    for filename in os.listdir(source_dir):
+    for filename in sorted(os.listdir(source_dir)):
         # Only C files are of interest here.
         if not filename.endswith((".c", "cpp")) or not filename.startswith(
             ("module.", "__")
@@ -1598,7 +1688,7 @@ if win_target:
         res_target = env.RES(rc_filename)
 
         for rc_file_dependency in rc_file_dependencies:
-            Depends(  # @UndefinedVariable pylint: disable=undefined-variable
+            Depends(  # pylint: disable=undefined-variable
                 res_target, rc_file_dependency
             )
 
@@ -1640,14 +1730,24 @@ if win_target and gcc_mode and not clang_mode:
 if gcc_mode:
     env.Append(CCFLAGS="-pipe")
 
+# Outside compiler settings are respected.
 if "CPPFLAGS" in os.environ:
-    env.Append(CCFLAGS=os.environ["CPPFLAGS"].split())
+    if show_scons_mode:
+        print("Scons: Inherited CPPFLAGS='%s' variable." % os.environ["CPPFLAGS"])
+    env.Append(CPPFLAGS=os.environ["CPPFLAGS"].split())
 if "CCFLAGS" in os.environ:
+    if show_scons_mode:
+        print("Scons: Inherited CCFLAGS='%s' variable." % os.environ["CCFLAGS"])
     env.Append(CCFLAGS=os.environ["CCFLAGS"].split())
 if "CXXFLAGS" in os.environ:
-    env.Append(CCFLAGS=os.environ["CXXFLAGS"].split())
+    if show_scons_mode:
+        print("Scons: Inherited CXXFLAGS='%s' variable." % os.environ["CXXFLAGS"])
+    env.Append(CXXFLAGS=os.environ["CXXFLAGS"].split())
 
+# Outside linker flags are respected.
 if "LDFLAGS" in os.environ:
+    if show_scons_mode:
+        print("Scons: Inherited LDFLAGS='%s' variable." % os.environ["LDFLAGS"])
     env.Append(LINKFLAGS=os.environ["LDFLAGS"].split())
 
 # Remove the target file to avoid cases where it falsely doesn't get rebuild
@@ -1656,7 +1756,7 @@ if os.path.exists(target[0].abspath):
     os.unlink(target[0].abspath)
 
 if show_scons_mode:
-    print("scons: Told to run compilation on %d CPUs." % job_count)
+    print("Scons: Told to run compilation on %d CPUs." % job_count)
 
 # Inject ccache if it happens to be installed.
 if win_target and gcc_mode:
@@ -1670,14 +1770,14 @@ if win_target and gcc_mode:
 
                 # Do not consider scons cache anymore.
                 if show_scons_mode:
-                    print("scons: Found ccache '%s' to cache object files." % candidate)
+                    print("Scons: Found ccache '%s' to cache object files." % candidate)
 
                 global cache_mode  # pylint: disable=global-statement
                 cache_mode = False
 
     else:
         if show_scons_mode:
-            print("scons: Unable to find ccache.exe, consider user manual.")
+            print("Scons: Unable to find ccache.exe, consider user manual.")
 
 # Inject clcache if it happens to be provided via environment.
 if win_target and msvc_mode:
@@ -1688,19 +1788,19 @@ if win_target and msvc_mode:
 
             if os.path.exists(candidate):
                 env["CC"] = candidate
-                env._dict["ENV"][
+                env._dict["ENV"][  # pylint: disable=protected-access
                     "CLCACHE_CL"
-                ] = getExecutablePath(  # pylint: disable=protected-access
-                    the_compiler, initial=False
-                )
+                ] = getExecutablePath(the_compiler, initial=False)
 
                 if show_scons_mode:
                     print(
-                        "scons: Found clcache '%s' to cache object files for '%s'."
+                        "Scons: Found clcache '%s' to cache object files for '%s'."
                         % (
                             candidate,
-                            env._dict["ENV"]["CLCACHE_CL"],
-                        )  # pylint: disable=protected-access
+                            env._dict["ENV"][  # pylint: disable=protected-access
+                                "CLCACHE_CL"
+                            ],
+                        )
                     )
 
                 global cache_mode  # pylint: disable=global-statement
@@ -1709,7 +1809,7 @@ if win_target and msvc_mode:
         handleClacheVariable()
     else:
         if show_scons_mode:
-            print("scons: Unable to find clcache.exe, consider reading user manual.")
+            print("Scons: Unable to find clcache.exe, consider reading user manual.")
 
 
 # Cached, when done, by the fastest possible algorithm and right inside the
@@ -1717,12 +1817,12 @@ if win_target and msvc_mode:
 # Nuitka.
 if cache_mode:
     if show_scons_mode:
-        print("scons: Using scons cache inside build directory.")
+        print("Scons: Using scons cache inside build directory.")
 
-    CacheDir(  # @UndefinedVariable pylint: disable=undefined-variable
+    CacheDir(  # pylint: disable=undefined-variable
         os.path.join(source_dir, "cache-" + target_arch + "-" + python_abi_version)
     )
-    Decider("MD5-timestamp")  # @UndefinedVariable pylint: disable=undefined-variable
+    Decider("MD5-timestamp")  # pylint: disable=undefined-variable
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit.
 
@@ -1790,43 +1890,11 @@ if gcc_mode:
 
     _makeGccUseLinkerFile()
 
-Default(target)  # @UndefinedVariable pylint: disable=undefined-variable
+# Plugin contributed C defines should be used too.
+for cpp_define in cpp_defines:
+    env.Append(CPPDEFINES=cpp_define)
 
-
-# Copy the Python DLL to the target directory, so the executable can be run.
-if uninstalled_python:
-    # TODO: Move this to nuitka.PostProcessing which now exists for such tasks.
-    def handleUninstalledPython():
-
-        if win_target:
-            # TODO: This should have become unnecessary by DLL_EXTRA_PATH,
-            # but so far we failed to create a manifest that makes the PythonXY.DLL
-            # from there.
-            shutil.copy(
-                getWindowsPythonDLLPath(), os.path.dirname(result_basepath) or "."
-            )
-        elif macosx_target and not module_mode:
-            # TODO: Move this to where we do it for Linux already.
-
-            python_dll_filename = "libpython" + python_abi_version + ".dylib"
-
-            result = subprocess.call(
-                (
-                    "install_name_tool",
-                    "-change",
-                    python_dll_filename,
-                    os.path.join(python_lib_path, python_dll_filename),
-                    result_exe,
-                ),
-                stdout=subprocess.PIPE,
-            )
-
-            if result != 0:
-                sys.exit(
-                    "Error, call to 'install_name_tool' to fix Python library path failed."
-                )
-
-    handleUninstalledPython()
+Default(target)  # pylint: disable=undefined-variable
 
 
 def _writeSconsReport():

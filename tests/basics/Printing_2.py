@@ -37,7 +37,7 @@ a = "partial print"
 # b doesn't exist
 
 try:
-    print a, undefined_global  # @UndefinedVariable
+    print a, undefined_global
 except Exception, e:
     print "then occurred", repr(e)
 

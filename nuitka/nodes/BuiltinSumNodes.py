@@ -24,17 +24,12 @@ it that could be in-lined sometimes for more static analysis.
 
 from nuitka.specs import BuiltinParameterSpecs
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
 
 
-class ExpressionBuiltinSumBase(ExpressionChildrenHavingBase):
+class ExpressionBuiltinSumMixin(object):
 
     builtin_spec = BuiltinParameterSpecs.builtin_sum_spec
-
-    def __init__(self, values, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values=values, source_ref=source_ref
-        )
 
     def computeBuiltinSpec(self, trace_collection, given_values):
         assert self.builtin_spec is not None, self
@@ -54,19 +49,16 @@ class ExpressionBuiltinSumBase(ExpressionChildrenHavingBase):
         )
 
 
-class ExpressionBuiltinSum1(ExpressionBuiltinSumBase):
+class ExpressionBuiltinSum1(ExpressionBuiltinSumMixin, ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_SUM1"
 
-    named_children = ("sequence",)
+    named_child = "sequence"
+    getSequence = ExpressionChildHavingBase.childGetter("sequence")
 
     def __init__(self, sequence, source_ref):
         assert sequence is not None
 
-        ExpressionBuiltinSumBase.__init__(
-            self, values={"sequence": sequence}, source_ref=source_ref
-        )
-
-    getSequence = ExpressionChildrenHavingBase.childGetter("sequence")
+        ExpressionChildHavingBase.__init__(self, value=sequence, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         sequence = self.getSequence()
@@ -77,21 +69,20 @@ class ExpressionBuiltinSum1(ExpressionBuiltinSumBase):
         )
 
 
-class ExpressionBuiltinSum2(ExpressionBuiltinSumBase):
+class ExpressionBuiltinSum2(ExpressionBuiltinSumMixin, ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_SUM2"
 
     named_children = ("sequence", "start")
+    getSequence = ExpressionChildrenHavingBase.childGetter("sequence")
+    getStart = ExpressionChildrenHavingBase.childGetter("start")
 
     def __init__(self, sequence, start, source_ref):
         assert sequence is not None
         assert start is not None
 
-        ExpressionBuiltinSumBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self, values={"sequence": sequence, "start": start}, source_ref=source_ref
         )
-
-    getSequence = ExpressionChildrenHavingBase.childGetter("sequence")
-    getStart = ExpressionChildrenHavingBase.childGetter("start")
 
     def computeExpression(self, trace_collection):
         sequence = self.getSequence()

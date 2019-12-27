@@ -41,7 +41,8 @@ def checkAtHome():
     git_description_filename = os.path.join(git_dir, "description")
 
     with open(git_description_filename) as f:
-        assert f.read().strip() == "Nuitka Staging"
+        description = f.read().strip()
+        assert description == "Nuitka Staging", description
 
 
 def getBranchName():

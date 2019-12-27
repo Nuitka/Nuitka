@@ -201,7 +201,7 @@ def generateTryCode(statement, emit, context):
 
         context.setExceptionKeeperVariables(old_keepers)
     else:
-        assert except_handler is None
+        assert except_handler is None, tried_block.asXmlText()
 
     if break_handler is not None:
         assert tried_block.mayBreak()

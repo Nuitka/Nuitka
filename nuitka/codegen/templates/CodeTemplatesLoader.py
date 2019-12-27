@@ -21,13 +21,13 @@
 
 
 template_metapath_loader_compiled_module_entry = """\
-{ "%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), 0, 0, %(flags)s },"""
+{"%(module_name)s", modulecode_%(module_identifier)s, 0, 0, %(flags)s},"""
 
 template_metapath_loader_shlib_module_entry = """\
-{ "%(module_name)s", NULL, 0, 0, NUITKA_SHLIB_FLAG },"""
+{"%(module_name)s", NULL, 0, 0, NUITKA_SHLIB_FLAG},"""
 
 template_metapath_loader_bytecode_module_entry = """\
-{ "%(module_name)s", NULL, %(bytecode)s, %(size)d, %(flags)s },"""
+{"%(module_name)s", NULL, %(bytecode)s, %(size)d, %(flags)s},"""
 
 
 template_metapath_loader_body = """\
@@ -43,16 +43,15 @@ template_metapath_loader_body = """\
 static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] =
 {
 %(metapath_loader_inittab)s
-    { NULL, NULL, 0, 0, 0 }
+    {NULL, NULL, 0, 0, 0}
 };
 
-void setupMetaPathBasedLoader( void )
-{
+void setupMetaPathBasedLoader(void) {
     static bool init_done = false;
 
-    if ( init_done == false )
+    if (init_done == false)
     {
-        registerMetaPathBasedUnfreezer( meta_path_loader_entries );
+        registerMetaPathBasedUnfreezer(meta_path_loader_entries);
         init_done = true;
     }
 }

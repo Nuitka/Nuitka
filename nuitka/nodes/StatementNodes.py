@@ -44,6 +44,8 @@ class StatementsSequence(StatementChildHavingBase):
     kind = "STATEMENTS_SEQUENCE"
 
     named_child = "statements"
+    getStatements = StatementChildHavingBase.childGetter("statements")
+    setStatements = StatementChildHavingBase.childSetter("statements")
 
     checker = checkStatements
 
@@ -51,9 +53,6 @@ class StatementsSequence(StatementChildHavingBase):
         StatementChildHavingBase.__init__(
             self, value=tuple(statements), source_ref=source_ref
         )
-
-    getStatements = StatementChildHavingBase.childGetter("statements")
-    setStatements = StatementChildHavingBase.childSetter("statements")
 
     def finalize(self):
         del self.parent
@@ -208,6 +207,7 @@ class StatementExpressionOnly(StatementChildHavingBase):
     kind = "STATEMENT_EXPRESSION_ONLY"
 
     named_child = "expression"
+    getExpression = StatementChildHavingBase.childGetter("expression")
 
     def __init__(self, expression, source_ref):
         assert expression.isExpression()
@@ -219,8 +219,6 @@ class StatementExpressionOnly(StatementChildHavingBase):
 
     def mayRaiseException(self, exception_type):
         return self.getExpression().mayRaiseException(exception_type)
-
-    getExpression = StatementChildHavingBase.childGetter("expression")
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(expression=self.getExpression())

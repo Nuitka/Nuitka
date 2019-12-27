@@ -15,15 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 # Just plain exception from the function  level, supposed to report the correct file and line
-
 
 
 def generator_function():
     import ErrorRaising
 
-    x = ( lambda : ErrorRaising.raiseException() for z in range(3) )
+    x = (lambda: ErrorRaising.raiseException() for z in range(3))
 
     next(x)()
 
@@ -32,5 +30,6 @@ def normal_function():
     y = generator_function()
 
     y()
+
 
 normal_function()

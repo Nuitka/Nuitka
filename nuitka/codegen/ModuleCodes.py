@@ -19,6 +19,9 @@
 
 """
 
+import os
+
+from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.codegen import Emission
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
@@ -35,6 +38,7 @@ from .templates.CodeTemplatesModules import (
     template_global_copyright,
     template_module_body_template,
     template_module_exception_exit,
+    template_module_external_entry_point,
     template_module_noexception_exit,
 )
 from .VariableCodes import getVariableReferenceCode
@@ -77,7 +81,8 @@ def getModuleValues(
 
     module_codes = Emission.SourceCodeCollector()
 
-    module_body = context.getOwner().getBody()
+    module = context.getOwner()
+    module_body = module.getBody()
 
     generateStatementSequenceCode(
         statement_sequence=module_body,
@@ -107,15 +112,23 @@ def getModuleValues(
     else:
         module_exit = template_module_noexception_exit
 
+    function_table_entries_decl = []
+    for func_impl_identifier in context.getFunctionCreationInfos():
+        function_table_entries_decl.append("%s," % func_impl_identifier)
+
     module_body_template_values = {
         "module_name": module_name,
-        "module_name_obj": context.getConstantCode(constant=module_name),
         "is_main_module": 1 if is_main_module else 0,
+        "is_dunder_main": 1
+        if module_name == "__main__"
+        and os.path.basename(module.getCompileTimeFilename()) == "__main__.py"
+        else 0,
         "is_package": 1 if is_package else 0,
         "is_top": 1 if is_top else 0,
         "module_identifier": module_identifier,
         "module_functions_decl": function_decl_codes,
         "module_functions_code": function_body_codes,
+        "module_function_table_entries": indented(function_table_entries_decl),
         "temps_decl": indented(local_var_inits),
         "module_code": indented(module_codes.codes),
         "module_exit": module_exit,
@@ -152,7 +165,18 @@ def getModuleCode(module_context, template_values):
 
     template_values["constant_check_codes"] = indented(checks, 1)
 
-    return header + template_module_body_template % template_values
+    is_top = template_values["is_top"]
+    del template_values["is_top"]
+
+    result = header + template_module_body_template % template_values
+
+    if is_top == 1 and Options.shallMakeModule():
+        result += template_module_external_entry_point % {
+            "module_name": template_values["module_name"],
+            "module_identifier": template_values["module_identifier"],
+        }
+
+    return result
 
 
 def generateModuleAttributeFileCode(to_name, expression, emit, context):

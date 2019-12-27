@@ -15,4 +15,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-print( "Hello from main program with space in its paths" )
+print("Hello from main program with space in its paths")

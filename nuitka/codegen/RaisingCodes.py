@@ -189,14 +189,14 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
     # Missed optimization opportunity, please report it, this should not
     # normally happen. We are supposed to propagate this upwards.
     if isDebug():
-        # TODO: Need to optimize ExpressionLocalsVariableRefORFallback once we know
+        # TODO: Need to optimize ExpressionLocalsVariableRefOrFallback once we know
         # it handles cases where the value is not in locals dict properly.
 
         parent = expression.parent
         assert (
             parent.isExpressionSideEffects()
             or parent.isExpressionConditional()
-            or parent.isExpressionLocalsVariableRefORFallback()
+            or parent.isExpressionLocalsVariableRefOrFallback()
         ), (expression, expression.parent, expression.asXmlText())
 
     with withObjectCodeTemporaryAssignment(
@@ -225,9 +225,8 @@ def getReRaiseExceptionCode(emit, context):
     if keeper_variables[0] is None:
         emit(
             """\
-%(bool_res_name)s = RERAISE_EXCEPTION( &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s );
-if (unlikely( %(bool_res_name)s == false ))
-{
+%(bool_res_name)s = RERAISE_EXCEPTION(&%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
+if (unlikely(%(bool_res_name)s == false)) {
     %(update_code)s
 }
 """
@@ -296,7 +295,7 @@ def _getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit, con
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_WITH_CAUSE( &%s, &%s, &%s, %s );"
+        "RAISE_EXCEPTION_WITH_CAUSE(&%s, &%s, &%s, %s);"
         % (exception_type, exception_value, exception_tb, raise_cause_name)
     )
 
@@ -320,7 +319,7 @@ def _getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_WITH_TYPE( &%s, &%s, &%s );"
+        "RAISE_EXCEPTION_WITH_TYPE(&%s, &%s, &%s);"
         % (exception_type, exception_value, exception_tb)
     )
 
@@ -346,7 +345,7 @@ def _getRaiseExceptionWithValueCode(
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_%s( &%s, &%s, &%s );"
+        "RAISE_EXCEPTION_%s(&%s, &%s, &%s);"
         % (
             ("IMPLICIT" if implicit else "WITH_VALUE"),
             exception_type,

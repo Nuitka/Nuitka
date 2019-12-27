@@ -21,7 +21,7 @@
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
 from .NodeBases import StatementChildrenHavingBase
 
 
@@ -29,6 +29,8 @@ class StatementListOperationAppend(StatementChildrenHavingBase):
     kind = "STATEMENT_LIST_OPERATION_APPEND"
 
     named_children = ("list", "value")
+    getList = StatementChildrenHavingBase.childGetter("list")
+    getValue = StatementChildrenHavingBase.childGetter("value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, list_arg, value, source_ref):
@@ -38,9 +40,6 @@ class StatementListOperationAppend(StatementChildrenHavingBase):
         StatementChildrenHavingBase.__init__(
             self, values={"list": list_arg, "value": value}, source_ref=source_ref
         )
-
-    getList = StatementChildrenHavingBase.childGetter("list")
-    getValue = StatementChildrenHavingBase.childGetter("value")
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -59,6 +58,8 @@ class ExpressionListOperationExtend(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_LIST_OPERATION_EXTEND"
 
     named_children = ("list", "value")
+    getList = ExpressionChildrenHavingBase.childGetter("list")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, list_arg, value, source_ref):
@@ -69,29 +70,23 @@ class ExpressionListOperationExtend(ExpressionChildrenHavingBase):
             self, values={"list": list_arg, "value": value}, source_ref=source_ref
         )
 
-    getList = ExpressionChildrenHavingBase.childGetter("list")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
-
     def computeExpression(self, trace_collection):
         trace_collection.removeKnowledge(self.getList())
 
         return self, None, None
 
 
-class ExpressionListOperationPop(ExpressionChildrenHavingBase):
+class ExpressionListOperationPop(ExpressionChildHavingBase):
     kind = "EXPRESSION_LIST_OPERATION_POP"
 
-    named_children = ("list",)
+    named_child = "list"
+    getList = ExpressionChildHavingBase.childGetter("list")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, list_arg, source_ref):
         assert list_arg is not None
 
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"list": list_arg}, source_ref=source_ref
-        )
-
-    getList = ExpressionChildrenHavingBase.childGetter("list")
+        ExpressionChildHavingBase.__init__(self, value=list_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         # We might be able to tell that element, or know that it cannot exist
@@ -105,6 +100,8 @@ class StatementSetOperationAdd(StatementChildrenHavingBase):
     kind = "STATEMENT_SET_OPERATION_ADD"
 
     named_children = ("set", "value")
+    getSet = StatementChildrenHavingBase.childGetter("set")
+    getValue = StatementChildrenHavingBase.childGetter("value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, set_arg, value, source_ref):
@@ -114,9 +111,6 @@ class StatementSetOperationAdd(StatementChildrenHavingBase):
         StatementChildrenHavingBase.__init__(
             self, values={"set": set_arg, "value": value}, source_ref=source_ref
         )
-
-    getSet = StatementChildrenHavingBase.childGetter("set")
-    getValue = StatementChildrenHavingBase.childGetter("value")
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -135,6 +129,8 @@ class ExpressionSetOperationUpdate(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SET_OPERATION_UPDATE"
 
     named_children = ("set", "value")
+    getSet = ExpressionChildrenHavingBase.childGetter("set")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, set_arg, value, source_ref):
@@ -144,9 +140,6 @@ class ExpressionSetOperationUpdate(ExpressionChildrenHavingBase):
         ExpressionChildrenHavingBase.__init__(
             self, values={"set": set_arg, "value": value}, source_ref=source_ref
         )
-
-    getSet = ExpressionChildrenHavingBase.childGetter("set")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, trace_collection):
         trace_collection.removeKnowledge(self.getSet())

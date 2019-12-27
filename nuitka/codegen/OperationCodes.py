@@ -62,7 +62,7 @@ def generateOperationNotCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("%s = CHECK_IF_TRUE( %s );" % (res_name, arg_name))
+    emit("%s = CHECK_IF_TRUE(%s);" % (res_name, arg_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,
@@ -306,6 +306,153 @@ _iadd_helpers_set = OrderedSet(
     )
 )
 
+specialized_mod_helpers_set = OrderedSet(
+    (
+        "BINARY_OPERATION_MOD_OBJECT_INT",
+        "BINARY_OPERATION_MOD_INT_OBJECT",
+        "BINARY_OPERATION_MOD_INT_INT",
+        "BINARY_OPERATION_MOD_OBJECT_LONG",
+        "BINARY_OPERATION_MOD_LONG_OBJECT",
+        "BINARY_OPERATION_MOD_LONG_LONG",
+        "BINARY_OPERATION_MOD_OBJECT_FLOAT",
+        "BINARY_OPERATION_MOD_FLOAT_OBJECT",
+        "BINARY_OPERATION_MOD_FLOAT_FLOAT",
+        # These are friends naturally, they mod with another
+        "BINARY_OPERATION_MOD_FLOAT_LONG",
+        "BINARY_OPERATION_MOD_LONG_FLOAT",
+        "BINARY_OPERATION_MOD_FLOAT_INT",
+        "BINARY_OPERATION_MOD_INT_FLOAT",
+        "BINARY_OPERATION_MOD_LONG_INT",
+        "BINARY_OPERATION_MOD_INT_LONG",
+        # String interpolation with STR:
+        "BINARY_OPERATION_MOD_STR_INT",
+        "BINARY_OPERATION_MOD_STR_LONG",
+        "BINARY_OPERATION_MOD_STR_FLOAT",
+        "BINARY_OPERATION_MOD_STR_STR",
+        "BINARY_OPERATION_MOD_STR_BYTES",
+        "BINARY_OPERATION_MOD_STR_UNICODE",
+        "BINARY_OPERATION_MOD_STR_TUPLE",
+        "BINARY_OPERATION_MOD_STR_LIST",
+        "BINARY_OPERATION_MOD_STR_DICT",
+        "BINARY_OPERATION_MOD_STR_OBJECT",
+        # String formatting with UNICODE:
+        "BINARY_OPERATION_MOD_UNICODE_INT",
+        "BINARY_OPERATION_MOD_UNICODE_LONG",
+        "BINARY_OPERATION_MOD_UNICODE_FLOAT",
+        "BINARY_OPERATION_MOD_UNICODE_STR",
+        "BINARY_OPERATION_MOD_UNICODE_BYTES",
+        "BINARY_OPERATION_MOD_UNICODE_UNICODE",
+        "BINARY_OPERATION_MOD_UNICODE_TUPLE",
+        "BINARY_OPERATION_MOD_UNICODE_LIST",
+        "BINARY_OPERATION_MOD_UNICODE_DICT",
+        "BINARY_OPERATION_MOD_UNICODE_OBJECT",
+        # String formatting with BYTES:
+        "BINARY_OPERATION_MOD_BYTES_LONG",
+        "BINARY_OPERATION_MOD_BYTES_FLOAT",
+        "BINARY_OPERATION_MOD_BYTES_BYTES",
+        "BINARY_OPERATION_MOD_BYTES_UNICODE",
+        "BINARY_OPERATION_MOD_BYTES_TUPLE",
+        "BINARY_OPERATION_MOD_BYTES_LIST",
+        "BINARY_OPERATION_MOD_BYTES_DICT",
+        "BINARY_OPERATION_MOD_BYTES_OBJECT",
+        # String formatting with OBJECT:
+        "BINARY_OPERATION_MOD_OBJECT_STR",
+        "BINARY_OPERATION_MOD_OBJECT_BYTES",
+        "BINARY_OPERATION_MOD_OBJECT_UNICODE",
+        "BINARY_OPERATION_MOD_OBJECT_TUPLE",
+        "BINARY_OPERATION_MOD_OBJECT_LIST",
+        "BINARY_OPERATION_MOD_OBJECT_DICT",
+        # Default implementation.
+        "BINARY_OPERATION_MOD_OBJECT_OBJECT",
+    )
+)
+
+nonspecialized_mod_helpers_set = set(
+    ("BINARY_OPERATION_MOD_TUPLE_OBJECT", "BINARY_OPERATION_MOD_LIST_OBJECT")
+)
+
+specialized_bitor_helpers_set = OrderedSet(
+    (
+        "BINARY_OPERATION_BITOR_OBJECT_INT",
+        "BINARY_OPERATION_BITOR_INT_OBJECT",
+        "BINARY_OPERATION_BITOR_INT_INT",
+        "BINARY_OPERATION_BITOR_OBJECT_LONG",
+        "BINARY_OPERATION_BITOR_LONG_OBJECT",
+        "BINARY_OPERATION_BITOR_LONG_LONG",
+        "BINARY_OPERATION_BITOR_LONG_INT",
+        "BINARY_OPERATION_BITOR_INT_LONG",
+        # Set containers can do this
+        "BINARY_OPERATION_BITOR_OBJECT_SET",
+        "BINARY_OPERATION_BITOR_SET_OBJECT",
+        "BINARY_OPERATION_BITOR_SET_SET",
+        "BINARY_OPERATION_BITOR_OBJECT_LIST",
+        "BINARY_OPERATION_BITOR_LIST_OBJECT",
+        "BINARY_OPERATION_BITOR_OBJECT_LIST",
+        "BINARY_OPERATION_BITOR_LIST_OBJECT",
+        "BINARY_OPERATION_BITOR_OBJECT_TUPLE",
+        "BINARY_OPERATION_BITOR_TUPLE_OBJECT",
+        # Default implementation.
+        "BINARY_OPERATION_BITOR_OBJECT_OBJECT",
+    )
+)
+nonspecialized_bitor_helpers_set = set()
+
+specialized_bitand_helpers_set = OrderedSet(
+    helper.replace("_BITOR_", "_BITAND_") for helper in specialized_bitor_helpers_set
+)
+nonspecialized_bitand_helpers_set = OrderedSet(
+    helper.replace("_BITOR_", "_BITAND_") for helper in nonspecialized_bitor_helpers_set
+)
+specialized_bitxor_helpers_set = OrderedSet(
+    helper.replace("_BITOR_", "_BITXOR_") for helper in specialized_bitor_helpers_set
+)
+nonspecialized_bitxor_helpers_set = OrderedSet(
+    helper.replace("_BITOR_", "_BITXOR_") for helper in nonspecialized_bitor_helpers_set
+)
+specialized_lshift_helpers_set = OrderedSet(
+    helper.replace("_BITOR_", "_LSHIFT_")
+    for helper in specialized_bitor_helpers_set
+    if "_SET" not in helper
+    if "_TUPLE" not in helper
+)
+nonspecialized_lshift_helpers_set = OrderedSet(
+    helper.replace("_BITOR_", "_LSHIFT_") for helper in nonspecialized_bitor_helpers_set
+)
+specialized_rshift_helpers_set = OrderedSet(
+    helper.replace("_LSHIFT_", "_RSHIFT_") for helper in specialized_lshift_helpers_set
+)
+nonspecialized_rshift_helpers_set = OrderedSet(
+    helper.replace("_LSHIFT_", "_RSHIFT_")
+    for helper in nonspecialized_lshift_helpers_set
+)
+specialized_pow_helpers_set = OrderedSet(
+    (
+        "BINARY_OPERATION_POW_INT_INT",
+        "BINARY_OPERATION_POW_OBJECT_INT",
+        "BINARY_OPERATION_POW_INT_OBJECT",
+        "BINARY_OPERATION_POW_OBJECT_LONG",
+        "BINARY_OPERATION_POW_LONG_OBJECT",
+        "BINARY_OPERATION_POW_LONG_LONG",
+        "BINARY_OPERATION_POW_LONG_INT",
+        "BINARY_OPERATION_POW_INT_LONG",
+        "BINARY_OPERATION_POW_OBJECT_FLOAT",
+        "BINARY_OPERATION_POW_FLOAT_OBJECT",
+        "BINARY_OPERATION_POW_FLOAT_FLOAT",
+        # Default implementation.
+        "BINARY_OPERATION_POW_OBJECT_OBJECT",
+    )
+)
+nonspecialized_pow_helpers_set = set()
+specialized_matmult_helpers_set = OrderedSet(
+    (
+        # Default implementation.
+        "BINARY_OPERATION_MATMULT_LONG_OBJECT",
+        "BINARY_OPERATION_MATMULT_OBJECT_LONG",
+        "BINARY_OPERATION_MATMULT_OBJECT_OBJECT",
+    )
+)
+nonspecialized_matmult_helpers_set = set()
+
 
 def _getBinaryOperationCode(
     to_name, expression, operator, arg_names, in_place, emit, context
@@ -319,9 +466,7 @@ def _getBinaryOperationCode(
 
     needs_check = expression.mayRaiseExceptionOperation()
 
-    if operator == "Pow":
-        helper = "POWER_OPERATION"
-    elif operator == "IPow" and in_place:
+    if operator == "IPow" and in_place:
         helper = "POWER_OPERATION_INPLACE"
     elif operator == "IPow":
         helper = "POWER_OPERATION2"
@@ -399,7 +544,85 @@ def _getBinaryOperationCode(
             source_ref=expression.source_ref,
         )
     elif operator == "Mod":
-        helper = "BINARY_OPERATION_REMAINDER"
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_MOD",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_mod_helpers_set,
+            nonhelpers=nonspecialized_mod_helpers_set,
+            source_ref=expression.source_ref,
+        )
+    elif operator == "LShift":
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_LSHIFT",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_lshift_helpers_set,
+            nonhelpers=nonspecialized_lshift_helpers_set,
+            source_ref=expression.source_ref,
+        )
+    elif operator == "RShift":
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_RSHIFT",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_rshift_helpers_set,
+            nonhelpers=nonspecialized_rshift_helpers_set,
+            source_ref=expression.source_ref,
+        )
+    elif operator == "BitOr":
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_BITOR",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_bitor_helpers_set,
+            nonhelpers=nonspecialized_bitor_helpers_set,
+            source_ref=expression.source_ref,
+        )
+    elif operator == "BitAnd":
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_BITAND",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_bitand_helpers_set,
+            nonhelpers=nonspecialized_bitand_helpers_set,
+            source_ref=expression.source_ref,
+        )
+    elif operator == "BitXor":
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_BITXOR",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_bitxor_helpers_set,
+            nonhelpers=nonspecialized_bitxor_helpers_set,
+            source_ref=expression.source_ref,
+        )
+    elif operator == "Pow":
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_POW",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_pow_helpers_set,
+            nonhelpers=nonspecialized_pow_helpers_set,
+            source_ref=expression.source_ref,
+        )
+    elif operator == "MatMult":
+        helper = pickCodeHelper(
+            prefix="BINARY_OPERATION_MATMULT",
+            suffix="",
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_matmult_helpers_set,
+            nonhelpers=nonspecialized_matmult_helpers_set,
+            source_ref=expression.source_ref,
+        )
     elif operator == "Divmod":
         helper = "BUILTIN_DIVMOD"
     elif len(arg_names) == 2:
@@ -421,7 +644,7 @@ def _getBinaryOperationCode(
         # code, or the helper specified.
         if helper == "BINARY_OPERATION":
             emit(
-                "%s = BINARY_OPERATION_INPLACE( %s, &%s, %s );"
+                "%s = BINARY_OPERATION_INPLACE(%s, &%s, %s);"
                 % (
                     res_name,
                     OperatorCodes.binary_operator_codes[operator],
@@ -430,7 +653,7 @@ def _getBinaryOperationCode(
                 )
             )
         else:
-            emit("%s = %s( &%s, %s );" % (res_name, helper, arg_names[0], arg_names[1]))
+            emit("%s = %s(&%s, %s);" % (res_name, helper, arg_names[0], arg_names[1]))
 
             ref_count = 0
 
@@ -453,7 +676,7 @@ def _getBinaryOperationCode(
         ) as value_name:
 
             emit(
-                "%s = %s( %s );"
+                "%s = %s(%s);"
                 % (
                     value_name,
                     helper,
@@ -486,7 +709,7 @@ def _getUnaryOperationCode(
     ) as value_name:
 
         emit(
-            "%s = %s( %s );"
+            "%s = %s(%s);"
             % (
                 value_name,
                 helper,

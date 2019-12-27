@@ -30,3 +30,7 @@
     path = tests/CPython37
     url = git@github.com:Nuitka/Nuitka-CPython-tests
     branch = CPython37
+[submodule "tests/CPython38"]
+    path = tests/CPython38
+    url = git@github.com:Nuitka/Nuitka-CPython-tests
+    branch = CPython38

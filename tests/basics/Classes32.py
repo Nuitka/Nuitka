@@ -15,7 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 try:
     from collections.abc import OrderedDict
 except ImportError:
@@ -23,14 +22,17 @@ except ImportError:
 
 print("Call order of Python3 metaclasses:")
 
+
 def a():
     x = 1
+
     class A:
         print("Class body a.A is evaluating closure x", x)
 
     print("Called", a)
 
     return A
+
 
 def b():
     class B:
@@ -40,18 +42,37 @@ def b():
 
     return B
 
+
 def displayable(dictionary):
     return sorted(dictionary.items())
+
 
 def m():
     class M(type):
         def __new__(cls, class_name, bases, attrs, **over):
-            print("Metaclass M.__new__ cls", cls, "name", class_name, "bases", bases, "dict", displayable(attrs), "extra class defs", displayable(over))
+            print(
+                "Metaclass M.__new__ cls",
+                cls,
+                "name",
+                class_name,
+                "bases",
+                bases,
+                "dict",
+                displayable(attrs),
+                "extra class defs",
+                displayable(over),
+            )
 
             return type.__new__(cls, class_name, bases, attrs)
 
         def __init__(self, name, bases, attrs, **over):
-            print("Metaclass M.__init__", name, bases, displayable(attrs), displayable(over))
+            print(
+                "Metaclass M.__init__",
+                name,
+                bases,
+                displayable(attrs),
+                displayable(over),
+            )
             super().__init__(name, bases, attrs)
 
         def __prepare__(metacls, bases, **over):  # @NoSelf
@@ -62,10 +83,12 @@ def m():
 
     return M
 
+
 def d():
     print("Called", d)
 
     return 1
+
 
 def e():
     print("Called", e)
@@ -73,10 +96,12 @@ def e():
     return 2
 
 
-class C1(a(), b(), other = d(), metaclass = m(), yet_other = e()):
+class C1(a(), b(), other=d(), metaclass=m(), yet_other=e()):
     import sys
+
     # TODO: Enable this.
     # print("C1 locals type is", type(sys._getframe().f_locals))
+
 
 print("OK, class created", C1)
 
@@ -84,6 +109,8 @@ print("Attribute C1.__dict__ has type", type(C1.__dict__))
 
 
 print("Function local classes can be made global and get proper __qualname__:")
+
+
 def someFunctionWithLocalClassesMadeGlobal():
     # Affects __qualname__ only in Python3.4 or higher, not in Python3.2
     global C
@@ -105,11 +132,16 @@ def someFunctionWithLocalClassesMadeGlobal():
     except AttributeError:
         pass
 
+
 someFunctionWithLocalClassesMadeGlobal()
 
 print("Function in a class with private name")
+
+
 class someClassWithPrivateArgumentNames:
-    def f(self, *, __kw:1):
+    def f(self, *, __kw: 1):
         pass
+
+
 print(someClassWithPrivateArgumentNames.f.__annotations__)
 print("OK.")

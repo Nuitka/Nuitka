@@ -31,6 +31,8 @@ from .shapes.BuiltinTypeShapes import ShapeTypeBool
 
 class ExpressionComparisonBase(ExpressionChildrenHavingBase):
     named_children = ("left", "right")
+    getLeft = ExpressionChildrenHavingBase.childGetter("left")
+    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     def __init__(self, left, right, source_ref):
         assert left.isExpression()
@@ -42,9 +44,6 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
 
     def getOperands(self):
         return (self.getLeft(), self.getRight())
-
-    getLeft = ExpressionChildrenHavingBase.childGetter("left")
-    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     def getComparator(self):
         return self.comparator
@@ -358,7 +357,7 @@ class ExpressionComparisonIs(ExpressionComparisonIsIsNotBase):
         )
 
 
-class ExpressionComparisonIsNOT(ExpressionComparisonIsIsNotBase):
+class ExpressionComparisonIsNot(ExpressionComparisonIsIsNotBase):
     kind = "EXPRESSION_COMPARISON_IS_NOT"
 
     comparator = "IsNot"
@@ -435,7 +434,7 @@ class ExpressionComparisonIn(ExpressionComparisonInNotInBase):
         )
 
 
-class ExpressionComparisonNOTIn(ExpressionComparisonInNotInBase):
+class ExpressionComparisonNotIn(ExpressionComparisonInNotInBase):
     kind = "EXPRESSION_COMPARISON_NOT_IN"
 
     comparator = "NotIn"
@@ -450,13 +449,13 @@ def makeComparisonExpression(left, right, comparator, source_ref):
     if comparator == "Is":
         result = ExpressionComparisonIs(left=left, right=right, source_ref=source_ref)
     elif comparator == "IsNot":
-        result = ExpressionComparisonIsNOT(
+        result = ExpressionComparisonIsNot(
             left=left, right=right, source_ref=source_ref
         )
     elif comparator == "In":
         result = ExpressionComparisonIn(left=left, right=right, source_ref=source_ref)
     elif comparator == "NotIn":
-        result = ExpressionComparisonNOTIn(
+        result = ExpressionComparisonNotIn(
             left=left, right=right, source_ref=source_ref
         )
     elif comparator == "Lt":

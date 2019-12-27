@@ -26,8 +26,9 @@ from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
+    ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
-    ExpressionSpecBasedComputationBase,
+    ExpressionSpecBasedComputationMixin,
 )
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
@@ -52,18 +53,17 @@ class ExpressionBuiltinTypeBase(ExpressionBuiltinSingleArgBase):
     pass
 
 
-class ExpressionBuiltinContainerBase(ExpressionSpecBasedComputationBase):
+class ExpressionBuiltinContainerBase(
+    ExpressionSpecBasedComputationMixin, ExpressionChildHavingBase
+):
 
     builtin_spec = None
 
-    named_children = ("value",)
+    named_child = "value"
+    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
-        ExpressionSpecBasedComputationBase.__init__(
-            self, values={"value": value}, source_ref=source_ref
-        )
-
-    getValue = ExpressionSpecBasedComputationBase.childGetter("value")
+        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         value = self.getValue()
@@ -121,15 +121,14 @@ class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
         return ShapeTypeFrozenset
 
 
-class ExpressionBuiltinFloat(ExpressionChildrenHavingBase):
+class ExpressionBuiltinFloat(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_FLOAT"
 
-    named_children = ("value",)
+    named_child = "value"
+    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"value": value}, source_ref=source_ref
-        )
+        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def getTypeShape(self):
         # TODO: Depending on input type shape, we should improve this.
@@ -142,8 +141,6 @@ class ExpressionBuiltinFloat(ExpressionChildrenHavingBase):
 
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseExceptionFloat(exception_type)
-
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
 
 class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
@@ -178,19 +175,20 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
         return ShapeTypeBool
 
 
-class ExpressionBuiltinUnicodeBase(ExpressionSpecBasedComputationBase):
+class ExpressionBuiltinUnicodeBase(
+    ExpressionSpecBasedComputationMixin, ExpressionChildrenHavingBase
+):
     named_children = ("value", "encoding", "errors")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
+    getEncoding = ExpressionChildrenHavingBase.childGetter("encoding")
+    getErrors = ExpressionChildrenHavingBase.childGetter("errors")
 
     def __init__(self, value, encoding, errors, source_ref):
-        ExpressionSpecBasedComputationBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values={"value": value, "encoding": encoding, "errors": errors},
             source_ref=source_ref,
         )
-
-    getValue = ExpressionSpecBasedComputationBase.childGetter("value")
-    getEncoding = ExpressionSpecBasedComputationBase.childGetter("encoding")
-    getErrors = ExpressionSpecBasedComputationBase.childGetter("errors")
 
     def computeExpression(self, trace_collection):
         args = [self.getValue(), self.getEncoding(), self.getErrors()]
@@ -265,15 +263,14 @@ else:
         def getTypeShape(self):
             return ShapeTypeBytes
 
-    class ExpressionBuiltinBytes1(ExpressionChildrenHavingBase):
+    class ExpressionBuiltinBytes1(ExpressionChildHavingBase):
         kind = "EXPRESSION_BUILTIN_BYTES1"
 
-        named_children = ("value",)
+        named_child = "value"
+        getValue = ExpressionChildHavingBase.childGetter("value")
 
         def __init__(self, value, source_ref):
-            ExpressionChildrenHavingBase.__init__(
-                self, values={"value": value}, source_ref=source_ref
-            )
+            ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
         def getTypeShape(self):
             # TODO: Depending on input type shape, we should improve this.
@@ -286,8 +283,6 @@ else:
 
         def mayRaiseException(self, exception_type):
             return self.subnode_value.mayRaiseExceptionBytes(exception_type)
-
-        getValue = ExpressionChildrenHavingBase.childGetter("value")
 
 
 class ExpressionBuiltinBytearray1(ExpressionBuiltinTypeBase):
@@ -306,6 +301,9 @@ class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_BYTEARRAY3"
 
     named_children = ("string", "encoding", "errors")
+    getStringArg = ExpressionChildrenHavingBase.childGetter("string")
+    getEncoding = ExpressionChildrenHavingBase.childGetter("encoding")
+    getErrors = ExpressionChildrenHavingBase.childGetter("errors")
 
     builtin_spec = BuiltinParameterSpecs.builtin_bytearray_spec
 
@@ -315,10 +313,6 @@ class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
             values={"string": string, "encoding": encoding, "errors": errors},
             source_ref=source_ref,
         )
-
-    getStringArg = ExpressionChildrenHavingBase.childGetter("string")
-    getEncoding = ExpressionChildrenHavingBase.childGetter("encoding")
-    getErrors = ExpressionChildrenHavingBase.childGetter("errors")
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)

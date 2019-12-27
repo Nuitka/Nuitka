@@ -26,11 +26,10 @@ import sys
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
+from nuitka.tools.quality.autoformat.Autoformat import autoformat
 from nuitka.tools.quality.Git import getStagedFileChangeDesc
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print
-
-from .Autoformat import autoformat
 
 
 def resolveShellPatternToFilenames(pattern):
@@ -72,7 +71,7 @@ def main():
             autoformat(desc["src_path"], git_stage=desc, abort=options.abort)
     else:
         if not positional_args:
-            positional_args = ["bin", "nuitka", "tests/*/run_all.py"]
+            positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
 
         my_print("Working on:", positional_args)
 
@@ -88,7 +87,8 @@ def main():
 
         filenames = list(
             scanTargets(
-                positional_args, (".py", ".scons", ".rst", ".txt", ".j2", "*.md")
+                positional_args,
+                (".py", ".scons", ".rst", ".txt", ".j2", ".md", ".c", ".h"),
             )
         )
         if not filenames:

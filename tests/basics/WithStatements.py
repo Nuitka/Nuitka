@@ -42,6 +42,7 @@ class MyContextManager(object):
 
         return False
 
+
 print("Use context manager and raise no exception in the body:")
 with MyContextManager() as x:
     print("x has become", x)
@@ -98,6 +99,7 @@ def returnFromContextBlock():
     with MyContextManager() as x:
         return 7
 
+
 if sys.version_info >= (3,):
     assert sys.exc_info() == (None, None, None)
 
@@ -105,13 +107,16 @@ print("Use context manager to return value:")
 r = returnFromContextBlock()
 print("Return value", r)
 
+
 class NonContextManager1:
     def __enter__(self):
         return self
 
+
 class NonContextManager2:
     def __exit__(self):
         return self
+
 
 print("Use incomplete context managers:")
 try:
@@ -132,8 +137,10 @@ except Exception as e:
 if sys.version_info >= (3,):
     assert sys.exc_info() == (None, None, None)
 
+
 class NotAtAllContextManager:
     pass
+
 
 try:
     with NotAtAllContextManager() as x:
@@ -152,6 +159,7 @@ class MeanContextManager:
     def __exit__(self):
         print("Called exit, yes")
 
+
 print("Use mean context manager:")
 
 try:
@@ -163,13 +171,14 @@ except Exception as e:
 if sys.version_info >= (3,):
     assert sys.exc_info() == (None, None, None)
 
-class CatchingContextManager(object):
 
+class CatchingContextManager(object):
     def __enter__(self):
         pass
 
     def __exit__(self, exc_type, exc_value, traceback):
         return True
+
 
 print("Suppressing exception from context manager body:")
 with CatchingContextManager():

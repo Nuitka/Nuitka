@@ -15,7 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 from __future__ import print_function
 
 a = 3
@@ -27,6 +26,7 @@ try:
 except NameError as e:
     print("Raised expected exception:", repr(e))
 
+
 def someFunction(b, c):
     b = 1
 
@@ -36,5 +36,6 @@ def someFunction(b, c):
         del b
     except UnboundLocalError as e:
         print("Raised expected exception:", repr(e))
+
 
 someFunction(3, 4)

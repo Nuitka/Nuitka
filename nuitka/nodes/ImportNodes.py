@@ -35,6 +35,7 @@ from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
 from nuitka.ModuleRegistry import getUncompiledModule
 from nuitka.utils.FileOperations import relpath
+from nuitka.utils.ModuleNames import ModuleName
 
 from .ExpressionBases import (
     ExpressionBase,
@@ -135,6 +136,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
     named_children = ("name", "globals", "locals", "fromlist", "level")
+    getImportName = ExpressionChildrenHavingBase.childGetter("name")
+    getFromList = ExpressionChildrenHavingBase.childGetter("fromlist")
+    getGlobals = ExpressionChildrenHavingBase.childGetter("globals")
+    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
+    getLevel = ExpressionChildrenHavingBase.childGetter("level")
 
     _warned_about = set()
 
@@ -171,15 +177,9 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
         self.builtin_module = None
 
-    getImportName = ExpressionChildrenHavingBase.childGetter("name")
-    getFromList = ExpressionChildrenHavingBase.childGetter("fromlist")
-    getGlobals = ExpressionChildrenHavingBase.childGetter("globals")
-    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
-    getLevel = ExpressionChildrenHavingBase.childGetter("level")
-
     def _consider(self, trace_collection, module_filename, module_package):
         assert module_package is None or (
-            type(module_package) is str and module_package != ""
+            type(module_package) is ModuleName and module_package != ""
         ), repr(module_package)
 
         module_filename = os.path.normpath(module_filename)
@@ -187,15 +187,13 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
 
         if module_kind is not None:
-            if module_package is None:
-                module_fullpath = module_name
-            else:
-                module_fullpath = module_package + "." + module_name
+            module_fullpath = ModuleName.makeModuleNameInPackage(
+                module_name, module_package
+            )
 
             decision, reason = decideRecursion(
                 module_filename=module_filename,
-                module_name=module_name,
-                module_package=module_package,
+                module_name=module_fullpath,
                 module_kind=module_kind,
             )
 
@@ -247,10 +245,9 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
         parent_module = self.getParentModule()
 
-        if parent_module.isCompiledPythonPackage():
-            parent_package = parent_module.getFullName()
-        else:
-            parent_package = self.getParentModule().getPackage()
+        parent_package = parent_module.getFullName()
+        if not parent_module.isCompiledPythonPackage():
+            parent_package = parent_package.getPackageName()
 
         level = self.getLevel()
 
@@ -267,7 +264,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
         module_package, module_filename, self.finding = findModule(
             importing=self,
-            module_name=module_name,
+            module_name=ModuleName(module_name),
             parent_package=parent_package,
             level=level,
             warn=True,
@@ -302,7 +299,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
                         module_package, module_filename, _finding = findModule(
                             importing=self,
-                            module_name=import_item,
+                            module_name=ModuleName(import_item),
                             parent_package=imported_module.getFullName(),
                             level=-1,  # Relative import, so child is used.
                             warn=False,
@@ -323,8 +320,13 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                                     )
                                 )
         else:
-            while "." in module_name:
-                module_name = ".".join(module_name.split(".")[:-1])
+            module_name = ModuleName(module_name)
+
+            while True:
+                module_name = module_name.getPackageName()
+
+                if module_name is None:
+                    break
 
                 module_package, module_filename, _finding = findModule(
                     importing=self,
@@ -451,6 +453,7 @@ class StatementImportStar(StatementChildHavingBase):
     kind = "STATEMENT_IMPORT_STAR"
 
     named_child = "module"
+    getSourceModule = StatementChildHavingBase.childGetter("module")
 
     __slots__ = ("target_scope",)
 
@@ -464,8 +467,6 @@ class StatementImportStar(StatementChildHavingBase):
         # TODO: Abstract these things.
         if type(self.target_scope) is GlobalsDictHandle:
             self.target_scope.markAsEscaped()
-
-    getSourceModule = StatementChildHavingBase.childGetter("module")
 
     def getTargetDictScope(self):
         return self.target_scope
@@ -498,6 +499,7 @@ class ExpressionImportName(ExpressionChildHavingBase):
     kind = "EXPRESSION_IMPORT_NAME"
 
     named_child = "module"
+    getModule = ExpressionChildrenHavingBase.childGetter("module")
 
     __slots__ = ("import_name", "level")
 
@@ -517,8 +519,6 @@ class ExpressionImportName(ExpressionChildHavingBase):
 
     def getDetails(self):
         return {"import_name": self.getImportName(), "level": self.level}
-
-    getModule = ExpressionChildrenHavingBase.childGetter("module")
 
     def computeExpression(self, trace_collection):
         return self.getModule().computeExpressionImportName(

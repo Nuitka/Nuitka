@@ -406,6 +406,61 @@ The "git flow" model
   those changes.
 
 
+Nuitka "git/github" Workflow
+============================
+
+  * Forking and cloning
+
+  You need to have git installed and GitHub account. Goto Nuitka repository
+  <https://github.com/Nuitka/Nuitka> and fork the repository.
+
+  To clone it to your local machine execute the following your git bash:
+
+    .. code-block:: sh
+
+        git clone https://github.com/your-user-name/Nuitka.git
+        cd Nuitka
+        git remote add upstream https://github.com/Nuitka/Nuitka.git
+
+  * Create a Branch
+
+    .. code-block:: sh
+
+        git checkout develop
+        git pull --rebase upstream
+        git checkout -b feature_branch
+
+  If you are having merge conflicts while doing the previous step, then
+  check out (DON'T FORGET TO SAVE YOUR CHANGES FIRST IF ANY): <https://stackoverflow.com/questions/1125968/how-do-i-force-git-pull-to-overwrite-local-files>
+
+  * In case you have an existing branch rebase it to develop
+
+    .. code-block:: sh
+
+        git fetch upstream
+        git rebase upstream/develop
+
+  Fix the merge conflicts if any, stash them and continue:
+
+    .. code-block:: sh
+
+        git rebase --continue
+
+   If anything goes wrong while rebasing:
+
+    .. code-block:: sh
+
+        git rebase --abort
+
+  * Making changes
+
+    .. code-block:: sh
+
+        git commit -a -m "Commit Message"
+        git push -u origin # once, later always:
+        git push
+
+
 API Documentation and Guidelines
 ================================
 
@@ -594,6 +649,8 @@ For fine grained control, it has the following options::
                         Default is False.
   --no-python3.7        Do not use Python 3.7 even if available on the system.
                         Default is False.
+  --no-python3.8        Do not use Python 3.8 even if available on the system.
+                        Default is False.
   --coverage            Make a coverage analysis, that does not really check.
                         Default is False.
 
@@ -698,6 +755,19 @@ a detailed description of how to write your own plugin.
 
 To learn about plugin option specification consult
 `this document <https://github.com/Nuitka/Nuitka/blob/develop/Using-Plugin-Options.rst>`__.
+
+
+Working with the CPython suites
+===============================
+
+The CPython test suites are different branches of the same submodule. When you
+update your git checkout, they will frequently become detached. In this case,
+simply execute this command:
+
+.. code-block: sh
+
+    git submodule foreach 'git checkout $(basename $(pwd)) && \
+    git reset --hard origin/$(basename $(pwd))'
 
 
 Design Descriptions
@@ -1469,8 +1539,7 @@ by looking at the original CPython implementation.
 
 .. code-block:: C
 
-   PyObject *builtin_len(PyObject *self, PyObject *v)
-   {
+   PyObject *builtin_len(PyObject *self, PyObject *v) {
        Py_ssize_t res;
 
        res = PyObject_Size(v);
@@ -1484,8 +1553,7 @@ C/API function used in the ``builtin_len`` implementation:
 
 .. code-block:: C
 
-   Py_ssize_t PyObject_Size(PyObject *o)
-   {
+   Py_ssize_t PyObject_Size(PyObject *o) {
        PySequenceMethods *m;
 
        if (o == NULL) {
@@ -1508,8 +1576,7 @@ that fails, next up the mapping size is tried.
 
 .. code-block:: C
 
-   Py_ssize_t PyMapping_Size(PyObject *o)
-   {
+   Py_ssize_t PyMapping_Size(PyObject *o) {
        PyMappingMethods *m;
 
        if (o == NULL) {
@@ -2290,7 +2357,7 @@ am not sure, what ``__prepare__`` is allowed to return.
    # Keyword arguments go next, __metaclass__ is just one of them. In principle
    # we need to forward the others as well, but this is ignored for the sake of
    # brevity.
-   tmp_metaclass = select_metaclass(tmp_bases, SomeMetaClass )
+   tmp_metaclass = select_metaclass(tmp_bases, SomeMetaClass)
 
    tmp_prepared = tmp_metaclass.__prepare__("SomeClass", tmp_bases)
 
@@ -2577,13 +2644,217 @@ And finally, for ``print`` without a target, we still assume that a target was
 given, which would be ``sys.stdout`` in a rather hard-coded way (no variable
 look-ups involved).
 
+Reformulations during Optimization
+----------------------------------
+
+Builtin ``zip`` for Python2
++++++++++++++++++++++++++++
+
+.. code-block:: python
+
+    def _zip(a, b, c, ... ):
+       # First assign, to preserve order of execution,
+       # the arguments might be complex expressions.
+       tmp_arg1 = a
+       tmp_arg2 = b
+       tmp_arg3 = c
+       ...
+
+       tmp_iter_1 = iter(tmp_arg1)
+       tmp_iter_2 = iter(tmp_arg2)
+       tmp_iter_3 = iter(tmp_arg3)
+       ...
+
+       # could be more
+       tmp_result = []
+       try:
+           while 1:
+               tmp_result.append(
+                   (
+                        next(tmp_iter_1),
+                        next(tmp_iter_2),
+                        next(tmp_iter_3),
+                        ...
+                   )
+                )
+          except StopIteration:
+              pass
+
+       return tmp_result
+
+Builtin ``map`` for Python2
++++++++++++++++++++++++++++
+
+.. code-block:: python
+
+    def _map():
+        ...
+
+Builtin ``min``
++++++++++++++++
+
+.. code-block:: python
+
+    # TODO: keyfunc (Python2/3), defaults (Python3)
+    def _min(a, b, c, ...):
+        tmp_arg1 = a
+        tmp_arg2 = b
+        tmp_arg3 = c
+        ...
+
+        result = tmp_arg1
+        if keyfunc is None: # can be decided during re-formulation
+            tmp_key_result = keyfunc(result)
+            tmp_key_candidate = keyfunc(tmp_arg2)
+            if tmp_key_candidate < tmp_key_result:
+                result = tmp_arg2
+                tmp_key_result = tmp_key_candidate
+            tmp_key_candidate = keyfunc(tmp_arg3)
+            if tmp_key_candidate < tmp_key_result:
+                result = tmp_arg3
+                tmp_key_result = tmp_key_candidate
+            ...
+        else:
+            if tmp_arg2 < result:
+                result = tmp_arg2
+            if tmp_arg3 < result:
+                result = tmp_arg3
+            ...
+
+        return result
+
+
+Builtin ``max``
++++++++++++++++
+
+See ``min`` just with ``>`` instead of ``<``.
 
 Call to ``dir`` without arguments
----------------------------------
++++++++++++++++++++++++++++++++++
 
 This expression is reformulated to ``locals().keys()`` for Python2, and
-``list(locals.keys())``.
+``list(locals.keys())`` for Python3.
 
+Calls to functions with known signatures
+++++++++++++++++++++++++++++++++++++++++
+
+As a necessary step for inlining function calls, we need to change
+calls to variable references to function references.
+
+.. code-block:: python
+
+
+    def f(arg1, arg2):
+        return some_op(arg1, arg2)
+
+    ... # other code
+
+    x = f(a, b+c)
+
+In the optimization it is turned into
+
+.. code-block:: python
+
+
+    ... # other code
+
+    x = lamdba arg1, arg2 : some_op(arg1, arg2)(a, b+c)
+
+.. note::
+
+    The `lambda` stands here for a reference to the function, rather than a
+    variable reference, this is the normal forward propagation of values, and
+    does not imply duplicating or moving any code at all.
+
+At this point, we still have not resolved the actual call arguments to the
+variable names, still a Python level function is created, and called, and
+arguments are parsed to a tuple, and from a tuple. For simplicity sake, we have
+left out keyword arguments out of the equation for now, but they are even more
+costly.
+
+So now, what we want to do, is to re-formulate the call into what we call an
+outline body, which is a inline function, and that does the parameter parsing
+already and contains the function code too. In this inlining, there still is a
+function, but it's technically not a Python function anymore, just something
+that is an expression whose value is determined by control flow and the
+function call.
+
+.. code-block:: python
+
+    ... # other code
+
+    def _f():
+        tmp_arg1 = arg1
+        tmp_arg2 = b+c
+        return tmp_arg1+tmp_arg2
+    x = _f()
+
+With this, a function is considered inlined, because it becomes part of the
+abstract execution, and the actual code is duplicated.
+
+The point is, that matching the signature of the function to the actual
+arguments given, is pretty straight forward in many cases, but there are two
+forms of complications that can happen. One is default values, because they
+need to assigned or not, and the other is keyword arguments, because they allow
+to reorder arguments.
+
+Lets consider an example with default values first.
+
+.. code-block:: python
+
+
+    def f(arg1, arg2=some_default()):
+        return some_op(arg1, arg2)
+
+    ... # other code
+
+    x = f(a, b+c)
+
+
+Since the point, at which defaults are taken, we must execute them at that
+point and make them available.
+
+.. code-block:: python
+
+    tmp_defaults = (some_default,) # that was f.__defaults__
+
+    ... # other code
+
+    def _f():
+        tmp_arg1 = arg1
+        tmp_arg2 = tmp_defaults[0]
+        return tmp_arg1+tmp_arg2
+    x = _f()
+
+Now, one where keyword arguments are ordered the other way.
+
+.. code-block:: python
+
+
+    def f(arg1, arg2):
+        return some_op(arg1, arg2)
+
+    ... # other code
+
+    x = f(arg2=b+c, arg1=a) # "b+c" is evaluated before "a"
+
+The solution is an extra level of temporary variables. We remember the argument
+order by names and then assign parameters from it:
+
+.. code-block:: python
+
+    ... # other code
+
+    def _f():
+        tmp_given_value1 = b+c
+        tmp_given_value2 = a
+        tmp_arg1 = tmp_given_value2
+        tmp_arg2 = tmp_given_value1
+        return tmp_arg1+tmp_arg2
+    x = _f()
+
+Obviously, optimization of Nuitka can decide, that e.g. should ``a`` or ``b+c``
+not have side effects, to optimize these with standard variable tracing away.
 
 Nodes that serve special purposes
 ---------------------------------
@@ -2744,7 +3015,7 @@ things are not affectable by aliasing in any way.
 
    b += 4 # a is not changed
 
-   a = [ 3 ]
+   a = [3]
    b = a
 
    b += [4] # a is changed indeed

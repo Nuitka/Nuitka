@@ -32,6 +32,19 @@ from .ErrorCodes import getAssertionCode, getErrorExitBoolCode, getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode
 
 
+def generateBuiltinAbsCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_ABS",
+        arg_desc=(("abs_arg", expression.getOperand()),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
 def generateBuiltinRefCode(to_name, expression, emit, context):
     builtin_name = expression.getBuiltinName()
 
@@ -40,7 +53,7 @@ def generateBuiltinRefCode(to_name, expression, emit, context):
     ) as value_name:
 
         emit(
-            "%s = LOOKUP_BUILTIN( %s );"
+            "%s = LOOKUP_BUILTIN(%s);"
             % (value_name, context.getConstantCode(constant=builtin_name))
         )
 
@@ -85,10 +98,10 @@ def generateBuiltinType3Code(to_name, expression, emit, context):
     ) as value_name:
 
         emit(
-            "%s = BUILTIN_TYPE3( %s, %s, %s, %s );"
+            "%s = BUILTIN_TYPE3(%s, %s, %s, %s);"
             % (
                 value_name,
-                context.getConstantCode(constant=context.getModuleName()),
+                context.getConstantCode(constant=context.getModuleName().asString()),
                 type_name,
                 bases_name,
                 dict_name,
@@ -309,7 +322,7 @@ def generateBuiltinBoolCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("%s = CHECK_IF_TRUE( %s );" % (res_name, arg_name))
+    emit("%s = CHECK_IF_TRUE(%s);" % (res_name, arg_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,

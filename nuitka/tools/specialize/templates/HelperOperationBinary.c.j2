@@ -19,14 +19,23 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
     {{left.getCheckValueCode("operand1")|indent}}
     {{right.getCheckValueCode("operand2")|indent}}
 
-{%if left.getTypeSpecializationCode(right, nb_slot, sq_slot1, "operand1", "operand2") %}
+{% if left.type_name == "object" and right.type_name == "object" %}
+    {# CPython2 treats integer values with fast path. #}
+#if PYTHON_VERSION < 300
+    if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
+        return BINARY_OPERATION_{{op_code}}_INT_INT(operand1, operand2);
+    }
+#endif
+{% endif %}
+
+{% if left.getTypeSpecializationCode(right, nb_slot, sq_slot1, "operand1", "operand2") %}
     {{left.getTypeSpecializationCode(right, nb_slot, sq_slot1, "operand1", "operand2"|indent)}}
-{%else %}
+{% else %}
     PyTypeObject *type1 = {{left.getTypeValueExpression("operand1")}};
-    binaryfunc slot1 = {{left.getSlotValueExpression("type1", nb_slot)}};
+    {{left.getSlotType(nb_slot)}} slot1 = {{left.getSlotValueExpression("type1", nb_slot)}};
 
     PyTypeObject *type2 = {{right.getTypeValueExpression("operand2")}};
-    binaryfunc slot2 = NULL;
+    {{left.getSlotType(nb_slot)}} slot2 = NULL;
 
     if (!({{left.getTypeIdenticalCheckExpression(right, "type1", "type2")}})) {
         assert(type1 != type2);
@@ -47,7 +56,7 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
     if (slot1 != NULL) {
         if (slot2 != NULL) {
             if ({{left.getRealSubTypeCheckCode(right, "type2", "type1")}}) {
-                PyObject *x = slot2(operand1, operand2);
+                PyObject *x = {{left.getSlotCallExpression(nb_slot, "slot2", "operand1", "operand2")}};
 
                 if (x != Py_NotImplemented) {
                     if (unlikely(x == NULL)) {
@@ -62,7 +71,7 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
             }
         }
 
-        PyObject *x = slot1(operand1, operand2);
+        PyObject *x = {{left.getSlotCallExpression(nb_slot, "slot1", "operand1", "operand2")}};
 
         if (x != Py_NotImplemented) {
             if (unlikely(x == NULL)) {
@@ -76,7 +85,7 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
     }
 
     if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
+        PyObject *x = {{left.getSlotCallExpression(nb_slot, "slot2", "operand1", "operand2")}};
 
         if (x != Py_NotImplemented) {
             if (unlikely(x == NULL)) {
@@ -109,10 +118,10 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->{{nb_slot}};
+                    {{left.getSlotType(nb_slot)}} slot = mv->{{nb_slot}};
 
                     if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
+                        PyObject *x = {{left.getSlotCallExpression(nb_slot, "slot", "coerced1", "coerced2")}};
 
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
@@ -148,10 +157,10 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
                 PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
                 if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->{{nb_slot}};
+                    {{left.getSlotType(nb_slot)}} slot = mv->{{nb_slot}};
 
                     if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
+                        PyObject *x = {{left.getSlotCallExpression(nb_slot, "slot", "coerced1", "coerced2")}};
 
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
@@ -169,7 +178,6 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
                 Py_DECREF(coerced2);
             }
         }
-
     }
 #endif
 
@@ -216,6 +224,6 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
 {% endif %}
 
 
-    {{left.getRaiseUnsupportedTypeError(operand, right, "type1", "type2")|indent}}
+{{left.getRaiseUnsupportedTypeError(operand, right, "type1", "type2")}}
 {% endif %}
 }

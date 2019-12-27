@@ -66,6 +66,8 @@ class ExpressionFunctionBodyBase(
 ):
 
     named_child = "body"
+    getBody = ExpressionChildHavingBase.childGetter("body")
+    setBody = ExpressionChildHavingBase.childSetter("body")
 
     checker = checkStatementsSequenceOrNone
 
@@ -97,7 +99,8 @@ class ExpressionFunctionBodyBase(
             self.qualname_provider = provider
 
         # Non-local declarations.
-        self.non_local_declarations = []
+        if python_version >= 300:
+            self.non_local_declarations = None
 
     @staticmethod
     def isExpressionFunctionBodyBase():
@@ -284,12 +287,28 @@ class ExpressionFunctionBodyBase(
 
         return Variables.LocalVariable(owner=self, variable_name=variable_name)
 
-    def addNonlocalsDeclaration(self, names, source_ref):
-        self.non_local_declarations.append((names, source_ref))
+    def addNonlocalsDeclaration(self, names, user_provided, source_ref):
+        """ Add a nonlocal declared name.
+
+            This happens during tree building, and is a Python3 only
+            feature. We remember the names for later use through the
+            function @consumeNonlocalDeclarations
+        """
+        if self.non_local_declarations is None:
+            self.non_local_declarations = []
+
+        self.non_local_declarations.append((names, user_provided, source_ref))
 
     def consumeNonlocalDeclarations(self):
-        result = self.non_local_declarations
-        self.non_local_declarations = ()
+        """ Return the nonlocal declared names for this function.
+
+            There may not be any, which is why we assigned it to
+            None originally and now check and return empty tuple
+            in that case.
+        """
+
+        result = self.non_local_declarations or ()
+        self.non_local_declarations = None
         return result
 
     def getFunctionName(self):
@@ -330,12 +349,11 @@ class ExpressionFunctionBodyBase(
         else:
             return self.getBody().mayRaiseException(exception_type)
 
-    getBody = ExpressionChildHavingBase.childGetter("body")
-    setBody = ExpressionChildHavingBase.childSetter("body")
-
 
 class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBase):
-    def __init__(self, provider, name, code_object, code_prefix, flags, source_ref):
+    def __init__(
+        self, provider, name, code_object, code_prefix, flags, auto_release, source_ref
+    ):
         ExpressionFunctionBodyBase.__init__(
             self,
             provider=provider,
@@ -352,17 +370,27 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
         provider.getParentModule().addFunction(self)
 
-        if "has_exec" in flags or python_version >= 300:
+        if python_version >= 300:
             self.locals_dict_name = "locals_%s" % (self.getCodeName(),)
 
-            if "has_exec" in flags:
-                setLocalsDictType(self.locals_dict_name, "python2_function_exec")
-            else:
-                setLocalsDictType(self.locals_dict_name, "python3_function")
+            setLocalsDictType(self.locals_dict_name, "python3_function")
+        elif flags is not None and "has_exec" in flags:
+            self.locals_dict_name = "locals_%s" % (self.getCodeName(),)
 
+            setLocalsDictType(self.locals_dict_name, "python2_function_exec")
         else:
             # TODO: There should be a locals scope for non-dict/mapping too.
             self.locals_dict_name = None
+
+        # Automatic parameter variable releases.
+        self.auto_release = auto_release or None
+
+    def getDetails(self):
+        result = ExpressionFunctionBodyBase.getDetails(self)
+
+        result["auto_release"] = tuple(sorted(self.auto_release or ()))
+
+        return result
 
     def getFunctionLocalsScope(self):
         if self.locals_dict_name is None:
@@ -388,9 +416,12 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
     def computeFunction(self, trace_collection):
         statements_sequence = self.getBody()
 
-        if statements_sequence is not None and not statements_sequence.getStatements():
-            statements_sequence.setStatements(None)
-            statements_sequence = None
+        # TODO: Lift this restriction to only functions here and it code generation.
+        if statements_sequence is not None and self.isExpressionFunctionBody():
+            if statements_sequence.getStatements()[0].isStatementReturnNone():
+                self.setBody(None)
+                statements_sequence.finalize()
+                statements_sequence = None
 
         if statements_sequence is not None:
             result = statements_sequence.computeStatementsSequence(
@@ -400,13 +431,52 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             if result is not statements_sequence:
                 self.setBody(result)
 
+    def removeVariableReleases(self, variable):
+        assert variable in self.providing.values(), (self, self.providing, variable)
+
+        if self.auto_release is None:
+            self.auto_release = set()
+
+        self.auto_release.add(variable)
+
+    def getParameterVariablesWithManualRelease(self):
+        """ Return the list of parameter variables that have release statements.
+
+            These are for consideration if these can be dropped, and if so, they
+            are releases automatically by function code.
+        """
+        return tuple(
+            variable
+            for variable in self.providing.values()
+            if not self.auto_release or variable not in self.auto_release
+            if variable.isParameterVariable()
+            if variable.getOwner() is self
+        )
+
+    def isAutoReleaseVariable(self, variable):
+        """ Is this variable to be automatically released.
+
+        """
+        return self.auto_release is not None and variable in self.auto_release
+
+    def getFunctionVariablesWithAutoReleases(self):
+        """ Return the list of function variables that should be released at exit.
+
+        """
+        if self.auto_release is None:
+            return ()
+
+        return tuple(
+            variable
+            for variable in self.providing.values()
+            if variable in self.auto_release
+        )
+
 
 class ExpressionFunctionBody(
     MarkUnoptimizedFunctionIndicatorMixin, ExpressionFunctionEntryPointBase
 ):
     kind = "EXPRESSION_FUNCTION_BODY"
-
-    named_children = ("body",)
 
     checkers = {
         # TODO: Is "None" really an allowed value.
@@ -416,7 +486,17 @@ class ExpressionFunctionBody(
     if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, code_object, doc, parameters, flags, source_ref):
+    def __init__(
+        self,
+        provider,
+        name,
+        code_object,
+        doc,
+        parameters,
+        flags,
+        auto_release,
+        source_ref,
+    ):
         ExpressionFunctionEntryPointBase.__init__(
             self,
             provider=provider,
@@ -424,6 +504,7 @@ class ExpressionFunctionBody(
             code_object=code_object,
             code_prefix="function",
             flags=flags,
+            auto_release=auto_release,
             source_ref=source_ref,
         )
 
@@ -555,7 +636,9 @@ class ExpressionFunctionBody(
         return False
 
     def mayRaiseException(self, exception_type):
-        return self.getBody().mayRaiseException(exception_type)
+        body = self.getBody()
+
+        return body is not None and body.mayRaiseException(exception_type)
 
     def markAsExceptionReturnValue(self):
         self.return_exception = True
@@ -595,6 +678,10 @@ class ExpressionFunctionCreation(
         named_children = ("kw_defaults", "defaults", "annotations", "function_ref")
     else:
         named_children = ("defaults", "kw_defaults", "annotations", "function_ref")
+    getFunctionRef = ExpressionChildrenHavingBase.childGetter("function_ref")
+    getDefaults = ExpressionChildrenHavingBase.childGetter("defaults")
+    getKwDefaults = ExpressionChildrenHavingBase.childGetter("kw_defaults")
+    getAnnotations = ExpressionChildrenHavingBase.childGetter("annotations")
 
     checkers = {"kw_defaults": convertNoneConstantOrEmptyDictToNone}
 
@@ -632,11 +719,6 @@ class ExpressionFunctionCreation(
 
         # TODO: Function body may know something too.
         return self, None, None
-
-    getFunctionRef = ExpressionChildrenHavingBase.childGetter("function_ref")
-    getDefaults = ExpressionChildrenHavingBase.childGetter("defaults")
-    getKwDefaults = ExpressionChildrenHavingBase.childGetter("kw_defaults")
-    getAnnotations = ExpressionChildrenHavingBase.childGetter("annotations")
 
     def mayRaiseException(self, exception_type):
         for default in self.getDefaults():
@@ -691,15 +773,20 @@ class ExpressionFunctionCreation(
             args_dict = matchCall(
                 func_name=self.getName(),
                 args=call_spec.getArgumentNames(),
+                kw_only_args=call_spec.getKwOnlyParameterNames(),
                 star_list_arg=call_spec.getStarListArgumentName(),
                 star_dict_arg=call_spec.getStarDictArgumentName(),
                 num_defaults=call_spec.getDefaultCount(),
-                num_posonly=call_spec.getPositionalOnlyCount(),
+                num_posonly=call_spec.getPosOnlyParameterCount(),
                 positional=args_tuple,
                 pairs=(),
             )
 
             values = [args_dict[name] for name in call_spec.getParameterNames()]
+
+            # TODO: Not handling default values either yet.
+            if None in values:
+                return call_node, None, None
 
             result = ExpressionFunctionCall(
                 function=self, values=values, source_ref=call_node.getSourceReference()
@@ -848,6 +935,8 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_FUNCTION_CALL"
 
     named_children = ("function", "values")
+    getFunction = ExpressionChildrenHavingBase.childGetter("function")
+    getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
 
     def __init__(self, function, values, source_ref):
         assert function.isExpressionFunctionCreation()
@@ -911,9 +1000,6 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
                 return True
 
         return False
-
-    getFunction = ExpressionChildrenHavingBase.childGetter("function")
-    getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
 
     def getClosureVariableVersions(self):
         return self.variable_closure_traces

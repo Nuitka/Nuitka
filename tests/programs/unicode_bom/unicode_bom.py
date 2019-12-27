@@ -15,8 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 # import unicodedata
 
 
-print( "This is from file with BOM unicode marker" )
+print("This is from file with BOM unicode marker")

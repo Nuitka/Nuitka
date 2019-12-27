@@ -25,7 +25,7 @@ from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
+from nuitka.nodes.OperatorNodes import ExpressionOperationNot
 from nuitka.Options import getPythonFlags
 from nuitka.PythonVersions import python_version
 
@@ -68,7 +68,7 @@ def buildAssertNode(provider, node, source_ref):
     )
 
     return makeStatementConditional(
-        condition=ExpressionOperationNOT(
+        condition=ExpressionOperationNot(
             operand=buildNode(provider, node.test, source_ref), source_ref=source_ref
         ),
         yes_branch=raise_statement,

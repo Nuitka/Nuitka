@@ -120,6 +120,8 @@ if not os.environ.get("TCL_LIBRARY", None):
             "/usr/share/tcltk/tcl8.5",
             "/usr/share/tcl8.6",
             "/usr/share/tcl8.5",
+            "/usr/lib64/tcl/tcl8.5",
+            "/usr/lib64/tcl/tcl8.6",
         )
         candidates_tk = (
             os.environ.get("TK_LIBRARY"),
@@ -129,6 +131,8 @@ if not os.environ.get("TCL_LIBRARY", None):
             "/usr/share/tcltk/tk8.5",
             "/usr/share/tk8.6",
             "/usr/share/tk8.5",
+            "/usr/lib64/tcl/tk8.5",
+            "/usr/lib64/tcl/tk8.6",
         )
 
         tcl = None
@@ -149,11 +153,11 @@ if not os.environ.get("TCL_LIBRARY", None):
         tar_tk = os.path.join(dist_dir, "tk")
         tar_tcl = os.path.join(dist_dir, "tcl")
 
-        info(" Now copying Tk libraries from '%s'." % tk)  # just to entertain
         copyTree(tk, tar_tk)
+        info("Copied Tk libraries from %s." % tk)  # just to entertain
 
-        info(" Now copying TCL libraries from %r." % tcl)  # just to entertain
         copyTree(tcl, tar_tcl)
+        info("Copied TCL libraries from %s." % tcl)  # just to entertain
 
         # Definitely don't need the demos, so remove them again.
         # TODO: Anything else?

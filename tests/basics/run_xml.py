@@ -19,19 +19,20 @@
 
 from __future__ import print_function
 
-import os, sys, subprocess, tempfile, shutil
+import os, sys
 
 # Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..",
-            ".."
-        )
-    )
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
 )
+
+# isort:start
+
+import shutil
+import subprocess
 
 from nuitka.tools.testing.Common import check_output
 
@@ -67,10 +68,7 @@ for filename in sorted(os.listdir(my_dir)):
             path,
         )
 
-        result = subprocess.call(
-            command,
-            shell = True
-        )
+        result = subprocess.call(command, shell=True)
 
         if result == 2:
             sys.stderr.write("Interrupted, with CTRL-C\n")

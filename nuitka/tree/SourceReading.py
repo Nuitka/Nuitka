@@ -39,7 +39,7 @@ def _readSourceCodeFromFilename3(source_filename):
     # Only using this for Python3, for Python2 it's too buggy.
     import tokenize
 
-    with tokenize.open(source_filename) as source_file:  # @UndefinedVariable
+    with tokenize.open(source_filename) as source_file:
         return source_file.read()
 
 
@@ -50,6 +50,7 @@ def _detectEncoding2(source_file):
     line1 = source_file.readline()
 
     if line1.startswith(b"\xef\xbb\xbf"):
+        # BOM marker makes it clear.
         encoding = "utf-8"
     else:
         line1_match = re.search(b"coding[:=]\\s*([-\\w.]+)", line1)
@@ -117,8 +118,10 @@ def readSourceCodeFromFilename(module_name, source_filename):
     else:
         source_code = _readSourceCodeFromFilename3(source_filename)
 
-    # Allow plug-ins to mess with source code.
-    source_code = Plugins.onModuleSourceCode(module_name, source_code)
+    # Allow plug-ins to mess with source code, test framework usages
+    # will pass None for module name.
+    if module_name is not None:
+        source_code = Plugins.onModuleSourceCode(module_name, source_code)
 
     return source_code
 

@@ -21,20 +21,20 @@
 
 # Frame in a function
 template_frame_guard_full_block = """\
-MAKE_OR_REUSE_FRAME( %(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s );
+MAKE_OR_REUSE_FRAME(%(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s);
 %(frame_identifier)s = %(frame_cache_identifier)s;
 
 // Push the new frame as the currently active one.
-pushFrameStack( %(frame_identifier)s );
+pushFrameStack(%(frame_identifier)s);
 
 // Mark the frame object as in use, ref count 1 will be up for reuse.
-assert( Py_REFCNT( %(frame_identifier)s ) == 2 ); // Frame stack
+assert(Py_REFCNT(%(frame_identifier)s) == 2); // Frame stack
 
 // Framed code:
 %(codes)s
 
 #if %(needs_preserve)d
-RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );
+RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 #endif
 
 // Put the previous frame back on top.
@@ -46,7 +46,7 @@ goto %(no_exception_exit)s;
 template_frame_guard_full_return_handler = """\
 %(frame_return_exit)s:;
 #if %(needs_preserve)d
-RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );
+RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 #endif
 
 // Put the previous frame back on top.
@@ -66,29 +66,26 @@ template_frame_guard_full_exception_handler = """\
 %(frame_exception_exit)s:;
 
 #if %(needs_preserve)d
-RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );
+RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 #endif
 
-if ( %(exception_tb)s == NULL )
-{
+if (%(exception_tb)s == NULL) {
     %(exception_tb)s = %(tb_making)s;
 }
-else if ( %(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame )
-{
-    %(exception_tb)s = ADD_TRACEBACK( %(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s );
+else if (%(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame) {
+    %(exception_tb)s = ADD_TRACEBACK(%(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s);
 }
 
 // Attachs locals to frame if any.
 %(attach_locals)s
 
 // Release cached frame.
-if ( %(frame_identifier)s == %(frame_cache_identifier)s )
-{
-    Py_DECREF( %(frame_identifier)s );
+if (%(frame_identifier)s == %(frame_cache_identifier)s) {
+    Py_DECREF(%(frame_identifier)s);
 }
 %(frame_cache_identifier)s = NULL;
 
-assertFrameObject( %(frame_identifier)s );
+assertFrameObject(%(frame_identifier)s);
 
 // Put the previous frame back on top.
 popFrameStack();
@@ -101,23 +98,23 @@ goto %(parent_exception_exit)s;
 # TODO: The once guard need not take a reference count in its frame class.
 template_frame_guard_once_block = """\
 // Frame without reuse.
-%(frame_identifier)s = MAKE_MODULE_FRAME( %(code_identifier)s, %(module_identifier)s );
+%(frame_identifier)s = MAKE_MODULE_FRAME(%(code_identifier)s, %(module_identifier)s);
 
 // Push the new frame as the currently active one, and we should be exclusively
 // owning it.
-pushFrameStack( %(frame_identifier)s );
-assert( Py_REFCNT( %(frame_identifier)s ) == 2 );
+pushFrameStack(%(frame_identifier)s);
+assert(Py_REFCNT(%(frame_identifier)s) == 2);
 
 // Framed code:
 %(codes)s
 
 // Restore frame exception if necessary.
 #if %(needs_preserve)d
-RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );
+RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 #endif
 popFrameStack();
 
-assertFrameObject( %(frame_identifier)s );
+assertFrameObject(%(frame_identifier)s);
 
 goto %(no_exception_exit)s;
 """
@@ -125,16 +122,15 @@ goto %(no_exception_exit)s;
 template_frame_guard_once_exception_handler = """\
 %(frame_exception_exit)s:;
 #if %(needs_preserve)d
-RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );
+RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 #endif
 
 if ( %(exception_tb)s == NULL )
 {
     %(exception_tb)s = %(tb_making)s;
 }
-else if ( exception_tb->tb_frame != &%(frame_identifier)s->m_frame )
-{
-    %(exception_tb)s = ADD_TRACEBACK( %(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s );
+else if (exception_tb->tb_frame != &%(frame_identifier)s->m_frame) {
+    %(exception_tb)s = ADD_TRACEBACK(%(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s);
 }
 
 // Put the previous frame back on top.
@@ -146,26 +142,26 @@ goto %(parent_exception_exit)s;
 
 # Frame in a generator, coroutine or asyncgen.
 template_frame_guard_generator = """\
-MAKE_OR_REUSE_FRAME( %(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s );
+MAKE_OR_REUSE_FRAME(%(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s);
 %(context_identifier)s->m_frame = %(frame_cache_identifier)s;
 
 // Mark the frame object as in use, ref count 1 will be up for reuse.
-Py_INCREF( %(context_identifier)s->m_frame );
-assert( Py_REFCNT( %(context_identifier)s->m_frame ) == 2 ); // Frame stack
+Py_INCREF(%(context_identifier)s->m_frame);
+assert(Py_REFCNT(%(context_identifier)s->m_frame) == 2); // Frame stack
 
 #if PYTHON_VERSION >= 340
 %(context_identifier)s->m_frame->m_frame.f_gen = (PyObject *)%(context_identifier)s;
 #endif
 
-Py_CLEAR( %(context_identifier)s->m_frame->m_frame.f_back );
+Py_CLEAR(%(context_identifier)s->m_frame->m_frame.f_back);
 
 %(context_identifier)s->m_frame->m_frame.f_back = PyThreadState_GET()->frame;
-Py_INCREF( %(context_identifier)s->m_frame->m_frame.f_back );
+Py_INCREF(%(context_identifier)s->m_frame->m_frame.f_back);
 
 PyThreadState_GET()->frame = &%(context_identifier)s->m_frame->m_frame;
-Py_INCREF( %(context_identifier)s->m_frame );
+Py_INCREF(%(context_identifier)s->m_frame);
 
-Nuitka_Frame_MarkAsExecuting( %(context_identifier)s->m_frame );
+Nuitka_Frame_MarkAsExecuting(%(context_identifier)s->m_frame);
 
 #if PYTHON_VERSION >= 300
 // Accept currently existing exception as the one to publish again when we
@@ -173,23 +169,13 @@ Nuitka_Frame_MarkAsExecuting( %(context_identifier)s->m_frame );
 {
     PyThreadState *thread_state = PyThreadState_GET();
 
-#if PYTHON_VERSION < 370
-    %(context_identifier)s->m_frame->m_frame.f_exc_type = EXC_TYPE( thread_state );
-if ( %(context_identifier)s->m_frame->m_frame.f_exc_type == Py_None ) %(context_identifier)s->m_frame->m_frame.f_exc_type = NULL;
-    Py_XINCREF( %(context_identifier)s->m_frame->m_frame.f_exc_type );
-%(context_identifier)s->m_frame->m_frame.f_exc_value = EXC_VALUE( thread_state );
-    Py_XINCREF( %(context_identifier)s->m_frame->m_frame.f_exc_value );
-%(context_identifier)s->m_frame->m_frame.f_exc_traceback = EXC_TRACEBACK( thread_state );
-    Py_XINCREF( %(context_identifier)s->m_frame->m_frame.f_exc_traceback );
-#else
-    %(context_identifier)s->m_exc_state.exc_type = EXC_TYPE( thread_state );
-    if ( %(context_identifier)s->m_exc_state.exc_type == Py_None ) %(context_identifier)s->m_exc_state.exc_type = NULL;
-    Py_XINCREF( %(context_identifier)s->m_exc_state.exc_type );
-    %(context_identifier)s->m_exc_state.exc_value = EXC_VALUE( thread_state );
-    Py_XINCREF( %(context_identifier)s->m_exc_state.exc_value );
-    %(context_identifier)s->m_exc_state.exc_traceback = EXC_TRACEBACK( thread_state );
-    Py_XINCREF( %(context_identifier)s->m_exc_state.exc_traceback );
-#endif
+    EXC_TYPE_F(%(context_identifier)s) = EXC_TYPE(thread_state);
+    if (EXC_TYPE_F(%(context_identifier)s) == Py_None) EXC_TYPE_F(%(context_identifier)s) = NULL;
+    Py_XINCREF(EXC_TYPE_F(%(context_identifier)s));
+    EXC_VALUE_F(%(context_identifier)s) = EXC_VALUE(thread_state);
+    Py_XINCREF(EXC_VALUE_F(%(context_identifier)s));
+    EXC_TRACEBACK_F(%(context_identifier)s) = EXC_TRACEBACK(thread_state);
+    Py_XINCREF(EXC_TRACEBACK_F(%(context_identifier)s));
 }
 
 #endif
@@ -197,20 +183,16 @@ if ( %(context_identifier)s->m_frame->m_frame.f_exc_type == Py_None ) %(context_
 // Framed code:
 %(codes)s
 
-Nuitka_Frame_MarkAsNotExecuting( %(context_identifier)s->m_frame );
+Nuitka_Frame_MarkAsNotExecuting(%(context_identifier)s->m_frame);
 
-#if PYTHON_VERSION >= 370
-Py_CLEAR( %(context_identifier)s->m_exc_state.exc_type );
-Py_CLEAR( %(context_identifier)s->m_exc_state.exc_value );
-Py_CLEAR( %(context_identifier)s->m_exc_state.exc_traceback );
-#elif PYTHON_VERSION >= 300
-Py_CLEAR( %(context_identifier)s->m_frame->m_frame.f_exc_type );
-Py_CLEAR( %(context_identifier)s->m_frame->m_frame.f_exc_value );
-Py_CLEAR( %(context_identifier)s->m_frame->m_frame.f_exc_traceback );
+#if PYTHON_VERSION >= 300
+Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
+Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
+Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
 #endif
 
 // Allow re-use of the frame again.
-Py_DECREF( %(context_identifier)s->m_frame );
+Py_DECREF(%(context_identifier)s->m_frame);
 goto %(no_exception_exit)s;
 """
 
@@ -219,17 +201,13 @@ goto %(no_exception_exit)s;
 template_frame_guard_generator_return_handler = """\
 %(frame_return_exit)s:;
 
-#if PYTHON_VERSION >= 370
-Py_CLEAR( %(context_identifier)s->m_exc_state.exc_type );
-Py_CLEAR( %(context_identifier)s->m_exc_state.exc_value );
-Py_CLEAR( %(context_identifier)s->m_exc_state.exc_traceback );
-#elif PYTHON_VERSION >= 300
-Py_CLEAR( %(frame_identifier)s->m_frame.f_exc_type );
-Py_CLEAR( %(frame_identifier)s->m_frame.f_exc_value );
-Py_CLEAR( %(frame_identifier)s->m_frame.f_exc_traceback );
+#if PYTHON_VERSION >= 300
+Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
+Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
+Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
 #endif
 
-Py_DECREF( %(frame_identifier)s );
+Py_DECREF(%(frame_identifier)s);
 goto %(return_exit)s;
 """
 
@@ -238,40 +216,31 @@ template_frame_guard_generator_exception_handler = """\
 %(frame_exception_exit)s:;
 
 // If it's not an exit exception, consider and create a traceback for it.
-if ( !EXCEPTION_MATCH_GENERATOR( %(exception_type)s ) )
-{
-    if ( %(exception_tb)s == NULL )
-    {
+if (!EXCEPTION_MATCH_GENERATOR(%(exception_type)s)) {
+    if (%(exception_tb)s == NULL) {
         %(exception_tb)s = %(tb_making)s;
-    }
-    else if ( %(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame )
-    {
-        %(exception_tb)s = ADD_TRACEBACK( %(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s );
+    } else if (%(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame) {
+        %(exception_tb)s = ADD_TRACEBACK(%(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s);
     }
 
 %(attach_locals)s
 
     // Release cached frame.
-    if ( %(frame_identifier)s == %(frame_cache_identifier)s )
-    {
-        Py_DECREF( %(frame_identifier)s );
+    if (%(frame_identifier)s == %(frame_cache_identifier)s) {
+        Py_DECREF(%(frame_identifier)s);
     }
     %(frame_cache_identifier)s = NULL;
 
-    assertFrameObject( %(frame_identifier)s );
+    assertFrameObject(%(frame_identifier)s);
 }
 
-#if PYTHON_VERSION >= 370
-Py_CLEAR( %(context_identifier)s->m_exc_state.exc_type );
-Py_CLEAR( %(context_identifier)s->m_exc_state.exc_value );
-Py_CLEAR( %(context_identifier)s->m_exc_state.exc_traceback );
-#elif PYTHON_VERSION >= 300
-Py_CLEAR( %(frame_identifier)s->m_frame.f_exc_type );
-Py_CLEAR( %(frame_identifier)s->m_frame.f_exc_value );
-Py_CLEAR( %(frame_identifier)s->m_frame.f_exc_traceback );
+#if PYTHON_VERSION >= 300
+Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
+Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
+Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
 #endif
 
-Py_DECREF( %(frame_identifier)s );
+Py_DECREF(%(frame_identifier)s);
 
 // Return the error.
 goto %(parent_exception_exit)s;

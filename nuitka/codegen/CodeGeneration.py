@@ -44,6 +44,7 @@ from .AttributeCodes import (
 )
 from .BranchCodes import generateBranchCode
 from .BuiltinCodes import (
+    generateBuiltinAbsCode,
     generateBuiltinAnonymousRefCode,
     generateBuiltinBinCode,
     generateBuiltinBoolCode,
@@ -99,6 +100,7 @@ from .DictCodes import (
     generateDictOperationInCode,
     generateDictOperationRemoveCode,
     generateDictOperationSetCode,
+    generateDictOperationSetCodeKeyValue,
     generateDictOperationUpdateCode,
 )
 from .EvalCodes import (
@@ -156,6 +158,7 @@ from .IntegerCodes import (
     generateBuiltinLong2Code,
 )
 from .IteratorCodes import (
+    generateBuiltinAllCode,
     generateBuiltinAnyCode,
     generateBuiltinIter1Code,
     generateBuiltinIter2Code,
@@ -410,6 +413,10 @@ def prepareModuleCode(global_context, module, module_name):
     function_body_codes = []
 
     for function_body in module.getUsedFunctions():
+        # Empty functions get no code.
+        if function_body.getBody() is None:
+            continue
+
         function_code, function_context = generateFunctionBodyCode(
             function_body=function_body, context=context
         )
@@ -468,7 +475,6 @@ def generateHelpersCode(other_modules):
     calls_decl_code = getCallsDecls()
 
     loader_code = getMetapathLoaderBodyCode(other_modules)
-
     calls_body_code = getCallsCode()
 
     return calls_decl_code, calls_body_code + loader_code
@@ -525,6 +531,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_SET": generateBuiltinSetCode,
         "EXPRESSION_BUILTIN_ANY": generateBuiltinAnyCode,
         "EXPRESSION_BUILTIN_FROZENSET": generateBuiltinFrozensetCode,
+        "EXPRESSION_BUILTIN_ALL": generateBuiltinAllCode,
         "EXPRESSION_BUILTIN_DICT": generateBuiltinDictCode,
         "EXPRESSION_BUILTIN_LOCALS_COPY": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_UPDATED": generateBuiltinLocalsCode,
@@ -547,6 +554,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_XRANGE2": generateBuiltinXrange2Code,
         "EXPRESSION_BUILTIN_XRANGE3": generateBuiltinXrange3Code,
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION": generateBuiltinMakeExceptionCode,
+        "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_REF": generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_EXCEPTION_REF": generateExceptionRefCode,
         "EXPRESSION_BUILTIN_ANONYMOUS_REF": generateBuiltinAnonymousRefCode,
@@ -620,7 +628,6 @@ setExpressionDispatchDict(
         "EXPRESSION_MAKE_TUPLE": generateTupleCreationCode,
         "EXPRESSION_MAKE_LIST": generateListCreationCode,
         "EXPRESSION_MAKE_DICT": generateDictionaryCreationCode,
-        "EXPRESSION_OPERATION_BINARY": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_ADD": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_SUB": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_MULT": generateOperationBinaryCode,
@@ -628,9 +635,18 @@ setExpressionDispatchDict(
         "EXPRESSION_OPERATION_BINARY_OLD_DIV": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_TRUE_DIV": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_DIVMOD": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_BINARY_MOD": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_BINARY_POW": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_BINARY_LSHIFT": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_BINARY_RSHIFT": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_BINARY_BIT_OR": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_BINARY_BIT_AND": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_BINARY_BIT_XOR": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_BINARY_MAT_MULT": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_INPLACE": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_UNARY": generateOperationUnaryCode,
         "EXPRESSION_OPERATION_NOT": generateOperationNotCode,
+        "EXPRESSION_OPERATION_ABS": generateBuiltinAbsCode,
         "EXPRESSION_OUTLINE_BODY": generateFunctionOutlineCode,
         "EXPRESSION_OUTLINE_FUNCTION": generateFunctionOutlineCode,
         # TODO: Rename to make more clear it is an outline
@@ -691,6 +707,7 @@ setStatementDispatchDict(
         "STATEMENT_LIST_OPERATION_APPEND": generateListOperationAppendCode,
         "STATEMENT_SET_OPERATION_ADD": generateSetOperationAddCode,
         "STATEMENT_DICT_OPERATION_SET": generateDictOperationSetCode,
+        "STATEMENT_DICT_OPERATION_SET_KEY_VALUE": generateDictOperationSetCodeKeyValue,
         "STATEMENT_LOCALS_DICT_OPERATION_SET": generateLocalsDictSetCode,
         "STATEMENT_LOCALS_DICT_OPERATION_DEL": generateLocalsDictDelCode,
         "STATEMENT_LOOP": generateLoopCode,

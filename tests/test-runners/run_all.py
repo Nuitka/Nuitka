@@ -138,7 +138,7 @@ print("__file__:",    package.sub_package1.tests.__file__)
         sys.exit(result)
 
     my_print("Running nose tests:")
-    # assert os.system(os.environ["PYTHON"] + " -m nose --first-package-wins -s package.sub_package1.tests" ) == 0
+    # assert os.system(os.environ["PYTHON"] + " -m nose --first-package-wins -s package.sub_package1.tests") == 0
 
     my_print("Running py.test tests:")
     command = [

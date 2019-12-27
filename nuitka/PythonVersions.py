@@ -29,7 +29,19 @@ import sys
 
 
 def getSupportedPythonVersions():
+    """ Officially supported Python versions for Nuitka.
+
+    """
+
     return ("2.6", "2.7", "3.3", "3.4", "3.5", "3.6", "3.7")
+
+
+def getPartiallySupportedPythonVersions():
+    """ Partially supported Python versions for Nuitka.
+
+    """
+
+    return ("3.8",)
 
 
 def getSupportedPythonVersionStr():
@@ -124,9 +136,7 @@ def isUninstalledPython():
     if os.name == "nt":
         import ctypes.wintypes
 
-        GetSystemDirectory = (
-            ctypes.windll.kernel32.GetSystemDirectoryW
-        )  # @UndefinedVariable
+        GetSystemDirectory = ctypes.windll.kernel32.GetSystemDirectoryW
         GetSystemDirectory.argtypes = (ctypes.wintypes.LPWSTR, ctypes.wintypes.DWORD)
         GetSystemDirectory.restype = ctypes.wintypes.DWORD
 
@@ -148,7 +158,7 @@ def getRunningPythonDLLPath():
     MAX_PATH = 4096
     buf = ctypes.create_unicode_buffer(MAX_PATH)
 
-    GetModuleFileName = ctypes.windll.kernel32.GetModuleFileNameW  # @UndefinedVariable
+    GetModuleFileName = ctypes.windll.kernel32.GetModuleFileNameW
     GetModuleFileName.argtypes = (
         ctypes.wintypes.HANDLE,
         ctypes.wintypes.LPWSTR,
@@ -162,7 +172,7 @@ def getRunningPythonDLLPath():
         # Windows only code, pylint: disable=I0021,undefined-variable
         raise WindowsError(
             ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
-        )  # @UndefinedVariable
+        )
 
     dll_path = os.path.normcase(buf.value)
     assert os.path.exists(dll_path), dll_path

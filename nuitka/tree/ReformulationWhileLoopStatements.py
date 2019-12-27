@@ -62,7 +62,7 @@ from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
-from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
+from nuitka.nodes.OperatorNodes import ExpressionOperationNot
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
@@ -118,7 +118,7 @@ def buildWhileLoopNode(provider, node, source_ref):
     loop_body = makeStatementsSequence(
         statements=(
             makeStatementConditional(
-                condition=ExpressionOperationNOT(
+                condition=ExpressionOperationNot(
                     operand=buildNode(provider, node.test, source_ref),
                     source_ref=source_ref,
                 ),

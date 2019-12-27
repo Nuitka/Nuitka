@@ -18,23 +18,29 @@
 #
 print "Hello World from module main code"
 
+
 def printHelloWorld():
     print "Hello World from function main code"
+
 
 print printHelloWorld
 
 printHelloWorld()
 
+
 def printHelloWorld2(arg):
     print arg
+
 
 print printHelloWorld2
 
 printHelloWorld2("Hello World from function positional argument")
-printHelloWorld2(arg = "Hello World from function keyword argument")
+printHelloWorld2(arg="Hello World from function keyword argument")
 
-def printHelloWorld3(arg = "Hello World from function default argument"):
+
+def printHelloWorld3(arg="Hello World from function default argument"):
     print arg
+
 
 print printHelloWorld3
 

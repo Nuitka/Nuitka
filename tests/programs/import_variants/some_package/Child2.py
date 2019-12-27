@@ -15,17 +15,16 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 from __future__ import print_function
 
 print("*** Child2: Begin", __name__)
 try:
     import Child1
 except ImportError:
-    print( "This must be Python3, doing local import then." )
+    print("This must be Python3, doing local import then.")
     from . import Child1
 
 print("*** Child2: Child2 is in", __package__)
 print("*** Child2: Imported nearby child", Child1)
 
-print( "*** Child2: End" )
+print("*** Child2: End")

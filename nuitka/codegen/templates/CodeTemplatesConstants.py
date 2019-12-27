@@ -32,8 +32,7 @@ PyObject *Nuitka_dunder_compiled_value = NULL;
 
 %(constant_declarations)s
 
-static void _createGlobalConstants( void )
-{
+static void _createGlobalConstants(void) {
     NUITKA_MAY_BE_UNUSED PyObject *exception_type, *exception_value;
     NUITKA_MAY_BE_UNUSED PyTracebackObject *exception_tb;
 
@@ -126,23 +125,20 @@ static void _createGlobalConstants( void )
 // given moment. We typically do it at program exit, but we can add extra calls
 // for sanity.
 #ifndef __NUITKA_NO_ASSERT__
-void checkGlobalConstants( void )
-{
+void checkGlobalConstants(void) {
 %(constant_checks)s
 }
 #endif
 
-void createGlobalConstants( void )
-{
-    if ( _sentinel_value == NULL )
-    {
+void createGlobalConstants(void) {
+    if (_sentinel_value == NULL) {
 #if PYTHON_VERSION < 300
-        _sentinel_value = PyCObject_FromVoidPtr( NULL, NULL );
+        _sentinel_value = PyCObject_FromVoidPtr(NULL, NULL);
 #else
         // The NULL value is not allowed for a capsule, so use something else.
-        _sentinel_value = PyCapsule_New( (void *)27, "sentinel", NULL );
+        _sentinel_value = PyCapsule_New((void *)27, "sentinel", NULL);
 #endif
-        assert( _sentinel_value );
+        assert(_sentinel_value);
 
         _createGlobalConstants();
     }

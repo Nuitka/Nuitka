@@ -288,6 +288,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT(PyObject *seq_obj, PyObject *dict_
 }
 
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyDictObject *dict, Nuitka_StringObject *key, PyObject *value) {
+    CHECK_OBJECT(value);
+
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
 
 #if PYTHON_VERSION >= 360
@@ -315,12 +317,17 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyDictObject *dict, Nuitka_
 
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, Nuitka_StringObject *key,
                                                             PyObject *value) {
+    CHECK_OBJECT(value);
+
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
 
 #if PYTHON_VERSION >= 360
     if (entry == NULL) {
         DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
+
         Py_DECREF(value);
+        CHECK_OBJECT(value);
+
         return;
     }
 #endif
@@ -334,10 +341,14 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, 
     } else {
         DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
         Py_DECREF(value);
+
+        CHECK_OBJECT(value);
     }
 }
 
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_StringObject *key, PyObject *value) {
+    CHECK_OBJECT(value);
+
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
 
 #if PYTHON_VERSION >= 360
@@ -345,6 +356,8 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_
         DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
 
         Py_DECREF(value);
+        CHECK_OBJECT(value);
+
         return;
     }
 #endif
@@ -361,6 +374,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_
         DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
 
         Py_DECREF(value);
+        CHECK_OBJECT(value);
     }
 }
 

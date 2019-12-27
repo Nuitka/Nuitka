@@ -15,13 +15,17 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Using absolute import, do from module imports.
+
+"""
+
 from __future__ import absolute_import, print_function
 
 from foobar import util
 
-from . import local
+from . import local  # pylint: disable=unused-import
+
 
 class Foobar(object):
-
     def __init__(self):
-        print(util.foo())
+        print(util.someFunction())

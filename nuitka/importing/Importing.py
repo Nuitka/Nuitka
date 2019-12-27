@@ -51,6 +51,7 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir
+from nuitka.utils.ModuleNames import ModuleName
 
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
 from .Whitelisting import isWhiteListedNotExistingModule
@@ -93,20 +94,6 @@ def isPackageDir(dirname):
     )
 
 
-def getPackageNameFromFullName(full_name):
-    if "." in full_name:
-        return full_name[: full_name.rfind(".")]
-    else:
-        return None
-
-
-def getModuleFullNameFromPackageAndName(package, name):
-    if not package:
-        return name
-    else:
-        return package + "." + name
-
-
 def getExtensionModuleSuffixes():
     for suffix, _mode, kind in imp.get_suffixes():
         if kind == imp.C_EXTENSION:
@@ -129,7 +116,7 @@ def getModuleNameAndKindFromFilename(module_filename):
 
     # TODO: This does not handle ".pyw" files it seems.
     if os.path.isdir(module_filename):
-        module_name = os.path.basename(module_filename)
+        module_name = ModuleName(os.path.basename(module_filename))
         module_kind = "py"
     elif module_filename.endswith(".py"):
         module_name = os.path.basename(module_filename)[:-3]
@@ -211,7 +198,7 @@ def normalizePackageName(module_name):
     # platform, we either cannot look into it, or we require that we resolve it
     # here correctly.
     if module_name == "os.path":
-        module_name = os.path.basename(os.path.__name__)
+        module_name = ModuleName(os.path.basename(os.path.__name__))
 
     return module_name
 
@@ -222,13 +209,16 @@ def findModule(importing, module_name, parent_package, level, warn):
         The package name can be None of course. Level is the same
         as with "__import__" built-in. Warnings are optional.
 
-        Returns a triple of package name the module is in, filename of
-        it, which can be a directory for packages, and the location
-        method.
+        Returns:
+            Returns a triple of package name the module is in, filename of
+            it, which can be a directory for packages, and the location
+            method used.
     """
-
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=too-many-branches
+
+    assert type(module_name) is ModuleName
+
     if _debug_module_finding:
         print(
             "findModule: Enter to search %r in package %r level %s."
@@ -254,11 +244,12 @@ def findModule(importing, module_name, parent_package, level, warn):
 
     # Try relative imports first if we have a parent package.
     if level != 0 and parent_package is not None:
-        full_name = normalizePackageName(parent_package + "." + module_name)
+        if module_name:
+            full_name = ModuleName(parent_package + "." + module_name)
+        else:
+            full_name = ModuleName(parent_package)
 
-        if full_name.endswith("."):
-            full_name = full_name[:-1]
-
+        full_name = normalizePackageName(full_name)
         tried_names.append(full_name)
 
         try:
@@ -273,13 +264,13 @@ def findModule(importing, module_name, parent_package, level, warn):
                     % (module_name, full_name, module_filename)
                 )
 
-            return getPackageNameFromFullName(full_name), module_filename, "relative"
+            return full_name.getPackageName(), module_filename, "relative"
 
     if level <= 1 and module_name != "":
         module_name = normalizePackageName(module_name)
         tried_names.append(module_name)
 
-        package_name = getPackageNameFromFullName(module_name)
+        package_name = module_name.getPackageName()
 
         # Built-in module names must not be searched any further.
         if module_name in sys.builtin_module_names:
@@ -466,7 +457,9 @@ def getPackageSearchPath(package_name):
         return result
 
 
-def _findModuleInPath(module_name, package_name):
+def _findModuleInPath(module_name):
+    package_name, module_name = module_name.splitModuleBasename()
+
     if _debug_module_finding:
         print("_findModuleInPath: Enter", module_name, "in", package_name)
 
@@ -552,10 +545,4 @@ def _findModule2(module_name):
     if preloaded_path is not None:
         return preloaded_path[0]
 
-    if "." in module_name:
-        package_part = module_name[: module_name.rfind(".")]
-        module_name = module_name[module_name.rfind(".") + 1 :]
-    else:
-        package_part = None
-
-    return _findModuleInPath(module_name=module_name, package_name=package_part)
+    return _findModuleInPath(module_name=module_name)

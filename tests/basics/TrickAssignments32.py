@@ -15,14 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 def someFunctionThatReturnsDeletedValueViaAttributeLookup():
     class C:
         def __getattr__(self, attr_name):
             nonlocal a
             del a
-    c = C()
 
+    c = C()
 
     a = 1
     c.something
@@ -42,8 +41,8 @@ def someFunctionThatReturnsDeletedValueViaAttributeSetting():
         def __setattr__(self, attr_name, value):
             nonlocal a
             del a
-    c = C()
 
+    c = C()
 
     a = 1
     c.something = 1
@@ -56,6 +55,7 @@ except UnboundLocalError:
     print("OK, object attribute setting correctly deleted an item.")
 else:
     print("Ouch.!")
+
 
 def someFunctionThatReturnsDeletedValueViaAttributeDel():
     class C:
@@ -85,6 +85,7 @@ def someFunctionThatReturnsDeletedValueViaItemLookup():
         def __getitem__(self, attr_name):
             nonlocal a
             del a
+
     c = C()
 
     a = 1
@@ -99,13 +100,14 @@ except UnboundLocalError:
 else:
     print("Ouch.!")
 
+
 def someFunctionThatReturnsDeletedValueViaItemSetting():
     class C:
         def __setitem__(self, attr_name, value):
             nonlocal a
             del a
-    c = C()
 
+    c = C()
 
     a = 1
     c[2] = 3
@@ -125,8 +127,8 @@ def someFunctionThatReturnsDeletedValueViaItemDel():
         def __delitem__(self, attr_name):
             nonlocal a
             del a
-    c = C()
 
+    c = C()
 
     a = 1
     del c[2]
@@ -146,8 +148,8 @@ def someFunctionThatReturnsDeletedValueViaCall():
         def __call__(self):
             nonlocal a
             del a
-    c = C()
 
+    c = C()
 
     a = 1
     c()
@@ -167,8 +169,8 @@ def someFunctionThatReturnsDeletedValueViaAdd():
         def __add__(self, other):
             nonlocal a
             del a
-    c = C()
 
+    c = C()
 
     a = 1
     c + 1
@@ -188,8 +190,8 @@ def someFunctionThatReturnsDeletedValueViaSub():
         def __sub__(self, other):
             nonlocal a
             del a
-    c = C()
 
+    c = C()
 
     a = 1
     c - 1
@@ -211,8 +213,8 @@ def someFunctionThatReturnsDeletedValueViaMul():
             del a
 
             return 7
-    c = C()
 
+    c = C()
 
     a = 1
     c * 1
@@ -234,8 +236,8 @@ def someFunctionThatReturnsDeletedValueViaRemainder():
             del a
 
             return 7
-    c = C()
 
+    c = C()
 
     a = 1
     c % 1
@@ -257,8 +259,8 @@ def someFunctionThatReturnsDeletedValueViaDivmod():
             del a
 
             return 7
-    c = C()
 
+    c = C()
 
     a = 1
     divmod(c, 1)
@@ -280,8 +282,8 @@ def someFunctionThatReturnsDeletedValueViaPower():
             del a
 
             return 7
-    c = C()
 
+    c = C()
 
     a = 1
     c ** 1
@@ -303,8 +305,8 @@ def someFunctionThatReturnsDeletedValueViaUnaryMinus():
             del a
 
             return 7
-    c = C()
 
+    c = C()
 
     a = 1
     -c
@@ -326,8 +328,8 @@ def someFunctionThatReturnsDeletedValueViaUnaryPlus():
             del a
 
             return 7
-    c = C()
 
+    c = C()
 
     a = 1
     +c
@@ -351,7 +353,6 @@ def someFunctionThatReturnsDeletedValueViaNot():
             return False
 
     c = C()
-
 
     a = 1
     not c
@@ -578,6 +579,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceAdd():
         def __iadd__(self, other):
             nonlocal a
             del a
+
     c = C()
 
     a = 1
@@ -598,6 +600,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceSub():
         def __isub__(self, other):
             nonlocal a
             del a
+
     c = C()
 
     a = 1
@@ -618,6 +621,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceMul():
         def __imul__(self, other):
             nonlocal a
             del a
+
     c = C()
 
     a = 1
@@ -638,6 +642,7 @@ def someFunctionThatReturnsDeletedValueViaInplaceRemainder():
         def __imod__(self, other):
             nonlocal a
             del a
+
     c = C()
 
     a = 1
@@ -660,8 +665,8 @@ def someFunctionThatReturnsDeletedValueViaInplacePower():
             del a
 
             return 7
-    c = C()
 
+    c = C()
 
     a = 1
     c **= 1
@@ -683,8 +688,8 @@ def someFunctionThatReturnsDeletedValueViaInplaceAnd():
             del a
 
             return False
-    c = C()
 
+    c = C()
 
     a = 1
     c &= 1
@@ -706,8 +711,8 @@ def someFunctionThatReturnsDeletedValueViaInplaceFloordiv():
             del a
 
             return 7
-    c = C()
 
+    c = C()
 
     a = 1
     c //= 1
@@ -729,8 +734,8 @@ def someFunctionThatReturnsDeletedValueViaInplaceLshift():
             del a
 
             return False
-    c = C()
 
+    c = C()
 
     a = 1
     c <<= 1
@@ -752,8 +757,8 @@ def someFunctionThatReturnsDeletedValueViaInplaceRshift():
             del a
 
             return False
-    c = C()
 
+    c = C()
 
     a = 1
     c >>= 1
@@ -775,8 +780,8 @@ def someFunctionThatReturnsDeletedValueViaInplaceOr():
             del a
 
             return False
-    c = C()
 
+    c = C()
 
     a = 1
     c |= 1
@@ -790,6 +795,7 @@ except UnboundLocalError:
 else:
     print("Ouch.!")
 
+
 def someFunctionThatReturnsDeletedValueViaInplaceTrueDiv():
     class C:
         def __itruediv__(self, other):
@@ -797,8 +803,8 @@ def someFunctionThatReturnsDeletedValueViaInplaceTrueDiv():
             del a
 
             return 7
-    c = C()
 
+    c = C()
 
     a = 1
     c /= 1
@@ -820,8 +826,8 @@ def someFunctionThatReturnsDeletedValueViaInplaceXor():
             del a
 
             return False
-    c = C()
 
+    c = C()
 
     a = 1
     c ^= 1
@@ -892,7 +898,6 @@ def someFunctionThatReturnsDeletedValueViaRepr():
 
     c = C()
 
-
     a = 1
     repr(c)
     return a
@@ -915,7 +920,6 @@ def someFunctionThatReturnsDeletedValueViaStr():
             return "<some_repr>"
 
     c = C()
-
 
     a = 1
     str(c)
@@ -940,7 +944,6 @@ def someFunctionThatReturnsDeletedValueViaCompare():
 
     c = C()
 
-
     a = 1
     c < None
     return a
@@ -963,7 +966,6 @@ def someFunctionThatReturnsDeletedValueViaDel():
             return "<some_repr>"
 
     c = C()
-
 
     a = 1
     del c
@@ -1247,11 +1249,13 @@ def someFunctionThatReturnsDeletedValueViaReversed():
             nonlocal a
             del a
             return None
+
     a = 1
     c = C()
 
     reversed(c)
     return a
+
 
 try:
     someFunctionThatReturnsDeletedValueViaReversed()
@@ -1289,6 +1293,7 @@ def someFunctionThatReturnsDeletedValueViaAbs():
             nonlocal a
             del a
             return abs(10)
+
     a = 1
     c = C()
 

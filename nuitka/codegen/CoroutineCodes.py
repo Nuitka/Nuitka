@@ -182,7 +182,7 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
     else:
         wait_kind = "await_normal"
 
-    emit("%s = ASYNC_AWAIT( %s, %s );" % (to_name, value_name, wait_kind))
+    emit("%s = ASYNC_AWAIT(%s, %s);" % (to_name, value_name, wait_kind))
 
     getErrorExitCode(
         check_name=to_name, release_name=value_name, emit=emit, context=context
@@ -200,7 +200,7 @@ def generateAsyncIterCode(to_name, expression, emit, context):
         to_name, "aiter_result", expression, emit, context
     ) as result_name:
 
-        emit("%s = ASYNC_MAKE_ITERATOR( %s );" % (result_name, value_name))
+        emit("%s = ASYNC_MAKE_ITERATOR(%s);" % (result_name, value_name))
 
         getErrorExitCode(
             check_name=result_name, release_name=value_name, emit=emit, context=context
@@ -218,7 +218,7 @@ def generateAsyncNextCode(to_name, expression, emit, context):
         to_name, "anext_result", expression, emit, context
     ) as result_name:
 
-        emit("%s = ASYNC_ITERATOR_NEXT( %s );" % (result_name, value_name))
+        emit("%s = ASYNC_ITERATOR_NEXT(%s);" % (result_name, value_name))
 
         getErrorExitCode(
             check_name=result_name, release_name=value_name, emit=emit, context=context

@@ -159,10 +159,11 @@ def checkSequence(filename, statements):
             if getKind(assign_source) == "FunctionCreation":
                 continue
 
-            elif not isConstantExpression(assign_source):
+            if not isConstantExpression(assign_source):
                 search_mode.onErrorDetected(
                     "Error, assignment from non-constant '%s'." % getKind(assign_source)
                 )
+
             continue
 
         if kind == "AssignmentAttribute":
@@ -170,10 +171,10 @@ def checkSequence(filename, statements):
 
             if getKind(assign_source) == "ModuleAttributeSpecRef":
                 continue
-            else:
-                search_mode.onErrorDetected(
-                    "Error, attribute assignment to '%s'." % getKind(assign_source)
-                )
+
+            search_mode.onErrorDetected(
+                "Error, attribute assignment to '%s'." % getKind(assign_source)
+            )
 
         if kind in ("ReturnNone", "ReturnConstant"):
             continue

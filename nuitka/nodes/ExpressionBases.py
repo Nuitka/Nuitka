@@ -25,9 +25,9 @@ abstract execution, and different from statements.
 
 from abc import abstractmethod
 
+from nuitka import Options
 from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
 from nuitka.Constants import isCompileTimeConstantValue
-from nuitka.Options import isFullCompat
 from nuitka.PythonVersions import python_version
 
 from .NodeBases import ChildrenHavingMixin, NodeBase
@@ -170,8 +170,19 @@ class ExpressionBase(NodeBase):
 
     @abstractmethod
     def computeExpressionRaw(self, trace_collection):
-        """ Returns a tuple(node, tags, description).
-        Replace this node with computation result. """
+        """ Abstract execution of the node.
+
+        Returns:
+            tuple(node, tags, description)
+
+            The return value can be node itself.
+
+        Notes:
+            Replaces a node with computation result. This is the low level
+            form for the few cases, where the children are not simply all
+            evaluated first, but this allows e.g. to deal with branches, do
+            not overload this unless necessary.
+        """
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # By default, an attribute lookup may change everything about the lookup
@@ -378,6 +389,27 @@ class ExpressionBase(NodeBase):
 
         return len_node, None, None
 
+    def computeExpressionAbs(self, abs_node, trace_collection):
+        shape = self.getTypeShape()
+
+        if shape.hasShapeSlotAbs() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template="bad operand type for abs(): '%s'",
+                operation="abs",
+                original_node=abs_node,
+                value_node=self,
+            )
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return abs_node, None, None
+
     def computeExpressionInt(self, int_node, trace_collection):
         shape = self.getTypeShape()
 
@@ -428,7 +460,7 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotFloat() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "float() argument must be a string or a number"
-                if isFullCompat() and python_version < 300
+                if Options.is_fullcompat and python_version < 300
                 else "float() argument must be a string or a number, not '%s'",
                 operation="long",
                 original_node=float_node,
@@ -476,7 +508,7 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotComplex() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "complex() argument must be a string or a number"
-                if isFullCompat() and python_version < 300
+                if Options.is_fullcompat and python_version < 300
                 else "complex() argument must be a string or a number, not '%s'",
                 operation="complex",
                 original_node=complex_node,
@@ -598,6 +630,12 @@ class ExpressionBase(NodeBase):
 
         return True
 
+    def mayRaiseExceptionAbs(self, exception_type):
+        """ Unless we are told otherwise, everything may raise in 'abs'. """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+
+        return True
+
     def mayRaiseExceptionInt(self, exception_type):
         """ Unless we are told otherwise, everything may raise in __int__. """
         # Virtual method, pylint: disable=no-self-use,unused-argument
@@ -666,6 +704,15 @@ class ExpressionBase(NodeBase):
     def mayHaveSideEffectsBool(self):
         """ Unless we are told otherwise, everything may have a side effect for bool check. """
         # Virtual method, pylint: disable=no-self-use
+
+        return True
+
+    def mayHaveSideEffectsAbs(self):
+        """ Unless we are told otherwise, everything may have a side effect for abs check. """
+        # Virtual method, pylint: disable=no-self-use
+
+        # TODO: Bonus points for check type shapes that will be good
+        # for abs, i.e. number shapes like Int, Long, Float, Complex.
 
         return True
 
@@ -803,6 +850,14 @@ Compile time constant negation truth value pre-computed.""",
             computation=lambda: len(self.getCompileTimeConstant()),
             description="""\
 Compile time constant len value pre-computed.""",
+        )
+
+    def computeExpressionAbs(self, abs_node, trace_collection):
+        return trace_collection.getCompileTimeComputationResult(
+            node=abs_node,
+            computation=lambda: abs(self.getCompileTimeConstant()),
+            description="""\
+Compile time constant abs value pre-computed.""",
         )
 
     def computeExpressionInt(self, int_node, trace_collection):
@@ -1132,7 +1187,7 @@ class ExpressionChildHavingBase(ExpressionBase):
             return ()
         elif type(value) is tuple:
             return value
-        elif isinstance(value, NodeBase):
+        elif Options.is_nondebug or isinstance(value, NodeBase):
             return (value,)
         else:
             raise AssertionError(self, "has illegal child", value, value.__class__)
@@ -1207,7 +1262,7 @@ class ExpressionChildHavingBase(ExpressionBase):
         return values
 
 
-class ExpressionSpecBasedComputationBase(ExpressionChildrenHavingBase):
+class ExpressionSpecBasedComputationMixin(object):
     builtin_spec = None
 
     def computeBuiltinSpec(self, trace_collection, given_values):
@@ -1232,15 +1287,14 @@ class ExpressionSpecBasedComputationBase(ExpressionChildrenHavingBase):
         )
 
 
-class ExpressionBuiltinSingleArgBase(ExpressionSpecBasedComputationBase):
-    named_children = ("value",)
+class ExpressionBuiltinSingleArgBase(
+    ExpressionSpecBasedComputationMixin, ExpressionChildHavingBase
+):
+    named_child = "value"
+    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
-        ExpressionSpecBasedComputationBase.__init__(
-            self, values={"value": value}, source_ref=source_ref
-        )
-
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
+        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         value = self.getValue()

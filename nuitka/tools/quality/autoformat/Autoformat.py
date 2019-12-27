@@ -66,7 +66,7 @@ def _cleanupTrailingWhitespace(filename):
 
     """
     with open(filename, "r") as f:
-        source_lines = [line for line in f]
+        source_lines = list(f)
 
     clean_lines = [line.rstrip().replace("\t", "    ") for line in source_lines]
 
@@ -125,7 +125,7 @@ def _updateCommentNode(comment_node):
                     return pylint_token
 
             return part.group(1) + ",".join(
-                sorted(renamer(token) for token in part.group(2).split(","))
+                sorted(renamer(token) for token in part.group(2).split(",") if token)
             )
 
         new_value = str(comment_node.value).replace("pylint:disable", "pylint: disable")
@@ -136,10 +136,10 @@ def _updateCommentNode(comment_node):
 
 def _cleanupPyLintComments(filename, abort):
     from baron.parser import (  # pylint: disable=I0021,import-error,no-name-in-module
-        ParsingError,  # @UnresolvedImport
+        ParsingError,
     )
     from redbaron import (  # pylint: disable=I0021,import-error,no-name-in-module
-        RedBaron,  # @UnresolvedImport
+        RedBaron,
     )
 
     old_code = getFileContents(filename)
@@ -147,12 +147,11 @@ def _cleanupPyLintComments(filename, abort):
     try:
         red = RedBaron(old_code)
         # red = RedBaron(old_code.rstrip()+'\n')
-    except ParsingError:
+    except (ParsingError, AssertionError, TypeError):  # Baron does assertions too.
         if abort:
             raise
 
-        my_print("PARSING ERROR.")
-        return 2
+        return
 
     for node in red.find_all("CommentNode"):
         try:
@@ -170,20 +169,30 @@ def _cleanupPyLintComments(filename, abort):
 
 
 def _cleanupImportRelative(filename):
+    """ Make imports of Nuitka package when possible.
+
+    """
+
+    # Avoid doing it for "__main__" packages, because for those the Visual Code
+    # IDE doesn't like it and it may not run
+    if os.path.basename(filename) == "__main__.py.tmp":
+        return
+
     package_name = os.path.dirname(filename).replace(os.path.sep, ".")
 
     # Make imports local if possible.
-    if package_name.startswith("nuitka."):
+    if not package_name.startswith("nuitka."):
+        return
 
-        source_code = getFileContents(filename)
-        updated_code = re.sub(
-            r"from %s import" % package_name, "from . import", source_code
-        )
-        updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
+    source_code = getFileContents(filename)
+    updated_code = re.sub(
+        r"from %s import" % package_name, "from . import", source_code
+    )
+    updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
 
-        if source_code != updated_code:
-            with open(filename, "w") as out_file:
-                out_file.write(updated_code)
+    if source_code != updated_code:
+        with open(filename, "w") as out_file:
+            out_file.write(updated_code)
 
 
 _binary_calls = {}
@@ -256,7 +265,7 @@ def _cleanupImportSortOrder(filename):
 warned_clang_format = False
 
 
-def cleanupClangFormat(filename):
+def _cleanupClangFormat(filename):
     """ Call clang-format on a given filename to format C code.
 
     Args:
@@ -267,12 +276,16 @@ def cleanupClangFormat(filename):
     # the form of a module, pylint: disable=global-statement
     global warned_clang_format
 
-    clang_format_path = getExecutablePath("clang-format-6.0")
+    clang_format_path = getExecutablePath("clang-format-7")
 
     # Extra ball on Windows, check default installation PATH too.
     if not clang_format_path and getOS() == "Windows":
-        with withEnvironmentPathAdded("PATH", r"C:\Program Files\LLVM\bin"):
-            clang_format_path = getExecutablePath("clang-format")
+        with withEnvironmentPathAdded(
+            "PATH",
+            r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\Llvm\8.0.0\bin",
+        ):
+            with withEnvironmentPathAdded("PATH", r"C:\Program Files\LLVM\bin"):
+                clang_format_path = getExecutablePath("clang-format")
 
     if clang_format_path:
         subprocess.call(
@@ -295,8 +308,13 @@ def _shouldNotFormatCode(filename):
 
     if "inline_copy" in parts:
         return True
-    elif "tests" in parts:
-        return "run_all.py" not in parts and "compile_itself.py" not in parts
+    elif "tests" in parts and not "basics" in parts and "programs" not in parts:
+        return parts[-1] not in (
+            "run_all.py",
+            "compile_itself.py",
+            "compile_python_modules.py",
+            "compile_extension_modules.py",
+        )
     else:
         return False
 
@@ -316,6 +334,20 @@ def _isPythonFile(filename):
                 return True
 
     return False
+
+
+def transferBOM(source_filename, target_filename):
+    with open(source_filename, "rb") as f:
+        source_code = f.read()
+
+    if source_code.startswith(b"\xef\xbb\xbf"):
+        with open(target_filename, "rb") as f:
+            source_code = f.read()
+
+        if not source_code.startswith(b"\xef\xbb\xbf"):
+            with open(target_filename, "wb") as f:
+                f.write(b"\xef\xbb\xbf")
+                f.write(source_code)
 
 
 def autoformat(filename, git_stage, abort):
@@ -340,10 +372,13 @@ def autoformat(filename, git_stage, abort):
             ".sh",
             ".in",
             ".md",
+            ".yml",
             ".stylesheet",
             ".j2",
             ".gitignore",
             ".json",
+            ".spec",
+            "-rpmlintrc",
         )
     )
 
@@ -369,22 +404,24 @@ def autoformat(filename, git_stage, abort):
             _cleanupWindowsNewlines(tmp_filename)
 
             if not _shouldNotFormatCode(filename):
-                _cleanupPyLintComments(tmp_filename, abort)
                 _cleanupImportSortOrder(tmp_filename)
+                _cleanupPyLintComments(tmp_filename, abort)
 
                 black_call = _getPythonBinaryCall("black")
 
-                subprocess.call(black_call + ["-q", tmp_filename])
+                subprocess.call(black_call + ["-q", "--fast", tmp_filename])
                 _cleanupWindowsNewlines(tmp_filename)
 
         elif is_c:
             _cleanupWindowsNewlines(tmp_filename)
-            cleanupClangFormat(filename)
+            _cleanupClangFormat(filename)
             _cleanupWindowsNewlines(tmp_filename)
         elif is_txt:
             _cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)
             _cleanupWindowsNewlines(tmp_filename)
+
+        transferBOM(filename, tmp_filename)
 
         changed = False
         if old_code != getFileContents(tmp_filename, "rb"):

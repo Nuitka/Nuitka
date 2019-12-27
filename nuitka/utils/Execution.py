@@ -101,39 +101,28 @@ def getPythonExePathWindows(search, arch):
 
     if arch is None:
         if getArchitecture() == "x86":
-            arches = (
-                winreg.KEY_WOW64_32KEY,  # @UndefinedVariable
-                winreg.KEY_WOW64_64KEY,  # @UndefinedVariable
-            )
+            arches = (winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY)
         else:
-            arches = (
-                winreg.KEY_WOW64_64KEY,  # @UndefinedVariable
-                winreg.KEY_WOW64_32KEY,  # @UndefinedVariable
-            )
+            arches = (winreg.KEY_WOW64_64KEY, winreg.KEY_WOW64_32KEY)
     elif arch == "x86":
-        arches = (winreg.KEY_WOW64_32KEY,)  # @UndefinedVariable
+        arches = (winreg.KEY_WOW64_32KEY,)
     elif arch == "x86_64":
-        arches = (winreg.KEY_WOW64_64KEY,)  # @UndefinedVariable
+        arches = (winreg.KEY_WOW64_64KEY,)
     else:
         assert False, arch
 
-    for hkey_branch in (
-        winreg.HKEY_LOCAL_MACHINE,  # @UndefinedVariable
-        winreg.HKEY_CURRENT_USER,  # @UndefinedVariable
-    ):
+    for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
         for arch_key in arches:
             try:
-                key = winreg.OpenKey(  # @UndefinedVariable
+                key = winreg.OpenKey(
                     hkey_branch,
                     r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
                     0,
-                    winreg.KEY_READ | arch_key,  # @UndefinedVariable
+                    winreg.KEY_READ | arch_key,
                 )
 
-                candidate = os.path.join(
-                    winreg.QueryValue(key, ""), "python.exe"  # @UndefinedVariable
-                )
-            except WindowsError:  # @UndefinedVariable
+                candidate = os.path.join(winreg.QueryValue(key, ""), "python.exe")
+            except WindowsError:
                 continue
 
             if os.path.exists(candidate):

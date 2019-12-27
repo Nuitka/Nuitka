@@ -25,6 +25,8 @@ import os
 import subprocess
 import sys
 
+from nuitka.utils.FileOperations import getFileList
+
 
 def makeLogoImages():
     assert (
@@ -91,7 +93,7 @@ def makeLogoImages():
 
 
 def checkRstLint(document):
-    import restructuredtext_lint  # @UnresolvedImport pylint: disable=I0021,import-error
+    import restructuredtext_lint  # pylint: disable=I0021,import-error
 
     print("Checking %r for proper restructed text ..." % document)
     lint_results = restructuredtext_lint.lint_file(document, encoding="utf8")
@@ -203,5 +205,14 @@ def createReleaseDocumentation():
 
 
 def checkReleaseDocumentation():
+    documents = [
+        entry
+        for entry in getFileList(".")
+        if entry.endswith(".rst") and not entry.startswith("web" + os.path.sep)
+    ]
+
     for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
+        assert document in documents, documents
+
+    for document in documents:
         checkRstLint(document)

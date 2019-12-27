@@ -118,6 +118,8 @@ class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_SUPER"
 
     named_children = ("type", "object")
+    getType = ExpressionChildrenHavingBase.childGetter("type")
+    getObject = ExpressionChildrenHavingBase.childGetter("object")
 
     def __init__(self, super_type, super_object, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -125,9 +127,6 @@ class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
             values={"type": super_type, "object": super_object},
             source_ref=source_ref,
         )
-
-    getType = ExpressionChildrenHavingBase.childGetter("type")
-    getObject = ExpressionChildrenHavingBase.childGetter("object")
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -140,6 +139,8 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ISINSTANCE"
 
     named_children = ("instance", "classes")
+    getInstance = ExpressionChildrenHavingBase.childGetter("instance")
+    getCls = ExpressionChildrenHavingBase.childGetter("classes")
 
     def __init__(self, instance, classes, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -147,9 +148,6 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
             values={"instance": instance, "classes": classes},
             source_ref=source_ref,
         )
-
-    getInstance = ExpressionChildrenHavingBase.childGetter("instance")
-    getCls = ExpressionChildrenHavingBase.childGetter("classes")
 
     def computeExpression(self, trace_collection):
         # TODO: Quite some cases should be possible to predict.

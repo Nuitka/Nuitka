@@ -30,9 +30,10 @@
 // instance of which there can be many for each code.
 
 struct Nuitka_MethodObject {
-    PyObject_HEAD
+    /* Python object folklore: */
+    PyObject_HEAD;
 
-        struct Nuitka_FunctionObject *m_function;
+    struct Nuitka_FunctionObject *m_function;
 
     PyObject *m_weakrefs;
 

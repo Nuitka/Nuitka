@@ -22,9 +22,9 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
     double a = PyFloat_AS_DOUBLE(operand1);
     double b = PyFloat_AS_DOUBLE(operand2);
 
-{%if operand in "+-*" %}
+{% if operand in "+-*" %}
     return PyFloat_FromDouble(a {{operand}} b);
-{%elif operand == "//" %}
+{% elif operand == "//" %}
     if (unlikely(b == 0)) {
         PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
         return NULL;
@@ -44,16 +44,104 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
      * signs correctly unlike standard CPython code, which does heavy lifting
      * to avoid the issue.
      */
-    long result = (long)(a / b);
+    double result = (double)(a / b);
 
-    return PyInt_FromLong(result);
-{%elif operand == "/" %}
+    return PyFloat_FromDouble(result);
+{% elif operand == "/" %}
     if (b == 0.0) {
         PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
         return NULL;
     }
 
     return PyFloat_FromDouble(a {{operand}} b);
+{% elif operand == "%" %}
+    if (b == 0.0) {
+        PyErr_SetString(PyExc_ZeroDivisionError, "float modulo");
+        return NULL;
+    }
+
+    double mod = fmod(a, b);
+    if (mod) {
+        if ((a < 0) != (mod < 0)) {
+            mod += b;
+        }
+    } else {
+        mod = copysign(0.0, b);
+    }
+
+    return PyFloat_FromDouble(mod);
+{% elif operand == "**" %}
+    PyObject *result;
+
+    if (b == 0) {
+        result = const_float_1_0;
+        Py_INCREF(result);
+    } else if (Py_IS_NAN(a)) {
+        // TODO: Why not use operand1
+        result = PyFloat_FromDouble(a);
+    } else if (Py_IS_NAN(b)) {
+        if (a == 1.0) {
+            result = const_float_1_0;
+            Py_INCREF(result);
+        } else {
+            // TODO: Why not use operand2
+            result = PyFloat_FromDouble(b);
+        }
+    } else if (Py_IS_INFINITY(b)) {
+        a = fabs(a);
+        if (a == 1.0) {
+            result = const_float_1_0;
+            Py_INCREF(result);
+        } else if ((b > 0.0) == (a > 1.0)) {
+            result = PyFloat_FromDouble(fabs(b));
+        } else {
+            result = const_float_0_0;
+            Py_INCREF(result);
+        }
+    } else if (Py_IS_INFINITY(a)) {
+        bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
+        if (b > 0.0)
+        {
+            result = PyFloat_FromDouble(b_is_odd ? a : fabs(a));
+        } else {
+            result = PyFloat_FromDouble(b_is_odd ? copysign(0.0, a) : 0.0);
+        }
+    } else if (a == 0.0) {
+        if (b < 0.0) {
+            PyErr_SetString(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
+            return NULL;
+        }
+
+        bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
+        result = PyFloat_FromDouble(b_is_odd ? a : 0.0);
+    } else {
+        bool negate_result = false;
+
+        if (a < 0.0) {
+            if (b != floor(b)) {
+                PyErr_SetString(PyExc_ValueError, "negative number cannot be raised to a fractional power");
+                return NULL;
+            }
+            a = -a;
+            negate_result = DOUBLE_IS_ODD_INTEGER(b);
+        }
+
+        if (a == 1.0) {
+            result = PyFloat_FromDouble(negate_result ? -1.0 : 1.0);
+        } else {
+            errno = 0;
+            const double r = pow(a, b);
+
+            if (errno != 0) {
+                PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
+                return NULL;
+            }
+
+            result = PyFloat_FromDouble(negate_result ? -r : r);
+        }
+    }
+
+    return result;
 {% else %}
 #error Operand {{operand}} not implemented in {{name}}
 {% endif %}

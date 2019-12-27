@@ -48,6 +48,7 @@ class StatementAssignmentVariableName(StatementChildHavingBase):
 
     named_child = "source"
     nice_child = "assignment source"
+    getAssignSource = StatementChildHavingBase.childGetter("source")
 
     __slots__ = ("variable_name", "provider")
 
@@ -76,8 +77,6 @@ class StatementAssignmentVariableName(StatementChildHavingBase):
 
     def getStatementNiceName(self):
         return "variable assignment statement"
-
-    getAssignSource = StatementChildHavingBase.childGetter("source")
 
 
 class StatementDelVariableName(StatementBase):
@@ -137,6 +136,8 @@ class StatementAssignmentVariable(StatementChildHavingBase):
 
     named_child = "source"
     nice_child = "assignment source"
+    getAssignSource = StatementChildHavingBase.childGetter("source")
+    setAssignSource = StatementChildHavingBase.childSetter("source")
 
     __slots__ = ("variable", "variable_version", "variable_trace", "inplace_suspect")
 
@@ -195,9 +196,6 @@ class StatementAssignmentVariable(StatementChildHavingBase):
             version=version,
             source_ref=self.source_ref,
         )
-
-    getAssignSource = StatementChildHavingBase.childGetter("source")
-    setAssignSource = StatementChildHavingBase.childSetter("source")
 
     def getVariableName(self):
         return self.variable.getName()
@@ -334,7 +332,6 @@ Removed assignment of %s from itself which is known to be defined."""
             if last_trace is not None:
                 if source.isCompileTimeConstant() and not last_trace.hasLoopUsages():
                     if not variable.isModuleVariable():
-
                         # Can safely forward propagate only non-mutable constants.
                         if source.isMutable():
                             # Something might be possible still, lets check for
@@ -397,6 +394,9 @@ Removed assignment of %s from itself which is known to be defined."""
                                         self.getVariableName(),
                                     ),
                                 )
+                elif source.isExpressionFunctionCreation():
+                    # TODO: Prepare for inlining.
+                    pass
                 else:
                     # More cases thinkable.
                     pass
@@ -650,6 +650,15 @@ class StatementReleaseVariable(StatementBase):
         self.variable = variable
 
     def computeStatement(self, trace_collection):
+        if self.variable.isParameterVariable():
+            if self.variable.getOwner().isAutoReleaseVariable(self.variable):
+                return (
+                    None,
+                    "new_statements",
+                    "Original parameter variable value %s is not released."
+                    % (self.variable.getDescription()),
+                )
+
         self.variable_trace = trace_collection.getVariableCurrentTrace(self.variable)
 
         if self.variable_trace.isUninitTrace():

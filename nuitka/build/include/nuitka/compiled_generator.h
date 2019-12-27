@@ -44,9 +44,10 @@ static const int status_Finished = 2;
 // The Nuitka_GeneratorObject is the storage associated with a compiled
 // generator object instance of which there can be many for each code.
 struct Nuitka_GeneratorObject {
-    PyObject_VAR_HEAD
+    /* Python object folklore: */
+    PyObject_VAR_HEAD;
 
-        PyObject *m_name;
+    PyObject *m_name;
 
     // TODO: Only to make traceback for non-started throw
     PyObject *m_module;
@@ -65,9 +66,6 @@ struct Nuitka_GeneratorObject {
     int m_running;
 
     void *m_code;
-
-    PyObject *m_exception_type, *m_exception_value;
-    PyTracebackObject *m_exception_tb;
 
     struct Nuitka_FrameObject *m_frame;
     PyCodeObject *m_code_object;
@@ -110,6 +108,12 @@ extern PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyO
                                       PyCodeObject *code_object, Py_ssize_t closure_given,
                                       Py_ssize_t heap_storage_size);
 
+extern PyObject *Nuitka_Generator_NewEmpty(PyObject *module, PyObject *name,
+#if PYTHON_VERSION >= 350
+                                           PyObject *qualname,
+#endif
+                                           PyCodeObject *code_object, Py_ssize_t closure_given);
+
 extern PyObject *Nuitka_Generator_qiter(struct Nuitka_GeneratorObject *generator, bool *finished);
 
 static inline bool Nuitka_Generator_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Generator_Type; }
@@ -133,6 +137,10 @@ static inline void SAVE_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *gener
     PyObject *saved_exception_value = EXC_VALUE(thread_state);
     PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 
+    CHECK_OBJECT_X(saved_exception_type);
+    CHECK_OBJECT_X(saved_exception_value);
+    CHECK_OBJECT_X(saved_exception_traceback);
+
 #if PYTHON_VERSION < 370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
     EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
@@ -145,8 +153,12 @@ static inline void SAVE_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *gener
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("YIELD exit:\n");
-    PRINT_EXCEPTION(thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback);
+    PRINT_PUBLISHED_EXCEPTION();
 #endif
+
+    CHECK_OBJECT_X(EXC_TYPE(thread_state));
+    CHECK_OBJECT_X(EXC_VALUE(thread_state));
+    CHECK_OBJECT_X(EXC_TRACEBACK(thread_state));
 
 #if PYTHON_VERSION < 370
     thread_state->frame->f_exc_type = saved_exception_type;
@@ -155,7 +167,6 @@ static inline void SAVE_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *gener
 #else
     generator->m_exc_state.exc_type = saved_exception_type;
     generator->m_exc_state.exc_value = saved_exception_value;
-    ;
     generator->m_exc_state.exc_traceback = saved_exception_traceback;
 #endif
 }
@@ -169,6 +180,10 @@ static inline void RESTORE_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *ge
     PyObject *saved_exception_value = EXC_VALUE(thread_state);
     PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 
+    CHECK_OBJECT_X(saved_exception_type);
+    CHECK_OBJECT_X(saved_exception_value);
+    CHECK_OBJECT_X(saved_exception_traceback);
+
 #if PYTHON_VERSION < 370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
     EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
@@ -185,6 +200,10 @@ static inline void RESTORE_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *ge
     generator->m_exc_state.exc_type = saved_exception_type;
     generator->m_exc_state.exc_value = saved_exception_value;
     generator->m_exc_state.exc_traceback = saved_exception_traceback;
+
+    CHECK_OBJECT_X(EXC_TYPE(thread_state));
+    CHECK_OBJECT_X(EXC_VALUE(thread_state));
+    CHECK_OBJECT_X(EXC_TRACEBACK(thread_state));
 #endif
 }
 

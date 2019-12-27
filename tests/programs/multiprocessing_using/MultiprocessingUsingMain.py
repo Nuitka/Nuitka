@@ -17,9 +17,9 @@
 #
 from multiprocessing import freeze_support
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     freeze_support()
 
     from foo import entry
+
     entry.main()

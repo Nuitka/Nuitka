@@ -15,12 +15,15 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 from __future__ import print_function
 
-import inspect, types, sys, pprint
+import inspect
+import pprint
+import sys
+import types
 
-def displayDict(d, remove_keys = ()):
+
+def displayDict(d, remove_keys=()):
     if "__loader__" in d:
         d = dict(d)
         d["__loader__"] = "<__loader__ removed>"
@@ -44,6 +47,7 @@ def displayDict(d, remove_keys = ()):
 def compiledFunction(a, b):
     pass
 
+
 assert inspect.isfunction(compiledFunction) is True
 assert isinstance(compiledFunction, types.FunctionType)
 assert isinstance(compiledFunction, (int, types.FunctionType))
@@ -54,6 +58,7 @@ print("Compiled args:", inspect.formatargspec(*inspect.getargspec(compiledFuncti
 # Even this works.
 assert type(compiledFunction) == types.FunctionType
 
+
 class CompiledClass:
     def __init__(self):
         pass
@@ -61,24 +66,31 @@ class CompiledClass:
     def compiledMethod(self):
         pass
 
+
 assert inspect.isfunction(CompiledClass) is False
 assert isinstance(CompiledClass, types.FunctionType) is False
 
 assert inspect.ismethod(compiledFunction) is False
 assert inspect.ismethod(CompiledClass) is False
 
-assert inspect.ismethod(CompiledClass.compiledMethod) == ( sys.version_info < (3,) )
+assert inspect.ismethod(CompiledClass.compiledMethod) == (sys.version_info < (3,))
 assert inspect.ismethod(CompiledClass().compiledMethod) is True
 
-assert bool(type(CompiledClass.compiledMethod) == types.MethodType) == ( sys.version_info < (3,) )
+assert bool(type(CompiledClass.compiledMethod) == types.MethodType) == (
+    sys.version_info < (3,)
+)
 
 
 print("Compiled method:", inspect.getargspec(CompiledClass().compiledMethod))
-print("Compiled class:", inspect.formatargspec(*inspect.getargspec(CompiledClass().compiledMethod)))
+print(
+    "Compiled class:",
+    inspect.formatargspec(*inspect.getargspec(CompiledClass().compiledMethod)),
+)
 
 
 def compiledGenerator():
     yield 1
+
 
 assert inspect.isfunction(compiledGenerator) is True
 assert inspect.isgeneratorfunction(compiledGenerator) is True
@@ -94,6 +106,7 @@ assert inspect.isgenerator(compiledFunction) is False
 assert inspect.isgenerator(compiledGenerator) is False
 assert inspect.isgenerator(compiledGenerator()) is True
 
+
 def someFunction(a):
     assert inspect.isframe(sys._getframe())
     # print("Running frame getframeinfo()", inspect.getframeinfo(sys._getframe()))
@@ -101,21 +114,32 @@ def someFunction(a):
     # TODO: The locals of the frame are not updated.
     # print("Running frame arg values", inspect.getargvalues(sys._getframe()))
 
+
 someFunction(2)
 
+
 class C:
-    print("Class locals", displayDict(sys._getframe().f_locals, remove_keys = ("__qualname__","__locals__")))
+    print(
+        "Class locals",
+        displayDict(
+            sys._getframe().f_locals, remove_keys=("__qualname__", "__locals__")
+        ),
+    )
     print("Class flags", sys._getframe().f_code.co_flags)
+
 
 def f():
     print("Func locals", sys._getframe().f_locals)
     print("Func flags", sys._getframe().f_code.co_flags)
 
+
 f()
 
+
 def g():
-    yield("Generator object locals", sys._getframe().f_locals)
-    yield("Generator object flags", sys._getframe().f_code.co_flags)
+    yield ("Generator object locals", sys._getframe().f_locals)
+    yield ("Generator object flags", sys._getframe().f_code.co_flags)
+
 
 for line in g():
     print(*line)

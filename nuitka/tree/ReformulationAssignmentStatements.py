@@ -51,6 +51,8 @@ from nuitka.nodes.OperatorNodes import (
     makeBinaryOperationNode,
     makeExpressionOperationBinaryInplace,
 )
+from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
+from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SliceNodes import (
     ExpressionBuiltinSlice,
     ExpressionSliceLookup,
@@ -79,6 +81,7 @@ from .TreeHelpers import (
     makeConstantRefNode,
     makeSequenceCreationOrConstant,
     makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
     makeStatementsSequenceOrStatement,
     mangleName,
@@ -1110,3 +1113,64 @@ def buildInplaceAssignNode(provider, node, source_ref):
         assert False, kind
 
     return makeStatementsSequenceFromStatements(*statements)
+
+
+def buildNamedExprNode(provider, node, source_ref):
+    """ Assignment expressions, Python3.8 or higher only.
+
+    """
+
+    outline_body = ExpressionOutlineBody(
+        provider=provider, name="assignment_expr", source_ref=source_ref
+    )
+
+    tmp_value = outline_body.allocateTempVariable(temp_scope=None, name="value")
+
+    value = buildNode(provider=provider, node=node.value, source_ref=source_ref)
+
+    locals_owner = provider
+    while locals_owner.isExpressionOutlineFunction():
+        locals_owner = locals_owner.getParentVariableProvider()
+
+    variable_name = node.target.id
+
+    if (
+        locals_owner.isExpressionGeneratorObjectBody()
+        and locals_owner.name == "<genexpr>"
+    ):
+        locals_owner.addNonlocalsDeclaration(
+            (variable_name,), user_provided=False, source_ref=source_ref
+        )
+
+    statements = (
+        StatementAssignmentVariable(
+            variable=tmp_value, source=value, source_ref=source_ref
+        ),
+        StatementAssignmentVariableName(
+            provider=locals_owner,
+            variable_name=variable_name,
+            source=ExpressionTempVariableRef(variable=tmp_value, source_ref=source_ref),
+            source_ref=source_ref,
+        ),
+        StatementReturn(
+            expression=ExpressionTempVariableRef(
+                variable=tmp_value, source_ref=source_ref
+            ),
+            source_ref=source_ref,
+        ),
+    )
+
+    outline_body.setBody(
+        makeStatementsSequenceFromStatement(
+            statement=makeTryFinallyStatement(
+                provider=provider,
+                tried=statements,
+                final=StatementReleaseVariable(
+                    variable=tmp_value, source_ref=source_ref
+                ),
+                source_ref=source_ref,
+            )
+        )
+    )
+
+    return outline_body

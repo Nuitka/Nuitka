@@ -42,15 +42,15 @@ from .templates.CodeTemplatesExceptions import (
 
 def getErrorExitReleaseCode(context):
     temp_release = "\n".join(
-        "Py_DECREF( %s );" % tmp_name for tmp_name in context.getCleanupTempnames()
+        "Py_DECREF(%s);" % tmp_name for tmp_name in context.getCleanupTempnames()
     )
 
     keeper_variables = context.getExceptionKeeperVariables()
 
     if keeper_variables[0] is not None:
-        temp_release += "\nPy_DECREF( %s );" % keeper_variables[0]
-        temp_release += "\nPy_XDECREF( %s );" % keeper_variables[1]
-        temp_release += "\nPy_XDECREF( %s );" % keeper_variables[2]
+        temp_release += "\nPy_DECREF(%s);" % keeper_variables[0]
+        temp_release += "\nPy_XDECREF(%s);" % keeper_variables[1]
+        temp_release += "\nPy_XDECREF(%s);" % keeper_variables[2]
 
     return temp_release
 
@@ -168,15 +168,15 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
 
         set_exception = [
             "%s = %s;" % (exception_type, exception),
-            "Py_INCREF( %s );" % exception_type,
+            "Py_INCREF(%s);" % exception_type,
             "%s = %s;" % (exception_value, getModuleConstantCode(constant=args[0])),
             "%s = NULL;" % exception_tb,
         ]
     else:
         set_exception = [
             "%s = %s;" % (exception_type, exception),
-            "Py_INCREF( %s );" % exception_type,
-            "%s = Py%s_FromFormat( %s );"
+            "Py_INCREF(%s);" % exception_type,
+            "%s = Py%s_FromFormat(%s);"
             % (
                 exception_value,
                 "String" if python_version < 300 else "Unicode",
@@ -190,14 +190,14 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
 
         if keeper_vars[0] is not None:
             set_exception.append(
-                "ADD_EXCEPTION_CONTEXT( &%s, &%s );" % (keeper_vars[0], keeper_vars[1])
+                "ADD_EXCEPTION_CONTEXT(&%s, &%s);" % (keeper_vars[0], keeper_vars[1])
             )
         else:
             set_exception.append(
-                "NORMALIZE_EXCEPTION( &%s, &%s, &%s );"
+                "NORMALIZE_EXCEPTION(&%s, &%s, &%s);"
                 % (exception_type, exception_value, exception_tb)
             )
-            set_exception.append("CHAIN_EXCEPTION( %s );" % exception_value)
+            set_exception.append("CHAIN_EXCEPTION(%s);" % exception_value)
 
     emit(
         template_error_format_string_exception
@@ -216,7 +216,7 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
 
 def getReleaseCode(release_name, emit, context):
     if context.needsCleanup(release_name):
-        emit("Py_DECREF( %s );" % release_name)
+        emit("Py_DECREF(%s);" % release_name)
         context.removeCleanupTempName(release_name)
 
 
@@ -231,22 +231,18 @@ def getMustNotGetHereCode(reason, context, emit):
     provider = context.getEntryPoint()
 
     emit(
-        "NUITKA_CANNOT_GET_HERE( %(function_identifier)s );"
+        "NUITKA_CANNOT_GET_HERE(%(function_identifier)s);"
         % {"function_identifier": provider.getCodeName()}
     )
-
-    if provider.isCompiledPythonModule():
-        emit("return MOD_RETURN_VALUE( NULL );")
-    else:
-        emit("return NULL;")
+    emit("return NULL;")
 
 
 def getAssertionCode(check, emit):
-    emit("assert( %s );" % check)
+    emit("assert(%s);" % check)
 
 
 def getCheckObjectCode(check_name, emit):
-    emit("CHECK_OBJECT( %s );" % check_name)
+    emit("CHECK_OBJECT(%s);" % check_name)
 
 
 def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
@@ -287,10 +283,12 @@ def getNameReferenceErrorCode(variable_name, condition, emit, context):
     else:
         error_message = "name '%s' is not defined"
 
+    error_message = error_message % variable_name
+
     getErrorFormatExitBoolCode(
         condition=condition,
         exception="PyExc_NameError",
-        args=(error_message, variable_name),
+        args=(error_message,),
         emit=emit,
         context=context,
     )

@@ -17,47 +17,52 @@
 #
 from __future__ import print_function
 
+
 def setOrderCheck():
     print("Checking order of set literals:")
+
     def one():
         print("one")
         return "one"
+
     def two():
         print("two")
         return "two"
 
     return {one(), two()}
 
+
 def raiseOrderCheck():
     print("Checking order of raises:")
+
     def exception_type():
-        print("exception_type", end = "")
+        print("exception_type", end="")
 
         return ValueError
 
     def exception_value():
-        print("exception_value", end = "")
+        print("exception_value", end="")
 
         return 1
 
     def exception_tb():
-        print("exception_value", end = "")
+        print("exception_value", end="")
 
         return None
 
-    print("3 args", end = "")
+    print("3 args", end="")
     try:
         raise exception_type(), exception_value(), exception_tb()
     except Exception as e:
         print("caught", repr(e))
 
-    print("2 args", end = "")
+    print("2 args", end="")
     try:
         raise exception_type(), exception_value()
     except Exception as e:
         print("caught", repr(e))
 
-    print("1 args", end = "")
+    print("1 args", end="")
     try:
         raise exception_type()
     except Exception as e:

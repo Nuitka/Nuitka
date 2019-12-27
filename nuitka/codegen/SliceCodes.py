@@ -283,7 +283,7 @@ def generateBuiltinSliceCode(to_name, expression, emit, context):
         to_name, "sliceobj_value", expression, emit, context
     ) as result_name:
         emit(
-            "%s = MAKE_SLICEOBJ3( %s, %s, %s );"
+            "%s = MAKE_SLICEOBJ3(%s, %s, %s);"
             % (
                 result_name,
                 lower_name if lower_name is not None else "Py_None",
@@ -305,7 +305,7 @@ def generateBuiltinSliceCode(to_name, expression, emit, context):
 
 def _getSliceLookupCode(to_name, source_name, lower_name, upper_name, emit, context):
     emit(
-        "%s = LOOKUP_SLICE( %s, %s, %s );"
+        "%s = LOOKUP_SLICE(%s, %s, %s);"
         % (
             to_name,
             source_name,
@@ -328,7 +328,7 @@ def _getSliceLookupIndexesCode(
     to_name, lower_name, upper_name, source_name, emit, context
 ):
     emit(
-        "%s = LOOKUP_INDEX_SLICE( %s, %s, %s );"
+        "%s = LOOKUP_INDEX_SLICE(%s, %s, %s);"
         % (to_name, source_name, lower_name, upper_name)
     )
 
@@ -345,7 +345,7 @@ def _getSliceAssignmentIndexesCode(
     res_name = context.getBoolResName()
 
     emit(
-        "%s = SET_INDEX_SLICE( %s, %s, %s, %s );"
+        "%s = SET_INDEX_SLICE(%s, %s, %s, %s);"
         % (res_name, target_name, lower_name, upper_name, value_name)
     )
 
@@ -363,7 +363,7 @@ def _getSliceAssignmentCode(
     res_name = context.getBoolResName()
 
     emit(
-        "%s = SET_SLICE( %s, %s, %s, %s );"
+        "%s = SET_SLICE(%s, %s, %s, %s);"
         % (
             res_name,
             target_name,
@@ -385,7 +385,7 @@ def _getSliceDelIndexesCode(target_name, lower_name, upper_name, emit, context):
     res_name = context.getBoolResName()
 
     emit(
-        "%s = DEL_INDEX_SLICE( %s, %s, %s );"
+        "%s = DEL_INDEX_SLICE(%s, %s, %s);"
         % (res_name, target_name, lower_name, upper_name)
     )
 
@@ -401,7 +401,7 @@ def _getSliceDelCode(target_name, lower_name, upper_name, emit, context):
     res_name = context.getBoolResName()
 
     emit(
-        "%s = DEL_SLICE( %s, %s, %s );"
+        "%s = DEL_SLICE(%s, %s, %s);"
         % (
             res_name,
             target_name,

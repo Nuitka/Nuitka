@@ -29,7 +29,7 @@ from nuitka.specs import BuiltinParameterSpecs
 from .ConstantRefNodes import ExpressionConstantNoneRef
 from .ExpressionBases import (
     ExpressionChildrenHavingBase,
-    ExpressionSpecBasedComputationBase,
+    ExpressionSpecBasedComputationMixin,
 )
 from .NodeBases import StatementChildrenHavingBase
 from .NodeMakingHelpers import (
@@ -43,6 +43,10 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_SLICE"
 
     named_children = ("source", "expression", "lower", "upper")
+    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
+    getLower = StatementChildrenHavingBase.childGetter("lower")
+    getUpper = StatementChildrenHavingBase.childGetter("upper")
+    getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
     def __init__(self, expression, lower, upper, source, source_ref):
         assert python_version < 300
@@ -57,11 +61,6 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
             },
             source_ref=source_ref,
         )
-
-    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
-    getLower = StatementChildrenHavingBase.childGetter("lower")
-    getUpper = StatementChildrenHavingBase.childGetter("upper")
-    getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getAssignSource())
@@ -141,6 +140,9 @@ class StatementDelSlice(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_SLICE"
 
     named_children = ("expression", "lower", "upper")
+    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
+    getLower = StatementChildrenHavingBase.childGetter("lower")
+    getUpper = StatementChildrenHavingBase.childGetter("upper")
 
     def __init__(self, expression, lower, upper, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -148,10 +150,6 @@ class StatementDelSlice(StatementChildrenHavingBase):
             values={"expression": expression, "lower": lower, "upper": upper},
             source_ref=source_ref,
         )
-
-    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
-    getLower = StatementChildrenHavingBase.childGetter("lower")
-    getUpper = StatementChildrenHavingBase.childGetter("upper")
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getLookupSource())
@@ -208,6 +206,11 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SLICE_LOOKUP"
 
     named_children = ("expression", "lower", "upper")
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("expression")
+    getLower = ExpressionChildrenHavingBase.childGetter("lower")
+    setLower = ExpressionChildrenHavingBase.childSetter("lower")
+    getUpper = ExpressionChildrenHavingBase.childGetter("upper")
+    setUpper = ExpressionChildrenHavingBase.childSetter("upper")
 
     checkers = {"upper": convertNoneConstantToNone, "lower": convertNoneConstantToNone}
 
@@ -219,14 +222,6 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
             values={"expression": expression, "upper": upper, "lower": lower},
             source_ref=source_ref,
         )
-
-    getLookupSource = ExpressionChildrenHavingBase.childGetter("expression")
-
-    getLower = ExpressionChildrenHavingBase.childGetter("lower")
-    setLower = ExpressionChildrenHavingBase.childSetter("lower")
-
-    getUpper = ExpressionChildrenHavingBase.childGetter("upper")
-    setUpper = ExpressionChildrenHavingBase.childSetter("upper")
 
     def computeExpression(self, trace_collection):
         lookup_source = self.getLookupSource()
@@ -243,10 +238,15 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
         return None
 
 
-class ExpressionBuiltinSlice(ExpressionSpecBasedComputationBase):
+class ExpressionBuiltinSlice(
+    ExpressionSpecBasedComputationMixin, ExpressionChildrenHavingBase
+):
     kind = "EXPRESSION_BUILTIN_SLICE"
 
     named_children = ("start", "stop", "step")
+    getStart = ExpressionChildrenHavingBase.childGetter("start")
+    getStop = ExpressionChildrenHavingBase.childGetter("stop")
+    getStep = ExpressionChildrenHavingBase.childGetter("step")
 
     builtin_spec = BuiltinParameterSpecs.builtin_slice_spec
 
@@ -258,7 +258,7 @@ class ExpressionBuiltinSlice(ExpressionSpecBasedComputationBase):
         if step is None:
             step = ExpressionConstantNoneRef(source_ref=source_ref)
 
-        ExpressionSpecBasedComputationBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values={"start": start, "stop": stop, "step": step},
             source_ref=source_ref,
@@ -281,7 +281,3 @@ class ExpressionBuiltinSlice(ExpressionSpecBasedComputationBase):
             or self.getStop().mayRaiseException(exception_type)
             or self.getStep().mayRaiseException(exception_type)
         )
-
-    getStart = ExpressionSpecBasedComputationBase.childGetter("start")
-    getStop = ExpressionSpecBasedComputationBase.childGetter("stop")
-    getStep = ExpressionSpecBasedComputationBase.childGetter("step")

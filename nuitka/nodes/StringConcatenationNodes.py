@@ -23,20 +23,21 @@ object, so it got a dedicated node, also to perform optimizations specific
 to this.
 """
 from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildHavingBase
 from .shapes.BuiltinTypeShapes import ShapeTypeStrOrUnicode
 
 
-class ExpressionStringConcatenation(ExpressionChildrenHavingBase):
+class ExpressionStringConcatenation(ExpressionChildHavingBase):
     kind = "EXPRESSION_STRING_CONCATENATION"
 
-    named_children = ("values",)
+    named_child = "values"
+    getValues = ExpressionChildHavingBase.childGetter("values")
 
     def __init__(self, values, source_ref):
         assert values
 
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"values": tuple(values)}, source_ref=source_ref
+        ExpressionChildHavingBase.__init__(
+            self, value=tuple(values), source_ref=source_ref
         )
 
     def getTypeShape(self):
@@ -97,5 +98,3 @@ class ExpressionStringConcatenation(ExpressionChildrenHavingBase):
             )
 
         return self, None, None
-
-    getValues = ExpressionChildrenHavingBase.childGetter("values")
