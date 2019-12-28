@@ -361,7 +361,7 @@ def shallClearPythonPathEnvironment():
 
 
 def shallUseStaticLibPython():
-    """ *bool* = derived from sys.version
+    """ *bool* = derived from `sys.prefix` and `os.name`
 
     Notes:
         Currently only AnaConda on non-Windows can do this.
@@ -369,7 +369,7 @@ def shallUseStaticLibPython():
 
     # For AnaConda default to trying static lib python library, which
     # normally is just not available or if it is even unusable.
-    return "Anaconda" in sys.version and os.name == "nt"
+    return os.path.exists(os.path.join(sys.prefix, 'conda-meta')) and not os.name == "nt"
 
 
 def shallTreatUninstalledPython():
