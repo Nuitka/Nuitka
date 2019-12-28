@@ -18,7 +18,9 @@ def main():
     branch_name = checkBranchName()
     assert branch_name == "master"
 
-    createReleaseDocumentation()
+    include_pdfs = False
+
+    createReleaseDocumentation(make_pdfs=include_pdfs)
     assert os.system("python setup.py sdist --formats=gztar") == 0
 
     os.chdir("dist")
@@ -40,7 +42,7 @@ def main():
         if filename.endswith(".tar.gz"):
             new_name = filename[:-7] + "+ds.tar.gz"
 
-            cleanupTarfileForDebian(filename, new_name)
+            cleanupTarfileForDebian(filename, new_name, include_pdfs)
 
             assert os.system("py2dsc " + new_name) == 0
 

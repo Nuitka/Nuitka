@@ -89,7 +89,7 @@ def checkChangeLog(message):
     sys.exit("Error, didn't find in debian/changelog: '%s'" % message)
 
 
-def cleanupTarfileForDebian(filename, new_name):
+def cleanupTarfileForDebian(filename, new_name, has_pdf):
     """ Remove files that shouldn't be in Debian.
 
     The inline copies should definitely not be there. Also remove the
@@ -102,7 +102,8 @@ def cleanupTarfileForDebian(filename, new_name):
         os.system(
             "tar --wildcards --delete --file "
             + new_name[:-3]
-            + " Nuitka*/*.pdf Nuitka*/build/inline_copy"
+            + (" Nuitka*/*.pdf " if has_pdf else " ")
+            + "Nuitka*/build/inline_copy"
         )
         == 0
     )

@@ -12,8 +12,6 @@ export PYBUILD_VERSIONS = $(shell pyversions -vr) $(shell py3versions -vr)
 	dh $@ --with python2,python3 --buildsystem=pybuild
 
 override_dh_auto_build:
-	rst2pdf README.rst
-	rst2pdf Developer_Manual.rst
 	cp Changelog.rst changelog
 	cp Developer_Manual.rst Developer_Manual.txt
 

@@ -17,6 +17,10 @@
 #     limitations under the License.
 #
 
+""" Release script for manual usage.
+
+"""
+
 import os
 import sys
 
@@ -79,8 +83,8 @@ else:
 shutil.rmtree("dist", ignore_errors=True)
 shutil.rmtree("build", ignore_errors=True)
 
-createReleaseDocumentation()
-assert 0 == os.system("python setup.py sdist --formats=bztar,gztar,zip")
+createReleaseDocumentation(make_pdfs=False)
+assert os.system("python setup.py sdist --formats=bztar,gztar,zip") == 0
 
 os.chdir("dist")
 
@@ -104,28 +108,28 @@ for filename in os.listdir("."):
         new_name = filename[:-7] + "+ds.tar.gz"
 
         shutil.copy(filename, new_name)
-        assert 0 == os.system("gunzip " + new_name)
-        assert 0 == os.system(
+        assert os.system("gunzip " + new_name) == 0
+        assert os.system(
             "tar --wildcards --delete --file "
             + new_name[:-3]
             + " Nuitka*/*.pdf"
             + " Nuitka*/build/inline_copy"
-        )
-        assert 0 == os.system("gzip -9 -n " + new_name[:-3])
+        ) == 0
+        assert os.system("gzip -9 -n " + new_name[:-3]) == 0
 
-        assert 0 == os.system("py2dsc " + new_name)
+        assert os.system("py2dsc " + new_name) == 0
 
         # Fixup for py2dsc not taking our custom suffix into account, so we need
         # to rename it ourselves.
         before_deb_name = filename[:-7].lower().replace("-", "_")
         after_deb_name = before_deb_name.replace("rc", "~rc")
 
-        assert 0 == os.system(
+        assert os.system(
             "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'"
             % (before_deb_name, after_deb_name)
-        )
+        ) == 0
 
-        assert 0 == os.system("rm -f deb_dist/*_source*")
+        assert os.system("rm -f deb_dist/*_source*") == 0
 
         # Remove the now useless input, py2dsc has copied it, and we don't
         # publish it.
@@ -157,16 +161,16 @@ if entry is None:
 
 # Import the "debian" directory from above. It's not in the original tar and
 # overrides or extends what py2dsc does.
-assert 0 == os.system(
+assert os.system(
     "rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry
-)
+) == 0
 
-assert 0 == os.system("rm *.dsc *.debian.tar.xz")
+assert os.system("rm *.dsc *.debian.tar.xz") == 0
 os.chdir(entry)
 
 # Build the debian package, but disable the running of tests, will be done later
 # in the pbuilders.
-assert 0 == os.system("debuild --set-envvar=DEB_BUILD_OPTIONS=nocheck")
+assert os.system("debuild --set-envvar=DEB_BUILD_OPTIONS=nocheck") == 0
 
 os.chdir("../../..")
 
@@ -176,7 +180,7 @@ assert os.path.exists("dist/deb_dist")
 
 # Check with pylint in pedantic mode and don't proceed if there were any
 # warnings given. Nuitka is lintian clean and shall remain that way.
-assert 0 == os.system("lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes")
+assert os.system("lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes") == 0
 
 os.system("cp dist/deb_dist/*.deb dist/")
 
@@ -187,10 +191,10 @@ for filename in os.listdir("dist/deb_dist"):
 # Sign the result files. The Debian binary package was copied here.
 for filename in os.listdir("dist"):
     if os.path.isfile("dist/" + filename):
-        assert 0 == os.system("chmod 644 dist/" + filename)
-        assert 0 == os.system(
+        assert os.system("chmod 644 dist/" + filename) == 0
+        assert os.system(
             "gpg --local-user 2912B99C --detach-sign dist/" + filename
-        )
+        ) == 0
 
 # Cleanup the build directory, not needed.
 shutil.rmtree("build", ignore_errors=True)

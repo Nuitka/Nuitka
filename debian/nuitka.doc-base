@@ -1,9 +1,0 @@
-Document: nuitka-user-manual
-Title: Nuitka User Manual
-Author: Kay Hayen
-Abstract: This manual describes the Python compiler, lists use cases, and what
- can be expected to work.
-Section: Programming/Python
-
-Format: PDF
-Files: /usr/share/doc/nuitka/README.pdf.gz
