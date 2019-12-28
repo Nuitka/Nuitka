@@ -1,7 +1,13 @@
 Nuitka Release 0.6.7 (Draft)
 ============================
 
-This release is not done yet.
+Organisational
+--------------
+
+- Updated inline copy of Scons used for Python3 to 3.1.2, which is said to
+  be faster for large compilations.
+
+The release is not done yet.
 
 
 Nuitka Release 0.6.6
