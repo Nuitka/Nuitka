@@ -816,7 +816,7 @@ if gcc_mode:
     env.Append(CCFLAGS=["-fwrapv"])
 
     # Save some memory for gcc by not tracing macro code locations at all.
-    if not debug_mode and not clang_mode:
+    if gcc_version >= "5" and not debug_mode and not clang_mode:
         env.Append(CCFLAGS=["-ftrack-macro-expansion=0"])
 
 # Support for clang.
