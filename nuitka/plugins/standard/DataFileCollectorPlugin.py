@@ -21,10 +21,11 @@
 
 import os
 from logging import warning
-
+import pkgutil
+from nuitka.containers.oset import OrderedSet
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import getFileList, listDir
+from nuitka.utils.FileOperations import getFileList, listDir, makePath
 
 known_data_files = {
     # Key is the package name to trigger it
@@ -73,12 +74,97 @@ def _createEmptyDirNone(filename):
     return None
 
 
+def remove_suffix(string, suffix):
+    """ Remove 'suffix' from 'string'.
+
+    """
+    # Special case: if suffix is empty, string[:0] returns ''. So, test
+    # for a non-empty suffix.
+    if suffix and string.endswith(suffix):
+        return string[: -len(suffix)]
+    else:
+        return string
+
+
+def get_package_paths(package):
+    """ Return the path to the package.
+
+    Args:
+        package: (str) package name
+    Returns:
+        tuple: (prefix, prefix/package)
+    """
+    loader = pkgutil.find_loader(package)
+    if not loader:
+        return "", ""
+
+    file_attr = loader.get_filename(package)
+    if not file_attr:
+        return "", ""
+
+    pkg_dir = os.path.dirname(file_attr)
+    pkg_base = remove_suffix(pkg_dir, package.replace(".", os.sep))
+
+    return pkg_base, pkg_dir
+
+
 generated_data_files = {
     "Cryptodome.Util._raw_api": (
         ("Cryptodome/Util", ".keep_dir.txt", _createEmptyDirText),
     ),
     "Crypto.Util._raw_api": (("Crypto/Util", ".keep_dir.txt", _createEmptyDirText),),
 }
+
+
+def _get_package_files(module, packages, folders_only):
+    """Yield all (!) filenames in given package(s).
+
+    Notes:
+        This should be required in rare occasions only. The one example I know
+        is 'dns' when used by package 'eventlet'. Eventlet imports dns modules
+        only to replace them with 'green' (i.e. non-blocking) counterparts.
+    Args:
+        module: module object
+        packages: package name(s) - str or tuple
+        folders_only: (bool) indicate, whether just the folder structure should
+            be generated. In that case, an empty file named DUMMY will be
+            placed in each of these folders.
+    Yields:
+        Tuples of paths (source, dest), if folders_only is False,
+        else tuples (_createEmptyDirNone, dest).
+    """
+    module_folder = module.getCompileTimeDirectory()
+    if not hasattr(packages, "__getitem__"):  # so should be a string type
+        packages = (packages,)
+
+    file_list = []
+    item_set = OrderedSet()
+
+    for package in packages:
+        pkg_base, pkg_dir = get_package_paths(package)  # read package folders
+        if pkg_dir:
+            filename_start = len(pkg_base)  # position of package name in dir
+            pkg_files = getFileList(pkg_dir)  # read out the filenames
+            for f in pkg_files:
+                file_list.append((filename_start, f))  # append to file list
+
+    if file_list == []:  #  safeguard for unexpected cases
+        msg = "No files or folders found for '%s' in packages(s) '%s'." % (
+            module.getFullName(),
+            str(packages),
+        )
+        warning(msg)
+        yield ()
+
+    for filename_start, f in file_list:  # re-read the collected filenames
+        target = f[filename_start:]  # make part of name
+        if folders_only is False:  # normal case: indeed copy the files
+            item_set.add((f, target))
+        else:  # just create the emtpy folder structure
+            item_set.add((_createEmptyDirNone, target))
+
+    for f in item_set:
+        yield f
 
 
 def _get_subdir_files(module, subdirs, folders_only):
@@ -93,7 +179,7 @@ def _get_subdir_files(module, subdirs, folders_only):
         folders_only: (bool) indicate, whether just the folder structure should
             be generated. In that case, an empty file named DUMMY will be
             placed in each of these folders.
-    Returns:
+    Yields:
         Tuples of paths (source, dest) are yielded if folders_only is False,
         else tuples (_createEmptyDirNone, dest) are yielded.
     """
@@ -101,7 +187,7 @@ def _get_subdir_files(module, subdirs, folders_only):
     elements = module.getFullName().split(".")
     filename_start = module_folder.find(elements[0])
     file_list = []
-    item_set = set()
+    item_set = OrderedSet()
 
     if subdirs is None:
         file_list = getFileList(module_folder)
@@ -122,7 +208,7 @@ def _get_subdir_files(module, subdirs, folders_only):
         yield ()
 
     for f in file_list:
-        if "__pycache__" in f or f.endswith(".pyc"):  # never makes sense
+        if "__pycache__" in f or f.endswith(".pyc"):  # probably makes no sense
             continue
 
         target = f[filename_start:]
@@ -135,7 +221,9 @@ def _get_subdir_files(module, subdirs, folders_only):
         yield f
 
 
-# data files contained in subfolders named as the second item
+# data files to be copied are contained in subfolders named as the second item
+# the 3rd item indicates whether to recreate toe folder structure only (True),
+# or indeed also copy the files.
 known_data_folders = {
     "botocore": (_get_subdir_files, "data", False),
     "boto3": (_get_subdir_files, "data", False),
@@ -143,12 +231,13 @@ known_data_folders = {
     "sklearn.datasets": (_get_subdir_files, ("data", "descr"), False),
     "osgeo": (_get_subdir_files, "data", False),
     "pyphen": (_get_subdir_files, "dictionaries", False),
-    "pendulum": (_get_subdir_files, "locales", True),
+    "pendulum": (_get_subdir_files, "locales", True),  # folder structure only
     "pytz": (_get_subdir_files, "zoneinfo", False),
     "pytzdata": (_get_subdir_files, "zoneinfo", False),
     "pywt": (_get_subdir_files, "data", False),
     "skimage": (_get_subdir_files, "data", False),
     "weasyprint": (_get_subdir_files, "css", False),
+    "eventlet": (_get_package_files, ("dns",), False),
 }
 
 

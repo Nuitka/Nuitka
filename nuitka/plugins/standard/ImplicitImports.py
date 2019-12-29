@@ -28,17 +28,30 @@ import shutil
 from nuitka.containers.oset import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
-from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.FileOperations import getFileContentByLine, getFileList
 from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import getOS
 
 
 def remove_suffix(mod_dir, mod_name):
+    """Return the path of a module's first level name.
+
+    """
     if mod_name not in mod_dir:
         return mod_dir
-    l = len(mod_name)
-    p = mod_dir.find(mod_name) + l
+    p = mod_dir.find(mod_name) + len(mod_name)
     return mod_dir[:p]
+
+
+def remove_prefix(mod_dir, mod_name):
+    """Return the tail of a module's path.
+
+    Remove everything preceeding the top level name.
+    """
+    if mod_name not in mod_dir:
+        return mod_dir
+    p = mod_dir.find(mod_name)
+    return mod_dir[p:]
 
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
@@ -295,6 +308,34 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "apt_inst":
             yield "apt_pkg", True
 
+        # start of engineio imports ------------------------------------------
+        elif full_name == "engineio":
+            yield "engineio.async_drivers", False
+
+        elif full_name == "engineio.async_drivers":
+            yield "engineio.async_drivers.aiohttp", False
+            yield "engineio.async_drivers.asgi", False
+            yield "engineio.async_drivers.eventlet", False
+            yield "engineio.async_drivers.gevent", False
+            yield "engineio.async_drivers.gevent_uwsgi", False
+            yield "engineio.async_drivers.sanic", False
+            yield "engineio.async_drivers.threading", False
+            yield "engineio.async_drivers.tornado", False
+
+        # start of eventlet imports ------------------------------------------
+        elif full_name == "eventlet":
+            yield "eventlet.hubs", False
+
+
+        elif full_name == "eventlet.hubs":
+            yield "eventlet.hubs.epolls", False
+            yield "eventlet.hubs.hub", False
+            yield "eventlet.hubs.kqueue", False
+            yield "eventlet.hubs.poll", False
+            yield "eventlet.hubs.pyevent", False
+            yield "eventlet.hubs.selects", False
+            yield "eventlet.hubs.timer", False
+
         # start of gevent imports --------------------------------------------
         elif full_name == "gevent":
             yield "_cffi_backend", True
@@ -400,8 +441,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "gevent.__imap", True
         # end of gevent imports ----------------------------------------------
 
-        # start of tensorflow imports --------------------------------------------
-
+        # start of tensorflow imports ----------------------------------------
         elif full_name == "tensorflow":
             yield "tensorboard", False
             yield "tensorflow_estimator", False
@@ -528,7 +568,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
             elif full_name == "tensorflow.contrib.bigtable.python.ops":
                 yield "tensorflow.contrib.bigtable.python.ops._bigtable", False
-
         # end of tensorflow imports -------------------------------------------
 
         # boto3 imports ------------------------------------------------------
@@ -555,6 +594,33 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "cv2":
             yield "numpy", True
             yield "numpy.core", True
+
+        # fastapi imports ---------------------------------------------------
+        elif full_name == "fastapi":
+            yield "fastapi.routing", True
+
+        # pydantic imports ---------------------------------------------------
+        elif full_name == "pydantic":
+            yield "pydantic.__init__", False
+            yield "pydantic.typing", False
+            yield "pydantic.fields", False
+            yield "pydantic.utils", False
+            yield "pydantic.schema", False
+            yield "pydantic.env_settings", False
+            yield "pydantic.main", False
+            yield "pydantic.error_wrappers", False
+            yield "pydantic.validators", False
+            yield "pydantic.mypy", False
+            yield "pydantic.version", False
+            yield "pydantic.types", False
+            yield "pydantic.color", False
+            yield "pydantic.parse", False
+            yield "pydantic.json", False
+            yield "pydantic.datetime_parse", False
+            yield "pydantic.dataclasses", False
+            yield "pydantic.class_validators", False
+            yield "pydantic.networks", False
+            yield "pydantic.errors", False
 
         # uvicorn imports -----------------------------------------------------
         elif full_name == "uvicorn":
@@ -944,7 +1010,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "sklearn.utils.sparsetools":
             yield "sklearn.utils.sparsetools._graph_validation", True
             yield "sklearn.utils.sparsetools._graph_tools", True
-
         # end of scikit-learn imports -----------------------------------------
 
         elif full_name == "PIL._imagingtk":
@@ -968,7 +1033,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield "pendulum.locales." + idiom, False
 
         elif (
-            full_name.startswith("pendulum.locales.") and elements[2] != "locale"
+            full_name.startswith("pendulum.locales.")
+            and elements[2] != "locale"
         ):  # only need the idiom folders
             yield "pendulum.locales." + elements[2], False
             yield "pendulum.locales." + elements[2] + ".locale", False
