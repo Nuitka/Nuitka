@@ -175,10 +175,19 @@ def cleanSourceDirectory(source_dir):
         ".txt",
     )
 
+    def check(path):
+        if hasFilenameExtension(path, extensions):
+            deleteFile(path, must_exist=True)
+
     if os.path.isdir(source_dir):
         for path, _filename in listDir(source_dir):
-            if hasFilenameExtension(path, extensions):
-                deleteFile(path, must_exist=True)
+            check(path)
+
+        static_dir = os.path.join(source_dir, "static_src")
+
+        if os.path.exists(static_dir):
+            for path, _filename in listDir(static_dir):
+                check(path)
 
 
 def pickSourceFilenames(source_dir, modules):

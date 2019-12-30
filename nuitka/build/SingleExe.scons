@@ -1570,6 +1570,10 @@ def discoverSourceFiles():
     # needs to derive from filenames, so make copies (or links) with a different
     # name.
     def cheap_copy(src, dst):
+        dirname = os.path.dirname(dst)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+
         if win_target:
             # Windows has symlinks these days, but they do not integrate well
             # with Python2 at least.So make a copy in any case.
@@ -1604,7 +1608,7 @@ def discoverSourceFiles():
 
     def provideStatic(sub_path):
         source_file = os.path.join(nuitka_src, "static_src", sub_path)
-        target_file = os.path.join(source_dir, os.path.basename(sub_path))
+        target_file = os.path.join(source_dir, "static_src", os.path.basename(sub_path))
 
         if target_file.endswith(".c") and not c11_mode:
             target_file += "pp"
