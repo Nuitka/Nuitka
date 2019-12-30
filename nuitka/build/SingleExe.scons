@@ -819,6 +819,7 @@ if gcc_mode:
     if gcc_version >= "5" and not debug_mode and not clang_mode:
         env.Append(CCFLAGS=["-ftrack-macro-expansion=0"])
 
+
 # Support for clang.
 if "clang" in the_cc_name:
     env.Append(CCFLAGS=["-w"])
@@ -906,22 +907,25 @@ version for lto mode (>= 4.6)."""
     if lto_mode and gcc_version < "4.6":
         print("Warning, LTO mode specified, but not available.", file=sys.stderr)
 
-    # Avoid them as appearing to be different files. TODO: Find out which
-    # clang version has this.
-    if gcc_version >= "8":
-        env.Append(
-            CCFLAGS=[
-                "-ffile-prefix-map=%s=%s"
-                % (
-                    os.path.join(source_dir, "static_src"),
-                    os.path.join(nuitka_src, "static_src"),
-                )
-            ]
-        )
-
     # The var-tracking does not scale, disable it. Should we really need it, we
     # can enable it. TODO: Does this cause a performance loss?
     env.Append(CCFLAGS=["-fno-var-tracking"])
+
+# Avoid them as appearing to be different files. TODO: Find out which
+# clang version has this, clang-8 does not.
+if gcc_mode and not clang_mode and gcc_version >= "8":
+    if source_dir != ".":
+        # TODO: This also lies for modules codes.
+        env.Append(
+            CCFLAGS=[
+                "--file-prefix-map=%s=%s"
+                % (
+                    os.path.normpath(os.path.join(source_dir, "static_src")),
+                    os.path.join(nuitka_src, "static_src"),
+                ),
+                "--file-prefix-map=%s=%s" % (os.path.normpath(source_dir), ""),
+            ]
+        )
 
 if gcc_mode and not noelf_mode and not macosx_target:
     env.Append(LINKFLAGS=["-z", "noexecstack"])
