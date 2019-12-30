@@ -230,7 +230,9 @@ python_sysflag_utf8 = getBoolOption("python_sysflag_utf8", False)
 # python_sysflag_optimize
 python_sysflag_optimize = getBoolOption("python_sysflag_optimize", False)
 
+# Preprocessor defines from plugins
 cpp_defines = getListOption("cpp_defines", "")
+link_libraries = getListOption("link_libraries", "")
 
 # Mode to only output compiler information, for use in "nuitka --version"
 # only.
@@ -1621,28 +1623,35 @@ def discoverSourceFiles():
 
         return target_file
 
+    def _scanSourcekDir(dirname):
+        if not os.path.exists(dirname):
+            return
+
+        for filename in sorted(os.listdir(dirname)):
+            # Only C files are of interest here.
+            if not filename.endswith((".c", "cpp")) or not filename.startswith(
+                ("module.", "__")
+            ):
+                continue
+
+            filename = os.path.join(dirname, filename)
+
+            target_file = filename
+
+            # We pretend to use C++ if no C11 compiler is present.
+            if c11_mode:
+                result.append(filename)
+            else:
+                if filename.endswith(".c"):
+                    target_file += "pp"  # .cpp" suffix then
+
+                    os.rename(filename, target_file)
+
+                result.append(target_file)
+
     # Scan for Nuitka created source files, and add them too.
-    for filename in sorted(os.listdir(source_dir)):
-        # Only C files are of interest here.
-        if not filename.endswith((".c", "cpp")) or not filename.startswith(
-            ("module.", "__")
-        ):
-            continue
-
-        filename = os.path.join(source_dir, filename)
-
-        target_file = filename
-
-        # We pretend to use C++ if no C11 compiler is present.
-        if c11_mode:
-            result.append(filename)
-        else:
-            if filename.endswith(".c"):
-                target_file += "pp"  # .cpp" suffix then
-
-                os.rename(filename, target_file)
-
-            result.append(target_file)
+    _scanSourcekDir(source_dir)
+    _scanSourcekDir(os.path.join(source_dir, "plugins"))
 
     # Main program, unless of course it's a Python module/package we build.
     if not module_mode:
@@ -1900,8 +1909,9 @@ if gcc_mode:
     _makeGccUseLinkerFile()
 
 # Plugin contributed C defines should be used too.
-for cpp_define in cpp_defines:
-    env.Append(CPPDEFINES=cpp_define)
+env.Append(CPPDEFINES=cpp_defines)
+# Plugin contributed link libraries should be used too.
+env.Append(LIBS=link_libraries)
 
 Default(target)  # pylint: disable=undefined-variable
 

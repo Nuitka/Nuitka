@@ -36,7 +36,9 @@ from logging import info
 
 import nuitka.plugins.standard
 from nuitka import Options
+from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.odict import OrderedDict
+from nuitka.containers.oset import OrderedSet
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
@@ -367,6 +369,40 @@ class Plugins(object):
                 # and achieve determism by ordering the defines by name.
                 for key, value in sorted(value.items()):
                     result[key] = value
+
+        return result
+
+    @staticmethod
+    def getExtraCodeFiles():
+        result = OrderedDict()
+
+        for plugin in active_plugin_list:
+            value = plugin.getExtraCodeFiles()
+
+            if value is not None:
+                assert type(value) is dict
+
+                # We order per plugin, but from the plugins, lets just take a dict
+                # and achieve determism by ordering the files by name.
+                for key, value in sorted(value.items()):
+                    assert key not in result, key
+                    result[key] = value
+
+        return result
+
+    @staticmethod
+    def getExtraLinkLibraries():
+        result = OrderedSet()
+
+        for plugin in active_plugin_list:
+            value = plugin.getExtraLinkLibraries()
+
+            if value is not None:
+                if isinstance(value, basestring):
+                    result.add(value)
+                else:
+                    for library_name in value:
+                        result.add(library_name)
 
         return result
 

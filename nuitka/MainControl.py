@@ -411,6 +411,16 @@ def makeSourceDirectory(main_module):
         filename=os.path.join(source_dir, "__helpers.c"), source_code=helper_impl_code
     )
 
+    for filename, source_code in Plugins.getExtraCodeFiles():
+        target_dir = os.path.join(source_dir, "plugins")
+
+        if not os.path.isdir(target_dir):
+            makePath(target_dir)
+
+        writeSourceCode(
+            filename=os.path.join(target_dir, filename), source_code=source_code
+        )
+
 
 def _asBoolStr(value):
     return "true" if value else "false"
@@ -539,6 +549,10 @@ def runScons(main_module, quiet):
             "%s%s%s" % (key, "=" if value else "", value or "")
             for key, value in cpp_defines.items()
         )
+
+    link_libraries = Plugins.getExtraLinkLibraries()
+    if link_libraries:
+        options["link_libraries"] = ",".join(link_libraries)
 
     return SconsInterface.runScons(options, quiet), options
 
