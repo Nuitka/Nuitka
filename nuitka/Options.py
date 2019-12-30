@@ -648,3 +648,8 @@ def getPythonPathForScons():
     """ *str*, value of "--python-for-scons"
     """
     return options.python_scons
+
+def shallCompileWithoutBuildDirectory():
+    """ *bool* currently hard coded.
+    """
+    return True

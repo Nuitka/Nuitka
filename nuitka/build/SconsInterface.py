@@ -24,11 +24,12 @@ options.
 
 
 import contextlib
+import copy
 import os
 import subprocess
 import sys
 
-from nuitka import Options, Tracing
+from nuitka import Options, OutputDirectories, Tracing
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
@@ -49,13 +50,13 @@ def _getSconsInlinePath():
     return os.path.join(getSconsDataPath(), "inline_copy")
 
 
-def _getSconsBinaryCall():
+def _getSconsBinaryCall(scons_run_path):
     """ Return a way to execute Scons.
 
     Using potentially in-line copy if no system Scons is available
     or if we are on Windows, there it is mandatory.
     """
-    if Utils.getOS() != "Windows":
+    if Utils.getOS() not in ("Windows", "Darwin"):
         scons_path = Execution.getExecutablePath("scons")
 
         if scons_path is not None:
@@ -65,7 +66,7 @@ def _getSconsBinaryCall():
         _getPythonForSconsExePath(),
         "-W",
         "ignore",  # Disable Python warnings in case of debug Python.
-        os.path.join(_getSconsInlinePath(), "bin", "scons.py"),
+        os.path.abspath(os.path.join(_getSconsInlinePath(), "bin", "scons.py")),
     ]
 
 
@@ -157,11 +158,12 @@ AnaConda Python.
 def _setupSconsEnvironment():
     """ Setup the scons execution environment.
 
-    For the scons inline copy on Windows needs to find the library, using
-    the "SCONS_LIB_DIR" environment variable "NUITKA_SCONS". And for the
-    target Python we provide "NUITKA_PYTHON_DLL_PATH" to see where the
-    Python DLL lives, in case it needs to be copied, and then the
+    For the target Python we provide "NUITKA_PYTHON_DLL_PATH" to see where the
+    Python DLL lives, in case it needs to be copied, and then also the
     "NUITKA_PYTHON_EXE_PATH" to find the Python binary itself.
+
+    We also need to preserve PYTHONPATH and PYTHONHOME, but remove it potentially
+    as well, so not to confuse the other Python binary used to run scons.
     """
 
     # For Python2, avoid unicode working directory.
@@ -214,7 +216,12 @@ def _buildSconsCommand(quiet, options):
     and other scons stuff is set.
     """
 
-    scons_command = _getSconsBinaryCall()
+    if Options.shallCompileWithoutBuildDirectory():
+        scons_run_path = OutputDirectories.getSourceDirectoryPath()
+    else:
+        scons_run_path = "."
+
+    scons_command = _getSconsBinaryCall(scons_run_path)
 
     if quiet:
         scons_command.append("--quiet")
@@ -222,7 +229,7 @@ def _buildSconsCommand(quiet, options):
     scons_command += [
         # The scons file
         "-f",
-        os.path.join(getSconsDataPath(), "SingleExe.scons"),
+        os.path.abspath(os.path.join(getSconsDataPath(), "SingleExe.scons")),
         # Parallel compilation.
         "--jobs",
         str(Options.getJobLimit()),
@@ -255,10 +262,26 @@ def _buildSconsCommand(quiet, options):
 
 def runScons(options, quiet):
     with _setupSconsEnvironment():
+        if Options.shallCompileWithoutBuildDirectory():
+            # Make sure we become local, by changing all paths to be relative to the
+            # build directory. Relative is good, because we avoid strange unicode
+            # paths, when we would do abspath, which is sort of a problem esp. on
+            # Windows and Python2.
+
+            options = copy.deepcopy(options)
+            source_dir = options["source_dir"]
+            options["source_dir"] = "."
+            options["result_name"] = os.path.abspath(options["result_name"])
+            options["nuitka_src"] = os.path.abspath(options["nuitka_src"])
+            if "result_exe" in options:
+                options["result_exe"] = os.path.abspath(options["result_exe"])
+        else:
+            source_dir = None
+
         scons_command = _buildSconsCommand(quiet, options)
 
         if Options.isShowScons():
             Tracing.printLine("Scons command:", " ".join(scons_command))
 
         Tracing.flushStdout()
-        return subprocess.call(scons_command, shell=False) == 0
+        return subprocess.call(scons_command, shell=False, cwd=source_dir) == 0

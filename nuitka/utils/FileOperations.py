@@ -86,11 +86,12 @@ def areSamePaths(path1, path2):
     return path1 == path2
 
 
-def relpath(path):
+def relpath(path, start = "."):
     """ Make it a relative path, if possible.
 
     Args:
         path: path to work on
+        start: where to start from, defaults to current directory
 
     Returns:
         Changed path, pointing to the same path relative to current
@@ -101,9 +102,11 @@ def relpath(path):
         names, therefore it may have to return the absolute path
         instead.
     """
+    if start == ".":
+        start = os.curdir
 
     try:
-        return os.path.relpath(path)
+        return os.path.relpath(path, start)
     except ValueError:
         # On Windows, paths on different devices prevent it to work. Use that
         # full path then.
