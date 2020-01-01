@@ -1,0 +1,99 @@
+name: Nuitka tests
+
+on:
+  pull_request: {}
+  push:
+    branches:
+      - master
+      - develop
+      - jorj
+      - factory
+    tags: 'release_*'
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Use Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get install scons chrpath
+        pip install -r requirements-devel.txt
+
+    - name: Install Nuitka
+      run:
+        pip install .
+
+    - name: Run Nuitka test suite
+      run: |
+        python -m nuitka --version
+        env | sort
+        python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+
+    - name: Quality checks on Nuitka source code
+      run: |
+        ./bin/check-nuitka-with-restlint
+        ./bin/check-nuitka-with-codespell
+        ./bin/check-nuitka-with-pylint
+
+  mac:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Python 3.7 using Conda
+      run: |
+        sudo chown -R $USER $CONDA
+        $CONDA/bin/conda install python=3.7
+
+    - name: Install dependencies
+      run: |
+        python3.7 -m pip install --user -r requirements.txt
+        python3.7 -m pip install --user -r requirements-devel.txt
+
+    - name: Install Nuitka
+      run: |
+        python3.7 setup.py develop
+
+    - name: Run Nuitka test suite
+      run: |
+        export PATH=$PATH:/Users/runner/Library/Python/3.7/bin
+        python3.7 -m nuitka --version
+        env | sort
+        python3.7 ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+
+  windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Use Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+
+    - name: Install MinGW using Conda
+      shell: bash
+      run: |
+        $CONDA/Scripts/conda install m2w64-gcc libpython
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements-devel.txt
+
+    - name: Install Nuitka
+      run: |
+        pip install .
+
+    - name: Run Nuitka test suite
+      run: |
+        python -m nuitka --version
+        env | sort
+        CC=$CONDA/Library/mingw-w64/bin/gcc.exe python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
+      shell: bash

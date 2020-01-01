@@ -550,8 +550,8 @@ def main():
             ):
                 continue
 
-            # Can look at these.
-            if loaded_filename in ("/usr/bin/python3.2mu", "/usr/bin/python3"):
+            # Can look at the interpreter of the system.
+            if loaded_basename == "python3":
                 continue
 
             # Current Python executable can actually be a symlink and
