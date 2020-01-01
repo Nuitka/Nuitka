@@ -43,7 +43,7 @@ matrix:
       - export PATH="/usr/local/opt/ccache/libexec:$PATH"
       env: PYTHON=python
     - os: osx
-      osx_image: xcode11
+      osx_image: xcode11.3
       language: shell
       before_install:
       - brew update -q
