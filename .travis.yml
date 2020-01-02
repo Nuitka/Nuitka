@@ -33,24 +33,24 @@ matrix:
       sudo: required
       env: PYTHON=python3.7
       cache: ccache
-    - os: osx
-      osx_image: xcode11
-      language: shell
-      before_install:
-      - brew update -q
-      - brew outdated python || brew upgrade python
-      - brew install ccache
-      - export PATH="/usr/local/opt/ccache/libexec:$PATH"
-      env: PYTHON=python
-    - os: osx
-      osx_image: xcode11.3
-      language: shell
-      before_install:
-      - brew update -q
-      - brew outdated python@3 || brew upgrade python@3
-      - brew install ccache
-      - export PATH="/usr/local/opt/ccache/libexec:$PATH"
-      env: PYTHON=python3
+    # - os: osx
+    #   osx_image: xcode11.3
+    #   language: shell
+    #   before_install:
+    #   - brew update -q
+    #   - brew outdated python || brew upgrade python
+    #   - brew install ccache
+    #   - export PATH="/usr/local/opt/ccache/libexec:$PATH"
+    #   env: PYTHON=python
+    # - os: osx
+    #   osx_image: xcode11.3
+    #   language: shell
+    #   before_install:
+    #   - brew update -q
+    #   - brew outdated python@3 || brew upgrade python@3
+    #   - brew install ccache
+    #   - export PATH="/usr/local/opt/ccache/libexec:$PATH"
+    #   env: PYTHON=python3
 
 # disable submodules from git
 git:
