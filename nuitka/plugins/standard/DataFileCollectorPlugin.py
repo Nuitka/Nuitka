@@ -227,7 +227,6 @@ def _get_subdir_files(module, subdirs, folders_only):
 known_data_folders = {
     "botocore": (_get_subdir_files, "data", False),
     "boto3": (_get_subdir_files, "data", False),
-    "matplotlib": (_get_subdir_files, "mpl-data", False),
     "sklearn.datasets": (_get_subdir_files, ("data", "descr"), False),
     "osgeo": (_get_subdir_files, "data", False),
     "pyphen": (_get_subdir_files, "dictionaries", False),

@@ -581,7 +581,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "boto3.s3.transfer", False
 
         # GDAL imports ------------------------------------------------------
-
         elif full_name == "osgeo":
             yield "osgeo._gdal", False
             yield "osgeo._gdalconst", False
@@ -717,10 +716,40 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "matplotlib.backend_bases", True
             yield "mpl_toolkits", False
 
-        elif full_name == "matplotlib.backends.backend_agg":
+        elif full_name == "matplotlib.backends":
             yield "matplotlib.backends._backend_agg", False
             yield "matplotlib.backends._tkagg", False
             yield "matplotlib.backends.backend_tkagg", False
+            yield "matplotlib.backends.backend_agg", False
+
+        elif full_name.startswith("matplotlib.backends.backend_wx"):
+            yield "matplotlib.backends.backend_wx", True
+            yield "matplotlib.backends.backend_wxagg", True
+            yield "wx", True
+
+        elif full_name == "matplotlib.backends.backend_cairo":
+            yield "cairo", False
+            yield "cairocffi", False
+
+        elif full_name.startswith("matplotlib.backends.backend_gtk3"):
+            yield "matplotlib.backends.backend_gtk3", True
+            yield "matplotlib.backends.backend_gtk3agg", True
+            yield "gi", True
+
+        elif full_name.startswith("matplotlib.backends.backend_web"):
+            yield "matplotlib.backends.backend_webagg", True
+            yield "matplotlib.backends.backend_webagg_core", True
+            yield "tornado", True
+
+        elif full_name.startswith("matplotlib.backends.backend_qt4"):
+            yield "matplotlib.backends.backend_qt4agg", True
+            yield "matplotlib.backends.backend_qt4", True
+            yield "PyQt4", True
+
+        elif full_name.startswith("matplotlib.backends.backend_qt5"):
+            yield "matplotlib.backends.backend_qt5agg", True
+            yield "matplotlib.backends.backend_qt5", True
+            yield "PyQt5", True
 
         # scipy imports -------------------------------------------------------
         elif full_name == "scipy.special":
