@@ -30,7 +30,7 @@ from threading import Thread
 
 import urllib3
 
-# nuitka-skip-unless-imports: urllib3
+# nuitka-skip-unless-imports: urllib3,ssl
 
 if str is bytes:
     # running on python2, pylint: disable=import-error,I0021
