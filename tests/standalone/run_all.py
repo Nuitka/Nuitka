@@ -314,6 +314,12 @@ def main():
                 if r"windows\winsxs" in loaded_filename:
                     continue
 
+                # Github actions have these in PATH overriding SYSTEMROOT
+                if r"windows performance toolkit" in loaded_filename:
+                    continue
+                if r"powershell" in loaded_filename:
+                    continue
+
             if loaded_filename.startswith(current_dir):
                 continue
 
