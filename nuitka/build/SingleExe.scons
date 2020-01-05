@@ -1298,6 +1298,12 @@ elif not module_mode or (macosx_target and not static_libpython):
 # the "nuitka.build" package lives.
 nuitka_include = os.path.join(nuitka_src, "include")
 
+if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
+    sys.exit(
+        "Error, cannot locate Nuitka includes at '%s', broken installation."
+        % nuitka_include
+    )
+
 # We have include files in the build directory and the static include directory
 # that is located inside Nuitka installation.
 env.Append(CPPPATH=[source_dir, nuitka_include, os.path.join(nuitka_src, "static_src")])
