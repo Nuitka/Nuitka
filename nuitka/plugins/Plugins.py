@@ -386,7 +386,7 @@ class Plugins(object):
                 # and achieve determism by ordering the files by name.
                 for key, value in sorted(value.items()):
                     assert key not in result, key
-                    result[key] = value
+                    result["plugin." + plugin.plugin_name + "." + key] = value
 
         return result
 

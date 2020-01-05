@@ -189,6 +189,13 @@ def cleanSourceDirectory(source_dir):
             for path, _filename in listDir(static_dir):
                 check(path)
 
+        plugins_dir = os.path.join(source_dir, "plugins")
+
+        if os.path.exists(plugins_dir):
+            for path, _filename in listDir(plugins_dir):
+                check(path)
+
+
 
 def pickSourceFilenames(source_dir, modules):
     """ Pick the names for the C files of each module.
@@ -411,7 +418,7 @@ def makeSourceDirectory(main_module):
         filename=os.path.join(source_dir, "__helpers.c"), source_code=helper_impl_code
     )
 
-    for filename, source_code in Plugins.getExtraCodeFiles():
+    for filename, source_code in Plugins.getExtraCodeFiles().items():
         target_dir = os.path.join(source_dir, "plugins")
 
         if not os.path.isdir(target_dir):

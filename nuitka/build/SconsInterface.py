@@ -29,7 +29,7 @@ import os
 import subprocess
 import sys
 
-from nuitka import Options, OutputDirectories, Tracing
+from nuitka import Options, Tracing
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
@@ -50,7 +50,7 @@ def _getSconsInlinePath():
     return os.path.join(getSconsDataPath(), "inline_copy")
 
 
-def _getSconsBinaryCall(scons_run_path):
+def _getSconsBinaryCall():
     """ Return a way to execute Scons.
 
     Using potentially in-line copy if no system Scons is available
@@ -216,12 +216,7 @@ def _buildSconsCommand(quiet, options):
     and other scons stuff is set.
     """
 
-    if Options.shallCompileWithoutBuildDirectory():
-        scons_run_path = OutputDirectories.getSourceDirectoryPath()
-    else:
-        scons_run_path = "."
-
-    scons_command = _getSconsBinaryCall(scons_run_path)
+    scons_command = _getSconsBinaryCall()
 
     if quiet:
         scons_command.append("--quiet")

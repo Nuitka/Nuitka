@@ -1630,7 +1630,7 @@ def discoverSourceFiles():
         for filename in sorted(os.listdir(dirname)):
             # Only C files are of interest here.
             if not filename.endswith((".c", "cpp")) or not filename.startswith(
-                ("module.", "__")
+                ("module.", "__", "plugin.")
             ):
                 continue
 
