@@ -132,7 +132,7 @@ def _getPythonForSconsExePath():
         else:
             sys.exit(
                 """\
-Error, while Nuitka works with Python 3.2 to 3.4, scons does not, and Nuitka
+Error, while Nuitka works with Python 3.3 and 3.4, scons does not, and Nuitka
 needs to find a Python executable 2.6/2.7 or 3.5 or higher. Simply under the
 C:\\PythonXY, e.g. C:\\Python27 to execute the scons utility which is used
 to build the C files to binary.
@@ -143,7 +143,7 @@ AnaConda Python.
 """
             )
 
-    for version_candidate in ("2.7", "2.6", "3.5", "3.6", "3.7"):
+    for version_candidate in ("2.7", "2.6", "3.5", "3.6", "3.7", "3.8"):
         candidate = Execution.getExecutablePath("python" + version_candidate)
 
         if candidate is not None:
