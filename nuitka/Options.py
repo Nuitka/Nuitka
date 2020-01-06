@@ -649,7 +649,11 @@ def getPythonPathForScons():
     """
     return options.python_scons
 
+
 def shallCompileWithoutBuildDirectory():
-    """ *bool* currently hard coded.
+    """ *bool* currently hard coded, not when using debugger.
+
+        TODO: Make this not hardcoded, but possible to disable via an
+        options.
     """
-    return True
+    return not shallRunInDebugger()
