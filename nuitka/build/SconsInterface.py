@@ -33,7 +33,7 @@ from nuitka import Options, Tracing
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
-from nuitka.utils.FileOperations import getWindowsShortPathName
+from nuitka.utils.FileOperations import getExternalUsePath, getWindowsShortPathName
 
 
 def getSconsDataPath():
@@ -56,18 +56,25 @@ def _getSconsBinaryCall():
     Using potentially in-line copy if no system Scons is available
     or if we are on Windows, there it is mandatory.
     """
-    if Utils.getOS() not in ("Windows", "Darwin"):
+
+    inline_path = os.path.join(_getSconsInlinePath(), "bin", "scons.py")
+
+    if os.path.exists(inline_path):
+        return [
+            _getPythonForSconsExePath(),
+            "-W",
+            "ignore",  # Disable Python warnings in case of debug Python.
+            getExternalUsePath(inline_path),
+        ]
+    else:
         scons_path = Execution.getExecutablePath("scons")
 
         if scons_path is not None:
             return [scons_path]
-
-    return [
-        _getPythonForSconsExePath(),
-        "-W",
-        "ignore",  # Disable Python warnings in case of debug Python.
-        os.path.abspath(os.path.join(_getSconsInlinePath(), "bin", "scons.py")),
-    ]
+        else:
+            sys.exit(
+                "Error, the inline copy of scons is not present, nor scons in the system path."
+            )
 
 
 def _getPythonSconsExePathWindows():
@@ -224,7 +231,7 @@ def _buildSconsCommand(quiet, options):
     scons_command += [
         # The scons file
         "-f",
-        os.path.abspath(os.path.join(getSconsDataPath(), "SingleExe.scons")),
+        getExternalUsePath(os.path.join(getSconsDataPath(), "SingleExe.scons")),
         # Parallel compilation.
         "--jobs",
         str(Options.getJobLimit()),
@@ -258,18 +265,17 @@ def _buildSconsCommand(quiet, options):
 def runScons(options, quiet):
     with _setupSconsEnvironment():
         if Options.shallCompileWithoutBuildDirectory():
-            # Make sure we become local, by changing all paths to be relative to the
-            # build directory. Relative is good, because we avoid strange unicode
-            # paths, when we would do abspath, which is sort of a problem esp. on
-            # Windows and Python2.
+            # Make sure we become non-local, by changing all paths to be
+            # absolute, but ones that can be resolved by any program
+            # externally, as the Python of Scons may not be good at unicode.
 
             options = copy.deepcopy(options)
             source_dir = options["source_dir"]
             options["source_dir"] = "."
-            options["result_name"] = os.path.abspath(options["result_name"])
-            options["nuitka_src"] = os.path.abspath(options["nuitka_src"])
+            options["result_name"] = getExternalUsePath(options["result_name"])
+            options["nuitka_src"] = getExternalUsePath(options["nuitka_src"])
             if "result_exe" in options:
-                options["result_exe"] = os.path.abspath(options["result_exe"])
+                options["result_exe"] = getExternalUsePath(options["result_exe"])
         else:
             source_dir = None
 

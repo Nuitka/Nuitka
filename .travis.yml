@@ -57,7 +57,7 @@ git:
   submodules: false
 # commands to install dependencies
 install:
-  - 'if [ -x "$(command -v apt-get)" ]; then sudo apt-get install scons chrpath; fi'
+  - 'if [ -x "$(command -v apt-get)" ]; then sudo apt-get install chrpath; fi'
   - "pip install -r requirements-devel.txt"
   - "pip install ."
 # commands to run tests

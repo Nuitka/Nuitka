@@ -23,7 +23,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get install scons chrpath
+        sudo apt-get install chrpath
         pip install -r requirements-devel.txt
 
     - name: Install Nuitka
