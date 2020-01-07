@@ -1907,7 +1907,6 @@ static HMODULE getDllModuleHandle() {
 static char *getDllDirectory() {
 #if defined(_WIN32)
     static char path[MAXPATHLEN + 1];
-    HMODULE hm = NULL;
     path[0] = '\0';
 
 #if PYTHON_VERSION >= 300
