@@ -326,7 +326,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "eventlet":
             yield "eventlet.hubs", False
 
-
         elif full_name == "eventlet.hubs":
             yield "eventlet.hubs.epolls", False
             yield "eventlet.hubs.hub", False
@@ -1062,8 +1061,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield "pendulum.locales." + idiom, False
 
         elif (
-            full_name.startswith("pendulum.locales.")
-            and elements[2] != "locale"
+            full_name.startswith("pendulum.locales.") and elements[2] != "locale"
         ):  # only need the idiom folders
             yield "pendulum.locales." + elements[2], False
             yield "pendulum.locales." + elements[2] + ".locale", False

@@ -18,7 +18,6 @@
 """ Details see below in class definition.
 """
 import os
-import pkgutil
 import re
 import shutil
 import sys
@@ -29,6 +28,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import active_plugin_list
 from nuitka.utils.FileOperations import getFileList, makePath
 from nuitka.utils.Utils import isWin32Windows
+from nuitka.utils import Execution
 
 # ------------------------------------------------------------------------------
 # The following code is largely inspired by PyInstaller hook_numpy.core.py
@@ -128,28 +128,26 @@ def get_numpy_core_binaries(module):
 
 
 def get_matplotlibrc():
-    """Determine the filename of matplotlibrc (config file).
+    """Determine the filename of matplotlibrc and the default backend.
 
     Notes:
         There might exist a local version outside 'matplotlib/mpl-data' which
         we then must use instead. Determine its name by aksing matplotlib.
     """
-
-    from io import StringIO
-
-    statement = """
-from matplotlib import matplotlib_fname
+    cmd = """\
+from __future__ import print_function
+from matplotlib import matplotlib_fname, get_backend
 print(matplotlib_fname())
+print(get_backend())
 """
 
-    fout = StringIO("")  # print will write to this file
-    old_stdout = sys.stdout  # flip stdout
-    sys.stdout = fout
-    exec(statement, {})  # excute with separate globals
-    sys.stdout = old_stdout  # restore stdout
-    del StringIO
-    fname = fout.getvalue()[:-1].splitlines()[-1]  # get filename
-    return fname
+    feedback = Execution.check_output([sys.executable, "-c", cmd])
+
+    if str is not bytes:  # ensure str in Py3 and up
+        feedback = feedback.decode()
+    feedback = feedback.replace("\r", "")
+    matplotlibrc, backend = feedback.splitlines()
+    return matplotlibrc, backend
 
 
 def copy_mpl_data(module, dist_dir):
@@ -161,7 +159,7 @@ def copy_mpl_data(module, dist_dir):
         sys.exit("mpl-data missing: matplotlib installation is broken")
 
     files = getFileList(data_dir)  # get all filenames of mpl-data
-    matplotlibrc = get_matplotlibrc()  # get filename of config file
+    matplotlibrc, backend = get_matplotlibrc()  # get matplotlibrc, backend
     prefix = os.path.join("matplotlib", "mpl-data")
     for item in files:  # copy data files to dist folder
         if item.endswith("matplotlibrc"):  # handle config separately
@@ -175,7 +173,7 @@ def copy_mpl_data(module, dist_dir):
     infile = open(matplotlibrc)  # read config file
     old_lines = infile.read().splitlines()  # split by line
     infile.close()
-    new_lines = ["# modified by Nuitka 'numpy' plugin"]  # new config file lines
+    new_lines = ["# modified by Nuitka plugin 'numpy'"]  # new config file lines
     found = False  # checks whether backend definition encountered
     for line in old_lines:
         line = line.strip()  # omit meaningless lines
@@ -187,24 +185,8 @@ def copy_mpl_data(module, dist_dir):
             new_lines.append("# backend definition copied from installation")
 
     if not found:
-        # otherwise check if following packages are available and generate
-        # corresponding default backend name strings.
-        if sys.platform.startswith("darwin"):  # platform OSX
-            new_lines.append("backend: MacOSX")
-        elif pkgutil.find_loader("PyQt5"):
-            new_lines.append("backend: Qt5Agg")
-        elif pkgutil.find_loader("PyQt4"):
-            new_lines.append("backend: Qt4Agg")
-        elif pkgutil.find_loader("gi"):
-            new_lines.append("backend: Gtk3Agg")
-        elif pkgutil.find_loader("tkinter"):
-            new_lines.append("backend: TkAgg")
-        elif pkgutil.find_loader("Tkinter"):
-            new_lines.append("backend: TkAgg")
-        elif pkgutil.find_loader("wx"):
-            new_lines.append("backend: WxAgg")
-        else:
-            new_lines.append("backend: Agg")
+        # get the string from interpreted mode and insert it in matplotlibrc
+        new_lines.append("backend: %s" % backend)
 
     matplotlibrc = os.path.join(dist_dir, prefix, "matplotlibrc")
     outfile = open(matplotlibrc, "w")

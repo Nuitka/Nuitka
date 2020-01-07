@@ -33,6 +33,7 @@ from nuitka.utils.FileOperations import (
     copyTree,
     getFileList,
     getSubDirectories,
+    makePath,
     removeDirectory,
 )
 from nuitka.utils.SharedLibraries import locateDLL
@@ -51,6 +52,7 @@ class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
 
     def __init__(self):
         self.qt_dirs = {}
+        self.webengine_done = False
 
     @staticmethod
     def createPreModuleLoadCode(module):
@@ -152,19 +154,20 @@ if os.path.exists(guess_path):
     def considerExtraDlls(self, dist_dir, module):
         # pylint: disable=too-many-branches,too-many-locals,too-many-statements
         full_name = module.getFullName()
+        elements = full_name.split(".")
+        plugin_dirs = None
 
-        if full_name in ("PyQt4", "PyQt5"):
-            qt_version = int(full_name[-1])
-
+        if elements[0] in ("PyQt4", "PyQt5"):
+            qt_version = int(elements[0][-1])
             plugin_dirs = self.getPyQtPluginDirs(qt_version)
 
+        if full_name in ("PyQt4", "PyQt5"):
             if not plugin_dirs:
                 sys.exit("Error, failed to detect %s plugin directories." % full_name)
 
-            target_plugin_dir = os.path.join(dist_dir, full_name, "qt-plugins")
-
             plugin_options = self.getPluginOptions()
             plugin_options = set(plugin_options)
+            target_plugin_dir = os.path.join(dist_dir, full_name, "qt-plugins")
 
             # Default to using sensible plugins.
             if not plugin_options:
@@ -315,6 +318,7 @@ if os.path.exists(guess_path):
                             shutil.copy(filename, os.path.join(dist_dir, basename))
 
             return result
+
         elif full_name == "PyQt5.QtNetwork":
             if not isWin32Windows():
                 dll_path = locateDLL("crypto")
@@ -328,6 +332,38 @@ if os.path.exists(guess_path):
                     dist_dll_path = os.path.join(dist_dir, os.path.basename(dll_path))
 
                     shutil.copy(dll_path, dist_dll_path)
+
+        elif (
+            full_name.startswith(("PyQt4.QtWebEngine", "PyQt5.QtWebEngine"))
+            and not self.webengine_done
+        ):
+            self.webengine_done = True  # prevent multiple copies
+            info("Copying QtWebEngine components")
+            plugin_parent = os.path.dirname(plugin_dirs[0])
+
+            if isWin32Windows():
+                bin_dir = os.path.join(plugin_parent, "bin")
+            else:  # TODO verify this for non-Windows!
+                bin_dir = os.path.join(plugin_parent, "libexec")
+            target_bin_dir = os.path.join(dist_dir)
+            for f in os.listdir(bin_dir):
+                if f.startswith("QtWebEngineProcess"):
+                    shutil.copy(os.path.join(bin_dir, f), target_bin_dir)
+
+            resources_dir = os.path.join(plugin_parent, "resources")
+            target_resources_dir = os.path.join(dist_dir)
+            for f in os.listdir(resources_dir):
+                shutil.copy(os.path.join(resources_dir, f), target_resources_dir)
+
+            translations_dir = os.path.join(plugin_parent, "translations")
+            pos = len(translations_dir) + 1
+            target_translations_dir = os.path.join(
+                dist_dir, elements[0], "Qt", "translations"
+            )
+            for f in getFileList(translations_dir):
+                tar_f = os.path.join(target_translations_dir, f[pos:])
+                makePath(os.path.dirname(tar_f))
+                shutil.copyfile(f, tar_f)
 
         return ()
 
