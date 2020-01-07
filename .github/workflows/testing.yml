@@ -70,30 +70,34 @@ jobs:
 
   windows:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: [ '2.7', '3.5', '3.6', '3.7', '3.8' ]
+    name: Windows ${{ matrix.python-version }}
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Use Python 3.7
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.7
+      - name: Use Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install MinGW using Conda
-      shell: bash
-      run: |
-        $CONDA/Scripts/conda install m2w64-gcc libpython
+      - name: Install MinGW using Conda
+        shell: bash
+        run: |
+          $CONDA/Scripts/conda install m2w64-gcc libpython
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements-devel.txt
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-devel.txt
 
-    - name: Install Nuitka
-      run: |
-        pip install .
+      - name: Install Nuitka
+        run: |
+          pip install .
 
-    - name: Run Nuitka test suite
-      run: |
-        python -m nuitka --version
-        env | sort
-        CC=$CONDA/Library/mingw-w64/bin/gcc.exe python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
-      shell: bash
+      - name: Run Nuitka test suite
+        run: |
+          python -m nuitka --version
+          env | sort
+          CC=$CONDA/Library/mingw-w64/bin/gcc.exe python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
+        shell: bash
