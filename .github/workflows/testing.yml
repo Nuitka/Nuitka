@@ -72,8 +72,13 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        python-version: [ '2.7', '3.5', '3.6', '3.7', '3.8' ]
-    name: Windows ${{ matrix.python-version }}
+        python-version:
+            - '2.7'
+            - '3.5'
+            - '3.6'
+            - '3.7'
+#            - '3.8'
+    name: Windows Python ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v2
 
