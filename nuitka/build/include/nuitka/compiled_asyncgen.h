@@ -47,6 +47,11 @@ struct Nuitka_AsyncgenObject {
     // When an asyncgen is awaiting, this flag is set.
     int m_awaiting;
 
+#if PYTHON_VERSION >= 380
+    // When an asyncgen is running, this is set
+    int m_running_async;
+#endif
+
     void *m_code;
 
     // The parent frame of the coroutine, if created.

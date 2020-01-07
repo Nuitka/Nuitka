@@ -148,8 +148,15 @@ def simpleFunction4():
         ai.__anext__().__next__()
     except StopIteration as _ex:
         pass
+    except RuntimeError:
+        # Python 3.8 doesn't like this anymore
+        assert sys.version_info >= (3, 8)
 
-    ai.__anext__().__next__()
+    try:
+        ai.__anext__().__next__()
+    except RuntimeError:
+        # Python 3.8 doesn't like this anymore
+        assert sys.version_info >= (3, 8)
 
 
 def simpleFunction5():
