@@ -844,7 +844,7 @@ New Features
 Optimization
 ------------
 
-- Experimental code  for variant types for ``int`` and ``long`` values,
+- Experimental code for variant types for ``int`` and ``long`` values,
   that can be plain C value, as well as the ``PyObject *``. This is not
   yet completed though.
 
@@ -989,7 +989,7 @@ Bug Fixes
 - Standalone: Added missing implicit dependency for ``zmq`` module.
 
 - Python3.7: Fix, using the ``-X utf8`` flag on the calling interpreter, aka
-  ``--python-flag=utf8_mode`` was not  preserved in the compiled binary in all
+  ``--python-flag=utf8_mode`` was not preserved in the compiled binary in all
   cases.
 
 New Optimization
@@ -3725,7 +3725,7 @@ Cleanups
 - Connected variables with their global variable trace statically avoid the
   need to check in variable registry for it.
 
-- Removed old and mostly unused  "assume unclear locals" indications, we use
+- Removed old and mostly unused "assume unclear locals" indications, we use
   global variable traces for this now.
 
 Summary
@@ -5746,7 +5746,7 @@ Bug Fixes
   are files in standard library that are not encoded like that.
 
 - The fiber implementation for Linux amd64 was not working with glibc from
-  RHEL 5. Fixed to use  now multiple ``int`` to pass pointers as necessary.
+  RHEL 5. Fixed to use now multiple ``int`` to pass pointers as necessary.
   Also use ``uintptr_t`` instead of ``intprt_t`` to transport pointers, which
   may be more optimal.
 
