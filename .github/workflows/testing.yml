@@ -13,13 +13,22 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python_version:
+            - '2.7'
+            - '3.5'
+            - '3.6'
+            - '3.7'
+            - '3.8'
+    name: Ubuntu Python ${{ matrix.python_version }}
     steps:
     - uses: actions/checkout@v2
 
-    - name: Use Python 3.7
+    - name: Use Python ${{ matrix.python_version }}
       uses: actions/setup-python@v1
       with:
-        python-version: 3.7
+        python-version: ${{ matrix.python_version }}
 
     - name: Install dependencies
       run: |
@@ -36,56 +45,76 @@ jobs:
         env | sort
         python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
 
-    - name: Quality checks on Nuitka source code
+    - name: PyLint on Nuitka source code
+      run: |
+        ./bin/check-nuitka-with-pylint
+      if: matrix.python_version >= '3.7' || matrix.python_version == '2.7'
+
+    - name: RestLint on Nuitka source code
       run: |
         ./bin/check-nuitka-with-restlint
+      if: matrix.python_version == '3.7'
+
+    - name: Codespell on Nuitka source code
+      run: |
         ./bin/check-nuitka-with-codespell
-        ./bin/check-nuitka-with-pylint
+      if: matrix.python_version == '3.7'
 
   mac:
     runs-on: macOS-latest
+    strategy:
+      matrix:
+        python_version:
+            - '2.7'
+            - '3.6'
+            - '3.7'
+#            - '3.8'
+    name: macOS Python ${{ matrix.python_version }}
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install Python 3.7 using Conda
+    - name: Install Python ${{ matrix.python_version }} using Conda
       run: |
         sudo chown -R $USER $CONDA
-        $CONDA/bin/conda install python=3.7
+        $CONDA/bin/conda install python=${{ matrix.python_version }}
+        find $CONDA -name python${{ matrix.python_version }}
 
     - name: Install dependencies
       run: |
-        python3.7 -m pip install --user -r requirements.txt
-        python3.7 -m pip install --user -r requirements-devel.txt
+        export PATH=$PATH:$CONDA/bin
+        python${{ matrix.python_version }} -m pip install --user -r requirements.txt
+        python${{ matrix.python_version }} -m pip install --user -r requirements-devel.txt
 
     - name: Install Nuitka
       run: |
-        python3.7 setup.py develop
+        export PATH=$PATH:$CONDA/bin
+        python${{ matrix.python_version }} setup.py develop
 
     - name: Run Nuitka test suite
       run: |
-        export PATH=$PATH:/Users/runner/Library/Python/3.7/bin
-        python3.7 -m nuitka --version
+        export PATH=$PATH:$CONDA/bin
+        python${{ matrix.python_version }} -m nuitka --version
         env | sort
-        python3.7 ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+        python${{ matrix.python_version }} ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
 
   windows:
     runs-on: windows-latest
     strategy:
       matrix:
-        python-version:
+        python_version:
             - '2.7'
             - '3.5'
             - '3.6'
             - '3.7'
 #            - '3.8'
-    name: Windows Python ${{ matrix.python-version }}
+    name: Windows Python ${{ matrix.python_version }}
     steps:
       - uses: actions/checkout@v2
 
-      - name: Use Python ${{ matrix.python-version }}
+      - name: Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python_version }}
 
       - name: Install MinGW using Conda
         shell: bash
