@@ -15,7 +15,7 @@ URL:            http://nuitka.net/
 Source0:        http://nuitka.net/releases/Nuitka-%{version}.tar.gz
 Source1:        nuitka-rpmlintrc
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-%if 0%{?fedora} < 31 || 0%{?rhel_version} < 800 || 0%{?centos_version} < 800
+%if 0%{?fedora} < 31 || 0%{?rhel} < 8
 BuildRequires:  python
 BuildRequires:  python-devel
 BuildRequires:  python-setuptools
