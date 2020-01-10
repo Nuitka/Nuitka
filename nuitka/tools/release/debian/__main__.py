@@ -201,7 +201,7 @@ Codename: %(codename)s
 Architectures: i386 amd64 armel armhf powerpc
 Components: main
 Description: Apt repository for project Nuitka %(codename)s
-SignWith: 2912B99C
+SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
 """
             % {"codename": codename}
         )
