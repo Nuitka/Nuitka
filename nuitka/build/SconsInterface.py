@@ -86,7 +86,7 @@ def _getPythonSconsExePathWindows():
     """
 
     # Ordered in the list of preference.
-    scons_supported = ("2.7", "2.6", "3.5", "3.6", "3.7")
+    scons_supported = ("2.7", "2.6", "3.5", "3.6", "3.7", "3.8")
 
     # Shortcuts for the default installation directories, to avoid going to
     # registry at all unless necessary. Any Python2 will do for Scons, so it
