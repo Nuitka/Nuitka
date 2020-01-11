@@ -196,7 +196,6 @@ def cleanSourceDirectory(source_dir):
                 check(path)
 
 
-
 def pickSourceFilenames(source_dir, modules):
     """ Pick the names for the C files of each module.
 
@@ -610,20 +609,9 @@ def callExecPython(args, clean_path, add_path):
     Execution.callExec(args)
 
 
-def _wrapForDebugger(*args):
-    gdb_path = Execution.getExecutablePath("gdb")
-
-    if gdb_path is None:
-        sys.exit("Error, no 'gdb' binary found in path.")
-
-    args = (gdb_path, "gdb", "-ex=run", "-ex=where", "--args") + args
-
-    return args
-
-
 def executeMain(binary_filename, clean_path):
     if Options.shallRunInDebugger():
-        args = _wrapForDebugger(binary_filename)
+        args = Execution.wrapCommandForDebugger(binary_filename)
     else:
         args = (binary_filename, binary_filename)
 
@@ -634,7 +622,7 @@ def executeModule(tree, clean_path):
     python_command = "__import__('%s')" % tree.getName()
 
     if Options.shallRunInDebugger():
-        args = _wrapForDebugger(sys.executable, "-c", python_command)
+        args = Execution.wrapCommandForDebugger(sys.executable, "-c", python_command)
     else:
         args = (sys.executable, "python", "-c", python_command)
 

@@ -24,6 +24,7 @@ binaries (needed for exec) and run them capturing outputs.
 
 import os
 import subprocess
+import sys
 from contextlib import contextmanager
 
 from .Utils import getArchitecture, getOS, isWin32Windows
@@ -197,3 +198,26 @@ def withEnvironmentVarOverriden(env_var_name, value):
             del os.environ[env_var_name]
     else:
         os.environ[env_var_name] = old_value
+
+
+def wrapCommandForDebugger(*args):
+    """ Wrap a command for system debugger.
+
+    Args:
+        args: (list of str) args for call to be debugged
+    Returns:
+        args tuple with debugger command inserted
+
+    Notes:
+        Currently only gdb is supported, but adding more
+        debuggers would be very welcome.
+    """
+
+    gdb_path = getExecutablePath("gdb")
+
+    if gdb_path is None:
+        sys.exit("Error, no 'gdb' binary found in path.")
+
+    args = (gdb_path, "gdb", "-ex=run", "-ex=where", "--args") + args
+
+    return args

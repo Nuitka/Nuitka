@@ -40,7 +40,7 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.Tracing import my_print
-from nuitka.utils.Execution import check_output
+from nuitka.utils.Execution import check_output, wrapCommandForDebugger
 from nuitka.utils.Timing import StopWatch
 
 
@@ -583,6 +583,14 @@ Stderr was:
                     stdout_nuitka = stdout_nuitka1 + stdout_nuitka2
                     stderr_nuitka = stderr_nuitka1 + stderr_nuitka2
                     exit_nuitka = process.returncode
+
+                    if exit_nuitka in (-11, -6) and sys.platform != "nt":
+                        nuitka_cmd2 = wrapCommandForDebugger(nuitka_cmd2)
+
+                        process = subprocess.Popen(
+                            args=nuitka_cmd2, stdin=subprocess.PIPE
+                        )
+                        process.communicate()
                 else:
                     exit_nuitka = exit_nuitka1
                     stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
