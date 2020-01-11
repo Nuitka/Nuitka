@@ -15,21 +15,22 @@ URL:            http://nuitka.net/
 Source0:        http://nuitka.net/releases/Nuitka-%{version}.tar.gz
 Source1:        nuitka-rpmlintrc
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-%if 0%{?fedora} < 31 || 0%{?rhel} < 8
+%if 0%{?fedora} < 28 && 0%{?rhel} < 8
 BuildRequires:  python
 BuildRequires:  python-devel
 BuildRequires:  python-setuptools
-%else
-BuildRequires:  python2
-BuildRequires:  python2-devel
 %endif
 %if 0%{?fedora} >= 24
 BuildRequires:  python3
 BuildRequires:  python3-devel
 %endif
+%if 0%{?rhel} == 8
+BuildRequires:  python36
+BuildRequires:  python36-devel
+%endif
 %if 0%{?fedora} >= 24
-BuildRequires: python-libs
-BuildRequires: python-debug
+BuildRequires:  python-libs
+BuildRequires:  python-debug
 %endif
 %if 0%{?fedora} >= 27
 BuildRequires: python3-tools
@@ -40,9 +41,6 @@ BuildRequires:  chrpath
 Requires:       python-devel
 Requires:       gcc-c++
 Requires:       strace
-%if 0%{?fedora} >= 24
-BuildRequires:  python3-devel
-%endif
 BuildArchitectures: noarch
 
 %description
@@ -57,27 +55,28 @@ be used in the same way as pure Python objects.
 
 %build
 
-python2=`which python2 || true`
-python3=`which python3 || true`
+python2=`which python2 2>/dev/null || true`
+if [ "$python2" != "" ]
+then
+    python2_version=`$python2 -c "import sys; print '.'.join(str(s) for s in sys.version_info[0:2])"`
+fi
+python3=`which python3 2>/dev/null || true`
+
+if [ $python2_version != "2.6" ]
+then
+    # Remove files not needed only for Python 2.6, only cause errors during
+    # compilation.
+    rm -rf nuitka/build/inline_copy/lib/scons-2.3.2
+fi
 
 if [ "$python2" != "" ]
 then
     python2_version=`$python2 -c "import sys; print '.'.join(str(s) for s in sys.version_info[0:2])"`
-
-    # Remove files not needed for Python 2.6
-    if [ $python2_version = "2.6" ]
-    then
-        rm -rf nuitka/build/inline_copy/lib/scons-3*
-    fi
-
     $python2 setup.py build
 fi
 
 if [ "$python3" != "" ]
 then
-    # Remove files not needed for Python 3.x
-    rm -rf nuitka/build/inline_copy/lib/scons-2.3.2
-
     $python3 setup.py build
 fi
 
@@ -124,9 +123,9 @@ rm -rf %{buildroot}
 %if 0%{?fedora} < 31
 %{_bindir}/nuitka
 %{_bindir}/nuitka-run
+%{python_sitearch}/*
 %endif
 %{_mandir}/man1/*
-%{python_sitearch}/*
 %if 0%{?fedora} >= 24
 %{python3_sitearch}/*
 %{_bindir}/nuitka3
