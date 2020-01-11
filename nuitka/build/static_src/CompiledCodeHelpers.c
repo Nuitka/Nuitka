@@ -1938,8 +1938,9 @@ static char *getDllDirectory() {
 
 void _initBuiltinModule() {
 #if _NUITKA_MODULE
-    if (builtin_module)
+    if (builtin_module != NULL) {
         return;
+    }
 #else
     assert(builtin_module == NULL);
 #endif
