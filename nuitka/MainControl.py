@@ -611,7 +611,7 @@ def callExecPython(args, clean_path, add_path):
 
 def executeMain(binary_filename, clean_path):
     if Options.shallRunInDebugger():
-        args = Execution.wrapCommandForDebugger(binary_filename)
+        args = Execution.wrapCommandForDebuggerForExec(binary_filename)
     else:
         args = (binary_filename, binary_filename)
 
@@ -622,7 +622,9 @@ def executeModule(tree, clean_path):
     python_command = "__import__('%s')" % tree.getName()
 
     if Options.shallRunInDebugger():
-        args = Execution.wrapCommandForDebugger(sys.executable, "-c", python_command)
+        args = Execution.wrapCommandForDebuggerForExec(
+            sys.executable, "-c", python_command
+        )
     else:
         args = (sys.executable, "python", "-c", python_command)
 
