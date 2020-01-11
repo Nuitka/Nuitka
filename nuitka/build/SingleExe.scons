@@ -1256,7 +1256,7 @@ if win_target:
             env.Append(LIBS=[win_lib_name])
 
         addWinLib()
-elif not module_mode or (macosx_target and not static_libpython):
+elif not module_mode:
     # Add the python library path to the library path
     python_lib_path = os.path.join(python_prefix, "lib")
     env.Append(LIBPATH=[python_lib_path])
@@ -1293,6 +1293,8 @@ elif not module_mode or (macosx_target and not static_libpython):
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
     if "netbsd" in sys.platform:
         env.Append(LINKFLAGS=["-rpath=" + python_lib_path])
+elif macosx_target and module_mode:
+    env.Append(LINKFLAGS=["-undefined", "dynamic_lookup"])
 
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.
