@@ -1368,6 +1368,10 @@ if gcc_mode and not macosx_target and not win_target and not module_mode:
     if "linux" in sys.platform:
         env.Append(LINKFLAGS=["-Wl,--disable-new-dtags"])
 
+# For macOS we need to make sure install_name_tool can do its work
+if macosx_target and not module_mode:
+    env.Append(LINKFLAGS=["-headerpad_max_install_names"])
+
 
 def _getBinaryArch(binary):
     if "linux" in sys.platform or mingw_mode:
