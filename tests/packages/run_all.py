@@ -75,7 +75,7 @@ def main():
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
-            my_print("Consider output of recursively compiled program:", filename)
+            my_print("Consider output of recursively compiled package:", filename)
 
             filename_main = None
             for filename_main in os.listdir(filename):
