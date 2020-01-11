@@ -77,7 +77,7 @@ jobs:
       run: |
         sudo chown -R $USER $CONDA
         $CONDA/bin/conda install python=${{ matrix.python_version }}
-        find $CONDA -name python${{ matrix.python_version }}
+        find $CONDA -name '*python${{ matrix.python_version }}*'
 
     - name: Install dependencies
       run: |
@@ -89,6 +89,12 @@ jobs:
       run: |
         export PATH=$PATH:$CONDA/bin
         python${{ matrix.python_version }} setup.py develop
+
+    - name: Verbose scons output in compilation
+      run: |
+        export PATH=$PATH:$CONDA/bin
+        python${{ matrix.python_version }} -m nuitka --module --show-scons --run tests/basics/Empty.py
+        python${{ matrix.python_version }} -m nuitka --show-scons --run tests/basics/Empty.py
 
     - name: Run Nuitka test suite
       run: |
