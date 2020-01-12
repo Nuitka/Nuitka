@@ -380,7 +380,7 @@ def getWindowsShortPathName(filename):
             output_buf_size = needed
 
 
-def getExternalUsePath(filename):
+def getExternalUsePath(filename, only_dirname=False):
     """ Gets the externally usable absolute path for a given relative path.
 
     Args:
@@ -395,11 +395,11 @@ def getExternalUsePath(filename):
     filename = os.path.abspath(filename)
 
     if os.name == "nt":
-        if os.path.exists(filename):
-            filename = getWindowsShortPathName(filename)
-        else:
+        if only_dirname:
             dirname = getWindowsShortPathName(os.path.dirname(filename))
             assert os.path.exists(dirname)
             filename = os.path.join(dirname, os.path.basename(filename))
+        else:
+            filename = getWindowsShortPathName(filename)
 
     return filename

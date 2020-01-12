@@ -272,10 +272,12 @@ def runScons(options, quiet):
             options = copy.deepcopy(options)
             source_dir = options["source_dir"]
             options["source_dir"] = "."
-            options["result_name"] = getExternalUsePath(options["result_name"])
+            options["result_name"] = getExternalUsePath(
+                options["result_name"], only_dirname=True
+            )
             options["nuitka_src"] = getExternalUsePath(options["nuitka_src"])
             if "result_exe" in options:
-                options["result_exe"] = getExternalUsePath(options["result_exe"])
+                options["result_exe"] = getExternalUsePath(options["result_exe"], only_dirname=True)
         else:
             source_dir = None
 
