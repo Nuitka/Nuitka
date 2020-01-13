@@ -9,7 +9,8 @@ export PYBUILD_INTERPRETERS = python{version}
 
 # Do not use Python2 for Debian 11 or higher, need to find a way for Ubuntu
 # to cover, Debian 11 inheritance.
-ifeq ($(DEB_VENDOR), "Debian")
+DEB_VENDOR=$(shell dpkg-vendor --query vendor)
+ifeq ($(DEB_VENDOR), Debian)
 BUILD_ONLY_PYTHON3 := $(shell [ `lsb_release -r -s` -ge 11 ] && echo true)
 else
 BUILD_ONLY_PYTHON3 := false
