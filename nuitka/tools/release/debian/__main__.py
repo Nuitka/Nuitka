@@ -103,12 +103,7 @@ Update the pbuilder chroot before building. Default %default.""",
     if category == "stable":
         print("Skipped lintian checks for stable releases.")
     else:
-        assert (
-            os.system(
-                "lintian --pedantic --fail-on-warnings --allow-root dist/deb_dist/*.changes"
-            )
-            == 0
-        )
+        assert os.system("lintian --pedantic --allow-root dist/deb_dist/*.changes") == 0
 
     # Move the created debian package files out.
     os.system("cp dist/deb_dist/*.deb dist/")

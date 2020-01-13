@@ -124,7 +124,7 @@ assert os.path.exists("dist/deb_dist")
 
 # Check with pylint in pedantic mode and don't proceed if there were any
 # warnings given. Nuitka is lintian clean and shall remain that way.
-assert os.system("lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes") == 0
+assert os.system("lintian --pedantic dist/deb_dist/*.changes") == 0
 
 os.system("cp dist/deb_dist/*.deb dist/")
 
