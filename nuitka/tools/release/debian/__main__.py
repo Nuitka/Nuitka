@@ -21,7 +21,7 @@ from nuitka.Version import getNuitkaVersion
 
 
 def main():
-    # Complex stuff, pylint: disable=too-many-branches,too-many-statements
+    # Complex stuff, pylint: disable=too-many-statements
 
     # Make sure error messages are in English.
     os.environ["LANG"] = "C"
@@ -75,47 +75,19 @@ Update the pbuilder chroot before building. Default %default.""",
     #   issues)
     # - the inline copy of scons (not wanted for Debian)
 
-    # Then run "py2dsc" on it.
-
     for filename in os.listdir("."):
         if filename.endswith(".tar.gz"):
             new_name = filename[:-7] + "+ds.tar.gz"
 
             cleanupTarfileForDebian(filename, new_name)
 
-            runPy2dsc(filename, new_name)
+            entry = runPy2dsc(filename, new_name)
 
             break
     else:
         assert False
 
     os.chdir("deb_dist")
-
-    # Assert that the unpacked directory is there. Otherwise fail badly.
-    for entry in os.listdir("."):
-        if (
-            os.path.isdir(entry)
-            and entry.startswith("nuitka")
-            and not entry.endswith(".orig")
-        ):
-            break
-    else:
-        assert False
-
-    # We know the dir is not empty, pylint: disable=undefined-loop-variable
-
-    # Import the "debian" directory from above. It's not in the original tar and
-    # overrides or extends what py2dsc does.
-    assert os.system("rm -rf '%s/debian/*'" % entry) == 0
-    assert (
-        os.system(
-            "rsync -a --exclude pbuilder-hookdir ../../debian/ '%s/debian/'" % entry
-        )
-        == 0
-    )
-
-    # Remove now unnecessary files.
-    assert os.system("rm *.dsc *.debian.tar.[gx]z") == 0
     os.chdir(entry)
 
     # Build the debian package, but disable the running of tests, will be done later

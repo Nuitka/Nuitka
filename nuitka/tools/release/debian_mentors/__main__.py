@@ -42,38 +42,13 @@ def main():
 
             cleanupTarfileForDebian(filename, new_name)
 
-            runPy2dsc(filename, new_name)
+            entry = runPy2dsc(filename, new_name)
 
             break
     else:
         assert False
 
     os.chdir("deb_dist")
-
-    # Assert that the unpacked directory is there. Otherwise fail badly.
-    for entry in os.listdir("."):
-        if (
-            os.path.isdir(entry)
-            and entry.startswith("nuitka")
-            and not entry.endswith(".orig")
-        ):
-            break
-    else:
-        assert False
-
-    # We know the dir is not empty, pylint: disable=undefined-loop-variable
-
-    # Import the "debian" directory from above. It's not in the original tar and
-    # overrides or extends what py2dsc does.
-    assert (
-        os.system(
-            "rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry
-        )
-        == 0
-    )
-
-    # Remove now unnecessary files.
-    assert os.system("rm *.dsc *.debian.tar.[gx]z") == 0
     os.chdir(entry)
 
     # Build the debian package, but disable the running of tests, will be done later

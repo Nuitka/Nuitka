@@ -23,7 +23,7 @@ import os
 import shutil
 import sys
 
-from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.FileOperations import getFileContentByLine, listDir
 
 
 def _bumpVersion(debian_version):
@@ -130,3 +130,31 @@ def runPy2dsc(filename, new_name):
     # Remove the now useless input, py2dsc has copied it, and we don't
     # publish it.
     os.unlink(new_name)
+
+    # Assert that the unpacked directory is there and find it. Otherwise fail badly.
+
+    entry = None
+    for fullname, entry in listDir("deb_dist"):
+        if (
+            os.path.isdir(fullname)
+            and entry.startswith("nuitka")
+            and not entry.endswith(".orig")
+        ):
+            break
+
+    if entry is None:
+        assert False
+
+    # Import the "debian" directory from above. It's not in the original tar and
+    # overrides fully what py2dsc did.
+    assert os.system("rm -r deb_dist/%s/debian/*" % entry) == 0
+    assert (
+        os.system(
+            "rsync -a --exclude pbuilder-hookdir ../debian/ deb_dist/%s/debian/" % entry
+        )
+        == 0
+    )
+
+    assert os.system("rm deb_dist/*.dsc deb_dist/*.debian.tar.xz") == 0
+
+    return entry
