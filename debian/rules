@@ -21,6 +21,8 @@ export PYBUILD_INTERPRETERS = python{version}
 	fi
 
 override_dh_auto_build:
+	rst2pdf README.rst
+	rst2pdf Developer_Manual.rst
 	cp Changelog.rst changelog
 	cp Developer_Manual.rst Developer_Manual.txt
 

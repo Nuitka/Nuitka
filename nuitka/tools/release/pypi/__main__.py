@@ -64,7 +64,7 @@ def main():
     shutil.rmtree("dist", ignore_errors=True)
 
     print("Creating documentation.")
-    createReleaseDocumentation(make_pdfs=True)
+    createReleaseDocumentation()
     print("Creating source distribution.")
     assert os.system("python setup.py sdist") == 0
 

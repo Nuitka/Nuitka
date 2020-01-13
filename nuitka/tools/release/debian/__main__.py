@@ -55,9 +55,7 @@ Update the pbuilder chroot before building. Default %default.""",
     shutil.rmtree("dist", ignore_errors=True)
     shutil.rmtree("build", ignore_errors=True)
 
-    include_pdfs = False
-
-    createReleaseDocumentation(make_pdfs=include_pdfs)
+    createReleaseDocumentation()
     assert os.system("python setup.py sdist --formats=gztar") == 0
 
     os.chdir("dist")
@@ -79,7 +77,7 @@ Update the pbuilder chroot before building. Default %default.""",
         if filename.endswith(".tar.gz"):
             new_name = filename[:-7] + "+ds.tar.gz"
 
-            cleanupTarfileForDebian(filename, new_name, include_pdfs)
+            cleanupTarfileForDebian(filename, new_name)
 
             assert os.system("py2dsc " + new_name) == 0
 

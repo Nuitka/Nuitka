@@ -186,20 +186,19 @@ def createRstPDF(document, args):
     ), document
 
 
-def createReleaseDocumentation(make_pdfs):
+def createReleaseDocumentation():
     checkReleaseDocumentation()
 
-    if make_pdfs:
-        for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
-            args = []
+    for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
+        args = []
 
-            if document != "Changelog.rst":
-                args.append("-s doc/page-styles.txt")
+        if document != "Changelog.rst":
+            args.append("-s doc/page-styles.txt")
 
-                args.append('--header="###Title### - ###Section###"')
-                args.append('--footer="###Title### - page ###Page### - ###Section###"')
+            args.append('--header="###Title### - ###Section###"')
+            args.append('--footer="###Title### - page ###Page### - ###Section###"')
 
-            createRstPDF(document, args)
+        createRstPDF(document, args)
 
     if os.name != "nt":
         makeManpages()

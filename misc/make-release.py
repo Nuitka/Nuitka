@@ -83,7 +83,7 @@ else:
 shutil.rmtree("dist", ignore_errors=True)
 shutil.rmtree("build", ignore_errors=True)
 
-createReleaseDocumentation(make_pdfs=False)
+createReleaseDocumentation()
 assert os.system("python setup.py sdist --formats=bztar,gztar,zip") == 0
 
 os.chdir("dist")
@@ -109,12 +109,15 @@ for filename in os.listdir("."):
 
         shutil.copy(filename, new_name)
         assert os.system("gunzip " + new_name) == 0
-        assert os.system(
-            "tar --wildcards --delete --file "
-            + new_name[:-3]
-            + " Nuitka*/*.pdf"
-            + " Nuitka*/build/inline_copy"
-        ) == 0
+        assert (
+            os.system(
+                "tar --wildcards --delete --file "
+                + new_name[:-3]
+                + " Nuitka*/*.pdf"
+                + " Nuitka*/build/inline_copy"
+            )
+            == 0
+        )
         assert os.system("gzip -9 -n " + new_name[:-3]) == 0
 
         assert os.system("py2dsc " + new_name) == 0
@@ -124,10 +127,13 @@ for filename in os.listdir("."):
         before_deb_name = filename[:-7].lower().replace("-", "_")
         after_deb_name = before_deb_name.replace("rc", "~rc")
 
-        assert os.system(
-            "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'"
-            % (before_deb_name, after_deb_name)
-        ) == 0
+        assert (
+            os.system(
+                "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'"
+                % (before_deb_name, after_deb_name)
+            )
+            == 0
+        )
 
         assert os.system("rm -f deb_dist/*_source*") == 0
 
@@ -161,9 +167,10 @@ if entry is None:
 
 # Import the "debian" directory from above. It's not in the original tar and
 # overrides or extends what py2dsc does.
-assert os.system(
-    "rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry
-) == 0
+assert (
+    os.system("rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry)
+    == 0
+)
 
 assert os.system("rm *.dsc *.debian.tar.xz") == 0
 os.chdir(entry)
@@ -192,9 +199,9 @@ for filename in os.listdir("dist/deb_dist"):
 for filename in os.listdir("dist"):
     if os.path.isfile("dist/" + filename):
         assert os.system("chmod 644 dist/" + filename) == 0
-        assert os.system(
-            "gpg --local-user 2912B99C --detach-sign dist/" + filename
-        ) == 0
+        assert (
+            os.system("gpg --local-user 2912B99C --detach-sign dist/" + filename) == 0
+        )
 
 # Cleanup the build directory, not needed.
 shutil.rmtree("build", ignore_errors=True)

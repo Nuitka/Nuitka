@@ -40,7 +40,7 @@ def main():
     shutil.rmtree("dist", ignore_errors=True)
     shutil.rmtree("build", ignore_errors=True)
 
-    createReleaseDocumentation(make_pdfs=True)
+    createReleaseDocumentation()
     assert os.system("python setup.py sdist --formats=gztar") == 0
 
     # Upload stable releases to OpenSUSE Build Service:
