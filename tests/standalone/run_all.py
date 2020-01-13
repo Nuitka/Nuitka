@@ -470,6 +470,8 @@ def main():
                     "libblkid.so.",
                     "libmount.so.",
                     "libpcre2-8.so.",
+                    # CentOS 8 on OBS
+                    "libuuid.so.",
                 )
             ):
                 continue
