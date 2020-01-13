@@ -20,9 +20,11 @@ endif
 ifeq ($(BUILD_ONLY_PYTHON3),true)
 export PYBUILD_VERSIONS = $(shell py3versions -vr)
 export BUILD_WITH_ARGUMENT = "python3"
+export RUN_TEST_OPTIONS = --no-python2.7 --no-python2.6
 else
 export PYBUILD_VERSIONS = $(shell pyversions -vr) $(shell py3versions -vr)
 export BUILD_WITH_ARGUMENT = "python2,python3"
+export RUN_TEST_OPTIONS =
 endif
 
 %:
@@ -36,4 +38,4 @@ override_dh_auto_build:
 	cp Developer_Manual.rst Developer_Manual.txt
 
 override_dh_auto_test:
-	./tests/run-tests --skip-reflection-test
+	./tests/run-tests --skip-reflection-test $(RUN_TEST_OPTIONS)
