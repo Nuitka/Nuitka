@@ -11,7 +11,7 @@ export PYBUILD_INTERPRETERS = python{version}
 # to cover, Debian 11 inheritance.
 DEB_VENDOR=$(shell dpkg-vendor --query vendor)
 ifeq ($(DEB_VENDOR), Debian)
-BUILD_ONLY_PYTHON3 := $(shell [ `lsb_release -r -s` -ge 11 ] && echo true)
+BUILD_ONLY_PYTHON3 := $(shell [ `lsb_release -r -s | sed -e s/unstable/11/` -ge 11 ] && echo true)
 else
 BUILD_ONLY_PYTHON3 := false
 endif
@@ -20,11 +20,11 @@ export BUILD_ONLY_PYTHON3
 ifeq ($(BUILD_ONLY_PYTHON3),true)
 export PYBUILD_VERSIONS = $(shell py3versions -vr)
 export BUILD_WITH_ARGUMENT = "python3"
-export RUN_TEST_OPTIONS = "--no-python2.7 --no-python2.6"
+export RUN_TEST_OPTIONS = --no-python2.7 --no-python2.6
 else
 export PYBUILD_VERSIONS = $(shell pyversions -vr) $(shell py3versions -vr)
 export BUILD_WITH_ARGUMENT = "python2,python3"
-export RUN_TEST_OPTIONS = ""
+export RUN_TEST_OPTIONS =
 endif
 
 %:
