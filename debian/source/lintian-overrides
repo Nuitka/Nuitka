@@ -10,3 +10,7 @@ nuitka source: newer-standards-version
 # We continue to support very old distributions and therefore allow
 # the relatively ancient Python releases.
 nuitka source: ancient-python-version-field
+
+# We are really working with compat level up to what we say, but we
+# want to build with distributions that don't have it.
+package-needs-versioned-debhelper-build-depends
