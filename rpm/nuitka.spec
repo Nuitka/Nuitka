@@ -21,6 +21,10 @@ BuildRequires:  python-devel
 BuildRequires:  python-setuptools
 %endif
 %if 0%{?fedora} >= 24
+BuildRequires:  python-libs
+BuildRequires:  python-debug
+%endif
+%if 0%{?fedora} >= 24 || 0%{?suse_version} >= 1500
 BuildRequires:  python3
 BuildRequires:  python3-devel
 %endif
@@ -28,12 +32,11 @@ BuildRequires:  python3-devel
 BuildRequires:  python36
 BuildRequires:  python36-devel
 %endif
-%if 0%{?fedora} >= 24
-BuildRequires:  python-libs
-BuildRequires:  python-debug
-%endif
 %if 0%{?fedora} >= 27
-BuildRequires: python3-tools
+BuildRequires:  python3-tools
+%endif
+%if 0%{?sle_version} >= 150000 && 0%{?is_opensuse}
+BuildRequires:  python3-setuptools
 %endif
 BuildRequires:  gcc-c++
 BuildRequires:  strace
@@ -41,7 +44,7 @@ BuildRequires:  chrpath
 %if 0%{?fedora} < 28 && 0%{?rhel} < 8
 Requires:       python-devel
 %endif
-%if 0%{?fedora} >= 24
+%if 0%{?fedora} >= 24 || 0%{?suse_version} >= 1500
 Requires:       python3-devel
 %endif
 %if 0%{?rhel} == 8
@@ -135,7 +138,7 @@ rm -rf %{buildroot}
 %{python_sitearch}/*
 %endif
 %{_mandir}/man1/*
-%if 0%{?fedora} >= 24
+%if 0%{?fedora} >= 24 || 0%{?suse_version} >= 1500
 %{python3_sitearch}/*
 %{_bindir}/nuitka3
 %{_bindir}/nuitka3-run
