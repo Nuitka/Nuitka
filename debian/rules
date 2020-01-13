@@ -6,19 +6,28 @@ export PYBUILD_NAME = nuitka
 # This disables the building with debug Python, not sure why we need to
 # set PYBUILD_VERSIONS too, but it seemed that way.
 export PYBUILD_INTERPRETERS = python{version}
-# export PYBUILD_VERSIONS = $(shell pyversions -vr) $(shell py3versions -vr)
+
+export DEB_RELEASE = $(shell lsb_release -r -s)
+
+# Do not use Python2 for Debian 11 or higher, need to find a way for Ubuntu
+# to cover, Debian 11 inheritance.
+ifeq ($(DEB_VENDOR), "Debian")
+export BUILD_ONLY_PYTHON3=$(shell [ "$DEB_RELEASE" -ge 11 ] && echo true)
+else
+export BUILD_ONLY_PYTHON3=false
+endif
+
+ifeq ($(BUILD_ONLY_PYTHON3),true)
+export PYBUILD_VERSIONS = $(shell py3versions -vr)
+export BUILD_WITH_ARGUMENT = "python3"
+else
+export PYBUILD_VERSIONS = $(shell pyversions -vr) $(shell py3versions -vr)
+export BUILD_WITH_ARGUMENT = "python2,python3"
+endif
 
 %:
 	set -x
-
-	# Do not use Python2 for Debian 11 or higher, need to find a way for Ubuntu
-	# to cover.
-	if [ "`lsb_release -r | sed -e s/Release://`" -ge 11 -a "`lsb_release -i| sed -e 's/Distributor ID:.//'`" = "Debian" ]
-	then
-		dh $@ --with python3 --buildsystem=pybuild
-	else
-		dh $@ --with python2,python3 --buildsystem=pybuild
-	fi
+	dh $@ --with $(BUILD_WITH_ARGUMENT) --buildsystem=pybuild
 
 override_dh_auto_build:
 	rst2pdf README.rst
