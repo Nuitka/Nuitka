@@ -38,9 +38,18 @@ BuildRequires: python3-tools
 BuildRequires:  gcc-c++
 BuildRequires:  strace
 BuildRequires:  chrpath
+%if 0%{?fedora} < 28 && 0%{?rhel} < 8
 Requires:       python-devel
+%endif
+%if 0%{?fedora} >= 24
+Requires:       python3-devel
+%endif
+%if 0%{?rhel} == 8
+Requires:       python36-devel
+%endif
 Requires:       gcc-c++
 Requires:       strace
+Requires:       chrpath
 BuildArchitectures: noarch
 
 %description
@@ -62,7 +71,7 @@ then
 fi
 python3=`which python3 2>/dev/null || true`
 
-if [ $python2_version != "2.6" ]
+if [ "$python2_version" != "2.6" ]
 then
     # Remove files not needed only for Python 2.6, only cause errors during
     # compilation.
@@ -120,7 +129,7 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %doc README.rst Changelog.rst
-%if 0%{?fedora} < 31
+%if 0%{?fedora} < 31 && 0%{?rhel} < 8
 %{_bindir}/nuitka
 %{_bindir}/nuitka-run
 %{python_sitearch}/*
@@ -131,7 +140,11 @@ rm -rf %{buildroot}
 %{_bindir}/nuitka3
 %{_bindir}/nuitka3-run
 %endif
-
+%if 0%{?rhel} == 8
+/usr/lib/python3.6/site-packages/
+%{_bindir}/nuitka3
+%{_bindir}/nuitka3-run
+%endif
 %changelog
 * Sat Dec 28 2019 Kay Hayen<kay.hayen@gmail.com> - 0.6.7
 - adapted for Fedora31 and CentOS 8, Python3 enhancements
