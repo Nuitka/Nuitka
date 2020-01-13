@@ -9,7 +9,7 @@ from __future__ import print_function
 import os
 import shutil
 
-from nuitka.tools.release.Debian import cleanupTarfileForDebian
+from nuitka.tools.release.Debian import cleanupTarfileForDebian, runPy2dsc
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
 
@@ -42,26 +42,7 @@ def main():
 
             cleanupTarfileForDebian(filename, new_name)
 
-            assert os.system("py2dsc " + new_name) == 0
-
-            # Fixup for py2dsc not taking our custom suffix into account, so we need
-            # to rename it ourselves.
-            before_deb_name = filename[:-7].lower().replace("-", "_")
-            after_deb_name = before_deb_name.replace("rc", "~rc")
-
-            assert (
-                os.system(
-                    "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'"
-                    % (before_deb_name, after_deb_name)
-                )
-                == 0
-            )
-
-            assert os.system("rm -f deb_dist/*_source*") == 0
-
-            # Remove the now useless input, py2dsc has copied it, and we don't
-            # publish it.
-            os.unlink(new_name)
+            runPy2dsc(filename, new_name)
 
             break
     else:

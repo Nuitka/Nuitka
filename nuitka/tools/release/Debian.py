@@ -107,3 +107,26 @@ def cleanupTarfileForDebian(filename, new_name):
         == 0
     )
     assert os.system("gzip -9 -n " + new_name[:-3]) == 0
+
+
+def runPy2dsc(filename, new_name):
+    assert os.system("py2dsc " + new_name) == 0
+
+    # Fixup for py2dsc not taking our custom suffix into account, so we need
+    # to rename it ourselves.
+    before_deb_name = filename[:-7].lower().replace("-", "_")
+    after_deb_name = before_deb_name.replace("rc", "~rc")
+
+    assert (
+        os.system(
+            "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'"
+            % (before_deb_name, after_deb_name)
+        )
+        == 0
+    )
+
+    assert os.system("rm -f deb_dist/*_source*") == 0
+
+    # Remove the now useless input, py2dsc has copied it, and we don't
+    # publish it.
+    os.unlink(new_name)

@@ -33,7 +33,11 @@ sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), ".."
 import shutil
 from optparse import OptionParser
 
-from nuitka.tools.release.Debian import checkChangeLog
+from nuitka.tools.release.Debian import (
+    checkChangeLog,
+    cleanupTarfileForDebian,
+    runPy2dsc,
+)
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import (
     checkAtHome,
@@ -43,16 +47,6 @@ from nuitka.tools.release.Release import (
 from nuitka.Version import getNuitkaVersion
 
 parser = OptionParser()
-
-parser.add_option(
-    "--use-as-ds-source",
-    action="store",
-    dest="ds_source",
-    default=None,
-    help="""\
-When given, use this as the source for the Debian package instead. Default \
-%default.""",
-)
 
 options, positional_args = parser.parse_args()
 
@@ -107,44 +101,9 @@ for filename in os.listdir("."):
     if filename.endswith(".tar.gz"):
         new_name = filename[:-7] + "+ds.tar.gz"
 
-        shutil.copy(filename, new_name)
-        assert os.system("gunzip " + new_name) == 0
-        assert (
-            os.system(
-                "tar --wildcards --delete --file "
-                + new_name[:-3]
-                + " Nuitka*/*.pdf"
-                + " Nuitka*/build/inline_copy"
-            )
-            == 0
-        )
-        assert os.system("gzip -9 -n " + new_name[:-3]) == 0
+        cleanupTarfileForDebian(filename, new_name)
 
-        assert os.system("py2dsc " + new_name) == 0
-
-        # Fixup for py2dsc not taking our custom suffix into account, so we need
-        # to rename it ourselves.
-        before_deb_name = filename[:-7].lower().replace("-", "_")
-        after_deb_name = before_deb_name.replace("rc", "~rc")
-
-        assert (
-            os.system(
-                "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'"
-                % (before_deb_name, after_deb_name)
-            )
-            == 0
-        )
-
-        assert os.system("rm -f deb_dist/*_source*") == 0
-
-        # Remove the now useless input, py2dsc has copied it, and we don't
-        # publish it.
-        os.unlink(new_name)
-
-        if options.ds_source is not None:
-            shutil.copyfile(
-                options.ds_source, "deb_dist/%s+ds.orig.tar.gz" % after_deb_name
-            )
+        runPy2dsc(filename, new_name)
 
         break
 else:

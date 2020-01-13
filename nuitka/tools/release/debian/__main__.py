@@ -10,7 +10,11 @@ import os
 import shutil
 from optparse import OptionParser
 
-from nuitka.tools.release.Debian import checkChangeLog, cleanupTarfileForDebian
+from nuitka.tools.release.Debian import (
+    checkChangeLog,
+    cleanupTarfileForDebian,
+    runPy2dsc,
+)
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName, getBranchCategory
 from nuitka.Version import getNuitkaVersion
@@ -79,26 +83,7 @@ Update the pbuilder chroot before building. Default %default.""",
 
             cleanupTarfileForDebian(filename, new_name)
 
-            assert os.system("py2dsc " + new_name) == 0
-
-            # Fixup for py2dsc not taking our custom suffix into account, so we need
-            # to rename it ourselves.
-            before_deb_name = filename[:-7].lower().replace("-", "_")
-            after_deb_name = before_deb_name.replace("rc", "~rc")
-
-            assert (
-                os.system(
-                    "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'"
-                    % (before_deb_name, after_deb_name)
-                )
-                == 0
-            )
-
-            assert os.system("rm -f deb_dist/*_source*") == 0
-
-            # Remove the now useless input, py2dsc has copied it, and we don't
-            # publish it.
-            os.unlink(new_name)
+            runPy2dsc(filename, new_name)
 
             break
     else:
@@ -121,9 +106,10 @@ Update the pbuilder chroot before building. Default %default.""",
 
     # Import the "debian" directory from above. It's not in the original tar and
     # overrides or extends what py2dsc does.
+    assert os.system("rm -rf '%s/debian/*'" % entry) == 0
     assert (
         os.system(
-            "rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry
+            "rsync -a --exclude pbuilder-hookdir ../../debian/ '%s/debian/'" % entry
         )
         == 0
     )
