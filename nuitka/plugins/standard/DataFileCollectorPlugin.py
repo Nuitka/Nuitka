@@ -236,7 +236,8 @@ known_data_folders = {
     "pywt": (_get_subdir_files, "data", False),
     "skimage": (_get_subdir_files, "data", False),
     "weasyprint": (_get_subdir_files, "css", False),
-    "eventlet": (_get_package_files, ("dns",), False),
+    "xarray": (_get_subdir_files, "static", False),
+    "eventlet": (_get_package_files, ("dns",), False),  # copy other package source
 }
 
 

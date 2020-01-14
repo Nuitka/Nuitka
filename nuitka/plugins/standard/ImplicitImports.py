@@ -1048,7 +1048,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pkg_resources._vendor.packaging.specifiers", True
             yield "pkg_resources._vendor.packaging.requirements", True
 
-        # pendulum imports -- START
+        # pendulum imports -- START -------------------------------------------
         elif full_name == "pendulum.locales":
             locales_dir = os.path.join(package_dir, "locales")
             idioms = os.listdir(locales_dir)
@@ -1065,7 +1065,40 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         ):  # only need the idiom folders
             yield "pendulum.locales." + elements[2], False
             yield "pendulum.locales." + elements[2] + ".locale", False
-        # pendulum imports -- STOP
+        # pendulum imports -- STOP --------------------------------------------
+
+        # urllib3 -------------------------------------------------------------
+        elif full_name.startswith(("urllib3", "requests.packages", "requests_toolbelt._compat")):
+            yield "urllib3", False
+            yield "urllib3._collections", False
+            yield "urllib3.connection", False
+            yield "urllib3.connection.appengine", False
+            yield "urllib3.connectionpool", False
+            yield "urllib3.contrib", False
+            yield "urllib3.contrib.appengine", False
+            yield "urllib3.exceptions", False
+            yield "urllib3.fields", False
+            yield "urllib3.filepost", False
+            yield "urllib3.packages", False
+            yield "urllib3.packages.six", False
+            yield "urllib3.packages.ssl_match_hostname", False
+            yield "urllib3.poolmanager", False
+            yield "urllib3.request", False
+            yield "urllib3.response", False
+            yield "urllib3.util", False
+            yield "urllib3.util.connection", False
+            yield "urllib3.util.queue", False
+            yield "urllib3.util.request", False
+            yield "urllib3.util.response", False
+            yield "urllib3.util.retry", False
+            yield "urllib3.util.ssl_", False
+            yield "urllib3.util.timeout", False
+            yield "urllib3.util.url", False
+            yield "urllib3.util.wait", False
+            yield "urllib.error", False
+            yield "urllib.parse", False
+            yield "urllib.request", False
+            yield "urllib.response", False
 
         elif full_name == "uvloop.loop":
             yield "uvloop._noop", True
@@ -1309,26 +1342,27 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         if python_version < 300
         else "xmlrpc.server",
         "six.moves.winreg": "_winreg" if python_version < 300 else "winreg",
-        "requests.packages.urllib3": "urllib3",
-        "requests.packages.urllib3.contrib": "urllib3.contrib",
-        "requests.packages.urllib3.contrib.pyopenssl": "urllib3.contrib.pyopenssl",
-        "requests.packages.urllib3.contrib.ntlmpool": "urllib3.contrib.ntlmpool",
-        "requests.packages.urllib3.contrib.socks": "urllib3.contrib.socks",
-        "requests.packages.urllib3.exceptions": "urllib3.exceptions",
-        "requests.packages.urllib3._collections": "urllib3._collections",
         "requests.packages.chardet": "chardet",
         "requests.packages.idna": "idna",
+        "requests.packages.urllib3": "urllib3",
+        "requests.packages.urllib3._collections": "urllib3._collections",
+        "requests.packages.urllib3.connection": "urllib3.connection",
+        "requests.packages.urllib3.connectionpool": "urllib3.connectionpool",
+        "requests.packages.urllib3.contrib": "urllib3.contrib",
+        "requests.packages.urllib3.contrib.appengine": "urllib3.contrib.appengine",
+        "requests.packages.urllib3.contrib.ntlmpool": "urllib3.contrib.ntlmpool",
+        "requests.packages.urllib3.contrib.pyopenssl": "urllib3.contrib.pyopenssl",
+        "requests.packages.urllib3.contrib.socks": "urllib3.contrib.socks",
+        "requests.packages.urllib3.exceptions": "urllib3.exceptions",
+        "requests.packages.urllib3.fields": "urllib3.fields",
+        "requests.packages.urllib3.filepost": "urllib3.filepost",
         "requests.packages.urllib3.packages": "urllib3.packages",
         "requests.packages.urllib3.packages.ordered_dict": "urllib3.packages.ordered_dict",
         "requests.packages.urllib3.packages.ssl_match_hostname": "urllib3.packages.ssl_match_hostname",
         "requests.packages.urllib3.packages.ssl_match_hostname._implementation": "urllib3.packages.ssl_match_hostname._implementation",
-        "requests.packages.urllib3.connectionpool": "urllib3.connectionpool",
-        "requests.packages.urllib3.connection": "urllib3.connection",
-        "requests.packages.urllib3.filepost": "urllib3.filepost",
+        "requests.packages.urllib3.poolmanager": "urllib3.poolmanager",
         "requests.packages.urllib3.request": "urllib3.request",
         "requests.packages.urllib3.response": "urllib3.response",
-        "requests.packages.urllib3.fields": "urllib3.fields",
-        "requests.packages.urllib3.poolmanager": "urllib3.poolmanager",
         "requests.packages.urllib3.util": "urllib3.util",
         "requests.packages.urllib3.util.connection": "urllib3.util.connection",
         "requests.packages.urllib3.util.request": "urllib3.util.request",
