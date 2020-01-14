@@ -35,7 +35,7 @@ BuildRequires:  python36-devel
 %if 0%{?fedora} >= 27
 BuildRequires:  python3-tools
 %endif
-%if 0%{?sle_version} >= 150000 && 0%{?is_opensuse}
+%if 0%{?suse_version} >= 1500
 BuildRequires:  python3-setuptools
 %endif
 BuildRequires:  gcc-c++
@@ -151,6 +151,7 @@ rm -rf %{buildroot}
 %changelog
 * Sat Dec 28 2019 Kay Hayen<kay.hayen@gmail.com> - 0.6.7
 - adapted for Fedora31 and CentOS 8, Python3 enhancements
+- added Python3 for openSUSE 15 or higher too.
 
 * Fri Jun 07 2019 Kay Hayen<kay.hayen@gmail.com> - 0.6.4
 - adapted for Fedora30
