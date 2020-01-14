@@ -1,14 +1,17 @@
 name: Nuitka tests
 
 on:
-  pull_request: {}
+  pull_request:
+    branches:
+      - develop
   push:
     branches:
       - master
       - develop
       - jorj
       - factory
-    tags: 'release_*'
+    tags:
+      - release_.*
 
 jobs:
   linux:
