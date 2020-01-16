@@ -28,7 +28,7 @@ import shutil
 from nuitka.containers.oset import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
-from nuitka.utils.FileOperations import getFileContentByLine, getFileList
+from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import getOS
 
@@ -1068,7 +1068,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         # pendulum imports -- STOP --------------------------------------------
 
         # urllib3 -------------------------------------------------------------
-        elif full_name.startswith(("urllib3", "requests.packages", "requests_toolbelt._compat")):
+        elif full_name.startswith(
+            ("urllib3", "requests.packages", "requests_toolbelt._compat")
+        ):
             yield "urllib3", False
             yield "urllib3._collections", False
             yield "urllib3.connection", False

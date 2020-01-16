@@ -25,7 +25,7 @@ import pkgutil
 from nuitka.containers.oset import OrderedSet
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import getFileList, listDir, makePath
+from nuitka.utils.FileOperations import getFileList, listDir
 
 known_data_files = {
     # Key is the package name to trigger it
@@ -133,7 +133,6 @@ def _get_package_files(module, packages, folders_only):
         Tuples of paths (source, dest), if folders_only is False,
         else tuples (_createEmptyDirNone, dest).
     """
-    module_folder = module.getCompileTimeDirectory()
     if not hasattr(packages, "__getitem__"):  # so should be a string type
         packages = (packages,)
 

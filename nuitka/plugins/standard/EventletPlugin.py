@@ -17,11 +17,9 @@
 #
 """ Details see below in class definition.
 """
-from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.Utils import getOS
 
 
 class EventletPlugin(NuitkaPluginBase):

@@ -65,13 +65,13 @@ def get_scipy_core_binaries(module):
 
 
 def get_numpy_core_binaries(module):
-    """ Return any binaries in numpy/core and/or numpy/.libs, whether or not actually used by our script.
+    """ Return any binaries in numpy/core and/or numpy/.libs.
 
     Notes:
-        This covers the special cases like MKL binaries, which cannot be detected by dependency managers.
+        This covers the special cases like MKL binaries.
 
     Returns:
-        tuple of abspaths of binaries
+        tuple of abspaths of binaries.
     """
     numpy_dir = module.getCompileTimeDirectory()
     numpy_core_dir = os.path.join(numpy_dir, "core")
@@ -153,31 +153,27 @@ print(get_backend())
 def copy_mpl_data(module, dist_dir):
     """Write matplotlib data files ('mpl-data')."""
 
-    matplotlib_dir = module.getCompileTimeDirectory()
-    data_dir = os.path.join(matplotlib_dir, "mpl-data")  # must exist
+    data_dir = os.path.join(module.getCompileTimeDirectory(), "mpl-data")  # must exist
     if not os.path.isdir(data_dir):
         sys.exit("mpl-data missing: matplotlib installation is broken")
 
-    files = getFileList(data_dir)  # get all filenames of mpl-data
     matplotlibrc, backend = get_matplotlibrc()  # get matplotlibrc, backend
+
     prefix = os.path.join("matplotlib", "mpl-data")
-    for item in files:  # copy data files to dist folder
+    for item in getFileList(data_dir):  # copy data files to dist folder
         if item.endswith("matplotlibrc"):  # handle config separately
             continue
         idx = item.find(prefix)  # need string starting with 'matplotlib/mpl-data'
-        src_file = item
         tar_file = os.path.join(dist_dir, item[idx:])
         makePath(os.path.dirname(tar_file))  # create intermediate folders
-        shutil.copyfile(src_file, tar_file)
+        shutil.copyfile(item, tar_file)
 
-    infile = open(matplotlibrc)  # read config file
-    old_lines = infile.read().splitlines()  # split by line
-    infile.close()
+    old_lines = open(matplotlibrc).read().splitlines()  # old config file lines
     new_lines = ["# modified by Nuitka plugin 'numpy'"]  # new config file lines
     found = False  # checks whether backend definition encountered
     for line in old_lines:
         line = line.strip()  # omit meaningless lines
-        if line.startswith(("#", "\n")) or line == "":
+        if line.startswith("#") or line == "":
             continue
         new_lines.append(line)
         if line.startswith(("backend ", "backend:")):
@@ -192,7 +188,6 @@ def copy_mpl_data(module, dist_dir):
     outfile = open(matplotlibrc, "w")
     outfile.write("\n".join(new_lines))
     outfile.close()
-    return
 
 
 class NumpyPlugin(NuitkaPluginBase):
@@ -318,12 +313,12 @@ class NumpyPlugin(NuitkaPluginBase):
             "sklearn.utils.weight_vector",
             "sklearn.utils._unittest_backport",
             "sklearn.externals.joblib.externals.cloudpickle.dumps",
+            "sklearn.externals.joblib.externals.loky.backend.managers",
         ]
 
         if isWin32Windows():
             sklearn_mods.extend(
                 [
-                    "sklearn.externals.joblib.externals.loky.backend.managers",
                     "sklearn.externals.joblib.externals.loky.backend.synchronize",
                     "sklearn.externals.joblib.externals.loky.backend._win_wait",
                     "sklearn.externals.joblib.externals.loky.backend._win_reduction",
@@ -333,7 +328,6 @@ class NumpyPlugin(NuitkaPluginBase):
         else:
             sklearn_mods.extend(
                 [
-                    "sklearn.externals.joblib.externals.loky.backend.managers",
                     "sklearn.externals.joblib.externals.loky.backend.synchronize",
                     "sklearn.externals.joblib.externals.loky.backend.compat_posix",
                     "sklearn.externals.joblib.externals.loky.backend._posix_reduction",
@@ -378,7 +372,7 @@ class NumpyPluginDetector(NuitkaPluginBase):
 
     @staticmethod
     def isRelevant():
-        """ This method is called one time only to check, whether the plugin might make sense at all.
+        """ Check whether plugin might be required.
 
         Returns:
             True if this is a standalone compilation.
