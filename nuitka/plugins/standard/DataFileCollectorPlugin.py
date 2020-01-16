@@ -159,7 +159,7 @@ def _get_package_files(module, packages, folders_only):
         target = f[filename_start:]  # make part of name
         if folders_only is False:  # normal case: indeed copy the files
             item_set.add((f, target))
-        else:  # just create the emtpy folder structure
+        else:  # just create the empty folder structure
             item_set.add((_createEmptyDirNone, target))
 
     for f in item_set:

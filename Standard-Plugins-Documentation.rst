@@ -55,7 +55,7 @@ List of Optional Standard Plugins
 Create a list of available optional |sps| giving their identifier together with a short description via ``--plugin-list``::
 
         The following optional standard plugins are available in Nuitka
---------------------------------------------------------------------------------
+ --------------------------------------------------------------------------------
  dill-compat      Required by the dill module
  eventlet         Required by the eventlet package
  gevent           Required by the gevent package
