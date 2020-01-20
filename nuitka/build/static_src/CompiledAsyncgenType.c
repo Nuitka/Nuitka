@@ -356,6 +356,10 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
                 asyncgen->m_running = 0;
 
                 if (res == true) {
+                    Py_INCREF(exception_type);
+                    Py_XINCREF(exception_value);
+                    Py_XINCREF(exception_tb);
+
                     return _Nuitka_Asyncgen_send(asyncgen, NULL, false, exception_type, exception_value, exception_tb);
                 }
 
@@ -497,7 +501,7 @@ static PyObject *Nuitka_Asyncgen_throw(struct Nuitka_AsyncgenObject *asyncgen, P
         return NULL;
     }
 
-    return _Nuitka_Asyncgen_throw2(asyncgen, true, exception_type, exception_value, exception_tb);
+    return _Nuitka_Asyncgen_throw2(asyncgen, false, exception_type, exception_value, exception_tb);
 }
 
 static int Nuitka_Asyncgen_init_hooks(struct Nuitka_AsyncgenObject *asyncgen) {
