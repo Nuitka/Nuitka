@@ -1219,6 +1219,17 @@ static int Nuitka_AsyncgenAthrow_traverse(struct Nuitka_AsyncgenAthrowObject *as
 }
 
 static PyObject *Nuitka_AsyncgenAthrow_send(struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow, PyObject *arg) {
+#if _DEBUG_ASYNCGEN
+    PRINT_STRING("Nuitka_AsyncgenAthrow_send: Enter with state:\asyncgen_athrow:");
+    PRINT_ITEM((PyObject *)asyncgen_athrow);
+    PRINT_NEW_LINE();
+    PRINT_FORMAT("State on entry is asyncgen_athrow->m_state = %d (%s)\n", asyncgen_athrow->m_state,
+                 getAwaitableStateStr(asyncgen_athrow->m_state));
+    PRINT_STRING("Nuitka_AsyncgenAthrow_send: arg:");
+    PRINT_ITEM(arg);
+    PRINT_NEW_LINE();
+#endif
+
     struct Nuitka_AsyncgenObject *asyncgen = asyncgen_athrow->m_gen;
 
     // If finished, just report StopIteration.
@@ -1243,7 +1254,12 @@ static PyObject *Nuitka_AsyncgenAthrow_send(struct Nuitka_AsyncgenAthrowObject *
 
         // Can also close only once.
         if (asyncgen->m_closed) {
+#if PYTHON_VERSION >= 380
+            asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
+            PyErr_SetNone(PyExc_StopAsyncIteration);
+#else
             PyErr_SetNone(PyExc_StopIteration);
+#endif
             return NULL;
         }
 
@@ -1342,14 +1358,31 @@ check_error:
     } else if (PyErr_ExceptionMatches(PyExc_GeneratorExit)) {
         asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
 
-        CLEAR_ERROR_OCCURRED();
-        PyErr_SetNone(PyExc_StopIteration);
+#if PYTHON_VERSION >= 380
+        if (asyncgen_athrow->m_args == NULL) {
+#endif
+            CLEAR_ERROR_OCCURRED();
+            PyErr_SetNone(PyExc_StopIteration);
+#if PYTHON_VERSION >= 380
+        }
+#endif
     }
 
     return NULL;
 }
 
 static PyObject *Nuitka_AsyncgenAthrow_throw(struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow, PyObject *args) {
+#if _DEBUG_ASYNCGEN
+    PRINT_STRING("Nuitka_AsyncgenAthrow_throw: Enter with state:\asyncgen_athrow:");
+    PRINT_ITEM((PyObject *)asyncgen_athrow);
+    PRINT_NEW_LINE();
+    PRINT_FORMAT("State on entry is asyncgen_athrow->m_state = %d (%s)\n", asyncgen_athrow->m_state,
+                 getAwaitableStateStr(asyncgen_athrow->m_state));
+    PRINT_STRING("Nuitka_AsyncgenAthrow_throw: args:");
+    PRINT_ITEM(args);
+    PRINT_NEW_LINE();
+#endif
+
     PyObject *retval;
 
 #if PYTHON_VERSION < 375
