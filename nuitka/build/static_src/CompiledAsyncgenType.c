@@ -419,7 +419,7 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
     }
 
 #if _DEBUG_ASYNCGEN
-    PRINT_STRING("_Nuitka_Asyncgen_throw2: Throwing for real.");
+    PRINT_STRING("_Nuitka_Asyncgen_throw2: Throwing for real.\n");
 #endif
 throw_here:
 
@@ -1167,9 +1167,9 @@ static PyTypeObject Nuitka_AsyncgenAsend_Type = {
 static PyObject *Nuitka_AsyncgenAsend_New(struct Nuitka_AsyncgenObject *asyncgen, PyObject *sendval) {
     struct Nuitka_AsyncgenAsendObject *result;
 
-    allocateFromFreeListFixed(free_list_asyncgen_asends, struct Nuitka_AsyncgenAsendObject, Nuitka_AsyncgenAsend_Type)
+    allocateFromFreeListFixed(free_list_asyncgen_asends, struct Nuitka_AsyncgenAsendObject, Nuitka_AsyncgenAsend_Type);
 
-        Py_INCREF(asyncgen);
+    Py_INCREF(asyncgen);
     result->m_gen = asyncgen;
 
     // TODO: We could make the user do that.
@@ -1366,7 +1366,7 @@ static PyObject *Nuitka_AsyncgenAthrow_throw(struct Nuitka_AsyncgenAthrowObject 
     if (asyncgen_athrow->m_args) {
         return Nuitka_Asyncgen_unwrap_value(asyncgen_athrow->m_gen, retval);
     } else {
-        if (retval) {
+        if (retval != NULL) {
             if (_PyAsyncGenWrappedValue_CheckExact(retval) || Nuitka_AsyncgenWrappedValue_CheckExact(retval)) {
 #if PYTHON_VERSION >= 380
                 asyncgen_athrow->m_gen->m_running_async = false;
@@ -1450,9 +1450,9 @@ static PyObject *Nuitka_AsyncgenAthrow_New(struct Nuitka_AsyncgenObject *asyncge
     struct Nuitka_AsyncgenAthrowObject *result;
 
     allocateFromFreeListFixed(free_list_asyncgen_athrows, struct Nuitka_AsyncgenAthrowObject,
-                              Nuitka_AsyncgenAthrow_Type)
+                              Nuitka_AsyncgenAthrow_Type);
 
-        Py_INCREF(asyncgen);
+    Py_INCREF(asyncgen);
     result->m_gen = asyncgen;
 
     Py_XINCREF(args);

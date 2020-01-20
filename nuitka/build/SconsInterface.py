@@ -277,7 +277,9 @@ def runScons(options, quiet):
             )
             options["nuitka_src"] = getExternalUsePath(options["nuitka_src"])
             if "result_exe" in options:
-                options["result_exe"] = getExternalUsePath(options["result_exe"], only_dirname=True)
+                options["result_exe"] = getExternalUsePath(
+                    options["result_exe"], only_dirname=True
+                )
         else:
             source_dir = None
 
