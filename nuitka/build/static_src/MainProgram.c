@@ -172,6 +172,18 @@ static argv_type_t convertCommandLineParameters(int argc, char **argv) {
 typedef char **argv_type_t;
 #endif
 
+#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+extern void SvcInstall();
+extern void SvcLaunchService();
+
+// Callback from Windows Service logic.
+DWORD WINAPI SvcStartPython(LPVOID lpParam) {
+    IMPORT_EMBEDDED_MODULE(const_str_plain___main__, "__main__");
+
+    return 0;
+}
+#endif
+
 // Parse the command line parameters and provide it to "sys" built-in module,
 // as well as decide if it's a multiprocessing usage.
 
@@ -179,11 +191,17 @@ static bool setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
     bool is_multiprocessing_fork = false;
 
     if (initial) {
-        /* We might need to skip what multiprocessing has told us. */
+        /* We might need to handle special parameters from plugins that are
+           very deeply woven into command line handling. These are right now
+           multiprocessing, which indicates that it's forking via extra
+           command line argument. And Windows Service indicates need to
+           install and exit here too.
+         */
         for (int i = 1; i < argc; i++) {
 #if PYTHON_VERSION < 300
             if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i + 1 < argc))
 #else
+            // TODO: Should simply use wide char literal
             wchar_t constant_buffer[100];
             mbstowcs(constant_buffer, "--multiprocessing-fork", 100);
             if ((wcscmp(argv[i], constant_buffer)) == 0 && (i + 1 < argc))
@@ -192,6 +210,21 @@ static bool setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
                 is_multiprocessing_fork = true;
                 break;
             }
+
+#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+#if PYTHON_VERSION < 300
+            if ((strcmp(argv[i], "install")) == 0 && (i + 1 < argc))
+#else
+            // TODO: Should simply use wide char literal
+            wchar_t constant_buffer[100];
+            mbstowcs(constant_buffer, "install", 100);
+            if ((wcscmp(argv[i], constant_buffer)) == 0 && (i + 1 < argc))
+#endif
+            {
+                SvcInstall();
+                NUITKA_CANNOT_GET_HERE("SvcInstall must not return");
+            }
+#endif
         }
     }
 
@@ -455,20 +488,20 @@ int main(int argc, char **argv) {
 
     /* Execute the main module. In case of multiprocessing making a fork on
      * Windows, we should execute something else instead. */
-#if _NUITKA_MODULE_COUNT > 1
     if (unlikely(is_multiprocess_forking)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
         IMPORT_EMBEDDED_MODULE(PyUnicode_FromString("__parents_main__"), "__parents_main__");
-    } else
-#endif
-    {
-        assert(!is_multiprocess_forking);
+    } else {
+        PyDict_DelItem(PyImport_GetModuleDict(), const_str_plain___main__);
 
+#ifndef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+        /* Execute the "__main__" module. */
         NUITKA_PRINT_TRACE("main(): Calling __main__.");
 
-        /* Execute the "__main__" module. */
-        PyDict_DelItem(PyImport_GetModuleDict(), const_str_plain___main__);
         IMPORT_EMBEDDED_MODULE(const_str_plain___main__, "__main__");
+#else
+        SvcLaunchService();
+#endif
     }
 
 #if _NUITKA_PROFILE

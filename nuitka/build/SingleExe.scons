@@ -1554,12 +1554,7 @@ else:
 
     writeConstantsDataSource()
 
-env.Append(
-    CPPDEFINES=[
-        "_NUITKA_FROZEN=%d" % frozen_modules,
-        "_NUITKA_MODULE_COUNT=%d" % module_count,
-    ]
-)
+env.Append(CPPDEFINES=["_NUITKA_FROZEN=%d" % frozen_modules])
 
 # Tell compiler to create a shared library or program.
 if module_mode:
