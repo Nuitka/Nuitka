@@ -20,10 +20,11 @@
 """
 
 import os
-from logging import warning
 import pkgutil
-from nuitka.containers.oset import OrderedSet
+from logging import warning
+
 from nuitka import Options
+from nuitka.containers.oset import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import getFileList, listDir
 

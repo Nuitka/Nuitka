@@ -26,9 +26,9 @@ from logging import info, warning
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import active_plugin_list
+from nuitka.utils import Execution
 from nuitka.utils.FileOperations import getFileList, makePath
 from nuitka.utils.Utils import isWin32Windows
-from nuitka.utils import Execution
 
 # ------------------------------------------------------------------------------
 # The following code is largely inspired by PyInstaller hook_numpy.core.py
