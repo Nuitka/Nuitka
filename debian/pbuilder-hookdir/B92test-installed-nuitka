@@ -24,8 +24,11 @@ rm tests/basics/Referencing*.py
 
 # Run the basic tests with default options and installed nuitka.
 export NUITKA=/usr/bin/nuitka
-python2 ./tests/basics/run_all.py search
+if [ -f "$NUITKA" ]
+then
+    $(head -n1 $NUITKA | cut -d'!' -f2) ./tests/basics/run_all.py search
+fi
 export NUITKA=/usr/bin/nuitka3
-$(head -n1 /usr/bin/nuitka3 | cut -d'!' -f2) ./tests/basics/run_all.py search
+$(head -n1 $NUITKA | cut -d'!' -f2) ./tests/basics/run_all.py search
 
 echo "Thanks passed the tests with installed package it seems."

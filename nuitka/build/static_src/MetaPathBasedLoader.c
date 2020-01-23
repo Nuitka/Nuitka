@@ -97,7 +97,7 @@ static char *copyModulenameAsPath(char *buffer, char const *module_name) {
     return buffer;
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_NUITKA_STANDALONE)
 static void wcscat_char(wchar_t *target, char c) {
     target += wcslen(target);
     char buffer_c[2] = {c};

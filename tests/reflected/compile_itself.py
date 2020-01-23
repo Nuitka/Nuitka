@@ -44,7 +44,7 @@ sys.path.insert(
 from nuitka.tools.testing.Common import getTempDir, my_print, setup
 from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
 
-python_version = setup()
+python_version = setup(needs_io_encoding=True)
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 

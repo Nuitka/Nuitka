@@ -1769,8 +1769,7 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
 #else
         kw_found = handleKeywordArgsWithStarDict(function, python_pars, &kw_only_found, kw);
 #endif
-        if (kw_found == -1)
-        {
+        if (kw_found == -1) {
             goto error_exit;
         }
     } else if (kw == NULL || DICT_SIZE(kw) == 0) {

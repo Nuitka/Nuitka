@@ -308,6 +308,15 @@ Do not use Python3.8 even if available on the system. Default is %default.""",
 Make a coverage analysis, that does not really check. Default is %default.""",
     )
 
+    parser.add_option(
+        "--assume-yes-for-downloads",
+        action="store_true",
+        dest="assume_yes_for_downloads",
+        default=False,
+        help="""\
+Allow Nuitka to download code if necessary, e.g. dependency walker on Windows. Default is %default.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     if positional_args:
@@ -509,6 +518,11 @@ def main():
         return False
 
     def setExtraFlags(where, name, flags):
+        if os.name == "nt" and name == "standalone" and options.assume_yes_for_downloads:
+            if flags:
+                flags += " "
+            flags += "--assume-yes-for-downloads"
+
         if where is not None:
             tmp_dir = tempfile.gettempdir()
 
@@ -521,9 +535,11 @@ def main():
             if not os.path.exists(where):
                 os.makedirs(where)
 
-            os.environ["NUITKA_EXTRA_OPTIONS"] = flags + " --output-dir=" + where
-        else:
-            os.environ["NUITKA_EXTRA_OPTIONS"] = flags
+            if flags:
+                flags += " "
+            flags += "--output-dir=" + where
+
+        os.environ["NUITKA_EXTRA_OPTIONS"] = flags
 
     def executeSubTest(command, hide_output=False):
         if options.coverage and "search" in command:
@@ -704,12 +720,20 @@ def main():
 
             # Running the Python 3.7 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
-                if os.path.exists("./tests/CPython36/run_all.py"):
+                if os.path.exists("./tests/CPython37/run_all.py"):
                     if options.cpython36:
                         setExtraFlags(where, "37tests", flags)
                         executeSubTest("./tests/CPython37/run_all.py search")
                 else:
                     print("The CPython3.7 tests are not present, not run.")
+
+            if not use_python.startswith("python2"):
+                if os.path.exists("./tests/CPython38/run_all.py"):
+                    if options.cpython36:
+                        setExtraFlags(where, "38tests", flags)
+                        executeSubTest("./tests/CPython38/run_all.py search")
+                else:
+                    print("The CPython3.8 tests are not present, not run.")
 
         if "NUITKA_EXTRA_OPTIONS" in os.environ:
             del os.environ["NUITKA_EXTRA_OPTIONS"]

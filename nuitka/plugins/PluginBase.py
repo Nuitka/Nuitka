@@ -618,6 +618,36 @@ class NuitkaPluginBase(object):
         # Virtual method, pylint: disable=no-self-use
         return None
 
+    def getExtraCodeFiles(self):
+        """ Add extra code files to the compilation.
+
+        Notes:
+            This is generally a bad idea to use unless you absolutely
+            know what you are doing.
+
+        Returns:
+            None for no extra codes, otherwise dictionary of key to be
+            filename, and value to be source code.
+        """
+
+        # Virtual method, pylint: disable=no-self-use
+        return None
+
+    def getExtraLinkLibraries(self):
+        """ Decide which link library should be added.
+
+        Notes:
+            Names provided multiple times, e.g. by multiple plugins are
+            only added once.
+
+        Returns:
+            None for no extra link library, otherwise the name as a **str**
+            or an iterable of names of link libraries.
+        """
+
+        # Virtual method, pylint: disable=no-self-use
+        return None
+
     def warnUnusedPlugin(self, message):
         """ An inactive plugin may issue a warning if it believes this may be wrong.
 

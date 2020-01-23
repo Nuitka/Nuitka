@@ -1,1 +1,6 @@
-addFilter("nuitka.* devel-file-in-non-devel-package")
+addFilter("nuitka.*: devel-file-in-non-devel-package")
+addFilter("nuitka.*: devel-dependency")
+
+addFilter("nuitka.*: files-duplicate /usr/bin/nuitka")
+addFilter("nuitka.*: files-duplicate .*__init__.py")
+addFilter("nuitka.*: files-duplicate .*/man1/")

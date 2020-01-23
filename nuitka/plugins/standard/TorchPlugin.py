@@ -92,7 +92,7 @@ class TorchPlugin(NuitkaPluginBase):
 
         Args:
             dist_dir: the name of the script's dist folder
-            module: module object (not used here)
+            module: module object
         Returns:
             empty tuple
         """
@@ -153,6 +153,6 @@ class TorchPluginDetector(NuitkaPluginBase):
         Returns:
             None
         """
-        full_name = module.getFullName().split(".")
-        if "torch" in full_name:
+        full_name = module.getFullName()
+        if "torch" in full_name or "torchvision" in full_name:
             self.warnUnusedPlugin("torch support.")

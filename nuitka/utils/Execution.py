@@ -24,6 +24,7 @@ binaries (needed for exec) and run them capturing outputs.
 
 import os
 import subprocess
+import sys
 from contextlib import contextmanager
 
 from .Utils import getArchitecture, getOS, isWin32Windows
@@ -197,3 +198,51 @@ def withEnvironmentVarOverriden(env_var_name, value):
             del os.environ[env_var_name]
     else:
         os.environ[env_var_name] = old_value
+
+
+def wrapCommandForDebuggerForExec(*args):
+    """ Wrap a command for system debugger to call exec
+
+    Args:
+        args: (list of str) args for call to be debugged
+    Returns:
+        args tuple with debugger command inserted
+
+    Notes:
+        Currently only gdb and lldb are supported, but adding more
+        debuggers would be very welcome.
+    """
+
+    gdb_path = getExecutablePath("gdb")
+    lldb_path = getExecutablePath("lldb")
+
+    if gdb_path is None and lldb_path is None:
+        sys.exit("Error, no 'gdb' or 'lldb' binary found in path.")
+
+    if gdb_path is not None:
+        args = (gdb_path, "gdb", "-ex=run", "-ex=where", "-ex=quit", "--args") + args
+    else:
+        args = (lldb_path, "lldb", "-o", "run", "-o", "bt", "-o", "quit", "--") + args
+
+    return args
+
+
+def wrapCommandForDebuggerForSubprocess(*args):
+    """ Wrap a command for system debugger with subprocess module.
+
+    Args:
+        args: (list of str) args for call to be debugged
+    Returns:
+        args tuple with debugger command inserted
+
+    Notes:
+        Currently only gdb and lldb are supported, but adding more
+        debuggers would be very welcome.
+    """
+
+    args = wrapCommandForDebuggerForExec(*args)
+
+    # Discard exec only argument.
+    args = args[0:1] + args[2:]
+
+    return args

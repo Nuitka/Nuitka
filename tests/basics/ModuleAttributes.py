@@ -38,7 +38,7 @@ except NameError:
 
 
 def checkFromFunction():
-    frame = sys._getframe(1)
+    frame = sys._getframe(1)  # pylint: disable=protected-access
 
     def displayDict(d):
         if "__loader__" in d:

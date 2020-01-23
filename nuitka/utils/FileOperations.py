@@ -86,11 +86,12 @@ def areSamePaths(path1, path2):
     return path1 == path2
 
 
-def relpath(path):
+def relpath(path, start="."):
     """ Make it a relative path, if possible.
 
     Args:
         path: path to work on
+        start: where to start from, defaults to current directory
 
     Returns:
         Changed path, pointing to the same path relative to current
@@ -101,9 +102,11 @@ def relpath(path):
         names, therefore it may have to return the absolute path
         instead.
     """
+    if start == ".":
+        start = os.curdir
 
     try:
-        return os.path.relpath(path)
+        return os.path.relpath(path, start)
     except ValueError:
         # On Windows, paths on different devices prevent it to work. Use that
         # full path then.
@@ -363,7 +366,40 @@ def getWindowsShortPathName(filename):
     while True:
         output_buf = ctypes.create_unicode_buffer(output_buf_size)
         needed = GetShortPathNameW(filename, output_buf, output_buf_size)
+
+        if needed == 0:
+            # Windows only code, pylint: disable=I0021,undefined-variable
+
+            raise WindowsError(
+                ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
+            )
+
         if output_buf_size >= needed:
             return output_buf.value
         else:
             output_buf_size = needed
+
+
+def getExternalUsePath(filename, only_dirname=False):
+    """ Gets the externally usable absolute path for a given relative path.
+
+    Args:
+        filename - filename, potentially relative
+    Returns:
+        Path that is a absolute and (on Windows) short filename pointing at the same file.
+    Notes:
+        Except on Windows, this is merely os.path.abspath, there is coverts
+        to a short path too.
+    """
+
+    filename = os.path.abspath(filename)
+
+    if os.name == "nt":
+        if only_dirname:
+            dirname = getWindowsShortPathName(os.path.dirname(filename))
+            assert os.path.exists(dirname)
+            filename = os.path.join(dirname, os.path.basename(filename))
+        else:
+            filename = getWindowsShortPathName(filename)
+
+    return filename

@@ -43,6 +43,7 @@ from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
     my_print,
+    reportSkip,
     setup,
     withPythonPathChange,
 )
@@ -161,6 +162,10 @@ def main():
         elif filename == "multiprocessing_using":
             if os.name == "nt":
                 extra_flags += ["plugin_enable:multiprocessing", "ignore_infos"]
+
+            elif sys.platform == "darwin" and python_version >= "3.8":
+                reportSkip("Hangs for unknown reasons", ".", filename)
+                continue
         else:
             os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options
 

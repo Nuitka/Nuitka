@@ -314,6 +314,12 @@ def main():
                 if r"windows\winsxs" in loaded_filename:
                     continue
 
+                # Github actions have these in PATH overriding SYSTEMROOT
+                if r"windows performance toolkit" in loaded_filename:
+                    continue
+                if r"powershell" in loaded_filename:
+                    continue
+
             if loaded_filename.startswith(current_dir):
                 continue
 
@@ -464,6 +470,8 @@ def main():
                     "libblkid.so.",
                     "libmount.so.",
                     "libpcre2-8.so.",
+                    # CentOS 8 on OBS
+                    "libuuid.so.",
                 )
             ):
                 continue
@@ -550,8 +558,8 @@ def main():
             ):
                 continue
 
-            # Can look at these.
-            if loaded_filename in ("/usr/bin/python3.2mu", "/usr/bin/python3"):
+            # Can look at the interpreter of the system.
+            if loaded_basename == "python3":
                 continue
 
             # Current Python executable can actually be a symlink and

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -16,7 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 """
 This is the main program of Nuitka, it checks the options and then translates
 one or more modules to a C source code using Python C/API in a "*.build"

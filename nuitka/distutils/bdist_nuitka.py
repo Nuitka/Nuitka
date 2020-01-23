@@ -113,7 +113,7 @@ class build(distutils.command.build.build):
 
         while py_packages:
             current_package = min(py_packages)
-            related = [p for p in py_packages if p.startswith(current_package)]
+            related = [p for p in py_packages if p == current_package or p.startswith(current_package + ".")]
 
             builds.append(PyPackage(current_package, related_packages=related))
 
@@ -122,7 +122,7 @@ class build(distutils.command.build.build):
 
         while py_modules:
             current_module = min(py_modules)
-            related = [m for m in py_modules if m.startswith(current_module)]
+            related = [m for m in py_modules if m == current_module or m.startswith(current_module + ".")]
 
             builds.append(PyModule(current_module, related_modules=related))
 

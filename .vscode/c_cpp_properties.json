@@ -28,9 +28,27 @@
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE",
-                "__IDE_ONLY__"
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=370"
             ],
-            "windowsSdkVersion": "10.0.17134.0",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}"
+        },
+        {
+            "name": "Linux-Python2.7",
+            "includePath": [
+                "${workspaceFolder}/nuitka/build/include",
+                "/usr/include/python2.7"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=270"
+            ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
             "cppStandard": "c++17",

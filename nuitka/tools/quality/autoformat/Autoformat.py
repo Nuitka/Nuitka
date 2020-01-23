@@ -380,6 +380,11 @@ def autoformat(filename, git_stage, abort):
             ".spec",
             "-rpmlintrc",
         )
+    ) or os.path.basename(filename) in (
+        "changelog",
+        "compat",
+        "control",
+        "lintian-overrides",
     )
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format

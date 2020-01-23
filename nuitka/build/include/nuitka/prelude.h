@@ -26,7 +26,16 @@
  * numbers should be.
  */
 #include "patchlevel.h"
+
+// TODO: Switch to using hex format version of standard Python or change our
+// to use that too, to avoid overflows more generally. For now we to out at
+// e.g. 369 for 3.6.10 or higher, but behavior changes are really rare at that
+// point.
+#if PY_MICRO_VERSION < 10
 #define PYTHON_VERSION (PY_MAJOR_VERSION * 100 + PY_MINOR_VERSION * 10 + PY_MICRO_VERSION)
+#else
+#define PYTHON_VERSION (PY_MAJOR_VERSION * 100 + PY_MINOR_VERSION * 10 + 9)
+#endif
 
 /* This is needed or else we can't create modules name "proc" or "func". For
  * Python3, the name collision can't happen, so we can limit it to Python2.

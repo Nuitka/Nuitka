@@ -1907,7 +1907,6 @@ static HMODULE getDllModuleHandle() {
 static char *getDllDirectory() {
 #if defined(_WIN32)
     static char path[MAXPATHLEN + 1];
-    HMODULE hm = NULL;
     path[0] = '\0';
 
 #if PYTHON_VERSION >= 300
@@ -1939,8 +1938,9 @@ static char *getDllDirectory() {
 
 void _initBuiltinModule() {
 #if _NUITKA_MODULE
-    if (builtin_module)
+    if (builtin_module != NULL) {
         return;
+    }
 #else
     assert(builtin_module == NULL);
 #endif

@@ -34,11 +34,24 @@ from nuitka.utils.Utils import getOS
 
 
 def remove_suffix(mod_dir, mod_name):
+    """Return the path of a module's first level name.
+
+    """
     if mod_name not in mod_dir:
         return mod_dir
-    l = len(mod_name)
-    p = mod_dir.find(mod_name) + l
+    p = mod_dir.find(mod_name) + len(mod_name)
     return mod_dir[:p]
+
+
+def remove_prefix(mod_dir, mod_name):
+    """Return the tail of a module's path.
+
+    Remove everything preceding the top level name.
+    """
+    if mod_name not in mod_dir:
+        return mod_dir
+    p = mod_dir.find(mod_name)
+    return mod_dir[p:]
 
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
@@ -295,6 +308,33 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "apt_inst":
             yield "apt_pkg", True
 
+        # start of engineio imports ------------------------------------------
+        elif full_name == "engineio":
+            yield "engineio.async_drivers", False
+
+        elif full_name == "engineio.async_drivers":
+            yield "engineio.async_drivers.aiohttp", False
+            yield "engineio.async_drivers.asgi", False
+            yield "engineio.async_drivers.eventlet", False
+            yield "engineio.async_drivers.gevent", False
+            yield "engineio.async_drivers.gevent_uwsgi", False
+            yield "engineio.async_drivers.sanic", False
+            yield "engineio.async_drivers.threading", False
+            yield "engineio.async_drivers.tornado", False
+
+        # start of eventlet imports ------------------------------------------
+        elif full_name == "eventlet":
+            yield "eventlet.hubs", False
+
+        elif full_name == "eventlet.hubs":
+            yield "eventlet.hubs.epolls", False
+            yield "eventlet.hubs.hub", False
+            yield "eventlet.hubs.kqueue", False
+            yield "eventlet.hubs.poll", False
+            yield "eventlet.hubs.pyevent", False
+            yield "eventlet.hubs.selects", False
+            yield "eventlet.hubs.timer", False
+
         # start of gevent imports --------------------------------------------
         elif full_name == "gevent":
             yield "_cffi_backend", True
@@ -400,8 +440,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "gevent.__imap", True
         # end of gevent imports ----------------------------------------------
 
-        # start of tensorflow imports --------------------------------------------
-
+        # start of tensorflow imports ----------------------------------------
         elif full_name == "tensorflow":
             yield "tensorboard", False
             yield "tensorflow_estimator", False
@@ -528,7 +567,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
             elif full_name == "tensorflow.contrib.bigtable.python.ops":
                 yield "tensorflow.contrib.bigtable.python.ops._bigtable", False
-
         # end of tensorflow imports -------------------------------------------
 
         # boto3 imports ------------------------------------------------------
@@ -542,7 +580,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "boto3.s3.transfer", False
 
         # GDAL imports ------------------------------------------------------
-
         elif full_name == "osgeo":
             yield "osgeo._gdal", False
             yield "osgeo._gdalconst", False
@@ -555,6 +592,33 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "cv2":
             yield "numpy", True
             yield "numpy.core", True
+
+        # fastapi imports ---------------------------------------------------
+        elif full_name == "fastapi":
+            yield "fastapi.routing", True
+
+        # pydantic imports ---------------------------------------------------
+        elif full_name == "pydantic":
+            yield "pydantic.__init__", False
+            yield "pydantic.typing", False
+            yield "pydantic.fields", False
+            yield "pydantic.utils", False
+            yield "pydantic.schema", False
+            yield "pydantic.env_settings", False
+            yield "pydantic.main", False
+            yield "pydantic.error_wrappers", False
+            yield "pydantic.validators", False
+            yield "pydantic.mypy", False
+            yield "pydantic.version", False
+            yield "pydantic.types", False
+            yield "pydantic.color", False
+            yield "pydantic.parse", False
+            yield "pydantic.json", False
+            yield "pydantic.datetime_parse", False
+            yield "pydantic.dataclasses", False
+            yield "pydantic.class_validators", False
+            yield "pydantic.networks", False
+            yield "pydantic.errors", False
 
         # uvicorn imports -----------------------------------------------------
         elif full_name == "uvicorn":
@@ -651,10 +715,40 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "matplotlib.backend_bases", True
             yield "mpl_toolkits", False
 
-        elif full_name == "matplotlib.backends.backend_agg":
+        elif full_name == "matplotlib.backends":
             yield "matplotlib.backends._backend_agg", False
             yield "matplotlib.backends._tkagg", False
             yield "matplotlib.backends.backend_tkagg", False
+            yield "matplotlib.backends.backend_agg", False
+
+        elif full_name.startswith("matplotlib.backends.backend_wx"):
+            yield "matplotlib.backends.backend_wx", True
+            yield "matplotlib.backends.backend_wxagg", True
+            yield "wx", True
+
+        elif full_name == "matplotlib.backends.backend_cairo":
+            yield "cairo", False
+            yield "cairocffi", False
+
+        elif full_name.startswith("matplotlib.backends.backend_gtk3"):
+            yield "matplotlib.backends.backend_gtk3", True
+            yield "matplotlib.backends.backend_gtk3agg", True
+            yield "gi", True
+
+        elif full_name.startswith("matplotlib.backends.backend_web"):
+            yield "matplotlib.backends.backend_webagg", True
+            yield "matplotlib.backends.backend_webagg_core", True
+            yield "tornado", True
+
+        elif full_name.startswith("matplotlib.backends.backend_qt4"):
+            yield "matplotlib.backends.backend_qt4agg", True
+            yield "matplotlib.backends.backend_qt4", True
+            yield "PyQt4", True
+
+        elif full_name.startswith("matplotlib.backends.backend_qt5"):
+            yield "matplotlib.backends.backend_qt5agg", True
+            yield "matplotlib.backends.backend_qt5", True
+            yield "PyQt5", True
 
         # scipy imports -------------------------------------------------------
         elif full_name == "scipy.special":
@@ -944,7 +1038,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "sklearn.utils.sparsetools":
             yield "sklearn.utils.sparsetools._graph_validation", True
             yield "sklearn.utils.sparsetools._graph_tools", True
-
         # end of scikit-learn imports -----------------------------------------
 
         elif full_name == "PIL._imagingtk":
@@ -955,7 +1048,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pkg_resources._vendor.packaging.specifiers", True
             yield "pkg_resources._vendor.packaging.requirements", True
 
-        # pendulum imports -- START
+        # pendulum imports -- START -------------------------------------------
         elif full_name == "pendulum.locales":
             locales_dir = os.path.join(package_dir, "locales")
             idioms = os.listdir(locales_dir)
@@ -972,7 +1065,42 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         ):  # only need the idiom folders
             yield "pendulum.locales." + elements[2], False
             yield "pendulum.locales." + elements[2] + ".locale", False
-        # pendulum imports -- STOP
+        # pendulum imports -- STOP --------------------------------------------
+
+        # urllib3 -------------------------------------------------------------
+        elif full_name.startswith(
+            ("urllib3", "requests.packages", "requests_toolbelt._compat")
+        ):
+            yield "urllib3", False
+            yield "urllib3._collections", False
+            yield "urllib3.connection", False
+            yield "urllib3.connection.appengine", False
+            yield "urllib3.connectionpool", False
+            yield "urllib3.contrib", False
+            yield "urllib3.contrib.appengine", False
+            yield "urllib3.exceptions", False
+            yield "urllib3.fields", False
+            yield "urllib3.filepost", False
+            yield "urllib3.packages", False
+            yield "urllib3.packages.six", False
+            yield "urllib3.packages.ssl_match_hostname", False
+            yield "urllib3.poolmanager", False
+            yield "urllib3.request", False
+            yield "urllib3.response", False
+            yield "urllib3.util", False
+            yield "urllib3.util.connection", False
+            yield "urllib3.util.queue", False
+            yield "urllib3.util.request", False
+            yield "urllib3.util.response", False
+            yield "urllib3.util.retry", False
+            yield "urllib3.util.ssl_", False
+            yield "urllib3.util.timeout", False
+            yield "urllib3.util.url", False
+            yield "urllib3.util.wait", False
+            yield "urllib.error", False
+            yield "urllib.parse", False
+            yield "urllib.request", False
+            yield "urllib.response", False
 
         elif full_name == "uvloop.loop":
             yield "uvloop._noop", True
@@ -1216,26 +1344,27 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         if python_version < 300
         else "xmlrpc.server",
         "six.moves.winreg": "_winreg" if python_version < 300 else "winreg",
-        "requests.packages.urllib3": "urllib3",
-        "requests.packages.urllib3.contrib": "urllib3.contrib",
-        "requests.packages.urllib3.contrib.pyopenssl": "urllib3.contrib.pyopenssl",
-        "requests.packages.urllib3.contrib.ntlmpool": "urllib3.contrib.ntlmpool",
-        "requests.packages.urllib3.contrib.socks": "urllib3.contrib.socks",
-        "requests.packages.urllib3.exceptions": "urllib3.exceptions",
-        "requests.packages.urllib3._collections": "urllib3._collections",
         "requests.packages.chardet": "chardet",
         "requests.packages.idna": "idna",
+        "requests.packages.urllib3": "urllib3",
+        "requests.packages.urllib3._collections": "urllib3._collections",
+        "requests.packages.urllib3.connection": "urllib3.connection",
+        "requests.packages.urllib3.connectionpool": "urllib3.connectionpool",
+        "requests.packages.urllib3.contrib": "urllib3.contrib",
+        "requests.packages.urllib3.contrib.appengine": "urllib3.contrib.appengine",
+        "requests.packages.urllib3.contrib.ntlmpool": "urllib3.contrib.ntlmpool",
+        "requests.packages.urllib3.contrib.pyopenssl": "urllib3.contrib.pyopenssl",
+        "requests.packages.urllib3.contrib.socks": "urllib3.contrib.socks",
+        "requests.packages.urllib3.exceptions": "urllib3.exceptions",
+        "requests.packages.urllib3.fields": "urllib3.fields",
+        "requests.packages.urllib3.filepost": "urllib3.filepost",
         "requests.packages.urllib3.packages": "urllib3.packages",
         "requests.packages.urllib3.packages.ordered_dict": "urllib3.packages.ordered_dict",
         "requests.packages.urllib3.packages.ssl_match_hostname": "urllib3.packages.ssl_match_hostname",
         "requests.packages.urllib3.packages.ssl_match_hostname._implementation": "urllib3.packages.ssl_match_hostname._implementation",
-        "requests.packages.urllib3.connectionpool": "urllib3.connectionpool",
-        "requests.packages.urllib3.connection": "urllib3.connection",
-        "requests.packages.urllib3.filepost": "urllib3.filepost",
+        "requests.packages.urllib3.poolmanager": "urllib3.poolmanager",
         "requests.packages.urllib3.request": "urllib3.request",
         "requests.packages.urllib3.response": "urllib3.response",
-        "requests.packages.urllib3.fields": "urllib3.fields",
-        "requests.packages.urllib3.poolmanager": "urllib3.poolmanager",
         "requests.packages.urllib3.util": "urllib3.util",
         "requests.packages.urllib3.util.connection": "urllib3.util.connection",
         "requests.packages.urllib3.util.request": "urllib3.util.request",

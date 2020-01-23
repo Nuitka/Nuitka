@@ -175,10 +175,25 @@ def cleanSourceDirectory(source_dir):
         ".txt",
     )
 
+    def check(path):
+        if hasFilenameExtension(path, extensions):
+            deleteFile(path, must_exist=True)
+
     if os.path.isdir(source_dir):
         for path, _filename in listDir(source_dir):
-            if hasFilenameExtension(path, extensions):
-                deleteFile(path, must_exist=True)
+            check(path)
+
+        static_dir = os.path.join(source_dir, "static_src")
+
+        if os.path.exists(static_dir):
+            for path, _filename in listDir(static_dir):
+                check(path)
+
+        plugins_dir = os.path.join(source_dir, "plugins")
+
+        if os.path.exists(plugins_dir):
+            for path, _filename in listDir(plugins_dir):
+                check(path)
 
 
 def pickSourceFilenames(source_dir, modules):
@@ -402,6 +417,16 @@ def makeSourceDirectory(main_module):
         filename=os.path.join(source_dir, "__helpers.c"), source_code=helper_impl_code
     )
 
+    for filename, source_code in Plugins.getExtraCodeFiles().items():
+        target_dir = os.path.join(source_dir, "plugins")
+
+        if not os.path.isdir(target_dir):
+            makePath(target_dir)
+
+        writeSourceCode(
+            filename=os.path.join(target_dir, filename), source_code=source_code
+        )
+
 
 def _asBoolStr(value):
     return "true" if value else "false"
@@ -531,6 +556,10 @@ def runScons(main_module, quiet):
             for key, value in cpp_defines.items()
         )
 
+    link_libraries = Plugins.getExtraLinkLibraries()
+    if link_libraries:
+        options["link_libraries"] = ",".join(link_libraries)
+
     return SconsInterface.runScons(options, quiet), options
 
 
@@ -580,20 +609,9 @@ def callExecPython(args, clean_path, add_path):
     Execution.callExec(args)
 
 
-def _wrapForDebugger(*args):
-    gdb_path = Execution.getExecutablePath("gdb")
-
-    if gdb_path is None:
-        sys.exit("Error, no 'gdb' binary found in path.")
-
-    args = (gdb_path, "gdb", "-ex=run", "-ex=where", "--args") + args
-
-    return args
-
-
 def executeMain(binary_filename, clean_path):
     if Options.shallRunInDebugger():
-        args = _wrapForDebugger(binary_filename)
+        args = Execution.wrapCommandForDebuggerForExec(binary_filename)
     else:
         args = (binary_filename, binary_filename)
 
@@ -604,7 +622,9 @@ def executeModule(tree, clean_path):
     python_command = "__import__('%s')" % tree.getName()
 
     if Options.shallRunInDebugger():
-        args = _wrapForDebugger(sys.executable, "-c", python_command)
+        args = Execution.wrapCommandForDebuggerForExec(
+            sys.executable, "-c", python_command
+        )
     else:
         args = (sys.executable, "python", "-c", python_command)
 

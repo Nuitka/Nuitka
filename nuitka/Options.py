@@ -361,7 +361,7 @@ def shallClearPythonPathEnvironment():
 
 
 def shallUseStaticLibPython():
-    """ *bool* = derived from sys.version
+    """ *bool* = derived from `sys.prefix` and `os.name`
 
     Notes:
         Currently only AnaConda on non-Windows can do this.
@@ -369,7 +369,11 @@ def shallUseStaticLibPython():
 
     # For AnaConda default to trying static lib python library, which
     # normally is just not available or if it is even unusable.
-    return "Anaconda" in sys.version and os.name == "nt"
+    return (
+        os.path.exists(os.path.join(sys.prefix, "conda-meta"))
+        and not Utils.isWin32Windows()
+        and not Utils.getOS() == "Darwin"
+    )
 
 
 def shallTreatUninstalledPython():
@@ -646,3 +650,12 @@ def getPythonPathForScons():
     """ *str*, value of "--python-for-scons"
     """
     return options.python_scons
+
+
+def shallCompileWithoutBuildDirectory():
+    """ *bool* currently hard coded, not when using debugger.
+
+        TODO: Make this not hardcoded, but possible to disable via an
+        options.
+    """
+    return not shallRunInDebugger()

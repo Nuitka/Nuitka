@@ -230,7 +230,9 @@ python_sysflag_utf8 = getBoolOption("python_sysflag_utf8", False)
 # python_sysflag_optimize
 python_sysflag_optimize = getBoolOption("python_sysflag_optimize", False)
 
+# Preprocessor defines from plugins
 cpp_defines = getListOption("cpp_defines", "")
+link_libraries = getListOption("link_libraries", "")
 
 # Mode to only output compiler information, for use in "nuitka --version"
 # only.
@@ -816,8 +818,9 @@ if gcc_mode:
     env.Append(CCFLAGS=["-fwrapv"])
 
     # Save some memory for gcc by not tracing macro code locations at all.
-    if not debug_mode and not clang_mode:
+    if gcc_version >= "5" and not debug_mode and not clang_mode:
         env.Append(CCFLAGS=["-ftrack-macro-expansion=0"])
+
 
 # Support for clang.
 if "clang" in the_cc_name:
@@ -906,22 +909,25 @@ version for lto mode (>= 4.6)."""
     if lto_mode and gcc_version < "4.6":
         print("Warning, LTO mode specified, but not available.", file=sys.stderr)
 
-    # Avoid them as appearing to be different files. TODO: Find out which
-    # clang version has this.
-    if gcc_version >= "8":
-        env.Append(
-            CCFLAGS=[
-                "-ffile-prefix-map=%s=%s"
-                % (
-                    os.path.join(source_dir, "static_src"),
-                    os.path.join(nuitka_src, "static_src"),
-                )
-            ]
-        )
-
     # The var-tracking does not scale, disable it. Should we really need it, we
     # can enable it. TODO: Does this cause a performance loss?
     env.Append(CCFLAGS=["-fno-var-tracking"])
+
+# Avoid them as appearing to be different files. TODO: Find out which
+# clang version has this, clang-8 does not.
+if gcc_mode and not clang_mode and gcc_version >= "8":
+    if source_dir != ".":
+        # TODO: This also lies for modules codes.
+        env.Append(
+            CCFLAGS=[
+                "--file-prefix-map=%s=%s"
+                % (
+                    os.path.normpath(os.path.join(source_dir, "static_src")),
+                    os.path.join(nuitka_src, "static_src"),
+                ),
+                "--file-prefix-map=%s=%s" % (os.path.normpath(source_dir), ""),
+            ]
+        )
 
 if gcc_mode and not noelf_mode and not macosx_target:
     env.Append(LINKFLAGS=["-z", "noexecstack"])
@@ -1208,7 +1214,8 @@ env.Append(CPPPATH=[python_header_path])
 
 # To support self built Python on Windows, need to also add the "PC" directory,
 # that a normal install won't have.
-env.Append(CPPPATH=[os.path.join(python_prefix, "PC")])
+if os.name == "nt":
+    env.Append(CPPPATH=[os.path.join(python_prefix, "PC")])
 
 
 def getWindowsPythonDLLPath():
@@ -1249,7 +1256,7 @@ if win_target:
             env.Append(LIBS=[win_lib_name])
 
         addWinLib()
-elif not module_mode or (macosx_target and not static_libpython):
+elif not module_mode:
     # Add the python library path to the library path
     python_lib_path = os.path.join(python_prefix, "lib")
     env.Append(LIBPATH=[python_lib_path])
@@ -1286,10 +1293,18 @@ elif not module_mode or (macosx_target and not static_libpython):
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
     if "netbsd" in sys.platform:
         env.Append(LINKFLAGS=["-rpath=" + python_lib_path])
+elif macosx_target and module_mode:
+    env.Append(LINKFLAGS=["-undefined", "dynamic_lookup"])
 
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.
 nuitka_include = os.path.join(nuitka_src, "include")
+
+if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
+    sys.exit(
+        "Error, cannot locate Nuitka includes at '%s', broken installation."
+        % nuitka_include
+    )
 
 # We have include files in the build directory and the static include directory
 # that is located inside Nuitka installation.
@@ -1354,6 +1369,10 @@ if gcc_mode and not macosx_target and not win_target and not module_mode:
     # rpath in the binary will be ignored by the loader.
     if "linux" in sys.platform:
         env.Append(LINKFLAGS=["-Wl,--disable-new-dtags"])
+
+# For macOS we need to make sure install_name_tool can do its work
+if macosx_target and not module_mode:
+    env.Append(LINKFLAGS=["-headerpad_max_install_names"])
 
 
 def _getBinaryArch(binary):
@@ -1535,12 +1554,7 @@ else:
 
     writeConstantsDataSource()
 
-env.Append(
-    CPPDEFINES=[
-        "_NUITKA_FROZEN=%d" % frozen_modules,
-        "_NUITKA_MODULE_COUNT=%d" % module_count,
-    ]
-)
+env.Append(CPPDEFINES=["_NUITKA_FROZEN=%d" % frozen_modules])
 
 # Tell compiler to create a shared library or program.
 if module_mode:
@@ -1569,6 +1583,10 @@ def discoverSourceFiles():
     # needs to derive from filenames, so make copies (or links) with a different
     # name.
     def cheap_copy(src, dst):
+        dirname = os.path.dirname(dst)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+
         if win_target:
             # Windows has symlinks these days, but they do not integrate well
             # with Python2 at least.So make a copy in any case.
@@ -1603,7 +1621,7 @@ def discoverSourceFiles():
 
     def provideStatic(sub_path):
         source_file = os.path.join(nuitka_src, "static_src", sub_path)
-        target_file = os.path.join(source_dir, os.path.basename(sub_path))
+        target_file = os.path.join(source_dir, "static_src", os.path.basename(sub_path))
 
         if target_file.endswith(".c") and not c11_mode:
             target_file += "pp"
@@ -1612,28 +1630,35 @@ def discoverSourceFiles():
 
         return target_file
 
+    def _scanSourcekDir(dirname):
+        if not os.path.exists(dirname):
+            return
+
+        for filename in sorted(os.listdir(dirname)):
+            # Only C files are of interest here.
+            if not filename.endswith((".c", "cpp")) or not filename.startswith(
+                ("module.", "__", "plugin.")
+            ):
+                continue
+
+            filename = os.path.join(dirname, filename)
+
+            target_file = filename
+
+            # We pretend to use C++ if no C11 compiler is present.
+            if c11_mode:
+                result.append(filename)
+            else:
+                if filename.endswith(".c"):
+                    target_file += "pp"  # .cpp" suffix then
+
+                    os.rename(filename, target_file)
+
+                result.append(target_file)
+
     # Scan for Nuitka created source files, and add them too.
-    for filename in sorted(os.listdir(source_dir)):
-        # Only C files are of interest here.
-        if not filename.endswith((".c", "cpp")) or not filename.startswith(
-            ("module.", "__")
-        ):
-            continue
-
-        filename = os.path.join(source_dir, filename)
-
-        target_file = filename
-
-        # We pretend to use C++ if no C11 compiler is present.
-        if c11_mode:
-            result.append(filename)
-        else:
-            if filename.endswith(".c"):
-                target_file += "pp"  # .cpp" suffix then
-
-                os.rename(filename, target_file)
-
-            result.append(target_file)
+    _scanSourcekDir(source_dir)
+    _scanSourcekDir(os.path.join(source_dir, "plugins"))
 
     # Main program, unless of course it's a Python module/package we build.
     if not module_mode:
@@ -1891,8 +1916,9 @@ if gcc_mode:
     _makeGccUseLinkerFile()
 
 # Plugin contributed C defines should be used too.
-for cpp_define in cpp_defines:
-    env.Append(CPPDEFINES=cpp_define)
+env.Append(CPPDEFINES=cpp_defines)
+# Plugin contributed link libraries should be used too.
+env.Append(LIBS=link_libraries)
 
 Default(target)  # pylint: disable=undefined-variable
 
