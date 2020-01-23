@@ -1,5 +1,11 @@
-Nuitka Release 0.6.7 (Draft)
+Nuitka Release 0.6.8 (Draft)
 ============================
+
+This release is not done yet.
+
+
+Nuitka Release 0.6.7
+====================
 
 Organisational
 --------------
