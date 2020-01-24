@@ -10,6 +10,7 @@
         "foxundermoon.shell-format",
         "troelsdamgaard.reflow-paragraph",
         "laurenttreguier.rpm-spec",
+        "ms-vscode.cpptools"
     ],
     // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
     "unwantedRecommendations": [
