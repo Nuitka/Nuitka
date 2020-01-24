@@ -143,50 +143,19 @@ your Nuitka checkout. If you are not familiar with Eclipse, this is Free
 Software IDE,designed to be universally extended, and it truly is. There are
 plugins available for nearly everything.
 
-The extensions to be installed are these (check their precise name in brackets
-in the plugin overview after putting it into "search" for in the extensions
-part
+The extensions to be installed are part of the Visual Code recommendations in
+.vscode/extensions.json and you will be prompted about that.
 
-- Python (ms-python.python)
-- reStructuredText (lextudio.restructuredtext)
-- C/C++ (ms-vscode.cpptools)
+Another one we found useful to collaborate:
 
-Others we found useful:
-
-- Reflow paragraph (troelsdamgaard.reflow-paragraph)
 - Live Share (ms-vsliveshare.vsliveshare)
 
-Eclipse
--------
+Eclipse / PyCharm
+-----------------
 
-Download Eclipse from here: https://www.eclipse.org/downloads/packages/
+Don't use it anymore, we consider Visual Studio Code to be far superior for
+delivering a nice out of the box environment.
 
-Pick "Eclipse IDE for C/C++ Developers" as that comes with everything useful
-for C development included. Install it.
-
-After launching, you see a welcome screen. But Eclipse will need more setup
-to become a useful IDE. Go to menu point ``Help``/``Eclipse Marketplace`` as
-that is the easiest way to install your plugins. Install these ones:
-
-- PyDev (Python IDE for Eclipse)
-
-  This is for the majority of code in Nuitka, the Python code, to easily
-  navigate and search it, as well as autocompletion.
-
-- AnyEdit Tools
-
-  Proper whitespace handling for Eclipse, this strips trailing whitespace,
-  which Eclipse doesn't handle outside of Java.
-
-- ReST Editor
-
-  This is good for editing the User Manual, Developer Manual, and generally all
-  documentation of Nuitka.
-
-PyCharm
--------
-
-TODO.
 
 Commit and Code Hygiene
 =======================
