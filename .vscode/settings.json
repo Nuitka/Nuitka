@@ -45,7 +45,7 @@
         "--disable=useless-object-inheritance,useless-return,assignment-from-no-return",
         "--disable=import-outside-toplevel",
     ],
-    "python.linting.ignorePatterns" : ["tests/CPython??/test/**"],
+    "python.linting.ignorePatterns" : ["tests/CPython??/test/**", "tests/syntax/**"],
     "restructuredtext.confPath": "",
     "python.formatting.provider": "black",
 }
