@@ -25,7 +25,7 @@ from logging import info, warning
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.plugins.Plugins import active_plugin_list
+from nuitka.plugins.Plugins import active_plugin_set
 from nuitka.utils import Execution
 from nuitka.utils.FileOperations import getFileList, makePath
 from nuitka.utils.Utils import isWin32Windows
@@ -219,7 +219,7 @@ class NumpyPlugin(NuitkaPluginBase):
         self.mpl_data_copied = True  # indicator: matplotlib data copied
         if self.matplotlib:
             self.mpl_data_copied = False
-            for p in active_plugin_list:
+            for p in active_plugin_set:
                 if p.plugin_name.endswith("hinted-mods.py"):
                     break
             else:

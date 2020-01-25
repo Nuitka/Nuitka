@@ -45,7 +45,7 @@ from nuitka.utils.ModuleNames import ModuleName
 
 from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
 
-active_plugin_list = []
+active_plugin_set = OrderedSet()
 plugin_name2plugin_classes = {}
 
 
@@ -117,7 +117,7 @@ def loadStandardPlugins():
             sys.exit("Plugin '%s' has no standard class." % plugin_module)
 
         if always_enable:  # mandatory, relevant plugin: enable it
-            active_plugin_list.append(
+            active_plugin_set.add(
                 (plugin or plugin)()  # TODO: pylint: disable=I0021,not-callable
             )
         else:  # optional plugin: make it searchable by plugin_name
@@ -129,7 +129,7 @@ class Plugins(object):
     def isPluginActive(plugin_name):
         """ Is a plugin activated. """
 
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             if plugin.plugin_name == plugin_name:
                 return True
 
@@ -137,7 +137,7 @@ class Plugins(object):
 
     @staticmethod
     def considerImplicitImports(module, signal_change):
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             plugin.considerImplicitImports(module, signal_change)
 
         # Post load code may have been created, if so indicate it's used.
@@ -153,7 +153,7 @@ class Plugins(object):
     def onStandaloneDistributionFinished(dist_dir):
         """ Let plugins postprocess the distribution folder if standalone
         """
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             plugin.onStandaloneDistributionFinished(dist_dir)
 
         return None
@@ -162,7 +162,7 @@ class Plugins(object):
     def considerExtraDlls(dist_dir, module):
         result = []
 
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             for extra_dll in plugin.considerExtraDlls(dist_dir, module):
                 if not os.path.isfile(extra_dll[0]):
                     sys.exit(
@@ -194,7 +194,7 @@ class Plugins(object):
 
         result = []
 
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             for removed_dll in plugin.removeDllDependencies(
                 dll_filename, dll_filenames
             ):
@@ -212,13 +212,13 @@ class Plugins(object):
             Data file description pairs, either (source, dest) or (func, dest)
             where the func will be called to create the content dynamically.
         """
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             for value in plugin.considerDataFiles(module):
                 yield value
 
     @staticmethod
     def onModuleDiscovered(module):
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             plugin.onModuleDiscovered(module)
 
     @staticmethod
@@ -226,7 +226,7 @@ class Plugins(object):
         assert type(module_name) is ModuleName
         assert type(source_code) is str
 
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             source_code = plugin.onModuleSourceCode(module_name, source_code)
             assert type(source_code) is str
 
@@ -237,7 +237,7 @@ class Plugins(object):
         assert type(module_name) is ModuleName
         assert type(source_code) is str
 
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             source_code = plugin.onFrozenModuleSourceCode(
                 module_name, is_package, source_code
             )
@@ -250,7 +250,7 @@ class Plugins(object):
         assert type(module_name) is ModuleName
         assert bytecode.__class__.__name__ == "code"
 
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             bytecode = plugin.onFrozenModuleBytecode(module_name, is_package, bytecode)
             assert bytecode.__class__.__name__ == "code"
 
@@ -260,7 +260,7 @@ class Plugins(object):
     def onModuleEncounter(module_filename, module_name, module_kind):
         result = False
 
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             must_recurse = plugin.onModuleEncounter(
                 module_filename, module_name, module_kind
             )
@@ -271,7 +271,7 @@ class Plugins(object):
 
     @staticmethod
     def considerFailedImportReferrals(module_name):
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             new_module_name = plugin.considerFailedImportReferrals(module_name)
 
             if new_module_name is not None:
@@ -293,7 +293,7 @@ class Plugins(object):
         Returns:
             True or False
         """
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             if plugin.suppressBuiltinImportWarning(module, source_ref):
                 return True
 
@@ -318,7 +318,7 @@ class Plugins(object):
 
         source_ref = importing.getSourceReference()
 
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             if plugin.suppressUnknownImportWarning(
                 importing_module, module_name, source_ref
             ):
@@ -336,7 +336,7 @@ class Plugins(object):
         Returns:
             "compiled" (default) or "bytecode".
         """
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             value = plugin.decideCompilation(module_name, source_ref)
 
             if value is not None:
@@ -359,7 +359,7 @@ class Plugins(object):
         """
         result = OrderedDict()
 
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             value = plugin.getPreprocessorSymbols()
 
             if value is not None:
@@ -376,7 +376,7 @@ class Plugins(object):
     def getExtraCodeFiles():
         result = OrderedDict()
 
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             value = plugin.getExtraCodeFiles()
 
             if value is not None:
@@ -394,7 +394,7 @@ class Plugins(object):
     def getExtraLinkLibraries():
         result = OrderedSet()
 
-        for plugin in active_plugin_list:
+        for plugin in active_plugin_set:
             value = plugin.getExtraLinkLibraries()
 
             if value is not None:
@@ -517,7 +517,7 @@ def importUserPlugins():
             plugin_name = getattr(obj, "plugin_name", None)
             if plugin_name and plugin_name not in Options.getPluginsDisabled():
                 info("User plugin '%s' is being loaded." % plugin_name)
-                active_plugin_list.append(obj())
+                active_plugin_set.add(obj())
                 valid_file = True
                 break  # do not look for more in that module
 
@@ -532,7 +532,7 @@ def initPlugins():
         Load user plugins provided as Python script file names, and standard
         plugins via their class attribute 'plugin_name'.
         Several checks are made, see below.
-        The final result is 'active_plugin_list' which contains all enabled
+        The final result is 'active_plugin_set' which contains all enabled
         plugins.
         User plugins are enabled as a first step, because they themselves may
         enable standard plugins.
@@ -563,14 +563,14 @@ def initPlugins():
         (plugin_class, plugin_detector),
     ) in plugin_name2plugin_classes.items():
         if plugin_name in Options.getPluginsEnabled():
-            active_plugin_list.append(plugin_class())
+            active_plugin_set.add(plugin_class())
         elif plugin_name not in Options.getPluginsDisabled():
             if (
                 plugin_detector is not None
                 and Options.shallDetectMissingPlugins()
                 and plugin_detector.isRelevant()
             ):
-                active_plugin_list.append(plugin_detector())
+                active_plugin_set.add(plugin_detector())
 
 
 initPlugins()
