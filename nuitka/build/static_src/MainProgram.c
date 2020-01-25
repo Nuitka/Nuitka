@@ -186,10 +186,9 @@ DWORD WINAPI SvcStartPython(LPVOID lpParam) {
 
 // Parse the command line parameters and provide it to "sys" built-in module,
 // as well as decide if it's a multiprocessing usage.
+static bool is_multiprocessing_fork = false;
 
-static bool setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
-    bool is_multiprocessing_fork = false;
-
+static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
     if (initial) {
         /* We might need to handle special parameters from plugins that are
            very deeply woven into command line handling. These are right now
@@ -202,9 +201,7 @@ static bool setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
             if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i + 1 < argc))
 #else
             // TODO: Should simply use wide char literal
-            wchar_t constant_buffer[100];
-            mbstowcs(constant_buffer, "--multiprocessing-fork", 100);
-            if ((wcscmp(argv[i], constant_buffer)) == 0 && (i + 1 < argc))
+            if ((wcscmp(argv[i], L"--multiprocessing-fork")) == 0 && (i + 1 < argc))
 #endif
             {
                 is_multiprocessing_fork = true;
@@ -215,10 +212,7 @@ static bool setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
 #if PYTHON_VERSION < 300
             if ((strcmp(argv[i], "install")) == 0 && (i + 1 < argc))
 #else
-            // TODO: Should simply use wide char literal
-            wchar_t constant_buffer[100];
-            mbstowcs(constant_buffer, "install", 100);
-            if ((wcscmp(argv[i], constant_buffer)) == 0 && (i + 1 < argc))
+            if ((wcscmp(argv[i], L"install")) == 0 && (i + 1 < argc))
 #endif
             {
                 SvcInstall();
@@ -233,8 +227,6 @@ static bool setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
     } else {
         PySys_SetArgv(argc, argv);
     }
-
-    return is_multiprocessing_fork;
 }
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
@@ -334,9 +326,9 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
 
 #if PYTHON_VERSION < 300
-    bool is_multiprocess_forking = setCommandLineParameters(argc, argv, true);
+    setCommandLineParameters(argc, argv, true);
 #else
-    bool is_multiprocess_forking = setCommandLineParameters(argc, argv_unicode, true);
+    setCommandLineParameters(argc, argv_unicode, true);
 #endif
 
     /* For Python installations that need the home set, we inject it back here. */
@@ -486,23 +478,29 @@ int main(int argc, char **argv) {
     startProfiling();
 #endif
 
-    /* Execute the main module. In case of multiprocessing making a fork on
-     * Windows, we should execute something else instead. */
-    if (unlikely(is_multiprocess_forking)) {
+    /* Execute the main module unless plugins want to do something else. In case of
+       multiprocessing making a fork on Windows, we should execute __parents_main__
+       instead. And for Windows Service we call the plugin C code to call us back
+       to launch main code in a callback. */
+#ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
+    if (unlikely(is_multiprocessing_fork)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
         IMPORT_EMBEDDED_MODULE(PyUnicode_FromString("__parents_main__"), "__parents_main__");
     } else {
+#endif
         PyDict_DelItem(PyImport_GetModuleDict(), const_str_plain___main__);
 
-#ifndef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
-        /* Execute the "__main__" module. */
-        NUITKA_PRINT_TRACE("main(): Calling __main__.");
-
-        IMPORT_EMBEDDED_MODULE(const_str_plain___main__, "__main__");
-#else
+#if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
         SvcLaunchService();
+#else
+    /* Execute the "__main__" module. */
+    NUITKA_PRINT_TRACE("main(): Calling __main__.");
+
+    IMPORT_EMBEDDED_MODULE(const_str_plain___main__, "__main__");
 #endif
+#ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
     }
+#endif
 
 #if _NUITKA_PROFILE
     stopProfiling();

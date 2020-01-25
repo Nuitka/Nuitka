@@ -50,6 +50,10 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
         self.multiprocessing_added = False
 
     @staticmethod
+    def getPreprocessorSymbols():
+        return {"_NUITKA_PLUGIN_MULTIPROCESSING_ENABLED": "1"}
+
+    @staticmethod
     def createPreModuleLoadCode(module):
         full_name = module.getFullName()
 
