@@ -105,9 +105,9 @@ Insist on PyLint to be installed. Default is %default.""",
 
     print("Working on:", positional_args)
 
-    blacklist = ["oset.py", "odict.py"]
+    blacklist = []
 
-    # Avoid checking the Python2 runner with Python3, it has name collisions.
+    # Avoid checking the Python2 runner along with the one for Python3, it has name collisions.
     if python_version >= 300:
         blacklist.append("nuitka")
 
