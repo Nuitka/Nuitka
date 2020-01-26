@@ -50,9 +50,25 @@ class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
     plugin_name = "qt-plugins"
     plugin_desc = "Required by the PyQt and PySide packages"
 
-    def __init__(self):
+    def __init__(self, qt_plugins):
+        self.qt_plugins = qt_plugins
+
         self.qt_dirs = {}
         self.webengine_done = False
+
+    @classmethod
+    def addPluginCommandLineOptions(cls, group):
+        group.add_option(
+            "--include-qt-plugins",
+            action="store",
+            dest="qt_plugins",
+            default="sensible",
+            help="""\
+Which Qt plugins to include. These can be big with dependencies, so
+by default only the sensible ones are included, but you can also put
+"all" or list them individually. If you specify something that does
+not exist, a list of all available will be given.""",
+        )
 
     @staticmethod
     def createPreModuleLoadCode(module):
@@ -165,13 +181,9 @@ if os.path.exists(guess_path):
             if not plugin_dirs:
                 sys.exit("Error, failed to detect %s plugin directories." % full_name)
 
-            plugin_options = self.getPluginOptions()
-            plugin_options = set(plugin_options)
             target_plugin_dir = os.path.join(dist_dir, full_name, "qt-plugins")
 
-            # Default to using sensible plugins.
-            if not plugin_options:
-                plugin_options.add("sensible")
+            plugin_options = set(self.qt_plugins.split(","))
 
             if "sensible" in plugin_options:
                 # Most used ones with low dependencies.
@@ -438,10 +450,10 @@ system Qt plug-ins, which may be from another Qt version.""",
 
 
 class NuitkaPluginDetectorPyQtPySidePlugins(NuitkaPluginBase):
-    plugin_name = "qt-plugins"
+    detector_for = NuitkaPluginPyQtPySidePlugins
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):

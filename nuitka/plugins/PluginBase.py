@@ -94,65 +94,25 @@ class NuitkaPluginBase(object):
         """
         return False
 
-    def getPluginOptionBool(self, option_name, default_value):
-        """ Check whether an option is switched on or off.
+    @classmethod
+    def isRelevant(cls):
+        """ Consider if the plugin is relevant.
 
         Notes:
-            Convenience method for checking single option items. If option_name is present
-            in the options list, return "True". If '"no" + option_name' is present,
-            return "False". Else return the default value.
-
-        Args:
-            option_name: option name
-            default_value: value if neither option_name nor its negation present.
-        Returns:
-            True or False or default_value
-        """
-        plugin_options = self.getPluginOptions()
-
-        if option_name in plugin_options and "no" + option_name in plugin_options:
-            sys.exit("Error, conflicting options values given.")
-
-        if option_name in plugin_options:
-            return True
-
-        if "no" + option_name in plugin_options:
-            return False
-
-        return default_value
-
-    def getPluginOptions(self):
-        """ Return all options for the plugin.
-
-        Notes:
-            This method will always return a list of strings.
-            To specify options, code '=' immediately after the plugin name / script name.
-            The following string (excluding next space) will be returned after applying split(",").
-            You are free to specify anything. Use quotes to include spaces. See below for examples.
+            A plugin may only be a needed on a certain OS, or with some options,
+            but this is only a class method, so you will not have much run time
+            information.
 
         Returns:
-            list of strings
-
-        Examples:
-            For a plugin called "name"
-
-            '...plugin=name' (no options string)
-                []
-
-            '...plugin=name=' (empty options string)
-                ['']
-
-            '...plugin=name=a,b,c' (normal options string)
-                ['a', 'b', 'c']
-
-            '...plugin=name=a=0,b=1,c=2' (normal options string)
-                ['a=0', 'b=1', 'c=2']
-
-            '...plugin=name="a=0, b=1, c=2"' (options string with spaces)
-                ["[a=0", " b=1", " c=2]"]
+            True or False
 
         """
-        return Options.getPluginOptions(self.plugin_name)
+        return True
+
+    @classmethod
+    def addPluginCommandLineOptions(cls, group):
+        # Call group.add_option() here.
+        pass
 
     def considerImplicitImports(self, module, signal_change):
         """ Provide additional modules to import implicitly when encountering the module.
@@ -564,8 +524,8 @@ class NuitkaPluginBase(object):
         """ Suppress import warnings for builtin modules.
 
         Args:
-            module: the module object
-            source_ref: ???
+            module: the module the import is made in
+            source_ref: source reference of the import
         Returns:
             True or False
         """

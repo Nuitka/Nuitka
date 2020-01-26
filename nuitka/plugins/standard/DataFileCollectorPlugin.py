@@ -244,8 +244,8 @@ known_data_folders = {
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     plugin_name = "data-files"
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         return Options.isStandaloneMode()
 
     @staticmethod

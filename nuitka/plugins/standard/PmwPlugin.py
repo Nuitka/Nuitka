@@ -75,6 +75,30 @@ class NuitkaPluginPmw(NuitkaPluginBase):
     plugin_name = "pmw-freezer"
     plugin_desc = "Required by the Pmw package"
 
+    def __init__(self, need_blt, need_color):
+        self.need_blt = need_blt
+        self.need_color = need_color
+
+    @classmethod
+    def addPluginCommandLineOptions(cls, group):
+        group.add_option(
+            "--exclude-pmw-blt",
+            action="store_false",
+            dest="need_blt",
+            default=True,
+            help="""\
+Should 'Pmw.Blt' not be included, Default is to include it.""",
+        )
+
+        group.add_option(
+            "--exclude-pmw-color",
+            action="store_false",
+            dest="need_color",
+            default=True,
+            help="""\
+Should 'Pmw.Color' not be included, Default is to include it.""",
+        )
+
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "Pmw":
             pmw_path = self.locateModule(
@@ -174,17 +198,12 @@ def installedversions(alpha = 0):
 
 """
 
-        # Set this to 0 if you do not use any of the Pmw.Color functions:
-        # Set this to 0 if you do not use any of the Pmw.Blt functions:
-        needBlt = not self.getPluginOptionBool("blt", True)
-        needColor = not self.getPluginOptionBool("color", True)
-
         outfile = StringIO()
 
-        if needColor:
+        if self.need_color:
             outfile.write(colorCode)
 
-        if needBlt:
+        if self.need_blt:
             outfile.write(bltCode)
 
         outfile.write(extraCode % version)
@@ -195,7 +214,7 @@ def installedversions(alpha = 0):
         text = re.sub("import PmwLogicalFont", "", text)
         text = re.sub("PmwLogicalFont._font_initialise", "_font_initialise", text)
         outfile.write(text)
-        if not needBlt:
+        if not self.need_blt:
             outfile.write(ignoreBltCode)
 
         files.append("LogicalFont")
@@ -208,10 +227,10 @@ def installedversions(alpha = 0):
 
 
 class NuitkaPluginDetectorPmw(NuitkaPluginBase):
-    plugin_name = "pmw-freezer"
+    detector_for = NuitkaPluginPmw
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):

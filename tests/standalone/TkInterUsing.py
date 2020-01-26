@@ -17,6 +17,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" TkInter standalone test, trying to make sure it loads.
+
+"""
+
 from __future__ import print_function
 
 # Python3 changed module name.

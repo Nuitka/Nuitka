@@ -33,8 +33,8 @@ class NuitkaPluginEnumWorkarounds(NuitkaPluginBase):
 
     plugin_name = "enum-compat"
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         return python_version < 300
 
     @staticmethod

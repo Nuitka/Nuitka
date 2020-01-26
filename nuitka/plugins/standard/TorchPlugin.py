@@ -132,10 +132,10 @@ class TorchPluginDetector(NuitkaPluginBase):
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    plugin_name = "torch"  # Nuitka knows us by this name
+    detector_for = TorchPlugin
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         """ This method is called one time only to check, whether the plugin might make sense at all.
 
         Returns:

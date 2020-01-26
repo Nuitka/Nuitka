@@ -45,10 +45,10 @@ class EventlettPluginDetector(NuitkaPluginBase):
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    plugin_name = "eventlet"
+    detector_for = EventletPlugin
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         """ One time only check: may this plugin be required?
 
         Returns:

@@ -133,6 +133,11 @@ def main():
 
         Execution.callExec(args)
 
+    # Load plugins after we know, we don't execute again.
+    from nuitka.plugins.Plugins import activatePlugins
+
+    activatePlugins()
+
     if Options.isShowMemory():
         from nuitka.utils import MemoryUsage
 

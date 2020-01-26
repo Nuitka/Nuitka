@@ -599,29 +599,6 @@ def getPluginsEnabled():
     return tuple(result)
 
 
-def getPluginOptions(plugin_name):
-    """ Return the options provided for the specified plugin.
-
-    Args:
-        plugin_name: plugin identifier
-    Returns:
-        list created by split(',') for the string following "=" after plugin_name.
-    """
-    result = []
-
-    if options:
-        for plugin_enabled in options.plugins_enabled + options.user_plugins:
-            if "=" not in plugin_enabled:
-                continue
-
-            name, args = plugin_enabled.split("=", 1)
-
-            if name == plugin_name:
-                result.extend(args.split(","))
-
-    return result
-
-
 def getPluginsDisabled():
     """ Return the names of disabled (standard) plugins.
     """

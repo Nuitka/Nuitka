@@ -78,11 +78,7 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
 
 
 class NuitkaPluginDetectorPylintEclipseAnnotations(NuitkaPluginBase):
-    plugin_name = "pylint-warnings"
-
-    @staticmethod
-    def isRelevant():
-        return True
+    detector_for = NuitkaPluginPylintEclipseAnnotations
 
     def onModuleSourceCode(self, module_name, source_code):
         if re.search(r"#\s*pylint:\s*disable=\s*(\w+)", source_code):

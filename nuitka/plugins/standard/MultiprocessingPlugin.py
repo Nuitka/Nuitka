@@ -183,10 +183,10 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
 
 
 class NuitkaPluginDetectorMultiprocessingWorkarounds(NuitkaPluginBase):
-    plugin_name = "multiprocessing"
+    detector_for = NuitkaPluginMultiprocessingWorkarounds
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         return Utils.getOS() == "Windows" and not Options.shallMakeModule()
 
     def checkModuleSourceCode(self, module_name, source_code):

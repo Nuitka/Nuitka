@@ -741,6 +741,21 @@ plugin_group.add_option(
 )
 
 
+def _considerPluginOptions():
+    for arg in sys.argv[1:]:
+        if arg[0] != "-":
+            break
+
+        # Treat "--" as a terminator.
+        if arg == "--":
+            break
+
+        if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
+            from nuitka.plugins.Plugins import addPluginCommandLineOptions
+
+            addPluginCommandLineOptions(parser=parser, plugin_name=arg[16:])
+
+
 def parseOptions():
     # First, isolate the first non-option arguments.
     if is_nuitka_run:
@@ -763,6 +778,9 @@ def parseOptions():
             sys.argv = sys.argv[0 : count + 1]
     else:
         extra_args = []
+
+    # Next, lets activate plugins early, so they can inject more options to the parser.
+    _considerPluginOptions()
 
     options, positional_args = parser.parse_args()
 

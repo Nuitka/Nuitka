@@ -108,10 +108,10 @@ class TensorflowPluginDetector(NuitkaPluginBase):
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    plugin_name = "tensorflow"  # Nuitka knows us by this name
+    detector_for = TensorflowPlugin
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         """ This method is called one time only to check, whether the plugin might make sense at all.
 
         Returns:

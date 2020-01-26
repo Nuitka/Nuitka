@@ -25,7 +25,7 @@ from logging import info, warning
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.plugins.Plugins import active_plugin_set
+from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.utils import Execution
 from nuitka.utils.FileOperations import getFileList, makePath
 from nuitka.utils.Utils import isWin32Windows
@@ -207,11 +207,11 @@ class NumpyPlugin(NuitkaPluginBase):
     plugin_name = "numpy"  # Nuitka knows us by this name
     plugin_desc = "Required for numpy, scipy, pandas, matplotlib, etc."
 
-    def __init__(self):
+    def __init__(self, matplotlib, scipy):
         self.enabled_plugins = None  # list of active standard plugins
         self.numpy_copied = False  # indicator: numpy files copied
-        self.matplotlib = self.getPluginOptionBool("matplotlib", False)
-        self.scipy = self.getPluginOptionBool("scipy", False)
+        self.matplotlib = matplotlib
+        self.scipy = scipy
         self.scipy_copied = True  # indicator: scipy files copied
         if self.scipy:
             self.scipy_copied = False
@@ -219,13 +219,33 @@ class NumpyPlugin(NuitkaPluginBase):
         self.mpl_data_copied = True  # indicator: matplotlib data copied
         if self.matplotlib:
             self.mpl_data_copied = False
-            for p in active_plugin_set:
+            for p in getActivePlugins():
                 if p.plugin_name.endswith("hinted-mods.py"):
                     break
             else:
                 warning(
                     "matplotlib may need hinted compilation for non-standard backends"
                 )
+
+    @classmethod
+    def addPluginCommandLineOptions(cls, group):
+        group.add_option(
+            "--include-scipy",
+            action="store_true",
+            dest="scipy",
+            default=False,
+            help="""\
+Should scipy be included with numpy, Default is %default.""",
+        )
+
+        group.add_option(
+            "--include-matplotlib",
+            action="store_true",
+            dest="matplotlib",
+            default=False,
+            help="""\
+Should matplotlib be included with numpy, Default is %default.""",
+        )
 
     def considerExtraDlls(self, dist_dir, module):
         """ Copy extra shared libraries or data for this installation.
@@ -368,10 +388,10 @@ class NumpyPluginDetector(NuitkaPluginBase):
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    plugin_name = "numpy"  # Nuitka knows us by this name
+    detector_for = NumpyPlugin
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         """ Check whether plugin might be required.
 
         Returns:
