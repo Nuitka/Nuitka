@@ -518,7 +518,11 @@ def main():
         return False
 
     def setExtraFlags(where, name, flags):
-        if os.name == "nt" and name == "standalone" and options.assume_yes_for_downloads:
+        if (
+            os.name == "nt"
+            and name == "standalone"
+            and options.assume_yes_for_downloads
+        ):
             if flags:
                 flags += " "
             flags += "--assume-yes-for-downloads"
