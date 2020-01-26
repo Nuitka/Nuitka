@@ -828,9 +828,6 @@ class PythonShlibModule(PythonModuleBase):
     def finalize(self):
         del self.used_modules
 
-    def getDetails(self):
-        return {"name": self.name, "package_name": self.package_name}
-
     def getFilename(self):
         return self.getSourceReference().getFilename()
 
