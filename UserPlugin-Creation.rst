@@ -9,25 +9,28 @@ own *standard* plugins are. There also is no difference with respect to what
 they can do. Both types are invoked via parameters in Nuitka's command line.
 The difference is the invocation format:
 
-* A standard plugin is invoked by ``--enable-plugin=<plugin_name>``. The string
+* A standard plugin is invoked by ``--plugin-enable=<plugin_name>``. The string
   ``<plugin_name>`` is a unique identifier by which Nuitka identifies it. As
-  soon as Nuitka has found the corresponding plugin, it will call its initialization
-  method. Nuitka also has some standard plugins which are always activated.
+  soon as Nuitka has found the corresponding plugin, it will call its
+  initialization method. Nuitka also has some standard plugins which are always
+  activated.
   A standard plugin is represented by a Python script living in
   ``nuitka/plugins/standard``.
   Standard plugins also internally have an object which can issue warnings when
   it encounters situations looking like it is required.
+
 * A user plugin is invoked by ``--user-plugin=</path/to/script.py>``. Nuitka
   will import the script and call its initialization method just like for a
   standard plugin. The plugin must have a non-empty string specified in its
   variable ``plugin_name``. It must also not equal one of the de-activated
   standard plugin strings. Best practice is filling it with the filename, e.g.
   ``plugin_name == __file__``, because this allows providing it with options.
-  User plugins are always activated once successfully loaded. They therefore have
-  no mechanism to warn if not being used.
+  User plugins are always activated once successfully loaded. They therefore
+  have no mechanism to warn if not being used.
 
 Example User Plugin
 --------------------
+
 This is a simple demo user plugin. It will display source code lines of the
 main program if they contain calls to the ``math`` module, if an option
 named "trace" is active::
@@ -76,10 +79,9 @@ Sample invocation line and output::
     Nuitka:INFO: 125: print(math.sqrt(2))
     Nuitka:INFO:
 
-    $
-
 Nuitka Options Overview
 ------------------------
+
 About 60 methods are available to access option information for the
 current Nuitka execution. Import the ``Options`` module
 (``"from nuitka import Options"``) and use one of the following.

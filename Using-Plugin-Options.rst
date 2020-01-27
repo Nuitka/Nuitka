@@ -20,13 +20,14 @@ to control a plugin's functioning.
 Option Specification
 ----------------------
 **Standard plugins** are activated by the command line parameter
-``--enable-plugin=<plugin_name>``. The parameter ``plugin_name`` must equal
+``--plugin-enable=<plugin_name>``. The parameter ``plugin_name`` must equal
 the plugin's variable with the same name, so that Nuitka can identify it.
 
-**User plugins** are activated by the command line parameter ``--user-plugin=<script.py>``,
-where the parameter is a filename (-path) of a Python script implementing
-the plugin protocol, i.e. it must be a class that inherits ``nuitka.plugins.PluginBase.UserPluginBase``
--- just like every Nuitka plugin.
+**User plugins** are activated by the command line parameter
+``--user-plugin=<script.py>``, where the parameter is a filename (-path) of a
+Python script implementing the plugin protocol, i.e. it must be a class that
+inherits ``nuitka.plugins.PluginBase.UserPluginBase`` just like every Nuitka
+plugin.
 
 Plugin options can be added by
 
@@ -35,12 +36,14 @@ Plugin options can be added by
 * specifying any string after the "="
 
 The raw option string should normally not contain any white space. However,
-depending on your platform, wrapping such a string in double quotes may also work.
+depending on your platform, wrapping such a string in double quotes may also
+work.
 
-Nuitka always passes a **Python list** to the plugin, which is determined as follows:
+Nuitka always passes a **Python list** to the plugin, which is determined as
+follows:
 
 Assuming the command line parameter for a plugin called ``name`` contains
-``--enable-plugin=name=raw`` (resp. ``--user-plugin=name=raw``), then method
+``--plugin-enable=name=raw`` (resp. ``--user-plugin=name=raw``), then method
 ``self.getPluginOptions()`` will deliver ``raw.split(',')``.
 The following table aims to clarify this.
 
@@ -53,9 +56,9 @@ The following table aims to clarify this.
 ``name="a, b, c"`` ``['a', ' b', ' c']`` (3 options, some spaces)
 ================== ==============================================
 
-While ``self.getPluginOptions()`` delivers the complete options list, you may also
-check single option items via convenience method ``self.getPluginOptionBool("value", default)``.
-Results:
+While ``self.getPluginOptions()`` delivers the complete options list, you may
+also check single option items via convenience method
+``self.getPluginOptionBool("value", default)``. Results:
 
 * ``True`` if "value" is in the options list
 
@@ -63,16 +66,19 @@ Results:
 
 * *default* else
 
-* *exception* (exiting the compilation) if both, "value" and "novalue" are in the options list
+* *exception* (exiting the compilation) if both, "value" and "novalue" are in
+  the options list
 
 Please note: there is no check for duplicate item values.
 
 Remark
 --------
-Obviously, you can recover the original "raw" string by ``raw = ",".join(self.getPluginOptions())``
-and then apply your own logic to it.
 
-For example, if your plugin knows which format to expect, it could do things like
+Obviously, you can recover the original "raw" string by ``raw =
+",".join(self.getPluginOptions())`` and then apply your own logic to it.
+
+For example, if your plugin knows which format to expect, it could do things
+like these:
 
 * ``my_option_dict = json.loads(raw)``, or
 
@@ -80,4 +86,5 @@ For example, if your plugin knows which format to expect, it could do things lik
 
 Example
 ----------
+
 To see a working example for a user plugin with ptions, consult `this <https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst>`__ document.

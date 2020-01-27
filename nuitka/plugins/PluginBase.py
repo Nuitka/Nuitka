@@ -56,7 +56,7 @@ class NuitkaPluginBase(object):
     certain situations.
 
     A plugin in general must be enabled to be used by Nuitka. This happens by
-    specifying "--enable-plugin" (standard plugins) or by "--user-plugin" (user
+    specifying "--plugin-enable" (standard plugins) or by "--user-plugin" (user
     plugins) in the Nuitka command line. However, some plugins are always enabled
     and invisible to the user.
 

@@ -2009,7 +2009,7 @@ New Features
   now also work in accelerated mode on Windows.
 
 - It is now possible to specify the Qt plugin directories with e.g.
-  ``--enable-plugin=qt_plugins=imageformats`` and have only those included.
+  ``--plugin-enable-=qt_plugins=imageformats`` and have only those included.
   This should avoid dependency creep for shared libraries.
 
 - Plugins can now make the decision about recursing to a module or not.
