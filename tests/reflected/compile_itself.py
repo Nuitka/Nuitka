@@ -340,6 +340,7 @@ def executePASS3():
         "--output-dir=%s" % tmp_dir,
         "--python-flag=-S",
         "--follow-imports",
+        "--include-package=nuitka.plugins",
     ]
     result = subprocess.call(command)
 
