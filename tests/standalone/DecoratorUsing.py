@@ -19,11 +19,30 @@
 #
 
 
-# nuitka-skip-unless-imports: idna.core
+# nuitka-skip-unless-imports: decorator
 
-from __future__ import print_function
-import sys
-import idna
+from decorator import decorate
+import time
 
-print(idna.core, "idna.idnadata" in sys.modules)
-print(idna.encode('ドメイン.テスト'))
+def _memoize(func, *args, **kw):
+    if kw:
+        key = args, frozenset(kw.items())
+    else:
+        key = args
+    cache = func.cache
+    if key in cache:
+        return "cached"
+    result = func(*args, **kw)
+    cache[key] = result
+    return result
+
+def memoize(f):
+    f.cache = {}
+    return decorate(f, _memoize)
+
+@memoize
+def some_function():
+    return "not cached"
+
+print(some_function())
+print(some_function())

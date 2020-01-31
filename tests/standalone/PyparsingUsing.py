@@ -19,11 +19,9 @@
 #
 
 
-# nuitka-skip-unless-imports: idna.core
+# nuitka-skip-unless-imports: pyparsing
 
-from __future__ import print_function
-import sys
-import idna
-
-print(idna.core, "idna.idnadata" in sys.modules)
-print(idna.encode('ドメイン.テスト'))
+from pyparsing import Word, alphas
+greet = Word(alphas) + "," + Word(alphas) + "!"
+hello = "Hello, World!"
+print(hello, "->", greet.parseString(hello))

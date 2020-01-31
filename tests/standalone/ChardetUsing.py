@@ -19,11 +19,22 @@
 #
 
 
-# nuitka-skip-unless-imports: idna.core
+# nuitka-skip-unless-imports: chardet,urllib3
 
-from __future__ import print_function
-import sys
-import idna
+from chardet import detect
+from urllib3 import PoolManager
 
-print(idna.core, "idna.idnadata" in sys.modules)
-print(idna.encode('ドメイン.テスト'))
+
+http = PoolManager()
+
+data = http.request('GET', 'http://yahoo.co.jp/').data
+# prints {'encoding': 'utf-8', 'confidence': 0.99, 'language': ''}
+print(detect(data))
+
+data = http.request('GET', 'http://google.com/').data
+# prints {'encoding': 'ISO-8859-1', 'confidence': 0.73, 'language': ''}
+print(detect(data))
+
+data = http.request('GET', 'https://www.bing.com/').data
+# prints {'encoding': 'utf-8', 'confidence': 0.99, 'language': ''}
+print(detect(data))

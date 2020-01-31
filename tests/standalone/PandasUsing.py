@@ -19,11 +19,22 @@
 #
 
 
-# nuitka-skip-unless-imports: idna.core
+# nuitka-skip-unless-imports: pandas
 
-from __future__ import print_function
-import sys
-import idna
+import pandas as pd
 
-print(idna.core, "idna.idnadata" in sys.modules)
-print(idna.encode('ドメイン.テスト'))
+s = pd.Series([1, 3, 5, 6, 8])
+print(s)
+
+dates = pd.date_range('20130101', periods=6)
+print(dates)
+
+df = pd.DataFrame({'A': 1.,
+'B': pd.Timestamp('20130102'),
+'C': pd.Series(1, index=list(range(4)), dtype='float32'),
+'D': 6,
+'E': pd.Categorical(["test", "train", "test", "train"]),
+'F': 'foo'})
+
+print(df)
+print(df.dtypes)

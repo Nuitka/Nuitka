@@ -19,11 +19,14 @@
 #
 
 
-# nuitka-skip-unless-imports: idna.core
+# nuitka-skip-unless-imports: cryptography
 
-from __future__ import print_function
-import sys
-import idna
+from cryptography.fernet import Fernet
+key = Fernet.generate_key()
+f = Fernet(key)
+message = b"Some secret message."
+e = f.encrypt(message)
+d = f.decrypt(e)
 
-print(idna.core, "idna.idnadata" in sys.modules)
-print(idna.encode('ドメイン.テスト'))
+assert d == message
+print(d)

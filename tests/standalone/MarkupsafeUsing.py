@@ -19,11 +19,19 @@
 #
 
 
-# nuitka-skip-unless-imports: idna.core
+# nuitka-skip-unless-imports: markupsafe
 
-from __future__ import print_function
-import sys
-import idna
+from markupsafe import Markup, escape
 
-print(idna.core, "idna.idnadata" in sys.modules)
-print(idna.encode('ドメイン.テスト'))
+# escape replaces special characters and wraps in Markup
+print(escape('<script>alert(document.cookie);</script>'))
+
+# wrap in Markup to mark text "safe" and prevent escaping
+Markup('<strong>Hello</strong>')
+
+print(escape(Markup('<strong>Hello</strong>')))
+
+# Markup is a text subclass (str on Python 3, unicode on Python 2)
+# methods and operators escape their arguments
+template = Markup("Hello <em>%s</em>")
+print(template % '"World"')

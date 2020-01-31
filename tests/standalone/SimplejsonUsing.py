@@ -19,11 +19,24 @@
 #
 
 
-# nuitka-skip-unless-imports: idna.core
+# nuitka-skip-unless-imports: simplejson
 
-from __future__ import print_function
-import sys
-import idna
+import simplejson as json
 
-print(idna.core, "idna.idnadata" in sys.modules)
-print(idna.encode('ドメイン.テスト'))
+print(json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}]))
+print(json.dumps("\"foo\bar"))
+print(json.dumps(u'\u1234'))
+print(json.dumps('\\'))
+print(json.dumps({"c": 0, "b": 0, "a": 0}, sort_keys=True))
+
+from simplejson.compat import StringIO
+io = StringIO()
+json.dump(['streaming API'], io)
+print(io.getvalue())
+
+# Compact encoding
+obj = [1,2,3,{'4': 5, '6': 7}]
+print(json.dumps(obj, separators=(',', ':'), sort_keys=True))
+
+# Pretty printing
+print(json.dumps({'4': 5, '6': 7}, sort_keys=True, indent=4 * ' '))

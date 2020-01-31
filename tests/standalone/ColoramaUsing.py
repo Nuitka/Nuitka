@@ -19,11 +19,14 @@
 #
 
 
-# nuitka-skip-unless-imports: idna.core
+# nuitka-skip-unless-imports: colorama
 
-from __future__ import print_function
-import sys
-import idna
+from colorama import Fore, Back, Style
+print(Fore.RED + 'some red text')
+print(Back.GREEN + 'and with a green background')
+print(Style.DIM + 'and in dim text')
+print(Style.RESET_ALL)
+print('back to normal now')
 
-print(idna.core, "idna.idnadata" in sys.modules)
-print(idna.encode('ドメイン.テスト'))
+print('\033[31m' + 'some red text')
+print('\033[30m') # and reset to default color

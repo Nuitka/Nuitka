@@ -206,6 +206,24 @@ def main():
             # TODO: Disabled due to lack of upstream support.
             reportSkip("PySide not supported yet", ".", filename)
             continue
+        elif filename == "Jinja2Using.py":
+            # For the warnings.
+            extra_flags.append("ignore_warnings")
+            # For the demoting of modules to bytecode
+            extra_flags.append("ignore_infos")
+
+        elif filename == "PandasUsing.py":
+            # Importing the numpy c-extensions failed
+            reportSkip("Pandas not supported yet", ".", filename)
+            continue
+
+        elif filename == "RequestsUsing.py":
+            # For the warnings.
+            extra_flags.append("ignore_warnings")
+
+        elif filename == "WerkzeugUsing.py":
+            # For the warnings.
+            extra_flags.append("ignore_warnings")
 
         if filename == "Win32ComUsing.py":
             # For the warnings.

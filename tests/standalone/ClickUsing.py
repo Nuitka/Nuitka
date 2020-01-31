@@ -19,11 +19,53 @@
 #
 
 
-# nuitka-skip-unless-imports: idna.core
+# nuitka-skip-unless-imports: click
 
-from __future__ import print_function
-import sys
-import idna
+import click
 
-print(idna.core, "idna.idnadata" in sys.modules)
-print(idna.encode('ドメイン.テスト'))
+@click.command()
+def hello1():
+    click.echo('Hello World!')
+
+
+@click.group()
+def cli():
+    pass
+
+@click.command()
+def initdb():
+    click.echo('Initialized the database')
+
+@click.command()
+def dropdb():
+    click.echo('Dropped the database')
+
+cli.add_command(initdb)
+cli.add_command(dropdb)
+
+
+@click.group()
+def cli():
+    pass
+
+@cli.command()
+def initdb():
+    click.echo('Initialized the database')
+
+@cli.command()
+def dropdb():
+    click.echo('Dropped the database')
+
+
+@click.command()
+@click.option('--count', default=1, help='number of greetings')
+@click.argument('name')
+def hello2(count, name):
+    for x in range(count):
+        click.echo('Hello %s!' % name)
+
+
+if __name__ == "__main__":
+    hello1()
+    cli()
+    print("Ok.")

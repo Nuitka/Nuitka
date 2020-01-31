@@ -19,11 +19,32 @@
 #
 
 
-# nuitka-skip-unless-imports: idna.core
+# nuitka-skip-unless-imports: werkzeug
 
-from __future__ import print_function
-import sys
-import idna
 
-print(idna.core, "idna.idnadata" in sys.modules)
-print(idna.encode('ドメイン.テスト'))
+from werkzeug.wrappers import Request, Response
+from werkzeug.test import create_environ
+
+for port in range(8020, 9000):
+    address = 'http://localhost:%s/' % port
+
+    try:
+        e = create_environ('/foo', address)
+    except OSError:
+        continue
+    else:
+        break
+
+print(e['PATH_INFO'])
+print(e['SCRIPT_NAME'])
+print(e['SERVER_NAME'])
+
+
+def application(environ, start_response):
+    request = Request(environ)
+    text = 'Hello %s!' % request.args.get('name', 'World')
+    response = Response(text, mimetype='text/plain')
+    return response(environ, start_response)
+
+
+print("Ok.")
