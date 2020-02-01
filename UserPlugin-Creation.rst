@@ -4,6 +4,7 @@ How To Create a User Plugin
 
 Background: Nuitka Standard and User Plugins
 ---------------------------------------------
+
 User plugins are technically built and structured in the same way as Nuitka's
 own *standard* plugins are. There also is no difference with respect to what
 they can do. Both types are invoked via parameters in Nuitka's command line.
@@ -13,11 +14,10 @@ The difference is the invocation format:
   ``<plugin_name>`` is a unique identifier by which Nuitka identifies it. As
   soon as Nuitka has found the corresponding plugin, it will call its
   initialization method. Nuitka also has some standard plugins which are always
-  activated.
-  A standard plugin is represented by a Python script living in
-  ``nuitka/plugins/standard``.
-  Standard plugins also internally have an object which can issue warnings when
-  it encounters situations looking like it is required.
+  activated. A standard plugin is represented by a Python script living in
+  ``nuitka/plugins/standard``. Standard plugins also internally have an object
+  which can issue warnings when it encounters situations looking like it is
+  required.
 
 * A user plugin is invoked by ``--user-plugin=</path/to/script.py>``. Nuitka
   will import the script and call its initialization method just like for a
@@ -46,16 +46,24 @@ named "trace" is active::
 
         plugin_name = __file__  # or __module__ or __name__
 
-        def __init__(self):
+        def __init__(self, trace_my_plugin):
             # demo only: extract and display my options list
-            self.plugin_options = self.getPluginOptions()
-            info(" '%s' options: %s" % (self.plugin_name, self.plugin_options))
-
             # check whether some specific option is set
-            self.check = self.getPluginOptionBool("trace", False)
+
+            self.check = trace_my_plugin
             info(" 'trace' is set to '%s'" % self.check)
 
             # do more init work here ...
+
+        @classmethod
+        def addPluginCommandLineOptions(cls, group):
+            group.add_option(
+                "--trace-my-plugin",
+                action="store_true",
+                dest="trace_my_plugin",
+                default=False,
+                help="This is show in help output."
+            )
 
         def onModuleSourceCode(self, module_name, source_code):
             # if this is the main script and tracing should be done ...
