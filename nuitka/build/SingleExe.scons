@@ -229,6 +229,10 @@ python_sysflag_unicode = getBoolOption("python_sysflag_unicode", False)
 python_sysflag_utf8 = getBoolOption("python_sysflag_utf8", False)
 # python_sysflag_optimize
 python_sysflag_optimize = getBoolOption("python_sysflag_optimize", False)
+# python_sysflag_no_randomization
+python_sysflag_no_randomization = getBoolOption(
+    "python_sysflag_no_randomization", False
+)
 
 # Preprocessor defines from plugins
 cpp_defines = getListOption("cpp_defines", "")
@@ -1082,6 +1086,12 @@ env.Append(
     CPPDEFINES=["_NUITKA_SYSFLAG_OPTIMIZE=%d" % (1 if python_sysflag_optimize else 0)]
 )
 
+env.Append(
+    CPPDEFINES=[
+        "_NUITKA_SYSFLAG_NO_RANDOMIZATION=%d"
+        % (1 if python_sysflag_no_randomization else 0)
+    ]
+)
 
 if win_target:
     # For MinGW and cross compilation, we need to tell the subsystem

@@ -110,8 +110,8 @@ parser.add_option(
 Python flags to use. Default uses what you are using to run Nuitka, this
 enforces a specific mode. These are options that also exist to standard
 Python executable. Currently supported: "-S" (alias "nosite"),
-"static_hashes" (not use hash randomization), "no_warnings" (do not give
-Python runtime warnings), "-O" (alias "noasserts"). Default empty.""",
+"static_hashes" (do not use hash randomization), "no_warnings" (do not
+give Python runtime warnings), "-O" (alias "noasserts"). Default empty.""",
 )
 
 parser.add_option(

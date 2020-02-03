@@ -539,6 +539,9 @@ def runScons(main_module, quiet):
     if "trace_imports" in Options.getPythonFlags():
         options["python_sysflag_verbose"] = "true"
 
+    if "no_randomization" in Options.getPythonFlags():
+        options["python_sysflag_no_randomization"] = "true"
+
     if python_version < 300 and sys.flags.unicode:
         options["python_sysflag_unicode"] = "true"
 

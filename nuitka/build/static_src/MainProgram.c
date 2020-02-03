@@ -300,8 +300,12 @@ int main(int argc, char **argv) {
     Py_IgnoreEnvironmentFlag = 0;
     Py_VerboseFlag = _NUITKA_SYSFLAG_VERBOSE;
     Py_BytesWarningFlag = _NUITKA_SYSFLAG_BYTES_WARNING;
-#if _NUITKA_SYSFLAG_BYTES_WARNING
-    Py_HashRandomizationFlag = 1;
+#if _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
+    Py_HashRandomizationFlag = 0;
+#if PYTHON_VERSION < 300
+    // For Python2 this is all it takes to have static hashes.
+    _PyRandom_Init();
+#endif
 #endif
 #if PYTHON_VERSION >= 370
     Py_UTF8Mode = _NUITKA_SYSFLAG_UTF8;
@@ -344,9 +348,37 @@ int main(int argc, char **argv) {
 #endif
 #endif
 
+#if PYTHON_VERSION >= 300 && _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
+#ifndef _WIN32
+    char const *old_env = getenv("PYTHONHASHSEED");
+    setenv("PYTHONHASHSEED", "0", 1);
+#endif
+#endif
     /* Initialize the embedded CPython interpreter. */
     NUITKA_PRINT_TRACE("main(): Calling Py_Initialize to initialize interpreter.");
     Py_Initialize();
+
+#if PYTHON_VERSION >= 300 && _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
+#ifndef _WIN32
+    if (old_env) {
+        setenv("PYTHONHASHSEED", old_env, 1);
+
+        PyObject *env_value = PyUnicode_FromString(old_env);
+        PyObject *hashseed_str = PyUnicode_FromString("PYTHONHASHSEED");
+
+        int res = PyObject_SetItem(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), hashseed_str, env_value);
+        assert(res == 0);
+
+        Py_DECREF(env_value);
+        Py_DECREF(hashseed_str);
+    } else {
+        unsetenv("PYTHONHASHSEED");
+
+        int res = PyObject_DelItemString(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), "PYTHONHASHSEED");
+        assert(res == 0);
+    }
+#endif
+#endif
 
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Restore standalone environment.");
