@@ -100,7 +100,7 @@ static char *copyModulenameAsPath(char *buffer, char const *module_name) {
 #if defined(_WIN32) && defined(_NUITKA_STANDALONE)
 static void wcscat_char(wchar_t *target, char c) {
     target += wcslen(target);
-    char buffer_c[2] = {c};
+    char buffer_c[2] = {c, 0};
     size_t res = mbstowcs(target, buffer_c, 2);
     assert(res == 1);
 }
@@ -417,14 +417,15 @@ PyObject *callIntoShlibModule(const char *full_name, const char *filename) {
 
         // Report either way even if failed to get error message.
         if (size == 0) {
-            PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryEx '%S' failed with error code %d", filename, error_code);
+            PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed with error code %d", filename,
+                          error_code);
         } else {
             // Strip trailing newline.
             if (size >= 2 && error_message[size - 2] == '\r' && error_message[size - 1] == '\n') {
                 size -= 2;
                 error_message[size] = '\0';
             }
-            PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryEx '%S' failed: %s", filename, error_message);
+            PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed: %s", filename, error_message);
         }
 
         PyErr_SetString(PyExc_ImportError, buffer);
@@ -631,9 +632,9 @@ static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLo
         // Append the the entry name from full path module name with dots,
         // and translate these into directory separators.
 #ifdef _WIN32
-        wchar_t filename[MAXPATHLEN + 1];
+        wchar_t filename[MAXPATHLEN + 1] = {0};
 
-        wcscpy(filename, getBinaryDirectoryWideChars());
+        wcscat_cstr(filename, getBinaryDirectoryHostEncoded());
         wcscat_char(filename, SEP);
         concatModulenameAsPathW(filename, entry->name);
         wcscat_cstr(filename, ".pyd");

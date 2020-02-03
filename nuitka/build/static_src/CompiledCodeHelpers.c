@@ -1865,11 +1865,7 @@ static PyObject *getBinaryDirectoryObject() {
 // On Python3, this must be a unicode object, it cannot be on Python2,
 // there e.g. code objects expect Python2 strings.
 #if PYTHON_VERSION >= 300
-#if defined(_WIN32)
-    binary_directory = PyUnicode_FromWideChar(getBinaryDirectoryWideChars(), -1);
-#else
-        binary_directory = PyUnicode_DecodeFSDefault(getBinaryDirectoryHostEncoded());
-#endif
+    binary_directory = PyUnicode_DecodeFSDefault(getBinaryDirectoryHostEncoded());
 #else
     binary_directory = PyString_FromString(getBinaryDirectoryHostEncoded());
 #endif

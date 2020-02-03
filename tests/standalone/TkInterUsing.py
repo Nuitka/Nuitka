@@ -24,9 +24,9 @@
 from __future__ import print_function
 
 # Python3 changed module name.
-try:
+if str is bytes:
     import Tkinter as tkinter
-except ImportError:
+else:
     import tkinter
 
 # nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")
