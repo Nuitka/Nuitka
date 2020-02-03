@@ -380,7 +380,8 @@ def shallTreatUninstalledPython():
     """ *bool* = derived from Python installation and modes
 
     Notes:
-        Not done for standalone mode obviously.
+        Not done for standalone mode obviously. The Python DLL will
+        be a dependency of the executable and treated that way.
 
         Also not done for extension modules, they are loaded with
         a Python runtime available.
@@ -389,7 +390,10 @@ def shallTreatUninstalledPython():
         from AnaConda.
     """
 
-    return not isStandaloneMode() and not shallMakeModule() and isUninstalledPython()
+    if shallMakeModule() or isStandaloneMode():
+        return False
+
+    return isUninstalledPython()
 
 
 def isShowScons():
