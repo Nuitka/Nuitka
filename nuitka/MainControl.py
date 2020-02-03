@@ -775,11 +775,7 @@ def main():
                 standalone_entry_points=standalone_entry_points,
             )
 
-            data_files = []
-            for module in ModuleRegistry.getDoneModules():
-                data_files.extend(Plugins.considerDataFiles(module))
-
-            copyDataFiles(dist_dir=dist_dir, data_files=data_files)
+            copyDataFiles(dist_dir=dist_dir)
 
             Plugins.onStandaloneDistributionFinished(dist_dir)
 

@@ -148,13 +148,12 @@ def _get_package_files(module, packages, folders_only):
             for f in pkg_files:
                 file_list.append((filename_start, f))  # append to file list
 
-    if file_list == []:  #  safeguard for unexpected cases
+    if not file_list:  #  safeguard for unexpected cases
         msg = "No files or folders found for '%s' in packages(s) '%s'." % (
             module.getFullName(),
             str(packages),
         )
         warning(msg)
-        yield ()
 
     for filename_start, f in file_list:  # re-read the collected filenames
         target = f[filename_start:]  # make part of name
@@ -199,13 +198,12 @@ def _get_subdir_files(module, subdirs, folders_only):
             data_dir = os.path.join(module_folder, subdir)
             file_list.extend(getFileList(data_dir))
 
-    if file_list == []:
+    if not file_list:
         msg = "No files or folders found for '%s' in subfolder(s) '%s'." % (
             module.getFullName(),
             str(subdirs),
         )
         warning(msg)
-        yield ()
 
     for f in file_list:
         if "__pycache__" in f or f.endswith(".pyc"):  # probably makes no sense

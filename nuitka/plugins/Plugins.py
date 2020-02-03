@@ -234,7 +234,8 @@ class Plugins(object):
         """
         for plugin in getActivePlugins():
             for value in plugin.considerDataFiles(module):
-                yield value
+                if value:
+                    yield plugin.plugin_name, value
 
     @staticmethod
     def onModuleDiscovered(module):
