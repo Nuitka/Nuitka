@@ -27,7 +27,6 @@ a distribution folder.
 import os
 import shutil
 import sys
-from logging import info, warning
 
 from nuitka.finalizations.FinalizeMarkups import getImportedNames
 from nuitka.freezer.Standalone import copyDataFiles
@@ -41,6 +40,7 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
+from nuitka.Tracing import general
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
 from nuitka.utils.AppDirs import getCacheDir
@@ -321,7 +321,7 @@ def makeSourceDirectory(main_module):
             if module.getFullName() == any_case_module:
                 break
         else:
-            warning("Not recursing to unused '%s'." % any_case_module)
+            general.warning("Not recursing to unused '%s'." % any_case_module)
 
     # Prepare code generation, i.e. execute finalization for it.
     for module in ModuleRegistry.getDoneModules():
@@ -351,7 +351,7 @@ def makeSourceDirectory(main_module):
                     module_name=module.getFullName(),
                 )
             except Exception:
-                warning("Problem creating code for module %r." % module)
+                general.warning("Problem creating code for module %r." % module)
                 raise
 
             # Main code constants need to be allocated already too.
@@ -372,7 +372,7 @@ def makeSourceDirectory(main_module):
             writeSourceCode(filename=c_filename, source_code=source_code)
 
             if Options.isShowInclusion():
-                info("Included compiled module '%s'." % module.getFullName())
+                general.info("Included compiled module '%s'." % module.getFullName())
         elif module.isPythonShlibModule():
             target_filename = os.path.join(
                 OutputDirectories.getStandaloneDirectoryPath(),
@@ -396,7 +396,7 @@ def makeSourceDirectory(main_module):
             )
         elif module.isUncompiledPythonModule():
             if Options.isShowInclusion():
-                info("Included uncompiled module '%s'." % module.getFullName())
+                general.info("Included uncompiled module '%s'." % module.getFullName())
         else:
             assert False, module
 
@@ -639,7 +639,7 @@ def compileTree(main_module):
 
     if not Options.shallOnlyExecCCompilerCall():
         if Options.isShowProgress() or Options.isShowMemory():
-            info(
+            general.info(
                 "Total memory usage before generating C code: {memory}:".format(
                     memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
                 )
@@ -666,7 +666,7 @@ def compileTree(main_module):
             sys.exit("Error, no previous build directory exists.")
 
     if Options.isShowProgress() or Options.isShowMemory():
-        info(
+        general.info(
             "Total memory usage before running scons: {memory}:".format(
                 memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
             )

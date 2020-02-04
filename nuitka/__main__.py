@@ -59,9 +59,8 @@ def main():
 
     Options.parseArgs()
 
-    import logging  # isort:skip
-
-    logging.basicConfig(format="Nuitka:%(levelname)s:%(message)s")
+    # TODO: Stop using logging module, then this can be removed.
+    from nuitka import Tracing  # isort:skip
 
     # We don't care, and these are triggered by run time calculations of "range" and
     # others, while on python2.7 they are disabled by default.
@@ -151,7 +150,7 @@ def main():
         # Do not disturb run of automatic tests, detected from the presence of
         # that environment variable.
         if "PYTHON" not in os.environ:
-            logging.warning(
+            Tracing.general.warning(
                 "The version '%s' is not currently supported. Expect problems.",
                 current_version,
             )

@@ -21,7 +21,6 @@ import os
 import re
 import shutil
 import sys
-from logging import info, warning
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -223,7 +222,7 @@ class NumpyPlugin(NuitkaPluginBase):
                 if p.plugin_name.endswith("hinted-mods.py"):
                     break
             else:
-                warning(
+                self.warning(
                     "matplotlib may need hinted compilation for non-standard backends"
                 )
 
@@ -278,7 +277,7 @@ Should matplotlib be included with numpy, Default is %default.""",
                     bin_total,
                     "file" if bin_total < 2 else "files",
                 )
-                info(msg)
+                self.info(msg)
 
         if not self.scipy_copied and full_name == "scipy":
             self.scipy_copied = True
@@ -299,12 +298,12 @@ Should matplotlib be included with numpy, Default is %default.""",
                     bin_total,
                     "file" if bin_total < 2 else "files",
                 )
-                info(msg)
+                self.info(msg)
 
         if not self.mpl_data_copied and "matplotlib" in elements:
             self.mpl_data_copied = True
             copy_mpl_data(module, dist_dir)
-            info("Copied 'matplotlib/mpl-data'.")
+            self.info("Copied 'matplotlib/mpl-data'.")
 
         return ()
 

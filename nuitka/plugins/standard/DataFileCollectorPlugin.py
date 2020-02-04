@@ -20,10 +20,9 @@
 """
 
 import os
-import pkgutil
-from logging import warning
 
 from nuitka import Options
+from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.oset import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import getFileList, listDir
@@ -95,6 +94,8 @@ def get_package_paths(package):
     Returns:
         tuple: (prefix, prefix/package)
     """
+    import pkgutil
+
     loader = pkgutil.find_loader(package)
     if not loader:
         return "", ""
@@ -117,7 +118,7 @@ generated_data_files = {
 }
 
 
-def _get_package_files(module, packages, folders_only):
+def getPackageFiles(module, packages, folders_only):
     """Yield all (!) filenames in given package(s).
 
     Notes:
@@ -134,26 +135,35 @@ def _get_package_files(module, packages, folders_only):
         Tuples of paths (source, dest), if folders_only is False,
         else tuples (_createEmptyDirNone, dest).
     """
+
+    # TODO: Maybe use isinstance(basestring) for this
     if not hasattr(packages, "__getitem__"):  # so should be a string type
         packages = (packages,)
 
     file_list = []
     item_set = OrderedSet()
 
+    file_dirs = []
+
     for package in packages:
         pkg_base, pkg_dir = get_package_paths(package)  # read package folders
         if pkg_dir:
             filename_start = len(pkg_base)  # position of package name in dir
-            pkg_files = getFileList(pkg_dir)  # read out the filenames
+            # read out the filenames
+            pkg_files = getFileList(
+                pkg_dir, ignore_dirs=("__pycache__",), ignore_suffixes=(".pyc",)
+            )
+            file_dirs.append(pkg_dir)
             for f in pkg_files:
                 file_list.append((filename_start, f))  # append to file list
 
     if not file_list:  #  safeguard for unexpected cases
-        msg = "No files or folders found for '%s' in packages(s) '%s'." % (
+        msg = "No files or folders found for '%s' in packages(s) '%r' (%r)." % (
             module.getFullName(),
-            str(packages),
+            packages,
+            file_dirs,
         )
-        warning(msg)
+        NuitkaPluginDataFileCollector.warning(msg)
 
     for filename_start, f in file_list:  # re-read the collected filenames
         target = f[filename_start:]  # make part of name
@@ -166,7 +176,7 @@ def _get_package_files(module, packages, folders_only):
         yield f
 
 
-def _get_subdir_files(module, subdirs, folders_only):
+def getSubDirectoryFiles(module, subdirs, folders_only):
     """Yield filenames in given subdirs of the module.
 
     Notes:
@@ -189,26 +199,32 @@ def _get_subdir_files(module, subdirs, folders_only):
     item_set = OrderedSet()
 
     if subdirs is None:
-        file_list = getFileList(module_folder)
-    elif type(subdirs) is str:
-        data_dir = os.path.join(module_folder, subdirs)
-        file_list = getFileList(data_dir)
+        data_dirs = [module_folder]
+    elif isinstance(subdirs, basestring):
+        data_dirs = [os.path.join(module_folder, subdirs)]
     else:
-        for subdir in subdirs:
-            data_dir = os.path.join(module_folder, subdir)
-            file_list.extend(getFileList(data_dir))
+        data_dirs = [os.path.join(module_folder, subdir) for subdir in subdirs]
+
+    # Gather the full file list, probably makes no sense to include bytecode files
+    file_list = sum(
+        (
+            getFileList(
+                data_dir, ignore_dirs=("__pycache__",), ignore_suffixes=(".pyc",)
+            )
+            for data_dir in data_dirs
+        ),
+        [],
+    )
 
     if not file_list:
-        msg = "No files or folders found for '%s' in subfolder(s) '%s'." % (
+        msg = "No files or folders found for '%s' in subfolder(s) %r (%r)." % (
             module.getFullName(),
-            str(subdirs),
+            subdirs,
+            data_dirs,
         )
-        warning(msg)
+        NuitkaPluginDataFileCollector.warning(msg)
 
     for f in file_list:
-        if "__pycache__" in f or f.endswith(".pyc"):  # probably makes no sense
-            continue
-
         target = f[filename_start:]
         if folders_only is False:
             item_set.add((f, target))
@@ -223,19 +239,19 @@ def _get_subdir_files(module, subdirs, folders_only):
 # the 3rd item indicates whether to recreate toe folder structure only (True),
 # or indeed also copy the files.
 known_data_folders = {
-    "botocore": (_get_subdir_files, "data", False),
-    "boto3": (_get_subdir_files, "data", False),
-    "sklearn.datasets": (_get_subdir_files, ("data", "descr"), False),
-    "osgeo": (_get_subdir_files, "data", False),
-    "pyphen": (_get_subdir_files, "dictionaries", False),
-    "pendulum": (_get_subdir_files, "locales", True),  # folder structure only
-    "pytz": (_get_subdir_files, "zoneinfo", False),
-    "pytzdata": (_get_subdir_files, "zoneinfo", False),
-    "pywt": (_get_subdir_files, "data", False),
-    "skimage": (_get_subdir_files, "data", False),
-    "weasyprint": (_get_subdir_files, "css", False),
-    "xarray": (_get_subdir_files, "static", False),
-    "eventlet": (_get_package_files, ("dns",), False),  # copy other package source
+    "botocore": (getSubDirectoryFiles, "data", False),
+    "boto3": (getSubDirectoryFiles, "data", False),
+    "sklearn.datasets": (getSubDirectoryFiles, ("data", "descr"), False),
+    "osgeo": (getSubDirectoryFiles, "data", False),
+    "pyphen": (getSubDirectoryFiles, "dictionaries", False),
+    "pendulum": (getSubDirectoryFiles, "locales", True),  # folder structure only
+    "pytz": (getSubDirectoryFiles, "zoneinfo", False),
+    "pytzdata": (getSubDirectoryFiles, "zoneinfo", False),
+    "pywt": (getSubDirectoryFiles, "data", False),
+    "skimage": (getSubDirectoryFiles, "data", False),
+    "weasyprint": (getSubDirectoryFiles, "css", False),
+    "xarray": (getSubDirectoryFiles, "static", False),
+    "eventlet": (getPackageFiles, ("dns",), False),  # copy other package source
 }
 
 

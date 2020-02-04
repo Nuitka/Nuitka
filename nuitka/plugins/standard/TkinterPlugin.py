@@ -20,7 +20,6 @@
 import os
 import shutil
 import sys
-from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -183,14 +182,14 @@ The Tcl library dir. See comments for Tk library dir.""",
         target_tcl = os.path.join(dist_dir, "tcl")
 
         copyTree(tk, target_tk)
-        info("Copied Tk libraries from %s." % tk)  # just to entertain
+        self.info("Copied Tk libraries from %s." % tk)  # just to entertain
 
         # Definitely don't need the demos, so remove them again.
         # TODO: Anything else?
         shutil.rmtree(os.path.join(target_tk, "demos"), ignore_errors=True)
 
         copyTree(tcl, target_tcl)
-        info("Copied TCL libraries from %s." % tcl)  # just to entertain
+        self.info("Copied TCL libraries from %s." % tcl)  # just to entertain
 
         return ()
 

@@ -19,7 +19,6 @@
 """
 import os
 import shutil
-from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -96,7 +95,7 @@ class TorchPlugin(NuitkaPluginBase):
         Returns:
             empty tuple
         """
-        if self.files_copied is True:  # not the first time here
+        if self.files_copied:  # not the first time here
             return ()
 
         if module.getFullName() == "torch":
@@ -105,8 +104,7 @@ class TorchPlugin(NuitkaPluginBase):
             bin_total = len(binaries)
             if bin_total == 0:
                 return ()
-            info("")
-            info(" Copying files from 'torch' installation:")
+            self.info("Copying files from 'torch' installation:")
             for f in binaries:
                 bin_file = f[0]  # full binary file name
                 idx = bin_file.find("torch")  # this will always work (idx > 0)
@@ -119,9 +117,9 @@ class TorchPlugin(NuitkaPluginBase):
 
                 shutil.copy(bin_file, tar_file)
 
-            msg = " Copied %i %s."
-            msg = msg % (bin_total, "file" if bin_total < 2 else "files")
-            info(msg)
+            self.info(
+                "Copied %i %s." % (bin_total, "file" if bin_total < 2 else "files")
+            )
         return ()
 
 

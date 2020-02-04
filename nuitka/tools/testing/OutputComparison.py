@@ -70,6 +70,8 @@ def import_re_callback(match):
 
 tempfile_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 
+logging_re = re.compile(r"^Nuitka.*?:INFO")
+
 
 def normalizeTimeDiff(outputStr):
     """
@@ -82,12 +84,10 @@ def normalizeTimeDiff(outputStr):
     =================== 1059 passed, 8 warnings in x.xx seconds ===================
     """
 
-    matchObj = re.search(b"in [0-9]+.[0-9][0-9](s| seconds)", outputStr)
-    if matchObj:
+    match = re.search(b"in [0-9]+.[0-9][0-9](s| seconds)", outputStr)
+    if match:
         return (
-            outputStr[: matchObj.start()]
-            + b"in x.xx seconds"
-            + outputStr[matchObj.end() :]
+            outputStr[: match.start()] + b"in x.xx seconds" + outputStr[match.end() :]
         )
     return outputStr
 
@@ -132,7 +132,7 @@ def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
         if ignore_warnings and line.startswith("Nuitka:WARNING"):
             continue
 
-        if ignore_infos and line.startswith("Nuitka:INFO"):
+        if ignore_infos and logging_re.match(line):
             continue
 
         if line.startswith("Nuitka:WARNING:Cannot recurse to import"):

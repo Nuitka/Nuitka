@@ -32,7 +32,6 @@ from __future__ import print_function
 import os
 import pkgutil
 import sys
-from logging import info
 from optparse import OptionGroup
 
 import nuitka.plugins.standard
@@ -301,26 +300,6 @@ class Plugins(object):
         return None
 
     @staticmethod
-    def suppressBuiltinImportWarning(module, source_ref):
-        """ Let plugins decide whether to suppress import warnings for builtin modules.
-
-        Notes:
-            Return will be True if at least one plugin returns other than False or None,
-            else False.
-
-        Args:
-            module: the module making the import
-            source_ref: source reference of the import
-        Returns:
-            True or False
-        """
-        for plugin in getActivePlugins():
-            if plugin.suppressBuiltinImportWarning(module, source_ref):
-                return True
-
-        return False
-
-    @staticmethod
     def suppressUnknownImportWarning(importing, module_name):
         """ Let plugins decide whether to suppress import warnings for an unknown module.
 
@@ -541,8 +520,8 @@ def loadUserPlugins():
             plugin_class = obj
             plugin_name = getattr(plugin_class, "plugin_name", None)
             if plugin_name and plugin_name not in Options.getPluginsDisabled():
-                info("User plugin '%s' is being loaded." % plugin_name)
                 user_plugins[plugin_name] = plugin_class
+                plugin_class.info("User plugin '%s' was loaded." % plugin_name)
 
                 valid_file = True
                 break  # do not look for more in that module

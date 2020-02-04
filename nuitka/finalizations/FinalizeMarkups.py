@@ -31,12 +31,9 @@ are in another context.
 
 """
 
-from logging import warning
 
-from nuitka import Options, Tracing
+from nuitka import Tracing
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
-from nuitka.importing.Importing import isWhiteListedImport
-from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 
 from .FinalizeBase import FinalizationVisitorBase
@@ -83,23 +80,6 @@ class FinalizeMarkups(FinalizationVisitorBase):
                     search.markAsNeedsGeneratorReturnHandling(2)
                 else:
                     search.markAsNeedsGeneratorReturnHandling(1)
-
-        if (
-            node.isExpressionBuiltinImport()
-            and not Options.getShallFollowExtra()
-            and not Options.getShallFollowExtraFilePatterns()
-            and not Options.shallFollowNoImports()
-            and not isWhiteListedImport(node)
-            and not node.recurse_attempted
-            and not Plugins.suppressBuiltinImportWarning(
-                node.getParentModule(), node.getSourceReference()
-            )
-        ):
-            warning(
-                """Unresolved '__import__' call at '%s' may require use \
-of '--include-plugin-directory' or '--include-plugin-files'."""
-                % (node.getSourceReference().getAsString())
-            )
 
         if node.isExpressionBuiltinImport() and node.recurse_attempted:
             module_name = node.getImportName()
@@ -167,7 +147,6 @@ of '--include-plugin-directory' or '--include-plugin-files'."""
                     and not search.isExpressionCoroutineObjectBody()
                     and not search.isExpressionAsyncgenObjectBody()
                 ):
-
                     last_search = search
                     search = search.getParent()
 

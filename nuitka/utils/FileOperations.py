@@ -153,11 +153,14 @@ def listDir(path):
     )
 
 
-def getFileList(path):
+def getFileList(path, ignore_dirs=(), ignore_suffixes=()):
     """ Get all files below a given path.
 
     Args:
         path: directory to create a recurseive listing from
+        ignore_dirs: Don't descend into these directory, ignore them
+        ignore_suffixes: Don't return files with these suffixes
+
 
     Returns:
         Sorted list of all filenames below that directory,
@@ -173,7 +176,14 @@ def getFileList(path):
         dirnames.sort()
         filenames.sort()
 
+        for dirname in ignore_dirs:
+            if dirname in dirnames:
+                dirnames.remove(dirname)
+
         for filename in filenames:
+            if filename.endswith(ignore_suffixes):
+                continue
+
             result.append(os.path.normpath(os.path.join(root, filename)))
 
     return result

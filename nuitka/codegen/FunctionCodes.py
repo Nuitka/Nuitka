@@ -19,9 +19,9 @@
 
 """
 
-from logging import warning
 
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import general
 
 from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
 from .CodeHelpers import (
@@ -569,7 +569,7 @@ def getFunctionCode(
             needs_exception_exit=needs_exception_exit,
         )
     except Exception:
-        warning("Problem creating function code %r." % function_identifier)
+        general.warning("Problem creating function code %r." % function_identifier)
         raise
 
 

@@ -17,7 +17,6 @@
 #
 """ Details see below in class definition.
 """
-from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -46,7 +45,7 @@ class GeventPlugin(NuitkaPluginBase):
             return source_code
         source_lines = source_code.splitlines()
         source_lines.append("config.track_greenlet_tree = False")
-        info(" gevent-plugin: Greenlet tree tracking switched off")
+        self.info("Greenlet tree tracking switched off")
         return "\n".join(source_lines)
 
     def decideCompilation(self, module_name, source_ref):

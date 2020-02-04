@@ -1390,15 +1390,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         # Do nothing by default.
         return source_code
 
-    def suppressBuiltinImportWarning(self, module, source_ref):
-        if module.getFullName() in ("setuptools",):
-            return True
-
-        if module.getName() == "six":
-            return True
-
-        return False
-
     def considerExtraDlls(self, dist_dir, module):
         full_name = module.getFullName()
 

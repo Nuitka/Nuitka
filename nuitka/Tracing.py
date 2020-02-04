@@ -28,6 +28,7 @@ to "print for_debug" without much hassle (braces).
 
 from __future__ import print_function
 
+import logging
 import sys
 
 
@@ -51,6 +52,31 @@ def flushStdout():
     sys.stdout.flush()
 
 
+def getEnableStyleCode(style):
+    if style == "pink":
+        style = "\033[95m"
+    elif style == "blue":
+        style = "\033[94m"
+    elif style == "green":
+        style = "\033[92m"
+    elif style == "yellow":
+        style = "\033[93m"
+    elif style == "red":
+        style = "\033[91m"
+    elif style == "bold":
+        style = "\033[1m"
+    elif style == "underline":
+        style = "\033[4m"
+    else:
+        style = None
+
+    return style
+
+
+def getDisableStyleCode():
+    return "\033[0m"
+
+
 def my_print(*args, **kwargs):
     """ Make sure we flush after every print.
 
@@ -60,32 +86,52 @@ def my_print(*args, **kwargs):
     """
 
     if "style" in kwargs:
-        if kwargs["style"] == "pink":
-            style = "\033[95m"
-        elif kwargs["style"] == "blue":
-            style = "\033[94m"
-        elif kwargs["style"] == "green":
-            style = "\033[92m"
-        elif kwargs["style"] == "yellow":
-            style = "\033[93m"
-        elif kwargs["style"] == "red":
-            style = "\033[91m"
-        elif kwargs["style"] == "bold":
-            style = "\033[1m"
-        elif kwargs["style"] == "underline":
-            style = "\033[4m"
-        else:
-            raise ValueError(
-                "%s is an invalid value for keyword argument style" % kwargs["style"]
-            )
-
+        style = kwargs["style"]
         del kwargs["style"]
 
-        print(style, end="")
-        print(*args, **kwargs)
-        print("\033[0m", end="")
+        if style is not None:
+            style = getEnableStyleCode(style)
 
+            if style is None:
+                raise ValueError(
+                    "%r is an invalid value for keyword argument style"
+                    % kwargs["style"]
+                )
+
+            print(style, end="")
+
+        print(*args, **kwargs)
+
+        if style is not None:
+            print(getDisableStyleCode(), end="")
     else:
         print(*args, **kwargs)
 
     flushStdout()
+
+
+# TODO: Stop using logging at all, and only OurLogger.
+logging.basicConfig(format="Nuitka:%(levelname)s:%(message)s")
+
+
+class OurLogger(object):
+    def __init__(self, name, base_style=None):
+        self.name = name
+        self.base_style = base_style
+
+    def warning(self, message, style="red"):
+        message = "%s:WARNING: %s" % (self.name, message)
+
+        style = style or self.base_style
+        my_print(message, style=style)
+
+    def info(self, message, style=None):
+        message = "%s:INFO: %s" % (self.name, message)
+
+        style = style or self.base_style
+        my_print(message, style=style)
+
+
+general = OurLogger("Nuitka")
+codegen_missing = OurLogger("Nuitka-codegen-missing")
+plugins_logger = OurLogger("Nuitka-Plugins")

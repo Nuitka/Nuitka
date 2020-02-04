@@ -27,7 +27,6 @@ it is really necessary.
 import hashlib
 import math
 import re
-from logging import warning
 from types import BuiltinFunctionType
 
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
@@ -36,6 +35,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     xrange,
 )
 from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
+from nuitka.Tracing import general
 
 
 class ExceptionCannotNamify(Exception):
@@ -134,7 +134,7 @@ def namifyConstant(constant):
 
                 return "tuple_" + result + "_tuple"
             except ExceptionCannotNamify:
-                warning("Couldn't namify '%r'" % (constant,))
+                general.warning("Couldn't namify '%r'" % (constant,))
 
                 return "tuple_" + _digest(repr(constant))
     elif type(constant) is list:
@@ -149,7 +149,7 @@ def namifyConstant(constant):
 
                 return "list_" + result + "_list"
             except ExceptionCannotNamify:
-                warning("Couldn't namify '%r'" % value)
+                general.warning("Couldn't namify '%r'" % value)
 
                 return "list_" + _digest(repr(constant))
     elif type(constant) is bytearray:

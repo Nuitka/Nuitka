@@ -24,7 +24,6 @@ own dependencies.
 import os
 import shutil
 import sys
-from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -207,7 +206,7 @@ if os.path.exists(guess_path):
                 # indicating the check to be bad.
                 assert plugin_options
 
-            info(
+            self.info(
                 "Copying Qt plug-ins '%s' to '%s'."
                 % (
                     ",".join(sorted(x for x in plugin_options if x != "xml")),
@@ -263,7 +262,7 @@ if os.path.exists(guess_path):
                     [],
                 )
 
-                info("Copying OpenSSL DLLs to %r" % (dist_dir,))
+                self.info("Copying OpenSSL DLLs to %r" % (dist_dir,))
 
                 for filename in qt_bin_files:
                     basename = os.path.basename(filename).lower()
@@ -285,7 +284,7 @@ if os.path.exists(guess_path):
                     os.path.join(target_plugin_dir, "..", "Qt", "qml")
                 )
 
-                info("Copying Qt plug-ins 'xml' to '%s'." % (qml_target_dir))
+                self.info("Copying Qt plug-ins 'xml' to '%s'." % (qml_target_dir))
 
                 copyTree(qml_plugin_dir, qml_target_dir)
 
@@ -319,7 +318,7 @@ if os.path.exists(guess_path):
                 if isWin32Windows():
                     opengl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
 
-                    info("Copying OpenGL DLLs to %r" % (dist_dir,))
+                    self.info("Copying OpenGL DLLs to %r" % (dist_dir,))
 
                     for filename in qt_bin_files:
                         basename = os.path.basename(filename).lower()
@@ -350,7 +349,8 @@ if os.path.exists(guess_path):
             and not self.webengine_done
         ):
             self.webengine_done = True  # prevent multiple copies
-            info("Copying QtWebEngine components")
+            self.info("Copying QtWebEngine components")
+
             plugin_parent = os.path.dirname(plugin_dirs[0])
 
             if isWin32Windows():

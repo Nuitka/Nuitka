@@ -28,11 +28,11 @@ it being used.
 
 import os
 import sys
-from logging import info, warning
 
 from nuitka import Options, OutputDirectories
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.SourceCodeReferences import fromFilename
+from nuitka.Tracing import plugins_logger
 from nuitka.utils.FileOperations import relpath
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -366,9 +366,11 @@ class NuitkaPluginBase(object):
             if full_name in pre_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)
 
-            info("Injecting plug-in based pre load code for module '%s':" % full_name)
+            plugins_logger.info(
+                "Injecting plug-in based pre load code for module '%s':" % full_name
+            )
             for line in reason.split("\n"):
-                info("    " + line)
+                plugins_logger.info("    " + line)
 
             pre_modules[full_name] = self._createTriggerLoadedModule(
                 module=module, trigger_name="-preLoad", code=pre_code
@@ -381,9 +383,11 @@ class NuitkaPluginBase(object):
             if full_name is post_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)
 
-            info("Injecting plug-in based post load code for module '%s':" % full_name)
+            plugins_logger.info(
+                "Injecting plug-in based post load code for module '%s':" % full_name
+            )
             for line in reason.split("\n"):
-                info("    " + line)
+                plugins_logger.info("    " + line)
 
             post_modules[full_name] = self._createTriggerLoadedModule(
                 module=module, trigger_name="-postLoad", code=post_code
@@ -520,18 +524,6 @@ class NuitkaPluginBase(object):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    def suppressBuiltinImportWarning(self, module, source_ref):
-        """ Suppress import warnings for builtin modules.
-
-        Args:
-            module: the module the import is made in
-            source_ref: source reference of the import
-        Returns:
-            True or False
-        """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-        return False
-
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
         """ Suppress import warnings for unknown modules.
 
@@ -617,7 +609,17 @@ class NuitkaPluginBase(object):
         if self.plugin_name not in warned_unused_plugins:
             warned_unused_plugins.add(self.plugin_name)
 
-            warning("Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message))
+            plugins_logger.warning(
+                "Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message)
+            )
+
+    @classmethod
+    def warning(cls, message):
+        plugins_logger.warning(cls.plugin_name + ":" + message)
+
+    @classmethod
+    def info(cls, message):
+        plugins_logger.info(cls.plugin_name + ":" + message)
 
 
 def isTriggerModule(module):
