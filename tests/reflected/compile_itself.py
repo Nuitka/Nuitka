@@ -93,8 +93,10 @@ def diffRecursive(dir1, dir2):
         done.add(path1)
 
         # Skip these binary files and scons build database of course.
+        # TODO: Temporary ignore ".bin", until we have something better than marshal which behaves
+        # differently in compiled Nuitka:
         if filename.endswith(
-            (".o", ".os", ".obj", ".dblite", ".tmp", ".sconsign", ".txt")
+            (".o", ".os", ".obj", ".dblite", ".tmp", ".sconsign", ".txt", ".bin")
         ):
             continue
 
@@ -280,13 +282,7 @@ def compileAndCompareWith(nuitka):
 
                 has_diff = diffRecursive(os.path.join(package, target), target_dir)
 
-                # TODO: Temporary, until we have something better than marshal which behaves
-                # differently in compiled Nuitka:
-                if has_diff and filename not in (
-                    "Contexts.py",
-                    "Whitelisting.py",
-                    "ImplicitImports.py",
-                ):
+                if has_diff:
                     sys.exit("There were differences!")
 
                 shutil.rmtree(target_dir)
