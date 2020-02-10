@@ -24,22 +24,16 @@ import glob
 import marshal
 import os
 import sys
-from logging import debug, info, warning
+from logging import debug, warning
 
 from nuitka import ModuleRegistry, Options
 from nuitka.importing import ImportCache, Importing, StandardLibrary
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import recursion_logger
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.FileOperations import listDir, relpath
 from nuitka.utils.ModuleNames import ModuleName
-
-
-def logRecursion(*args):
-    if Options.isShowInclusion():
-        info(*args)
-    else:
-        debug(*args)
 
 
 def matchesModuleNameToPatterns(module_name, patterns):
@@ -83,12 +77,11 @@ def _recurseTo(module_package, module_filename, module_relpath, module_kind, rea
         is_shlib=module_kind == "shlib",
     )
 
-    logRecursion(
-        "Recurse to import '%s' from '%s'. (%s)",
-        module.getFullName(),
-        module_relpath,
-        reason,
-    )
+    if Options.isShowInclusion():
+        recursion_logger.info(
+            "Recurse to import '%s' from '%s'. (%s)"
+            % (module.getFullName(), module_relpath, reason)
+        )
 
     if module_kind == "py" and source_filename is not None:
         try:

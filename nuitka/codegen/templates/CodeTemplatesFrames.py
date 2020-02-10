@@ -71,8 +71,7 @@ RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 
 if (%(exception_tb)s == NULL) {
     %(exception_tb)s = %(tb_making)s;
-}
-else if (%(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame) {
+} else if (%(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame) {
     %(exception_tb)s = ADD_TRACEBACK(%(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s);
 }
 
@@ -125,11 +124,9 @@ template_frame_guard_once_exception_handler = """\
 RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 #endif
 
-if ( %(exception_tb)s == NULL )
-{
+if (%(exception_tb)s == NULL) {
     %(exception_tb)s = %(tb_making)s;
-}
-else if (exception_tb->tb_frame != &%(frame_identifier)s->m_frame) {
+} else if (exception_tb->tb_frame != &%(frame_identifier)s->m_frame) {
     %(exception_tb)s = ADD_TRACEBACK(%(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s);
 }
 

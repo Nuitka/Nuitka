@@ -26,8 +26,8 @@
 
 #include "build_definitions.h"
 
-#include "osdefs.h"
-#include "structseq.h"
+#include <osdefs.h>
+#include <structseq.h>
 
 #if defined(_WIN32)
 #include <windows.h>

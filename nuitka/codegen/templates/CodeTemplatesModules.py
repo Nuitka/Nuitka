@@ -550,7 +550,7 @@ PyObject *modulecode_%(module_identifier)s(char const *module_full_name) {
 
 template_module_external_entry_point = r"""
 
-/* Visibility definitions to make the DLL entry poinz exported */
+/* Visibility definitions to make the DLL entry point exported */
 #if defined(__GNUC__)
 
 #if PYTHON_VERSION < 300

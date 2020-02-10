@@ -135,3 +135,4 @@ class OurLogger(object):
 general = OurLogger("Nuitka")
 codegen_missing = OurLogger("Nuitka-codegen-missing")
 plugins_logger = OurLogger("Nuitka-Plugins")
+recursion_logger = OurLogger("Nuitka-Recursion")

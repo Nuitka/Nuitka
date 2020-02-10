@@ -27,13 +27,12 @@ needed except for technical reasons.
 """
 
 
-from logging import info
-
 from nuitka import Options
 from nuitka.codegen import ConstantCodes
 from nuitka.codegen.Indentation import indented
 from nuitka.codegen.templates.CodeTemplatesFreezer import template_frozen_modules
 from nuitka.ModuleRegistry import getUncompiledTechnicalModules
+from nuitka.Tracing import general
 
 stream_data = ConstantCodes.stream_data
 
@@ -62,7 +61,7 @@ def generateBytecodeFrozenCode():
         )
 
         if Options.isShowInclusion():
-            info("Embedded as frozen module '%s'.", module_name)
+            general.info("Embedded as frozen module '%s'.", module_name)
 
     if frozen_defs:
         return template_frozen_modules % {"frozen_modules": indented(frozen_defs, 2)}

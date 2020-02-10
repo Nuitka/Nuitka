@@ -1499,7 +1499,7 @@ different from
         dll_map.append((dll_filename, dll_name))
 
         if Options.isShowInclusion():
-            info(
+            Tracing.general.info(
                 "Included used shared library '%s' (used by %s)."
                 % (dll_filename, ", ".join(sources))
             )

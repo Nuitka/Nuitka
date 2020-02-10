@@ -109,11 +109,8 @@ static void _createGlobalConstants(void) {
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 1, PyInt_FromLong(%(nuitka_version_minor)s));
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 2, PyInt_FromLong(%(nuitka_version_micro)s));
 
-#if PYTHON_VERSION < 300
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, PyString_FromString("%(nuitka_version_level)s"));
-#else
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, PyUnicode_FromString("%(nuitka_version_level)s"));
-#endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, Nuitka_String_FromString("%(nuitka_version_level)s"));
+
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;
     Nuitka_VersionInfoType.tp_new = NULL;

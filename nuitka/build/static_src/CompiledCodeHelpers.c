@@ -977,11 +977,7 @@ PyObject *UNSTREAM_UNICODE(unsigned char const *buffer, Py_ssize_t size) {
 #endif
 
 PyObject *UNSTREAM_STRING(unsigned char const *buffer, Py_ssize_t size, bool intern) {
-#if PYTHON_VERSION < 300
-    PyObject *result = PyString_FromStringAndSize((char const *)buffer, size);
-#else
-    PyObject *result = PyUnicode_FromStringAndSize((char const *)buffer, size);
-#endif
+    PyObject *result = Nuitka_String_FromStringAndSize((char const *)buffer, size);
 
     assert(!ERROR_OCCURRED());
     CHECK_OBJECT(result);
@@ -1029,11 +1025,7 @@ PyObject *UNSTREAM_STRING_ASCII(unsigned char const *buffer, Py_ssize_t size, bo
 #endif
 
 PyObject *UNSTREAM_CHAR(unsigned char value, bool intern) {
-#if PYTHON_VERSION < 300
-    PyObject *result = PyString_FromStringAndSize((char const *)&value, 1);
-#else
-    PyObject *result = PyUnicode_FromStringAndSize((char const *)&value, 1);
-#endif
+    PyObject *result = Nuitka_String_FromStringAndSize((char const *)&value, 1);
 
     assert(!ERROR_OCCURRED());
     CHECK_OBJECT(result);
@@ -1994,29 +1986,16 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
 #if defined(_NUITKA_EXE)
         our_path_object = getBinaryDirectoryObject();
 #else
-#if PYTHON_VERSION >= 300
-        our_path_object = PyUnicode_FromString(getDllDirectory());
-#else
-        our_path_object = PyString_FromString(getDllDirectory());
-#endif
+        our_path_object = Nuitka_String_FromString(getDllDirectory());
 #endif
     }
 
     char sep[2] = {SEP, 0};
 
-#if PYTHON_VERSION < 300
-    PyObject *result = PyNumber_Add(our_path_object, PyString_FromString(sep));
-#else
-    PyObject *result = PyNumber_Add(our_path_object, PyUnicode_FromString(sep));
-#endif
-
+    PyObject *result = PyNumber_Add(our_path_object, Nuitka_String_FromString(sep));
     CHECK_OBJECT(result);
 
-#if PYTHON_VERSION < 300
     result = PyNumber_InPlaceAdd(result, relative);
-#else
-    result = PyNumber_InPlaceAdd(result, relative);
-#endif
 
     CHECK_OBJECT(result);
 

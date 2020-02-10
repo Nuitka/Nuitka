@@ -25,7 +25,7 @@
 /* Include the CPython version numbers, and define our own take of what version
  * numbers should be.
  */
-#include "patchlevel.h"
+#include <patchlevel.h>
 
 // TODO: Switch to using hex format version of standard Python or change our
 // to use that too, to avoid overflows more generally. For now we to out at
@@ -146,6 +146,8 @@
 #define Nuitka_String_CheckExact PyString_CheckExact
 #define Nuitka_StringObject PyStringObject
 #define Nuitka_StringIntern PyString_InternInPlace
+#define Nuitka_String_FromString PyString_FromString
+#define Nuitka_String_FromStringAndSize PyString_FromStringAndSize
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
 
@@ -160,6 +162,8 @@
 #define Nuitka_String_CheckExact PyUnicode_CheckExact
 #define Nuitka_StringObject PyUnicodeObject
 #define Nuitka_StringIntern PyUnicode_InternInPlace
+#define Nuitka_String_FromString PyUnicode_FromString
+#define Nuitka_String_FromStringAndSize PyUnicode_FromStringAndSize
 #endif
 
 #if PYTHON_VERSION < 300

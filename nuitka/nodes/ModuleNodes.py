@@ -687,6 +687,8 @@ class PythonMainModule(CompiledPythonModule):
     kind = "PYTHON_MAIN_MODULE"
 
     def __init__(self, main_added, mode, future_spec, source_ref):
+        self.main_added = main_added
+
         CompiledPythonModule.__init__(
             self,
             module_name=ModuleName("__main__"),
@@ -695,8 +697,6 @@ class PythonMainModule(CompiledPythonModule):
             future_spec=future_spec,
             source_ref=source_ref,
         )
-
-        self.main_added = main_added
 
     def getDetails(self):
         return {

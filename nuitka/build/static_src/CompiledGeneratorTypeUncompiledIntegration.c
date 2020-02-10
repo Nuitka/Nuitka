@@ -559,9 +559,7 @@ throw_here:
 
     if (PyExceptionClass_Check(typ)) {
         NORMALIZE_EXCEPTION(&typ, &val, (PyTracebackObject **)&tb);
-    }
-
-    else if (PyExceptionInstance_Check(typ)) {
+    } else if (PyExceptionInstance_Check(typ)) {
         if (unlikely(val && val != Py_None)) {
             PyErr_Format(PyExc_TypeError, "instance exception may not have a separate value");
 

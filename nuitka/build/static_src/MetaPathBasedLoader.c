@@ -162,11 +162,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_RELATIVE_PATH_FROM_NAME(char const *n
         strncat(buffer, ".py", sizeof(buffer) - 1);
     }
 
-#if PYTHON_VERSION < 300
-    PyObject *module_path_entry_base = PyString_FromString(buffer);
-#else
-    PyObject *module_path_entry_base = PyUnicode_FromString(buffer);
-#endif
+    PyObject *module_path_entry_base = Nuitka_String_FromString(buffer);
 
     PyObject *result = MAKE_RELATIVE_PATH(module_path_entry_base);
 
@@ -195,11 +191,8 @@ static PyObject *loadModuleFromCodeObject(PyCodeObject *code_object, char const 
 
     if (is_package) {
         copyModulenameAsPath(buffer, name);
-#if PYTHON_VERSION < 300
-        PyObject *module_path_entry_base = PyString_FromString(buffer);
-#else
-        PyObject *module_path_entry_base = PyUnicode_FromString(buffer);
-#endif
+        PyObject *module_path_entry_base = Nuitka_String_FromString(buffer);
+
         module_path_entry = MAKE_RELATIVE_PATH(module_path_entry_base);
         Py_DECREF(module_path_entry_base);
 
@@ -211,11 +204,7 @@ static PyObject *loadModuleFromCodeObject(PyCodeObject *code_object, char const 
         strncat(buffer, ".py", sizeof(buffer) - 1);
     }
 
-#if PYTHON_VERSION < 300
-    PyObject *module_path_name = PyString_FromString(buffer);
-#else
-    PyObject *module_path_name = PyUnicode_FromString(buffer);
-#endif
+    PyObject *module_path_name = Nuitka_String_FromString(buffer);
 
     PyObject *module_path = MAKE_RELATIVE_PATH(module_path_name);
     Py_DECREF(module_path_name);
@@ -227,13 +216,15 @@ static PyObject *loadModuleFromCodeObject(PyCodeObject *code_object, char const 
             return NULL;
 
         res = PyList_SetItem(path_list, 0, module_path_entry);
-        if (unlikely(res != 0))
+        if (unlikely(res != 0)) {
             return NULL;
+        }
         Py_INCREF(module_path_entry);
 
         res = PyObject_SetAttr(module, const_str_plain___path__, path_list);
-        if (unlikely(res != 0))
+        if (unlikely(res != 0)) {
             return NULL;
+        }
 
         Py_DECREF(path_list);
     }

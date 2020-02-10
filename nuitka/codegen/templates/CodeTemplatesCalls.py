@@ -28,8 +28,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
 
     // Check if arguments are valid objects in debug mode.
 #ifndef __NUITKA_NO_ASSERT__
-    for (size_t i = 0; i < %(args_count)d; i++)
-    {
+    for (size_t i = 0; i < %(args_count)d; i++) {
         CHECK_OBJECT(args[i]);
     }
 #endif
@@ -43,8 +42,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
         PyObject *result;
 
         if (function->m_args_simple && %(args_count)d == function->m_args_positional_count){
-            for (Py_ssize_t i = 0; i < %(args_count)d; i++)
-            {
+            for (Py_ssize_t i = 0; i < %(args_count)d; i++) {
                 Py_INCREF(args[i]);
             }
 
@@ -58,8 +56,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
             memcpy(python_pars, args, %(args_count)d * sizeof(PyObject *));
             memcpy(python_pars + %(args_count)d, &PyTuple_GET_ITEM(function->m_defaults, 0), function->m_defaults_given * sizeof(PyObject *));
 
-            for (Py_ssize_t i = 0; i < function->m_args_positional_count; i++)
-            {
+            for (Py_ssize_t i = 0; i < function->m_args_positional_count; i++) {
                 Py_INCREF(python_pars[i]);
             }
 
@@ -86,8 +83,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL)
-        {
+        if (method->m_object != NULL) {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
