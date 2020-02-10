@@ -4,6 +4,7 @@
     "C_Cpp.dimInactiveRegions": false,
     "files.exclude": {
         "**/*.build": true,
+        "**/*.dist" : true,
         "**/*.exe": true,
         "**/*.exe.away": true,
         "**/*.bin": true,
