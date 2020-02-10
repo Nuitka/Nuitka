@@ -25,7 +25,7 @@
 #define NUITKA_PACKAGE_FLAG 2
 #define NUITKA_BYTECODE_FLAG 4
 
-typedef PyObject *(*module_initfunc)(char const *module_full_name);
+typedef PyObject *(*module_initfunc)(PyObject *module);
 
 struct Nuitka_MetaPathBasedLoaderEntry {
     /* Full module name, including package name. */

@@ -93,22 +93,6 @@ static void createModuleCodeObjects(void) {
 // The module function definitions.
 %(module_functions_code)s
 
-
-#if PYTHON_VERSION >= 300
-static struct PyModuleDef mdef_%(module_identifier)s =
-{
-    PyModuleDef_HEAD_INIT,
-    NULL,                /* m_name, filled later */
-    NULL,                /* m_doc */
-    -1,                  /* m_size */
-    NULL,                /* m_methods */
-    NULL,                /* m_reload */
-    NULL,                /* m_traverse */
-    NULL,                /* m_clear */
-    NULL,                /* m_free */
-  };
-#endif
-
 extern PyObject *const_str_plain___compiled__;
 
 extern PyObject *const_str_plain___package__;
@@ -296,7 +280,9 @@ static PyMethodDef _method_def_create_compiled_function = {
 #endif
 
 // Internal entry point for module code.
-PyObject *modulecode_%(module_identifier)s(char const *module_full_name) {
+PyObject *modulecode_%(module_identifier)s(PyObject *module) {
+    module_%(module_identifier)s = module;
+
 #if defined(_NUITKA_EXE) || PYTHON_VERSION >= 300
     static bool _init_done = false;
 
@@ -376,21 +362,6 @@ PyObject *modulecode_%(module_identifier)s(char const *module_full_name) {
     // set at this time, as it could not contain NUL characters this way, they
     // are instead set in early module code.  No "self" for modules, we have no
     // use for it.
-#if PYTHON_VERSION < 300
-    module_%(module_identifier)s = Py_InitModule4(
-        module_full_name,        // Module Name
-        NULL,                    // No methods initially, all are added
-                                 // dynamically in actual module code only.
-        NULL,                    // No "__doc__" is initially set, as it could
-                                 // not contain NUL this way, added early in
-                                 // actual code.
-        NULL,                    // No self for modules, we don't use it.
-        PYTHON_API_VERSION
-    );
-#else
-    mdef_%(module_identifier)s.m_name = module_full_name;
-    module_%(module_identifier)s = PyModule_Create(&mdef_%(module_identifier)s);
-#endif
 
     moduledict_%(module_identifier)s = MODULE_DICT(module_%(module_identifier)s);
 
@@ -466,15 +437,6 @@ PyObject *modulecode_%(module_identifier)s(char const *module_full_name) {
     }
 
     CHECK_OBJECT(module_%(module_identifier)s);
-
-// Seems to work for Python2.7 out of the box, but for Python3, the module
-// doesn't automatically enter "sys.modules", so do it manually.
-#if PYTHON_VERSION >= 300
-    {
-        int r = PyDict_SetItemString(PyImport_GetModuleDict(), module_full_name, module_%(module_identifier)s);
-        assert(r != -1);
-    }
-#endif
 
     // For deep importing of a module we need to have "__builtins__", so we set
     // it ourselves in the same way than CPython does. Note: This must be done
@@ -579,6 +541,21 @@ template_module_external_entry_point = r"""
 #define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION PyInit_##name(void)
 #endif
 
+#if PYTHON_VERSION >= 300
+static struct PyModuleDef mdef_%(module_identifier)s = {
+    PyModuleDef_HEAD_INIT,
+    NULL,                /* m_name, filled later */
+    NULL,                /* m_doc */
+    -1,                  /* m_size */
+    NULL,                /* m_methods */
+    NULL,                /* m_reload */
+    NULL,                /* m_traverse */
+    NULL,                /* m_clear */
+    NULL,                /* m_free */
+};
+
+#endif
+
 /* The exported interface to CPython. On import of the module, this function
  * gets called. It has to have an exact function name, in cases it's a shared
  * library export. This is hidden behind the MOD_INIT_DECL macro.
@@ -590,9 +567,30 @@ MOD_INIT_DECL(%(module_identifier)s) {
     }
 
 #if PYTHON_VERSION < 300
-    modulecode_%(module_identifier)s(module_full_name);
+    PyObject *module = Py_InitModule4(
+        module_full_name,        // Module Name
+        NULL,                    // No methods initially, all are added
+                                 // dynamically in actual module code only.
+        NULL,                    // No "__doc__" is initially set, as it could
+                                 // not contain NUL this way, added early in
+                                 // actual code.
+        NULL,                    // No self for modules, we don't use it.
+        PYTHON_API_VERSION
+    );
 #else
-    PyObject *result = modulecode_%(module_identifier)s(module_full_name);
+    mdef_%(module_identifier)s.m_name = module_full_name;
+    PyObject *module = PyModule_Create(&mdef_%(module_identifier)s);
+    CHECK_OBJECT(module);
+
+    PyObject *module_name = PyUnicode_FromString(module_full_name);
+    int res = PyDict_SetItem(PyImport_GetModuleDict(), module_name, module);
+    assert(res != -1);
+#endif
+
+#if PYTHON_VERSION < 300
+    modulecode_%(module_identifier)s(module);
+#else
+    PyObject *result = modulecode_%(module_identifier)s(module);
     return result;
 #endif
 }

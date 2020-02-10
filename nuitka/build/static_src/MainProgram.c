@@ -178,7 +178,7 @@ extern void SvcLaunchService();
 
 // Callback from Windows Service logic.
 DWORD WINAPI SvcStartPython(LPVOID lpParam) {
-    IMPORT_EMBEDDED_MODULE(const_str_plain___main__, "__main__");
+    IMPORT_EMBEDDED_MODULE("__main__");
 
     return 0;
 }
@@ -517,7 +517,7 @@ int main(int argc, char **argv) {
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
     if (unlikely(is_multiprocessing_fork)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
-        IMPORT_EMBEDDED_MODULE(PyUnicode_FromString("__parents_main__"), "__parents_main__");
+        IMPORT_EMBEDDED_MODULE("__parents_main__");
     } else {
 #endif
         PyDict_DelItem(PyImport_GetModuleDict(), const_str_plain___main__);
@@ -528,7 +528,7 @@ int main(int argc, char **argv) {
     /* Execute the "__main__" module. */
     NUITKA_PRINT_TRACE("main(): Calling __main__.");
 
-    IMPORT_EMBEDDED_MODULE(const_str_plain___main__, "__main__");
+    IMPORT_EMBEDDED_MODULE("__main__");
 #endif
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
     }

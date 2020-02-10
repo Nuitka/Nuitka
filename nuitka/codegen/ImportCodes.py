@@ -153,9 +153,9 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
             emit(
                 """\
 {
-    PyObject *module = PyImport_ImportModule("%(module_name)s");
-    if (likely(module != NULL)) {
-        %(to_name)s = PyObject_GetAttr(module, %(import_name)s);
+    PyObject *hard_module = PyImport_ImportModule("%(module_name)s");
+    if (likely(hard_module != NULL)) {
+        %(to_name)s = PyObject_GetAttr(hard_module, %(import_name)s);
     } else {
         %(to_name)s = NULL;
     }
