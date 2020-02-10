@@ -77,50 +77,19 @@ def getMetapathLoaderBodyCode(other_modules):
     metapath_module_decls = []
 
     for other_module in other_modules:
-        if other_module.isUncompiledPythonModule():
-            code_data = other_module.getByteCode()
-            is_package = other_module.isUncompiledPythonPackage()
-
-            flags = ["NUITKA_BYTECODE_FLAG"]
-            if is_package:
-                flags.append("NUITKA_PACKAGE_FLAG")
-
-            metapath_loader_inittab.append(
-                template_metapath_loader_bytecode_module_entry
-                % {
-                    "module_name": other_module.getFullName(),
-                    "bytecode": stream_data.getStreamDataOffset(code_data),
-                    "size": len(code_data),
-                    "flags": " | ".join(flags),
-                }
-            )
-        else:
-            metapath_loader_inittab.append(
-                getModuleMetapathLoaderEntryCode(module=other_module)
-            )
+        metapath_loader_inittab.append(
+            getModuleMetapathLoaderEntryCode(module=other_module)
+        )
 
         if other_module.isCompiledPythonModule():
             metapath_module_decls.append(
-                "extern PyObject *modulecode_%(module_identifier)s(char const *);"
+                "extern PyObject *modulecode_%(module_identifier)s(PyObject *);"
                 % {"module_identifier": other_module.getCodeName()}
             )
 
     for uncompiled_module in getUncompiledNonTechnicalModules():
-        code_data = uncompiled_module.getByteCode()
-        is_package = uncompiled_module.isUncompiledPythonPackage()
-
-        flags = ["NUITKA_BYTECODE_FLAG"]
-        if is_package:
-            flags.append("NUITKA_PACKAGE_FLAG")
-
         metapath_loader_inittab.append(
-            template_metapath_loader_bytecode_module_entry
-            % {
-                "module_name": uncompiled_module.getFullName(),
-                "bytecode": stream_data.getStreamDataOffset(code_data),
-                "size": len(code_data),
-                "flags": " | ".join(flags),
-            }
+            getModuleMetapathLoaderEntryCode(module=uncompiled_module)
         )
 
     return template_metapath_loader_body % {
