@@ -52,6 +52,7 @@ from nuitka.utils.Execution import withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     deleteFile,
+    getExternalUsePath,
     getFileContentByLine,
     getFileContents,
     getSubDirectories,
@@ -1008,9 +1009,9 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
         with open(dwp_filename, "w") as dwp_file:
             dwp_file.write(
                 """\
-    %(scan_dirs)s
-    SxS
-    """
+%(scan_dirs)s
+SxS
+"""
                 % {
                     "scan_dirs": "\n".join(
                         "UserDir %s" % dirname for dirname in scan_dirs
@@ -1029,7 +1030,8 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
             "-pa1",
             "-ps1",
             binary_filename,
-        )
+        ),
+        cwd=getExternalUsePath(os.getcwd()),
     )
 
     # TODO: Exit code should be checked.
