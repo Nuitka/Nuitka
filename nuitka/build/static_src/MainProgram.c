@@ -229,6 +229,16 @@ static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
     }
 }
 
+#if defined(_WIN32) && PYTHON_VERSION >= 300 && _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
+static void setenv(char const *name, char const *value, int overwrite) {
+    assert(overwrite);
+
+    SetEnvironmentVariableA(name, value);
+}
+
+static void unsetenv(char const *name) { SetEnvironmentVariableA(name, NULL); }
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
 #if defined(__MINGW32__) && !defined(_W64)
@@ -349,24 +359,22 @@ int main(int argc, char **argv) {
 #endif
 
 #if PYTHON_VERSION >= 300 && _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
-#ifndef _WIN32
     char const *old_env = getenv("PYTHONHASHSEED");
     setenv("PYTHONHASHSEED", "0", 1);
-#endif
 #endif
     /* Initialize the embedded CPython interpreter. */
     NUITKA_PRINT_TRACE("main(): Calling Py_Initialize to initialize interpreter.");
     Py_Initialize();
 
 #if PYTHON_VERSION >= 300 && _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
-#ifndef _WIN32
     if (old_env) {
         setenv("PYTHONHASHSEED", old_env, 1);
 
         PyObject *env_value = PyUnicode_FromString(old_env);
         PyObject *hashseed_str = PyUnicode_FromString("PYTHONHASHSEED");
 
-        int res = PyObject_SetItem(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), hashseed_str, env_value);
+        int res =
+            PyObject_SetItem(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), hashseed_str, env_value);
         assert(res == 0);
 
         Py_DECREF(env_value);
@@ -374,10 +382,10 @@ int main(int argc, char **argv) {
     } else {
         unsetenv("PYTHONHASHSEED");
 
-        int res = PyObject_DelItemString(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), "PYTHONHASHSEED");
+        int res =
+            PyObject_DelItemString(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), "PYTHONHASHSEED");
         assert(res == 0);
     }
-#endif
 #endif
 
 #ifdef _NUITKA_STANDALONE
