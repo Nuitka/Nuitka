@@ -599,7 +599,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         # pydantic imports ---------------------------------------------------
         elif full_name == "pydantic":
-            yield "pydantic.__init__", False
             yield "pydantic.typing", False
             yield "pydantic.fields", False
             yield "pydantic.utils", False
