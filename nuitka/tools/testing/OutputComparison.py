@@ -70,7 +70,8 @@ def import_re_callback(match):
 
 tempfile_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 
-logging_re = re.compile(r"^Nuitka.*?:INFO")
+logging_info_re = re.compile(r"^Nuitka.*?:INFO")
+logging_warning_re = re.compile(r"^Nuitka.*?:WARNING")
 
 
 def normalizeTimeDiff(outputStr):
@@ -129,10 +130,10 @@ def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
         if line.startswith("[") and line.endswith("refs]"):
             continue
 
-        if ignore_warnings and line.startswith("Nuitka:WARNING"):
+        if ignore_warnings and logging_warning_re.match(line):
             continue
 
-        if ignore_infos and logging_re.match(line):
+        if ignore_infos and logging_info_re.match(line):
             continue
 
         if line.startswith("Nuitka:WARNING:Cannot recurse to import"):
