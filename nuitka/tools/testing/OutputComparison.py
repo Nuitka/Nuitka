@@ -210,7 +210,7 @@ exceeded while calling a Python object' in \
             continue
 
         # Ignore spurious clcache warning.
-        if "clcache: persistent json file" in line:
+        if "clcache: persistent json file" in line or "clcache: manifest file" in line:
             continue
 
         result.append(line)
