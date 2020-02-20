@@ -22,7 +22,7 @@ or distribution folder.
 """
 
 
-from nuitka.ModuleRegistry import getUncompiledNonTechnicalModules
+from nuitka.ModuleRegistry import getUncompiledModules
 
 from . import ConstantCodes
 from .Indentation import indented
@@ -87,7 +87,7 @@ def getMetapathLoaderBodyCode(other_modules):
                 % {"module_identifier": other_module.getCodeName()}
             )
 
-    for uncompiled_module in getUncompiledNonTechnicalModules():
+    for uncompiled_module in getUncompiledModules():
         metapath_loader_inittab.append(
             getModuleMetapathLoaderEntryCode(module=uncompiled_module)
         )

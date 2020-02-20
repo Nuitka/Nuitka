@@ -19,7 +19,7 @@
  *
  * It needs to prepare the interpreter and then loads and executes
  * the "__main__" module.
- * *
+ *
  */
 
 #include "nuitka/prelude.h"
@@ -47,6 +47,13 @@ static wchar_t **argv_unicode;
 
 #if _NUITKA_FROZEN > 0
 extern void copyFrozenModulesTo(struct _frozen *destination);
+
+// The original frozen modules list.
+#if PYTHON_VERSION < 300
+static struct _frozen *old_frozen = NULL;
+#else
+static struct _frozen const *old_frozen = NULL;
+#endif
 #endif
 
 static void prepareStandaloneEnvironment() {
@@ -72,6 +79,7 @@ static void prepareStandaloneEnvironment() {
 
     memcpy(merged, PyImport_FrozenModules, pre_existing_count * sizeof(struct _frozen));
     copyFrozenModulesTo(merged + pre_existing_count);
+    old_frozen = PyImport_FrozenModules;
     PyImport_FrozenModules = merged;
 #endif
 
@@ -475,6 +483,12 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TRACE("main(): Calling setEarlyFrozenModulesFileAttribute().");
 
     setEarlyFrozenModulesFileAttribute();
+#endif
+
+#if _NUITKA_FROZEN > 0
+    NUITKA_PRINT_TRACE("main(): Removing early frozen module table again.");
+    PyImport_FrozenModules = old_frozen;
+    assert(old_frozen != NULL);
 #endif
 
     NUITKA_PRINT_TRACE("main(): Calling setupMetaPathBasedLoader().");
