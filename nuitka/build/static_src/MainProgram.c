@@ -474,10 +474,6 @@ int main(int argc, char **argv) {
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Calling setEarlyFrozenModulesFileAttribute().");
 
-#if PYTHON_VERSION >= 300
-    PyObject *os_module = PyImport_ImportModule("os");
-    CHECK_OBJECT(os_module);
-#endif
     setEarlyFrozenModulesFileAttribute();
 #endif
 

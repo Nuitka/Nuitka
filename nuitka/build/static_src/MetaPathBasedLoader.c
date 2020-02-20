@@ -909,6 +909,17 @@ static PyObject *_path_unfreezer_iter_modules(struct Nuitka_LoaderObject *self, 
     return result;
 }
 
+#if PYTHON_VERSION >= 300
+NUITKA_MAY_BE_UNUSED static PyObject *getImportLibBootstrapModule() {
+    static PyObject *importlib = NULL;
+    if (importlib == NULL) {
+        importlib = PyImport_ImportModule("importlib._bootstrap");
+    }
+
+    return importlib;
+}
+#endif
+
 #if PYTHON_VERSION >= 340
 static PyObject *_path_unfreezer_repr_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module;
@@ -944,18 +955,15 @@ static PyObject *createModuleSpec(PyObject *module_name, bool is_package) {
         return Py_None;
     }
 
-    static PyObject *importlib = NULL;
-    if (importlib == NULL) {
-        importlib = PyImport_ImportModule("importlib._bootstrap");
-    }
+    PyObject *importlib_module = getImportLibBootstrapModule();
 
-    if (unlikely(importlib == NULL)) {
+    if (unlikely(importlib_module == NULL)) {
         return NULL;
     }
 
     static PyObject *module_spec_class = NULL;
     if (module_spec_class == NULL) {
-        module_spec_class = PyObject_GetAttrString(importlib, "ModuleSpec");
+        module_spec_class = PyObject_GetAttrString(importlib_module, "ModuleSpec");
     }
 
     if (unlikely(module_spec_class == NULL)) {
@@ -1200,6 +1208,12 @@ extern PyObject *const_str_plain___file__;
 // This is called for the technical module imported early on during interpreter
 // into, to still get compatible "__file__" attributes.
 void setEarlyFrozenModulesFileAttribute(void) {
+#if PYTHON_VERSION >= 300
+    // Make sure the importlib fully bootstraps before doing this.
+    PyObject *importlib_module = getImportLibBootstrapModule();
+    CHECK_OBJECT(importlib_module);
+#endif
+
     PyObject *sys_modules = PyImport_GetModuleDict();
     Py_ssize_t ppos = 0;
     PyObject *key, *value;
