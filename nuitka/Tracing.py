@@ -89,7 +89,7 @@ def my_print(*args, **kwargs):
         style = kwargs["style"]
         del kwargs["style"]
 
-        if style is not None:
+        if style is not None and sys.stdout.isatty():
             style = getEnableStyleCode(style)
 
             if style is None:
@@ -102,7 +102,7 @@ def my_print(*args, **kwargs):
 
         print(*args, **kwargs)
 
-        if style is not None:
+        if style is not None and sys.stdout.isatty():
             print(getDisableStyleCode(), end="")
     else:
         print(*args, **kwargs)
