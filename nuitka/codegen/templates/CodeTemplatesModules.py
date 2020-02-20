@@ -375,8 +375,8 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module) {
         }
         PyObject_SetAttrString((PyObject *)builtin_module, "compiled_function_tables", function_tables);
         PyObject *funcs = PyTuple_New(2);
-        PyTuple_SetItem(funcs, 0, PyCFunction_New(&_method_def_reduce_compiled_function, NULL));
-        PyTuple_SetItem(funcs, 1, PyCFunction_New(&_method_def_create_compiled_function, NULL));
+        PyTuple_SET_ITEM(funcs, 0, PyCFunction_New(&_method_def_reduce_compiled_function, NULL));
+        PyTuple_SET_ITEM(funcs, 1, PyCFunction_New(&_method_def_create_compiled_function, NULL));
         PyDict_SetItemString(function_tables, module_full_name, funcs);
     }
 #endif

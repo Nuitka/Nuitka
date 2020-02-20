@@ -1157,7 +1157,7 @@ static bool set_name(PyClassObject *klass, PyObject *value) {
 }
 
 static int nuitka_class_setattr(PyClassObject *klass, PyObject *attr_name, PyObject *value) {
-    char *sattr_name = PyString_AsString(attr_name);
+    char const *sattr_name = PyString_AsString(attr_name);
 
     if (sattr_name[0] == '_' && sattr_name[1] == '_') {
         Py_ssize_t n = PyString_Size(attr_name);
@@ -1206,7 +1206,7 @@ static int nuitka_class_setattr(PyClassObject *klass, PyObject *attr_name, PyObj
 }
 
 static PyObject *nuitka_class_getattr(PyClassObject *klass, PyObject *attr_name) {
-    char *sattr_name = PyString_AsString(attr_name);
+    char const *sattr_name = PyString_AsString(attr_name);
 
     if (sattr_name[0] == '_' && sattr_name[1] == '_') {
         if (strcmp(sattr_name, "__dict__") == 0) {
@@ -1893,7 +1893,7 @@ static HMODULE getDllModuleHandle() {
 }
 #endif
 
-static char *getDllDirectory() {
+static char const *getDllDirectory() {
 #if defined(_WIN32)
     static char path[MAXPATHLEN + 1];
     path[0] = '\0';

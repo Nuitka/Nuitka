@@ -42,8 +42,7 @@ struct frozen_desc {
     int size;
 };
 
-void copyFrozenModulesTo( struct _frozen *destination )
-{
+void copyFrozenModulesTo(struct _frozen *destination) {
     struct frozen_desc frozen_modules[] = {
 %(frozen_modules)s
         {NULL, 0, 0}

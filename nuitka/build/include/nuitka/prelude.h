@@ -125,7 +125,6 @@
  * of renaming PyObject_Unicode. Define this to be easily portable.
  */
 #if PYTHON_VERSION >= 300
-#define PyInt_FromString PyLong_FromString
 #define PyInt_FromLong PyLong_FromLong
 #define PyInt_AsLong PyLong_AsLong
 #define PyInt_FromSsize_t PyLong_FromSsize_t

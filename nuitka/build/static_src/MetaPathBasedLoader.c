@@ -698,7 +698,7 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name, struct Nuit
                 CHECK_OBJECT(loader);
 
                 if (loader) {
-                    int res = PyDict_SetItem(path_importer_cache, path_element, loader);
+                    res = PyDict_SetItem(path_importer_cache, path_element, loader);
                     assert(res == 0);
                 }
             }
@@ -1197,7 +1197,8 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 
 extern PyObject *const_str_plain___file__;
 
-// This is called for each module imported early on.
+// This is called for the technical module imported early on during interpreter
+// into, to still get compatible "__file__" attributes.
 void setEarlyFrozenModulesFileAttribute(void) {
     PyObject *sys_modules = PyImport_GetModuleDict();
     Py_ssize_t ppos = 0;
