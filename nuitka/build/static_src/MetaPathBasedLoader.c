@@ -898,7 +898,7 @@ static PyObject *_path_unfreezer_iter_modules(struct Nuitka_LoaderObject *self, 
         }
 
         PyTuple_SET_ITEM(r, 0, name);
-        PyTuple_SetItem(r, 1, BOOL_FROM((current->flags & NUITKA_PACKAGE_FLAG) != 0));
+        PyTuple_SET_ITEM0(r, 1, BOOL_FROM((current->flags & NUITKA_PACKAGE_FLAG) != 0));
 
         PyList_Append(result, r);
         Py_DECREF(r);

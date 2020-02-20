@@ -271,7 +271,7 @@ PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *i
             CLEAR_ERROR_OCCURRED();
 
             PyObject *fromlist = PyTuple_New(1);
-            PyTuple_SetItem(fromlist, 0, import_name);
+            PyTuple_SET_ITEM0(fromlist, 0, import_name);
 
             result = IMPORT_MODULE5(const_str_empty, globals, globals, fromlist, level);
 
@@ -293,6 +293,8 @@ PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *i
             }
         }
     }
+
+    CHECK_OBJECT(import_name);
 
     return result;
 }
