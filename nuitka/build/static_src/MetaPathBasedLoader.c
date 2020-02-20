@@ -46,8 +46,6 @@
 #include <windows.h>
 #endif
 
-extern char *getDirname(char *path);
-
 extern PyTypeObject Nuitka_Loader_Type;
 
 struct Nuitka_LoaderObject {
