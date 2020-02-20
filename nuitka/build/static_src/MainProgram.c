@@ -84,12 +84,12 @@ static void prepareStandaloneEnvironment() {
 #endif
 
 #if PYTHON_VERSION < 300
-    char *binary_directory = getBinaryDirectoryHostEncoded();
+    char *binary_directory = (char *)getBinaryDirectoryHostEncoded();
     NUITKA_PRINTF_TRACE("Binary dir is %s\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
 #else
-    wchar_t *binary_directory = getBinaryDirectoryWideChars();
+    wchar_t *binary_directory = (wchar_t *)getBinaryDirectoryWideChars();
     NUITKA_PRINTF_TRACE("Binary dir is %S\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
@@ -106,7 +106,7 @@ static void prepareStandaloneEnvironment() {
 static void restoreStandaloneEnvironment() {
     /* Make sure to use the optimal value for standalone mode only. */
 #if PYTHON_VERSION < 300
-    PySys_SetPath(getBinaryDirectoryHostEncoded());
+    PySys_SetPath((char *)getBinaryDirectoryHostEncoded());
     NUITKA_PRINTF_TRACE("Final PySys_GetPath is 's'.\n", PySys_GetPath());
 #else
     PySys_SetPath(getBinaryDirectoryWideChars());

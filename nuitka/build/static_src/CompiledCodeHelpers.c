@@ -1726,7 +1726,7 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
 #if defined(_NUITKA_EXE)
 
 #ifndef _WIN32
-char *getBinaryDirectoryHostEncoded() {
+char const *getBinaryDirectoryHostEncoded() {
     static char binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
 
@@ -1784,63 +1784,65 @@ char *getBinaryDirectoryHostEncoded() {
 }
 #endif
 
-wchar_t *getBinaryDirectoryWideChars() {
+wchar_t const *getBinaryDirectoryWideChars() {
     static wchar_t binary_directory[2 * MAXPATHLEN + 1];
     static bool init_done = false;
 
-    if (init_done) {
-        return binary_directory;
-    }
-
+    if (init_done == false) {
 #ifdef _WIN32
-    binary_directory[0] = 0;
-    DWORD res = GetModuleFileNameW(NULL, binary_directory, MAXPATHLEN);
-    assert(res != 0);
+        binary_directory[0] = 0;
+        DWORD res = GetModuleFileNameW(NULL, binary_directory, MAXPATHLEN);
+        assert(res != 0);
 
-    PathRemoveFileSpecW(binary_directory);
+        PathRemoveFileSpecW(binary_directory);
+
+        // Query length of result first.
+        DWORD length = GetShortPathNameW(binary_directory, NULL, 0);
+        assert(length != 0);
+
+        wchar_t *short_binary_directory = (wchar_t *)malloc((length + 1) * sizeof(wchar_t));
+        res = GetShortPathNameW(binary_directory, short_binary_directory, length);
+        assert(res != 0);
+
+        if (unlikely(res > length)) {
+            abort();
+        }
+
+        wcscpy(binary_directory, short_binary_directory);
+        free(short_binary_directory);
 #else
-    // TODO: Error checking.
-    mbstowcs(binary_directory, getBinaryDirectoryHostEncoded(), MAXPATHLEN);
+        // TODO: Error checking.
+        mbstowcs(binary_directory, getBinaryDirectoryHostEncoded(), MAXPATHLEN);
 #endif
 
-    init_done = true;
-    return binary_directory;
+        init_done = true;
+    }
+    return (wchar_t const *)binary_directory;
 }
 
 #ifdef _WIN32
-char *getBinaryDirectoryHostEncoded() {
+char const *getBinaryDirectoryHostEncoded() {
     static char *binary_directory = NULL;
 
     if (binary_directory != NULL) {
         return binary_directory;
     }
-    wchar_t *w = getBinaryDirectoryWideChars();
+    wchar_t const *w = getBinaryDirectoryWideChars();
 
-    // Query length of result first.
-    long length = GetShortPathNameW(w, NULL, 0);
-    assert(length != 0);
-
-    // TODO: Maybe not do this short path usage on Python3, which seems to cope
-    // better with unicode paths, but lets be safe for now.
-    wchar_t *short_binary_directory = (wchar_t *)malloc((length + 1) * sizeof(wchar_t));
-    long res = GetShortPathNameW(w, short_binary_directory, length);
-    assert(res != 0);
-
-    int bufsize = WideCharToMultiByte(CP_ACP, 0, short_binary_directory, -1, NULL, 0, NULL, NULL);
+    DWORD bufsize = WideCharToMultiByte(CP_ACP, 0, w, -1, NULL, 0, NULL, NULL);
     assert(bufsize != 0);
 
     binary_directory = (char *)malloc(bufsize + 1);
     assert(binary_directory);
 
-    int res2 = WideCharToMultiByte(CP_ACP, 0, short_binary_directory, -1, binary_directory, bufsize, NULL, NULL);
+    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, binary_directory, bufsize, NULL, NULL);
     assert(res2 != 0);
 
     if (unlikely(res2 > bufsize)) {
         abort();
     }
 
-    free(short_binary_directory);
-    return binary_directory;
+    return (char const *)binary_directory;
 }
 #endif
 
@@ -1943,7 +1945,6 @@ void _initBuiltinModule() {
 
 #ifdef _NUITKA_STANDALONE
     int res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", getBinaryDirectoryObject());
-
     assert(res == 0);
 #endif
 
