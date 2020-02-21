@@ -1431,7 +1431,14 @@ def getLinkerArch():
     global _linker_arch_determined, _linker_arch
 
     if not _linker_arch_determined:
-        _linker_arch = _getBinaryArch(os.environ["NUITKA_PYTHON_EXE_PATH"])
+        if win_target:
+            if target_arch == "x86_64":
+                _linker_arch = "pei-x86-64"
+            else:
+                _linker_arch = "pei-i386"
+        else:
+            _linker_arch = _getBinaryArch(os.environ["NUITKA_PYTHON_EXE_PATH"])
+
         _linker_arch_determined = True
 
     return _linker_arch
@@ -1471,9 +1478,9 @@ def getCompilerArch():
         _rv = proc.wait()
 
         if b"x86" in err or b"i686" in data:
-            _compiler_arch = "x86"
+            _compiler_arch = "pei-i386"
         elif b"x64" in err:
-            _compiler_arch = "x86_64"
+            _compiler_arch = "pei-x86-64"
 
         _compiler_arch_determined = True
     else:
@@ -1486,15 +1493,12 @@ if win_target:
     # Check most common user error related to MinGW64. People install 32 and
     # 64 variants and do not consider that MinGW64 could be 32 bits too.
 
-    if (getLinkerArch() or target_arch) != getCompilerArch():
+    if getLinkerArch() != getCompilerArch():
         sys.exit(
             "Error, mismatch between Python binary ('%s' -> '%s') and C compiler ('%s' -> '%s') arches."
             % (
                 os.environ["NUITKA_PYTHON_EXE_PATH"],
-                "%s"
-                % (
-                    getLinkerArch() or target_arch or "unknown, but likely 'pei-x86-64'"
-                ),
+                getLinkerArch(),
                 getExecutablePath(the_compiler, initial=False),
                 getCompilerArch(),
             )
