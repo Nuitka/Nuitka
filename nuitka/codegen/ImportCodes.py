@@ -232,13 +232,11 @@ def generateImportNameCode(to_name, expression, emit, context):
         context=context,
     )
 
-    level = expression.getImportLevel()
-
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
     ) as value_name:
 
-        if level and python_version >= 350:
+        if python_version >= 350:
             emit(
                 """\
 if (PyModule_Check(%(from_arg_name)s)) {

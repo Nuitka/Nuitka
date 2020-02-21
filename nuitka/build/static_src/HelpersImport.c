@@ -23,6 +23,12 @@
  *
  **/
 
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 NUITKA_DEFINE_BUILTIN(__import__);
 
 extern PyObject *const_str_plain_name;
@@ -235,7 +241,6 @@ PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name) {
             }
 
             PyObject *name = LOOKUP_ATTRIBUTE(module, const_str_plain___name__);
-
             if (name == NULL) {
                 name = PyUnicode_FromString("<unknown module name>");
             }
@@ -270,12 +275,20 @@ PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *i
         if (EXCEPTION_MATCH_BOOL_SINGLE(GET_ERROR_OCCURRED(), PyExc_AttributeError)) {
             CLEAR_ERROR_OCCURRED();
 
-            PyObject *fromlist = PyTuple_New(1);
-            PyTuple_SET_ITEM0(fromlist, 0, import_name);
+            if (PyLong_AsLong(level) != 0) {
+                PyObject *fromlist = PyTuple_New(1);
+                PyTuple_SET_ITEM0(fromlist, 0, import_name);
 
-            result = IMPORT_MODULE5(const_str_empty, globals, globals, fromlist, level);
+                result = IMPORT_MODULE5(const_str_empty, globals, globals, fromlist, level);
 
-            Py_DECREF(fromlist);
+                Py_DECREF(fromlist);
+            } else {
+                PyObject *name = PyUnicode_FromFormat("%s.%S", PyModule_GetName(module), import_name);
+
+                result = IMPORT_MODULE5(name, globals, globals, const_tuple_empty, level);
+
+                Py_DECREF(name);
+            }
 
             if (result != NULL) {
                 // Look up in "sys.modules", because we will have returned the
@@ -284,6 +297,7 @@ PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *i
                 Py_DECREF(result);
 
                 result = PyDict_GetItem(PyImport_GetModuleDict(), name);
+                Py_DECREF(name);
             }
 
             if (result == NULL) {
