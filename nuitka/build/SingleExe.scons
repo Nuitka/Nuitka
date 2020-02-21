@@ -1472,12 +1472,10 @@ def getCompilerArch():
 
         if b"x86" in err or b"i686" in data:
             _compiler_arch = "x86"
-            _compiler_arch_determined = True
         elif b"x64" in err:
             _compiler_arch = "x86_64"
-            _compiler_arch_determined = True
-        else:
-            _compiler_arch_determined = True
+
+        _compiler_arch_determined = True
     else:
         assert False, the_compiler
 
@@ -1490,12 +1488,14 @@ if win_target:
 
     if (getLinkerArch() or target_arch) != getCompilerArch():
         sys.exit(
-            "Error, mismatch between Python ('%s') and C compiler ('%s') arches."
+            "Error, mismatch between Python binary ('%s' -> '%s') and C compiler ('%s' -> '%s') arches."
             % (
+                os.environ["NUITKA_PYTHON_EXE_PATH"],
                 "%s"
                 % (
                     getLinkerArch() or target_arch or "unknown, but likely 'pei-x86-64'"
                 ),
+                getExecutablePath(the_compiler, initial=False),
                 getCompilerArch(),
             )
         )
