@@ -1038,7 +1038,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
         if (found == false) {
             PyObject **varnames = function->m_varnames;
 
-            for (Py_ssize_t i = 0; i < keywords_count; i++) {
+            for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
                 if (RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = value;
@@ -1056,9 +1056,29 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
         }
 
         if (unlikely(found == false)) {
-            PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'",
-                         Nuitka_String_AsString(function->m_name),
-                         Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+            bool pos_only_error = false;
+
+            for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
+                PyObject **varnames = function->m_varnames;
+
+                if (RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
+                    pos_only_error = true;
+                    break;
+                }
+            }
+
+            if (pos_only_error == true) {
+                PyErr_Format(PyExc_TypeError,
+                             "%s() got some positional-only arguments passed as keyword arguments: '%s'",
+                             Nuitka_String_AsString(function->m_name),
+                             Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+
+            } else {
+
+                PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'",
+                             Nuitka_String_AsString(function->m_name),
+                             Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+            }
 
             Py_DECREF(key);
             Py_DECREF(value);
