@@ -624,6 +624,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "uvicorn.loops", False
             yield "uvicorn.lifespan", False
             yield "uvicorn.protocols", False
+        elif full_name == "uvicorn.config":
+            yield "uvicorn.logging", False
         elif full_name == "uvicorn.lifespan":
             yield "uvicorn.lifespan.off", False
             yield "uvicorn.lifespan.on", False
