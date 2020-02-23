@@ -97,9 +97,13 @@ def main():
         if python_version < "3":
             expected_errors.append("package_missing_init")
 
-        # Allowed with Python3 only:
+        # Allowed with Python3.5 only:
         if python_version < "3.5":
             expected_errors.append("package_init_issue")
+
+        # Allowed with Python3, name imports can be module imports
+        if python_version < "3":
+            expected_errors.append("named_imports")
 
         if filename not in expected_errors:
             extra_flags = ["expect_success"]
