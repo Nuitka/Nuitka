@@ -65,7 +65,7 @@ Requirements
     MSVC installed.
 
 
-- Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7
+- Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8
 
   .. admonition:: Python3, but for 3.3, and 3.4 and *only* those versions,
      we need other Python versions as a *compile time* dependency
