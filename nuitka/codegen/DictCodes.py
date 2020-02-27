@@ -280,12 +280,12 @@ def generateDictOperationSetCode(statement, emit, context):
 
 
 def generateDictOperationSetCodeKeyValue(statement, emit, context):
-    key_arg_name = context.allocateTempName("dictset_key", unique=True)
+    key_arg_name = context.allocateTempName("dictset38_key")
     generateExpressionCode(
         to_name=key_arg_name, expression=statement.getKey(), emit=emit, context=context
     )
 
-    value_arg_name = context.allocateTempName("dictset_value", unique=True)
+    value_arg_name = context.allocateTempName("dictset38_value")
     generateExpressionCode(
         to_name=value_arg_name,
         expression=statement.getValue(),
@@ -293,7 +293,7 @@ def generateDictOperationSetCodeKeyValue(statement, emit, context):
         context=context,
     )
 
-    dict_arg_name = context.allocateTempName("dictset_dict", unique=True)
+    dict_arg_name = context.allocateTempName("dictset38_dict")
     generateExpressionCode(
         to_name=dict_arg_name,
         expression=statement.getDict(),
