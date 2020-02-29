@@ -86,6 +86,17 @@ import recursions, etc. fine. Default is %default.""",
     )
 
     parser.add_option(
+        "--skip-plugins-tests",
+        action="store_false",
+        dest="plugin_tests",
+        default=True,
+        help="""\
+The plugins tests, execute these to check if Nuitka handles its own plugin
+interfaces, e.g. user plugins, etc. fine. Default is %default.""",
+    )
+
+
+    parser.add_option(
         "--skip-optimizations-tests",
         action="store_false",
         dest="optimization_tests",
@@ -619,6 +630,14 @@ def main():
             )
             setExtraFlags(where, "packages", flags)
             executeSubTest("./tests/packages/run_all.py search")
+
+        if options.plugin_tests:
+            print(
+                "Running the plugin tests with options '%s' with %s:"
+                % (flags, use_python)
+            )
+            setExtraFlags(where, "plugins", flags)
+            executeSubTest("./tests/plugins/run_all.py search")
 
         # At least one Debian Jessie, these versions won't have lxml installed, so
         # don't run them there. Also these won't be very version dependent in their
