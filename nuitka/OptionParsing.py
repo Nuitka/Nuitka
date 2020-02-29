@@ -742,6 +742,11 @@ plugin_group.add_option(
 
 
 def _considerPluginOptions():
+    from nuitka.plugins.Plugins import (
+        addPluginCommandLineOptions,
+        addUserPluginCommandLineOptions,
+    )
+
     for arg in sys.argv[1:]:
         if arg[0] != "-":
             break
@@ -751,9 +756,10 @@ def _considerPluginOptions():
             break
 
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
-            from nuitka.plugins.Plugins import addPluginCommandLineOptions
-
             addPluginCommandLineOptions(parser=parser, plugin_name=arg[16:])
+
+        if arg.startswith("--user-plugin="):
+            addUserPluginCommandLineOptions(parser=parser, filename=arg[14:])
 
 
 def parseOptions():

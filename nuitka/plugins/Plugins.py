@@ -490,8 +490,8 @@ def importFile(filename):
         return importFilePy3NewWay(filename)
 
 
-def loadUserPlugins():
-    """ Extract the filenames of user plugins and store them in list of active plugins.
+def loadUserPlugin(plugin_filename):
+    """ Load of a user plugins and store them in list of active plugins.
 
     Notes:
         A plugin is accepted only if it has a non-empty variable plugin_name, which
@@ -500,29 +500,28 @@ def loadUserPlugins():
     Returns:
         None
     """
-    for plugin_filename in Options.getUserPlugins():
-        plugin_filename = plugin_filename.split("=", 1)[0]
-        if not os.path.exists(plugin_filename):
-            sys.exit("Error, cannot find '%s'." % plugin_filename)
+    if not os.path.exists(plugin_filename):
+        sys.exit("Error, cannot find '%s'." % plugin_filename)
 
-        user_plugin_module = importFile(plugin_filename)
-        valid_file = False
-        for key in dir(user_plugin_module):
-            obj = getattr(user_plugin_module, key)
-            if not isObjectAUserPluginBaseClass(obj):
-                continue
+    user_plugin_module = importFile(plugin_filename)
+    valid_file = False
+    plugin_class = None
+    for key in dir(user_plugin_module):
+        obj = getattr(user_plugin_module, key)
+        if not isObjectAUserPluginBaseClass(obj):
+            continue
 
+        plugin_name = getattr(obj, "plugin_name", None)
+        if plugin_name and plugin_name not in Options.getPluginsDisabled():
             plugin_class = obj
-            plugin_name = getattr(plugin_class, "plugin_name", None)
-            if plugin_name and plugin_name not in Options.getPluginsDisabled():
-                user_plugins[plugin_name] = plugin_class
-                plugin_class.info("User plugin '%s' was loaded." % plugin_name)
 
-                valid_file = True
-                break  # do not look for more in that module
+            valid_file = True
+            break  # do not look for more in that module
 
-        if valid_file is False:  # this is not a plugin file ...
-            sys.exit("Error, '%s' is not a plugin file." % plugin_filename)
+    if not valid_file:  # this is not a plugin file ...
+        sys.exit("Error, '%s' is not a plugin file." % plugin_filename)
+
+    return plugin_class
 
 
 _loaded_plugins = False
@@ -548,9 +547,6 @@ def loadPlugins():
     global _loaded_plugins
     if not _loaded_plugins:
         _loaded_plugins = True
-
-        # load user plugins first to allow any preparative action
-        loadUserPlugins()
 
         # now enable standard plugins
         loadStandardPluginClasses()
@@ -585,9 +581,6 @@ def activatePlugins():
         ):
             sys.exit("Error, conflicting enable/disable of plug-in '%s'." % plugin_name)
 
-    for plugin_class in user_plugins:
-        _addActivePlugin(plugin_class)
-
     for (plugin_name, (plugin_class, plugin_detector)) in sorted(
         plugin_name2plugin_classes.items()
     ):
@@ -604,6 +597,18 @@ def activatePlugins():
         ):
             _addActivePlugin(plugin_detector, args=False)
 
+    for plugin_class in user_plugins:
+        _addActivePlugin(plugin_class, args=True)
+
+
+def _addPluginCommandLineOptions(parser, plugin_class):
+    option_group = OptionGroup(parser, "Plugin %s" % plugin_class.plugin_name)
+    plugin_class.addPluginCommandLineOptions(option_group)
+
+    if option_group.option_list:
+        parser.add_option_group(option_group)
+        plugin_options[plugin_class.plugin_name] = option_group.option_list
+
 
 def addPluginCommandLineOptions(parser, plugin_name):
     """ Add option group for the plugin to the parser.
@@ -617,13 +622,14 @@ def addPluginCommandLineOptions(parser, plugin_name):
         None
     """
     plugin_class = getPluginClass(plugin_name)
+    _addPluginCommandLineOptions(parser, plugin_class)
 
-    option_group = OptionGroup(parser, "Plugin %s" % plugin_name)
-    plugin_class.addPluginCommandLineOptions(option_group)
 
-    if option_group.option_list:
-        parser.add_option_group(option_group)
-        plugin_options[plugin_name] = option_group.option_list
+def addUserPluginCommandLineOptions(parser, filename):
+    plugin_class = loadUserPlugin(filename)
+    _addPluginCommandLineOptions(parser, plugin_class)
+
+    user_plugins.add(plugin_class)
 
 
 def getPluginOptions(plugin_name):
