@@ -210,17 +210,21 @@ def main():
     syntax_errors = hasArg("syntax_errors")
 
     plugins_enabled = []
-
     for count, arg in reversed(tuple(enumerate(args))):
         if arg.startswith("plugin_enable:"):
             plugins_enabled.append(arg[len("plugin_enable:") :])
             del args[count]
 
     plugins_disabled = []
-
     for count, arg in reversed(tuple(enumerate(args))):
         if arg.startswith("plugin_disable:"):
             plugins_disabled.append(arg[len("plugin_disable:") :])
+            del args[count]
+
+    user_plugins = []
+    for count, arg in reversed(tuple(enumerate(args))):
+        if arg.startswith("user_plugin:"):
+            user_plugins.append(arg[len("user_plugin:") :])
             del args[count]
 
     recurse_not = []
@@ -422,6 +426,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     for plugin_disabled in plugins_disabled:
         extra_options.append("--plugin-disable=" + plugin_disabled)
+
+    for user_plugin in user_plugins:
+        extra_options.append("--user-plugin=" + user_plugin)
 
     # Now build the command to run Nuitka.
     if not two_step_execution:
