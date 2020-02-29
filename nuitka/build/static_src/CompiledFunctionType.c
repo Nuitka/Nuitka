@@ -2078,9 +2078,9 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
 
             } else {
 
-            PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'",
-                         Nuitka_String_AsString(function->m_name),
-                         Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+                PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'",
+                             Nuitka_String_AsString(function->m_name),
+                             Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
             }
 
             return -1;
@@ -2199,7 +2199,7 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
 
         if (kw_found == -1) {
             goto error_exit;
-    }
+        }
     }
 
     result = _handleArgumentsPlain(function, python_pars, args, args_size, kw_found, kw_only_found);
@@ -2241,8 +2241,8 @@ error_exit:
     return false;
 }
 
-PyObject *Nuitka_CallFunctionVectorcall(struct Nuitka_FunctionObject const *function, PyObject *const *args,
-                                        Py_ssize_t args_size, PyObject *const *kw_names, Py_ssize_t kw_size) {
+static PyObject *Nuitka_CallFunctionVectorcall(struct Nuitka_FunctionObject const *function, PyObject *const *args,
+                                               Py_ssize_t args_size, PyObject *const *kw_names, Py_ssize_t kw_size) {
 #ifdef _MSC_VER
     PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
 #else
@@ -2268,3 +2268,5 @@ static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *fun
                                          nkwargs);
 }
 #endif
+
+#include "CompiledMethodType.c"

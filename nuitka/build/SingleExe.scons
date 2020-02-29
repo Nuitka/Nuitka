@@ -1681,7 +1681,6 @@ def discoverSourceFiles():
     # Compiled types.
     result.append(provideStatic("CompiledCellType.c"))
     result.append(provideStatic("CompiledFunctionType.c"))
-    result.append(provideStatic("CompiledMethodType.c"))
     result.append(provideStatic("CompiledGeneratorType.c"))
     if python_version >= "3.5":
         result.append(provideStatic("CompiledCoroutineType.c"))
