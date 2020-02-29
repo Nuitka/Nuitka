@@ -466,13 +466,8 @@ def importFilePy2(filename):
     """
     import imp
 
-    basename = os.path.splitext(filename)[0]
-
-    name = os.path.join(
-        "nuitka", os.path.relpath(basename, os.path.dirname(nuitka.__file__))
-    ).replace(os.sep, ".")
-
-    return imp.load_source(name, filename)
+    basename = os.path.splitext(os.path.basename(filename))[0]
+    return imp.load_source(basename, filename)
 
 
 def importFile(filename):
