@@ -1712,8 +1712,9 @@ bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function, PyObj
 
     result = handleMethodArgumentsPlainOnly(function, python_pars, object, args, args_size);
 
-    if (result == false)
+    if (result == false) {
         goto error_exit;
+    }
 
 #if PYTHON_VERSION >= 300
 
@@ -1882,8 +1883,9 @@ PyObject *Nuitka_CallMethodFunctionNoArgs(struct Nuitka_FunctionObject const *fu
     bool kw_only_error;
 #endif
 
-    if (result == false)
+    if (result == false) {
         goto error_exit;
+    }
 
 #if PYTHON_VERSION >= 300
 
@@ -1940,11 +1942,11 @@ PyObject *Nuitka_CallMethodFunctionPosArgs(struct Nuitka_FunctionObject const *f
     bool kw_only_error;
 #endif
 
-    if (result == false)
+    if (result == false) {
         goto error_exit;
+    }
 
 #if PYTHON_VERSION >= 300
-
     kw_only_error = false;
 
     for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
@@ -2020,7 +2022,9 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
 
         NUITKA_MAY_BE_UNUSED bool found = false;
 
-        for (Py_ssize_t i = 0; i < keywords_count; i++) {
+        Py_ssize_t kw_arg_start = function->m_args_pos_only_count;
+
+        for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
             if (function->m_varnames[i] == key) {
                 assert(python_pars[i] == NULL);
                 python_pars[i] = kw_values[ppos];
@@ -2038,7 +2042,7 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
         if (found == false) {
             PyObject **varnames = function->m_varnames;
 
-            for (Py_ssize_t i = 0; i < keywords_count; i++) {
+            for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
                 if (RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = kw_values[ppos];
@@ -2055,9 +2059,29 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
         }
 
         if (unlikely(found == false)) {
+            bool pos_only_error = false;
+
+            for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
+                PyObject **varnames = function->m_varnames;
+
+                if (RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
+                    pos_only_error = true;
+                    break;
+                }
+            }
+
+            if (pos_only_error == true) {
+                PyErr_Format(PyExc_TypeError,
+                             "%s() got some positional-only arguments passed as keyword arguments: '%s'",
+                             Nuitka_String_AsString(function->m_name),
+                             Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+
+            } else {
+
             PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'",
                          Nuitka_String_AsString(function->m_name),
                          Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+            }
 
             return -1;
         }
@@ -2173,8 +2197,9 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
         kw_found =
             handleVectorcallKeywordArgs(function, python_pars, &kw_only_found, kw_names, args + args_size, kw_size);
 
-        if (kw_found == -1)
+        if (kw_found == -1) {
             goto error_exit;
+    }
     }
 
     result = _handleArgumentsPlain(function, python_pars, args, args_size, kw_found, kw_only_found);
