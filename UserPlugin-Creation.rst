@@ -41,9 +41,9 @@ named "trace" is active::
     from nuitka import Options
     from nuitka.plugins.PluginBase import NuitkaPluginBase
 
-    class MyPlugin(UserPluginBase):
-
-        plugin_name = __file__  # or __module__ or __name__
+    class MyPlugin(NuitkaPluginBase):
+        # Derive from filename, but can and should also be explicit.
+        plugin_name = __name__.split(".")[-1]
 
         def __init__(self, trace_my_plugin):
             # demo only: extract and display my options list
@@ -71,7 +71,7 @@ named "trace" is active::
                 self.info(" Calls to 'math' module:")
                 for i, l in enumerate(source_code.splitlines()):
                     if "math." in l:
-                        info(" %i: %s" % (i+1, l))
+                        self.info(" %i: %s" % (i+1, l))
                 self.info("")
             return source_code
 
