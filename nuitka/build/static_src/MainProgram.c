@@ -608,6 +608,7 @@ extern "C" {
 
 #if PYTHON_VERSION >= 300
 #if defined(__GNUC__)
+__attribute__((weak))
 __attribute__((visibility("default")))
 #endif
 void Py_GetArgcArgv(int *argc, wchar_t ***argv) {
@@ -617,9 +618,10 @@ void Py_GetArgcArgv(int *argc, wchar_t ***argv) {
 
 #else
 #if defined(__GNUC__)
+__attribute__((weak))
 __attribute__((visibility("default")))
 #endif
-void Py_GetArgcArgv( int *argc, char ***argv ) {
+void Py_GetArgcArgv(int *argc, char ***argv) {
     *argc = orig_argc;
     *argv = orig_argv;
 }
@@ -628,5 +630,4 @@ void Py_GetArgcArgv( int *argc, char ***argv ) {
 #ifdef __cplusplus
 }
 #endif
-
 #endif
