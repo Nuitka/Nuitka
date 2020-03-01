@@ -240,10 +240,11 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         future_spec=parent_module.getFutureSpec(),
     )
 
-    if python_version < 370:
-        is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
-    else:
-        is_async = detectFunctionBodyKind(nodes=[node])[0] in ("Asyncgen", "Coroutine")
+    is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
+
+    # Some of the newly allowed stuff in 3.7 fails to set the async flag.
+    if not is_async and python_version >= 370:
+        is_async = detectFunctionBodyKind(nodes=node.generators)[0] in ("Asyncgen", "Coroutine")
 
     if is_async:
         code_body = ExpressionAsyncgenObjectBody(
