@@ -255,6 +255,7 @@ setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         # We depend on CPython.
         "Programming Language :: Python :: Implementation :: CPython",
         # We generate C intermediate code and implement part of the
@@ -298,14 +299,14 @@ Python compiler with full language support and CPython compatibility""",
     entry_points={
         "distutils.commands": [
             "bdist_nuitka = \
-             nuitka.distutils.bdist_nuitka:bdist_nuitka",
+             nuitka.distutils.DistutilCommands:bdist_nuitka",
             "build_nuitka = \
-             nuitka.distutils.bdist_nuitka:build",
+             nuitka.distutils.DistutilCommands:build",
             "install_nuitka = \
-             nuitka.distutils.bdist_nuitka:install",
+             nuitka.distutils.DistutilCommands:install",
         ],
         "distutils.setup_keywords": [
-            "build_with_nuitka = nuitka.distutils.bdist_nuitka:setuptools_build_hook"
+            "build_with_nuitka = nuitka.distutils.DistutilCommands:setupNuitkaDistutilsCommands"
         ],
         "console_scripts": [
             "nuitka%s = nuitka.__main__:main" % binary_suffix,

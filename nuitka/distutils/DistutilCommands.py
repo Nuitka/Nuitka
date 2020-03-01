@@ -30,7 +30,7 @@ import wheel.bdist_wheel  # pylint: disable=I0021,import-error,no-name-in-module
 from nuitka.tools.testing.Common import my_print
 
 
-def setuptools_build_hook(dist, keyword, value):
+def setupNuitkaDistutilsCommands(dist, keyword, value):
     # If the user project setup.py includes the key "build_with_nuitka=True" all
     # build operations (build, bdist_wheel, install etc) will run via Nuitka.
     # pylint: disable=unused-argument
