@@ -77,7 +77,7 @@ class PyModule(object):
 
 
 # Class name enforced by distutils, must match the command name.
-# pylint: disable=C0103
+# Required by distutils, used as command name, pylint: disable=invalid-name
 class build(distutils.command.build.build):
 
     # pylint: disable=attribute-defined-outside-init
@@ -236,7 +236,7 @@ class build(distutils.command.build.build):
             self.build_lib = build_lib
 
 
-# pylint: disable=C0103
+# Required by distutils, used as command name, pylint: disable=invalid-name
 class install(distutils.command.install.install):
 
     # pylint: disable=attribute-defined-outside-init
@@ -246,7 +246,7 @@ class install(distutils.command.install.install):
         self.install_lib = self.install_platlib
 
 
-# pylint: disable=C0103
+# Required by distutils, used as command name, pylint: disable=invalid-name
 class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
     def initialize_options(self):
         # Register the command class overrides above
