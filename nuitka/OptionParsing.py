@@ -437,7 +437,7 @@ debug_group.add_option(
     dest="profile",
     default=False,
     help="""\
-Enable vmprof based profiling of time spent. Defaults to off.""",
+Enable vmprof based profiling of time spent. Not working currently. Defaults to off.""",
 )
 
 debug_group.add_option(
@@ -465,10 +465,11 @@ debug_group.add_option(
     dest="recompile_c_only",
     default=False,
     help="""\
-Take existing files and compile them again. Allows compiling edited C files
-with the C compiler for quick debugging changes to the generated source.
-Defaults to off. Depends on compiling Python source to determine which files it
-should look at.""",
+This is not incremental compilation, but for Nuitka development only. Takes
+existing files and simply compile them as C again. Allows compiling edited
+C files for quick debugging changes to the generated source, e.g. to see if
+code is passed by, values output, etc, Defaults to off. Depends on compiling
+Python source to determine which files it should look at.""",
 )
 
 debug_group.add_option(
@@ -479,7 +480,7 @@ debug_group.add_option(
     help="""\
 Generate only C source code, and do not compile it to binary or module. This
 is for debugging and code coverage analysis that doesn't waste CPU. Defaults to
-off.""",
+off. Do not think you can use this directly.""",
 )
 
 debug_group.add_option(
