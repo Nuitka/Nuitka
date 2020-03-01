@@ -107,8 +107,6 @@ Error, no package in dir '%s' found, incomplete test case."""
 
             if search_mode.abortIfExecuted():
                 break
-        else:
-            my_print("Skipping", filename)
 
     search_mode.finish()
 

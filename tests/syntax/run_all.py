@@ -43,7 +43,6 @@ from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
     decideFilenameVersionSkip,
-    my_print,
     setup,
 )
 
@@ -78,8 +77,6 @@ def main():
 
             if search_mode.abortIfExecuted():
                 break
-        else:
-            my_print("Skipping", filename)
 
     search_mode.finish()
 

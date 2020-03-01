@@ -186,7 +186,7 @@ def checkSequence(filename, statements):
 
 
 def main():
-    # Complex stuff, pylint: disable=too-many-branches,too-many-statements
+    # Complex stuff, pylint: disable=too-many-branches
 
     for filename in sorted(os.listdir(".")):
         if not filename.endswith(".py") or filename.startswith("run_"):
@@ -279,8 +279,6 @@ def main():
 
             if search_mode.abortIfExecuted():
                 break
-        else:
-            my_print("Skipping", filename)
 
     search_mode.finish()
 

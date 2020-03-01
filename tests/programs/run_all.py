@@ -197,8 +197,6 @@ def main():
 
             if search_mode.abortIfExecuted():
                 break
-        else:
-            my_print("Skipping", filename)
 
     search_mode.finish()
 
