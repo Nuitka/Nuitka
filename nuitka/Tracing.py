@@ -29,6 +29,7 @@ to "print for_debug" without much hassle (braces).
 from __future__ import print_function
 
 import logging
+import os
 import sys
 
 
@@ -73,6 +74,23 @@ def getEnableStyleCode(style):
     return style
 
 
+_enabled_ansi = False
+
+
+def _enableAnsi():
+    # singleton, pylint: disable=global-statement
+    global _enabled_ansi
+    if not _enabled_ansi:
+
+        # Only necessary on Windows, as a side effect of this, ANSI colors get enabled
+        # for the terminal and never deactivated, so we are free to use them after
+        # this.
+        if os.name == "nt":
+            os.system("")
+
+        _enabled_ansi = True
+
+
 def getDisableStyleCode():
     return "\033[0m"
 
@@ -97,6 +115,8 @@ def my_print(*args, **kwargs):
                     "%r is an invalid value for keyword argument style"
                     % kwargs["style"]
                 )
+
+            _enableAnsi()
 
             print(style, end="")
 
