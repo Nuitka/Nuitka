@@ -45,7 +45,8 @@ warned_unused_plugins = set()
 class NuitkaPluginBase(object):
     """ Nuitka base class for all plug-ins.
 
-    Derive your plugin from "UserPlugin" please.
+    Derive your plugin from "NuitkaPluginBase" please.
+    For instructions, see https://github.com/Nuitka/Nuitka/blob/orsiris/UserPlugin-Creation.rst
 
     Plugins allow to adapt Nuitka's behaviour in a number of ways as explained
     below at the individual methods.
