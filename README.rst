@@ -19,8 +19,8 @@ requirements, credits, etc.
 
 Nuitka is **the** Python compiler. It is written in Python. It is a seamless
 replacement or extension to the Python interpreter and compiles **every**
-construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, and 3.7 have, when itself
-run with that Python version.
+construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, and 3.8 have, when
+itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an extremely
 compatible manner.
@@ -487,7 +487,7 @@ following switch:
 
 .. code-block:: bash
 
-    python -m nuitka --standalone --experimental=use_pefile myprogram.py
+    python -m nuitka --standalone --windows-dependency-tool=pefile myprogram.py
 
 
 .. note::
@@ -499,7 +499,7 @@ following switch:
 
 .. code-block:: bash
 
-    python -m nuitka --standalone --experimental=use_pefile --experimental=use_pefile_recurse myprogram.py
+    python -m nuitka --standalone --windows-dependency-tool=pefile --experimental=use_pefile_recurse myprogram.py
 
 
 .. note::
@@ -510,7 +510,7 @@ following switch:
 
 .. code-block:: bash
 
-    python -m nuitka --standalone --experimental=use_pefile --experimental=use_pefile_recurse --experimental=use_pefile_fullrecurse myprogram.py
+    python -m nuitka --standalone --windows-dependency-tool=pefile --experimental=use_pefile_recurse --experimental=use_pefile_fullrecurse myprogram.py
 
 .. note::
 
@@ -520,14 +520,16 @@ following switch:
 Windows standalone program redistribuation
 ------------------------------------------
 
-Whether compiling with MingW or MSVC, the standalone programs have external dependencies to Visual C Runtime libraries.
-Nuitka tries to ship those dependent DLLs by copying them from your system.
+Whether compiling with MingW or MSVC, the standalone programs have external
+dependencies to Visual C Runtime libraries. Nuitka tries to ship those
+dependent DLLs by copying them from your system.
 
-Beginning with Microsoft Windows 10, Microsoft ships `ucrt.dll` (Universal C Runtime libraries) which rehook calls to
-`api-ms-crt-*.dll`.
+Beginning with Microsoft Windows 10, Microsoft ships `ucrt.dll` (Universal C
+Runtime libraries) which rehook calls to `api-ms-crt-*.dll`.
 
-With earlier Windows platforms (and wine/ReactOS), you should consider installing Visual C Runtime libraries before
-executing a Nuitka standalone compiled program.
+With earlier Windows platforms (and wine/ReactOS), you should consider
+installing Visual C Runtime libraries before executing a Nuitka standalone
+compiled program.
 
 Depdending on the used C compiler, you'll need the following redist versions:
 
@@ -554,8 +556,9 @@ When using MingGW64, you'll need the following redist versions:
 +------------------+-------------+-------------------------+
 
 
-Once the corresponding runtime libraries are installed on the target system, you may remove all `api-ms-crt-*.dll` files
-from your Nuitka compiled dist folder.
+Once the corresponding runtime libraries are installed on the target system,
+you may remove all `api-ms-crt-*.dll` files from your Nuitka compiled dist
+folder.
 
 Where to go next
 ================

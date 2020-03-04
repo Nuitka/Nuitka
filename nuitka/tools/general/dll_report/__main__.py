@@ -83,7 +83,7 @@ Use pefile dependencies. Default is %default.""",
             ):
                 from nuitka import Options
 
-                Options.enableExperimental("use_pefile")
+                Options.options.dependency_tool = "pefile"
 
                 r = detectBinaryPathDLLsWindowsPE(
                     is_main_executable=False,
@@ -94,7 +94,7 @@ Use pefile dependencies. Default is %default.""",
                     use_cache=False,
                     update_cache=True,
                 )
-                Options.disableExperimental("use_pefile")
+                Options.options.dependency_tool = "depends.exe"
 
                 for dll_filename in sorted(r):
                     print("  ", dll_filename)

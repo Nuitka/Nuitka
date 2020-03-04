@@ -3944,8 +3944,8 @@ e.g. code like this:
 
 .. code-block:: python
 
-   if Options.isExperimental("use_pefile"):
-      ... # experimental code for pe_file
+   if Options.isExperimental("use_feature"):
+      ... # experimental code for "feature"
    else:
       ... # standard code
 
