@@ -1,6 +1,15 @@
 Nuitka Release 0.6.8 (Draft)
 ============================
 
+This releases contains bug fixes that enhance the Python 3.8 compatibility
+as well as general improvements.
+
+Organisational
+--------------
+
+- The mailing list has been closed. We now prefer Gitter chat and Github issues
+  for discussions.
+
 This release is not done yet.
 
 
@@ -6981,9 +6990,9 @@ To make up for the delay in SSA driven performance improvements, there is more
 traditional code acceleration for rich comparisons, making it significant, and
 the bug fixes make Nuitka more compatible than ever.
 
-So give this a roll, it's worth it. And feel free to `join the mailing list
-<http://nuitka.net/pages/mailinglist.html>`_ or `make a donation
-<http://nuitka.net/pages/donations.html>`__ to support Nuitka.
+So give this a roll, it's worth it. And feel free to join the mailing list
+(since closed) or `make a donation <http://nuitka.net/pages/donations.html>`__
+to support Nuitka.
 
 
 Nuitka Release 0.4.5
@@ -12668,8 +12677,7 @@ Organizational
   make your clones of Nuitka public, use ``nuitka-unofficial`` or not the name
   ``Nuitka`` at all.
 
-- There is a now a `mailing list <http://nuitka.net/pages/mailinglist.html>`__
-  available too.
+- There is a now a mailing list (since closed).
 
 Reduced Differences
 -------------------

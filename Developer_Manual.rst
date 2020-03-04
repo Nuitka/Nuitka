@@ -20,7 +20,7 @@ decisions we made. Therefore we are e.g. presenting here the type inference
 plans before implementing them. And we update them as we proceed.
 
 It grows out of discussions and presentations made at conferences as well as
-private conversations or discussions on the mailing list or bug tracker.
+private conversations or issue tracker.
 
 Milestones
 ==========

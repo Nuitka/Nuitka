@@ -564,14 +564,6 @@ Remember, this project is not completed yet. Although the CPython test suite
 works near perfect, there is still more work needed, esp. to make it do more
 optimization. Try it out.
 
-Subscribe to its mailing lists
-------------------------------
-
-Please visit the `mailing list page
-<http://www.nuitka.net/pages/mailinglist.html>`__ in order to subscribe the
-relatively low volume mailing list. All Nuitka issues can be discussed there.
-Also, this is the place to stay informed of what's coming.
-
 Follow me on Twitter
 --------------------
 
