@@ -183,8 +183,8 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
                                              PyObject *kwnames) {
     assert(kwnames == NULL || PyTuple_CheckExact(kwnames));
     Py_ssize_t nkwargs = (kwnames == NULL) ? 0 : PyTuple_GET_SIZE(kwnames);
-
     Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
+
     assert(nargs >= 0);
     assert((nargs == 0 && nkwargs == 0) || stack != NULL);
 
@@ -203,7 +203,6 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
                                                kwnames ? &PyTuple_GET_ITEM(kwnames, 0) : NULL, nkwargs);
         newargs[0] = tmp;
     } else {
-        Py_ssize_t nkwargs = (kwnames == NULL) ? 0 : PyTuple_GET_SIZE(kwnames);
         Py_ssize_t totalargs = nargs + nkwargs;
 
         // Shortcut possible, no args.
