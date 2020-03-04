@@ -49,7 +49,7 @@ static wchar_t **argv_unicode;
 extern void copyFrozenModulesTo(struct _frozen *destination);
 
 // The original frozen modules list.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 340
 static struct _frozen *old_frozen = NULL;
 #else
 static struct _frozen const *old_frozen = NULL;
