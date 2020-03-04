@@ -520,25 +520,42 @@ following switch:
 Windows standalone program redistribuation
 ------------------------------------------
 
-Whether compiling with MingW or MSVC, the standalone programs have some external dependencies to Visual C Runtime.
+Whether compiling with MingW or MSVC, the standalone programs have external dependencies to Visual C Runtime libraries.
+Nuitka tries to ship those dependent DLLs by copying them from your system.
+
 Beginning with Microsoft Windows 10, Microsoft ships `ucrt.dll` (Universal C Runtime libraries) which rehook calls to
 `api-ms-crt-*.dll`.
 
-With earlier Windows platforms (and wine/ReactOS), you should consider installing Visual C Runtime libraries before executing
-a Nuitka standalone compiled program.
+With earlier Windows platforms (and wine/ReactOS), you should consider installing Visual C Runtime libraries before
+executing a Nuitka standalone compiled program.
 
-Depdending on your C compiler, you'll need the following redist version:
+Depdending on the used C compiler, you'll need the following redist versions:
 
-Visual C++ verison|Redist Year| CPython
--- | --|--
-14.X | 2015| 3.5, 3.6, 3.7, 3.8
-10.0 | 2010| 3.3, 3.4
-9.0 | 2008| 2.6, 2.7, 3.0, 3.1, 3.2
-MingGW64|Redist Year| CPython
-8.1.0 | 2015|3.5, 3.6, 3.7, 3.7
++------------------+-------------+-------------------------+
+| Visual C version | Redist Year | CPython                 |
++==================+=============+=========================+
+| 14.2             | 2019        | 3.5, 3.6, 3.7, 3.8      |
++------------------+-------------+-------------------------+
+| 14.1             | 2017        | 3.5, 3.6, 3.7, 3.8      |
++------------------+-------------+-------------------------+
+| 14.0             | 2015        | 3.5, 3.6, 3.7, 3.8      |
++------------------+-------------+-------------------------+
+| 10.0             | 2010        | 3.3, 3.4                |
++------------------+-------------+-------------------------+
+| 9.0              | 2008        | 2.6, 2.7, 3.0, 3.1, 3.2 |
++------------------+-------------+-------------------------+
 
-Once the corresponding runtime libraries are installed, you may remove all `api-ms-crt-*.dll` files from your Nuitka compiled
-dist folder.
+When using MingGW64, you'll need the following redist versions:
+
++------------------+-------------+-------------------------+
+| MingGW64 version | Redist Year | CPython                 |
++==================+=============+=========================+
+| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8      |
++------------------+-------------+-------------------------+
+
+
+Once the corresponding runtime libraries are installed on the target system, you may remove all `api-ms-crt-*.dll` files
+from your Nuitka compiled dist folder.
 
 Where to go next
 ================
