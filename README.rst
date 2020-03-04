@@ -517,6 +517,29 @@ following switch:
     Be aware that using this switch will increase compilation time a lot.
 
 
+Windows standalone program redistribuation
+------------------------------------------
+
+Whether compiling with MingW or MSVC, the standalone programs have some external dependencies to Visual C Runtime.
+Beginning with Microsoft Windows 10, Microsoft ships `ucrt.dll` (Universal C Runtime libraries) which rehook calls to
+`api-ms-crt-*.dll`.
+
+With earlier Windows platforms (and wine/ReactOS), you should consider installing Visual C Runtime libraries before executing
+a Nuitka standalone compiled program.
+
+Depdending on your C compiler, you'll need the following redist version:
+
+Visual C++ verison|Redist Year| CPython
+-- | --|--
+14.X | 2015| 3.5, 3.6, 3.7, 3.8
+10.0 | 2010| 3.3, 3.4
+9.0 | 2008| 2.6, 2.7, 3.0, 3.1, 3.2
+MingGW64|Redist Year| CPython
+8.1.0 | 2015|3.5, 3.6, 3.7, 3.7
+
+Once the corresponding runtime libraries are installed, you may remove all `api-ms-crt-*.dll` files from your Nuitka compiled
+dist folder.
+
 Where to go next
 ================
 
