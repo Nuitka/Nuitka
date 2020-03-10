@@ -24,6 +24,7 @@ import distutils.command.install  # pylint: disable=I0021,import-error,no-name-i
 import os
 import subprocess
 import sys
+from distutils import dir_util
 
 import wheel.bdist_wheel  # pylint: disable=I0021,import-error,no-name-in-module
 
@@ -230,6 +231,18 @@ class build(distutils.command.build.build):
 
                     if fullpath.lower().endswith((".py", ".pyw", ".pyc", ".pyo")):
                         os.unlink(fullpath)
+
+            # If the Python module has more than one parent package (e.g.
+            # 'a.b.mod'), the compiled module will be in 'a.b/mod.so'. Move it
+            # to 'a/b/mod.so', to make imports work.
+            if package and "." in package:
+                compiled_package_path = os.path.join(build_lib, package)
+                assert os.path.isdir(compiled_package_path), compiled_package_path
+
+                parts = package.split(".")
+                fixed_package_path = os.path.join(build_lib, *parts)
+                dir_util.copy_tree(compiled_package_path, fixed_package_path)
+                dir_util.remove_tree(compiled_package_path)
 
             os.chdir(old_dir)
 
