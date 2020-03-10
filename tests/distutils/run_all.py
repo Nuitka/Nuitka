@@ -83,10 +83,12 @@ def main():
         if active:
             my_print("Consider distutils example:", filename)
 
-            if python_version < "3":
-                if filename == "example_3":
-                    reportSkip("Skipped, only relevant for Python3", ".", filename)
-                    continue
+            if python_version < "3" and filename == "example_3":
+                reportSkip("Skipped, only relevant for Python3", ".", filename)
+                continue
+            if python_version < "3.3" and filename == "nested_namespaces":
+                reportSkip("Skipped, only relevant from Python 3.3", ".", filename)
+                continue
 
             case_dir = os.path.join(os.getcwd(), filename)
 
