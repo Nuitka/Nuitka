@@ -89,7 +89,8 @@ def main():
 
         assert plugin_files
         extra_flags.extend(
-            "user_plugin:" + os.path.join(filename, p) for p in plugin_files
+            "user_plugin:" + os.path.abspath(os.path.join(filename, p))
+            for p in plugin_files
         )
 
         if filename == "parameters":
