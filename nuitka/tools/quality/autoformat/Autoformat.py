@@ -44,10 +44,11 @@ from nuitka.utils.Shebang import getShebangFromFile
 from nuitka.utils.Utils import getOS
 
 
-def _cleanupWindowsNewlines(filename):
+def cleanupWindowsNewlines(filename):
     """ Remove Windows new-lines from a file.
 
-        Simple enough to not depend on external binary.
+        Simple enough to not depend on external binary and used by
+        the doctest extractions of the CPython test suites.
     """
 
     with open(filename, "rb") as f:
@@ -406,7 +407,7 @@ def autoformat(filename, git_stage, abort):
 
     try:
         if is_python:
-            _cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename)
 
             if not _shouldNotFormatCode(filename):
                 _cleanupImportSortOrder(tmp_filename)
@@ -415,16 +416,16 @@ def autoformat(filename, git_stage, abort):
                 black_call = _getPythonBinaryCall("black")
 
                 subprocess.call(black_call + ["-q", "--fast", tmp_filename])
-                _cleanupWindowsNewlines(tmp_filename)
+                cleanupWindowsNewlines(tmp_filename)
 
         elif is_c:
-            _cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename)
             _cleanupClangFormat(filename)
-            _cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename)
         elif is_txt:
-            _cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)
-            _cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename)
 
         transferBOM(filename, tmp_filename)
 
