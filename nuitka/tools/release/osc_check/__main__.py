@@ -55,7 +55,7 @@ def main():
 
     osc_reader = iter(osc_reader)
 
-    bad = ("failed", "unresolvable", "broken", "blocked", "disabled")
+    bad = ("failed", "unresolvable", "broken", "blocked")
 
     titles = osc_reader.next()[1:]
 
