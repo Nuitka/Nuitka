@@ -57,7 +57,7 @@ from nuitka.utils.FileOperations import removeDirectory
 
 
 def main():
-    # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # Complex stuff, pylint: disable=too-many-locals,too-many-statements
 
     python_version = setup(needs_io_encoding=True)
 
@@ -83,11 +83,9 @@ def main():
         if active:
             my_print("Consider distutils example:", filename)
 
-            if python_version < "3" and filename == "example_3":
+            py3_only_examples = ("example_3", "nested_namespaces")
+            if python_version < "3" and filename in py3_only_examples:
                 reportSkip("Skipped, only relevant for Python3", ".", filename)
-                continue
-            if python_version < "3.3" and filename == "nested_namespaces":
-                reportSkip("Skipped, only relevant from Python 3.3", ".", filename)
                 continue
 
             case_dir = os.path.join(os.getcwd(), filename)
