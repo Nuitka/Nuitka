@@ -48,6 +48,7 @@ from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
 active_plugins = OrderedDict()
 plugin_name2plugin_classes = {}
 plugin_options = {}
+plugin_values = {}
 user_plugins = OrderedSet()
 
 
@@ -632,6 +633,24 @@ def addUserPluginCommandLineOptions(parser, filename):
     user_plugins.add(plugin_class)
 
 
+def setPluginOptions(plugin_name, values):
+    """ Set the option values for the specified plugin.
+
+    Args:
+        plugin_name: plugin identifier
+        values: dictionary to be used for the plugin constructor
+    Notes:
+        Use this function, if you want to set the plugin values, without using
+        the actual command line parsing.
+
+        Normally the command line arguments are populating the dictionary for
+        the plugin, but this will be used if given, and command line parsing
+        is not done.
+    """
+    assert isinstance(values, dict), values
+    plugin_values[plugin_name] = values
+
+
 def getPluginOptions(plugin_name):
     """ Return the options values for the specified plugin.
 
@@ -640,7 +659,7 @@ def getPluginOptions(plugin_name):
     Returns:
         dict with key, value of options given, potentially from default values.
     """
-    result = {}
+    result = plugin_values.get(plugin_name, {})
 
     for option in plugin_options.get(plugin_name, {}):
         option_name = option._long_opts[0]  # pylint: disable=protected-access
