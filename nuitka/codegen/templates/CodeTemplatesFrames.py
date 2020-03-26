@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -71,8 +71,7 @@ RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 
 if (%(exception_tb)s == NULL) {
     %(exception_tb)s = %(tb_making)s;
-}
-else if (%(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame) {
+} else if (%(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame) {
     %(exception_tb)s = ADD_TRACEBACK(%(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s);
 }
 
@@ -125,11 +124,9 @@ template_frame_guard_once_exception_handler = """\
 RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 #endif
 
-if ( %(exception_tb)s == NULL )
-{
+if (%(exception_tb)s == NULL) {
     %(exception_tb)s = %(tb_making)s;
-}
-else if (exception_tb->tb_frame != &%(frame_identifier)s->m_frame) {
+} else if (exception_tb->tb_frame != &%(frame_identifier)s->m_frame) {
     %(exception_tb)s = ADD_TRACEBACK(%(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s);
 }
 
@@ -161,7 +158,7 @@ Py_INCREF(%(context_identifier)s->m_frame->m_frame.f_back);
 PyThreadState_GET()->frame = &%(context_identifier)s->m_frame->m_frame;
 Py_INCREF(%(context_identifier)s->m_frame);
 
-Nuitka_Frame_MarkAsExecuting( %(context_identifier)s->m_frame );
+Nuitka_Frame_MarkAsExecuting(%(context_identifier)s->m_frame);
 
 #if PYTHON_VERSION >= 300
 // Accept currently existing exception as the one to publish again when we
@@ -169,23 +166,13 @@ Nuitka_Frame_MarkAsExecuting( %(context_identifier)s->m_frame );
 {
     PyThreadState *thread_state = PyThreadState_GET();
 
-#if PYTHON_VERSION < 370
-    %(context_identifier)s->m_frame->m_frame.f_exc_type = EXC_TYPE(thread_state);
-    if (%(context_identifier)s->m_frame->m_frame.f_exc_type == Py_None) %(context_identifier)s->m_frame->m_frame.f_exc_type = NULL;
-    Py_XINCREF(%(context_identifier)s->m_frame->m_frame.f_exc_type);
-%(context_identifier)s->m_frame->m_frame.f_exc_value = EXC_VALUE(thread_state);
-    Py_XINCREF(%(context_identifier)s->m_frame->m_frame.f_exc_value);
-%(context_identifier)s->m_frame->m_frame.f_exc_traceback = EXC_TRACEBACK(thread_state);
-    Py_XINCREF(%(context_identifier)s->m_frame->m_frame.f_exc_traceback);
-#else
-    %(context_identifier)s->m_exc_state.exc_type = EXC_TYPE(thread_state);
-    if (%(context_identifier)s->m_exc_state.exc_type == Py_None) %(context_identifier)s->m_exc_state.exc_type = NULL;
-    Py_XINCREF(%(context_identifier)s->m_exc_state.exc_type);
-    %(context_identifier)s->m_exc_state.exc_value = EXC_VALUE( thread_state );
-    Py_XINCREF(%(context_identifier)s->m_exc_state.exc_value);
-    %(context_identifier)s->m_exc_state.exc_traceback = EXC_TRACEBACK(thread_state);
-    Py_XINCREF(%(context_identifier)s->m_exc_state.exc_traceback);
-#endif
+    EXC_TYPE_F(%(context_identifier)s) = EXC_TYPE(thread_state);
+    if (EXC_TYPE_F(%(context_identifier)s) == Py_None) EXC_TYPE_F(%(context_identifier)s) = NULL;
+    Py_XINCREF(EXC_TYPE_F(%(context_identifier)s));
+    EXC_VALUE_F(%(context_identifier)s) = EXC_VALUE(thread_state);
+    Py_XINCREF(EXC_VALUE_F(%(context_identifier)s));
+    EXC_TRACEBACK_F(%(context_identifier)s) = EXC_TRACEBACK(thread_state);
+    Py_XINCREF(EXC_TRACEBACK_F(%(context_identifier)s));
 }
 
 #endif
@@ -193,16 +180,12 @@ Nuitka_Frame_MarkAsExecuting( %(context_identifier)s->m_frame );
 // Framed code:
 %(codes)s
 
-Nuitka_Frame_MarkAsNotExecuting( %(context_identifier)s->m_frame );
+Nuitka_Frame_MarkAsNotExecuting(%(context_identifier)s->m_frame);
 
-#if PYTHON_VERSION >= 370
-Py_CLEAR(%(context_identifier)s->m_exc_state.exc_type);
-Py_CLEAR(%(context_identifier)s->m_exc_state.exc_value);
-Py_CLEAR(%(context_identifier)s->m_exc_state.exc_traceback);
-#elif PYTHON_VERSION >= 300
-Py_CLEAR(%(context_identifier)s->m_frame->m_frame.f_exc_type);
-Py_CLEAR(%(context_identifier)s->m_frame->m_frame.f_exc_value);
-Py_CLEAR(%(context_identifier)s->m_frame->m_frame.f_exc_traceback);
+#if PYTHON_VERSION >= 300
+Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
+Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
+Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
 #endif
 
 // Allow re-use of the frame again.
@@ -215,14 +198,10 @@ goto %(no_exception_exit)s;
 template_frame_guard_generator_return_handler = """\
 %(frame_return_exit)s:;
 
-#if PYTHON_VERSION >= 370
-Py_CLEAR(%(context_identifier)s->m_exc_state.exc_type);
-Py_CLEAR(%(context_identifier)s->m_exc_state.exc_value);
-Py_CLEAR(%(context_identifier)s->m_exc_state.exc_traceback);
-#elif PYTHON_VERSION >= 300
-Py_CLEAR(%(frame_identifier)s->m_frame.f_exc_type);
-Py_CLEAR(%(frame_identifier)s->m_frame.f_exc_value);
-Py_CLEAR(%(frame_identifier)s->m_frame.f_exc_traceback);
+#if PYTHON_VERSION >= 300
+Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
+Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
+Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
 #endif
 
 Py_DECREF(%(frame_identifier)s);
@@ -234,8 +213,7 @@ template_frame_guard_generator_exception_handler = """\
 %(frame_exception_exit)s:;
 
 // If it's not an exit exception, consider and create a traceback for it.
-if (!EXCEPTION_MATCH_GENERATOR(%(exception_type)s ))
-{
+if (!EXCEPTION_MATCH_GENERATOR(%(exception_type)s)) {
     if (%(exception_tb)s == NULL) {
         %(exception_tb)s = %(tb_making)s;
     } else if (%(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame) {
@@ -253,14 +231,10 @@ if (!EXCEPTION_MATCH_GENERATOR(%(exception_type)s ))
     assertFrameObject(%(frame_identifier)s);
 }
 
-#if PYTHON_VERSION >= 370
-Py_CLEAR(%(context_identifier)s->m_exc_state.exc_type);
-Py_CLEAR(%(context_identifier)s->m_exc_state.exc_value);
-Py_CLEAR(%(context_identifier)s->m_exc_state.exc_traceback);
-#elif PYTHON_VERSION >= 300
-Py_CLEAR(%(frame_identifier)s->m_frame.f_exc_type);
-Py_CLEAR(%(frame_identifier)s->m_frame.f_exc_value);
-Py_CLEAR(%(frame_identifier)s->m_frame.f_exc_traceback);
+#if PYTHON_VERSION >= 300
+Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
+Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
+Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
 #endif
 
 Py_DECREF(%(frame_identifier)s);

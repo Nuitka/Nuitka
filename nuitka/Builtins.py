@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -159,9 +159,9 @@ def _getAnonBuiltins():
         }
 
     anon_codes = {
-        "NoneType": "Py_TYPE( Py_None )",
+        "NoneType": "Py_TYPE(Py_None)",
         "ellipsis": "&PyEllipsis_Type",
-        "NotImplementedType": "Py_TYPE( Py_NotImplemented )",
+        "NotImplementedType": "Py_TYPE(Py_NotImplemented)",
         "function": "&PyFunction_Type",
         "builtin_function_or_method": "&PyCFunction_Type",
         "compiled_function": "&Nuitka_Function_Type",

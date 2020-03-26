@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -559,9 +559,7 @@ throw_here:
 
     if (PyExceptionClass_Check(typ)) {
         NORMALIZE_EXCEPTION(&typ, &val, (PyTracebackObject **)&tb);
-    }
-
-    else if (PyExceptionInstance_Check(typ)) {
+    } else if (PyExceptionInstance_Check(typ)) {
         if (unlikely(val && val != Py_None)) {
             PyErr_Format(PyExc_TypeError, "instance exception may not have a separate value");
 

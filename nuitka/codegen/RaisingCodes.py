@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -225,9 +225,8 @@ def getReRaiseExceptionCode(emit, context):
     if keeper_variables[0] is None:
         emit(
             """\
-%(bool_res_name)s = RERAISE_EXCEPTION( &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s );
-if (unlikely( %(bool_res_name)s == false ))
-{
+%(bool_res_name)s = RERAISE_EXCEPTION(&%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
+if (unlikely(%(bool_res_name)s == false)) {
     %(update_code)s
 }
 """
@@ -296,7 +295,7 @@ def _getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit, con
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_WITH_CAUSE( &%s, &%s, &%s, %s );"
+        "RAISE_EXCEPTION_WITH_CAUSE(&%s, &%s, &%s, %s);"
         % (exception_type, exception_value, exception_tb, raise_cause_name)
     )
 
@@ -320,7 +319,7 @@ def _getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_WITH_TYPE( &%s, &%s, &%s );"
+        "RAISE_EXCEPTION_WITH_TYPE(&%s, &%s, &%s);"
         % (exception_type, exception_value, exception_tb)
     )
 
@@ -346,7 +345,7 @@ def _getRaiseExceptionWithValueCode(
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_%s( &%s, &%s, &%s );"
+        "RAISE_EXCEPTION_%s(&%s, &%s, &%s);"
         % (
             ("IMPLICIT" if implicit else "WITH_VALUE"),
             exception_type,

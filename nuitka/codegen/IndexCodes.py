@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -35,7 +35,7 @@ def getMinIndexCode(to_name, emit):
 
 
 def getIndexCode(to_name, value_name, emit, context):
-    emit("%s = CONVERT_TO_INDEX( %s );" % (to_name, value_name))
+    emit("%s = CONVERT_TO_INDEX(%s);" % (to_name, value_name))
 
     getErrorExitBoolCode(
         condition="%s == -1 && ERROR_OCCURRED()" % to_name, emit=emit, context=context

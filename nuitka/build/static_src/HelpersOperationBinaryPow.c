@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -1562,6 +1562,12 @@ PyObject *BINARY_OPERATION_POW_FLOAT_FLOAT(PyObject *operand1, PyObject *operand
 PyObject *BINARY_OPERATION_POW_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
+
+#if PYTHON_VERSION < 300
+    if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
+        return BINARY_OPERATION_POW_INT_INT(operand1, operand2);
+    }
+#endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
     ternaryfunc slot1 =

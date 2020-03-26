@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -242,7 +242,7 @@ class ShapeTypeNoneType(ShapeBase):
             # difference with "=="
             # if right_shape.getTypeName() is not None:
             #     return operation_result_unorderable_comparison
-            if right_shape is ShapeTypeStr:
+            if right_shape in (ShapeTypeStr, ShapeTypeBytes):
                 return operation_result_unknown
 
             return _getComparisonLtShapeGeneric(cls, right_shape)
@@ -410,7 +410,11 @@ class ShapeTypeInt(ShapeBase):
         ):
             return operation_result_bool_noescape
 
-        if right_shape in (ShapeTypeLongDerived, ShapeTypeIntOrLongDerived):
+        if right_shape in (
+            ShapeTypeLongDerived,
+            ShapeTypeIntOrLongDerived,
+            ShapeTypeFloatDerived,
+        ):
             return operation_result_unknown
 
         return _getComparisonLtShapeGeneric(cls, right_shape)

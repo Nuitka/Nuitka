@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -53,13 +53,15 @@ static PyObject *SLOT_nb_floor_divide_INT_INT(PyObject *operand1, PyObject *oper
      */
 
     if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+        long a_div_b = a / b;
+        long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
 
-        /* We use C11 or C++03 which have no trouble doing floor with
-         * signs correctly.
-         */
-        long result = a / b;
+        if (a_mod_b && (b ^ a_mod_b) < 0) {
+            a_mod_b += b;
+            a_div_b -= 1;
+        }
 
-        return PyInt_FromLong(result);
+        return PyInt_FromLong(a_div_b);
     }
 
     PyObject *op1 = operand1;
@@ -2144,6 +2146,12 @@ PyObject *BINARY_OPERATION_FLOORDIV_INT_LONG(PyObject *operand1, PyObject *opera
 PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
+
+#if PYTHON_VERSION < 300
+    if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
+        return BINARY_OPERATION_FLOORDIV_INT_INT(operand1, operand2);
+    }
+#endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
     binaryfunc slot1 =

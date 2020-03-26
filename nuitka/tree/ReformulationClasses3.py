@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -69,6 +69,7 @@ from nuitka.nodes.LocalsDictNodes import (
     StatementSetLocals,
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
+from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeNameRef
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
     mergeStatements,
@@ -177,10 +178,9 @@ def buildClassNode3(provider, node, source_ref):
         StatementAssignmentVariableName(
             provider=class_creation_function,
             variable_name="__module__",
-            source=makeConstantRefNode(
-                constant=provider.getParentModule().getFullName().asString(),
+            source=ExpressionModuleAttributeNameRef(
+                variable=provider.getParentModule().getVariableForReference("__name__"),
                 source_ref=source_ref,
-                user_provided=True,
             ),
             source_ref=source_ref,
         ),
@@ -631,6 +631,7 @@ def getClassBasesMroConversionHelper():
         parameters=ParameterSpec(
             ps_name=helper_name,
             ps_normal_args=("bases",),
+            ps_pos_only_args=(),
             ps_list_star_arg=None,
             ps_dict_star_arg=None,
             ps_default_count=0,

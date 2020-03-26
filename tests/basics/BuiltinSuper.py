@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -43,9 +43,7 @@ ClassWithUnderClassClosure().g()
 
 class ClassWithoutUnderClassClosure:
     def g(self):
-        __class__ = (
-            "Providing __class__ ourselves, then it must be used"
-        )  # @ReservedAssignment
+        __class__ = "Providing __class__ ourselves, then it must be used"
         print(__class__)
 
         try:
@@ -57,7 +55,7 @@ class ClassWithoutUnderClassClosure:
 ClassWithoutUnderClassClosure().g()
 
 # For Python2 only.
-__class__ = "Global __class__"  # @ReservedAssignment
+__class__ = "Global __class__"
 
 
 def deco(C):

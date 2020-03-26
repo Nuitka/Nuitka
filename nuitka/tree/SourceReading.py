@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -50,6 +50,7 @@ def _detectEncoding2(source_file):
     line1 = source_file.readline()
 
     if line1.startswith(b"\xef\xbb\xbf"):
+        # BOM marker makes it clear.
         encoding = "utf-8"
     else:
         line1_match = re.search(b"coding[:=]\\s*([-\\w.]+)", line1)

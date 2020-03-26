@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,7 +26,10 @@ import shutil
 import subprocess
 import sys
 
-from nuitka.PythonVersions import getSupportedPythonVersions
+from nuitka.PythonVersions import (
+    getPartiallySupportedPythonVersions,
+    getSupportedPythonVersions,
+)
 
 from .Release import checkBranchName
 
@@ -34,7 +37,9 @@ from .Release import checkBranchName
 def makeMsiCompatibleFilename(filename):
     filename = filename[:-4]
 
-    for supported_version in getSupportedPythonVersions():
+    for supported_version in (
+        getSupportedPythonVersions() + getPartiallySupportedPythonVersions()
+    ):
         filename = filename.replace("-py" + supported_version, "")
 
     filename = filename.replace("Nuitka32", "Nuitka")

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -70,6 +70,9 @@ def import_re_callback(match):
 
 tempfile_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 
+logging_info_re = re.compile(r"^Nuitka.*?:INFO")
+logging_warning_re = re.compile(r"^Nuitka.*?:WARNING")
+
 
 def normalizeTimeDiff(outputStr):
     """
@@ -82,12 +85,10 @@ def normalizeTimeDiff(outputStr):
     =================== 1059 passed, 8 warnings in x.xx seconds ===================
     """
 
-    matchObj = re.search(b"in [0-9]+.[0-9][0-9](s| seconds)", outputStr)
-    if matchObj:
+    match = re.search(b"in [0-9]+.[0-9][0-9](s| seconds)", outputStr)
+    if match:
         return (
-            outputStr[: matchObj.start()]
-            + b"in x.xx seconds"
-            + outputStr[matchObj.end() :]
+            outputStr[: match.start()] + b"in x.xx seconds" + outputStr[match.end() :]
         )
     return outputStr
 
@@ -129,10 +130,10 @@ def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
         if line.startswith("[") and line.endswith("refs]"):
             continue
 
-        if ignore_warnings and line.startswith("Nuitka:WARNING"):
+        if ignore_warnings and logging_warning_re.match(line):
             continue
 
-        if ignore_infos and line.startswith("Nuitka:INFO"):
+        if ignore_infos and logging_info_re.match(line):
             continue
 
         if line.startswith("Nuitka:WARNING:Cannot recurse to import"):
@@ -209,7 +210,7 @@ exceeded while calling a Python object' in \
             continue
 
         # Ignore spurious clcache warning.
-        if "clcache: persistent json file" in line:
+        if "clcache: persistent json file" in line or "clcache: manifest file" in line:
             continue
 
         result.append(line)

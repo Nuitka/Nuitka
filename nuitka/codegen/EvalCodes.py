@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -39,12 +39,11 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
 
             if is_dict:
                 emit(
-                    "%s = PyDict_GetItem( %s, %s );"
-                    % (value_name, locals_name, key_name)
+                    "%s = PyDict_GetItem(%s, %s);" % (value_name, locals_name, key_name)
                 )
             else:
                 emit(
-                    "%s = PyObject_GetItem( %s, %s );"
+                    "%s = PyObject_GetItem(%s, %s);"
                     % (value_name, locals_name, key_name)
                 )
 
@@ -175,7 +174,7 @@ def _getBuiltinCompileCode(
             optimize_name,
         )
 
-    emit("%s = COMPILE_CODE( %s );" % (to_name, ", ".join(str(arg) for arg in args)))
+    emit("%s = COMPILE_CODE(%s);" % (to_name, ", ".join(str(arg) for arg in args)))
 
     getErrorExitCode(
         check_name=to_name,
@@ -219,7 +218,7 @@ def getBuiltinEvalCode(
     )
 
     emit(
-        "%s = EVAL_CODE( %s, %s, %s );"
+        "%s = EVAL_CODE(%s, %s, %s);"
         % (to_name, compiled_name, globals_name, locals_name)
     )
 
@@ -283,7 +282,7 @@ def generateExecCode(statement, emit, context):
     res_name = context.getBoolResName()
 
     emit(
-        "%s = EXEC_FILE_ARG_HANDLING( &%s, &%s );"
+        "%s = EXEC_FILE_ARG_HANDLING(&%s, &%s);"
         % (res_name, source_name, filename_name)
     )
 
@@ -306,7 +305,7 @@ def generateExecCode(statement, emit, context):
     to_name = context.allocateTempName("exec_result")
 
     emit(
-        "%s = EVAL_CODE( %s, %s, %s );"
+        "%s = EVAL_CODE(%s, %s, %s);"
         % (to_name, compiled_name, globals_name, locals_name)
     )
 

@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -352,10 +352,10 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
 
 static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc visit, void *arg) {
     Py_VISIT(frame->m_frame.f_back);
-    // Py_VISIT( frame->f_code );
+    // Py_VISIT(frame->f_code);
     Py_VISIT(frame->m_frame.f_builtins);
     Py_VISIT(frame->m_frame.f_globals);
-    // Py_VISIT( frame->f_locals );
+    // Py_VISIT(frame->f_locals);
     // TODO: Traverse attached locals too.
 
 #if PYTHON_VERSION < 370
@@ -578,17 +578,17 @@ struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObject *mod
 extern PyObject *const_str_empty;
 extern PyObject *const_bytes_empty;
 
-#if PYTHON_VERSION < 300
-PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count,
-                           int flags)
-#elif PYTHON_VERSION < 380
-PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count,
-                           int kw_only_count, int flags)
-#else
-PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count,
-                           int pos_only_count, int kw_only_count, int flags)
+PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name, PyObject *argnames,
+                             int arg_count
+#if PYTHON_VERSION >= 300
+                             ,
+                             int kw_only_count
 #endif
-{
+#if PYTHON_VERSION >= 380
+                             ,
+                             int pos_only_count
+#endif
+) {
     CHECK_OBJECT(filename);
     assert(Nuitka_String_CheckExact(filename));
     CHECK_OBJECT(function_name);
@@ -603,12 +603,20 @@ PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line
     Py_hash_t hash = DEEP_HASH(argnames);
 #endif
 
+#if PYTHON_VERSION < 300
+    PyObject *code = const_str_empty;
+    PyObject *lnotab = const_str_empty;
+#else
+    PyObject *code = const_bytes_empty;
+    PyObject *lnotab = const_bytes_empty;
+#endif
+
     // Not using PyCode_NewEmpty, it doesn't given us much beyond this
     // and is not available for Python2.
 #if PYTHON_VERSION >= 380
     PyCodeObject *result = PyCode_NewWithPosOnlyArgs(arg_count, // argcount
 #else
-    PyCodeObject *result = PyCode_New(arg_count,         // argcount
+    PyCodeObject *result = PyCode_New(arg_count, // argcount
 #endif
 #if PYTHON_VERSION >= 300
 #if PYTHON_VERSION >= 380
@@ -616,14 +624,10 @@ PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line
 #endif
                                                      kw_only_count, // kw-only count
 #endif
-                                                     0,     // nlocals
-                                                     0,     // stacksize
-                                                     flags, // flags
-#if PYTHON_VERSION < 300
-                                                     const_str_empty, // code (bytecode)
-#else
-                                      const_bytes_empty, // code (bytecode)
-#endif
+                                                     0,                 // nlocals
+                                                     0,                 // stacksize
+                                                     flags,             // flags
+                                                     code,              // code (bytecode)
                                                      const_tuple_empty, // consts (we are not going to be compatible)
                                                      const_tuple_empty, // names (we are not going to be compatible)
                                                      argnames,          // varnames (we are not going to be compatible)
@@ -632,11 +636,7 @@ PyCodeObject *MAKE_CODEOBJ(PyObject *filename, PyObject *function_name, int line
                                                      filename,          // filename
                                                      function_name,     // name
                                                      line,              // firstlineno (offset of the code object)
-#if PYTHON_VERSION < 300
-                                                     const_str_empty // lnotab (table to translate code object)
-#else
-                                      const_bytes_empty  // lnotab (table to translate code object)
-#endif
+                                                     lnotab             // lnotab (table to translate code object)
     );
 
     assert(DEEP_HASH(argnames) == hash);

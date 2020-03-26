@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -201,7 +201,7 @@ def generateTryCode(statement, emit, context):
 
         context.setExceptionKeeperVariables(old_keepers)
     else:
-        assert except_handler is None
+        assert except_handler is None, tried_block.asXmlText()
 
     if break_handler is not None:
         assert tried_block.mayBreak()

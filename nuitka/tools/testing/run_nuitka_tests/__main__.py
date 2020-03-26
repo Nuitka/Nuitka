@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -84,6 +84,17 @@ import recursions, etc. fine. Default is %default.""",
 The packages tests, execute these to check if Nuitka handles packages, e.g.
 import recursions, etc. fine. Default is %default.""",
     )
+
+    parser.add_option(
+        "--skip-plugins-tests",
+        action="store_false",
+        dest="plugin_tests",
+        default=True,
+        help="""\
+The plugins tests, execute these to check if Nuitka handles its own plugin
+interfaces, e.g. user plugins, etc. fine. Default is %default.""",
+    )
+
 
     parser.add_option(
         "--skip-optimizations-tests",
@@ -291,12 +302,30 @@ Do not use Python3.7 even if available on the system. Default is %default.""",
     )
 
     parser.add_option(
+        "--no-python3.8",
+        action="store_true",
+        dest="no38",
+        default=False,
+        help="""\
+Do not use Python3.8 even if available on the system. Default is %default.""",
+    )
+
+    parser.add_option(
         "--coverage",
         action="store_true",
         dest="coverage",
         default=False,
         help="""\
 Make a coverage analysis, that does not really check. Default is %default.""",
+    )
+
+    parser.add_option(
+        "--assume-yes-for-downloads",
+        action="store_true",
+        dest="assume_yes_for_downloads",
+        default=False,
+        help="""\
+Allow Nuitka to download code if necessary, e.g. dependency walker on Windows. Default is %default.""",
     )
 
     options, positional_args = parser.parse_args()
@@ -321,6 +350,8 @@ Make a coverage analysis, that does not really check. Default is %default.""",
             options.no36 = True
         if sys.version_info[0:2] != (3, 7):
             options.no37 = True
+        if sys.version_info[0:2] != (3, 8):
+            options.no38 = True
 
     if options.cpython_no_other:
         if sys.version_info[0:2] != (2, 6):
@@ -452,6 +483,8 @@ def main():
             return False
         if command == "python3.7" and options.no37:
             return False
+        if command == "python3.8" and options.no38:
+            return False
 
         # Shortcuts for python versions, also needed for Windows as it won't have
         # the version number in the Python binaries at all.
@@ -468,6 +501,8 @@ def main():
         if command == "python3.6" and sys.version_info[0:2] == (3, 6):
             return True
         if command == "python3.7" and sys.version_info[0:2] == (3, 7):
+            return True
+        if command == "python3.8" and sys.version_info[0:2] == (3, 8):
             return True
 
         path = os.environ["PATH"]
@@ -494,6 +529,15 @@ def main():
         return False
 
     def setExtraFlags(where, name, flags):
+        if (
+            os.name == "nt"
+            and name == "standalone"
+            and options.assume_yes_for_downloads
+        ):
+            if flags:
+                flags += " "
+            flags += "--assume-yes-for-downloads"
+
         if where is not None:
             tmp_dir = tempfile.gettempdir()
 
@@ -506,9 +550,11 @@ def main():
             if not os.path.exists(where):
                 os.makedirs(where)
 
-            os.environ["NUITKA_EXTRA_OPTIONS"] = flags + " --output-dir=" + where
-        else:
-            os.environ["NUITKA_EXTRA_OPTIONS"] = flags
+            if flags:
+                flags += " "
+            flags += "--output-dir=" + where
+
+        os.environ["NUITKA_EXTRA_OPTIONS"] = flags
 
     def executeSubTest(command, hide_output=False):
         if options.coverage and "search" in command:
@@ -584,6 +630,14 @@ def main():
             )
             setExtraFlags(where, "packages", flags)
             executeSubTest("./tests/packages/run_all.py search")
+
+        if options.plugin_tests:
+            print(
+                "Running the plugin tests with options '%s' with %s:"
+                % (flags, use_python)
+            )
+            setExtraFlags(where, "plugins", flags)
+            executeSubTest("./tests/plugins/run_all.py search")
 
         # At least one Debian Jessie, these versions won't have lxml installed, so
         # don't run them there. Also these won't be very version dependent in their
@@ -689,12 +743,20 @@ def main():
 
             # Running the Python 3.7 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
-                if os.path.exists("./tests/CPython36/run_all.py"):
+                if os.path.exists("./tests/CPython37/run_all.py"):
                     if options.cpython36:
                         setExtraFlags(where, "37tests", flags)
                         executeSubTest("./tests/CPython37/run_all.py search")
                 else:
                     print("The CPython3.7 tests are not present, not run.")
+
+            if not use_python.startswith("python2"):
+                if os.path.exists("./tests/CPython38/run_all.py"):
+                    if options.cpython36:
+                        setExtraFlags(where, "38tests", flags)
+                        executeSubTest("./tests/CPython38/run_all.py search")
+                else:
+                    print("The CPython3.8 tests are not present, not run.")
 
         if "NUITKA_EXTRA_OPTIONS" in os.environ:
             del os.environ["NUITKA_EXTRA_OPTIONS"]
@@ -707,6 +769,7 @@ def main():
         or checkExecutableCommand("python3.5")
         or checkExecutableCommand("python3.6")
         or checkExecutableCommand("python3.7")
+        or checkExecutableCommand("python3.8")
     )
 
     if checkExecutableCommand("python2.6"):
@@ -753,6 +816,11 @@ def main():
         execute_tests("python3.7-nodebug", "python3.7", "")
     else:
         print("Cannot execute tests with Python 3.7, disabled or not installed.")
+
+    if checkExecutableCommand("python3.8"):
+        execute_tests("python3.8-nodebug", "python3.8", "")
+    else:
+        print("Cannot execute tests with Python 3.8, disabled or not installed.")
 
     if options.coverage:
         publishCoverageData()

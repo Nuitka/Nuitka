@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -65,14 +65,18 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     def _handleNonLocal(node):
         # Take closure variables for non-local declarations.
 
-        for non_local_names, source_ref in node.consumeNonlocalDeclarations():
+        for (
+            non_local_names,
+            user_provided,
+            source_ref,
+        ) in node.consumeNonlocalDeclarations():
             for non_local_name in non_local_names:
 
                 variable = node.takeVariableForClosure(variable_name=non_local_name)
 
                 node.registerProvidedVariable(variable)
 
-                if variable.isModuleVariable():
+                if variable.isModuleVariable() and user_provided:
                     raiseSyntaxError(
                         "no binding for nonlocal '%s' found" % (non_local_name),
                         source_ref,
@@ -288,8 +292,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                             )
 
                         break
-                    else:
-                        seen_function = True
+
+                    seen_function = True
         # Check if continue and break are properly in loops. If not, raise a
         # syntax error.
         elif node.isStatementLoopBreak() or node.isStatementLoopContinue():

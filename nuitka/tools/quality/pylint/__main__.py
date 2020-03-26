@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -105,9 +105,9 @@ Insist on PyLint to be installed. Default is %default.""",
 
     print("Working on:", positional_args)
 
-    blacklist = ["oset.py", "odict.py"]
+    blacklist = []
 
-    # Avoid checking the Python2 runner with Python3, it has name collisions.
+    # Avoid checking the Python2 runner along with the one for Python3, it has name collisions.
     if python_version >= 300:
         blacklist.append("nuitka")
 

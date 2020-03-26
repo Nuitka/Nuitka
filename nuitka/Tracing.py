@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,6 +28,8 @@ to "print for_debug" without much hassle (braces).
 
 from __future__ import print_function
 
+import logging
+import os
 import sys
 
 
@@ -51,6 +53,48 @@ def flushStdout():
     sys.stdout.flush()
 
 
+def getEnableStyleCode(style):
+    if style == "pink":
+        style = "\033[95m"
+    elif style == "blue":
+        style = "\033[94m"
+    elif style == "green":
+        style = "\033[92m"
+    elif style == "yellow":
+        style = "\033[93m"
+    elif style == "red":
+        style = "\033[91m"
+    elif style == "bold":
+        style = "\033[1m"
+    elif style == "underline":
+        style = "\033[4m"
+    else:
+        style = None
+
+    return style
+
+
+_enabled_ansi = False
+
+
+def _enableAnsi():
+    # singleton, pylint: disable=global-statement
+    global _enabled_ansi
+    if not _enabled_ansi:
+
+        # Only necessary on Windows, as a side effect of this, ANSI colors get enabled
+        # for the terminal and never deactivated, so we are free to use them after
+        # this.
+        if os.name == "nt":
+            os.system("")
+
+        _enabled_ansi = True
+
+
+def getDisableStyleCode():
+    return "\033[0m"
+
+
 def my_print(*args, **kwargs):
     """ Make sure we flush after every print.
 
@@ -60,30 +104,55 @@ def my_print(*args, **kwargs):
     """
 
     if "style" in kwargs:
-        if kwargs["style"] == "pink":
-            style = "\033[95m"
-        elif kwargs["style"] == "blue":
-            style = "\033[94m"
-        elif kwargs["style"] == "green":
-            style = "\033[92m"
-        elif kwargs["style"] == "yellow":
-            style = "\033[93m"
-        elif kwargs["style"] == "red":
-            style = "\033[91m"
-        elif kwargs["style"] == "bold":
-            style = "\033[1m"
-        elif kwargs["style"] == "underline":
-            style = "\033[4m"
-        else:
-            raise ValueError(
-                "%s is an invalid value for keyword argument style" % kwargs["style"]
-            )
-
+        style = kwargs["style"]
         del kwargs["style"]
 
-        print(style, *(args + ("\033[0m",)), **kwargs)
+        if style is not None and sys.stdout.isatty():
+            style = getEnableStyleCode(style)
 
+            if style is None:
+                raise ValueError(
+                    "%r is an invalid value for keyword argument style"
+                    % kwargs["style"]
+                )
+
+            _enableAnsi()
+
+            print(style, end="")
+
+        print(*args, **kwargs)
+
+        if style is not None and sys.stdout.isatty():
+            print(getDisableStyleCode(), end="")
     else:
         print(*args, **kwargs)
 
     flushStdout()
+
+
+# TODO: Stop using logging at all, and only OurLogger.
+logging.basicConfig(format="Nuitka:%(levelname)s:%(message)s")
+
+
+class OurLogger(object):
+    def __init__(self, name, base_style=None):
+        self.name = name
+        self.base_style = base_style
+
+    def warning(self, message, style="red"):
+        message = "%s:WARNING: %s" % (self.name, message)
+
+        style = style or self.base_style
+        my_print(message, style=style)
+
+    def info(self, message, style=None):
+        message = "%s:INFO: %s" % (self.name, message)
+
+        style = style or self.base_style
+        my_print(message, style=style)
+
+
+general = OurLogger("Nuitka")
+codegen_missing = OurLogger("Nuitka-codegen-missing")
+plugins_logger = OurLogger("Nuitka-Plugins")
+recursion_logger = OurLogger("Nuitka-Recursion")

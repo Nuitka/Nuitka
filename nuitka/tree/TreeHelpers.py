@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -192,7 +192,8 @@ def detectFunctionBodyKind(nodes, start_value=None):
                             if gen.is_async:
                                 indications.add("Coroutine")
                                 break
-                            elif _checkCoroutine(gen):
+
+                            if _checkCoroutine(gen):
                                 break
                 else:
                     assert False, (name, field, ast.dump(node))
@@ -284,8 +285,6 @@ def buildNode(provider, node, source_ref, allow_none=False):
 
         if hasattr(node, "lineno"):
             source_ref = source_ref.atLineNumber(node.lineno)
-        else:
-            source_ref = source_ref
 
         if kind in build_nodes_args3:
             result = build_nodes_args3[kind](

@@ -6,10 +6,32 @@ export PYBUILD_NAME = nuitka
 # This disables the building with debug Python, not sure why we need to
 # set PYBUILD_VERSIONS too, but it seemed that way.
 export PYBUILD_INTERPRETERS = python{version}
+
+# Do not use Python2 for Debian 11 or higher, need to find a way for Ubuntu
+# to cover, Debian 11 inheritance.
+DEB_VENDOR=$(shell dpkg-vendor --query vendor)
+ifeq ($(DEB_VENDOR), Debian)
+BUILD_ONLY_PYTHON3 := $(shell [ `lsb_release -r -s | sed -e s/unstable/11/ -e s/testing/11/` -ge 11 ] && echo true)
+else
+BUILD_ONLY_PYTHON3 := false
+endif
+export BUILD_ONLY_PYTHON3
+
+ifeq ($(BUILD_ONLY_PYTHON3),true)
+export PYBUILD_VERSIONS = $(shell py3versions -vr)
+export BUILD_WITH_ARGUMENT = "python3"
+export RUN_TEST_OPTIONS = --no-python2.7 --no-python2.6
+export RUN_TEST_PYTHON = python3
+else
 export PYBUILD_VERSIONS = $(shell pyversions -vr) $(shell py3versions -vr)
+export BUILD_WITH_ARGUMENT = "python2,python3"
+export RUN_TEST_OPTIONS =
+export RUN_TEST_PYTHON = python2
+endif
 
 %:
-	dh $@ --with python2,python3 --buildsystem=pybuild
+	set -x
+	dh $@ --with $(BUILD_WITH_ARGUMENT) --buildsystem=pybuild
 
 override_dh_auto_build:
 	rst2pdf README.rst
@@ -18,4 +40,6 @@ override_dh_auto_build:
 	cp Developer_Manual.rst Developer_Manual.txt
 
 override_dh_auto_test:
-	./tests/run-tests --skip-reflection-test
+	# The RUN_TEST_PYTHON is not the one to execute tests, just the for the
+	# test runner.
+	$(RUN_TEST_PYTHON) ./tests/run-tests --skip-reflection-test $(RUN_TEST_OPTIONS)

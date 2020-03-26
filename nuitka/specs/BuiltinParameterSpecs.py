@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -39,6 +39,7 @@ class BuiltinParameterSpec(ParameterSpec):
         default_count,
         list_star_arg=None,
         dict_star_arg=None,
+        pos_only_args=(),
         kw_only_args=(),
     ):
         ParameterSpec.__init__(
@@ -48,12 +49,13 @@ class BuiltinParameterSpec(ParameterSpec):
             ps_list_star_arg=list_star_arg,
             ps_dict_star_arg=dict_star_arg,
             ps_default_count=default_count,
+            ps_pos_only_args=pos_only_args,
             ps_kw_only_args=kw_only_args,
         )
 
         self.builtin = getattr(builtins, name)
 
-        assert default_count <= len(arg_names + kw_only_args)
+        assert default_count <= len(arg_names) + len(kw_only_args) + len(pos_only_args)
 
     def __repr__(self):
         return "<BuiltinParameterSpec %s>" % self.name
@@ -77,10 +79,10 @@ class BuiltinParameterSpec(ParameterSpec):
         # fatal, pylint: disable=broad-except,too-many-branches
 
         try:
-            given_normal_args = given_values[: len(self.normal_args)]
+            given_normal_args = given_values[: self.getArgumentCount()]
 
             if self.list_star_arg:
-                given_list_star_args = given_values[len(self.normal_args)]
+                given_list_star_args = given_values[self.getArgumentCount()]
             else:
                 given_list_star_args = None
 
@@ -91,7 +93,9 @@ class BuiltinParameterSpec(ParameterSpec):
 
             arg_dict = {}
 
-            for arg_name, given_value in zip(self.normal_args, given_normal_args):
+            for arg_name, given_value in zip(
+                self.getArgumentNames(), given_normal_args
+            ):
                 assert type(given_value) not in (
                     tuple,
                     list,
@@ -109,10 +113,12 @@ class BuiltinParameterSpec(ParameterSpec):
 
             arg_list = []
 
-            for arg_name in self.normal_args[: self.getPositionalOnlyCount()]:
-                if arg_name in arg_dict:
-                    arg_list.append(arg_dict[arg_name])
-                    del arg_dict[arg_name]
+            for arg_name in self.getArgumentNames():
+                if arg_name not in arg_dict:
+                    break
+
+                arg_list.append(arg_dict[arg_name])
+                del arg_dict[arg_name]
 
         except Exception as e:
             sys.exit("Fatal problem: %r" % e)
@@ -143,14 +149,14 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
 
         try:
             if self.list_star_arg:
-                given_list_star_arg = given_values[len(self.normal_args)]
+                given_list_star_arg = given_values[self.getArgumentCount()]
             else:
                 given_list_star_arg = None
 
             arg_list = []
             refuse_more = False
 
-            for _arg_name, given_value in zip(self.normal_args, given_values):
+            for _arg_name, given_value in zip(self.getArgumentNames(), given_values):
                 assert type(given_value) not in (
                     tuple,
                     list,
@@ -231,14 +237,12 @@ def makeBuiltinExceptionParameterSpec(exception_name):
 
 
 class BuiltinParameterSpecPosArgs(BuiltinParameterSpec):
-    __slots__ = ("positional_only",)
-
     def __init__(
         self,
         name,
+        pos_only_args,
         arg_names,
         default_count,
-        positional_only,
         list_star_arg=None,
         dict_star_arg=None,
     ):
@@ -247,23 +251,17 @@ class BuiltinParameterSpecPosArgs(BuiltinParameterSpec):
             name=name,
             arg_names=arg_names,
             default_count=default_count,
+            pos_only_args=pos_only_args,
             list_star_arg=list_star_arg,
             dict_star_arg=dict_star_arg,
         )
-
-        # Kind of the point of this class.
-        assert positional_only
-        self.positional_only = positional_only
-
-    def getPositionalOnlyCount(self):
-        return self.positional_only
 
 
 if python_version < 370:
     builtin_int_spec = BuiltinParameterSpec("int", ("x", "base"), default_count=2)
 else:
     builtin_int_spec = BuiltinParameterSpecPosArgs(
-        "int", ("x", "base"), default_count=2, positional_only=1
+        "int", ("x",), ("base",), default_count=2
     )
 
 
@@ -446,12 +444,12 @@ class BuiltinBytearraySpec(BuiltinParameterSpecPosArgs):
 
 
 builtin_bytearray_spec = BuiltinBytearraySpec(
-    "bytearray", ("string", "encoding", "errors"), default_count=2, positional_only=1
+    "bytearray", ("string",), ("encoding", "errors"), default_count=2
 )
 
 if python_version >= 300:
     builtin_bytes_spec = BuiltinBytearraySpec(
-        "bytes", ("string", "encoding", "errors"), default_count=3, positional_only=1
+        "bytes", ("string",), ("encoding", "errors"), default_count=3
     )
 
 
@@ -466,9 +464,14 @@ builtin_format_spec = BuiltinParameterSpecNoKeywords(
     "format", ("value", "format_spec"), default_count=1
 )
 
-builtin_sum_spec = BuiltinParameterSpecNoKeywords(
-    "sum", ("sequence", "start"), default_count=1
-)
+if python_version < 380:
+    builtin_sum_spec = BuiltinParameterSpecNoKeywords(
+        "sum", ("sequence", "start"), default_count=1
+    )
+else:
+    builtin_sum_spec = BuiltinParameterSpecPosArgs(
+        "sum", ("sequence",), ("start",), default_count=1
+    )
 
 builtin_staticmethod_spec = BuiltinParameterSpecNoKeywords(
     "staticmethod", ("function",), default_count=0
@@ -622,7 +625,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
             star_list_arg=builtin_spec.getStarListArgumentName(),
             star_dict_arg=builtin_spec.getStarDictArgumentName(),
             num_defaults=builtin_spec.getDefaultCount(),
-            num_posonly=builtin_spec.getPositionalOnlyCount(),
+            num_posonly=builtin_spec.getPosOnlyParameterCount(),
             positional=positional,
             pairs=pairs,
         )

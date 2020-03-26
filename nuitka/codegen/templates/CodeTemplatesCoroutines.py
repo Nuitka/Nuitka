@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,7 +20,7 @@
 """
 
 template_coroutine_object_maker_template = """\
-static PyObject *%(function_identifier)s_maker( void );
+static PyObject *%(function_identifier)s_maker(void);
 """
 
 template_coroutine_object_body_template = """
@@ -47,8 +47,7 @@ static PyObject *%(function_identifier)s_context( struct Nuitka_CoroutineObject 
 %(coroutine_exit)s
 }
 
-static PyObject *%(function_identifier)s_maker( void )
-{
+static PyObject *%(function_identifier)s_maker(void) {
     return Nuitka_Coroutine_New(
         %(function_identifier)s_context,
         %(coroutine_module)s,

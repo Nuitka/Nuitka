@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -71,7 +71,7 @@ def main():
             autoformat(desc["src_path"], git_stage=desc, abort=options.abort)
     else:
         if not positional_args:
-            positional_args = ["bin", "nuitka", "tests/*/run_all.py"]
+            positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
 
         my_print("Working on:", positional_args)
 
@@ -87,7 +87,8 @@ def main():
 
         filenames = list(
             scanTargets(
-                positional_args, (".py", ".scons", ".rst", ".txt", ".j2", ".md")
+                positional_args,
+                (".py", ".scons", ".rst", ".txt", ".j2", ".md", ".c", ".h"),
             )
         )
         if not filenames:

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -327,6 +327,12 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
             return True
 
         return False
+
+
+class StatementDictOperationSetKeyValue(StatementDictOperationSet):
+    kind = "STATEMENT_DICT_OPERATION_SET_KEY_VALUE"
+
+    named_children = ("key", "value", "dict")
 
 
 class StatementDictOperationRemove(StatementChildrenHavingBase):

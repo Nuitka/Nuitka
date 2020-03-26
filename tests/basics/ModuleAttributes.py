@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -38,7 +38,7 @@ except NameError:
 
 
 def checkFromFunction():
-    frame = sys._getframe(1)
+    frame = sys._getframe(1)  # pylint: disable=protected-access
 
     def displayDict(d):
         if "__loader__" in d:

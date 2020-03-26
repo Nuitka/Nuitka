@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -177,7 +177,7 @@ template_read_shared_known = """\
 template_read_mvar_unclear = """\
 %(tmp_name)s = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(var_name)s);
 
-if (unlikely( %(tmp_name)s == NULL )) {
+if (unlikely(%(tmp_name)s == NULL)) {
     %(tmp_name)s = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)%(var_name)s);
 }
 """
@@ -199,7 +199,7 @@ template_read_locals_mapping_with_fallback = """\
 %(to_name)s = PyObject_GetItem(%(locals_dict)s, %(var_name)s);
 
 if (%(to_name)s == NULL) {
-    if ( CHECK_AND_CLEAR_KEY_ERROR_OCCURRED() ) {
+    if (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED()) {
 %(fallback)s
         Py_INCREF(%(to_name)s);
     }
@@ -229,9 +229,9 @@ if (%(test_code)s) {
 
     UPDATE_STRING_DICT0((PyDictObject *)%(dict_name)s, (Nuitka_StringObject *)%(var_name)s, value);
 } else {
-    int res = PyDict_DelItem( %(dict_name)s, %(var_name)s );
+    int res = PyDict_DelItem(%(dict_name)s, %(var_name)s);
 
-    if ( res != 0 )
+    if (res != 0)
     {
         CLEAR_ERROR_OCCURRED();
     }

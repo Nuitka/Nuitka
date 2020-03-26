@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -44,7 +44,10 @@ from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
     StatementSetOperationAdd,
 )
-from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
+from nuitka.nodes.DictionaryNodes import (
+    StatementDictOperationSet,
+    StatementDictOperationSetKeyValue,
+)
 from nuitka.nodes.FrameNodes import StatementsFrameFunction, StatementsFrameGenerator
 from nuitka.nodes.FunctionNodes import ExpressionFunctionRef
 from nuitka.nodes.GeneratorNodes import (
@@ -202,7 +205,9 @@ def buildDictContractionNode(provider, node, source_ref):
         provider=provider,
         node=node,
         name="<dictcontraction>",
-        emit_class=StatementDictOperationSet,
+        emit_class=StatementDictOperationSet
+        if python_version < 380
+        else StatementDictOperationSetKeyValue,
         start_value={},
         source_ref=source_ref,
     )
@@ -235,10 +240,11 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         future_spec=parent_module.getFutureSpec(),
     )
 
-    if python_version < 370:
-        is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
-    else:
-        is_async = detectFunctionBodyKind(nodes=[node])[0] in ("Asyncgen", "Coroutine")
+    is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
+
+    # Some of the newly allowed stuff in 3.7 fails to set the async flag.
+    if not is_async and python_version >= 370:
+        is_async = detectFunctionBodyKind(nodes=node.generators)[0] in ("Asyncgen", "Coroutine")
 
     if is_async:
         code_body = ExpressionAsyncgenObjectBody(
@@ -349,7 +355,7 @@ def _buildContractionBodyNode(
 
     # This uses lots of variables and branches. There is no good way
     # around that, and we deal with many cases, due to having generator
-    # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals
 
     # Note: The assign_provider is only to cover Python2 list contractions,
     # assigning one of the loop variables to the outside scope.
@@ -419,9 +425,7 @@ def _buildContractionBodyNode(
                 source_ref=source_ref,
             )
     else:
-        assert emit_class is StatementDictOperationSet
-
-        current_body = StatementDictOperationSet(
+        current_body = emit_class(
             dict_arg=ExpressionTempVariableRef(
                 variable=container_tmp, source_ref=source_ref
             ),

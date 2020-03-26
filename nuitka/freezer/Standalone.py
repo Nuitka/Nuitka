@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -52,6 +52,7 @@ from nuitka.utils.Execution import withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     deleteFile,
+    getExternalUsePath,
     getFileContentByLine,
     getFileContents,
     getSubDirectories,
@@ -184,6 +185,7 @@ def _detectedShlibFile(filename, module_name):
     if module_name == "__main__":
         return
 
+    # Cyclic dependency
     from nuitka import ModuleRegistry
 
     if ModuleRegistry.hasRootModule(module_name):
@@ -446,7 +448,7 @@ def scanStandardLibraryPath(stdlib_dir):
                 yield import_path + "." + dirname
 
 
-def detectEarlyImports():
+def _detectEarlyImports():
     encoding_names = [
         filename[:-3]
         for _path, filename in listDir(
@@ -543,6 +545,14 @@ for imp in imports:
     debug("Finished detecting early imports.")
 
     return result
+
+
+def detectEarlyImports():
+    # Cyclic dependency
+    from nuitka import ModuleRegistry
+
+    for module in _detectEarlyImports():
+        ModuleRegistry.addUncompiledModule(module)
 
 
 _detected_python_rpath = None
@@ -999,9 +1009,9 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
         with open(dwp_filename, "w") as dwp_file:
             dwp_file.write(
                 """\
-    %(scan_dirs)s
-    SxS
-    """
+%(scan_dirs)s
+SxS
+"""
                 % {
                     "scan_dirs": "\n".join(
                         "UserDir %s" % dirname for dirname in scan_dirs
@@ -1020,7 +1030,8 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
             "-pa1",
             "-ps1",
             binary_filename,
-        )
+        ),
+        cwd=getExternalUsePath(os.getcwd()),
     )
 
     # TODO: Exit code should be checked.
@@ -1490,7 +1501,7 @@ different from
         dll_map.append((dll_filename, dll_name))
 
         if Options.isShowInclusion():
-            info(
+            Tracing.general.info(
                 "Included used shared library '%s' (used by %s)."
                 % (dll_filename, ", ".join(sources))
             )
@@ -1530,31 +1541,36 @@ different from
                 removeSxsFromDLL(os.path.join(dist_dir, dll_filename))
 
 
-def copyDataFiles(dist_dir, data_files):
+def copyDataFiles(dist_dir):
     """ Copy the data files needed for standalone distribution.
 
     Args:
         dist_dir: The distribution folder under creation
-        data_files:
-            Tuple of pairs describing (source, dest) or (func, dest) that
-            should be copied.
     Notes:
         This is for data files only, not DLLs or even extension modules,
         those must be registered as entry points, and would not go through
         necessary handling if provided like this.
     """
-    for source_desc, target_filename in data_files:
-        target_filename = os.path.join(dist_dir, target_filename)
-        assert isPathBelow(dist_dir, target_filename)
 
-        makePath(os.path.dirname(target_filename))
+    # Cyclic dependency
+    from nuitka import ModuleRegistry
 
-        if inspect.isfunction(source_desc):
-            content = source_desc(target_filename)
+    for module in ModuleRegistry.getDoneModules():
+        for _plugin_name, (source_desc, target_filename) in Plugins.considerDataFiles(
+            module
+        ):
+            target_filename = os.path.join(dist_dir, target_filename)
+            assert isPathBelow(dist_dir, target_filename)
 
-            with open(
-                target_filename, "wb" if type(content) is bytes else "w"
-            ) as output:
-                output.write(content)
-        else:
-            shutil.copy2(source_desc, target_filename)
+            makePath(os.path.dirname(target_filename))
+
+            if inspect.isfunction(source_desc):
+                content = source_desc(target_filename)
+
+                if content is not None:  # support creation of empty directories
+                    with open(
+                        target_filename, "wb" if type(content) is bytes else "w"
+                    ) as output:
+                        output.write(content)
+            else:
+                shutil.copy2(source_desc, target_filename)

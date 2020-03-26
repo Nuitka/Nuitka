@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -67,7 +67,7 @@ def _getCountedArgumentsHelperCallCode(
 
     if None in args:
         emit(
-            "%s = %s_KW( %s );"
+            "%s = %s_KW(%s);"
             % (
                 to_name,
                 helper_prefix,
@@ -79,7 +79,7 @@ def _getCountedArgumentsHelperCallCode(
         assert len(args) >= min_args
 
         emit(
-            "%s = %s%d( %s );"
+            "%s = %s%d(%s);"
             % (to_name, helper_prefix, len(args), ", ".join(str(arg) for arg in args))
         )
 
@@ -146,18 +146,16 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
     ) as value_name:
 
         if module_name == "sys":
-            emit(
-                """%s = PySys_GetObject( (char *)"%s" );""" % (value_name, import_name)
-            )
+            emit("""%s = PySys_GetObject((char *)"%s");""" % (value_name, import_name))
         elif module_name in ("os", "__future__", "importlib._bootstrap"):
             emitLineNumberUpdateCode(emit, context)
 
             emit(
                 """\
 {
-    PyObject *module = PyImport_ImportModule("%(module_name)s");
-    if (likely(module != NULL)) {
-        %(to_name)s = PyObject_GetAttr(module, %(import_name)s);
+    PyObject *hard_module = PyImport_ImportModule("%(module_name)s");
+    if (likely(hard_module != NULL)) {
+        %(to_name)s = PyObject_GetAttr(hard_module, %(import_name)s);
     } else {
         %(to_name)s = NULL;
     }
@@ -197,7 +195,7 @@ def generateImportStarCode(statement, emit, context):
 
     if type(target_scope) is GlobalsDictHandle:
         emit(
-            "%s = IMPORT_MODULE_STAR( %s, true, %s );"
+            "%s = IMPORT_MODULE_STAR(%s, true, %s);"
             % (res_name, getModuleAccessCode(context=context), module_name)
         )
     else:
@@ -205,7 +203,7 @@ def generateImportStarCode(statement, emit, context):
 
         emit(
             """
-%(res_name)s = IMPORT_MODULE_STAR( %(locals_dict)s, false, %(module_name)s );
+%(res_name)s = IMPORT_MODULE_STAR(%(locals_dict)s, false, %(module_name)s);
 """
             % {
                 "res_name": res_name,
@@ -234,13 +232,11 @@ def generateImportNameCode(to_name, expression, emit, context):
         context=context,
     )
 
-    level = expression.getImportLevel()
-
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
     ) as value_name:
 
-        if level and python_version >= 350:
+        if python_version >= 350:
             emit(
                 """\
 if (PyModule_Check(%(from_arg_name)s)) {
@@ -251,7 +247,7 @@ if (PyModule_Check(%(from_arg_name)s)) {
         %(import_level)s
     );
 } else {
-   %(to_name)s = IMPORT_NAME( %(from_arg_name)s, %(import_name)s );
+   %(to_name)s = IMPORT_NAME(%(from_arg_name)s, %(import_name)s);
 }
 """
                 % {
@@ -268,7 +264,7 @@ if (PyModule_Check(%(from_arg_name)s)) {
             )
         else:
             emit(
-                "%s = IMPORT_NAME( %s, %s );"
+                "%s = IMPORT_NAME(%s, %s);"
                 % (
                     value_name,
                     from_arg_name,

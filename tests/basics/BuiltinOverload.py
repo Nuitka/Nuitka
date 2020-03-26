@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -25,7 +25,7 @@ except ImportError:
 # This kind of built-in overload will have to work.
 
 
-def len(x):  # @ReservedAssignment
+def len(x):
     print("Private built-in called with argument", repr(x))
 
     return _len(x)

@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -19,15 +19,15 @@
  *
  * It needs to prepare the interpreter and then loads and executes
  * the "__main__" module.
- * *
+ *
  */
 
 #include "nuitka/prelude.h"
 
 #include "build_definitions.h"
 
-#include "osdefs.h"
-#include "structseq.h"
+#include <osdefs.h>
+#include <structseq.h>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -47,6 +47,13 @@ static wchar_t **argv_unicode;
 
 #if _NUITKA_FROZEN > 0
 extern void copyFrozenModulesTo(struct _frozen *destination);
+
+// The original frozen modules list.
+#if PYTHON_VERSION < 340
+static struct _frozen *old_frozen = NULL;
+#else
+static struct _frozen const *old_frozen = NULL;
+#endif
 #endif
 
 static void prepareStandaloneEnvironment() {
@@ -72,6 +79,7 @@ static void prepareStandaloneEnvironment() {
 
     memcpy(merged, PyImport_FrozenModules, pre_existing_count * sizeof(struct _frozen));
     copyFrozenModulesTo(merged + pre_existing_count);
+    old_frozen = PyImport_FrozenModules;
     PyImport_FrozenModules = merged;
 #endif
 
@@ -84,12 +92,12 @@ static void prepareStandaloneEnvironment() {
 #endif
 
 #if PYTHON_VERSION < 300
-    char *binary_directory = getBinaryDirectoryHostEncoded();
+    char *binary_directory = (char *)getBinaryDirectoryHostEncoded();
     NUITKA_PRINTF_TRACE("Binary dir is %s\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
 #else
-    wchar_t *binary_directory = getBinaryDirectoryWideChars();
+    wchar_t *binary_directory = (wchar_t *)getBinaryDirectoryWideChars();
     NUITKA_PRINTF_TRACE("Binary dir is %S\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
@@ -106,7 +114,7 @@ static void prepareStandaloneEnvironment() {
 static void restoreStandaloneEnvironment() {
     /* Make sure to use the optimal value for standalone mode only. */
 #if PYTHON_VERSION < 300
-    PySys_SetPath(getBinaryDirectoryHostEncoded());
+    PySys_SetPath((char *)getBinaryDirectoryHostEncoded());
     NUITKA_PRINTF_TRACE("Final PySys_GetPath is 's'.\n", PySys_GetPath());
 #else
     PySys_SetPath(getBinaryDirectoryWideChars());
@@ -172,26 +180,53 @@ static argv_type_t convertCommandLineParameters(int argc, char **argv) {
 typedef char **argv_type_t;
 #endif
 
+#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+extern void SvcInstall();
+extern void SvcLaunchService();
+
+// Callback from Windows Service logic.
+DWORD WINAPI SvcStartPython(LPVOID lpParam) {
+    IMPORT_EMBEDDED_MODULE("__main__");
+
+    return 0;
+}
+#endif
+
 // Parse the command line parameters and provide it to "sys" built-in module,
 // as well as decide if it's a multiprocessing usage.
+static bool is_multiprocessing_fork = false;
 
-static bool setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
-    bool is_multiprocessing_fork = false;
-
+static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
     if (initial) {
-        /* We might need to skip what multiprocessing has told us. */
+        /* We might need to handle special parameters from plugins that are
+           very deeply woven into command line handling. These are right now
+           multiprocessing, which indicates that it's forking via extra
+           command line argument. And Windows Service indicates need to
+           install and exit here too.
+         */
         for (int i = 1; i < argc; i++) {
 #if PYTHON_VERSION < 300
             if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i + 1 < argc))
 #else
-            wchar_t constant_buffer[100];
-            mbstowcs(constant_buffer, "--multiprocessing-fork", 100);
-            if ((wcscmp(argv[i], constant_buffer)) == 0 && (i + 1 < argc))
+            // TODO: Should simply use wide char literal
+            if ((wcscmp(argv[i], L"--multiprocessing-fork")) == 0 && (i + 1 < argc))
 #endif
             {
                 is_multiprocessing_fork = true;
                 break;
             }
+
+#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+#if PYTHON_VERSION < 300
+            if ((strcmp(argv[i], "install")) == 0 && (i + 1 < argc))
+#else
+            if ((wcscmp(argv[i], L"install")) == 0 && (i + 1 < argc))
+#endif
+            {
+                SvcInstall();
+                NUITKA_CANNOT_GET_HERE("SvcInstall must not return");
+            }
+#endif
         }
     }
 
@@ -200,9 +235,17 @@ static bool setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
     } else {
         PySys_SetArgv(argc, argv);
     }
-
-    return is_multiprocessing_fork;
 }
+
+#if defined(_WIN32) && PYTHON_VERSION >= 300 && _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
+static void setenv(char const *name, char const *value, int overwrite) {
+    assert(overwrite);
+
+    SetEnvironmentVariableA(name, value);
+}
+
+static void unsetenv(char const *name) { SetEnvironmentVariableA(name, NULL); }
+#endif
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
@@ -275,8 +318,12 @@ int main(int argc, char **argv) {
     Py_IgnoreEnvironmentFlag = 0;
     Py_VerboseFlag = _NUITKA_SYSFLAG_VERBOSE;
     Py_BytesWarningFlag = _NUITKA_SYSFLAG_BYTES_WARNING;
-#if _NUITKA_SYSFLAG_BYTES_WARNING
-    Py_HashRandomizationFlag = 1;
+#if _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
+    Py_HashRandomizationFlag = 0;
+#if PYTHON_VERSION < 300
+    // For Python2 this is all it takes to have static hashes.
+    _PyRandom_Init();
+#endif
 #endif
 #if PYTHON_VERSION >= 370
     Py_UTF8Mode = _NUITKA_SYSFLAG_UTF8;
@@ -301,9 +348,9 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
 
 #if PYTHON_VERSION < 300
-    bool is_multiprocess_forking = setCommandLineParameters(argc, argv, true);
+    setCommandLineParameters(argc, argv, true);
 #else
-    bool is_multiprocess_forking = setCommandLineParameters(argc, argv_unicode, true);
+    setCommandLineParameters(argc, argv_unicode, true);
 #endif
 
     /* For Python installations that need the home set, we inject it back here. */
@@ -319,9 +366,35 @@ int main(int argc, char **argv) {
 #endif
 #endif
 
+#if PYTHON_VERSION >= 300 && _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
+    char const *old_env = getenv("PYTHONHASHSEED");
+    setenv("PYTHONHASHSEED", "0", 1);
+#endif
     /* Initialize the embedded CPython interpreter. */
     NUITKA_PRINT_TRACE("main(): Calling Py_Initialize to initialize interpreter.");
     Py_Initialize();
+
+#if PYTHON_VERSION >= 300 && _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
+    if (old_env) {
+        setenv("PYTHONHASHSEED", old_env, 1);
+
+        PyObject *env_value = PyUnicode_FromString(old_env);
+        PyObject *hashseed_str = PyUnicode_FromString("PYTHONHASHSEED");
+
+        int res =
+            PyObject_SetItem(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), hashseed_str, env_value);
+        assert(res == 0);
+
+        Py_DECREF(env_value);
+        Py_DECREF(hashseed_str);
+    } else {
+        unsetenv("PYTHONHASHSEED");
+
+        int res =
+            PyObject_DelItemString(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), "PYTHONHASHSEED");
+        assert(res == 0);
+    }
+#endif
 
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Restore standalone environment.");
@@ -409,11 +482,13 @@ int main(int argc, char **argv) {
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Calling setEarlyFrozenModulesFileAttribute().");
 
-#if PYTHON_VERSION >= 300
-    PyObject *os_module = PyImport_ImportModule("os");
-    CHECK_OBJECT(os_module);
-#endif
     setEarlyFrozenModulesFileAttribute();
+#endif
+
+#if _NUITKA_FROZEN > 0
+    NUITKA_PRINT_TRACE("main(): Removing early frozen module table again.");
+    PyImport_FrozenModules = old_frozen;
+    assert(old_frozen != NULL);
 #endif
 
     NUITKA_PRINT_TRACE("main(): Calling setupMetaPathBasedLoader().");
@@ -453,23 +528,29 @@ int main(int argc, char **argv) {
     startProfiling();
 #endif
 
-    /* Execute the main module. In case of multiprocessing making a fork on
-     * Windows, we should execute something else instead. */
-#if _NUITKA_MODULE_COUNT > 1
-    if (unlikely(is_multiprocess_forking)) {
+    /* Execute the main module unless plugins want to do something else. In case of
+       multiprocessing making a fork on Windows, we should execute __parents_main__
+       instead. And for Windows Service we call the plugin C code to call us back
+       to launch main code in a callback. */
+#ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
+    if (unlikely(is_multiprocessing_fork)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
-        IMPORT_EMBEDDED_MODULE(PyUnicode_FromString("__parents_main__"), "__parents_main__");
-    } else
+        IMPORT_EMBEDDED_MODULE("__parents_main__");
+    } else {
 #endif
-    {
-        assert(!is_multiprocess_forking);
-
-        NUITKA_PRINT_TRACE("main(): Calling __main__.");
-
-        /* Execute the "__main__" module. */
         PyDict_DelItem(PyImport_GetModuleDict(), const_str_plain___main__);
-        IMPORT_EMBEDDED_MODULE(const_str_plain___main__, "__main__");
+
+#if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+        SvcLaunchService();
+#else
+    /* Execute the "__main__" module. */
+    NUITKA_PRINT_TRACE("main(): Calling __main__.");
+
+    IMPORT_EMBEDDED_MODULE("__main__");
+#endif
+#ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
     }
+#endif
 
 #if _NUITKA_PROFILE
     stopProfiling();
@@ -527,20 +608,20 @@ extern "C" {
 
 #if PYTHON_VERSION >= 300
 #if defined(__GNUC__)
-__attribute__(( visibility( "default" )))
+__attribute__((weak))
+__attribute__((visibility("default")))
 #endif
-void Py_GetArgcArgv( int *argc, wchar_t ***argv )
-{
+void Py_GetArgcArgv(int *argc, wchar_t ***argv) {
     *argc = orig_argc;
     *argv = argv_unicode;
 }
 
 #else
 #if defined(__GNUC__)
-__attribute__(( visibility( "default" )))
+__attribute__((weak))
+__attribute__((visibility("default")))
 #endif
-void Py_GetArgcArgv( int *argc, char ***argv )
-{
+void Py_GetArgcArgv(int *argc, char ***argv) {
     *argc = orig_argc;
     *argv = orig_argv;
 }
@@ -549,5 +630,4 @@ void Py_GetArgcArgv( int *argc, char ***argv )
 #ifdef __cplusplus
 }
 #endif
-
 #endif

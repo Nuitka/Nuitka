@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -166,22 +166,39 @@ extern PyObject *const_str_plain_exc_type, *const_str_plain_exc_value, *const_st
 #define EXC_TYPE(x) (x->exc_type)
 #define EXC_VALUE(x) (x->exc_value)
 #define EXC_TRACEBACK(x) (x->exc_traceback)
+
+#define EXC_TYPE_F(x) (x->m_frame->m_frame.f_exc_type)
+#define EXC_VALUE_F(x) (x->m_frame->m_frame.f_exc_value)
+#define EXC_TRACEBACK_F(x) (x->m_frame->m_frame.f_exc_traceback)
+
 #else
 #define EXC_TYPE(x) (x->exc_state.exc_type)
 #define EXC_VALUE(x) (x->exc_state.exc_value)
 #define EXC_TRACEBACK(x) (x->exc_state.exc_traceback)
-#define EXC_STATE(x) (x->m_exc_state)
+
+#define EXC_TYPE_F(x) (x->m_exc_state.exc_type)
+#define EXC_VALUE_F(x) (x->m_exc_state.exc_value)
+#define EXC_TRACEBACK_F(x) (x->m_exc_state.exc_traceback)
+
 #endif
 
 // Helper that sets the current thread exception, releasing the current one, for
 // use in this file only.
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyObject *exception_type, PyObject *exception_value,
                                                               PyTracebackObject *exception_tb) {
+    CHECK_OBJECT_X(exception_type);
+    CHECK_OBJECT_X(exception_value);
+    CHECK_OBJECT_X(exception_tb);
+
     PyThreadState *thread_state = PyThreadState_GET();
 
     PyObject *old_type = EXC_TYPE(thread_state);
     PyObject *old_value = EXC_VALUE(thread_state);
     PyObject *old_tb = EXC_TRACEBACK(thread_state);
+
+    CHECK_OBJECT_X(old_type);
+    CHECK_OBJECT_X(old_value);
+    CHECK_OBJECT_X(old_tb);
 
     EXC_TYPE(thread_state) = exception_type;
     EXC_VALUE(thread_state) = exception_value;

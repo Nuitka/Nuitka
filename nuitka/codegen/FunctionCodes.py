@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,9 +19,9 @@
 
 """
 
-from logging import warning
 
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import general
 
 from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
 from .CodeHelpers import (
@@ -45,7 +45,7 @@ from .templates.CodeTemplatesFunction import (
     template_function_make_declaration,
     template_function_return_exit,
     template_make_function,
-    template_make_function_body,
+    template_maker_function_body,
 )
 from .TupleCodes import getTupleCreationCode
 from .VariableCodes import decideLocalVariableCodeType, getLocalVariableDeclaration
@@ -84,6 +84,10 @@ def getFunctionMakerDecl(
 
 def _getFunctionEntryPointIdentifier(function_identifier):
     return "impl_" + function_identifier
+
+
+def _getFunctionMakerIdentifier(function_identifier):
+    return "MAKE_FUNCTION_" + function_identifier
 
 
 def getFunctionQualnameObj(owner, context):
@@ -142,24 +146,35 @@ def getFunctionMakerCode(
             function_identifier=function_identifier
         )
 
-    result = template_make_function_body % {
+    function_maker_identifier = _getFunctionMakerIdentifier(
+        function_identifier=function_identifier
+    )
+
+    code_identifier = context.getCodeObjectHandle(
+        code_object=function_body.getCodeObject()
+    )
+
+    module_identifier = getModuleAccessCode(context=context)
+
+    result = template_maker_function_body % {
         "function_name_obj": context.getConstantCode(
             constant=function_body.getFunctionName()
         ),
         "function_qualname_obj": getFunctionQualnameObj(function_body, context),
-        "function_identifier": function_identifier,
+        "function_maker_identifier": function_maker_identifier,
         "function_impl_identifier": function_impl_identifier,
         "function_creation_args": ", ".join(function_creation_args),
-        "code_identifier": context.getCodeObjectHandle(
-            code_object=function_body.getCodeObject()
-        ),
+        "code_identifier": code_identifier,
         "function_doc": function_doc,
         "defaults": "defaults" if defaults_name else "NULL",
         "kw_defaults": "kw_defaults" if kw_defaults_name else "NULL",
         "annotations": "annotations" if annotations_name else "NULL",
         "closure_count": len(closure_variables),
-        "module_identifier": getModuleAccessCode(context=context),
+        "module_identifier": module_identifier,
     }
+
+    # TODO: Make it optional.
+    context.addFunctionCreationInfo(function_impl_identifier)
 
     return result
 
@@ -318,11 +333,15 @@ def getFunctionCreationCode(
         context=context,
     )
 
+    function_maker_identifier = _getFunctionMakerIdentifier(
+        function_identifier=function_identifier
+    )
+
     emit(
         template_make_function
         % {
             "to_name": to_name,
-            "function_identifier": function_identifier,
+            "function_maker_identifier": function_maker_identifier,
             "args": ", ".join(str(arg) for arg in args),
             "closure_copy": indented(closure_copy, 0, True),
         }
@@ -382,7 +401,7 @@ def getDirectFunctionCallCode(
             """
 {
     PyObject *dir_call_args[] = {%s};
-    %s = %s( dir_call_args%s%s );
+    %s = %s(dir_call_args%s%s);
 }"""
             % (
                 ", ".join(str(arg_name) for arg_name in arg_names),
@@ -394,7 +413,7 @@ def getDirectFunctionCallCode(
         )
     else:
         emit(
-            "%s = %s( NULL%s%s );"
+            "%s = %s(NULL%s%s);"
             % (
                 to_name,
                 function_identifier,
@@ -454,7 +473,7 @@ def setupFunctionLocalVariables(
             variable_declaration = context.variable_storage.addVariableDeclarationTop(
                 variable_c_type.c_type,
                 variable_code_name,
-                variable_c_type.getInitValue("python_pars[ %d ]" % count),
+                variable_c_type.getInitValue("python_pars[%d]" % count),
             )
 
             context.setVariableType(variable, variable_declaration)
@@ -550,7 +569,7 @@ def getFunctionCode(
             needs_exception_exit=needs_exception_exit,
         )
     except Exception:
-        warning("Problem creating function code %r." % function_identifier)
+        general.warning("Problem creating function code %r." % function_identifier)
         raise
 
 

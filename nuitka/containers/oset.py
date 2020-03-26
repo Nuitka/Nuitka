@@ -29,12 +29,14 @@ Python at all.
 It was originally downloaded from http://code.activestate.com/recipes/576694/
 """
 
-# pylint: disable=W0221,redefined-builtin
+# pylint: disable=I0021,arguments-differ,redefined-builtin
 from nuitka.__past__ import MutableSet
 
 
 class OrderedSet(MutableSet):
     def __init__(self, iterable=None):
+        # pylint: disable=super-init-not-called
+
         self.end = end = []
         end += [None, end, end]  # sentinel node for doubly linked list
         self.map = {}  # key --> [key, prev, next]
@@ -55,7 +57,7 @@ class OrderedSet(MutableSet):
 
     def discard(self, key):
         if key in self.map:
-            key, prev, next = self.map.pop(key)  # @ReservedAssignment
+            key, prev, next = self.map.pop(key)
             prev[2] = next
             next[1] = prev
 

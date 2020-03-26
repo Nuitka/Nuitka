@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -193,8 +193,8 @@ class StatementLoop(StatementChildHavingBase):
 
                     if loop_end_traces:
                         loop_entry_trace.addLoopContinueTraces(loop_end_traces)
-                    else:
-                        loop_entry_trace.markLoopTraceComplete()
+
+                    loop_entry_trace.markLoopTraceComplete()
 
             # If we break, the outer collections becomes a merge of all those breaks
             # or just the one, if there is only one.

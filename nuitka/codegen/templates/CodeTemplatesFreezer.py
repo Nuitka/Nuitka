@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -42,17 +42,15 @@ struct frozen_desc {
     int size;
 };
 
-void copyFrozenModulesTo( struct _frozen *destination )
-{
+void copyFrozenModulesTo(struct _frozen *destination) {
     struct frozen_desc frozen_modules[] = {
 %(frozen_modules)s
-        { NULL, 0, 0 }
+        {NULL, 0, 0}
     };
 
     struct frozen_desc *current = frozen_modules;
 
-    for(;;)
-    {
+    for(;;) {
         destination->name = (char *)current->name;
         destination->code = (unsigned char *)&constant_bin[ current->start ];
         destination->size = current->size;

@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -50,15 +50,23 @@ struct Nuitka_FunctionObject {
     Py_ssize_t m_args_star_list_index;
     Py_ssize_t m_args_star_dict_index;
 
+#if PYTHON_VERSION >= 380
+    Py_ssize_t m_args_pos_only_count;
+#endif
+
     // Same as code_object->co_varnames
     PyObject **m_varnames;
 
     function_impl_code m_c_code;
 
+#if PYTHON_VERSION >= 380
+    vectorcallfunc m_vectorcall;
+#endif
+
     PyObject *m_dict;
     PyObject *m_weakrefs;
 
-    // List of defaults, for use in __defaults__ and parameter parsing.
+    // Tuple of defaults, for use in __defaults__ and parameter parsing.
     PyObject *m_defaults;
     Py_ssize_t m_defaults_given;
 

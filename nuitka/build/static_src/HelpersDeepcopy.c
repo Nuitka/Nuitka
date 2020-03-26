@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -18,6 +18,12 @@
 /**
  * This is responsible for deep copy and hashing of constants.
  */
+
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
 
 PyObject *DEEP_COPY(PyObject *value) {
     if (PyDict_Check(value)) {
@@ -357,7 +363,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
         Py_hash_t result = DEEP_HASH_INIT(value);
 
 #if 0
-        printf("Too simple deep hash: %s\n", Py_TYPE( value )->tp_name );
+        printf("Too simple deep hash: %s\n", Py_TYPE(value)->tp_name);
 #endif
 
         return result;
@@ -368,3 +374,16 @@ Py_hash_t DEEP_HASH(PyObject *value) {
     }
 }
 #endif
+
+// Note: Not recursion safe, cannot do this everywhere.
+void CHECK_OBJECT_DEEP(PyObject *value) {
+    CHECK_OBJECT(value);
+
+    if (PyTuple_Check(value)) {
+        for (Py_ssize_t i = 0, size = PyTuple_GET_SIZE(value); i < size; i++) {
+            PyObject *element = PyTuple_GET_ITEM(value, i);
+
+            CHECK_OBJECT_DEEP(element);
+        }
+    }
+}

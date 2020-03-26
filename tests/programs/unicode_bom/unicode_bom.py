@@ -1,4 +1,4 @@
-﻿#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+﻿#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -15,8 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 # import unicodedata
 
 
-print( "This is from file with BOM unicode marker" )
+print("This is from file with BOM unicode marker")

@@ -1,4 +1,4 @@
-#     Copyright 2019, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2020, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,7 +20,6 @@
 import os
 import shutil
 import sys
-from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -60,7 +59,10 @@ class TkinterPlugin(NuitkaPluginBase):
     plugin_name = "tk-inter"  # Nuitka knows us by this name
     plugin_desc = "Required by Python's Tk modules"
 
-    def __init__(self):
+    def __init__(self, tcl_library_dir, tk_library_dir):
+        self.tcl_library_dir = tcl_library_dir
+        self.tk_library_dir = tk_library_dir
+
         self.files_copied = False  # ensure one-time action
         return None
 
@@ -88,6 +90,28 @@ if not os.environ.get("TCL_LIBRARY", None):
     os.environ["TCL_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tcl")
     os.environ["TK_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tk")"""
         return code, "Need to make sure we set environment variables for TCL."
+
+    @classmethod
+    def addPluginCommandLineOptions(cls, group):
+        group.add_option(
+            "--tk-library-dir",
+            action="store",
+            dest="tk_library_dir",
+            default=None,
+            help="""\
+The Tk library dir. Nuitka is supposed to automatically detect it, but you can
+override it here. Should it fail to discover, please report the bug. Default
+is automatic detection.""",
+        )
+
+        group.add_option(
+            "--tcl-library-dir",
+            action="store",
+            dest="tcl_library_dir",
+            default=None,
+            help="""\
+The Tcl library dir. See comments for Tk library dir.""",
+        )
 
     def considerExtraDlls(self, dist_dir, module):
         """ Copy TCL libraries to the dist folder.
@@ -135,33 +159,37 @@ if not os.environ.get("TCL_LIBRARY", None):
             "/usr/lib64/tcl/tk8.6",
         )
 
-        tcl = None
-        for tcl in candidates_tcl:
-            if tcl is not None and os.path.exists(tcl):
-                break
-        else:
+        tcl = self.tcl_library_dir
+        if tcl is None:
+            for tcl in candidates_tcl:
+                if tcl is not None and os.path.exists(tcl):
+                    break
+
+        if tcl is None or not os.path.exists(tcl):
             sys.exit("Could not find Tcl. Aborting standalone generation.")
 
-        tk = None
-        for tk in candidates_tk:
-            if tk is not None and os.path.exists(tk):
-                break
-        else:
+        tk = self.tk_library_dir
+        if tk is None:
+            for tk in candidates_tk:
+                if tk is not None and os.path.exists(tk):
+                    break
+
+        if tk is None or not os.path.exists(tcl):
             sys.exit("Could not find Tk. Aborting standalone generation.")
 
         # survived the above, now do the copying to following locations
-        tar_tk = os.path.join(dist_dir, "tk")
-        tar_tcl = os.path.join(dist_dir, "tcl")
+        target_tk = os.path.join(dist_dir, "tk")
+        target_tcl = os.path.join(dist_dir, "tcl")
 
-        copyTree(tk, tar_tk)
-        info("Copied Tk libraries from %s." % tk)  # just to entertain
-
-        copyTree(tcl, tar_tcl)
-        info("Copied TCL libraries from %s." % tcl)  # just to entertain
+        copyTree(tk, target_tk)
+        self.info("Copied Tk libraries from %s." % tk)  # just to entertain
 
         # Definitely don't need the demos, so remove them again.
         # TODO: Anything else?
-        shutil.rmtree(os.path.join(tar_tk, "demos"), ignore_errors=True)
+        shutil.rmtree(os.path.join(target_tk, "demos"), ignore_errors=True)
+
+        copyTree(tcl, target_tcl)
+        self.info("Copied TCL libraries from %s." % tcl)  # just to entertain
 
         return ()
 
@@ -173,10 +201,10 @@ class TkinterPluginDetector(NuitkaPluginBase):
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    plugin_name = "tk-inter"  # this is how Nuitka knows us
+    detector_for = TkinterPlugin
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         """ This method is called one time only to check, whether the plugin might make sense at all.
 
         Returns:

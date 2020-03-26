@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -114,12 +114,12 @@ def generateAttributeLookupCode(to_name, expression, emit, context):
         to_name, "attribute_value", expression, emit, context
     ) as value_name:
         if attribute_name == "__dict__":
-            emit("%s = LOOKUP_ATTRIBUTE_DICT_SLOT( %s );" % (value_name, source_name))
+            emit("%s = LOOKUP_ATTRIBUTE_DICT_SLOT(%s);" % (value_name, source_name))
         elif attribute_name == "__class__":
-            emit("%s = LOOKUP_ATTRIBUTE_CLASS_SLOT( %s );" % (value_name, source_name))
+            emit("%s = LOOKUP_ATTRIBUTE_CLASS_SLOT(%s);" % (value_name, source_name))
         else:
             emit(
-                "%s = LOOKUP_ATTRIBUTE( %s, %s );"
+                "%s = LOOKUP_ATTRIBUTE(%s, %s);"
                 % (value_name, source_name, context.getConstantCode(attribute_name))
             )
 
@@ -138,7 +138,7 @@ def getAttributeAssignmentCode(target_name, attribute_name, value_name, emit, co
     res_name = context.getBoolResName()
 
     emit(
-        "%s = SET_ATTRIBUTE( %s, %s, %s );"
+        "%s = SET_ATTRIBUTE(%s, %s, %s);"
         % (res_name, target_name, attribute_name, value_name)
     )
 
@@ -155,9 +155,7 @@ def getAttributeAssignmentDictSlotCode(target_name, value_name, emit, context):
 
     res_name = context.getBoolResName()
 
-    emit(
-        "%s = SET_ATTRIBUTE_DICT_SLOT( %s, %s );" % (res_name, target_name, value_name)
-    )
+    emit("%s = SET_ATTRIBUTE_DICT_SLOT(%s, %s);" % (res_name, target_name, value_name))
 
     getErrorExitBoolCode(
         condition="%s == false" % res_name,
@@ -172,9 +170,7 @@ def getAttributeAssignmentClassSlotCode(target_name, value_name, emit, context):
 
     res_name = context.getBoolResName()
 
-    emit(
-        "%s = SET_ATTRIBUTE_CLASS_SLOT( %s, %s );" % (res_name, target_name, value_name)
-    )
+    emit("%s = SET_ATTRIBUTE_CLASS_SLOT(%s, %s);" % (res_name, target_name, value_name))
 
     getErrorExitBoolCode(
         condition="%s == false" % res_name,
@@ -187,7 +183,7 @@ def getAttributeAssignmentClassSlotCode(target_name, value_name, emit, context):
 def getAttributeDelCode(target_name, attribute_name, emit, context):
     res_name = context.getIntResName()
 
-    emit("%s = PyObject_DelAttr( %s, %s );" % (res_name, target_name, attribute_name))
+    emit("%s = PyObject_DelAttr(%s, %s);" % (res_name, target_name, attribute_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,
@@ -219,7 +215,7 @@ def generateAttributeLookupSpecialCode(to_name, expression, emit, context):
 def getAttributeLookupSpecialCode(
     to_name, source_name, attr_name, needs_check, emit, context
 ):
-    emit("%s = LOOKUP_SPECIAL( %s, %s );" % (to_name, source_name, attr_name))
+    emit("%s = LOOKUP_SPECIAL(%s, %s);" % (to_name, source_name, attr_name))
 
     getErrorExitCode(
         check_name=to_name,
@@ -239,7 +235,7 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("%s = BUILTIN_HASATTR_BOOL( %s, %s );" % (res_name, source_name, attr_name))
+    emit("%s = BUILTIN_HASATTR_BOOL(%s, %s);" % (res_name, source_name, attr_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,
@@ -262,7 +258,7 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
     res_name = context.getIntResName()
 
     emit(
-        "%s = PyObject_HasAttr( %s, %s );"
+        "%s = PyObject_HasAttr(%s, %s);"
         % (
             res_name,
             source_name,

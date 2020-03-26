@@ -1,3 +1,26 @@
+nuitka (0.6.8~rc5+ds-1) unstable; urgency=medium
+
+  * New upstream pre-release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 02 Mar 2020 04:51:59 +0100
+
+nuitka (0.6.7+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+  * The rst2pdf dependency is finally fixed
+    (Closes: #943645) (Closes: #947573).
+
+  * Enabled package build without Python2 (Closes: #937166)
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 23 Jan 2020 12:34:10 +0100
+
+nuitka (0.6.6+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 27 Dec 2019 08:47:38 +0100
+
 nuitka (0.6.6~rc7+ds-1) unstable; urgency=medium
 
   * New upstream pre-release.
@@ -44,7 +67,7 @@ nuitka (0.6.1+ds-1) unstable; urgency=medium
 
   * New upstream release.
 
-  * Depend on python-pil over python-imaging (Closes: 917694).
+  * Depend on python-pil over python-imaging (Closes: #917694).
 
  -- Kay Hayen <kay.hayen@gmail.com>  Sat, 05 Jan 2019 12:41:57 +0100
 

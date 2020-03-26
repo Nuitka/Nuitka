@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -159,10 +159,11 @@ def checkSequence(filename, statements):
             if getKind(assign_source) == "FunctionCreation":
                 continue
 
-            elif not isConstantExpression(assign_source):
+            if not isConstantExpression(assign_source):
                 search_mode.onErrorDetected(
                     "Error, assignment from non-constant '%s'." % getKind(assign_source)
                 )
+
             continue
 
         if kind == "AssignmentAttribute":
@@ -170,10 +171,10 @@ def checkSequence(filename, statements):
 
             if getKind(assign_source) == "ModuleAttributeSpecRef":
                 continue
-            else:
-                search_mode.onErrorDetected(
-                    "Error, attribute assignment to '%s'." % getKind(assign_source)
-                )
+
+            search_mode.onErrorDetected(
+                "Error, attribute assignment to '%s'." % getKind(assign_source)
+            )
 
         if kind in ("ReturnNone", "ReturnConstant"):
             continue
@@ -185,7 +186,7 @@ def checkSequence(filename, statements):
 
 
 def main():
-    # Complex stuff, pylint: disable=too-many-branches,too-many-statements
+    # Complex stuff, pylint: disable=too-many-branches
 
     for filename in sorted(os.listdir(".")):
         if not filename.endswith(".py") or filename.startswith("run_"):
@@ -278,8 +279,6 @@ def main():
 
             if search_mode.abortIfExecuted():
                 break
-        else:
-            my_print("Skipping", filename)
 
     search_mode.finish()
 

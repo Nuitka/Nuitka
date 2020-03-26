@@ -165,5 +165,10 @@
         "ignored_tests": null,
         "requirements_file": null,
         "url": "https://github.com/pallets/werkzeug.git"
+    },
+    "dill" : {
+        "ignored_tests": null,
+        "requirements_file": null,
+        "url": "https://github.com/uqfoundation/dill"
     }
 }

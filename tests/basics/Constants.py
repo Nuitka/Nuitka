@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -22,7 +22,7 @@ from __future__ import print_function
 try:
     long
 except NameError:
-    long = int  # @ReservedAssignment
+    long = int
 
 
 def displayDict(d):

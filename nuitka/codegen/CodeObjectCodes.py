@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,6 @@ Right now only the creation is done here. But more should be added later on.
 import os
 
 from nuitka import Options
-from nuitka.PythonVersions import python_version
 
 
 def getCodeObjectsDeclCode(context):
@@ -42,8 +41,11 @@ def getCodeObjectsDeclCode(context):
 
 
 def _getMakeCodeObjectArgs(code_object_handle, context):
-    # Code objects have many flags to deal with, also version
-    # dependent. pylint: disable=too-many-branches
+    """ Code objects have many flags for creation.
+
+        This is also version dependent, but we hide this behind macros
+        that ignore some arguments.
+    """
 
     co_flags = []
 
@@ -75,33 +77,15 @@ def _getMakeCodeObjectArgs(code_object_handle, context):
 
     co_flags.extend(code_object_handle.future_flags)
 
-    if python_version < 300:
-        return (
-            context.getConstantCode(constant=code_object_handle.co_name),
-            code_object_handle.line_number,
-            context.getConstantCode(constant=code_object_handle.co_varnames),
-            code_object_handle.co_argcount,
-            " | ".join(co_flags) or "0",
-        )
-    elif python_version < 380:
-        return (
-            context.getConstantCode(constant=code_object_handle.co_name),
-            code_object_handle.line_number,
-            context.getConstantCode(constant=code_object_handle.co_varnames),
-            code_object_handle.co_argcount,
-            code_object_handle.co_kwonlyargcount,
-            " | ".join(co_flags) or "0",
-        )
-    else:
-        return (
-            context.getConstantCode(constant=code_object_handle.co_name),
-            code_object_handle.line_number,
-            context.getConstantCode(constant=code_object_handle.co_varnames),
-            code_object_handle.co_argcount,
-            code_object_handle.co_posonlyargcount,
-            code_object_handle.co_kwonlyargcount,
-            " | ".join(co_flags) or "0",
-        )
+    return (
+        code_object_handle.line_number,
+        " | ".join(co_flags) or "0",
+        context.getConstantCode(constant=code_object_handle.co_name),
+        context.getConstantCode(constant=code_object_handle.co_varnames),
+        code_object_handle.co_argcount,
+        code_object_handle.co_kwonlyargcount,
+        code_object_handle.co_posonlyargcount,
+    )
 
 
 def getCodeObjectsInitCode(context):
@@ -125,7 +109,7 @@ def getCodeObjectsInitCode(context):
         if Options.getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
             template = "module_filename_obj = %s;"
         else:
-            template = "module_filename_obj = MAKE_RELATIVE_PATH( %s );"
+            template = "module_filename_obj = MAKE_RELATIVE_PATH(%s);"
 
         statements.append(
             template % (context.getConstantCode(constant=module_filename))
@@ -141,7 +125,7 @@ def getCodeObjectsInitCode(context):
             ", ".join(str(s) for s in _getMakeCodeObjectArgs(code_object_key, context)),
         )
 
-        code = "%s = MAKE_CODEOBJ( %s, %s );" % args
+        code = "%s = MAKE_CODEOBJECT(%s, %s);" % args
 
         statements.append(code)
 

@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -25,8 +25,17 @@
 /* Include the CPython version numbers, and define our own take of what version
  * numbers should be.
  */
-#include "patchlevel.h"
+#include <patchlevel.h>
+
+// TODO: Switch to using hex format version of standard Python or change our
+// to use that too, to avoid overflows more generally. For now we to out at
+// e.g. 369 for 3.6.10 or higher, but behavior changes are really rare at that
+// point.
+#if PY_MICRO_VERSION < 10
 #define PYTHON_VERSION (PY_MAJOR_VERSION * 100 + PY_MINOR_VERSION * 10 + PY_MICRO_VERSION)
+#else
+#define PYTHON_VERSION (PY_MAJOR_VERSION * 100 + PY_MINOR_VERSION * 10 + 9)
+#endif
 
 /* This is needed or else we can't create modules name "proc" or "func". For
  * Python3, the name collision can't happen, so we can limit it to Python2.
@@ -116,7 +125,6 @@
  * of renaming PyObject_Unicode. Define this to be easily portable.
  */
 #if PYTHON_VERSION >= 300
-#define PyInt_FromString PyLong_FromString
 #define PyInt_FromLong PyLong_FromLong
 #define PyInt_AsLong PyLong_AsLong
 #define PyInt_FromSsize_t PyLong_FromSsize_t
@@ -137,6 +145,8 @@
 #define Nuitka_String_CheckExact PyString_CheckExact
 #define Nuitka_StringObject PyStringObject
 #define Nuitka_StringIntern PyString_InternInPlace
+#define Nuitka_String_FromString PyString_FromString
+#define Nuitka_String_FromStringAndSize PyString_FromStringAndSize
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
 
@@ -151,6 +161,8 @@
 #define Nuitka_String_CheckExact PyUnicode_CheckExact
 #define Nuitka_StringObject PyUnicodeObject
 #define Nuitka_StringIntern PyUnicode_InternInPlace
+#define Nuitka_String_FromString PyUnicode_FromString
+#define Nuitka_String_FromStringAndSize PyUnicode_FromStringAndSize
 #endif
 
 #if PYTHON_VERSION < 300

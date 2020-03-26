@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -77,11 +77,11 @@ class CPythonPyObjectPtrBase(CTypeBase):
 
     @classmethod
     def getTruthCheckCode(cls, value_name):
-        return "CHECK_IF_TRUE( %s )" % value_name
+        return "CHECK_IF_TRUE(%s)" % value_name
 
     @classmethod
     def emitTruthCheckCode(cls, to_name, value_name, needs_check, emit, context):
-        emit("%s = CHECK_IF_TRUE( %s );" % (to_name, value_name))
+        emit("%s = CHECK_IF_TRUE(%s);" % (to_name, value_name))
 
         if needs_check:
             getErrorExitBoolCode(
@@ -103,7 +103,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
         emit(
-            "%(to_name)s = ( %(condition)s ) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;"
+            "%(to_name)s = (%(condition)s) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;"
             % {"to_name": to_name, "condition": condition}
         )
 
@@ -113,7 +113,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
     ):
         truth_name = context.allocateTempName("truth_name", "int")
 
-        emit("%s = CHECK_IF_TRUE( %s );" % (truth_name, value_name))
+        emit("%s = CHECK_IF_TRUE(%s);" % (truth_name, value_name))
 
         getErrorExitBoolCode(
             condition="%s == -1" % truth_name,
@@ -152,7 +152,7 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
 
     @classmethod
     def getCellObjectAssignmentCode(cls, target_cell_code, variable_code_name, emit):
-        emit("%s = PyCell_NEW0( %s );" % (target_cell_code, variable_code_name))
+        emit("%s = PyCell_NEW0(%s);" % (target_cell_code, variable_code_name))
 
     @classmethod
     def getDeleteObjectCode(
@@ -171,7 +171,7 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
         emit(
-            "%(to_name)s = ( %(condition)s ) ? Py_True : Py_False;"
+            "%(to_name)s = (%(condition)s) ? Py_True : Py_False;"
             % {"to_name": to_name, "condition": condition}
         )
 
@@ -230,7 +230,7 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
         emit(
-            "*%(to_name)s = ( %(condition)s ) ? Py_True : Py_False;"
+            "*%(to_name)s = (%(condition)s) ? Py_True : Py_False;"
             % {"to_name": to_name, "condition": condition}
         )
 
@@ -243,7 +243,7 @@ class CTypeCellObject(CTypeBase):
         # TODO: Single out "init_from" only user, so it becomes sure that we
         # get a reference transferred here in these cases.
         if init_from is not None:
-            return "PyCell_NEW1( %s )" % init_from
+            return "PyCell_NEW1(%s)" % init_from
         else:
             return "PyCell_EMPTY()"
 
@@ -284,7 +284,7 @@ class CTypeCellObject(CTypeBase):
 
         # Use the object pointed to.
         return VariableDeclaration(
-            "PyObject *", "PyCell_GET( %s )" % value_name, None, None
+            "PyObject *", "PyCell_GET(%s)" % value_name, None, None
         )
 
     @classmethod
@@ -302,7 +302,7 @@ class CTypeCellObject(CTypeBase):
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
         emit(
-            "%(to_name)s->ob_ref = ( %(condition)s ) ? Py_True : Py_False;"
+            "%(to_name)s->ob_ref = (%(condition)s) ? Py_True : Py_False;"
             % {"to_name": to_name, "condition": condition}
         )
 

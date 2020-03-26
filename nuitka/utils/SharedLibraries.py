@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -303,3 +303,27 @@ def callInstallNameTool(filename, mapping):
         sys.exit(
             "Error, call to 'install_name_tool' to fix shared library path failed."
         )
+
+
+def callInstallNameToolAddRPath(filename, rpath):
+    """Adds the rpath path name `rpath` in the specified `filename` Mach-O
+    binary or shared library. If the Mach-O binary already contains the new
+    `rpath` path name, it is an error.
+
+    Args:
+        filename - Mach-O binary or shared library file name.
+        rpath  - rpath path name.
+
+    Returns:
+        None
+
+    Notes:
+        This is obviously macOS specific.
+    """
+    command = ["install_name_tool", "-add_rpath", os.path.join(rpath, "."), filename]
+
+    with withMadeWritableFileMode(filename):
+        result = subprocess.call(command, stdout=subprocess.PIPE)
+
+    if result != 0:
+        sys.exit("Error, call to 'install_name_tool' to add rpath failed.")

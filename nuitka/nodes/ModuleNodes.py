@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -169,7 +169,7 @@ class PythonModuleBase(NodeBase):
             the result, otherwise the containing directory
             is the result.
         Notes:
-            Use this to finde files nearby a module, mainly
+            Use this to find files nearby a module, mainly
             in plugin code.
         """
         result = self.getCompileTimeFilename()
@@ -687,6 +687,8 @@ class PythonMainModule(CompiledPythonModule):
     kind = "PYTHON_MAIN_MODULE"
 
     def __init__(self, main_added, mode, future_spec, source_ref):
+        self.main_added = main_added
+
         CompiledPythonModule.__init__(
             self,
             module_name=ModuleName("__main__"),
@@ -695,8 +697,6 @@ class PythonMainModule(CompiledPythonModule):
             future_spec=future_spec,
             source_ref=source_ref,
         )
-
-        self.main_added = main_added
 
     def getDetails(self):
         return {
@@ -828,9 +828,6 @@ class PythonShlibModule(PythonModuleBase):
     def finalize(self):
         del self.used_modules
 
-    def getDetails(self):
-        return {"name": self.name, "package_name": self.package_name}
-
     def getFilename(self):
         return self.getSourceReference().getFilename()
 
@@ -849,44 +846,70 @@ class PythonShlibModule(PythonModuleBase):
     def _readPyPIFile(self):
         """ Read the .pyi file if present and scan for dependencies. """
 
+        # Complex stuff, pylint: disable=too-many-branches
+
         if self.used_modules is None:
             pyi_filename = self.getPyIFilename()
 
             if os.path.exists(pyi_filename):
                 pyi_deps = OrderedSet()
 
+                # Flag signalling multiline import handling
+                in_import = False
+                in_import_part = ""
+
                 for line in getFileContentByLine(pyi_filename):
                     line = line.strip()
 
-                    if line.startswith("import "):
-                        imported = line[7:]
+                    if not in_import:
+                        if line.startswith("import "):
+                            imported = line[7:]
 
-                        pyi_deps.add(imported)
-                    elif line.startswith("from "):
-                        parts = line.split(None, 3)
-                        assert parts[0] == "from"
-                        assert parts[2] == "import"
+                            pyi_deps.add(imported)
+                        elif line.startswith("from "):
+                            parts = line.split(None, 3)
+                            assert parts[0] == "from"
+                            assert parts[2] == "import"
 
-                        if parts[1] == "typing":
-                            continue
+                            if parts[1] == "typing":
+                                continue
 
-                        pyi_deps.add(parts[1])
+                            pyi_deps.add(parts[1])
 
-                        imported = parts[3]
-                        if imported.startswith("("):
-                            # No multiline imports please
-                            assert imported.endswith(")")
-                            imported = imported[1:-1]
+                            imported = parts[3]
+                            if imported.startswith("("):
+                                # Handle multiline imports
+                                if not imported.endswith(")"):
+                                    in_import = True
+                                    imported = imported[1:]
+                                    in_import_part = parts[1]
+                                    assert in_import_part, (
+                                        "Multiline part in file %s cannot be empty"
+                                        % pyi_filename
+                                    )
+                                else:
+                                    in_import = False
+                                    imported = imported[1:-1]
+                                    assert imported
 
-                            assert imported
+                            if imported == "*":
+                                continue
 
-                        if imported == "*":
-                            continue
+                            for name in imported.split(","):
+                                if name:
+                                    name = name.strip()
+                                    pyi_deps.add(parts[1] + "." + name)
+
+                    else:  # In import
+                        imported = line
+                        if imported.endswith(")"):
+                            imported = imported[0:-1]
+                            in_import = False
 
                         for name in imported.split(","):
                             name = name.strip()
-
-                            pyi_deps.add(parts[1] + "." + name)
+                            if name:
+                                pyi_deps.add(in_import_part + "." + name)
 
                 if "typing" in pyi_deps:
                     pyi_deps.discard("typing")

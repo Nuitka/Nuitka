@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -66,7 +66,7 @@ def _cleanupTrailingWhitespace(filename):
 
     """
     with open(filename, "r") as f:
-        source_lines = [line for line in f]
+        source_lines = list(f)
 
     clean_lines = [line.rstrip().replace("\t", "    ") for line in source_lines]
 
@@ -125,7 +125,7 @@ def _updateCommentNode(comment_node):
                     return pylint_token
 
             return part.group(1) + ",".join(
-                sorted(renamer(token) for token in part.group(2).split(","))
+                sorted(renamer(token) for token in part.group(2).split(",") if token)
             )
 
         new_value = str(comment_node.value).replace("pylint:disable", "pylint: disable")
@@ -309,7 +309,12 @@ def _shouldNotFormatCode(filename):
     if "inline_copy" in parts:
         return True
     elif "tests" in parts and not "basics" in parts and "programs" not in parts:
-        return "run_all.py" not in parts and "compile_itself.py" not in parts
+        return parts[-1] not in (
+            "run_all.py",
+            "compile_itself.py",
+            "compile_python_modules.py",
+            "compile_extension_modules.py",
+        )
     else:
         return False
 
@@ -329,6 +334,20 @@ def _isPythonFile(filename):
                 return True
 
     return False
+
+
+def transferBOM(source_filename, target_filename):
+    with open(source_filename, "rb") as f:
+        source_code = f.read()
+
+    if source_code.startswith(b"\xef\xbb\xbf"):
+        with open(target_filename, "rb") as f:
+            source_code = f.read()
+
+        if not source_code.startswith(b"\xef\xbb\xbf"):
+            with open(target_filename, "wb") as f:
+                f.write(b"\xef\xbb\xbf")
+                f.write(source_code)
 
 
 def autoformat(filename, git_stage, abort):
@@ -361,6 +380,11 @@ def autoformat(filename, git_stage, abort):
             ".spec",
             "-rpmlintrc",
         )
+    ) or os.path.basename(filename) in (
+        "changelog",
+        "compat",
+        "control",
+        "lintian-overrides",
     )
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
@@ -385,8 +409,8 @@ def autoformat(filename, git_stage, abort):
             _cleanupWindowsNewlines(tmp_filename)
 
             if not _shouldNotFormatCode(filename):
-                _cleanupPyLintComments(tmp_filename, abort)
                 _cleanupImportSortOrder(tmp_filename)
+                _cleanupPyLintComments(tmp_filename, abort)
 
                 black_call = _getPythonBinaryCall("black")
 
@@ -401,6 +425,8 @@ def autoformat(filename, git_stage, abort):
             _cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)
             _cleanupWindowsNewlines(tmp_filename)
+
+        transferBOM(filename, tmp_filename)
 
         changed = False
         if old_code != getFileContents(tmp_filename, "rb"):

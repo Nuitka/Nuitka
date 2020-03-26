@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -53,8 +53,9 @@ import os
 import sys
 from logging import info, warning
 
-from nuitka import Options, SourceCodeReferences
+from nuitka import Options, OutputDirectories, SourceCodeReferences
 from nuitka.__past__ import long, unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.freezer.Standalone import detectEarlyImports
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
@@ -118,6 +119,7 @@ from .ReformulationAssignmentStatements import (
     buildAssignNode,
     buildDeleteNode,
     buildInplaceAssignNode,
+    buildNamedExprNode,
 )
 from .ReformulationBooleanExpressions import buildBoolOpNode
 from .ReformulationCallExpressions import buildCallNode
@@ -180,8 +182,11 @@ def buildVariableReferenceNode(provider, node, source_ref):
 
 
 # Python3.4 or higher, True and False, are not given as variables anymore.
+# Python3.8, all kinds of constants are like this.
 def buildNamedConstantNode(node, source_ref):
-    return makeConstantRefNode(constant=node.value, source_ref=source_ref)
+    return makeConstantRefNode(
+        constant=node.value, source_ref=source_ref, user_provided=True
+    )
 
 
 def buildConditionNode(provider, node, source_ref):
@@ -389,7 +394,9 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
             )
 
     provider.addNonlocalsDeclaration(
-        names=node.names, source_ref=source_ref.atColumnNumber(node.col_offset)
+        names=tuple(node.names),
+        user_provided=True,
+        source_ref=source_ref.atColumnNumber(node.col_offset),
     )
 
     # Drop this, not really part of our tree.
@@ -652,6 +659,7 @@ setBuildingDispatchers(
         "Break": buildStatementLoopBreak,
         "JoinedStr": buildJoinedStrNode,
         "FormattedValue": buildFormattedValueNode,
+        "NamedExpr": buildNamedExprNode,
     },
     path_args2={
         "Constant": buildNamedConstantNode,  # Python3.8
@@ -1006,6 +1014,14 @@ def buildModuleTree(filename, package, is_top, is_main):
         is_main=is_main,
         is_shlib=False,
     )
+
+    if is_top:
+        OutputDirectories.setMainModule(module)
+
+        # Detect to be frozen modules if any, so we can consider to not recurse
+        # to them.
+        if Options.isStandaloneMode():
+            detectEarlyImports()
 
     # If there is source code associated (not the case for namespace packages of
     # Python3.3 or higher, then read it.
