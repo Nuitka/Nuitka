@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -44,7 +44,7 @@ sys.path.insert(
 from nuitka.tools.testing.Common import getTempDir, my_print, setup
 from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
 
-python_version = setup()
+python_version = setup(needs_io_encoding=True)
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 
@@ -93,8 +93,10 @@ def diffRecursive(dir1, dir2):
         done.add(path1)
 
         # Skip these binary files and scons build database of course.
+        # TODO: Temporary ignore ".bin", until we have something better than marshal which behaves
+        # differently in compiled Nuitka:
         if filename.endswith(
-            (".o", ".os", ".obj", ".dblite", ".tmp", ".sconsign", ".txt")
+            (".o", ".os", ".obj", ".dblite", ".tmp", ".sconsign", ".txt", ".bin")
         ):
             continue
 
@@ -123,7 +125,10 @@ def diffRecursive(dir1, dir2):
 
             if diff_list:
                 for line in diff_list:
-                    my_print(line)
+                    try:
+                        my_print(line)
+                    except UnicodeEncodeError:
+                        my_print(repr(line))
 
                 result = True
         else:
@@ -277,13 +282,7 @@ def compileAndCompareWith(nuitka):
 
                 has_diff = diffRecursive(os.path.join(package, target), target_dir)
 
-                # TODO: Temporary, until we have something better than marshal which behaves
-                # differently in compiled Nuitka:
-                if has_diff and filename not in (
-                    "Contexts.py",
-                    "Whitelisting.py",
-                    "ImplicitImports.py",
-                ):
+                if has_diff:
                     sys.exit("There were differences!")
 
                 shutil.rmtree(target_dir)
@@ -337,6 +336,7 @@ def executePASS3():
         "--output-dir=%s" % tmp_dir,
         "--python-flag=-S",
         "--follow-imports",
+        #        "--include-package=nuitka.plugins",
     ]
     result = subprocess.call(command)
 

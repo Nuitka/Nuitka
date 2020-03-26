@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -16,7 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 """
 This is the main program of Nuitka, it checks the options and then translates
 one or more modules to a C source code using Python C/API in a "*.build"
@@ -61,9 +59,8 @@ def main():
 
     Options.parseArgs()
 
-    import logging  # isort:skip
-
-    logging.basicConfig(format="Nuitka:%(levelname)s:%(message)s")
+    # TODO: Stop using logging module, then this can be removed.
+    from nuitka import Tracing  # isort:skip
 
     # We don't care, and these are triggered by run time calculations of "range" and
     # others, while on python2.7 they are disabled by default.
@@ -135,6 +132,11 @@ def main():
 
         Execution.callExec(args)
 
+    # Load plugins after we know, we don't execute again.
+    from nuitka.plugins.Plugins import activatePlugins
+
+    activatePlugins()
+
     if Options.isShowMemory():
         from nuitka.utils import MemoryUsage
 
@@ -148,7 +150,7 @@ def main():
         # Do not disturb run of automatic tests, detected from the presence of
         # that environment variable.
         if "PYTHON" not in os.environ:
-            logging.warning(
+            Tracing.general.warning(
                 "The version '%s' is not currently supported. Expect problems.",
                 current_version,
             )

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -290,7 +290,7 @@ class ExpressionFunctionBodyBase(
 
         return Variables.LocalVariable(owner=self, variable_name=variable_name)
 
-    def addNonlocalsDeclaration(self, names, source_ref):
+    def addNonlocalsDeclaration(self, names, user_provided, source_ref):
         """ Add a nonlocal declared name.
 
             This happens during tree building, and is a Python3 only
@@ -300,7 +300,7 @@ class ExpressionFunctionBodyBase(
         if self.non_local_declarations is None:
             self.non_local_declarations = []
 
-        self.non_local_declarations.append((names, source_ref))
+        self.non_local_declarations.append((names, user_provided, source_ref))
 
     def consumeNonlocalDeclarations(self):
         """ Return the nonlocal declared names for this function.
@@ -780,7 +780,7 @@ class ExpressionFunctionCreation(
                 star_list_arg=call_spec.getStarListArgumentName(),
                 star_dict_arg=call_spec.getStarDictArgumentName(),
                 num_defaults=call_spec.getDefaultCount(),
-                num_posonly=call_spec.getPositionalOnlyCount(),
+                num_posonly=call_spec.getPosOnlyParameterCount(),
                 positional=args_tuple,
                 pairs=(),
             )

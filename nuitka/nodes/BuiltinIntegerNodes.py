@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -56,11 +56,12 @@ class ExpressionBuiltinInt1(ExpressionChildHavingBase):
         return ShapeTypeIntOrLongDerived
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
-
-        return value.computeExpressionInt(
+        return self.subnode_value.computeExpressionInt(
             int_node=self, trace_collection=trace_collection
         )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseExceptionInt(exception_type)
 
 
 class ExpressionBuiltinIntLong2Base(

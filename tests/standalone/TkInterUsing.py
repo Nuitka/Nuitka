@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -17,12 +17,16 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" TkInter standalone test, trying to make sure it loads.
+
+"""
+
 from __future__ import print_function
 
 # Python3 changed module name.
-try:
+if str is bytes:
     import Tkinter as tkinter
-except ImportError:
+else:
     import tkinter
 
 # nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")

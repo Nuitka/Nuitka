@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -138,7 +138,7 @@ print("__file__:",    package.sub_package1.tests.__file__)
         sys.exit(result)
 
     my_print("Running nose tests:")
-    # assert os.system(os.environ["PYTHON"] + " -m nose --first-package-wins -s package.sub_package1.tests" ) == 0
+    # assert os.system(os.environ["PYTHON"] + " -m nose --first-package-wins -s package.sub_package1.tests") == 0
 
     my_print("Running py.test tests:")
     command = [

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -182,7 +182,7 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
     else:
         wait_kind = "await_normal"
 
-    emit("%s = ASYNC_AWAIT( %s, %s );" % (to_name, value_name, wait_kind))
+    emit("%s = ASYNC_AWAIT(%s, %s);" % (to_name, value_name, wait_kind))
 
     getErrorExitCode(
         check_name=to_name, release_name=value_name, emit=emit, context=context
@@ -200,7 +200,7 @@ def generateAsyncIterCode(to_name, expression, emit, context):
         to_name, "aiter_result", expression, emit, context
     ) as result_name:
 
-        emit("%s = ASYNC_MAKE_ITERATOR( %s );" % (result_name, value_name))
+        emit("%s = ASYNC_MAKE_ITERATOR(%s);" % (result_name, value_name))
 
         getErrorExitCode(
             check_name=result_name, release_name=value_name, emit=emit, context=context
@@ -218,7 +218,7 @@ def generateAsyncNextCode(to_name, expression, emit, context):
         to_name, "anext_result", expression, emit, context
     ) as result_name:
 
-        emit("%s = ASYNC_ITERATOR_NEXT( %s );" % (result_name, value_name))
+        emit("%s = ASYNC_ITERATOR_NEXT(%s);" % (result_name, value_name))
 
         getErrorExitCode(
             check_name=result_name, release_name=value_name, emit=emit, context=context

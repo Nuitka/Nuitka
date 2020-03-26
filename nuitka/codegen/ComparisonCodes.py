@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -121,7 +121,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         res_name = context.getIntResName()
 
         emit(
-            "%s = PySequence_Contains( %s, %s );"
+            "%s = PySequence_Contains(%s, %s);"
             % (res_name, right_name, left_name)  # sequence goes first in the API.
         )
 
@@ -197,7 +197,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         helper = helper.replace("xx", comparator.upper())
 
         if c_type.c_type == "PyObject *":
-            emit("%s = %s( %s, %s );" % (to_name, helper, left_name, right_name))
+            emit("%s = %s(%s, %s);" % (to_name, helper, left_name, right_name))
 
             getErrorExitCode(
                 check_name=to_name,
@@ -211,7 +211,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         elif c_type.c_type in ("nuitka_bool", "void"):
             res_name = context.getIntResName()
 
-            emit("%s = %s( %s, %s );" % (res_name, helper, left_name, right_name))
+            emit("%s = %s(%s, %s);" % (res_name, helper, left_name, right_name))
 
             getErrorExitBoolCode(
                 condition="%s == -1" % res_name,
@@ -233,7 +233,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
 
         res_name = context.getIntResName()
 
-        emit("%s = EXCEPTION_MATCH_BOOL( %s, %s );" % (res_name, left_name, right_name))
+        emit("%s = EXCEPTION_MATCH_BOOL(%s, %s);" % (res_name, left_name, right_name))
 
         getErrorExitBoolCode(
             condition="%s == -1" % res_name,
@@ -266,7 +266,7 @@ def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("%s = Nuitka_IsInstance( %s, %s );" % (res_name, inst_name, cls_name))
+    emit("%s = Nuitka_IsInstance(%s, %s);" % (res_name, inst_name, cls_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,

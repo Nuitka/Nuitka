@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -107,6 +107,7 @@ def getDictUnpackingHelper():
             ps_dict_star_arg=None,
             ps_default_count=0,
             ps_kw_only_args=(),
+            ps_pos_only_args=(),
         ),
     )
 

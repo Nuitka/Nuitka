@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,13 +27,12 @@ needed except for technical reasons.
 """
 
 
-from logging import info
-
 from nuitka import Options
 from nuitka.codegen import ConstantCodes
 from nuitka.codegen.Indentation import indented
 from nuitka.codegen.templates.CodeTemplatesFreezer import template_frozen_modules
 from nuitka.ModuleRegistry import getUncompiledTechnicalModules
+from nuitka.Tracing import general
 
 stream_data = ConstantCodes.stream_data
 
@@ -54,7 +53,7 @@ def generateBytecodeFrozenCode():
 
         frozen_defs.append(
             """\
-{{ "{module_name}", {start}, {size} }},""".format(
+{{"{module_name}", {start}, {size}}},""".format(
                 module_name=module_name,
                 start=stream_data.getStreamDataOffset(code_data),
                 size=size,
@@ -62,6 +61,9 @@ def generateBytecodeFrozenCode():
         )
 
         if Options.isShowInclusion():
-            info("Embedded as frozen module '%s'.", module_name)
+            general.info("Embedded as frozen module '%s'.", module_name)
 
-    return template_frozen_modules % {"frozen_modules": indented(frozen_defs, 2)}
+    if frozen_defs:
+        return template_frozen_modules % {"frozen_modules": indented(frozen_defs, 2)}
+    else:
+        return None

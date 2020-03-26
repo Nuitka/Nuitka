@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -468,7 +468,7 @@ def buildParameterAnnotations(provider, node, source_ref):
         keys.append(mangle(key))
         values.append(value)
 
-    def extractArg(arg):
+    def extractArgAnnotation(arg):
         if getKind(arg) == "Name":
             assert arg.annotation is None
         elif getKind(arg) == "arg":
@@ -479,15 +479,19 @@ def buildParameterAnnotations(provider, node, source_ref):
                 )
         elif getKind(arg) == "Tuple":
             for sub_arg in arg.elts:
-                extractArg(sub_arg)
+                extractArgAnnotation(sub_arg)
         else:
             assert False, getKind(arg)
 
+    if python_version >= 380:
+        for arg in node.args.posonlyargs:
+            extractArgAnnotation(arg)
+
     for arg in node.args.args:
-        extractArg(arg)
+        extractArgAnnotation(arg)
 
     for arg in node.args.kwonlyargs:
-        extractArg(arg)
+        extractArgAnnotation(arg)
 
     if python_version < 340:
         if node.args.varargannotation is not None:
@@ -503,9 +507,9 @@ def buildParameterAnnotations(provider, node, source_ref):
             )
     else:
         if node.args.vararg is not None:
-            extractArg(node.args.vararg)
+            extractArgAnnotation(node.args.vararg)
         if node.args.kwarg is not None:
-            extractArg(node.args.kwarg)
+            extractArgAnnotation(node.args.kwarg)
 
     # Return value annotation (not there for lambdas)
     if hasattr(node, "returns") and node.returns is not None:
@@ -686,14 +690,15 @@ def buildFunctionWithParsing(
 
         return normal_args
 
-    normal_args = extractNormalArgs(node.args.args)
-
     parameters = ParameterSpec(
         ps_name=name,
-        ps_normal_args=normal_args,
+        ps_normal_args=extractNormalArgs(node.args.args),
+        ps_pos_only_args=[extractArg(arg) for arg in node.args.posonlyargs]
+        if python_version >= 380
+        else (),
         ps_kw_only_args=[extractArg(arg) for arg in node.args.kwonlyargs]
         if python_version >= 300
-        else [],
+        else (),
         ps_list_star_arg=extractArg(node.args.vararg),
         ps_dict_star_arg=extractArg(node.args.kwarg),
         ps_default_count=len(node.args.defaults),

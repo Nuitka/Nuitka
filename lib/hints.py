@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -15,6 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" The hints module should contain functions to call in your code.
+
+In reality, right now it does only contain an import tracing mechanism
+that helps us with debugging.
+"""
+
 from __future__ import print_function
 
 import os
@@ -30,13 +36,24 @@ def _normalizePath(path):
 
     best = None
 
-    for path_entry in sys.path:
-        if path.startswith(path_entry):
+    paths = list(sys.path)
+
+    # Nuitka standalone mode.
+    try:
+        paths.append(__nuitka_binary_dir)
+        paths.append(os.getcwd())
+    except NameError:
+        pass
+
+    for path_entry in paths:
+        path_entry = os.path.normcase(path_entry)
+
+        if os.path.normcase(path).startswith(path_entry):
             if best is None or len(path_entry) > len(best):
                 best = path_entry
 
     if best is not None:
-        path = path.replace(best, "$PYTHONPATH")
+        path = "$PYTHONPATH" + path[len(best) :]
 
     return path
 
@@ -60,15 +77,18 @@ def _moduleRepr(module):
 
 
 def enableImportTracing(normalize_paths=True, show_source=False):
+    # pylint: disable=redefined-builtin
+
     def _ourimport(
         name,
         globals=None,
         locals=None,
-        fromlist=None,  # @ReservedAssignment
+        fromlist=None,
         level=-1 if sys.version_info[0] < 3 else 0,
     ):
         builtins.__import__ = original_import
 
+        # Singleton, pylint: disable=global-statement
         global _indentation
         try:
             _indentation += 1

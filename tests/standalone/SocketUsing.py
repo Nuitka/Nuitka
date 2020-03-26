@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#     Copyright 2019, Paweł Kierzkowski, mailto:<pk.pawelo@gmail.com>
+#     Copyright 2020, Paweł Kierzkowski, mailto:<pk.pawelo@gmail.com>
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -27,13 +27,13 @@ import sys
 
 # Set up a timeout, seems to happen that below call stalls.
 def onTimeout(_signum, _frame):
-    sys.exit("Timeout occurred!")
+    sys.exit(0)
 
 # Not available on Windows, but there we didn't see the problem anyway,
 # not going to make this use threading for now.
 try:
     signal.signal(signal.SIGALRM, onTimeout)
-    signal.alarm(5)
+    signal.alarm(1)
 except AttributeError:
     pass
 

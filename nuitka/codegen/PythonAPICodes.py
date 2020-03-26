@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -129,7 +129,7 @@ def getCAPIObjectCode(
         value_name = context.allocateTempName("capi_result")
 
     emit(
-        "%s = %s( %s );"
+        "%s = %s(%s);"
         % (value_name, capi, ", ".join(str(arg_name) for arg_name in arg_names))
     )
 

@@ -1,4 +1,4 @@
-#     Copyright 2019, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2020, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,7 +17,6 @@
 #
 """ Details see below in class definition.
 """
-from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -46,7 +45,7 @@ class GeventPlugin(NuitkaPluginBase):
             return source_code
         source_lines = source_code.splitlines()
         source_lines.append("config.track_greenlet_tree = False")
-        info(" gevent-plugin: Greenlet tree tracking switched off")
+        self.info("Greenlet tree tracking switched off")
         return "\n".join(source_lines)
 
     def decideCompilation(self, module_name, source_ref):
@@ -63,10 +62,10 @@ class GeventPluginDetector(NuitkaPluginBase):
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    plugin_name = "gevent"
+    detector_for = GeventPlugin
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         """ One time only check: may this plugin be required?
 
         Returns:

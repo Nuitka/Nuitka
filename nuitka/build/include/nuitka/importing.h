@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -35,7 +35,11 @@ extern PyObject *IMPORT_MODULE_KW(PyObject *module_name, PyObject *globals, PyOb
 
 extern bool IMPORT_MODULE_STAR(PyObject *target, bool is_module, PyObject *module);
 
-extern PyObject *IMPORT_EMBEDDED_MODULE(PyObject *module_name, char const *name);
+// Import an embedded module directly.
+extern PyObject *IMPORT_EMBEDDED_MODULE(char const *name);
+
+// Execute a module, the module object is prepared empty, but with __name__.
+extern PyObject *EXECUTE_EMBEDDED_MODULE(PyObject *module);
 
 extern PyObject *const_str_plain___name__;
 

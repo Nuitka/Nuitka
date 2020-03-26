@@ -1,0 +1,146 @@
+name: Nuitka tests
+
+on:
+  pull_request:
+    branches:
+      - develop
+  push:
+    branches:
+      - master
+      - develop
+      - jorj
+      - factory
+    tags:
+      - release_.*
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python_version:
+            - '2.7'
+            - '3.5'
+            - '3.6'
+            - '3.7'
+            - '3.8'
+    name: Ubuntu Python ${{ matrix.python_version }}
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Use Python ${{ matrix.python_version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python_version }}
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get install chrpath
+        pip install -r requirements-devel.txt
+
+    - name: Install Nuitka
+      run:
+        pip install .
+
+    - name: Run Nuitka test suite
+      run: |
+        python -m nuitka --version
+        env | sort
+        python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+
+    - name: PyLint on Nuitka source code
+      run: |
+        ./bin/check-nuitka-with-pylint
+      if: matrix.python_version >= '3.7' || matrix.python_version == '2.7'
+
+    - name: RestLint on Nuitka source code
+      run: |
+        ./bin/check-nuitka-with-restlint
+      if: matrix.python_version == '3.7'
+
+    - name: Codespell on Nuitka source code
+      run: |
+        ./bin/check-nuitka-with-codespell
+      if: matrix.python_version == '3.7'
+
+  mac:
+    runs-on: macOS-latest
+    strategy:
+      matrix:
+        python_version:
+            - '2.7'
+            - '3.6'
+            - '3.7'
+            - '3.8'
+    name: macOS Python ${{ matrix.python_version }}
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Python ${{ matrix.python_version }} using Conda
+      run: |
+        sudo chown -R $USER $CONDA
+        $CONDA/bin/conda install python=${{ matrix.python_version }}
+        find $CONDA -name '*python${{ matrix.python_version }}*'
+
+    - name: Install dependencies
+      run: |
+        export PATH=$PATH:$CONDA/bin
+        python${{ matrix.python_version }} -m pip install --user -r requirements.txt
+        python${{ matrix.python_version }} -m pip install --user -r requirements-devel.txt
+
+    - name: Install Nuitka
+      run: |
+        export PATH=$PATH:$CONDA/bin
+        python${{ matrix.python_version }} setup.py develop
+
+    - name: Verbose scons output in compilation
+      run: |
+        export PATH=$PATH:$CONDA/bin
+        python${{ matrix.python_version }} -m nuitka --module --show-scons --run tests/basics/Empty.py
+        python${{ matrix.python_version }} -m nuitka --show-scons --run tests/basics/Empty.py
+
+    - name: Run Nuitka test suite
+      run: |
+        export PATH=$PATH:$CONDA/bin
+        python${{ matrix.python_version }} -m nuitka --version
+        env | sort
+        python${{ matrix.python_version }} ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python_version:
+            - '2.7'
+            - '3.5'
+            - '3.6'
+            - '3.7'
+#            - '3.8'
+    name: Windows Python ${{ matrix.python_version }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Python ${{ matrix.python_version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Install MinGW using Conda
+        shell: bash
+        run: |
+          $CONDA/Scripts/conda install m2w64-gcc libpython
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-devel.txt
+
+      - name: Install Nuitka
+        run: |
+          pip install .
+
+      - name: Run Nuitka test suite
+        run: |
+          python -m nuitka --version
+          env | sort
+          CC=$CONDA/Library/mingw-w64/bin/gcc.exe python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
+        shell: bash

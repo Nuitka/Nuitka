@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -27,11 +27,7 @@ PyObject *STRING_FROM_CHAR(unsigned char c) {
     char s[1];
     s[0] = (char)c;
 
-#if PYTHON_VERSION < 300
-    return PyString_FromStringAndSize(s, 1);
-#else
-    return PyUnicode_FromStringAndSize(s, 1);
-#endif
+    return Nuitka_String_FromStringAndSize(s, 1);
 }
 
 /* The "chr" built-in.

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,8 +32,7 @@ PyObject *Nuitka_dunder_compiled_value = NULL;
 
 %(constant_declarations)s
 
-static void _createGlobalConstants( void )
-{
+static void _createGlobalConstants(void) {
     NUITKA_MAY_BE_UNUSED PyObject *exception_type, *exception_value;
     NUITKA_MAY_BE_UNUSED PyTracebackObject *exception_tb;
 
@@ -110,11 +109,8 @@ static void _createGlobalConstants( void )
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 1, PyInt_FromLong(%(nuitka_version_minor)s));
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 2, PyInt_FromLong(%(nuitka_version_micro)s));
 
-#if PYTHON_VERSION < 300
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, PyString_FromString("%(nuitka_version_level)s"));
-#else
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, PyUnicode_FromString("%(nuitka_version_level)s"));
-#endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, Nuitka_String_FromString("%(nuitka_version_level)s"));
+
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;
     Nuitka_VersionInfoType.tp_new = NULL;
@@ -126,21 +122,18 @@ static void _createGlobalConstants( void )
 // given moment. We typically do it at program exit, but we can add extra calls
 // for sanity.
 #ifndef __NUITKA_NO_ASSERT__
-void checkGlobalConstants( void )
-{
+void checkGlobalConstants(void) {
 %(constant_checks)s
 }
 #endif
 
-void createGlobalConstants( void )
-{
-    if ( _sentinel_value == NULL )
-    {
+void createGlobalConstants(void) {
+    if (_sentinel_value == NULL) {
 #if PYTHON_VERSION < 300
-        _sentinel_value = PyCObject_FromVoidPtr( NULL, NULL );
+        _sentinel_value = PyCObject_FromVoidPtr(NULL, NULL);
 #else
         // The NULL value is not allowed for a capsule, so use something else.
-        _sentinel_value = PyCapsule_New( (void *)27, "sentinel", NULL );
+        _sentinel_value = PyCapsule_New((void *)27, "sentinel", NULL);
 #endif
         assert(_sentinel_value);
 

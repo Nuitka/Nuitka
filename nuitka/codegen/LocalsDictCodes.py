@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -100,7 +100,7 @@ def generateLocalsDictSetCode(statement, emit, context):
 
     if is_dict:
         emit(
-            "%s = PyDict_SetItem( %s, %s, %s );"
+            "%s = PyDict_SetItem(%s, %s, %s);"
             % (
                 res_name,
                 locals_declaration,
@@ -110,7 +110,7 @@ def generateLocalsDictSetCode(statement, emit, context):
         )
     else:
         emit(
-            "%s = PyObject_SetItem( %s, %s, %s );"
+            "%s = PyObject_SetItem(%s, %s, %s);"
             % (
                 res_name,
                 locals_declaration,
@@ -141,7 +141,7 @@ def generateLocalsDictDelCode(statement, emit, context):
         res_name = context.getBoolResName()
 
         emit(
-            "%s = DICT_REMOVE_ITEM( %s, %s );"
+            "%s = DICT_REMOVE_ITEM(%s, %s);"
             % (
                 res_name,
                 dict_arg_name,
@@ -159,7 +159,7 @@ def generateLocalsDictDelCode(statement, emit, context):
         res_name = context.getIntResName()
 
         emit(
-            "%s = PyObject_DelItem( %s, %s );"
+            "%s = PyObject_DelItem(%s, %s);"
             % (
                 res_name,
                 dict_arg_name,
@@ -200,8 +200,11 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
 
         if is_dict:
             template = template_read_locals_dict_with_fallback
+            fallback_codes = indented(fallback_emit.codes)
         else:
             template = template_read_locals_mapping_with_fallback
+            fallback_codes = indented(fallback_emit.codes, 2)
+
             # If the fallback took no reference, then make it do it
             # anyway.
             context.addCleanupTempName(value_name)
@@ -211,7 +214,7 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
             % {
                 "to_name": value_name,
                 "locals_dict": locals_declaration,
-                "fallback": indented(fallback_emit.codes),
+                "fallback": fallback_codes,
                 "var_name": context.getConstantCode(constant=variable_name),
             }
         )
@@ -268,7 +271,7 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
     if is_dict:
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
             to_name=to_name,
-            condition="PyDict_GetItem( %(locals_dict)s, %(var_name)s )"
+            condition="PyDict_GetItem(%(locals_dict)s, %(var_name)s)"
             % {
                 "locals_dict": locals_declaration,
                 "var_name": context.getConstantCode(constant=variable_name),
@@ -279,7 +282,7 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
         tmp_name = context.getIntResName()
 
         template = """\
-%(tmp_name)s = MAPPING_HAS_ITEM( %(locals_dict)s, %(var_name)s );
+%(tmp_name)s = MAPPING_HAS_ITEM(%(locals_dict)s, %(var_name)s);
 """
 
         emit(

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,7 +24,6 @@ own dependencies.
 import os
 import shutil
 import sys
-from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -33,6 +32,7 @@ from nuitka.utils.FileOperations import (
     copyTree,
     getFileList,
     getSubDirectories,
+    makePath,
     removeDirectory,
 )
 from nuitka.utils.SharedLibraries import locateDLL
@@ -49,8 +49,25 @@ class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
     plugin_name = "qt-plugins"
     plugin_desc = "Required by the PyQt and PySide packages"
 
-    def __init__(self):
+    def __init__(self, qt_plugins):
+        self.qt_plugins = qt_plugins
+
         self.qt_dirs = {}
+        self.webengine_done = False
+
+    @classmethod
+    def addPluginCommandLineOptions(cls, group):
+        group.add_option(
+            "--include-qt-plugins",
+            action="store",
+            dest="qt_plugins",
+            default="sensible",
+            help="""\
+Which Qt plugins to include. These can be big with dependencies, so
+by default only the sensible ones are included, but you can also put
+"all" or list them individually. If you specify something that does
+not exist, a list of all available will be given.""",
+        )
 
     @staticmethod
     def createPreModuleLoadCode(module):
@@ -152,23 +169,20 @@ if os.path.exists(guess_path):
     def considerExtraDlls(self, dist_dir, module):
         # pylint: disable=too-many-branches,too-many-locals,too-many-statements
         full_name = module.getFullName()
+        elements = full_name.split(".")
+        plugin_dirs = None
 
-        if full_name in ("PyQt4", "PyQt5"):
-            qt_version = int(full_name[-1])
-
+        if elements[0] in ("PyQt4", "PyQt5"):
+            qt_version = int(elements[0][-1])
             plugin_dirs = self.getPyQtPluginDirs(qt_version)
 
+        if full_name in ("PyQt4", "PyQt5"):
             if not plugin_dirs:
                 sys.exit("Error, failed to detect %s plugin directories." % full_name)
 
             target_plugin_dir = os.path.join(dist_dir, full_name, "qt-plugins")
 
-            plugin_options = self.getPluginOptions()
-            plugin_options = set(plugin_options)
-
-            # Default to using sensible plugins.
-            if not plugin_options:
-                plugin_options.add("sensible")
+            plugin_options = set(self.qt_plugins.split(","))
 
             if "sensible" in plugin_options:
                 # Most used ones with low dependencies.
@@ -192,7 +206,7 @@ if os.path.exists(guess_path):
                 # indicating the check to be bad.
                 assert plugin_options
 
-            info(
+            self.info(
                 "Copying Qt plug-ins '%s' to '%s'."
                 % (
                     ",".join(sorted(x for x in plugin_options if x != "xml")),
@@ -248,7 +262,7 @@ if os.path.exists(guess_path):
                     [],
                 )
 
-                info("Copying OpenSSL DLLs to %r" % (dist_dir,))
+                self.info("Copying OpenSSL DLLs to %r" % (dist_dir,))
 
                 for filename in qt_bin_files:
                     basename = os.path.basename(filename).lower()
@@ -270,7 +284,7 @@ if os.path.exists(guess_path):
                     os.path.join(target_plugin_dir, "..", "Qt", "qml")
                 )
 
-                info("Copying Qt plug-ins 'xml' to '%s'." % (qml_target_dir))
+                self.info("Copying Qt plug-ins 'xml' to '%s'." % (qml_target_dir))
 
                 copyTree(qml_plugin_dir, qml_target_dir)
 
@@ -304,7 +318,7 @@ if os.path.exists(guess_path):
                 if isWin32Windows():
                     opengl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
 
-                    info("Copying OpenGL DLLs to %r" % (dist_dir,))
+                    self.info("Copying OpenGL DLLs to %r" % (dist_dir,))
 
                     for filename in qt_bin_files:
                         basename = os.path.basename(filename).lower()
@@ -315,6 +329,7 @@ if os.path.exists(guess_path):
                             shutil.copy(filename, os.path.join(dist_dir, basename))
 
             return result
+
         elif full_name == "PyQt5.QtNetwork":
             if not isWin32Windows():
                 dll_path = locateDLL("crypto")
@@ -328,6 +343,39 @@ if os.path.exists(guess_path):
                     dist_dll_path = os.path.join(dist_dir, os.path.basename(dll_path))
 
                     shutil.copy(dll_path, dist_dll_path)
+
+        elif (
+            full_name.startswith(("PyQt4.QtWebEngine", "PyQt5.QtWebEngine"))
+            and not self.webengine_done
+        ):
+            self.webengine_done = True  # prevent multiple copies
+            self.info("Copying QtWebEngine components")
+
+            plugin_parent = os.path.dirname(plugin_dirs[0])
+
+            if isWin32Windows():
+                bin_dir = os.path.join(plugin_parent, "bin")
+            else:  # TODO verify this for non-Windows!
+                bin_dir = os.path.join(plugin_parent, "libexec")
+            target_bin_dir = os.path.join(dist_dir)
+            for f in os.listdir(bin_dir):
+                if f.startswith("QtWebEngineProcess"):
+                    shutil.copy(os.path.join(bin_dir, f), target_bin_dir)
+
+            resources_dir = os.path.join(plugin_parent, "resources")
+            target_resources_dir = os.path.join(dist_dir)
+            for f in os.listdir(resources_dir):
+                shutil.copy(os.path.join(resources_dir, f), target_resources_dir)
+
+            translations_dir = os.path.join(plugin_parent, "translations")
+            pos = len(translations_dir) + 1
+            target_translations_dir = os.path.join(
+                dist_dir, elements[0], "Qt", "translations"
+            )
+            for f in getFileList(translations_dir):
+                tar_f = os.path.join(target_translations_dir, f[pos:])
+                makePath(os.path.dirname(tar_f))
+                shutil.copyfile(f, tar_f)
 
         return ()
 
@@ -402,10 +450,10 @@ system Qt plug-ins, which may be from another Qt version.""",
 
 
 class NuitkaPluginDetectorPyQtPySidePlugins(NuitkaPluginBase):
-    plugin_name = "qt-plugins"
+    detector_for = NuitkaPluginPyQtPySidePlugins
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):

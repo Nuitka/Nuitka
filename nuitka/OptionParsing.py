@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -110,8 +110,8 @@ parser.add_option(
 Python flags to use. Default uses what you are using to run Nuitka, this
 enforces a specific mode. These are options that also exist to standard
 Python executable. Currently supported: "-S" (alias "nosite"),
-"static_hashes" (not use hash randomization), "no_warnings" (do not give
-Python runtime warnings), "-O" (alias "noasserts"). Default empty.""",
+"static_hashes" (do not use hash randomization), "no_warnings" (do not
+give Python runtime warnings), "-O" (alias "noasserts"). Default empty.""",
 )
 
 parser.add_option(
@@ -437,7 +437,7 @@ debug_group.add_option(
     dest="profile",
     default=False,
     help="""\
-Enable vmprof based profiling of time spent. Defaults to off.""",
+Enable vmprof based profiling of time spent. Not working currently. Defaults to off.""",
 )
 
 debug_group.add_option(
@@ -465,10 +465,11 @@ debug_group.add_option(
     dest="recompile_c_only",
     default=False,
     help="""\
-Take existing files and compile them again. Allows compiling edited C files
-with the C compiler for quick debugging changes to the generated source.
-Defaults to off. Depends on compiling Python source to determine which files it
-should look at.""",
+This is not incremental compilation, but for Nuitka development only. Takes
+existing files and simply compile them as C again. Allows compiling edited
+C files for quick debugging changes to the generated source, e.g. to see if
+code is passed by, values output, etc, Defaults to off. Depends on compiling
+Python source to determine which files it should look at.""",
 )
 
 debug_group.add_option(
@@ -479,7 +480,7 @@ debug_group.add_option(
     help="""\
 Generate only C source code, and do not compile it to binary or module. This
 is for debugging and code coverage analysis that doesn't waste CPU. Defaults to
-off.""",
+off. Do not think you can use this directly.""",
 )
 
 debug_group.add_option(
@@ -741,6 +742,27 @@ plugin_group.add_option(
 )
 
 
+def _considerPluginOptions():
+    from nuitka.plugins.Plugins import (
+        addPluginCommandLineOptions,
+        addUserPluginCommandLineOptions,
+    )
+
+    for arg in sys.argv[1:]:
+        if arg[0] != "-":
+            break
+
+        # Treat "--" as a terminator.
+        if arg == "--":
+            break
+
+        if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
+            addPluginCommandLineOptions(parser=parser, plugin_name=arg[16:])
+
+        if arg.startswith("--user-plugin="):
+            addUserPluginCommandLineOptions(parser=parser, filename=arg[14:])
+
+
 def parseOptions():
     # First, isolate the first non-option arguments.
     if is_nuitka_run:
@@ -763,6 +785,9 @@ def parseOptions():
             sys.argv = sys.argv[0 : count + 1]
     else:
         extra_args = []
+
+    # Next, lets activate plugins early, so they can inject more options to the parser.
+    _considerPluginOptions()
 
     options, positional_args = parser.parse_args()
 

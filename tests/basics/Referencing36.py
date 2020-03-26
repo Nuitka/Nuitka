@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -38,6 +38,7 @@ sys.path.insert(
 
 # isort:start
 
+import asyncio
 import types
 
 from nuitka.tools.testing.Common import (
@@ -48,6 +49,10 @@ from nuitka.tools.testing.Common import (
 )
 
 checkDebugPython()
+
+
+class AwaitException(Exception):
+    pass
 
 
 def run_until_complete(coro):
@@ -70,7 +75,7 @@ def simpleFunction1():
     async def gen1():
         try:
             yield
-        except:
+        except:  # pylint: disable=bare-except
             pass
 
     async def run():
@@ -89,7 +94,7 @@ def simpleFunction2():
         try:
             yield 1
             yield 1.1
-            1 / 0
+            1 / 0  # pylint: disable=pointless-statement
         finally:
             yield 2
             yield 3
@@ -110,7 +115,7 @@ def awaitable(*, throw=False):
 async def gen2():
     await awaitable()
     a = yield 123
-    # self.assertIs(a, None)
+    assert a is None
     await awaitable()
     yield 456
     await awaitable()
@@ -141,27 +146,70 @@ def simpleFunction4():
 
     try:
         ai.__anext__().__next__()
-    except StopIteration as ex:
+    except StopIteration as _ex:
         pass
+    except RuntimeError:
+        # Python 3.8 doesn't like this anymore
+        assert sys.version_info >= (3, 8)
 
-    ai.__anext__().__next__()
+    try:
+        ai.__anext__().__next__()
+    except RuntimeError:
+        # Python 3.8 doesn't like this anymore
+        assert sys.version_info >= (3, 8)
 
 
 def simpleFunction5():
     t = 2
 
-    class C:
-        exec("u=2")
+    class C:  # pylint: disable=invalid-name
+        exec("u=2")  # pylint: disable=exec-used
         x: int = 2
         y: float = 2.0
 
-        z = x + y + t * u
+        z = x + y + t * u  # pylint: disable=undefined-variable
 
         rawdata = b"The quick brown fox jumps over the lazy dog.\r\n"
         # Be slow so we don't depend on other modules
         rawdata += bytes(range(256))
 
     return C()
+
+
+# This refleaks big time, but the construct is rare enough to not bother
+# as this proves hard to find.
+def disabled_simpleFunction6():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(None)
+
+    async def waiter(timeout):
+        await asyncio.sleep(timeout)
+        yield 1
+
+    async def wait():
+        async for _ in waiter(1):
+            pass
+
+    t1 = loop.create_task(wait())
+    t2 = loop.create_task(wait())
+
+    loop.run_until_complete(asyncio.sleep(0.01))
+
+    t1.cancel()
+    t2.cancel()
+
+    try:
+        loop.run_until_complete(t1)
+    except asyncio.CancelledError:
+        pass
+    try:
+        loop.run_until_complete(t2)
+    except asyncio.CancelledError:
+        pass
+
+    loop.run_until_complete(loop.shutdown_asyncgens())
+
+    loop.close()
 
 
 # These need stderr to be wrapped.

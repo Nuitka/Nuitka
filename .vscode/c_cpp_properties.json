@@ -10,7 +10,27 @@
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE",
-                "__IDE_ONLY__"
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=270"
+            ],
+            "windowsSdkVersion": "10.0.17134.0",
+            "compilerPath": "C:/Program Files (x86)//Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.22.27905/bin/Hostx64/x64/cl.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "msvc-x64"
+        },
+        {
+            "name": "Win32-Py38",
+            "includePath": [
+                "${workspaceFolder}/nuitka/build/include",
+                "C:\\Python38\\Include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=380"
             ],
             "windowsSdkVersion": "10.0.17134.0",
             "compilerPath": "C:/Program Files (x86)//Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.22.27905/bin/Hostx64/x64/cl.exe",
@@ -22,15 +42,33 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/nuitka/build/include",
+                "/usr/include/python3.7"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=370"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}"
+        },
+        {
+            "name": "Linux-Python2.7",
+            "includePath": [
+                "${workspaceFolder}/nuitka/build/include",
                 "/usr/include/python2.7"
             ],
             "defines": [
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE",
-                "__IDE_ONLY__"
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=270"
             ],
-            "windowsSdkVersion": "10.0.17134.0",
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
             "cppStandard": "c++17",

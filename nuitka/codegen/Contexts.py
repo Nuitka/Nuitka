@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,6 +25,8 @@ import sys
 from abc import abstractmethod
 
 from nuitka import Options
+from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import xrange  # pylint: disable=I0021,redefined-builtin
 from nuitka.__past__ import getMetaClassBase, iterItems
 from nuitka.Builtins import (
     builtin_anon_codes,
@@ -576,6 +578,9 @@ class PythonChildContextBase(PythonContextBase):
     def getFrameVariableCodeNames(self):
         return self.parent.getFrameVariableCodeNames()
 
+    def addFunctionCreationInfo(self, creation_info):
+        return self.parent.addFunctionCreationInfo(creation_info)
+
 
 def _getConstantDefaultPopulation():
     # Lots of cases, pylint: disable=too-many-branches
@@ -746,7 +751,7 @@ class PythonGlobalContext(object):
             # TODO: Maybe make this a mapping in nuitka.Builtins
 
             if constant is None:
-                key = "(PyObject *)Py_TYPE( Py_None )"
+                key = "(PyObject *)Py_TYPE(Py_None)"
             elif constant is object:
                 key = "(PyObject *)&PyBaseObject_Type"
             elif constant is staticmethod:
@@ -761,15 +766,9 @@ class PythonGlobalContext(object):
                 key = "(PyObject *)&PyFrozenSet_Type"
             elif python_version >= 270 and constant is memoryview:
                 key = "(PyObject *)&PyMemoryView_Type"
-            elif (
-                python_version < 300
-                and constant is basestring  # pylint: disable=I0021,undefined-variable
-            ):
+            elif python_version < 300 and constant is basestring:
                 key = "(PyObject *)&PyBaseString_Type"
-            elif (
-                python_version < 300
-                and constant is xrange  # pylint: disable=I0021,undefined-variable
-            ):
+            elif python_version < 300 and constant is xrange:
                 key = "(PyObject *)&PyRange_Type"
             elif constant in builtin_anon_values:
                 key = "(PyObject *)" + builtin_anon_codes[builtin_anon_values[constant]]
@@ -1012,6 +1011,8 @@ class PythonModuleContext(
 
         self.variable_storage = VariableStorage(heap_name=None)
 
+        self.function_table_entries = []
+
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.filename
 
@@ -1083,6 +1084,16 @@ class PythonModuleContext(
     def needsModuleFilenameObject(self):
         return self.needs_module_filename_object
 
+    def addFunctionCreationInfo(self, creation_info):
+        self.function_table_entries.append(creation_info)
+
+    def getFunctionCreationInfos(self):
+        result = self.function_table_entries
+
+        # Release the memory once possible.
+        del self.function_table_entries
+        return result
+
 
 class PythonFunctionContext(
     FrameDeclarationsMixin,
@@ -1139,9 +1150,6 @@ class PythonFunctionDirectContext(PythonFunctionContext):
     def isForDirectCall(self):
         return True
 
-    def isForCrossModuleUsage(self):
-        return self.function.isCrossModuleUsed()
-
     def isForCreatedFunction(self):
         return False
 
@@ -1152,9 +1160,6 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
 
     def isForDirectCall(self):
         return False
-
-    def isForCrossModuleUsage(self):
-        return self.function.isCrossModuleUsed()
 
     def isForCreatedFunction(self):
         return False

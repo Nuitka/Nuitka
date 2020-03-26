@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -62,7 +62,7 @@ def generateOperationNotCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("%s = CHECK_IF_TRUE( %s );" % (res_name, arg_name))
+    emit("%s = CHECK_IF_TRUE(%s);" % (res_name, arg_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,
@@ -644,7 +644,7 @@ def _getBinaryOperationCode(
         # code, or the helper specified.
         if helper == "BINARY_OPERATION":
             emit(
-                "%s = BINARY_OPERATION_INPLACE( %s, &%s, %s );"
+                "%s = BINARY_OPERATION_INPLACE(%s, &%s, %s);"
                 % (
                     res_name,
                     OperatorCodes.binary_operator_codes[operator],
@@ -653,7 +653,7 @@ def _getBinaryOperationCode(
                 )
             )
         else:
-            emit("%s = %s( &%s, %s );" % (res_name, helper, arg_names[0], arg_names[1]))
+            emit("%s = %s(&%s, %s);" % (res_name, helper, arg_names[0], arg_names[1]))
 
             ref_count = 0
 
@@ -676,7 +676,7 @@ def _getBinaryOperationCode(
         ) as value_name:
 
             emit(
-                "%s = %s( %s );"
+                "%s = %s(%s);"
                 % (
                     value_name,
                     helper,
@@ -709,7 +709,7 @@ def _getUnaryOperationCode(
     ) as value_name:
 
         emit(
-            "%s = %s( %s );"
+            "%s = %s(%s);"
             % (
                 value_name,
                 helper,

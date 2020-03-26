@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,11 +29,14 @@ options = None
 positional_args = None
 extra_args = []
 is_nuitka_run = None
+is_debug = None
+is_nondebug = None
+is_fullcompat = None
 
 
 def parseArgs():
     # singleton with many cases, pylint: disable=global-statement,too-many-branches
-    global is_nuitka_run, options, positional_args, extra_args
+    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions()
 
@@ -117,6 +120,10 @@ sane default used inside the dist folder."""
 Error, icon path "%s" does not exist."""
                 % icon_path
             )
+
+    is_debug = isDebug()
+    is_nondebug = not is_debug
+    is_fullcompat = isFullCompat()
 
 
 def isVerbose():
@@ -354,7 +361,7 @@ def shallClearPythonPathEnvironment():
 
 
 def shallUseStaticLibPython():
-    """ *bool* = derived from sys.version
+    """ *bool* = derived from `sys.prefix` and `os.name`
 
     Notes:
         Currently only AnaConda on non-Windows can do this.
@@ -362,14 +369,19 @@ def shallUseStaticLibPython():
 
     # For AnaConda default to trying static lib python library, which
     # normally is just not available or if it is even unusable.
-    return "Anaconda" in sys.version and os.name == "nt"
+    return (
+        os.path.exists(os.path.join(sys.prefix, "conda-meta"))
+        and not Utils.isWin32Windows()
+        and not Utils.getOS() == "Darwin"
+    )
 
 
 def shallTreatUninstalledPython():
     """ *bool* = derived from Python installation and modes
 
     Notes:
-        Not done for standalone mode obviously.
+        Not done for standalone mode obviously. The Python DLL will
+        be a dependency of the executable and treated that way.
 
         Also not done for extension modules, they are loaded with
         a Python runtime available.
@@ -378,7 +390,10 @@ def shallTreatUninstalledPython():
         from AnaConda.
     """
 
-    return not isStandaloneMode() and not shallMakeModule() and isUninstalledPython()
+    if shallMakeModule() or isStandaloneMode():
+        return False
+
+    return isUninstalledPython()
 
 
 def isShowScons():
@@ -536,7 +551,9 @@ def getPythonFlags():
                     _python_flags.add("no_warnings")
                 elif part in ("-O", "no_asserts", "noasserts"):
                     _python_flags.add("no_asserts")
-                elif part in ("-OO", "no_docstrings", "nodocstrings"):
+                elif part in ("no_docstrings", "nodocstrings"):
+                    _python_flags.add("no_docstrings")
+                elif part in ("-OO",):
                     _python_flags.add("no_docstrings")
                     _python_flags.add("no_asserts")
                 else:
@@ -586,29 +603,6 @@ def getPluginsEnabled():
     return tuple(result)
 
 
-def getPluginOptions(plugin_name):
-    """ Return the options provided for the specified plugin.
-
-    Args:
-        plugin_name: plugin identifier
-    Returns:
-        list created by split(',') for the string following "=" after plugin_name.
-    """
-    result = []
-
-    if options:
-        for plugin_enabled in options.plugins_enabled + options.user_plugins:
-            if "=" not in plugin_enabled:
-                continue
-
-            name, args = plugin_enabled.split("=", 1)
-
-            if name == plugin_name:
-                result.extend(args.split(","))
-
-    return result
-
-
 def getPluginsDisabled():
     """ Return the names of disabled (standard) plugins.
     """
@@ -637,3 +631,12 @@ def getPythonPathForScons():
     """ *str*, value of "--python-for-scons"
     """
     return options.python_scons
+
+
+def shallCompileWithoutBuildDirectory():
+    """ *bool* currently hard coded, not when using debugger.
+
+        TODO: Make this not hardcoded, but possible to disable via an
+        options.
+    """
+    return not shallRunInDebugger()

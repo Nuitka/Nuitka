@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -48,9 +48,6 @@ struct Nuitka_CoroutineObject {
     int m_awaiting;
 
     void *m_code;
-
-    PyObject *m_exception_type, *m_exception_value;
-    PyTracebackObject *m_exception_tb;
 
     // The parent frame of the coroutine, if created.
     struct Nuitka_FrameObject *m_frame;
@@ -127,6 +124,10 @@ static inline void SAVE_COROUTINE_EXCEPTION(struct Nuitka_CoroutineObject *corou
     PyObject *saved_exception_value = EXC_VALUE(thread_state);
     PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 
+    CHECK_OBJECT_X(saved_exception_type);
+    CHECK_OBJECT_X(saved_exception_value);
+    CHECK_OBJECT_X(saved_exception_traceback);
+
 #if PYTHON_VERSION < 370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
     EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
@@ -137,6 +138,10 @@ static inline void SAVE_COROUTINE_EXCEPTION(struct Nuitka_CoroutineObject *corou
     EXC_TRACEBACK(thread_state) = coroutine->m_exc_state.exc_traceback;
 #endif
 
+    CHECK_OBJECT_X(EXC_TYPE(thread_state));
+    CHECK_OBJECT_X(EXC_VALUE(thread_state));
+    CHECK_OBJECT_X(EXC_TRACEBACK(thread_state));
+
 #if PYTHON_VERSION < 370
     thread_state->frame->f_exc_type = saved_exception_type;
     thread_state->frame->f_exc_value = saved_exception_value;
@@ -144,7 +149,6 @@ static inline void SAVE_COROUTINE_EXCEPTION(struct Nuitka_CoroutineObject *corou
 #else
     coroutine->m_exc_state.exc_type = saved_exception_type;
     coroutine->m_exc_state.exc_value = saved_exception_value;
-    ;
     coroutine->m_exc_state.exc_traceback = saved_exception_traceback;
 #endif
 }
@@ -158,6 +162,10 @@ static inline void RESTORE_COROUTINE_EXCEPTION(struct Nuitka_CoroutineObject *co
     PyObject *saved_exception_value = EXC_VALUE(thread_state);
     PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 
+    CHECK_OBJECT_X(saved_exception_type);
+    CHECK_OBJECT_X(saved_exception_value);
+    CHECK_OBJECT_X(saved_exception_traceback);
+
 #if PYTHON_VERSION < 370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
     EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
@@ -175,6 +183,10 @@ static inline void RESTORE_COROUTINE_EXCEPTION(struct Nuitka_CoroutineObject *co
     coroutine->m_exc_state.exc_value = saved_exception_value;
     coroutine->m_exc_state.exc_traceback = saved_exception_traceback;
 #endif
+
+    CHECK_OBJECT_X(EXC_TYPE(thread_state));
+    CHECK_OBJECT_X(EXC_VALUE(thread_state));
+    CHECK_OBJECT_X(EXC_TRACEBACK(thread_state));
 }
 
 #ifdef __cplusplus

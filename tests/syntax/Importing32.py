@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -21,8 +21,8 @@ def starImportFailure():
 
     try:
         sys
-        print( "but it does not" )
+        print("but it does not")
     except NameError:
-        print( "and it does" )
+        print("and it does")
 
 print("Star import needs to respect __all__", starImportFailure())

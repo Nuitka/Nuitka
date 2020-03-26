@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,6 +48,10 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
 
     def __init__(self):
         self.multiprocessing_added = False
+
+    @staticmethod
+    def getPreprocessorSymbols():
+        return {"_NUITKA_PLUGIN_MULTIPROCESSING_ENABLED": "1"}
 
     @staticmethod
     def createPreModuleLoadCode(module):
@@ -179,10 +183,10 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
 
 
 class NuitkaPluginDetectorMultiprocessingWorkarounds(NuitkaPluginBase):
-    plugin_name = "multiprocessing"
+    detector_for = NuitkaPluginMultiprocessingWorkarounds
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         return Utils.getOS() == "Windows" and not Options.shallMakeModule()
 
     def checkModuleSourceCode(self, module_name, source_code):

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -78,11 +78,7 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
 
 
 class NuitkaPluginDetectorPylintEclipseAnnotations(NuitkaPluginBase):
-    plugin_name = "pylint-warnings"
-
-    @staticmethod
-    def isRelevant():
-        return True
+    detector_for = NuitkaPluginPylintEclipseAnnotations
 
     def onModuleSourceCode(self, module_name, source_code):
         if re.search(r"#\s*pylint:\s*disable=\s*(\w+)", source_code):

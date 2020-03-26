@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -54,7 +54,7 @@ def generateBuiltinRefCode(to_name, expression, emit, context):
     ) as value_name:
 
         emit(
-            "%s = LOOKUP_BUILTIN( %s );"
+            "%s = LOOKUP_BUILTIN(%s);"
             % (value_name, context.getConstantCode(constant=builtin_name))
         )
 
@@ -99,7 +99,7 @@ def generateBuiltinType3Code(to_name, expression, emit, context):
     ) as value_name:
 
         emit(
-            "%s = BUILTIN_TYPE3( %s, %s, %s, %s );"
+            "%s = BUILTIN_TYPE3(%s, %s, %s, %s);"
             % (
                 value_name,
                 context.getConstantCode(constant=context.getModuleName().asString()),
@@ -323,7 +323,7 @@ def generateBuiltinBoolCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("%s = CHECK_IF_TRUE( %s );" % (res_name, arg_name))
+    emit("%s = CHECK_IF_TRUE(%s);" % (res_name, arg_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,

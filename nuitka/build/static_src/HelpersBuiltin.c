@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -893,7 +893,7 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
     } else if (PyBytes_Check(value) || PyByteArray_Check(value)) {
         // Check for "NUL" as PyLong_FromString has no length parameter,
         Py_ssize_t size = Py_SIZE(value);
-        char *value_str;
+        char const *value_str;
 
         if (PyByteArray_Check(value)) {
             value_str = PyByteArray_AS_STRING(value);
@@ -904,7 +904,7 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
         PyObject *result = NULL;
 
         if (size != 0 && strlen(value_str) == (size_t)size) {
-            result = PyInt_FromString(value_str, NULL, (int)base_int);
+            result = PyLong_FromString((char *)value_str, NULL, (int)base_int);
         }
 
         if (unlikely(result == NULL)) {

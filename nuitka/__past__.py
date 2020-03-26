@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,7 @@ be a "in (str, unicode)" rather than making useless version checks.
 import sys
 from abc import ABCMeta
 
-# pylint: disable=I0021,invalid-name,redefined-builtin
+# pylint: disable=I0021,invalid-name,redefined-builtin,self-assigning-variable
 
 if str is bytes:
     import __builtin__ as builtins  # pylint: disable=I0021,import-error
@@ -56,14 +56,13 @@ def iterItems(d):
 
 
 if str is not bytes:
-    raw_input = input  # @ReservedAssignment
+    raw_input = input
+    xrange = range
+    basestring = str
 else:
-    raw_input = raw_input  # @ReservedAssignment
-
-if str is bytes:
-    xrange = xrange  # @ReservedAssignment pylint: disable=I0021,undefined-variable
-else:
-    xrange = range  # @ReservedAssignment
+    raw_input = raw_input
+    xrange = xrange  # pylint: disable=I0021,undefined-variable
+    basestring = basestring  # pylint: disable=I0021,undefined-variable
 
 
 if str is bytes:
@@ -74,10 +73,12 @@ else:
     from urllib.request import (  # pylint: disable=I0021,import-error,no-name-in-module
         urlretrieve,
     )
+
 if str is bytes:
     from cStringIO import StringIO  # pylint: disable=I0021,import-error
 else:
     from io import StringIO  # pylint: disable=I0021,import-error
+
 try:
     from functools import total_ordering
 except ImportError:

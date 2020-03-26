@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,7 +32,6 @@ import marshal
 import re
 import struct
 import sys
-from logging import info, warning
 
 from nuitka import Options
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
@@ -44,6 +43,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
 from nuitka.Builtins import builtin_named_values, builtin_named_values_list
 from nuitka.Constants import NoneType, compareConstants, getConstantWeight, isMutable
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import codegen_missing, general
 from nuitka.Version import getNuitkaVersion
 
 from .BlobCodes import StreamData
@@ -150,11 +150,9 @@ def _getConstantInitValueCode(constant_value, constant_type):
             encoded = constant_value.encode("utf-8")
 
             if str is bytes:
-                return "UNSTREAM_UNICODE( %s )" % (
-                    stream_data.getStreamDataCode(encoded)
-                )
+                return "UNSTREAM_UNICODE(%s)" % (stream_data.getStreamDataCode(encoded))
             else:
-                return "UNSTREAM_STRING( %s, %d, %d )" % (
+                return "UNSTREAM_STRING(%s, %d, %d)" % (
                     stream_data.getStreamDataCode(encoded, fixed_size=True),
                     len(constant_value),
                     1 if _isAttributeName(constant_value) else 0,
@@ -166,19 +164,19 @@ def _getConstantInitValueCode(constant_value, constant_type):
         assert str is bytes
 
         if len(constant_value) == 1:
-            return "UNSTREAM_CHAR( %d, %d )" % (
+            return "UNSTREAM_CHAR(%d, %d)" % (
                 ord(constant_value[0]),
                 1 if _isAttributeName(constant_value) else 0,
             )
         else:
-            return "UNSTREAM_STRING( %s, %d )" % (
+            return "UNSTREAM_STRING(%s, %d)" % (
                 stream_data.getStreamDataCode(constant_value),
                 1 if _isAttributeName(constant_value) else 0,
             )
     elif constant_type is bytes:
         assert str is not bytes
 
-        return "UNSTREAM_BYTES( %s )" % (stream_data.getStreamDataCode(constant_value))
+        return "UNSTREAM_BYTES(%s)" % (stream_data.getStreamDataCode(constant_value))
     else:
         return None
 
@@ -243,8 +241,8 @@ def isMarshalConstant(constant_value):
     try:
         marshal_value = marshal.dumps(constant_value)
     except ValueError:
-        if Options.isDebug():
-            warning("Failed to marshal constant %r." % constant_value)
+        if Options.is_debug:
+            codegen_missing.warning("Failed to marshal constant %r." % constant_value)
 
         return False
 
@@ -268,7 +266,7 @@ def getMarshalCode(constant_identifier, constant_value, emit):
     assert compareConstants(constant_value, restored)
 
     emit(
-        "%s = PyMarshal_ReadObjectFromString( (char *)%s );"
+        "%s = PyMarshal_ReadObjectFromString((char *)%s);"
         % (constant_identifier, stream_data.getStreamDataCode(marshal_value))
     )
 
@@ -288,12 +286,12 @@ def attemptToMarshal(constant_identifier, constant_value, emit):
     # TODO: The check in isMarshalConstant is currently preventing this from
     # happening.
     if not compareConstants(constant_value, restored):
-        warning("Problem with marshal of constant %r", constant_value)
+        general.warning("Problem with marshal of constant %r", constant_value)
 
         return False
 
     emit(
-        "%s = PyMarshal_ReadObjectFromString( (char *)%s );"
+        "%s = PyMarshal_ReadObjectFromString((char *)%s);"
         % (constant_identifier, stream_data.getStreamDataCode(marshal_value))
     )
 
@@ -435,7 +433,7 @@ CHECK_OBJECT(const_int_pos_1);
             return
     elif constant_type is int:
         if constant_value >= min_signed_long:
-            emit("%s = PyInt_FromLong( %sl );" % (constant_identifier, constant_value))
+            emit("%s = PyInt_FromLong(%sl);" % (constant_identifier, constant_value))
 
             return
         else:
@@ -445,8 +443,8 @@ CHECK_OBJECT(const_int_pos_1);
 
             emit(
                 """\
-%s = PyInt_FromLong( %sl );  // To be corrected in next line.
-%s = PyNumber_InPlaceSubtract( %s, PyInt_FromLong( 1 ) );"""
+%s = PyInt_FromLong(%sl);  // To be corrected in next line.
+%s = PyNumber_InPlaceSubtract(%s, PyInt_FromLong(1));"""
                 % (
                     constant_identifier,
                     min_signed_long,
@@ -463,13 +461,13 @@ CHECK_OBJECT(const_int_pos_1);
 
             if str is bytes:
                 emit(
-                    "%s = UNSTREAM_UNICODE( %s );"
+                    "%s = UNSTREAM_UNICODE(%s);"
                     % (constant_identifier, stream_data.getStreamDataCode(encoded))
                 )
             else:
                 if str is not bytes and len(constant_value) == len(encoded):
                     emit(
-                        "%s = UNSTREAM_STRING_ASCII( %s, %d );"
+                        "%s = UNSTREAM_STRING_ASCII(%s, %d);"
                         % (
                             constant_identifier,
                             stream_data.getStreamDataCode(encoded),
@@ -478,7 +476,7 @@ CHECK_OBJECT(const_int_pos_1);
                     )
                 else:
                     emit(
-                        "%s = UNSTREAM_STRING( %s, %d );"
+                        "%s = UNSTREAM_STRING(%s, %d);"
                         % (
                             constant_identifier,
                             stream_data.getStreamDataCode(encoded),
@@ -504,7 +502,7 @@ CHECK_OBJECT(const_int_pos_1);
 
         if len(constant_value) == 1:
             emit(
-                "%s = UNSTREAM_CHAR( %d, %d );"
+                "%s = UNSTREAM_CHAR(%d, %d);"
                 % (
                     constant_identifier,
                     ord(constant_value[0]),
@@ -513,7 +511,7 @@ CHECK_OBJECT(const_int_pos_1);
             )
         else:
             emit(
-                "%s = UNSTREAM_STRING( %s, %d );"
+                "%s = UNSTREAM_STRING(%s, %d);"
                 % (
                     constant_identifier,
                     stream_data.getStreamDataCode(constant_value),
@@ -527,7 +525,7 @@ CHECK_OBJECT(const_int_pos_1);
         assert str is not bytes
 
         emit(
-            "%s = UNSTREAM_BYTES( %s );"
+            "%s = UNSTREAM_BYTES(%s);"
             % (constant_identifier, stream_data.getStreamDataCode(constant_value))
         )
 
@@ -535,7 +533,7 @@ CHECK_OBJECT(const_int_pos_1);
 
     if constant_type is float:
         emit(
-            "%s = UNSTREAM_FLOAT( %s );"
+            "%s = UNSTREAM_FLOAT(%s);"
             % (
                 constant_identifier,
                 stream_data.getStreamDataCode(
@@ -588,7 +586,7 @@ CHECK_OBJECT(const_int_pos_1);
             )
 
         emit(
-            "assert(PyDict_Size( %s ) == %d);"
+            "assert(PyDict_Size(%s) == %d);"
             % (constant_identifier, len(constant_value))
         )
 
@@ -601,7 +599,7 @@ CHECK_OBJECT(const_int_pos_1);
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
 
-        emit("%s = PyTuple_New( %d );" % (constant_identifier, len(constant_value)))
+        emit("%s = PyTuple_New(%d);" % (constant_identifier, len(constant_value)))
 
         for count, element_value in enumerate(constant_value):
             element_name = context.getConstantCode(constant=element_value)
@@ -618,7 +616,7 @@ CHECK_OBJECT(const_int_pos_1);
 
             # Do not take references, these won't be deleted ever.
             emit(
-                "PyTuple_SET_ITEM( %s, %d, %s ); Py_INCREF(%s);"
+                "PyTuple_SET_ITEM(%s, %d, %s); Py_INCREF(%s);"
                 % (constant_identifier, count, element_name, element_name)
             )
 
@@ -631,7 +629,7 @@ CHECK_OBJECT(const_int_pos_1);
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
 
-        emit("%s = PyList_New( %d );" % (constant_identifier, len(constant_value)))
+        emit("%s = PyList_New(%d);" % (constant_identifier, len(constant_value)))
 
         for count, element_value in enumerate(constant_value):
             element_name = context.getConstantCode(constant=element_value)
@@ -834,7 +832,7 @@ CHECK_OBJECT(const_int_pos_1);
             context=context,
         )
 
-        emit("%s = LOOKUP_BUILTIN( %s );" % (constant_identifier, builtin_identifier))
+        emit("%s = LOOKUP_BUILTIN(%s);" % (constant_identifier, builtin_identifier))
 
         return
 
@@ -902,8 +900,8 @@ def getConstantAccess(to_name, constant, emit, context):
     # Many cases, because for each type, we may copy or optimize by creating
     # empty.  pylint: disable=too-many-branches,too-many-statements
 
-    if to_name.c_type == "nuitka_bool" and Options.isDebug():
-        info("Missing optimization for constant to C bool.")
+    if to_name.c_type == "nuitka_bool" and Options.is_debug:
+        codegen_missing.info("Missing optimization for constant to C bool.")
 
     if type(constant) is dict:
         if constant:
@@ -917,18 +915,18 @@ def getConstantAccess(to_name, constant, emit, context):
                 needs_deep = False
 
             if needs_deep:
-                code = "DEEP_COPY( %s )" % context.getConstantCode(constant)
+                code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
             else:
-                code = "PyDict_Copy( %s )" % context.getConstantCode(constant)
+                code = "PyDict_Copy(%s)" % context.getConstantCode(constant)
         else:
             code = "PyDict_New()"
 
         ref_count = 1
     elif type(constant) is set:
         if constant:
-            code = "PySet_New( %s )" % context.getConstantCode(constant)
+            code = "PySet_New(%s)" % context.getConstantCode(constant)
         else:
-            code = "PySet_New( NULL )"
+            code = "PySet_New(NULL)"
 
         ref_count = 1
     elif type(constant) is list:
@@ -941,11 +939,11 @@ def getConstantAccess(to_name, constant, emit, context):
                 needs_deep = False
 
             if needs_deep:
-                code = "DEEP_COPY( %s )" % context.getConstantCode(constant)
+                code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
             else:
-                code = "LIST_COPY( %s )" % context.getConstantCode(constant)
+                code = "LIST_COPY(%s)" % context.getConstantCode(constant)
         else:
-            code = "PyList_New( 0 )"
+            code = "PyList_New(0)"
 
         ref_count = 1
     elif type(constant) is tuple:
@@ -957,7 +955,7 @@ def getConstantAccess(to_name, constant, emit, context):
             needs_deep = False
 
         if needs_deep:
-            code = "DEEP_COPY( %s )" % context.getConstantCode(constant)
+            code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
 
             ref_count = 1
         else:
@@ -965,7 +963,7 @@ def getConstantAccess(to_name, constant, emit, context):
 
             ref_count = 0
     elif type(constant) is bytearray:
-        code = "BYTEARRAY_COPY( %s )" % context.getConstantCode(constant)
+        code = "BYTEARRAY_COPY(%s)" % context.getConstantCode(constant)
         ref_count = 1
     else:
         code = context.getConstantCode(constant=constant)

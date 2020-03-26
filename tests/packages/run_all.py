@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -75,7 +75,7 @@ def main():
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
-            my_print("Consider output of recursively compiled program:", filename)
+            my_print("Consider output of recursively compiled package:", filename)
 
             filename_main = None
             for filename_main in os.listdir(filename):
@@ -107,8 +107,6 @@ Error, no package in dir '%s' found, incomplete test case."""
 
             if search_mode.abortIfExecuted():
                 break
-        else:
-            my_print("Skipping", filename)
 
     search_mode.finish()
 

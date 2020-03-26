@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -69,7 +69,7 @@ def getTupleCreationCode(to_name, elements, emit, context):
             )
 
             if count == 0:
-                emit("%s = PyTuple_New( %d );" % (to_name, len(elements)))
+                emit("%s = PyTuple_New(%d);" % (to_name, len(elements)))
 
                 context.addCleanupTempName(to_name)
 
@@ -78,7 +78,7 @@ def getTupleCreationCode(to_name, elements, emit, context):
             else:
                 context.removeCleanupTempName(element_name)
 
-            emit("PyTuple_SET_ITEM( %s, %d, %s );" % (to_name, count, element_name))
+            emit("PyTuple_SET_ITEM(%s, %d, %s);" % (to_name, count, element_name))
 
 
 def generateBuiltinTupleCode(to_name, expression, emit, context):

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -44,6 +44,7 @@ from nuitka.nodes.LocalsDictNodes import (
     StatementReleaseLocals,
     StatementSetLocalsDictionary,
 )
+from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeNameRef
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -116,10 +117,9 @@ def buildClassNode2(provider, node, source_ref):
         StatementAssignmentVariableName(
             provider=function_body,
             variable_name="__module__",
-            source=makeConstantRefNode(
-                constant=provider.getParentModule().getFullName().asString(),
+            source=ExpressionModuleAttributeNameRef(
+                variable=provider.getParentModule().getVariableForReference("__name__"),
                 source_ref=source_ref,
-                user_provided=True,
             ),
             source_ref=source_ref.atInternal(),
         ),

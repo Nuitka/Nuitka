@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -31,7 +31,6 @@
 #include "HelpersClasses.c"
 #include "HelpersHeapStorage.c"
 #include "HelpersImport.c"
-#include "HelpersPathTools.c"
 #include "HelpersStrings.c"
 
 void copyStringSafe(char *buffer, char const *source, size_t buffer_size) {
@@ -812,10 +811,14 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 }
 
 void PRINT_REFCOUNT(PyObject *object) {
-    char buffer[1024];
-    snprintf(buffer, sizeof(buffer) - 1, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT(object));
+    if (object) {
+        char buffer[1024];
+        snprintf(buffer, sizeof(buffer) - 1, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT(object));
 
-    PRINT_STRING(buffer);
+        PRINT_STRING(buffer);
+    } else {
+        PRINT_STRING("<null>");
+    }
 }
 
 bool PRINT_STRING(char const *str) {
@@ -824,6 +827,17 @@ bool PRINT_STRING(char const *str) {
     Py_DECREF(tmp);
 
     return res;
+}
+
+bool PRINT_FORMAT(char const *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    // Only used for debug purposes, lets be unsafe here.
+    char buffer[4096];
+
+    vsprintf(buffer, fmt, args);
+    return PRINT_STRING(buffer);
 }
 
 bool PRINT_REPR(PyObject *object) {
@@ -873,12 +887,14 @@ void PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyObje
 void PRINT_CURRENT_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
+    PRINT_STRING("current_exc=");
     PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
 }
 
 void PRINT_PUBLISHED_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
+    PRINT_STRING("thread_exc=");
     PRINT_EXCEPTION(EXC_TYPE(tstate), EXC_VALUE(tstate), EXC_TRACEBACK(tstate));
 }
 
@@ -960,11 +976,7 @@ PyObject *UNSTREAM_UNICODE(unsigned char const *buffer, Py_ssize_t size) {
 #endif
 
 PyObject *UNSTREAM_STRING(unsigned char const *buffer, Py_ssize_t size, bool intern) {
-#if PYTHON_VERSION < 300
-    PyObject *result = PyString_FromStringAndSize((char const *)buffer, size);
-#else
-    PyObject *result = PyUnicode_FromStringAndSize((char const *)buffer, size);
-#endif
+    PyObject *result = Nuitka_String_FromStringAndSize((char const *)buffer, size);
 
     assert(!ERROR_OCCURRED());
     CHECK_OBJECT(result);
@@ -1012,11 +1024,7 @@ PyObject *UNSTREAM_STRING_ASCII(unsigned char const *buffer, Py_ssize_t size, bo
 #endif
 
 PyObject *UNSTREAM_CHAR(unsigned char value, bool intern) {
-#if PYTHON_VERSION < 300
-    PyObject *result = PyString_FromStringAndSize((char const *)&value, 1);
-#else
-    PyObject *result = PyUnicode_FromStringAndSize((char const *)&value, 1);
-#endif
+    PyObject *result = Nuitka_String_FromStringAndSize((char const *)&value, 1);
 
     assert(!ERROR_OCCURRED());
     CHECK_OBJECT(result);
@@ -1149,7 +1157,7 @@ static bool set_name(PyClassObject *klass, PyObject *value) {
 }
 
 static int nuitka_class_setattr(PyClassObject *klass, PyObject *attr_name, PyObject *value) {
-    char *sattr_name = PyString_AsString(attr_name);
+    char const *sattr_name = PyString_AsString(attr_name);
 
     if (sattr_name[0] == '_' && sattr_name[1] == '_') {
         Py_ssize_t n = PyString_Size(attr_name);
@@ -1198,7 +1206,7 @@ static int nuitka_class_setattr(PyClassObject *klass, PyObject *attr_name, PyObj
 }
 
 static PyObject *nuitka_class_getattr(PyClassObject *klass, PyObject *attr_name) {
-    char *sattr_name = PyString_AsString(attr_name);
+    char const *sattr_name = PyString_AsString(attr_name);
 
     if (sattr_name[0] == '_' && sattr_name[1] == '_') {
         if (strcmp(sattr_name, "__dict__") == 0) {
@@ -1718,7 +1726,7 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
 #if defined(_NUITKA_EXE)
 
 #ifndef _WIN32
-char *getBinaryDirectoryHostEncoded() {
+char const *getBinaryDirectoryHostEncoded() {
     static char binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
 
@@ -1776,63 +1784,65 @@ char *getBinaryDirectoryHostEncoded() {
 }
 #endif
 
-wchar_t *getBinaryDirectoryWideChars() {
+wchar_t const *getBinaryDirectoryWideChars() {
     static wchar_t binary_directory[2 * MAXPATHLEN + 1];
     static bool init_done = false;
 
-    if (init_done) {
-        return binary_directory;
-    }
-
+    if (init_done == false) {
 #ifdef _WIN32
-    binary_directory[0] = 0;
-    DWORD res = GetModuleFileNameW(NULL, binary_directory, MAXPATHLEN);
-    assert(res != 0);
+        binary_directory[0] = 0;
+        DWORD res = GetModuleFileNameW(NULL, binary_directory, MAXPATHLEN);
+        assert(res != 0);
 
-    PathRemoveFileSpecW(binary_directory);
+        PathRemoveFileSpecW(binary_directory);
+
+        // Query length of result first.
+        DWORD length = GetShortPathNameW(binary_directory, NULL, 0);
+        assert(length != 0);
+
+        wchar_t *short_binary_directory = (wchar_t *)malloc((length + 1) * sizeof(wchar_t));
+        res = GetShortPathNameW(binary_directory, short_binary_directory, length);
+        assert(res != 0);
+
+        if (unlikely(res > length)) {
+            abort();
+        }
+
+        wcscpy(binary_directory, short_binary_directory);
+        free(short_binary_directory);
 #else
-    // TODO: Error checking.
-    mbstowcs(binary_directory, getBinaryDirectoryHostEncoded(), MAXPATHLEN);
+        // TODO: Error checking.
+        mbstowcs(binary_directory, getBinaryDirectoryHostEncoded(), MAXPATHLEN);
 #endif
 
-    init_done = true;
-    return binary_directory;
+        init_done = true;
+    }
+    return (wchar_t const *)binary_directory;
 }
 
 #ifdef _WIN32
-char *getBinaryDirectoryHostEncoded() {
+char const *getBinaryDirectoryHostEncoded() {
     static char *binary_directory = NULL;
 
     if (binary_directory != NULL) {
         return binary_directory;
     }
-    wchar_t *w = getBinaryDirectoryWideChars();
+    wchar_t const *w = getBinaryDirectoryWideChars();
 
-    // Query length of result first.
-    long length = GetShortPathNameW(w, NULL, 0);
-    assert(length != 0);
-
-    // TODO: Maybe not do this short path usage on Python3, which seems to cope
-    // better with unicode paths, but lets be safe for now.
-    wchar_t *short_binary_directory = (wchar_t *)malloc((length + 1) * sizeof(wchar_t));
-    long res = GetShortPathNameW(w, short_binary_directory, length);
-    assert(res != 0);
-
-    int bufsize = WideCharToMultiByte(CP_ACP, 0, short_binary_directory, -1, NULL, 0, NULL, NULL);
+    DWORD bufsize = WideCharToMultiByte(CP_ACP, 0, w, -1, NULL, 0, NULL, NULL);
     assert(bufsize != 0);
 
     binary_directory = (char *)malloc(bufsize + 1);
     assert(binary_directory);
 
-    int res2 = WideCharToMultiByte(CP_ACP, 0, short_binary_directory, -1, binary_directory, bufsize, NULL, NULL);
+    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, binary_directory, bufsize, NULL, NULL);
     assert(res2 != 0);
 
     if (unlikely(res2 > bufsize)) {
         abort();
     }
 
-    free(short_binary_directory);
-    return binary_directory;
+    return (char const *)binary_directory;
 }
 #endif
 
@@ -1848,11 +1858,7 @@ static PyObject *getBinaryDirectoryObject() {
 // On Python3, this must be a unicode object, it cannot be on Python2,
 // there e.g. code objects expect Python2 strings.
 #if PYTHON_VERSION >= 300
-#if defined(_WIN32)
-    binary_directory = PyUnicode_FromWideChar(getBinaryDirectoryWideChars(), -1);
-#else
-        binary_directory = PyUnicode_DecodeFSDefault(getBinaryDirectoryHostEncoded());
-#endif
+    binary_directory = PyUnicode_DecodeFSDefault(getBinaryDirectoryHostEncoded());
 #else
     binary_directory = PyString_FromString(getBinaryDirectoryHostEncoded());
 #endif
@@ -1887,10 +1893,9 @@ static HMODULE getDllModuleHandle() {
 }
 #endif
 
-static char *getDllDirectory() {
+static char const *getDllDirectory() {
 #if defined(_WIN32)
     static char path[MAXPATHLEN + 1];
-    HMODULE hm = NULL;
     path[0] = '\0';
 
 #if PYTHON_VERSION >= 300
@@ -1922,8 +1927,9 @@ static char *getDllDirectory() {
 
 void _initBuiltinModule() {
 #if _NUITKA_MODULE
-    if (builtin_module)
+    if (builtin_module != NULL) {
         return;
+    }
 #else
     assert(builtin_module == NULL);
 #endif
@@ -1939,7 +1945,6 @@ void _initBuiltinModule() {
 
 #ifdef _NUITKA_STANDALONE
     int res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", getBinaryDirectoryObject());
-
     assert(res == 0);
 #endif
 
@@ -1981,29 +1986,16 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
 #if defined(_NUITKA_EXE)
         our_path_object = getBinaryDirectoryObject();
 #else
-#if PYTHON_VERSION >= 300
-        our_path_object = PyUnicode_FromString(getDllDirectory());
-#else
-        our_path_object = PyString_FromString(getDllDirectory());
-#endif
+        our_path_object = Nuitka_String_FromString(getDllDirectory());
 #endif
     }
 
     char sep[2] = {SEP, 0};
 
-#if PYTHON_VERSION < 300
-    PyObject *result = PyNumber_Add(our_path_object, PyString_FromString(sep));
-#else
-    PyObject *result = PyNumber_Add(our_path_object, PyUnicode_FromString(sep));
-#endif
-
+    PyObject *result = PyNumber_Add(our_path_object, Nuitka_String_FromString(sep));
     CHECK_OBJECT(result);
 
-#if PYTHON_VERSION < 300
     result = PyNumber_InPlaceAdd(result, relative);
-#else
-    result = PyNumber_InPlaceAdd(result, relative);
-#endif
 
     CHECK_OBJECT(result);
 

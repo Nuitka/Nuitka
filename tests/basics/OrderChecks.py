@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -426,10 +426,10 @@ def importOrderCheck():
     def name():
         print("name", end=" ")
 
-    def globals():  # @ReservedAssignment
+    def globals():
         print("globals", end=" ")
 
-    def locals():  # @ReservedAssignment
+    def locals():
         print("locals", end=" ")
 
     def fromlist():

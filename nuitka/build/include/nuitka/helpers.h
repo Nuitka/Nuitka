@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -55,7 +55,10 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject **args);
 #include "nuitka/helper/printing.h"
 
 // Helper to check that an object is valid and has positive reference count.
-#define CHECK_OBJECT(value) (assert(value != NULL), assert(Py_REFCNT(value) > 0));
+#define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0));
+#define CHECK_OBJECT_X(value) (assert((value) == NULL || Py_REFCNT(value) > 0));
+
+extern void CHECK_OBJECT_DEEP(PyObject *value);
 
 #include "nuitka/exceptions.h"
 
@@ -393,9 +396,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME(PyObject *module) {
 }
 
 // Get the binary directory was wide characters.
-extern wchar_t *getBinaryDirectoryWideChars();
+extern wchar_t const *getBinaryDirectoryWideChars();
 // Get the binary directory, translated to native path
-extern char *getBinaryDirectoryHostEncoded();
+extern char const *getBinaryDirectoryHostEncoded();
 
 #if _NUITKA_STANDALONE
 extern void setEarlyFrozenModulesFileAttribute(void);

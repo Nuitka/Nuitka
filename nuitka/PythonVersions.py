@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,7 +29,19 @@ import sys
 
 
 def getSupportedPythonVersions():
-    return ("2.6", "2.7", "3.3", "3.4", "3.5", "3.6", "3.7")
+    """ Officially supported Python versions for Nuitka.
+
+    """
+
+    return ("2.6", "2.7", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8")
+
+
+def getPartiallySupportedPythonVersions():
+    """ Partially supported Python versions for Nuitka.
+
+    """
+
+    return ()
 
 
 def getSupportedPythonVersionStr():
@@ -46,7 +58,8 @@ def getSupportedPythonVersionStr():
 def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]
 
-    return big * 100 + major * 10 + minor
+    # TODO: Give up on decimal versions already.
+    return big * 100 + major * 10 + min(9, minor)
 
 
 python_version = _getPythonVersion()
@@ -137,7 +150,10 @@ def isUninstalledPython():
         system_path = os.path.normcase(buf.value)
         return not getRunningPythonDLLPath().startswith(system_path)
 
-    return "Anaconda" in sys.version or "WinPython" in sys.version
+    return (
+        os.path.exists(os.path.join(sys.prefix, "conda-meta"))
+        or "WinPython" in sys.version
+    )
 
 
 def getRunningPythonDLLPath():

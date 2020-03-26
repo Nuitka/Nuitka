@@ -45,12 +45,9 @@ request, license it as that too.
 
 If you want to ask a question about a specific Nuitka aspect, please first of all..
 
-* Search through [Github issues tagged as "question"](https://github.com/kayhayen/Nuitka/issues?q=label%3Aquestion)
-* Search the [nuitka-dev] mailing list archives, e.g.
-  searching for term "standalone macos" via Google with search string
-  `standalone site:https://www.freelists.org/archive` may already reveal what
-  you are looking for.
-* If asked in neither forum, ask it there.
+* Search through [Github issues tagged as
+"question"](https://github.com/kayhayen/Nuitka/issues?q=label%3Aquestion) * If
+asked in neither forum, ask it there.
 
 If you want to post a problem/bug, to help us understand and resolve your issue
 please check that you have provided the information below:

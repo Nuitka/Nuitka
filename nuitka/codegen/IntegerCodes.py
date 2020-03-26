@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -59,7 +59,7 @@ def generateBuiltinLong2Code(to_name, expression, emit, context):
         to_name, "long_value", expression, emit, context
     ) as result_name:
 
-        emit("%s = BUILTIN_LONG2( %s, %s );" % (result_name, value_name, base_name))
+        emit("%s = BUILTIN_LONG2(%s, %s);" % (result_name, value_name, base_name))
 
         getErrorExitCode(
             check_name=result_name,
@@ -96,7 +96,7 @@ def generateBuiltinInt2Code(to_name, expression, emit, context):
         to_name, "int_value", expression, emit, context
     ) as result_name:
 
-        emit("%s = BUILTIN_INT2( %s, %s );" % (result_name, value_name, base_name))
+        emit("%s = BUILTIN_INT2(%s, %s);" % (result_name, value_name, base_name))
 
         getErrorExitCode(
             check_name=result_name,

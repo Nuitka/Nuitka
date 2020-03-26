@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -40,18 +40,15 @@ template_metapath_loader_body = """\
  * our own loading for each of these.
  */
 %(metapath_module_decls)s
-static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] =
-{
+static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] = {
 %(metapath_loader_inittab)s
     {NULL, NULL, 0, 0, 0}
 };
 
-void setupMetaPathBasedLoader(void)
-{
+void setupMetaPathBasedLoader(void) {
     static bool init_done = false;
 
-    if (init_done == false)
-    {
+    if (init_done == false) {
         registerMetaPathBasedUnfreezer(meta_path_loader_entries);
         init_done = true;
     }

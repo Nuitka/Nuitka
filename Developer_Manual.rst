@@ -20,7 +20,7 @@ decisions we made. Therefore we are e.g. presenting here the type inference
 plans before implementing them. And we update them as we proceed.
 
 It grows out of discussions and presentations made at conferences as well as
-private conversations or discussions on the mailing list or bug tracker.
+private conversations or issue tracker.
 
 Milestones
 ==========
@@ -143,50 +143,19 @@ your Nuitka checkout. If you are not familiar with Eclipse, this is Free
 Software IDE,designed to be universally extended, and it truly is. There are
 plugins available for nearly everything.
 
-The extensions to be installed are these (check their precise name in brackets
-in the plugin overview after putting it into "search" for in the extensions
-part
+The extensions to be installed are part of the Visual Code recommendations in
+.vscode/extensions.json and you will be prompted about that.
 
-- Python (ms-python.python)
-- reStructuredText (lextudio.restructuredtext)
-- C/C++ (ms-vscode.cpptools)
+Another one we found useful to collaborate:
 
-Others we found useful:
-
-- Reflow paragraph (troelsdamgaard.reflow-paragraph)
 - Live Share (ms-vsliveshare.vsliveshare)
 
-Eclipse
--------
+Eclipse / PyCharm
+-----------------
 
-Download Eclipse from here: https://www.eclipse.org/downloads/packages/
+Don't use it anymore, we consider Visual Studio Code to be far superior for
+delivering a nice out of the box environment.
 
-Pick "Eclipse IDE for C/C++ Developers" as that comes with everything useful
-for C development included. Install it.
-
-After launching, you see a welcome screen. But Eclipse will need more setup
-to become a useful IDE. Go to menu point ``Help``/``Eclipse Marketplace`` as
-that is the easiest way to install your plugins. Install these ones:
-
-- PyDev (Python IDE for Eclipse)
-
-  This is for the majority of code in Nuitka, the Python code, to easily
-  navigate and search it, as well as autocompletion.
-
-- AnyEdit Tools
-
-  Proper whitespace handling for Eclipse, this strips trailing whitespace,
-  which Eclipse doesn't handle outside of Java.
-
-- ReST Editor
-
-  This is good for editing the User Manual, Developer Manual, and generally all
-  documentation of Nuitka.
-
-PyCharm
--------
-
-TODO.
 
 Commit and Code Hygiene
 =======================
@@ -649,6 +618,8 @@ For fine grained control, it has the following options::
                         Default is False.
   --no-python3.7        Do not use Python 3.7 even if available on the system.
                         Default is False.
+  --no-python3.8        Do not use Python 3.8 even if available on the system.
+                        Default is False.
   --coverage            Make a coverage analysis, that does not really check.
                         Default is False.
 
@@ -753,6 +724,19 @@ a detailed description of how to write your own plugin.
 
 To learn about plugin option specification consult
 `this document <https://github.com/Nuitka/Nuitka/blob/develop/Using-Plugin-Options.rst>`__.
+
+
+Working with the CPython suites
+===============================
+
+The CPython test suites are different branches of the same submodule. When you
+update your git checkout, they will frequently become detached. In this case,
+simply execute this command:
+
+.. code-block: sh
+
+    git submodule foreach 'git checkout $(basename $(pwd)) && \
+    git reset --hard origin/$(basename $(pwd))'
 
 
 Design Descriptions
@@ -1524,8 +1508,7 @@ by looking at the original CPython implementation.
 
 .. code-block:: C
 
-   PyObject *builtin_len(PyObject *self, PyObject *v)
-   {
+   PyObject *builtin_len(PyObject *self, PyObject *v) {
        Py_ssize_t res;
 
        res = PyObject_Size(v);
@@ -1539,8 +1522,7 @@ C/API function used in the ``builtin_len`` implementation:
 
 .. code-block:: C
 
-   Py_ssize_t PyObject_Size(PyObject *o)
-   {
+   Py_ssize_t PyObject_Size(PyObject *o) {
        PySequenceMethods *m;
 
        if (o == NULL) {
@@ -1563,8 +1545,7 @@ that fails, next up the mapping size is tried.
 
 .. code-block:: C
 
-   Py_ssize_t PyMapping_Size(PyObject *o)
-   {
+   Py_ssize_t PyMapping_Size(PyObject *o) {
        PyMappingMethods *m;
 
        if (o == NULL) {
@@ -2345,7 +2326,7 @@ am not sure, what ``__prepare__`` is allowed to return.
    # Keyword arguments go next, __metaclass__ is just one of them. In principle
    # we need to forward the others as well, but this is ignored for the sake of
    # brevity.
-   tmp_metaclass = select_metaclass(tmp_bases, SomeMetaClass )
+   tmp_metaclass = select_metaclass(tmp_bases, SomeMetaClass)
 
    tmp_prepared = tmp_metaclass.__prepare__("SomeClass", tmp_bases)
 
@@ -3046,7 +3027,7 @@ things are not affectable by aliasing in any way.
 
    b += 4 # a is not changed
 
-   a = [ 3 ]
+   a = [3]
    b = a
 
    b += [4] # a is changed indeed

@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -24,6 +24,7 @@
 extern bool PRINT_NEW_LINE(void);
 extern bool PRINT_ITEM(PyObject *object);
 extern bool PRINT_STRING(char const *str);
+extern bool PRINT_FORMAT(char const *fmt, ...);
 
 extern bool PRINT_ITEM_TO(PyObject *file, PyObject *object);
 extern bool PRINT_NEW_LINE_TO(PyObject *file);

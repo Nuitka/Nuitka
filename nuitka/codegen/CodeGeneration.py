@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -101,6 +101,7 @@ from .DictCodes import (
     generateDictOperationInCode,
     generateDictOperationRemoveCode,
     generateDictOperationSetCode,
+    generateDictOperationSetCodeKeyValue,
     generateDictOperationUpdateCode,
 )
 from .EvalCodes import (
@@ -475,7 +476,6 @@ def generateHelpersCode(other_modules):
     calls_decl_code = getCallsDecls()
 
     loader_code = getMetapathLoaderBodyCode(other_modules)
-
     calls_body_code = getCallsCode()
 
     return calls_decl_code, calls_body_code + loader_code
@@ -709,6 +709,7 @@ setStatementDispatchDict(
         "STATEMENT_LIST_OPERATION_APPEND": generateListOperationAppendCode,
         "STATEMENT_SET_OPERATION_ADD": generateSetOperationAddCode,
         "STATEMENT_DICT_OPERATION_SET": generateDictOperationSetCode,
+        "STATEMENT_DICT_OPERATION_SET_KEY_VALUE": generateDictOperationSetCodeKeyValue,
         "STATEMENT_LOCALS_DICT_OPERATION_SET": generateLocalsDictSetCode,
         "STATEMENT_LOCALS_DICT_OPERATION_DEL": generateLocalsDictDelCode,
         "STATEMENT_LOOP": generateLoopCode,
