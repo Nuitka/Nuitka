@@ -33,6 +33,12 @@ matrix:
       sudo: required
       env: PYTHON=python3.7
       cache: ccache
+    - os: linux
+      python: 3.8
+      dist: xenial
+      sudo: required
+      env: PYTHON=python3.8
+      cache: ccache
     # - os: osx
     #   osx_image: xcode11.3
     #   language: shell
