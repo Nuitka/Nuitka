@@ -132,6 +132,28 @@ def main():
 
         Execution.callExec(args)
 
+    # Inform the user about potential issues.
+    from nuitka.PythonVersions import getSupportedPythonVersions
+
+    if current_version not in getSupportedPythonVersions():
+        # Do not disturb run of automatic tests, detected from the presence of
+        # that environment variable.
+        if "PYTHON" not in os.environ:
+            Tracing.general.warning(
+                "The version '%s' is not currently supported. Expect problems.",
+                current_version,
+            )
+
+    if os.name == "nt":
+        # Windows store Python's don't allow looking at the python, catch that.
+        try:
+            with open(sys.executable):
+                pass
+        except OSError:
+            sys.exit(
+                "Error, the Python from Windows store is not supported, check user manual."
+            )
+
     # Load plugins after we know, we don't execute again.
     from nuitka.plugins.Plugins import activatePlugins
 
@@ -141,19 +163,6 @@ def main():
         from nuitka.utils import MemoryUsage
 
         MemoryUsage.startMemoryTracing()
-
-    # Inform the user about potential issues.
-    from nuitka.PythonVersions import getSupportedPythonVersions
-
-    if current_version not in getSupportedPythonVersions():
-
-        # Do not disturb run of automatic tests, detected from the presence of
-        # that environment variable.
-        if "PYTHON" not in os.environ:
-            Tracing.general.warning(
-                "The version '%s' is not currently supported. Expect problems.",
-                current_version,
-            )
 
     if "NUITKA_NAMESPACES" in os.environ:
         # Restore the detected name space packages, that were force loaded in
