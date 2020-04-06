@@ -944,7 +944,7 @@ if gcc_mode and not noelf_mode and not macosx_target:
 
 if msvc_mode:
     # With Clang on Windows, there is also an linker to use.
-    env.Append(CCFLAGS=["/EHsc", "/J", "/Gd"])
+    env.Append(CCFLAGS=["/EHsc", "/J", "/Gd", "/bigobj"])
 
     # No incremental linking.
     env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
