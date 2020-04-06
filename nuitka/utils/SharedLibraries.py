@@ -277,8 +277,8 @@ def getPEFileInformation(filename):
         warning(
             "Python %s bits with %s bits dependencies in '%s'"
             % (
-                "64" if python_is_64bit else "32",
-                "32" if python_is_64bit else "64",
+                ("32" if python_is_64bit else "64"),
+                ("64" if extracted["AMD64"] else "32"),
                 filename,
             )
         )
@@ -301,7 +301,7 @@ def callInstallNameTool(filename, mapping):
     """
     command = ["install_name_tool"]
     for old_path, new_path in mapping:
-        command += ["-change", old_path, new_path]
+        command += ("-change", old_path, new_path)
     command.append(filename)
 
     with withMadeWritableFileMode(filename):
