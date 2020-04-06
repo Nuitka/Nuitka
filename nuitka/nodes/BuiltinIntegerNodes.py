@@ -35,10 +35,10 @@ from .ExpressionBases import (
     ExpressionSpecBasedComputationMixin,
 )
 from .shapes.BuiltinTypeShapes import (
-    ShapeTypeIntOrLong,
-    ShapeTypeIntOrLongDerived,
-    ShapeTypeLong,
-    ShapeTypeLongDerived,
+    tshape_int_or_long,
+    tshape_int_or_long_derived,
+    tshape_long,
+    tshape_long_derived,
 )
 
 
@@ -53,7 +53,7 @@ class ExpressionBuiltinInt1(ExpressionChildHavingBase):
 
     def getTypeShape(self):
         # TODO: Depending on input type shape and value, we should improve this.
-        return ShapeTypeIntOrLongDerived
+        return tshape_int_or_long_derived
 
     def computeExpression(self, trace_collection):
         return self.subnode_value.computeExpressionInt(
@@ -123,7 +123,7 @@ class ExpressionBuiltinInt2(ExpressionBuiltinIntLong2Base):
     builtin = int
 
     def getTypeShape(self):
-        return ShapeTypeIntOrLong
+        return tshape_int_or_long
 
 
 if python_version < 300:
@@ -139,7 +139,7 @@ if python_version < 300:
 
         def getTypeShape(self):
             # TODO: Depending on input type shape and value, we should improve this.
-            return ShapeTypeLongDerived
+            return tshape_long_derived
 
         def computeExpression(self, trace_collection):
             return self.subnode_value.computeExpressionLong(
@@ -156,4 +156,4 @@ if python_version < 300:
         builtin = long
 
         def getTypeShape(self):
-            return ShapeTypeLong
+            return tshape_long

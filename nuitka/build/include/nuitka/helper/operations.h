@@ -53,260 +53,56 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNARY_OPERATION(unary_api api, PyObject *o
     return result;
 }
 
-typedef PyObject *(binary_api)(PyObject *, PyObject *);
-
-NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION(binary_api api, PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-
-    PyObject *result = api(operand1, operand2);
-
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-    return result;
-}
-
 // Generated helpers to execute operations on fully or partially known types.
 #include "nuitka/helper/operations_binary_add.h"
 #include "nuitka/helper/operations_binary_bitand.h"
 #include "nuitka/helper/operations_binary_bitor.h"
 #include "nuitka/helper/operations_binary_bitxor.h"
+#include "nuitka/helper/operations_binary_divmod.h"
 #include "nuitka/helper/operations_binary_floordiv.h"
 #include "nuitka/helper/operations_binary_lshift.h"
 #include "nuitka/helper/operations_binary_mod.h"
-#include "nuitka/helper/operations_binary_mul.h"
+#include "nuitka/helper/operations_binary_mult.h"
 #include "nuitka/helper/operations_binary_pow.h"
 #include "nuitka/helper/operations_binary_rshift.h"
 #include "nuitka/helper/operations_binary_sub.h"
 #include "nuitka/helper/operations_binary_truediv.h"
 
+#include "nuitka/helper/operations_inplace_add.h"
+#include "nuitka/helper/operations_inplace_bitand.h"
+#include "nuitka/helper/operations_inplace_bitor.h"
+#include "nuitka/helper/operations_inplace_bitxor.h"
+#include "nuitka/helper/operations_inplace_floordiv.h"
+#include "nuitka/helper/operations_inplace_lshift.h"
+#include "nuitka/helper/operations_inplace_mod.h"
+#include "nuitka/helper/operations_inplace_mult.h"
+#include "nuitka/helper/operations_inplace_pow.h"
+#include "nuitka/helper/operations_inplace_rshift.h"
+#include "nuitka/helper/operations_inplace_sub.h"
+#include "nuitka/helper/operations_inplace_truediv.h"
+
 #if PYTHON_VERSION < 300
 // Classical division is Python2 only.
 #include "nuitka/helper/operations_binary_olddiv.h"
+#include "nuitka/helper/operations_inplace_olddiv.h"
 #endif
-
 #if PYTHON_VERSION >= 350
 // Matrix multiplication is Python3.5 or higher only.
 #include "nuitka/helper/operations_binary_matmult.h"
+#include "nuitka/helper/operations_inplace_matmult.h"
 #endif
 
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_INPLACE(binary_api api, PyObject **operand1, PyObject *operand2) {
-    assert(operand1);
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-
-    // TODO: There is not really much point in these things.
-    PyObject *result = BINARY_OPERATION(api, *operand1, operand2);
-
-    if (unlikely(result == NULL)) {
-        return false;
-    }
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = result;
-
-    return true;
-}
-
-// Helpers to execute "+=" on fully or partially known types.
-extern bool BINARY_OPERATION_ADD_LIST_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_OBJECT_LIST_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_LIST_LIST_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_OBJECT_TUPLE_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_TUPLE_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_TUPLE_TUPLE_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_INT_INT_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_LONG_LONG_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_UNICODE_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_OBJECT_STR_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_STR_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_STR_STR_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE(PyObject **operand1, PyObject *operand2);
-extern bool BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
-
-static bool FLOAT_MUL_INCREMENTAL(PyObject **operand1, PyObject *operand2) {
-    assert(PyFloat_CheckExact(*operand1));
-    assert(PyFloat_CheckExact(operand2));
-
-    PyFloat_AS_DOUBLE(*operand1) *= PyFloat_AS_DOUBLE(operand2);
-
-    return true;
-}
-
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_MUL_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1);
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-
-    if (Py_REFCNT(*operand1) == 1) {
-        if (PyFloat_CheckExact(*operand1) && PyFloat_CheckExact(operand2)) {
-            return FLOAT_MUL_INCREMENTAL(operand1, operand2);
-        }
-    }
-
-    PyObject *result = PyNumber_InPlaceMultiply(*operand1, operand2);
-
-    if (unlikely(result == NULL)) {
-        return false;
-    }
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = result;
-
-    return true;
-}
-
-#if PYTHON_VERSION < 300
-NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_DIV(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_divide;
-    }
-
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_divide;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
-
-        if (unlikely(err < 0)) {
-            return NULL;
-        }
-
-        if (err == 0) {
-            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
-
-            if (mv) {
-                binaryfunc slot = mv->nb_divide;
-
-                if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
-
-                    Py_DECREF(operand1);
-                    Py_DECREF(operand2);
-
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-            }
-
-            // CoerceEx did that
-            Py_DECREF(operand1);
-            Py_DECREF(operand2);
-        }
-    }
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: '%s' and '%s'", type1->tp_name, type2->tp_name);
-
-    return NULL;
-}
-#endif
-
-NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION2(PyObject *operand1, PyObject *operand2) {
-    PyObject *result = PyNumber_InPlacePower(operand1, operand2, Py_None);
-
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static bool POWER_OPERATION_INPLACE(PyObject **operand1, PyObject *operand2) {
-    PyObject *result = PyNumber_InPlacePower(*operand1, operand2, Py_None);
-
-    if (unlikely(result == NULL)) {
-        return false;
-    }
-
-    if (result != *operand1) {
-        Py_DECREF(*operand1);
-        *operand1 = result;
-    }
-
-    return true;
-}
-
+// TODO: Get rid of the need for these, we should inline the abstract
+// algorithms, for now we have them for easier templating.
+#define PyNumber_InPlaceSub PyNumber_InPlaceSubtract
+#define PyNumber_InPlaceMult PyNumber_InPlaceMultiply
+#define PyNumber_InPlaceOlddiv PyNumber_InPlaceDivide
+#define PyNumber_InPlacePow(a, b) PyNumber_InPlacePower(a, b, Py_None)
+#define PyNumber_InPlaceMod PyNumber_InPlaceRemainder
+#define PyNumber_InPlaceBitor PyNumber_InPlaceOr
+#define PyNumber_InPlaceBitxor PyNumber_InPlaceXor
+#define PyNumber_InPlaceBitand PyNumber_InPlaceAnd
+#define PyNumber_InPlaceTruediv PyNumber_InPlaceTrueDivide
+#define PyNumber_InPlaceFloordiv PyNumber_InPlaceFloorDivide
+#define PyNumber_InPlaceMatmult PyNumber_InPlaceMatrixMultiply
 #endif

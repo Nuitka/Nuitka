@@ -137,7 +137,7 @@ def buildClassNode2(provider, node, source_ref):
             )
         )
 
-    statements += [
+    statements += (
         body,
         StatementReturn(
             expression=ExpressionBuiltinLocalsRef(
@@ -145,7 +145,7 @@ def buildClassNode2(provider, node, source_ref):
             ),
             source_ref=source_ref,
         ),
-    ]
+    )
 
     body = makeStatementsSequenceFromStatement(
         statement=makeTryFinallyStatement(

@@ -176,7 +176,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
             source_ref=source.getSourceReference(),
         )
 
-    statements += [
+    statements += (
         # First create the iterator and store it.
         StatementAssignmentVariable(
             variable=tmp_iter_variable, source=iter_source, source_ref=source_ref
@@ -189,10 +189,10 @@ def _buildForLoopNode(provider, node, sync, source_ref):
             ),
             source_ref=source_ref,
         ),
-    ]
+    )
 
     if else_block is not None:
-        statements += [
+        statements.append(
             makeStatementConditional(
                 condition=ExpressionComparisonIs(
                     left=ExpressionTempVariableRef(
@@ -205,7 +205,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
                 no_branch=None,
                 source_ref=source_ref,
             )
-        ]
+        )
 
         statements = (
             makeTryFinallyStatement(

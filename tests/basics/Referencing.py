@@ -36,6 +36,12 @@ from nuitka.tools.testing.Common import executeReferenceChecked, checkDebugPytho
 
 # isort:start
 
+# Tests do all bad things,
+# pylint: disable=misplaced-bare-raise,raising-bad-type,reimported,undefined-variable
+# pylint: disable=broad-except,eval-used,redefined-outer-name,unused-argument,unused-variable
+# pylint: disable=attribute-defined-outside-init,bare-except,lost-exception,pointless-statement
+# pylint: disable=exec-used,global-statement,invalid-name,super-init-not-called
+
 checkDebugPython()
 
 

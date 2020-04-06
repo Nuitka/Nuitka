@@ -279,7 +279,7 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    statements += [
+    statements += (
         StatementAssignmentVariable(
             variable=class_variable,
             source=makeExpressionCall(
@@ -309,7 +309,7 @@ def buildClassNode3(provider, node, source_ref):
             source_ref=source_ref,
         ),
         StatementReturn(expression=class_variable_ref, source_ref=source_ref),
-    ]
+    )
 
     body = makeStatementsSequenceFromStatement(
         statement=makeTryFinallyStatement(
@@ -517,7 +517,7 @@ def buildClassNode3(provider, node, source_ref):
             ),
         )
 
-    statements += [
+    statements += (
         StatementAssignmentVariable(
             variable=tmp_metaclass,
             source=ExpressionSelectMetaclass(
@@ -598,7 +598,7 @@ def buildClassNode3(provider, node, source_ref):
             source=decorated_body,
             source_ref=source_ref,
         ),
-    ]
+    )
 
     if python_version >= 340:
         class_creation_function.qualname_setup = node.name, qualname_assign

@@ -28,10 +28,10 @@ from .NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
 )
 from .shapes.BuiltinTypeShapes import (
-    ShapeTypeBool,
-    ShapeTypeBytes,
-    ShapeTypeStr,
-    ShapeTypeUnicode,
+    tshape_bool,
+    tshape_bytes,
+    tshape_str,
+    tshape_unicode,
 )
 
 
@@ -61,7 +61,7 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
                 value_node=value,
             )
 
-        if shape in (ShapeTypeStr, ShapeTypeBytes, ShapeTypeUnicode):
+        if shape in (tshape_str, tshape_bytes, tshape_unicode):
             return (
                 wrapExpressionWithNodeSideEffects(
                     new_node=makeConstantReplacementNode(constant=True, node=self),
@@ -102,7 +102,7 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
         """ returns type shape of the 'all' node
 
         """
-        return ShapeTypeBool
+        return tshape_bool
 
     def mayRaiseException(self, exception_type):
         """ returns boolean True if try/except/finally is needed else False

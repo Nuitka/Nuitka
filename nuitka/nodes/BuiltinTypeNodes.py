@@ -35,17 +35,17 @@ from .NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
 )
 from .shapes.BuiltinTypeShapes import (
-    ShapeTypeBool,
-    ShapeTypeBytearray,
-    ShapeTypeBytes,
-    ShapeTypeBytesDerived,
-    ShapeTypeFloatDerived,
-    ShapeTypeFrozenset,
-    ShapeTypeList,
-    ShapeTypeSet,
-    ShapeTypeStrDerived,
-    ShapeTypeTuple,
-    ShapeTypeUnicodeDerived,
+    tshape_bool,
+    tshape_bytearray,
+    tshape_bytes,
+    tshape_bytes_derived,
+    tshape_float_derived,
+    tshape_frozenset,
+    tshape_list,
+    tshape_set,
+    tshape_str_derived,
+    tshape_tuple,
+    tshape_unicode_derived,
 )
 
 
@@ -91,7 +91,7 @@ class ExpressionBuiltinTuple(ExpressionBuiltinContainerBase):
     builtin_spec = BuiltinParameterSpecs.builtin_tuple_spec
 
     def getTypeShape(self):
-        return ShapeTypeTuple
+        return tshape_tuple
 
 
 class ExpressionBuiltinList(ExpressionBuiltinContainerBase):
@@ -100,7 +100,7 @@ class ExpressionBuiltinList(ExpressionBuiltinContainerBase):
     builtin_spec = BuiltinParameterSpecs.builtin_list_spec
 
     def getTypeShape(self):
-        return ShapeTypeList
+        return tshape_list
 
 
 class ExpressionBuiltinSet(ExpressionBuiltinContainerBase):
@@ -109,7 +109,7 @@ class ExpressionBuiltinSet(ExpressionBuiltinContainerBase):
     builtin_spec = BuiltinParameterSpecs.builtin_set_spec
 
     def getTypeShape(self):
-        return ShapeTypeSet
+        return tshape_set
 
 
 class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
@@ -118,7 +118,7 @@ class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
     builtin_spec = BuiltinParameterSpecs.builtin_frozenset_spec
 
     def getTypeShape(self):
-        return ShapeTypeFrozenset
+        return tshape_frozenset
 
 
 class ExpressionBuiltinFloat(ExpressionChildHavingBase):
@@ -132,7 +132,7 @@ class ExpressionBuiltinFloat(ExpressionChildHavingBase):
 
     def getTypeShape(self):
         # TODO: Depending on input type shape, we should improve this.
-        return ShapeTypeFloatDerived
+        return tshape_float_derived
 
     def computeExpression(self, trace_collection):
         return self.subnode_value.computeExpressionFloat(
@@ -172,7 +172,7 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
 
     def getTypeShape(self):
         # Note: Not allowed to subclass bool.
-        return ShapeTypeBool
+        return tshape_bool
 
 
 class ExpressionBuiltinUnicodeBase(
@@ -234,7 +234,7 @@ if python_version < 300:
             return new_node, change_tags, change_desc
 
         def getTypeShape(self):
-            return ShapeTypeStrDerived
+            return tshape_str_derived
 
     class ExpressionBuiltinUnicode(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_UNICODE"
@@ -242,7 +242,7 @@ if python_version < 300:
         builtin_spec = BuiltinParameterSpecs.builtin_unicode_spec
 
         def getTypeShape(self):
-            return ShapeTypeUnicodeDerived
+            return tshape_unicode_derived
 
 
 else:
@@ -253,7 +253,7 @@ else:
         builtin_spec = BuiltinParameterSpecs.builtin_str_spec
 
         def getTypeShape(self):
-            return ShapeTypeStrDerived
+            return tshape_str_derived
 
     class ExpressionBuiltinBytes3(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_BYTES3"
@@ -261,7 +261,7 @@ else:
         builtin_spec = BuiltinParameterSpecs.builtin_bytes_spec
 
         def getTypeShape(self):
-            return ShapeTypeBytes
+            return tshape_bytes
 
     class ExpressionBuiltinBytes1(ExpressionChildHavingBase):
         kind = "EXPRESSION_BUILTIN_BYTES1"
@@ -274,7 +274,7 @@ else:
 
         def getTypeShape(self):
             # TODO: Depending on input type shape, we should improve this.
-            return ShapeTypeBytesDerived
+            return tshape_bytes_derived
 
         def computeExpression(self, trace_collection):
             return self.subnode_value.computeExpressionBytes(
@@ -294,7 +294,7 @@ class ExpressionBuiltinBytearray1(ExpressionBuiltinTypeBase):
         ExpressionBuiltinTypeBase.__init__(self, value=value, source_ref=source_ref)
 
     def getTypeShape(self):
-        return ShapeTypeBytearray
+        return tshape_bytearray
 
 
 class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
@@ -320,4 +320,4 @@ class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
         return self, None, None
 
     def getTypeShape(self):
-        return ShapeTypeBytearray
+        return tshape_bytearray

@@ -40,20 +40,20 @@ def runValgrind(descr, tool, args, include_startup, save_logfilename=None):
         command = ["valgrind", "-q"]
 
         if tool == "callgrind":
-            command += ["--tool=callgrind", "--callgrind-out-file=%s" % log_filename]
+            command += ("--tool=callgrind", "--callgrind-out-file=%s" % log_filename)
         elif tool == "massif":
-            command += ["--tool=massif", "--massif-out-file=%s" % log_filename]
+            command += ("--tool=massif", "--massif-out-file=%s" % log_filename)
         else:
             sys.exit("Error, no support for tool '%s' yet." % tool)
 
         # Do not count things before main module starts its work.
         if not include_startup:
-            command += [
+            command += (
                 "--zero-before=init__main__()",
                 "--zero-before=init__main__",
                 "--zero-before=PyInit___main__",
                 "--zero-before=PyInit___main__()",
-            ]
+            )
 
         command.extend(args)
 

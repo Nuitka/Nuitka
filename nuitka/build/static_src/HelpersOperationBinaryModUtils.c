@@ -18,7 +18,7 @@
 /* These slots are still manually coded and are used by the generated code.
  *
  * The plan should be to generate these as well, so e.g. we can have a slot
- * SLOT_nb_remainder_LONG_INT that is optimal too.
+ * SLOT_nb_remainder_xx_LONG_INT that is optimal too.
  */
 
 // This file is included from another C file, help IDEs to still parse it on
@@ -30,7 +30,7 @@
 extern PyObject *const_int_neg_1;
 
 #if PYTHON_VERSION < 300
-static PyObject *SLOT_nb_remainder_STR_STR(PyObject *operand1, PyObject *operand2) {
+static PyObject *SLOT_nb_remainder_OBJECT_STR_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
     CHECK_OBJECT(operand2);
@@ -42,7 +42,7 @@ static PyObject *SLOT_nb_remainder_STR_STR(PyObject *operand1, PyObject *operand
 
 #endif
 
-static PyObject *SLOT_nb_remainder_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2) {
+static PyObject *SLOT_nb_remainder_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
     CHECK_OBJECT(operand2);

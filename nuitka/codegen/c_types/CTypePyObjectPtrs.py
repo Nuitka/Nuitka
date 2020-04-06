@@ -76,6 +76,20 @@ class CPythonPyObjectPtrBase(CTypeBase):
         emit(template % {"identifier": value_name, "tmp_name": tmp_name})
 
     @classmethod
+    def emitAssignmentCodeToNuitkaIntOrLong(
+        cls, to_name, value_name, needs_check, emit, context
+    ):
+        to_type = to_name.getCType()
+
+        to_type.emitVariantAssignmentCode(
+            int_name=to_name,
+            value_name=value_name,
+            int_value=None,
+            emit=emit,
+            context=context,
+        )
+
+    @classmethod
     def getTruthCheckCode(cls, value_name):
         return "CHECK_IF_TRUE(%s)" % value_name
 
@@ -130,6 +144,8 @@ class CPythonPyObjectPtrBase(CTypeBase):
 
 class CTypePyObjectPtr(CPythonPyObjectPtrBase):
     c_type = "PyObject *"
+
+    helper_code = "OBJECT"
 
     @classmethod
     def getInitValue(cls, init_from):
@@ -202,6 +218,10 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
             emit("%s = %s.ilong_object;" % (to_name, value_name))
         else:
             assert False, to_name.c_type
+
+    @classmethod
+    def getExceptionCheckCondition(cls, value_name):
+        return "%s == NULL" % value_name
 
 
 class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):

@@ -38,8 +38,8 @@ from .NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import ShapeTypeDict, ShapeTypeStr, ShapeTypeUnicode
-from .shapes.StandardShapes import ShapeUnknown
+from .shapes.BuiltinTypeShapes import tshape_dict, tshape_str, tshape_unicode
+from .shapes.StandardShapes import tshape_unknown
 
 
 class ExpressionBase(NodeBase):
@@ -48,7 +48,7 @@ class ExpressionBase(NodeBase):
 
     def getTypeShape(self):
         # Virtual method, pylint: disable=no-self-use
-        return ShapeUnknown
+        return tshape_unknown
 
     def getValueShape(self):
         return self
@@ -762,19 +762,19 @@ class ExpressionBase(NodeBase):
 
         """
 
-        return self.getTypeShape() is ShapeTypeDict
+        return self.getTypeShape() is tshape_dict
 
     def hasShapeStrExact(self):
         """ Does an expression have exactly a string shape.
 
         """
-        return self.getTypeShape() is ShapeTypeStr
+        return self.getTypeShape() is tshape_str
 
     def hasShapeUnicodeExact(self):
         """ Does an expression have exactly a unicode shape.
 
         """
-        return self.getTypeShape() is ShapeTypeUnicode
+        return self.getTypeShape() is tshape_unicode
 
 
 class CompileTimeConstantExpressionBase(ExpressionBase):

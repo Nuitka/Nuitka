@@ -41,174 +41,54 @@ sys.path.insert(
 
 # isort:start
 
-import jinja2
-
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
-    decideFilenameVersionSkip,
     decideNeeds2to3,
+    scanDirectoryForTestCases,
     setup,
 )
 
+# For templating.
+operations = (
+    ("Add", "+"),
+    ("Sub", "-"),
+    ("Pow", "**"),
+    ("Mult", "*"),
+    ("FloorDiv", "//"),
+    ("Div", "/"),
+    ("Mod", "%"),
+    ("Pow", "**"),
+    ("LShift", "<<"),
+    ("RShift", ">>"),
+    ("BitAnd", "&"),
+    ("BitOr", "|"),
+    ("BitXor", "^"),
+    ("Divmod", "divmod"),
+)
 
-def _createBigConstantsTest():
-    # Create large constants test on the fly.
-    with open("BigConstants.py", "w") as output:
-        output.write(
-            "'''Automatically generated test, not part of releases or git.\n\n'''\n"
-        )
-        output.write("print('%s')\n" % ("1234" * 17000))
+# For typical constant values to use in operation tests.
+candidates = (
+    ("NoneType", "None", "None"),
+    ("bool", "True", "False"),
+    ("int", "17", "-9"),
+    ("float", "17.2", "-8"),
+    ("complex", "2j", "-4j"),
+    ("str", "'lala'", "'lele'"),
+    ("bytearray", "bytearray(b'lulu')", "bytearray(b'lolo')"),
+    ("list", "[1,2]", "[3]"),
+    ("tuple", "(1,2)", "(3,)"),
+    ("set", "set([1,2])", "set([3])"),
+    ("frozenset", "frozenset([1,2])", "frozenset([3])"),
+    ("dict", "{1:2}", "{3:4}"),
+)
 
-
-def _createOperationsTest(python_version):
-    with open("Operations.py", "w") as output:
-        output.write(
-            "'''Automatically generated test, not part of releases or git.\n\n'''\n"
-        )
-        output.write("from __future__ import print_function\n\n")
-        output.write("cond = 8\n\n")
-        output.write("def forgetType(value):\n    return value\n\n")
-
-        operations = (
-            ("Add", "+"),
-            ("Sub", "-"),
-            ("Pow", "**"),
-            ("Mult", "*"),
-            ("FloorDiv", "//"),
-            ("Div", "/"),
-            ("Mod", "%"),
-            ("Pow", "**"),
-            ("LShift", "<<"),
-            ("RShift", ">>"),
-            ("BitAnd", "&"),
-            ("BitOr", "|"),
-            ("BitXor", "^"),
-        )
-
-        if python_version >= "3.5":
-            operations += (("MatMult", "@"),)
-
-        candidates = (
-            ("NoneType", "None", "None"),
-            ("bool", "True", "False"),
-            ("int", "17", "-9"),
-            ("float", "17.2", "-8"),
-            ("complex", "2j", "-4j"),
-            ("str", "'lala'", "'lele'"),
-            ("unicode", "u'lala'", "u'lele'"),
-            ("bytes", "b'lala'", "b'lele'"),
-            ("list", "[1,2]", "[3]"),
-            ("tuple", "(1,2)", "(3,)"),
-            ("set", "set([1,2])", "set([3])"),
-            ("dict", "{1:2}", "{3:4}"),
-        )
-
-        operation_template = """
-def {{operation_id}}():
-    # First value, which we expect to be compile time computed.
-    left = {{left_1}}
-    right = {{right_1}}
-
-    try:
-        x = left {{operation}} right
-    except Exception as e: # pylint: disable=broad-except
-        print("{{operation_id}} compile time occurred:", e)
+# For making an operator usage, needed because divmod is function style.
+def makeOperatorUsage(operator, left, right):
+    if operator == "divmod":
+        return "divmod(%s, %s)" % (left, right)
     else:
-        print("{{operation_id}} compile time result:", x)
-
-    # Second value, which we expect to be compile time computed as well.
-    left = {{left_2}}
-    right = {{right_2}}
-
-    try:
-        # We expect this to be compile time computed.
-        x = left {{operation}} right
-    except Exception as e: # pylint: disable=broad-except
-        print("{{operation_id}} compile time occurred:", e)
-    else:
-        print("{{operation_id}} compile time result:", x)
-
-    # Now the branch may make things less clear for mixed types and
-    # also require the operation to be checked at run time.
-    left = {{left_1}} if cond else {{left_2}}
-    right = {{right_1}} if cond else {{right_2}}
-
-    try:
-        # We expect this to be compile time error checked still.
-        x = left {{operation}} right
-    except Exception as e: # pylint: disable=broad-except
-        print("{{operation_id}} runtime occurred:", e)
-    else:
-        print("{{operation_id}} runtime result:", x)
-
-
-    # Now we forget one type, forcing run time error checking.
-    left = forgetType({{left_1}})
-    right = {{right_1}}
-
-    try:
-        x = left {{operation}} right
-    except Exception as e: # pylint: disable=broad-except
-        print("{{operation_id}} runtime occurred:", e)
-    else:
-        print("{{operation_id}} runtime result:", x)
-
-    # And the other, forcing run time error checking.
-    left = {{left_1}}
-    right = forgetType({{right_1}})
-
-    try:
-        # We expect this to be compile time error checked still.
-        x = left {{operation}} right
-    except Exception as e: # pylint: disable=broad-except
-        print("{{operation_id}} runtime occurred:", e)
-    else:
-        print("{{operation_id}} runtime result:", x)
-
-    # And both, forcing generic run time error checking.
-    left = {{left_1}}
-    right = forgetType({{right_1}})
-
-    try:
-        # We expect this to be compile time error checked still.
-        x = left {{operation}} right
-    except Exception as e: # pylint: disable=broad-except
-        print("{{operation_id}} runtime occurred:", e)
-    else:
-        print("{{operation_id}} runtime result:", x)
-
-{{operation_id}}()
-
-"""
-
-        template = jinja2.Template(operation_template)
-
-        for op_name, operation in operations:
-            for l_type, left_value1, left_value2 in candidates:
-                for r_type, right_value1, right_value2 in candidates:
-                    output.write(
-                        template.render(
-                            operation_id=op_name + "_" + l_type + "_" + r_type,
-                            operation=operation,
-                            left_1=left_value1,
-                            right_1=right_value1,
-                            left_2=left_value2,
-                            right_2=right_value2,
-                        )
-                    )
-
-
-def _createTests(python_version):
-    result = []
-
-    _createOperationsTest(python_version)
-    result.append("Operations.py")
-
-    _createBigConstantsTest()
-    result.append("BigConstants.py")
-
-    return result
+        return "%s %s %s" % (left, operator, right)
 
 
 def main():
@@ -216,15 +96,30 @@ def main():
 
     search_mode = createSearchMode()
 
-    filenames = _createTests(python_version)
+    # Singleton, pylint: disable=global-statement
+    global operations
+    global candidates
+
+    if python_version >= "3.5":
+        operations += (("MatMult", "@"),)
+
+    if python_version < "3":
+        candidates += (("long", "17L", "-9L"),)
+        candidates += (("unicode", "u'lala'", "u'lele'"),)
+    else:
+        candidates += (("bytes", "b'lala'", "b'lele'"),)
+
+    template_context = {
+        "operations": operations,
+        "ioperations": tuple(
+            operation for operation in operations if operation[0] != "Divmod"
+        ),
+        "candidates": candidates,
+        "makeOperatorUsage": makeOperatorUsage,
+    }
 
     # Now run all the tests in this directory.
-    for filename in filenames:
-        assert filename.endswith(".py")
-
-        if not decideFilenameVersionSkip(filename):
-            continue
-
+    for filename in scanDirectoryForTestCases(".", template_context=template_context):
         extra_flags = [
             # No error exits normally, unless we break tests, and that we would
             # like to know.

@@ -26,7 +26,7 @@ from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import ShapeTypeBool
+from .shapes.BuiltinTypeShapes import tshape_bool
 
 
 class ExpressionComparisonBase(ExpressionChildrenHavingBase):
@@ -87,7 +87,7 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
         return self, None, None
 
     def computeExpressionOperationNot(self, not_node, trace_collection):
-        if self.getTypeShape() is ShapeTypeBool:
+        if self.getTypeShape() is tshape_bool:
             result = makeComparisonExpression(
                 left=self.subnode_left,
                 right=self.subnode_right,
@@ -158,6 +158,9 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
             or self.subnode_left.mayRaiseException(exception_type)
             or self.subnode_right.mayRaiseException(exception_type)
         )
+
+    def mayRaiseExceptionBool(self, exception_type):
+        return self.type_shape.hasShapeSlotBool() is not True
 
     def mayRaiseExceptionComparison(self):
         return (
@@ -252,7 +255,7 @@ class ExpressionComparisonNeq(ExpressionComparisonRichBase):
 
     @staticmethod
     def getComparisonShape(left_shape, right_shape):
-        return left_shape.getComparisonLteShape(right_shape)
+        return left_shape.getComparisonNeqShape(right_shape)
 
 
 class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
@@ -270,7 +273,7 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
         return {}
 
     def getTypeShape(self):
-        return ShapeTypeBool
+        return tshape_bool
 
     def mayRaiseException(self, exception_type):
         return self.getLeft().mayRaiseException(
@@ -399,7 +402,7 @@ class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
         return {}
 
     def getTypeShape(self):
-        return ShapeTypeBool
+        return tshape_bool
 
     def mayRaiseException(self, exception_type):
         left = self.getLeft()

@@ -36,7 +36,7 @@ from logging import debug
 from nuitka.nodes.shapes.StandardShapes import (
     ShapeLoopCompleteAlternative,
     ShapeLoopInitialAlternative,
-    ShapeUnknown,
+    tshape_unknown,
 )
 from nuitka.utils import InstanceCounters
 
@@ -175,7 +175,7 @@ class ValueTraceUninit(ValueTraceBase):
 
     @staticmethod
     def getTypeShape():
-        return ShapeUnknown
+        return tshape_unknown
 
     @staticmethod
     def isUninitTrace():
@@ -202,7 +202,7 @@ class ValueTraceInit(ValueTraceBase):
 
     @staticmethod
     def getTypeShape():
-        return ShapeUnknown
+        return tshape_unknown
 
     def dump(self):
         debug("  Starts initialized")
@@ -226,7 +226,7 @@ class ValueTraceUnknown(ValueTraceBase):
 
     @staticmethod
     def getTypeShape():
-        return ShapeUnknown
+        return tshape_unknown
 
     def dump(self):
         debug("  Starts unknown")
@@ -451,8 +451,8 @@ class ValueTraceMerge(ValueTraceBase):
         for trace in self.previous:
             type_shape = trace.getTypeShape()
 
-            if type_shape is ShapeUnknown:
-                return ShapeUnknown
+            if type_shape is tshape_unknown:
+                return tshape_unknown
 
             type_shapes.add(type_shape)
 
@@ -460,7 +460,7 @@ class ValueTraceMerge(ValueTraceBase):
         if len(type_shapes) == 1:
             return type_shapes.pop()
         else:
-            return ShapeUnknown
+            return tshape_unknown
 
     @staticmethod
     def isMergeTrace():

@@ -123,6 +123,16 @@ class CTypeBase(object):
         assert False, cls.c_type
 
     @classmethod
+    def emitAssignmentCodeToNuitkaIntOrLong(
+        cls, to_name, value_name, needs_check, emit, context
+    ):
+        """ Get the assignment code to int or long type.
+
+        """
+        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        assert False, to_name
+
+    @classmethod
     def getReleaseCode(cls, variable_code_name, needs_check, emit):
         """ Get release code for given object.
 

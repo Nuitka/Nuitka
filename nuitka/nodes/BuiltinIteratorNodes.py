@@ -36,7 +36,7 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
     wrapExpressionWithSideEffects,
 )
-from .shapes.StandardShapes import ShapeIterator
+from .shapes.StandardShapes import tshape_iterator
 
 
 class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
@@ -264,7 +264,7 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
 
     def getTypeShape(self):
         # TODO: This could be more specific.
-        return ShapeIterator
+        return tshape_iterator
 
     def computeExpression(self, trace_collection):
         # TODO: The "callable" should be investigated here, maybe it is not

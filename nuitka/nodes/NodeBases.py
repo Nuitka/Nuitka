@@ -349,6 +349,10 @@ class NodeBase(NodeMetaClassBase):
     def isExpressionOperationBinary():
         return False
 
+    @staticmethod
+    def isExpressionOperationInplace():
+        return False
+
     def isExpressionSideEffects(self):
         # Virtual method, pylint: disable=no-self-use
 

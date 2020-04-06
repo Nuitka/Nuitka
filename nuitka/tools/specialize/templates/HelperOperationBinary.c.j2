@@ -15,21 +15,21 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
-PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
-    {{left.getCheckValueCode("operand1")|indent}}
-    {{right.getCheckValueCode("operand2")|indent}}
+static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    {{left.getCheckValueCode("operand1")}}
+    {{right.getCheckValueCode("operand2")}}
 
 {% if left.type_name == "object" and right.type_name == "object" %}
     {# CPython2 treats integer values with fast path. #}
 #if PYTHON_VERSION < 300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
-        return BINARY_OPERATION_{{op_code}}_INT_INT(operand1, operand2);
+        return _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_INT_INT(operand1, operand2);
     }
 #endif
 {% endif %}
 
-{% if left.getTypeSpecializationCode(right, nb_slot, sq_slot1, "operand1", "operand2") %}
-    {{left.getTypeSpecializationCode(right, nb_slot, sq_slot1, "operand1", "operand2"|indent)}}
+{% if left.getTypeSpecializationCode(target, right, nb_slot, sq_slot1, "operand1", "operand2") %}
+    {{left.getTypeSpecializationCode(target, right, nb_slot, sq_slot1, "operand1", "operand2")}}
 {% else %}
     PyTypeObject *type1 = {{left.getTypeValueExpression("operand1")}};
     {{left.getSlotType(nb_slot)}} slot1 = {{left.getSlotValueExpression("type1", nb_slot)}};
@@ -50,7 +50,14 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
         assert(type1 == type2);
 
         {# There may be a special code for same types. #}
-        {{left.getSameTypeSpecializationCode(right, nb_slot, sq_slot1, "operand1", "operand2")|indent}}
+        {{left.getSameTypeOperationSpecializationCode(
+            target=target,
+            other=right,
+            nb_slot=nb_slot,
+            sq_slot=sq_slot1,
+            operand1="operand1",
+            operand2="operand2")
+        }}
     }
 
     if (slot1 != NULL) {
@@ -59,11 +66,7 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
                 PyObject *x = {{left.getSlotCallExpression(nb_slot, "slot2", "operand1", "operand2")}};
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
+                    {{ target.getReturnFromObjectExpressionCode("x") }}
                 }
 
                 Py_DECREF(x);
@@ -74,11 +77,7 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
         PyObject *x = {{left.getSlotCallExpression(nb_slot, "slot1", "operand1", "operand2")}};
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
+            {{ target.getReturnFromObjectExpressionCode("x") }}
         }
 
         Py_DECREF(x);
@@ -88,11 +87,7 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
         PyObject *x = {{left.getSlotCallExpression(nb_slot, "slot2", "operand1", "operand2")}};
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
+            {{ target.getReturnFromObjectExpressionCode("x") }}
         }
 
         Py_DECREF(x);
@@ -111,7 +106,7 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                return {{target.getExceptionResultIndicatorValue()}};
             }
 
             if (err == 0) {
@@ -126,11 +121,7 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
-
-                        return x;
+                        {{ target.getReturnFromObjectExpressionCode("x") }}
                     }
                 }
 
@@ -150,7 +141,7 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                return {{target.getExceptionResultIndicatorValue()}};
             }
 
             if (err == 0) {
@@ -165,11 +156,7 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
-
-                        return x;
+                        {{ target.getReturnFromObjectExpressionCode("x") }}
                     }
                 }
 
@@ -182,29 +169,25 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
 #endif
 
 {# There might be a sq_slot specialization that saves the day. #}
-{% if operand in "+*" %}
-{% if left.getSqConcatSlotSpecializationCode(right, "sq_concat" if operand == "+" else "sq_repeat", "operand1", "operand2") %}
-    {{left.getSqConcatSlotSpecializationCode(right, "sq_concat" if operand == "+" else "sq_repeat", "operand1", "operand2")|indent}}
+{% if operator in "+*" %}
+{% if left.getSqConcatSlotSpecializationCode(target, right, "sq_concat" if operator == "+" else "sq_repeat", "operand1", "operand2") %}
+    {{left.getSqConcatSlotSpecializationCode(target, right, "sq_concat" if operator == "+" else "sq_repeat", "operand1", "operand2")}}
 {% else %}
     // Special case for "+" and "*", also works as sequence concat/repeat.
-    {{"binaryfunc" if operand == "+" else "ssizeargfunc"}} sq_slot = {{left.getSlotValueExpression("type1", "sq_concat" if operand == "+" else "sq_repeat")}};
+    {{"binaryfunc" if operator == "+" else "ssizeargfunc"}} sq_slot = {{left.getSlotValueExpression("type1", "sq_concat" if operator == "+" else "sq_repeat")}};
 
     if (sq_slot != NULL) {
-{% if operand == "+" %}
+{% if operator == "+" %}
         PyObject *result = sq_slot(operand1, operand2);
 {% else %}
         PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 {% endif %}
 
-        if (unlikely(result == NULL)) {
-            return NULL;
-        }
-
-        return result;
+        {{ target.getReturnFromObjectExpressionCode("result") }}
     }
-{% if operand == "*" %}
-{% if right.getSqConcatSlotSpecializationCode(left, "sq_repeat", "operand2", "operand1") %}
-    {{right.getSqConcatSlotSpecializationCode(left, "sq_repeat", "operand2", "operand1")|indent}}
+{% if operator == "*" %}
+{% if right.getSqConcatSlotSpecializationCode(target, left, "sq_repeat", "operand2", "operand1") %}
+    {{right.getSqConcatSlotSpecializationCode(target, left, "sq_repeat", "operand2", "operand1")}}
 {% else %}
     // Special case for "+" and "*", also works as sequence concat/repeat.
     sq_slot = {{right.getSlotValueExpression("type2", "sq_repeat")}};
@@ -212,11 +195,7 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
     if (sq_slot != NULL) {
         PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
 
-        if (unlikely(result == NULL)) {
-            return NULL;
-        }
-
-        return result;
+        {{ target.getReturnFromObjectExpressionCode("result") }}
     }
 {% endif %}
 {% endif %}
@@ -224,6 +203,10 @@ PyObject *BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getH
 {% endif %}
 
 
-{{left.getRaiseUnsupportedTypeError(operand, right, "type1", "type2")}}
+{{target.getReturnUnsupportedTypeErrorCode(operator, left, right, "type1", "type2")}}
 {% endif %}
+}
+
+{{target.getTypeDecl()}} BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    return _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}(operand1, operand2);
 }

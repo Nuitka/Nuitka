@@ -15,7 +15,7 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-/* These are constants used in floordiv code.
+/* These are constants used in truediv code.
 
  */
 

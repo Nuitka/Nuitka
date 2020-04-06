@@ -15,9 +15,9 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
-static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
     {# TODO: Could in-line and specialize this per slot too. #}
     PyObject *x = {{left.getSlotCallExpression(nb_slot, "PyLong_Type.tp_as_number->" + nb_slot, "operand1", "operand2")}};
     assert(x != Py_NotImplemented);
-    return x;
+    {{ target.getReturnFromObjectExpressionCode("x") }}
 }

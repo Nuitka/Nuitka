@@ -19,6 +19,7 @@
 
 """
 
+from nuitka.codegen.ErrorCodes import getReleaseCode
 
 from .CTypeBases import CTypeBase
 
@@ -26,13 +27,14 @@ from .CTypeBases import CTypeBase
 class CTypeNuitkaBoolEnum(CTypeBase):
     c_type = "nuitka_bool"
 
+    helper_code = "NBOOL"
+
     @classmethod
     def emitVariableAssignCode(
         cls, value_name, needs_release, tmp_name, ref_count, in_place, emit, context
     ):
 
         assert not in_place
-        assert not ref_count
 
         if tmp_name.c_type == "nuitka_bool":
             emit("%s = %s;" % (value_name, tmp_name))
@@ -45,6 +47,16 @@ class CTypeNuitkaBoolEnum(CTypeBase):
             cls.emitAssignmentCodeFromBoolCondition(
                 to_name=value_name, condition=test_code, emit=emit
             )
+
+            # TODO: Refcount and context needs release are redundent.
+            if ref_count:
+                getReleaseCode(tmp_name, emit, context)
+
+    @classmethod
+    def emitAssignmentCodeToNuitkaIntOrLong(
+        cls, to_name, value_name, needs_check, emit, context
+    ):
+        assert False, to_name
 
     @classmethod
     def getLocalVariableInitTestCode(cls, value_name, inverted):
@@ -113,3 +125,7 @@ class CTypeNuitkaBoolEnum(CTypeBase):
             "%(to_name)s = (%(condition)s) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;"
             % {"to_name": to_name, "condition": condition}
         )
+
+    @classmethod
+    def getExceptionCheckCondition(cls, value_name):
+        return "%s == NUITKA_BOOL_EXCEPTION" % value_name

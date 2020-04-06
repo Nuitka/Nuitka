@@ -22,7 +22,7 @@ Branches, conditions, truth checks.
 
 from .CodeHelpers import decideConversionCheckNeeded, generateExpressionCode
 from .Emission import SourceCodeCollector
-from .ErrorCodes import getReleaseCode
+from .ErrorCodes import getReleaseCode, getTakeReferenceCode
 from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
 
 
@@ -36,6 +36,8 @@ def generateConditionCode(condition, emit, context):
     getBranchingCode(
         condition="%s == NUITKA_BOOL_TRUE" % compare_name, emit=emit, context=context
     )
+
+    getReleaseCode(compare_name, emit, context)
 
 
 # TODO: Inline this once "enable_bool_ctype" is completed
@@ -117,7 +119,7 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
         context.removeCleanupTempName(right_name)
 
     if not needs_ref2 and needs_ref1:
-        emit("Py_INCREF(%s);" % right_name)
+        getTakeReferenceCode(right_name, emit)
 
     to_name.getCType().emitAssignConversionCode(
         to_name=to_name,
@@ -132,7 +134,7 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     getLabelCode(true_target, emit)
 
     if not needs_ref1 and needs_ref2:
-        emit("Py_INCREF(%s);" % left_name)
+        getTakeReferenceCode(left_name, emit)
 
     to_name.getCType().emitAssignConversionCode(
         to_name=to_name,
@@ -201,10 +203,11 @@ def generateConditionalCode(to_name, expression, emit, context):
             real_emit(line)
         emit = real_emit
 
-        emit("Py_INCREF(%s);" % to_name)
+        getTakeReferenceCode(to_name, emit)
         context.addCleanupTempName(to_name)
     elif not needs_ref1 and needs_ref2:
-        real_emit("Py_INCREF(%s);" % to_name)
+        getTakeReferenceCode(to_name, real_emit)
+
         getGotoCode(end_target, real_emit)
         getLabelCode(false_target, real_emit)
 

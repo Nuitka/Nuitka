@@ -122,7 +122,7 @@ def branchingFunction(a, b, c):
         print("outer else")
 
     print("Complex conditional expression:")
-    v = (3 if a - 1 else 0) or (b or (c * 2 if c else 6) if b - 1 else a and b and c)
+    v = (3 if a + 1 else 0) or (b or (c * 2 if c else 6) if b - 1 else a and b and c)
     print(v)
 
     if True:

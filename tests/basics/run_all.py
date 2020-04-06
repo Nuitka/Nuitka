@@ -40,10 +40,10 @@ sys.path.insert(
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
-    decideFilenameVersionSkip,
     decideNeeds2to3,
     hasDebugPython,
     my_print,
+    scanDirectoryForTestCases,
     setup,
 )
 
@@ -54,13 +54,7 @@ def main():
     search_mode = createSearchMode()
 
     # Now run all the tests in this directory.
-    for filename in sorted(os.listdir(".")):
-        if not filename.endswith(".py"):
-            continue
-
-        if not decideFilenameVersionSkip(filename):
-            continue
-
+    for filename in scanDirectoryForTestCases("."):
         extra_flags = [
             # No error exits normally, unless we break tests, and that we would
             # like to know.

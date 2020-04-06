@@ -84,17 +84,14 @@ class StatementsSequence(StatementChildHavingBase):
 
         self.setChild("statements", statements)
 
-    def mergeStatementsSequence(self, statement_sequence):
-        assert statement_sequence.parent is self
-
+    def replaceStatement(self, statement, statements):
         old_statements = list(self.getStatements())
-        assert statement_sequence in old_statements, (statement_sequence, self)
 
-        merge_index = old_statements.index(statement_sequence)
+        merge_index = old_statements.index(statement)
 
         new_statements = (
             tuple(old_statements[:merge_index])
-            + statement_sequence.getStatements()
+            + tuple(statements)
             + tuple(old_statements[merge_index + 1 :])
         )
 

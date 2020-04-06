@@ -1746,7 +1746,7 @@ char const *getBinaryDirectoryHostEncoded() {
     // safely copy back.
     copyStringSafe(binary_directory, dirname(binary_directory), MAXPATHLEN);
 
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
     /* Not all of FreeBSD has /proc file system, so use the appropriate
      * "sysctl" instead.
      */
@@ -1759,12 +1759,11 @@ char const *getBinaryDirectoryHostEncoded() {
     int res = sysctl(mib, 4, binary_directory, &cb, NULL, 0);
 
     if (unlikely(res != 0)) {
-        {
-            abort();
-        }
+        abort();
+    }
 
-        /* We want the directory name, the above gives the full executable name. */
-        copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
+    /* We want the directory name, the above gives the full executable name. */
+    copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
 #else
     /* The remaining platforms, mostly Linux or compatible. */
 
@@ -2036,9 +2035,6 @@ void _initBuiltinOriginalValues() {
 volatile int _Py_Ticker = _Py_CheckInterval;
 #endif
 
-// Reverse operation mapping.
-static int const swapped_op[] = {Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE};
-
 #if PYTHON_VERSION >= 270
 iternextfunc default_iternext;
 
@@ -2069,32 +2065,55 @@ void _initSlotIternext() {
 }
 #endif
 
-#include "HelpersComparison.c"
-
 #include "HelpersDeepcopy.c"
 
 #include "HelpersAttributes.c"
 
 #include "HelpersOperationBinaryAdd.c"
+#include "HelpersOperationBinaryBitand.c"
+#include "HelpersOperationBinaryBitor.c"
+#include "HelpersOperationBinaryBitxor.c"
+#include "HelpersOperationBinaryDivmod.c"
 #include "HelpersOperationBinaryFloordiv.c"
-#include "HelpersOperationBinaryMul.c"
+#include "HelpersOperationBinaryLshift.c"
+#include "HelpersOperationBinaryMod.c"
+#include "HelpersOperationBinaryMult.c"
+#include "HelpersOperationBinaryPow.c"
+#include "HelpersOperationBinaryRshift.c"
 #include "HelpersOperationBinarySub.c"
 #include "HelpersOperationBinaryTruediv.c"
 #if PYTHON_VERSION < 300
 #include "HelpersOperationBinaryOlddiv.c"
 #endif
-#include "HelpersOperationBinaryBitand.c"
-#include "HelpersOperationBinaryBitor.c"
-#include "HelpersOperationBinaryBitxor.c"
-#include "HelpersOperationBinaryLshift.c"
-#include "HelpersOperationBinaryMod.c"
-#include "HelpersOperationBinaryPow.c"
-#include "HelpersOperationBinaryRshift.c"
 #if PYTHON_VERSION >= 350
 #include "HelpersOperationBinaryMatmult.c"
 #endif
 
-#include "HelpersOperationBinaryInplaceAdd.c"
+#include "HelpersOperationInplaceAdd.c"
+#include "HelpersOperationInplaceBitand.c"
+#include "HelpersOperationInplaceBitor.c"
+#include "HelpersOperationInplaceBitxor.c"
+#include "HelpersOperationInplaceFloordiv.c"
+#include "HelpersOperationInplaceLshift.c"
+#include "HelpersOperationInplaceMod.c"
+#include "HelpersOperationInplaceMult.c"
+#include "HelpersOperationInplacePow.c"
+#include "HelpersOperationInplaceRshift.c"
+#include "HelpersOperationInplaceSub.c"
+#include "HelpersOperationInplaceTruediv.c"
+#if PYTHON_VERSION < 300
+#include "HelpersOperationInplaceOlddiv.c"
+#endif
+#if PYTHON_VERSION >= 350
+#include "HelpersOperationInplaceMatmult.c"
+#endif
+
+#include "HelpersComparisonEq.c"
+#include "HelpersComparisonGe.c"
+#include "HelpersComparisonGt.c"
+#include "HelpersComparisonLe.c"
+#include "HelpersComparisonLt.c"
+#include "HelpersComparisonNe.c"
 
 #include "HelpersConstantsBlob.c"
 

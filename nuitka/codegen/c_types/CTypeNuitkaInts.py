@@ -31,26 +31,44 @@ from .CTypeBases import CTypeBase
 class CTypeNuitkaIntOrLongStruct(CTypeBase):
     c_type = "nuitka_ilong"
 
+    helper_code = "NILONG"
+
     @classmethod
     def emitVariableAssignCode(
         cls, value_name, needs_release, tmp_name, ref_count, in_place, emit, context
     ):
         assert not in_place
 
-        if tmp_name.c_type == "nuitka_bool":
-            assert False
-
+        if tmp_name.c_type == "nuitka_ilong":
             emit("%s = %s;" % (value_name, tmp_name))
+
+            if ref_count:
+                emit("/* REFCOUNT ? */")
+
         else:
             if tmp_name.c_type == "PyObject *":
                 emit("%s.validity = NUITKA_ILONG_OBJECT_VALID;" % value_name)
-
                 emit("%s.ilong_object = %s;" % (value_name, tmp_name))
 
                 if ref_count:
                     emit("/* REFCOUNT ? */")
             else:
-                assert False, tmp_name
+                assert False, repr(tmp_name)
+
+    @classmethod
+    def emitVariantAssignmentCode(cls, int_name, value_name, int_value, emit, context):
+        # needs no context, pylint: disable=unused-argument
+        if value_name is None:
+            assert int_value is not None
+            assert False  # TODO
+        else:
+            if int_value is None:
+                emit("%s.validity = NUITKA_ILONG_OBJECT_VALID;" % int_name)
+                emit("%s.ilong_object = %s;" % (int_name, value_name))
+            else:
+                emit("%s.validity = NUITKA_ILONG_BOTH_VALID;" % int_name)
+                emit("%s.ilong_object = %s;" % (int_name, value_name))
+                emit("%s.ilong_value = %s;" % (int_name, int_value))
 
     @classmethod
     def getLocalVariableInitTestCode(cls, value_name, inverted):
@@ -83,12 +101,10 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
 
     @classmethod
     def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
-        assert False, "TODO"
-
         if value_name.c_type == cls.c_type:
             emit("%s = %s;" % (to_name, value_name))
         else:
-            value_name.getCType().emitAssignmentCodeToNuitkaBool(
+            value_name.getCType().emitAssignmentCodeToNuitkaIntOrLong(
                 to_name=to_name,
                 value_name=value_name,
                 needs_check=needs_check,

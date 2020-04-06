@@ -56,8 +56,8 @@ binary_operator_functions = {
 
 # Python 2 only operator
 if python_version < 300:
-    binary_operator_functions["Div"] = operator.div
-    binary_operator_functions["IDiv"] = operator.idiv
+    binary_operator_functions["OldDiv"] = operator.div
+    binary_operator_functions["IOldDiv"] = operator.idiv
 
 # Python 3.5 only operator
 if python_version >= 350:

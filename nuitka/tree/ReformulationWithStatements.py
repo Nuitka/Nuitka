@@ -216,7 +216,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         )
     )
 
-    statements += [
+    statements += (
         makeTryFinallyStatement(
             provider=provider,
             tried=makeTryExceptSingleHandlerNodeWithPublish(
@@ -263,8 +263,8 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
-        )
-    ]
+        ),
+    )
 
     return makeTryFinallyStatement(
         provider=provider,

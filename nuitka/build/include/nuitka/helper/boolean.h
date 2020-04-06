@@ -63,7 +63,7 @@ NUITKA_MAY_BE_UNUSED static int CHECK_IF_FALSE(PyObject *object) {
     return -1;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *BOOL_FROM(bool value) {
+NUITKA_MAY_BE_UNUSED static inline PyObject *BOOL_FROM(bool value) {
     CHECK_OBJECT(Py_True);
     CHECK_OBJECT(Py_False);
 
@@ -76,6 +76,9 @@ typedef enum {
     NUITKA_BOOL_FALSE = 0,
     NUITKA_BOOL_TRUE = 1,
     NUITKA_BOOL_UNASSIGNED = 2,
+    NUITKA_BOOL_EXCEPTION = -1
 } nuitka_bool;
+
+typedef enum { NUITKA_VOID_OK = 0, NUITKA_VOID_EXCEPTION = 1 } nuitka_void;
 
 #endif

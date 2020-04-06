@@ -38,7 +38,7 @@ class OrderedSet(MutableSet):
         # pylint: disable=super-init-not-called
 
         self.end = end = []
-        end += [None, end, end]  # sentinel node for doubly linked list
+        end += (None, end, end)  # sentinel node for doubly linked list
         self.map = {}  # key --> [key, prev, next]
         if iterable is not None:
             self |= iterable

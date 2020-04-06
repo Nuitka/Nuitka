@@ -24,7 +24,7 @@ module variable references.
 """
 
 from nuitka.__past__ import iterItems
-from nuitka.nodes.shapes.StandardShapes import ShapeUnknown
+from nuitka.nodes.shapes.StandardShapes import tshape_unknown
 from nuitka.utils import InstanceCounters, Utils
 
 complete = False
@@ -225,12 +225,12 @@ class Variable(object):
             if trace.isAssignTrace():
                 result.add(trace.getAssignNode().getAssignSource().getTypeShape())
             elif trace.isUnknownTrace():
-                result.add(ShapeUnknown)
+                result.add(tshape_unknown)
             elif trace.isUninitTrace():
                 if trace.hasDefiniteUsages() or trace.hasPotentialUsages():
-                    result.add(ShapeUnknown)
+                    result.add(tshape_unknown)
             elif trace.isInitTrace():
-                result.add(ShapeUnknown)
+                result.add(tshape_unknown)
             elif trace.isMergeTrace():
                 pass
             # TODO: Remove this and be not unknown.

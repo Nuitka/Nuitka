@@ -21,7 +21,7 @@ These are variable handling for classes and partially also Python2 exec
 statements.
 """
 
-from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
+from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 
 from .CodeHelpers import generateExpressionCode, withObjectCodeTemporaryAssignment
 from .Emission import SourceCodeCollector
@@ -94,7 +94,7 @@ def generateLocalsDictSetCode(statement, emit, context):
 
     locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-    is_dict = locals_scope.getTypeShape() is ShapeTypeDict
+    is_dict = locals_scope.getTypeShape() is tshape_dict
 
     res_name = context.getIntResName()
 
@@ -133,7 +133,7 @@ def generateLocalsDictDelCode(statement, emit, context):
 
     dict_arg_name = locals_scope.getCodeName()
 
-    is_dict = locals_scope.getTypeShape() is ShapeTypeDict
+    is_dict = locals_scope.getTypeShape() is tshape_dict
 
     context.setCurrentSourceCodeReference(statement.getSourceReference())
 
@@ -194,7 +194,7 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
         locals_scope = expression.getLocalsDictScope()
         locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-        is_dict = locals_scope.getTypeShape() is ShapeTypeDict
+        is_dict = locals_scope.getTypeShape() is tshape_dict
 
         assert not context.needsCleanup(value_name)
 
@@ -226,7 +226,7 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
 
     locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-    is_dict = locals_scope.getTypeShape() is ShapeTypeDict
+    is_dict = locals_scope.getTypeShape() is tshape_dict
 
     if is_dict:
         template = template_read_locals_dict_without_fallback
@@ -266,7 +266,7 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
 
     locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-    is_dict = locals_scope.getTypeShape() is ShapeTypeDict
+    is_dict = locals_scope.getTypeShape() is tshape_dict
 
     if is_dict:
         to_name.getCType().emitAssignmentCodeFromBoolCondition(

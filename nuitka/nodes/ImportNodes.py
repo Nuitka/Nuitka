@@ -44,7 +44,7 @@ from .ExpressionBases import (
 )
 from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
-from .shapes.BuiltinTypeShapes import ShapeTypeBuiltinModule, ShapeTypeModule
+from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
 
 
 class ExpressionImportModuleHard(ExpressionBase):
@@ -173,7 +173,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
         self.finding = None
 
-        self.type_shape = ShapeTypeModule
+        self.type_shape = tshape_module
 
         self.builtin_module = None
 
@@ -406,7 +406,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                 self.recurse_attempted = True
 
                 if self.finding == "built-in":
-                    self.type_shape = ShapeTypeBuiltinModule
+                    self.type_shape = tshape_module_builtin
                     self.builtin_module = __import__(imported_module_name)
 
                 self._addUsedModules(trace_collection)

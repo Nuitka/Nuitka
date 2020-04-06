@@ -35,7 +35,7 @@ from .IterationHandles import (
     ConstantIterationHandleRange3,
 )
 from .NodeMakingHelpers import makeConstantReplacementNode
-from .shapes.BuiltinTypeShapes import ShapeTypeList, ShapeTypeXrange
+from .shapes.BuiltinTypeShapes import tshape_list, tshape_xrange
 
 
 class ExpressionBuiltinRangeMixin(object):
@@ -45,7 +45,7 @@ class ExpressionBuiltinRangeMixin(object):
 
     @staticmethod
     def getTypeShape():
-        return ShapeTypeList
+        return tshape_list
 
     def getTruthValue(self):
         length = self.getIterationLength()
@@ -406,7 +406,7 @@ class ExpressionBuiltinXrangeMixin(object):
 
     @staticmethod
     def getTypeShape():
-        return ShapeTypeXrange
+        return tshape_xrange
 
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None

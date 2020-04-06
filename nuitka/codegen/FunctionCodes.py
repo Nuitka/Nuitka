@@ -645,7 +645,7 @@ def _getFunctionCode(
     else:
         parameter_objects_decl = []
 
-    parameter_objects_decl += ["PyObject **python_pars"]
+    parameter_objects_decl.append("PyObject **python_pars")
 
     if context.isForDirectCall():
         for closure_variable in closure_variables:

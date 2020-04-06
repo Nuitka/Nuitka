@@ -21,6 +21,7 @@ No short-circuit involved, boolean 'not' is an unary operation like '-' is,
 no real difference.
 """
 
+import copy
 import math
 from abc import abstractmethod
 
@@ -33,7 +34,7 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import ShapeTypeBool, ShapeTypeIntOrLong, ShapeTypeTuple
+from .shapes.BuiltinTypeShapes import tshape_bool, tshape_int_or_long
 from .shapes.StandardShapes import (
     ShapeLargeConstantValue,
     ShapeLargeConstantValuePredictable,
@@ -54,17 +55,22 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
     getLeft = ExpressionChildrenHavingBase.childGetter("left")
     getRight = ExpressionChildrenHavingBase.childGetter("right")
 
+    shape = vshape_unknown
+
     def __init__(self, left, right, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self, values={"left": left, "right": right}, source_ref=source_ref
         )
 
+        self.type_shape = None
+        self.escape_desc = None
+
+    def getDetails(self):
+        return {}
+
     @staticmethod
     def isExpressionOperationBinary():
         return True
-
-    def getDetails(self):
-        return {"operator": self.operator}
 
     def getOperator(self):
         return self.operator
@@ -80,87 +86,31 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
     def isInplaceSuspect(self):
         return self.inplace_suspect
 
-    # TODO: Make this unnecessary by specializing for all operations.
-    def computeExpression(self, trace_collection):
-        assert self.operator not in (
-            "Mult",
-            "Add",
-            "Sub",
-            "FloorDiv",
-            "TrueDiv",
-            "Div",
-        ), self.operator
-
-        left = self.subnode_left
-        right = self.subnode_right
-
-        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            left_value = left.getCompileTimeConstant()
-            right_value = right.getCompileTimeConstant()
-
-            return trace_collection.getCompileTimeComputationResult(
-                node=self,
-                computation=lambda: self.simulator(left_value, right_value),
-                description="Operator '%s' with constant arguments." % self.operator,
-            )
-
-        # TODO: May go down to MemoryError for compile time constant overflow
-        # ones.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        # The value of these nodes escaped and could change its contents.
-        trace_collection.removeKnowledge(left)
-        trace_collection.removeKnowledge(right)
-
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
-
-        return self, None, None
-
     def getOperands(self):
         return (self.subnode_left, self.subnode_right)
 
     def mayRaiseExceptionOperation(self):
-        # TODO: This is to keep the same way as before before specializing to
-        # actual optimal stuff.
-        return self.mayRaiseException(BaseException)
-
-
-# TODO: Only while ExpressionOperationBinaryBase is still taken.
-class ExpressionOperationBinaryConcreteBase(ExpressionOperationBinaryBase):
-
-    shape = None
-
-    def __init__(self, left, right, source_ref):
-        ExpressionOperationBinaryBase.__init__(
-            self, left=left, right=right, source_ref=source_ref
+        return (
+            self.escape_desc is None or self.escape_desc.getExceptionExit() is not None
         )
 
-        self.type_shape = None
-        self.escape_desc = None
-
-    def getDetails(self):
-        return {}
+    def mayRaiseException(self, exception_type):
+        # TODO: Match more precisely
+        return (
+            self.escape_desc is None
+            or self.escape_desc.getExceptionExit() is not None
+            or self.subnode_left.mayRaiseException(exception_type)
+            or self.subnode_right.mayRaiseException(exception_type)
+        )
 
     def getTypeShape(self):
-        return self.type_shape
+        if self.type_shape is None:
+            self.type_shape, self.escape_desc = self._getOperationShape()
 
-    def getValueShape(self):
-        if self.shape is not None:
-            return self.shape
-        else:
-            return vshape_unknown
+        return self.type_shape
 
     @abstractmethod
     def _getOperationShape(self):
-        pass
-
-    @staticmethod
-    def _isTooLarge():
-        return False
-
-    @staticmethod
-    def _onTooLarge():
         pass
 
     def canCreateUnsupportedException(self):
@@ -180,6 +130,7 @@ class ExpressionOperationBinaryConcreteBase(ExpressionOperationBinaryBase):
             raise NuitkaAssumptionError(
                 "Unexpected no-exception doing operation simulation",
                 self.operator,
+                self.simulator,
                 self.subnode_left.getTypeShape(),
                 self.subnode_right.getTypeShape(),
                 repr(left),
@@ -188,6 +139,24 @@ class ExpressionOperationBinaryConcreteBase(ExpressionOperationBinaryBase):
 
     def extractSideEffectsPreOperation(self):
         return self.subnode_left, self.subnode_right
+
+    @staticmethod
+    def _isTooLarge():
+        return False
+
+    def _simulateOperation(self, trace_collection):
+        left_value = self.subnode_left.getCompileTimeConstant()
+        right_value = self.subnode_right.getCompileTimeConstant()
+
+        # Avoid mutating owned by nodes values and potentially shared.
+        if self.subnode_left.isMutable():
+            left_value = copy.copy(left_value)
+
+        return trace_collection.getCompileTimeComputationResult(
+            node=self,
+            computation=lambda: self.simulator(left_value, right_value),
+            description="Operator '%s' with constant arguments." % self.operator,
+        )
 
     def computeExpression(self, trace_collection):
         # Nothing to do anymore for large constants.
@@ -201,15 +170,7 @@ class ExpressionOperationBinaryConcreteBase(ExpressionOperationBinaryBase):
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             if not self._isTooLarge():
-                left_value = left.getCompileTimeConstant()
-                right_value = right.getCompileTimeConstant()
-
-                return trace_collection.getCompileTimeComputationResult(
-                    node=self,
-                    computation=lambda: self.simulator(left_value, right_value),
-                    description="Operator '%s' with constant arguments."
-                    % self.operator,
-                )
+                return self._simulateOperation(trace_collection)
 
         exception_raise_exit = self.escape_desc.getExceptionExit()
         if exception_raise_exit is not None:
@@ -229,7 +190,7 @@ class ExpressionOperationBinaryConcreteBase(ExpressionOperationBinaryBase):
 
                 return (
                     result,
-                    "new_raise",  # TODO: More appropriate tag maybe.
+                    "new_raise",
                     """Replaced operator '%s%s%s' arguments that cannot work."""
                     % (
                         self.operator,
@@ -249,36 +210,15 @@ class ExpressionOperationBinaryConcreteBase(ExpressionOperationBinaryBase):
 
         return self, None, None
 
-    def mayRaiseExceptionOperation(self):
-        return (
-            self.escape_desc is None or self.escape_desc.getExceptionExit() is not None
-        )
-
-    def mayRaiseException(self, exception_type):
-        # TODO: Match more precisely
-        return (
-            self.escape_desc is None
-            or self.escape_desc.getExceptionExit() is not None
-            or self.subnode_left.mayRaiseException(exception_type)
-            or self.subnode_right.mayRaiseException(exception_type)
-        )
-
     def canPredictIterationValues(self):
         # TODO: Actually we could very well, esp. for sequence repeats.
         # pylint: disable=no-self-use
         return False
 
 
-class ExpressionOperationBinaryAdd(ExpressionOperationBinaryConcreteBase):
-    kind = "EXPRESSION_OPERATION_BINARY_ADD"
-
-    operator = "Add"
-    simulator = PythonOperators.binary_operator_functions[operator]
-
-    def _getOperationShape(self):
-        return self.subnode_left.getTypeShape().getOperationBinaryAddShape(
-            self.subnode_right.getTypeShape()
-        )
+class ExpressionOperationAddMixin(object):
+    def getValueShape(self):
+        return self.shape
 
     def _isTooLarge(self):
         if self.subnode_left.isKnownToBeIterable(
@@ -301,7 +241,21 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinaryConcreteBase):
             return False
 
 
-class ExpressionOperationBinarySub(ExpressionOperationBinaryConcreteBase):
+class ExpressionOperationBinaryAdd(
+    ExpressionOperationAddMixin, ExpressionOperationBinaryBase
+):
+    kind = "EXPRESSION_OPERATION_BINARY_ADD"
+
+    operator = "Add"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryAddShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationBinarySub(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_SUB"
 
     operator = "Sub"
@@ -313,16 +267,9 @@ class ExpressionOperationBinarySub(ExpressionOperationBinaryConcreteBase):
         )
 
 
-class ExpressionOperationBinaryMult(ExpressionOperationBinaryConcreteBase):
-    kind = "EXPRESSION_OPERATION_BINARY_MULT"
-
-    operator = "Mult"
-    simulator = PythonOperators.binary_operator_functions[operator]
-
-    def _getOperationShape(self):
-        return self.subnode_left.getTypeShape().getOperationBinaryMultShape(
-            self.subnode_right.getTypeShape()
-        )
+class ExpressionOperationMultMixin(object):
+    def getValueShape(self):
+        return self.shape
 
     def _isTooLarge(self):
         if self.subnode_right.isNumberConstant():
@@ -360,7 +307,7 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinaryConcreteBase):
                                 > 20
                             ):
                                 self.shape = ShapeLargeConstantValue(
-                                    size=None, shape=ShapeTypeIntOrLong
+                                    size=None, shape=tshape_int_or_long
                                 )
 
                                 return True
@@ -382,6 +329,20 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinaryConcreteBase):
                     return True
 
         return False
+
+
+class ExpressionOperationBinaryMult(
+    ExpressionOperationMultMixin, ExpressionOperationBinaryBase
+):
+    kind = "EXPRESSION_OPERATION_BINARY_MULT"
+
+    operator = "Mult"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryMultShape(
+            self.subnode_right.getTypeShape()
+        )
 
     def getIterationLength(self):
         left_length = self.getLeft().getIterationLength()
@@ -428,7 +389,7 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinaryConcreteBase):
         return ExpressionOperationBinaryBase.extractSideEffects(self)
 
 
-class ExpressionOperationBinaryFloorDiv(ExpressionOperationBinaryConcreteBase):
+class ExpressionOperationBinaryFloorDiv(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_FLOOR_DIV"
 
     operator = "FloorDiv"
@@ -442,10 +403,10 @@ class ExpressionOperationBinaryFloorDiv(ExpressionOperationBinaryConcreteBase):
 
 if python_version < 300:
 
-    class ExpressionOperationBinaryOldDiv(ExpressionOperationBinaryConcreteBase):
+    class ExpressionOperationBinaryOldDiv(ExpressionOperationBinaryBase):
         kind = "EXPRESSION_OPERATION_BINARY_OLD_DIV"
 
-        operator = "Div"
+        operator = "OldDiv"
         simulator = PythonOperators.binary_operator_functions[operator]
 
         def _getOperationShape(self):
@@ -454,7 +415,7 @@ if python_version < 300:
             )
 
 
-class ExpressionOperationBinaryTrueDiv(ExpressionOperationBinaryConcreteBase):
+class ExpressionOperationBinaryTrueDiv(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_TRUE_DIV"
 
     operator = "TrueDiv"
@@ -466,7 +427,7 @@ class ExpressionOperationBinaryTrueDiv(ExpressionOperationBinaryConcreteBase):
         )
 
 
-class ExpressionOperationBinaryMod(ExpressionOperationBinaryConcreteBase):
+class ExpressionOperationBinaryMod(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_MOD"
 
     operator = "Mod"
@@ -476,92 +437,6 @@ class ExpressionOperationBinaryMod(ExpressionOperationBinaryConcreteBase):
         return self.subnode_left.getTypeShape().getOperationBinaryModShape(
             self.subnode_right.getTypeShape()
         )
-
-
-class ExpressionOperationBinaryPow(ExpressionOperationBinaryConcreteBase):
-    kind = "EXPRESSION_OPERATION_BINARY_POW"
-
-    operator = "Pow"
-    simulator = PythonOperators.binary_operator_functions[operator]
-
-    def _getOperationShape(self):
-        return self.subnode_left.getTypeShape().getOperationBinaryPowShape(
-            self.subnode_right.getTypeShape()
-        )
-
-
-class ExpressionOperationBinaryLshift(ExpressionOperationBinaryConcreteBase):
-    kind = "EXPRESSION_OPERATION_BINARY_LSHIFT"
-
-    operator = "LShift"
-    simulator = PythonOperators.binary_operator_functions[operator]
-
-    def _getOperationShape(self):
-        return self.subnode_left.getTypeShape().getOperationBinaryLShiftShape(
-            self.subnode_right.getTypeShape()
-        )
-
-
-class ExpressionOperationBinaryRshift(ExpressionOperationBinaryConcreteBase):
-    kind = "EXPRESSION_OPERATION_BINARY_RSHIFT"
-
-    operator = "RShift"
-    simulator = PythonOperators.binary_operator_functions[operator]
-
-    def _getOperationShape(self):
-        return self.subnode_left.getTypeShape().getOperationBinaryRShiftShape(
-            self.subnode_right.getTypeShape()
-        )
-
-
-class ExpressionOperationBinaryBitOr(ExpressionOperationBinaryConcreteBase):
-    kind = "EXPRESSION_OPERATION_BINARY_BIT_OR"
-
-    operator = "BitOr"
-    simulator = PythonOperators.binary_operator_functions[operator]
-
-    def _getOperationShape(self):
-        return self.subnode_left.getTypeShape().getOperationBinaryBitOrShape(
-            self.subnode_right.getTypeShape()
-        )
-
-
-class ExpressionOperationBinaryBitAnd(ExpressionOperationBinaryConcreteBase):
-    kind = "EXPRESSION_OPERATION_BINARY_BIT_AND"
-
-    operator = "BitAnd"
-    simulator = PythonOperators.binary_operator_functions[operator]
-
-    def _getOperationShape(self):
-        return self.subnode_left.getTypeShape().getOperationBinaryBitAndShape(
-            self.subnode_right.getTypeShape()
-        )
-
-
-class ExpressionOperationBinaryBitXor(ExpressionOperationBinaryConcreteBase):
-    kind = "EXPRESSION_OPERATION_BINARY_BIT_XOR"
-
-    operator = "BitXor"
-    simulator = PythonOperators.binary_operator_functions[operator]
-
-    def _getOperationShape(self):
-        return self.subnode_left.getTypeShape().getOperationBinaryBitXorShape(
-            self.subnode_right.getTypeShape()
-        )
-
-
-if python_version >= 350:
-
-    class ExpressionOperationBinaryMatMult(ExpressionOperationBinaryConcreteBase):
-        kind = "EXPRESSION_OPERATION_BINARY_MAT_MULT"
-
-        operator = "MatMult"
-        simulator = PythonOperators.binary_operator_functions[operator]
-
-        def _getOperationShape(self):
-            return self.subnode_left.getTypeShape().getOperationBinaryMatMultShape(
-                self.subnode_right.getTypeShape()
-            )
 
 
 class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
@@ -575,20 +450,108 @@ class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
             self, left=left, right=right, source_ref=source_ref
         )
 
-        self.shape = None
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryDivmodShape(
+            self.subnode_right.getTypeShape()
+        )
 
-    # TODO: Value shape is two elemented tuple of int or float both.
-    def getTypeShape(self):
-        return ShapeTypeTuple
+
+class ExpressionOperationBinaryPow(ExpressionOperationBinaryBase):
+    kind = "EXPRESSION_OPERATION_BINARY_POW"
+
+    operator = "Pow"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryPowShape(
+            self.subnode_right.getTypeShape()
+        )
 
 
-_operator2nodeclass = {
+class ExpressionOperationBinaryLshift(ExpressionOperationBinaryBase):
+    kind = "EXPRESSION_OPERATION_BINARY_LSHIFT"
+
+    operator = "LShift"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryLShiftShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationBinaryRshift(ExpressionOperationBinaryBase):
+    kind = "EXPRESSION_OPERATION_BINARY_RSHIFT"
+
+    operator = "RShift"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryRShiftShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationBinaryBitOr(ExpressionOperationBinaryBase):
+    kind = "EXPRESSION_OPERATION_BINARY_BIT_OR"
+
+    operator = "BitOr"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryBitOrShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationBinaryBitAnd(ExpressionOperationBinaryBase):
+    kind = "EXPRESSION_OPERATION_BINARY_BIT_AND"
+
+    operator = "BitAnd"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryBitAndShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationBinaryBitXor(ExpressionOperationBinaryBase):
+    kind = "EXPRESSION_OPERATION_BINARY_BIT_XOR"
+
+    operator = "BitXor"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryBitXorShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+if python_version >= 350:
+
+    class ExpressionOperationBinaryMatMult(
+        ExpressionOperationMultMixin, ExpressionOperationBinaryBase
+    ):
+        kind = "EXPRESSION_OPERATION_BINARY_MAT_MULT"
+
+        operator = "MatMult"
+        simulator = PythonOperators.binary_operator_functions[operator]
+
+        def _getOperationShape(self):
+            return self.subnode_left.getTypeShape().getOperationBinaryMatMultShape(
+                self.subnode_right.getTypeShape()
+            )
+
+
+_operator2binary_operation_nodeclass = {
     "Add": ExpressionOperationBinaryAdd,
     "Sub": ExpressionOperationBinarySub,
     "Mult": ExpressionOperationBinaryMult,
     "FloorDiv": ExpressionOperationBinaryFloorDiv,
     "TrueDiv": ExpressionOperationBinaryTrueDiv,
     "Mod": ExpressionOperationBinaryMod,
+    # Divmod only from built-in call.
     "Pow": ExpressionOperationBinaryPow,
     "LShift": ExpressionOperationBinaryLshift,
     "RShift": ExpressionOperationBinaryRshift,
@@ -598,14 +561,14 @@ _operator2nodeclass = {
 }
 
 if python_version < 300:
-    _operator2nodeclass["Div"] = ExpressionOperationBinaryOldDiv
+    _operator2binary_operation_nodeclass["OldDiv"] = ExpressionOperationBinaryOldDiv
 
 if python_version >= 350:
-    _operator2nodeclass["MatMult"] = ExpressionOperationBinaryMatMult
+    _operator2binary_operation_nodeclass["MatMult"] = ExpressionOperationBinaryMatMult
 
 
 def makeBinaryOperationNode(operator, left, right, source_ref):
-    node_class = _operator2nodeclass[operator]
+    node_class = _operator2binary_operation_nodeclass[operator]
 
     return node_class(left=left, right=right, source_ref=source_ref)
 
@@ -682,7 +645,7 @@ class ExpressionOperationNot(ExpressionOperationUnaryBase):
         )
 
     def getTypeShape(self):
-        return ShapeTypeBool
+        return tshape_bool
 
     def getDetails(self):
         return {}
@@ -761,72 +724,221 @@ class ExpressionOperationAbs(ExpressionOperationUnaryBase):
         return operand.mayHaveSideEffectsAbs()
 
 
-class ExpressionOperationBinaryInplace(ExpressionOperationBinaryBase):
-    """ All binary operation expressions that have no specialization.
+class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
+    # Base classes can be abstract, pylint: disable=abstract-method
+    """ Base class for all inplace operations.
 
-        This is used for all operations that do not yet have
-        dedicated classes.
     """
 
-    kind = "EXPRESSION_OPERATION_BINARY_INPLACE"
+    inplace_suspect = True
 
-    def __init__(self, operator, left, right, source_ref):
-        assert left.isExpression() and right.isExpression, (left, right)
-
+    def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryBase.__init__(
             self, left=left, right=right, source_ref=source_ref
         )
 
-        self.operator = operator
-        self.simulator = PythonOperators.binary_operator_functions[operator]
-
     @staticmethod
-    def isExpressionOperationBinary():
+    def isExpressionOperationInplace():
         return True
 
-    def computeExpression(self, trace_collection):
-        # In-place operation requires extra care to avoid corruption of
-        # values.
-        left = self.getLeft()
-        right = self.getRight()
 
-        if left.isCompileTimeConstant():
-            # Then we made a mistake currently.
-            assert not left.isMutable(), self
-            source_ref = self.getSourceReference()
+class ExpressionOperationInplaceAdd(
+    ExpressionOperationAddMixin, ExpressionOperationBinaryInplaceBase
+):
+    kind = "EXPRESSION_OPERATION_INPLACE_ADD"
 
-            result = makeBinaryOperationNode(
-                operator=self.getOperator()[1:],
-                left=left,
-                right=right,
-                source_ref=source_ref,
+    operator = "IAdd"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationInplaceAddShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationInplaceSub(ExpressionOperationBinaryInplaceBase):
+    kind = "EXPRESSION_OPERATION_INPLACE_SUB"
+
+    operator = "ISub"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinarySubShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationInplaceMult(ExpressionOperationBinaryInplaceBase):
+    kind = "EXPRESSION_OPERATION_INPLACE_MULT"
+
+    operator = "IMult"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryMultShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationInplaceFloorDiv(ExpressionOperationBinaryInplaceBase):
+    kind = "EXPRESSION_OPERATION_INPLACE_FLOOR_DIV"
+
+    operator = "IFloorDiv"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryFloorDivShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+if python_version < 300:
+
+    class ExpressionOperationInplaceOldDiv(ExpressionOperationBinaryInplaceBase):
+        kind = "EXPRESSION_OPERATION_INPLACE_OLD_DIV"
+
+        operator = "IOldDiv"
+        simulator = PythonOperators.binary_operator_functions[operator]
+
+        def _getOperationShape(self):
+            return self.subnode_left.getTypeShape().getOperationBinaryOldDivShape(
+                self.subnode_right.getTypeShape()
             )
 
-            trace_collection.signalChange(
-                tags="new_expression",
-                source_ref=source_ref,
-                message="""\
-Lowered in-place binary operation of compile time constant to binary operation.""",
+
+class ExpressionOperationInplaceTrueDiv(ExpressionOperationBinaryInplaceBase):
+    kind = "EXPRESSION_OPERATION_INPLACE_TRUE_DIV"
+
+    operator = "ITrueDiv"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryTrueDivShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationInplaceMod(ExpressionOperationBinaryInplaceBase):
+    kind = "EXPRESSION_OPERATION_INPLACE_MOD"
+
+    operator = "IMod"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryModShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationInplacePow(ExpressionOperationBinaryInplaceBase):
+    kind = "EXPRESSION_OPERATION_INPLACE_POW"
+
+    operator = "IPow"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryPowShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationInplaceLshift(ExpressionOperationBinaryInplaceBase):
+    kind = "EXPRESSION_OPERATION_INPLACE_LSHIFT"
+
+    operator = "ILShift"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryLShiftShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationInplaceRshift(ExpressionOperationBinaryInplaceBase):
+    kind = "EXPRESSION_OPERATION_INPLACE_RSHIFT"
+
+    operator = "IRShift"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryRShiftShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationInplaceBitOr(ExpressionOperationBinaryInplaceBase):
+    kind = "EXPRESSION_OPERATION_INPLACE_BIT_OR"
+
+    operator = "IBitOr"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryBitOrShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationInplaceBitAnd(ExpressionOperationBinaryInplaceBase):
+    kind = "EXPRESSION_OPERATION_INPLACE_BIT_AND"
+
+    operator = "IBitAnd"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryBitAndShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+class ExpressionOperationInplaceBitXor(ExpressionOperationBinaryInplaceBase):
+    kind = "EXPRESSION_OPERATION_INPLACE_BIT_XOR"
+
+    operator = "IBitXor"
+    simulator = PythonOperators.binary_operator_functions[operator]
+
+    def _getOperationShape(self):
+        return self.subnode_left.getTypeShape().getOperationBinaryBitXorShape(
+            self.subnode_right.getTypeShape()
+        )
+
+
+if python_version >= 350:
+
+    class ExpressionOperationInplaceMatMult(ExpressionOperationBinaryInplaceBase):
+        kind = "EXPRESSION_OPERATION_INPLACE_MAT_MULT"
+
+        operator = "IMatMult"
+        simulator = PythonOperators.binary_operator_functions[operator]
+
+        def _getOperationShape(self):
+            return self.subnode_left.getTypeShape().getOperationBinaryMatMultShape(
+                self.subnode_right.getTypeShape()
             )
 
-            return result.computeExpression(trace_collection)
 
-        # Any exception may be raised.
-        trace_collection.onExceptionRaiseExit(BaseException)
+_operator2binary_inplace_nodeclass = {
+    "IAdd": ExpressionOperationInplaceAdd,
+    "ISub": ExpressionOperationInplaceSub,
+    "IMult": ExpressionOperationInplaceMult,
+    "IFloorDiv": ExpressionOperationInplaceFloorDiv,
+    "ITrueDiv": ExpressionOperationInplaceTrueDiv,
+    "IMod": ExpressionOperationInplaceMod,
+    "IPow": ExpressionOperationInplacePow,
+    "ILShift": ExpressionOperationInplaceLshift,
+    "IRShift": ExpressionOperationInplaceRshift,
+    "IBitOr": ExpressionOperationInplaceBitOr,
+    "IBitAnd": ExpressionOperationInplaceBitAnd,
+    "IBitXor": ExpressionOperationInplaceBitXor,
+}
 
-        # The value of these nodes escaped and could change its contents.
-        trace_collection.removeKnowledge(left)
-        trace_collection.removeKnowledge(right)
+if python_version < 300:
+    _operator2binary_inplace_nodeclass["IOldDiv"] = ExpressionOperationInplaceOldDiv
 
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
-
-        return self, None, None
+if python_version >= 350:
+    _operator2binary_inplace_nodeclass["IMatMult"] = ExpressionOperationInplaceMatMult
 
 
 def makeExpressionOperationBinaryInplace(operator, left, right, source_ref):
-    # TODO: Add more specializations for common operators.
+    node_class = _operator2binary_inplace_nodeclass[operator]
 
-    return ExpressionOperationBinaryInplace(
-        operator=operator, left=left, right=right, source_ref=source_ref
-    )
+    return node_class(left=left, right=right, source_ref=source_ref)

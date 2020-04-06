@@ -84,14 +84,14 @@ def wrapEvalGlobalsAndLocals(
             )
         )
 
-    post_statements += [
+    post_statements += (
         StatementReleaseVariable(
             variable=globals_keeper_variable, source_ref=source_ref
         ),
         StatementReleaseVariable(
             variable=locals_keeper_variable, source_ref=source_ref
         ),
-    ]
+    )
 
     # The locals default is dependent on exec_mode, globals or locals.
     locals_default = ExpressionConditional(

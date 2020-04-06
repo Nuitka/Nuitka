@@ -265,7 +265,9 @@ class TempMixin(object):
 
     def addCleanupTempName(self, tmp_name):
         assert tmp_name not in self.cleanup_names[-1], tmp_name
-        assert tmp_name.c_type != "void"
+        assert (
+            tmp_name.c_type != "nuitka_void" or tmp_name.code_name == "tmp_unused"
+        ), tmp_name
 
         self.cleanup_names[-1].append(tmp_name)
 
@@ -698,21 +700,21 @@ def _getConstantDefaultPopulation():
 
     # Built-in original values
     if not Options.shallMakeModule():
-        result += ["type", "len", "range", "repr", "int", "iter"]
+        result += ("type", "len", "range", "repr", "int", "iter")
 
         if python_version < 300:
             result.append("long")
 
     if python_version >= 340:
         # Setting the __spec__ module attribute.
-        result += ["__spec__", "_initializing", "submodule_search_locations"]
+        result += ("__spec__", "_initializing", "submodule_search_locations")
 
     if python_version >= 350:
         # Patching the types module.
         result.append("types")
 
     if not Options.shallMakeModule():
-        result += [sys.executable, sys.prefix]
+        result += (sys.executable, sys.prefix)
 
     if python_version >= 370:
         result.append("__class_getitem__")

@@ -16,37 +16,40 @@
 //     limitations under the License.
 //
 /* WARNING, this code is GENERATED. Modify the template HelperOperationBinary.c.j2 instead! */
-// This file is included from another C file, help IDEs to still parse it on
-// its own.
+
+/* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 #endif
 
 /* C helpers for type specialized "@" (MATMULT) operations */
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-PyObject *BINARY_OPERATION_MATMULT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
+static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
 #if PYTHON_VERSION < 300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
 
     PyTypeObject *type1 = &PyLong_Type;
     binaryfunc slot1 = NULL;
 
-    PyTypeObject *type2 = Py_TYPE(operand2);
+    PyTypeObject *type2 = &PyLong_Type;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
+    if (!(1)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_matrix_multiply
-                                                                              : NULL;
+        slot2 = NULL;
 
-        if (slot1 == slot2) {
+        if (0) {
             slot2 = NULL;
         }
     } else {
@@ -55,14 +58,10 @@ PyObject *BINARY_OPERATION_MATMULT_LONG_OBJECT(PyObject *operand1, PyObject *ope
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if (0) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
                     return x;
                 }
 
@@ -74,10 +73,6 @@ PyObject *BINARY_OPERATION_MATMULT_LONG_OBJECT(PyObject *operand1, PyObject *ope
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
             return x;
         }
 
@@ -88,18 +83,14 @@ PyObject *BINARY_OPERATION_MATMULT_LONG_OBJECT(PyObject *operand1, PyObject *ope
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
             return x;
         }
 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
-    if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
+#if PYTHON_VERSION < 300 && (0 || 0)
+    if (!1 || !1) {
         coercion c = PyLong_Type.tp_as_number->nb_coerce;
 
         if (c != NULL) {
@@ -123,173 +114,6 @@ PyObject *BINARY_OPERATION_MATMULT_LONG_OBJECT(PyObject *operand1, PyObject *ope
 
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
-
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_matrix_multiply;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
-
-#if PYTHON_VERSION < 300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'long' and '%s'", type2->tp_name);
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'int' and '%s'", type2->tp_name);
-#endif
-    return NULL;
-}
-
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-PyObject *BINARY_OPERATION_MATMULT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_matrix_multiply : NULL;
-
-    PyTypeObject *type2 = &PyLong_Type;
-    binaryfunc slot2 = NULL;
-
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    } else {
-        assert(type1 == type2);
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 300 && (1 || 1)
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_matrix_multiply;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
 
                         return x;
                     }
@@ -325,10 +149,6 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_LONG(PyObject *operand1, PyObject *ope
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
-
                         return x;
                     }
                 }
@@ -342,37 +162,38 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_LONG(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: '%s' and 'long'", type1->tp_name);
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'long' and 'long'");
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: '%s' and 'int'", type1->tp_name);
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'int' and 'int'");
 #endif
     return NULL;
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
-PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+PyObject *BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(operand1, operand2);
+}
+
+/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
+static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
-
+    assert(PyLong_CheckExact(operand2));
 #if PYTHON_VERSION < 300
-    if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
-        return BINARY_OPERATION_MATMULT_INT_INT(operand1, operand2);
-    }
+    assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
     binaryfunc slot1 =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_matrix_multiply : NULL;
 
-    PyTypeObject *type2 = Py_TYPE(operand2);
+    PyTypeObject *type2 = &PyLong_Type;
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_matrix_multiply
-                                                                              : NULL;
+        slot2 = NULL;
 
         if (slot1 == slot2) {
             slot2 = NULL;
@@ -383,14 +204,10 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT(PyObject *operand1, PyObject *o
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if (0) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
                     return x;
                 }
 
@@ -402,10 +219,6 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT(PyObject *operand1, PyObject *o
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
             return x;
         }
 
@@ -416,10 +229,6 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT(PyObject *operand1, PyObject *o
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
             return x;
         }
 
@@ -427,7 +236,7 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT(PyObject *operand1, PyObject *o
     }
 
 #if PYTHON_VERSION < 300 && (1 || 1)
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !NEW_STYLE_NUMBER_TYPE(type2)) {
+    if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
@@ -453,9 +262,151 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT(PyObject *operand1, PyObject *o
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = PyLong_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_matrix_multiply;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+#if PYTHON_VERSION < 300
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: '%s' and 'long'", type1->tp_name);
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: '%s' and 'int'", type1->tp_name);
+#endif
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_LONG(operand1, operand2);
+}
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
+static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyLong_Type;
+    binaryfunc slot1 = NULL;
+
+    PyTypeObject *type2 = Py_TYPE(operand2);
+    binaryfunc slot2 = NULL;
+
+    if (!(type1 == type2)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_matrix_multiply
+                                                                              : NULL;
+
+        if (slot1 == slot2) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (PyType_IsSubtype(type2, type1)) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    return x;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 300 && (1 || 1)
+    if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
+        coercion c = PyLong_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_matrix_multiply;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
 
                         return x;
                     }
@@ -491,9 +442,585 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT(PyObject *operand1, PyObject *o
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NULL;
-                        }
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+#if PYTHON_VERSION < 300
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'long' and '%s'", type2->tp_name);
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'int' and '%s'", type2->tp_name);
+#endif
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_MATMULT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MATMULT_OBJECT_LONG_OBJECT(operand1, operand2);
+}
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
+static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = &PyFloat_Type;
+    binaryfunc slot1 = NULL;
+
+    PyTypeObject *type2 = &PyFloat_Type;
+    binaryfunc slot2 = NULL;
+
+    if (!(1)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 = NULL;
+
+        if (0) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (0) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    return x;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 300 && (0 || 0)
+    if (!1 || !1) {
+        coercion c = PyFloat_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_matrix_multiply;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = PyFloat_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_matrix_multiply;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'float' and 'float'");
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_MATMULT_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MATMULT_OBJECT_FLOAT_FLOAT(operand1, operand2);
+}
+
+/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
+static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    binaryfunc slot1 =
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_matrix_multiply : NULL;
+
+    PyTypeObject *type2 = &PyFloat_Type;
+    binaryfunc slot2 = NULL;
+
+    if (!(type1 == type2)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 = NULL;
+
+        if (slot1 == slot2) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (0) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    return x;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 300 && (1 || 1)
+    if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
+        coercion c =
+            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_matrix_multiply;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = PyFloat_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_matrix_multiply;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: '%s' and 'float'", type1->tp_name);
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_FLOAT(operand1, operand2);
+}
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
+static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyFloat_Type;
+    binaryfunc slot1 = NULL;
+
+    PyTypeObject *type2 = Py_TYPE(operand2);
+    binaryfunc slot2 = NULL;
+
+    if (!(type1 == type2)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_matrix_multiply
+                                                                              : NULL;
+
+        if (slot1 == slot2) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (PyType_IsSubtype(type2, type1)) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    return x;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 300 && (1 || 1)
+    if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
+        coercion c = PyFloat_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_matrix_multiply;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_matrix_multiply;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'float' and '%s'", type2->tp_name);
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_MATMULT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MATMULT_OBJECT_FLOAT_OBJECT(operand1, operand2);
+}
+
+/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
+static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+
+#if PYTHON_VERSION < 300
+    if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
+        return _BINARY_OPERATION_MATMULT_OBJECT_INT_INT(operand1, operand2);
+    }
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    binaryfunc slot1 =
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_matrix_multiply : NULL;
+
+    PyTypeObject *type2 = Py_TYPE(operand2);
+    binaryfunc slot2 = NULL;
+
+    if (!(type1 == type2)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_matrix_multiply
+                                                                              : NULL;
+
+        if (slot1 == slot2) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (PyType_IsSubtype(type2, type1)) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    return x;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 300 && (1 || 1)
+    if (!NEW_STYLE_NUMBER_TYPE(type1) || !NEW_STYLE_NUMBER_TYPE(type2)) {
+        coercion c =
+            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_matrix_multiply;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_matrix_multiply;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
 
                         return x;
                     }
@@ -509,4 +1036,8 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT(PyObject *operand1, PyObject *o
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: '%s' and '%s'", type1->tp_name, type2->tp_name);
     return NULL;
+}
+
+PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(operand1, operand2);
 }

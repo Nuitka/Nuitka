@@ -16,62 +16,93 @@
 //     limitations under the License.
 //
 /* WARNING, this code is GENERATED. Modify the template HelperOperationBinary.c.j2 instead! */
+
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 /* C helpers for type specialized "&" (BITAND) operations */
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern PyObject *BINARY_OPERATION_BITAND_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
+extern PyObject *BINARY_OPERATION_BITAND_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
+extern PyObject *BINARY_OPERATION_BITAND_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern nuitka_bool BINARY_OPERATION_BITAND_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
+extern nuitka_bool BINARY_OPERATION_BITAND_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
+extern nuitka_bool BINARY_OPERATION_BITAND_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2);
+
+#if PYTHON_VERSION < 300
+/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_BITAND_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2);
+#endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-extern PyObject *BINARY_OPERATION_BITAND_OBJECT_INT(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_BITAND_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-extern PyObject *BINARY_OPERATION_BITAND_INT_OBJECT(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_BITAND_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
-extern PyObject *BINARY_OPERATION_BITAND_INT_INT(PyObject *operand1, PyObject *operand2);
+extern nuitka_bool BINARY_OPERATION_BITAND_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-extern PyObject *BINARY_OPERATION_BITAND_OBJECT_LONG(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-extern PyObject *BINARY_OPERATION_BITAND_LONG_OBJECT(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern PyObject *BINARY_OPERATION_BITAND_LONG_LONG(PyObject *operand1, PyObject *operand2);
+#if PYTHON_VERSION < 300
+/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
+extern nuitka_bool BINARY_OPERATION_BITAND_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2);
+#endif
 
 #if PYTHON_VERSION < 300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-extern PyObject *BINARY_OPERATION_BITAND_LONG_INT(PyObject *operand1, PyObject *operand2);
+/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
+extern nuitka_bool BINARY_OPERATION_BITAND_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern PyObject *BINARY_OPERATION_BITAND_INT_LONG(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_BITAND_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2);
 #endif
 
-/* Code referring to "OBJECT" corresponds to any Python object and "SET" to Python 'set'. */
-extern PyObject *BINARY_OPERATION_BITAND_OBJECT_SET(PyObject *operand1, PyObject *operand2);
+#if PYTHON_VERSION < 300
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern nuitka_bool BINARY_OPERATION_BITAND_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2);
+#endif
 
-/* Code referring to "SET" corresponds to Python 'set' and "OBJECT" to any Python object. */
-extern PyObject *BINARY_OPERATION_BITAND_SET_OBJECT(PyObject *operand1, PyObject *operand2);
+#if PYTHON_VERSION < 300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_BITAND_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+extern nuitka_bool BINARY_OPERATION_BITAND_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2);
+#endif
 
 /* Code referring to "SET" corresponds to Python 'set' and "SET" to Python 'set'. */
-extern PyObject *BINARY_OPERATION_BITAND_SET_SET(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_BITAND_OBJECT_SET_SET(PyObject *operand1, PyObject *operand2);
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
-extern PyObject *BINARY_OPERATION_BITAND_OBJECT_LIST(PyObject *operand1, PyObject *operand2);
+/* Code referring to "OBJECT" corresponds to any Python object and "SET" to Python 'set'. */
+extern PyObject *BINARY_OPERATION_BITAND_OBJECT_OBJECT_SET(PyObject *operand1, PyObject *operand2);
 
-/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
-extern PyObject *BINARY_OPERATION_BITAND_LIST_OBJECT(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
-extern PyObject *BINARY_OPERATION_BITAND_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "OBJECT" to any Python object. */
-extern PyObject *BINARY_OPERATION_BITAND_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2);
+/* Code referring to "SET" corresponds to Python 'set' and "OBJECT" to any Python object. */
+extern PyObject *BINARY_OPERATION_BITAND_OBJECT_SET_OBJECT(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
-extern PyObject *BINARY_OPERATION_BITAND_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_BITAND_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
+extern nuitka_bool BINARY_OPERATION_BITAND_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);

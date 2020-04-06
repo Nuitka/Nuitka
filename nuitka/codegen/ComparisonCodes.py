@@ -21,19 +21,21 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 "isinstance" check as used in conditions, as well as exception matching.
 """
 
-from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeBool
+from nuitka.containers.oset import OrderedSet
+from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_bool
 
 from . import OperatorCodes
 from .CodeHelpers import generateExpressionCode, pickCodeHelper
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
+from .ErrorCodes import getErrorExitBoolCode, getReleaseCodes
 
-_cmp_obj_result_helpers_set = set(
+specialized_cmp_helpers_set = OrderedSet(
     (
-        "RICH_COMPARE_xx_OBJECT_OBJECT",
+        "RICH_COMPARE_xx_OBJECT_OBJECT_OBJECT",
+        "RICH_COMPARE_xx_CBOOL_OBJECT_OBJECT",
+        "RICH_COMPARE_xx_NBOOL_OBJECT_OBJECT",
         #        "RICH_COMPARE_xx_OBJECT_INT",
         #        "RICH_COMPARE_xx_OBJECT_LONG",
         #        "RICH_COMPARE_xx_OBJECT_STR",
-        #        "RICH_COMPARE_xx_FLOAT_OBJECT",
         #        "RICH_COMPARE_xx_OBJECT_UNICODE",
         #        "RICH_COMPARE_xx_OBJECT_TUPLE",
         #        "RICH_COMPARE_xx_OBJECT_LIST",
@@ -41,7 +43,6 @@ _cmp_obj_result_helpers_set = set(
         #        "RICH_COMPARE_xx_INT_OBJECT",
         #        "RICH_COMPARE_xx_LONG_OBJECT",
         #        "RICH_COMPARE_xx_STR_OBJECT",
-        #        "RICH_COMPARE_xx_OBJECT_FLOAT",
         #        "RICH_COMPARE_xx_UNICODE_OBJECT",
         #        "RICH_COMPARE_xx_TUPLE_OBJECT",
         #        "RICH_COMPARE_xx_LIST_OBJECT",
@@ -49,49 +50,60 @@ _cmp_obj_result_helpers_set = set(
         #        "RICH_COMPARE_xx_INT_INT",
         #        "RICH_COMPARE_xx_LONG_LONG",
         #        "RICH_COMPARE_xx_STR_STR",
-        #        "RICH_COMPARE_xx_FLOAT_FLOAT",
         #        "RICH_COMPARE_xx_UNICODE_UNICODE",
         #        "RICH_COMPARE_xx_TUPLE_TUPLE",
         #        "RICH_COMPARE_xx_LIST_LIST",
         #        "RICH_COMPARE_xx_BYTES_BYTES",
-    )
-)
-
-_cmp_bool_result_helpers_set = set(
-    (
-        "RICH_COMPARE_BOOL_xx_OBJECT_OBJECT",
-        "RICH_COMPARE_BOOL_xx_OBJECT_INT",
-        #        "RICH_COMPARE_BOOL_xx_OBJECT_LONG",
-        #        "RICH_COMPARE_BOOL_xx_OBJECT_STR",
-        #        "RICH_COMPARE_BOOL_xx_FLOAT_OBJECT",
-        #        "RICH_COMPARE_BOOL_xx_OBJECT_UNICODE",
-        #        "RICH_COMPARE_BOOL_xx_OBJECT_TUPLE",
-        #        "RICH_COMPARE_BOOL_xx_OBJECT_LIST",
-        #        "RICH_COMPARE_BOOL_xx_OBJECT_BYTES",
-        "RICH_COMPARE_BOOL_xx_INT_OBJECT",
-        #        "RICH_COMPARE_BOOL_xx_LONG_OBJECT",
-        #        "RICH_COMPARE_BOOL_xx_STR_OBJECT",
-        #        "RICH_COMPARE_BOOL_xx_OBJECT_FLOAT",
-        #        "RICH_COMPARE_BOOL_xx_UNICODE_OBJECT",
-        #        "RICH_COMPARE_BOOL_xx_TUPLE_OBJECT",
-        #        "RICH_COMPARE_BOOL_xx_LIST_OBJECT",
-        #        "RICH_COMPARE_BOOL_xx_BYTES_OBJECT",
-        "RICH_COMPARE_BOOL_xx_INT_INT",
-        #        "RICH_COMPARE_BOOL_xx_LONG_LONG",
-        #        "RICH_COMPARE_BOOL_xx_STR_STR",
-        #        "RICH_COMPARE_BOOL_xx_FLOAT_FLOAT",
-        #        "RICH_COMPARE_BOOL_xx_UNICODE_UNICODE",
-        #        "RICH_COMPARE_BOOL_xx_TUPLE_TUPLE",
-        #        "RICH_COMPARE_BOOL_xx_LIST_LIST",
-        #        "RICH_COMPARE_BOOL_xx_BYTES_BYTES",
+        "RICH_COMPARE_xx_OBJECT_INT_INT",
+        "RICH_COMPARE_xx_CBOOL_INT_INT",
+        "RICH_COMPARE_xx_NBOOL_INT_INT",
+        "RICH_COMPARE_xx_OBJECT_OBJECT_INT",
+        "RICH_COMPARE_xx_CBOOL_OBJECT_INT",
+        "RICH_COMPARE_xx_NBOOL_OBJECT_INT",
+        "RICH_COMPARE_xx_OBJECT_INT_OBJECT",
+        "RICH_COMPARE_xx_CBOOL_INT_OBJECT",
+        "RICH_COMPARE_xx_NBOOL_INT_OBJECT",
+        "RICH_COMPARE_xx_OBJECT_FLOAT_FLOAT",
+        "RICH_COMPARE_xx_CBOOL_FLOAT_FLOAT",
+        "RICH_COMPARE_xx_NBOOL_FLOAT_FLOAT",
+        "RICH_COMPARE_xx_OBJECT_OBJECT_FLOAT",
+        "RICH_COMPARE_xx_CBOOL_OBJECT_FLOAT",
+        "RICH_COMPARE_xx_NBOOL_OBJECT_FLOAT",
+        "RICH_COMPARE_xx_OBJECT_FLOAT_OBJECT",
+        "RICH_COMPARE_xx_CBOOL_FLOAT_OBJECT",
+        "RICH_COMPARE_xx_NBOOL_FLOAT_OBJECT",
+        "RICH_COMPARE_xx_OBJECT_TUPLE_TUPLE",
+        "RICH_COMPARE_xx_CBOOL_TUPLE_TUPLE",
+        "RICH_COMPARE_xx_NBOOL_TUPLE_TUPLE",
+        "RICH_COMPARE_xx_OBJECT_OBJECT_TUPLE",
+        "RICH_COMPARE_xx_CBOOL_OBJECT_TUPLE",
+        "RICH_COMPARE_xx_NBOOL_OBJECT_TUPLE",
+        "RICH_COMPARE_xx_OBJECT_TUPLE_OBJECT",
+        "RICH_COMPARE_xx_CBOOL_TUPLE_OBJECT",
+        "RICH_COMPARE_xx_NBOOL_TUPLE_OBJECT",
+        #        "RICH_COMPARE_xx_CBOOL_OBJECT_LONG",
+        #        "RICH_COMPARE_xx_CBOOL_OBJECT_STR",
+        #        "RICH_COMPARE_xx_CBOOL_OBJECT_UNICODE",
+        #        "RICH_COMPARE_xx_CBOOL_OBJECT_LIST",
+        #        "RICH_COMPARE_xx_CBOOL_OBJECT_BYTES",
+        #        "RICH_COMPARE_xx_CBOOL_LONG_OBJECT",
+        #        "RICH_COMPARE_xx_CBOOL_STR_OBJECT",
+        #        "RICH_COMPARE_xx_CBOOL_OBJECT_FLOAT",
+        #        "RICH_COMPARE_xx_CBOOL_UNICODE_OBJECT",
+        #        "RICH_COMPARE_xx_CBOOL_TUPLE_OBJECT",
+        #        "RICH_COMPARE_xx_CBOOL_LIST_OBJECT",
+        #        "RICH_COMPARE_xx_CBOOL_BYTES_OBJECT",
+        #        "RICH_COMPARE_xx_CBOOL_LONG_LONG",
+        #        "RICH_COMPARE_xx_CBOOL_STR_STR",
+        #        "RICH_COMPARE_xx_CBOOL_UNICODE_UNICODE",
+        #        "RICH_COMPARE_xx_CBOOL_TUPLE_TUPLE",
+        #        "RICH_COMPARE_xx_CBOOL_LIST_LIST",
+        #        "RICH_COMPARE_xx_CBOOL_BYTES_BYTES",
     )
 )
 
 
 def generateComparisonExpressionCode(to_name, expression, emit, context):
-    # Currently high complexity, due to manual C typing and doing all
-    # in one place, pylint: disable=too-many-branches,too-many-statements
-
     left = expression.getLeft()
     right = expression.getRight()
 
@@ -99,10 +111,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
 
     type_name = "PyObject *"
     if comparator in ("Is", "IsNot"):
-        if (
-            left.getTypeShape() is ShapeTypeBool
-            and right.getTypeShape() is ShapeTypeBool
-        ):
+        if left.getTypeShape() is tshape_bool and right.getTypeShape() is tshape_bool:
             type_name = "nuitka_bool"
 
     left_name = context.allocateTempName("compexpr_left", type_name=type_name)
@@ -163,69 +172,37 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
     elif comparator in OperatorCodes.rich_comparison_codes:
         needs_check = expression.mayRaiseExceptionComparison()
 
-        if comparator == "Eq" and not context.mayRecurse():
-            suffix = "_NORECURSE"
-        else:
-            suffix = ""
+        # TODO: This is probably not really worth it, but we used to do it.
+        # if comparator == "Eq" and not context.mayRecurse():
+        #     suffix = "_NORECURSE"
+        # else:
+        #     suffix = ""
 
-        c_type = to_name.getCType()
+        helper = pickCodeHelper(
+            prefix="RICH_COMPARE_xx",
+            suffix="",
+            target_type=to_name.getCType(),
+            left_shape=left.getTypeShape(),
+            right_shape=expression.getRight().getTypeShape(),
+            helpers=specialized_cmp_helpers_set,
+            nonhelpers=(),
+            # TODO: Only temporary, we need to be more complete with these.
+            source_ref=None,  # expression.source_ref,
+        )
 
-        if c_type.c_type == "PyObject *":
-            helper = pickCodeHelper(
-                prefix="RICH_COMPARE_xx",
-                suffix=suffix,
-                left_shape=left.getTypeShape(),
-                right_shape=expression.getRight().getTypeShape(),
-                helpers=_cmp_obj_result_helpers_set,
-                nonhelpers=(),
-                # TODO: Too many for now, so disable it
-                source_ref=None,
-            )
-        else:
-            helper = pickCodeHelper(
-                prefix="RICH_COMPARE_BOOL_xx",
-                suffix=suffix,
-                left_shape=left.getTypeShape(),
-                right_shape=expression.getRight().getTypeShape(),
-                helpers=_cmp_bool_result_helpers_set,
-                nonhelpers=(),
-                # TODO: Too many for now, so disable it
-                source_ref=None,
-            )
+        # Lets patch this up here, instead of having one set per comparison operation.
+        helper.helper_name = helper.helper_name.replace(
+            "xx", OperatorCodes.rich_comparison_codes[comparator]
+        )
 
-        # Lets patch this up here, instead of having one set per operation.
-        helper = helper.replace("xx", comparator.upper())
-
-        if c_type.c_type == "PyObject *":
-            emit("%s = %s(%s, %s);" % (to_name, helper, left_name, right_name))
-
-            getErrorExitCode(
-                check_name=to_name,
-                release_names=(left_name, right_name),
-                needs_check=needs_check,
-                emit=emit,
-                context=context,
-            )
-
-            context.addCleanupTempName(to_name)
-        elif c_type.c_type in ("nuitka_bool", "void"):
-            res_name = context.getIntResName()
-
-            emit("%s = %s(%s, %s);" % (res_name, helper, left_name, right_name))
-
-            getErrorExitBoolCode(
-                condition="%s == -1" % res_name,
-                release_names=(left_name, right_name),
-                needs_check=needs_check,
-                emit=emit,
-                context=context,
-            )
-
-            c_type.emitAssignmentCodeFromBoolCondition(
-                to_name=to_name, condition="%s != 0" % res_name, emit=emit
-            )
-        else:
-            assert False, to_name.c_type
+        helper.emitHelperCall(
+            to_name=to_name,
+            arg_names=(left_name, right_name),
+            ref_count=1,
+            needs_check=needs_check,
+            emit=emit,
+            context=context,
+        )
 
         return
     elif comparator == "exception_match":

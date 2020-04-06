@@ -24,9 +24,9 @@ typical support functions to building parts.
 
 from contextlib import contextmanager
 
-from nuitka.Options import shallTraceExecution
+from nuitka.Options import isExperimental, shallTraceExecution
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import printError
+from nuitka.Tracing import my_print, printError
 
 from .Emission import SourceCodeCollector
 from .Indentation import indented
@@ -279,23 +279,172 @@ def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, con
         getReleaseCode(value_name, emit, context)
 
 
+class HelperCallHandle(object):
+    def __init__(
+        self,
+        helper_name,
+        target_type,
+        helper_target,
+        left_shape,
+        helper_left,
+        right_shape,
+        helper_right,
+    ):
+        self.helper_name = helper_name
+        self.target_type = target_type
+        self.helper_target = helper_target
+        self.left_shape = left_shape
+        self.helper_left = helper_left
+        self.right_shape = right_shape
+        self.helper_right = helper_right
+
+    def __str__(self):
+        return self.helper_name
+
+    def emitHelperCall(self, to_name, arg_names, ref_count, needs_check, emit, context):
+        if (
+            self.target_type is not None
+            and self.target_type.helper_code != self.helper_target.helper_code
+        ):
+            value_name = context.allocateTempName(
+                to_name.code_name + "_" + self.helper_target.helper_code.lower(),
+                type_name=self.helper_target.c_type,
+                unique=to_name.code_name == "tmp_unused",
+            )
+        else:
+            value_name = to_name
+
+        emit(
+            "%s = %s(%s);"
+            % (
+                value_name,
+                self.helper_name,
+                ", ".join(
+                    "%s%s"
+                    % (
+                        "&" if count == 0 and "INPLACE" in self.helper_name else "",
+                        arg_name,
+                    )
+                    for count, arg_name in enumerate(arg_names)
+                ),
+            )
+        )
+
+        # TODO: Move helper calling to something separate.
+        from .ErrorCodes import getErrorExitCode, getReleaseCode
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=arg_names,
+            needs_check=needs_check,
+            emit=emit,
+            context=context,
+        )
+
+        if ref_count:
+            context.addCleanupTempName(value_name)
+
+        if (
+            self.target_type is not None
+            and self.target_type.helper_code != self.helper_target.helper_code
+        ):
+            if self.target_type.helper_code in ("NBOOL", "NVOID"):
+                self.target_type.emitAssignConversionCode(
+                    to_name=to_name,
+                    value_name=value_name,
+                    needs_check=needs_check,
+                    emit=emit,
+                    context=context,
+                )
+
+                # TODO: Push that release into the emitAssignConversionCode for higher efficiency
+                # in code generation, or else error releases are done as well as later release.
+                if ref_count:
+                    getReleaseCode(value_name, emit, context)
+            else:
+                assert False, (
+                    self.target_type.helper_code,
+                    self.helper_target.helper_code,
+                )
+
+
 def pickCodeHelper(
-    prefix, suffix, left_shape, right_shape, helpers, nonhelpers, source_ref
+    prefix,
+    suffix,
+    target_type,
+    left_shape,
+    right_shape,
+    helpers,
+    nonhelpers,
+    source_ref,
 ):
+    # Lots of details to deal with, # pylint: disable=too-many-locals
+
     left_part = left_shape.helper_code
     right_part = right_shape.helper_code
 
     assert left_part != "INVALID", left_shape
     assert right_part != "INVALID", right_shape
 
-    ideal_helper = "%s_%s_%s%s" % (prefix, left_part, right_part, suffix)
+    if target_type is None:
+        target_part = None
+    else:
+        target_part = target_type.helper_code
+
+        assert target_part != "INVALID", target_type
+
+    # Special hack for "NVOID", lets go to "NBOOL more automatically"
+
+    ideal_helper = "_".join(
+        p for p in (prefix, target_part, left_part, right_part, suffix) if p
+    )
+
+    if target_part == "NVOID" and ideal_helper not in helpers:
+        target_part = "NBOOL"
+
+        ideal_helper = "_".join(
+            p for p in (prefix, target_part, left_part, right_part, suffix) if p
+        )
+
+        from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
+
+        helper_target = CTypeNuitkaBoolEnum
+    else:
+        helper_target = target_type
 
     if ideal_helper in helpers:
-        return ideal_helper
+        return HelperCallHandle(
+            helper_name=ideal_helper,
+            target_type=target_type,
+            helper_target=helper_target,
+            left_shape=left_shape,
+            helper_left=left_shape,
+            right_shape=right_shape,
+            helper_right=right_shape,
+        )
 
-    if source_ref is not None and ideal_helper not in nonhelpers:
+    if isExperimental("nuitka_ilong"):
+        my_print(ideal_helper)
+
+    if source_ref is not None and (not nonhelpers or ideal_helper not in nonhelpers):
         onMissingHelper(ideal_helper, source_ref)
 
-    fallback_helper = "%s_%s_%s%s" % (prefix, "OBJECT", "OBJECT", suffix)
+    fallback_helper = "%s_%s_%s_%s%s" % (prefix, "OBJECT", "OBJECT", "OBJECT", suffix)
 
-    return fallback_helper
+    fallback_helper = "_".join(
+        p
+        for p in (prefix, "OBJECT" if target_part else "", "OBJECT", "OBJECT", suffix)
+        if p
+    )
+
+    from .c_types.CTypePyObjectPtrs import CTypePyObjectPtr
+
+    return HelperCallHandle(
+        helper_name=fallback_helper,
+        target_type=target_type,
+        helper_target=CTypePyObjectPtr,
+        left_shape=left_shape,
+        helper_left=CTypePyObjectPtr,
+        right_shape=right_shape,
+        helper_right=CTypePyObjectPtr,
+    )

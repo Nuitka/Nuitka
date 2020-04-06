@@ -24,7 +24,7 @@ to this.
 """
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionChildHavingBase
-from .shapes.BuiltinTypeShapes import ShapeTypeStrOrUnicode
+from .shapes.BuiltinTypeShapes import tshape_str_or_unicode
 
 
 class ExpressionStringConcatenation(ExpressionChildHavingBase):
@@ -41,7 +41,7 @@ class ExpressionStringConcatenation(ExpressionChildHavingBase):
         )
 
     def getTypeShape(self):
-        return ShapeTypeStrOrUnicode
+        return tshape_str_or_unicode
 
     def computeExpression(self, trace_collection):
         # TODO: Could remove itself if only one argument or merge arguments

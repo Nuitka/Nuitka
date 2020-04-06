@@ -31,9 +31,9 @@ from .ExpressionBases import (
 )
 from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 from .shapes.BuiltinTypeShapes import (
-    ShapeTypeIntOrLong,
-    ShapeTypeStr,
-    ShapeTypeStrOrUnicode,
+    tshape_int_or_long,
+    tshape_str,
+    tshape_str_or_unicode,
 )
 
 
@@ -53,7 +53,7 @@ class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
         )
 
     def getTypeShape(self):
-        return ShapeTypeStrOrUnicode
+        return tshape_str_or_unicode
 
     def computeExpression(self, trace_collection):
         # TODO: Can use the format built-in on compile time constants at least.
@@ -99,7 +99,7 @@ class ExpressionBuiltinAscii(ExpressionBuiltinSingleArgBase):
         builtin_spec = BuiltinParameterSpecs.builtin_ascii_spec
 
     def getTypeShape(self):
-        return ShapeTypeStr
+        return tshape_str
 
 
 class ExpressionBuiltinBin(ExpressionBuiltinSingleArgBase):
@@ -108,7 +108,7 @@ class ExpressionBuiltinBin(ExpressionBuiltinSingleArgBase):
     builtin_spec = BuiltinParameterSpecs.builtin_bin_spec
 
     def getTypeShape(self):
-        return ShapeTypeStr
+        return tshape_str
 
 
 class ExpressionBuiltinOct(ExpressionBuiltinSingleArgBase):
@@ -117,7 +117,7 @@ class ExpressionBuiltinOct(ExpressionBuiltinSingleArgBase):
     builtin_spec = BuiltinParameterSpecs.builtin_oct_spec
 
     def getTypeShape(self):
-        return ShapeTypeStr
+        return tshape_str
 
 
 class ExpressionBuiltinHex(ExpressionBuiltinSingleArgBase):
@@ -126,7 +126,7 @@ class ExpressionBuiltinHex(ExpressionBuiltinSingleArgBase):
     builtin_spec = BuiltinParameterSpecs.builtin_hex_spec
 
     def getTypeShape(self):
-        return ShapeTypeStr
+        return tshape_str
 
 
 class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
@@ -146,7 +146,7 @@ class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
         return self
 
     def getTypeShape(self):
-        return ShapeTypeIntOrLong
+        return tshape_int_or_long
 
     def computeExpressionDrop(self, statement, trace_collection):
         result = makeStatementExpressionOnlyReplacementNode(

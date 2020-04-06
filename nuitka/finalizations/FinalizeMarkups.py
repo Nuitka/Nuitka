@@ -58,7 +58,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
     def _onEnterNode(self, node):
         # This has many different things it deals with, so there need to be a
-        # lot of branches and statements, pylint: disable=too-many-branches,too-many-statements
+        # lot of branches and statements, pylint: disable=too-many-branches
 
         # Also all self specific things have been done on the outside,
         # pylint: disable=no-self-use
@@ -118,18 +118,16 @@ class FinalizeMarkups(FinalizationVisitorBase):
             if assign_source.isExpressionOperationBinary():
                 left_arg = assign_source.getLeft()
 
-                if left_arg.isExpressionVariableRef():
+                if (
+                    left_arg.isExpressionVariableRef()
+                    or left_arg.isExpressionTempVariableRef()
+                ):
                     if assign_source.getLeft().getVariable() is target_var:
                         if assign_source.isInplaceSuspect():
                             node.markAsInplaceSuspect()
                 elif left_arg.isExpressionLocalsVariableRefOrFallback():
+                    # TODO: This might be bad.
                     assign_source.unmarkAsInplaceSuspect()
-
-        if node.isStatementLocalsDictOperationSet():
-            assign_source = node.getAssignSource()
-
-            if assign_source.isExpressionOperationBinary():
-                assign_source.unmarkAsInplaceSuspect()
 
         if python_version < 300 and node.isStatementPublishException():
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()

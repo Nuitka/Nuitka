@@ -25,7 +25,7 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
     ExpressionSpecBasedComputationMixin,
 )
-from .shapes.BuiltinTypeShapes import ShapeTypeComplex
+from .shapes.BuiltinTypeShapes import tshape_complex
 
 
 class ExpressionBuiltinComplex1(ExpressionChildHavingBase):
@@ -40,7 +40,7 @@ class ExpressionBuiltinComplex1(ExpressionChildHavingBase):
     def getTypeShape(self):
         # Note: The complex built-in will convert overloads from __complex__
         # slot and create a new one instead.
-        return ShapeTypeComplex
+        return tshape_complex
 
     def computeExpression(self, trace_collection):
         value = self.getValue()
@@ -74,4 +74,4 @@ class ExpressionBuiltinComplex2(
         )
 
     def getTypeShape(self):
-        return ShapeTypeComplex
+        return tshape_complex

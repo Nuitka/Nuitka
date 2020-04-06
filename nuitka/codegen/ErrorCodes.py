@@ -146,7 +146,7 @@ def getErrorExitCode(
     needs_check=True,
 ):
     getErrorExitBoolCode(
-        condition="%s == NULL" % check_name,
+        condition=check_name.getCType().getExceptionCheckCondition(check_name),
         release_names=release_names,
         release_name=release_name,
         needs_check=needs_check,
@@ -214,9 +214,32 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
     )
 
 
+def getTakeReferenceCode(value_name, emit):
+    # TODO: This should be done via the C type
+    if value_name.c_type == "PyObject *":
+        emit("Py_INCREF(%s);" % value_name)
+    elif value_name.c_type == "nuitka_bool":
+        pass
+    elif value_name.c_type == "nuitka_void":
+        pass
+    else:
+        assert False, repr(value_name)
+
+
 def getReleaseCode(release_name, emit, context):
     if context.needsCleanup(release_name):
-        emit("Py_DECREF(%s);" % release_name)
+        # TODO: This should be done via the C type and its getReleaseCode() method, but this
+        # one does too much for object, in that it always assigns NULL to the object for no
+        # good reason in non-debug mode.
+        if release_name.c_type == "PyObject *":
+            emit("Py_DECREF(%s);" % release_name)
+        elif release_name.c_type == "nuitka_bool":
+            pass
+        elif release_name.c_type == "nuitka_void":
+            pass
+        else:
+            assert False, repr(release_name)
+
         context.removeCleanupTempName(release_name)
 
 

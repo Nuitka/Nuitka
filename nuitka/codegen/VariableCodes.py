@@ -20,10 +20,13 @@
 """
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
-    ShapeTypeBool,
-    ShapeTypeInt,
-    ShapeTypeIntOrLong,
-    ShapeTypeLong,
+    tshape_bool,
+    tshape_int,
+    tshape_int_or_long,
+    tshape_long,
+    tshape_str,
+    tshape_str_or_unicode,
+    tshape_unicode,
 )
 from nuitka.PythonVersions import python_version
 
@@ -57,13 +60,10 @@ def generateAssignmentVariableCode(statement, emit, context):
             context, variable, variable_trace
         )
 
-        if (
-            source_shape is ShapeTypeBool
-            and variable_declaration.c_type == "nuitka_bool"
-        ):
+        if source_shape is tshape_bool and variable_declaration.c_type == "nuitka_bool":
             tmp_name = context.allocateTempName("assign_source", "nuitka_bool")
         elif (
-            source_shape is ShapeTypeIntOrLong
+            source_shape is tshape_int_or_long
             and variable_declaration.c_type == "nuitka_ilong"
         ):
 
@@ -191,6 +191,9 @@ def getPickedCType(variable, context):
 
     if owner is user:
         if variable.isSharedTechnically():
+            # TODO: That need not really be an impedient, we could share pointers to
+            # everything.
+
             result = CTypeCellObject
         else:
             shapes = variable.getTypeShapes()
@@ -198,17 +201,27 @@ def getPickedCType(variable, context):
             if len(shapes) > 1:
                 # There are a few shapes that are included in one another.
                 if python_version < 300:
-                    if ShapeTypeIntOrLong in shapes:
-                        if ShapeTypeInt in shapes:
-                            shapes.discard(ShapeTypeInt)
-                        if ShapeTypeLong in shapes:
-                            shapes.discard(ShapeTypeLong)
+                    if tshape_int_or_long in shapes:
+                        if tshape_int in shapes:
+                            shapes.discard(tshape_int)
+                        if tshape_long in shapes:
+                            shapes.discard(tshape_long)
 
-                # Avoiding this for now.
+                    if tshape_str_or_unicode in shapes:
+                        if tshape_str in shapes:
+                            shapes.discard(tshape_str)
+                        if tshape_unicode in shapes:
+                            shapes.discard(tshape_unicode)
+
+                # Avoiding this for now, but we will have to use our enum
+                # based code variants, either generated or hard coded in
+                # the future.
                 if len(shapes) > 1:
                     return CTypePyObjectPtr
 
-            return shapes.pop().getCType()
+            r = shapes.pop().getCType()
+            return r
+
     elif context.isForDirectCall():
         if variable.isSharedTechnically():
             result = CTypeCellObject
@@ -338,10 +351,6 @@ def getVariableAssignmentCode(
 
         if variable.isLocalVariable():
             context.setVariableType(variable, variable_declaration)
-
-        # TODO: If this was not handled previously, do not overlook when it
-        # occurs.
-        assert not in_place or not variable.isTempVariable()
 
     variable_declaration.getCType().emitVariableAssignCode(
         value_name=variable_declaration,

@@ -527,8 +527,7 @@ def buildBinaryOpNode(provider, node, source_ref):
     operator = getKind(node.op)
 
     if operator == "Div":
-        if getFutureSpec().isFutureDivision():
-            operator = "TrueDiv"
+        operator = "TrueDiv" if getFutureSpec().isFutureDivision() else "OldDiv"
 
     left = buildNode(provider, node.left, source_ref)
     right = buildNode(provider, node.right, source_ref)
@@ -751,7 +750,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             statements.append(createPathAssignment(provider, internal_source_ref))
 
         if python_version >= 340 and not is_main:
-            statements += [
+            statements += (
                 StatementAssignmentAttribute(
                     source=ExpressionModuleAttributeFileRef(
                         variable=provider.getVariableForReference("__file__"),
@@ -773,7 +772,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                     ),
                     source_ref=internal_source_ref,
                 ),
-            ]
+            )
 
     if python_version >= 300:
         statements.append(

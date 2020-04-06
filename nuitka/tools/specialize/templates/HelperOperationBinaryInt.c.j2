@@ -15,9 +15,9 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
-static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
-    {{left.getCheckValueCode("operand1")|indent}}
-    {{right.getCheckValueCode("operand2")|indent}}
+static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    {{left.getCheckValueCode("operand1")}}
+    {{right.getCheckValueCode("operand2")}}
 
     {# This is supposed to be Python2 code #}
     const long a = {{left.getAsLongValueExpression("operand1")}};
@@ -25,16 +25,25 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
 
 {% if operand in "+-" %}
     const long x = (long)((unsigned long)a {{operand}} b);
-    if ((x^a) >= 0 || (x^{{"~" if operand == "-" else ""}}b) >= 0) {
-        return PyInt_FromLong(x);
+    bool no_overflow = ((x^a) >= 0 || (x^{{"~" if operand == "-" else ""}}b) >= 0);
+{% if target.type_name in ("nuitka_bool", "nbool") %}
+    bool t = !no_overflow || x != 0;
+
+    {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("t")}};
+    {{target.getTakeReferenceStatement("result")}}
+    return result;
+{% else %}
+    if (no_overflow) {
+        {{ target.getReturnFromLongExpressionCode("x") }}
     }
+{% endif %}
 {% elif operand == "*" %}
     const long longprod = (long)((unsigned long)a * b);
     const double doubleprod = (double)a * (double)b;
     const double doubled_longprod = (double)longprod;
 
     if (likely(doubled_longprod == doubleprod)) {
-        return PyInt_FromLong(longprod);
+        {{ target.getReturnFromLongExpressionCode("longprod") }}
     }
 
     const double diff = doubled_longprod - doubleprod;
@@ -42,12 +51,12 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
     const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
 
     if (likely(32.0 * absdiff <= absprod)) {
-        return PyInt_FromLong(longprod);
+        {{ target.getReturnFromLongExpressionCode("longprod") }}
     }
 {% elif operand == "//" or nb_slot == "nb_divide" %}
     if (unlikely(b == 0)) {
         PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
-        return NULL;
+        return {{target.getExceptionResultIndicatorValue()}};
     }
 
     /* TODO: Isn't this a very specific value only, of which we could
@@ -60,35 +69,38 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
         long a_div_b = a / b;
         long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
 
-        if (a_mod_b && (b ^ a_mod_b) < 0)
-        {
+        if (a_mod_b && (b ^ a_mod_b) < 0) {
             a_mod_b += b;
             a_div_b -= 1;
         }
 
-        return PyInt_FromLong(a_div_b);
+        {{ target.getReturnFromLongExpressionCode("a_div_b") }}
     }
 {% elif operand=="/" and "true_div" in nb_slot %}
     if (unlikely(b == 0)) {
         PyErr_Format(PyExc_ZeroDivisionError, "division by zero");
-        return NULL;
+        return {{target.getExceptionResultIndicatorValue()}};
     }
 
     if (a == 0) {
-        PyObject *result = b < 0 ? const_float_minus_0_0 : const_float_0_0;
-        Py_INCREF(result);
-
-        return result;
+        if (b < 0) {
+            {{ target.getReturnFromFloatConstantCode(-0.0) }}
+        } else {
+            {{ target.getReturnFromFloatConstantCode(0.0) }}
+        }
     }
 
 /* May need to resort to LONG code, which we currently do not
- * specialize yet. TODO: Once we do that, call it here.
+ * specialize yet. TODO: Once we do that, call it here instead.
  */
 #if DBL_MANT_DIG < WIDTH_OF_ULONG
     if ((a >= 0 ? 0UL + a : 0UL - a) >> DBL_MANT_DIG || (b >= 0 ? 0UL + b : 0UL - b) >> DBL_MANT_DIG) {
     } else
 #endif
-    return PyFloat_FromDouble((double)a / (double)b);
+    {
+        double result = (double)a / (double)b;
+        {{ target.getReturnFromFloatExpressionCode("result") }}
+    }
 {% elif operand=="%" %}
     /* TODO: Isn't this a very specific value only, of which we could
      * hardcode the constant result. Not sure how well the C compiler
@@ -97,7 +109,6 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
      */
 
     if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
-
         long result = a % b;
 
         // Sign handling.
@@ -105,30 +116,30 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
             result += b;
         }
 
-        return PyInt_FromLong(result);
+        {{ target.getReturnFromLongExpressionCode("result") }}
     }
 {% elif operand in "|^&" %}
     const long result = a {{operand}} b;
-    return PyInt_FromLong(result);
+    {{ target.getReturnFromLongExpressionCode("result") }}
 {% elif operand == "<<" %}
     if (unlikely(b < 0)) {
         PyErr_SetString(PyExc_ValueError, "negative shift count");
-        return NULL;
+        return {{target.getExceptionResultIndicatorValue()}};
     }
     /* Short cut for zero shift or shifting zero. */
-    PyObject *result;
     if (a == 0 || b == 0) {
-        result = operand1;
-        Py_INCREF(result);
+        {{ target.getReturnFromObjectExpressionCode("operand1", take_ref=True, check_exception=False) }}
     } else if (b >= LONG_BIT) {
         PyObject *operand1_long = PyLong_FromLong(a);
         PyObject *operand2_long = PyLong_FromLong(b);
 
         // TODO: Change this to using CLONG once we specialize that too.
-        result = BINARY_OPERATION_LSHIFT_LONG_LONG(operand1_long, operand2_long);
+        PyObject *result = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
         Py_DECREF(operand1_long);
         Py_DECREF(operand2_long);
+
+        {{ target.getReturnFromObjectExpressionCode("result") }}
     } else {
         long c = a << b;
 
@@ -137,53 +148,49 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
             PyObject *operand2_long = PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
-            result = BINARY_OPERATION_LSHIFT_LONG_LONG(operand1_long, operand2_long);
+            PyObject *result = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
             Py_DECREF(operand1_long);
             Py_DECREF(operand2_long);
+
+            {{ target.getReturnFromObjectExpressionCode("result") }}
         } else {
-            result = PyInt_FromLong(c);
+            {{ target.getReturnFromLongExpressionCode("c") }}
         }
     }
-
-    return result;
 {% elif operand == ">>" %}
     if (unlikely(b < 0)) {
         PyErr_SetString(PyExc_ValueError, "negative shift count");
-        return NULL;
+        return {{target.getExceptionResultIndicatorValue()}};
     }
 
     /* Short cut for zero shift or shifting zero. */
-    PyObject *result;
     if (a == 0 || b == 0) {
-        result = operand1;
-        Py_INCREF(result);
+        {{ target.getReturnFromObjectExpressionCode("operand1", take_ref=True, check_exception=False) }}
     } else if (b >= LONG_BIT) {
         if (a < 0) {
-            result = const_int_neg_1;
+            {{ target.getReturnFromIntConstantCode(-1) }}
         } else {
-            result = const_int_0;
+            {{ target.getReturnFromIntConstantCode(0) }}
         }
-
-        Py_INCREF(result);
     } else {
         long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
-        result = PyInt_FromLong(r);
+        {{ target.getReturnFromLongExpressionCode("r") }}
     }
 
-    return result;
+
 {% elif operand == "**" %}
     if (b < 0) {
         // TODO: Use CFLOAT once available.
         PyObject *operand1_float = PyFloat_FromDouble(a);
         PyObject *operand2_float = PyFloat_FromDouble(b);
 
-        PyObject *result = BINARY_OPERATION_POW_FLOAT_FLOAT(operand1_float, operand2_float);
+        PyObject *result = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
 
         Py_DECREF(operand1_float);
         Py_DECREF(operand2_float);
 
-        return result;
+        {{ target.getReturnFromObjectExpressionCode("result") }}
     }
 
     long temp = a;
@@ -201,12 +208,12 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
                 PyObject *operand1_long = PyLong_FromLong(a);
                 PyObject *operand2_long = PyLong_FromLong(b);
 
-                PyObject *result = BINARY_OPERATION_POW_LONG_LONG(operand1_long, operand2_long);
+                PyObject *result = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
                 Py_DECREF(operand1_long);
                 Py_DECREF(operand2_long);
 
-                return result;
+                {{ target.getReturnFromObjectExpressionCode("result") }}
             }
         }
         bb >>= 1;
@@ -220,16 +227,33 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
             PyObject *operand1_long = PyLong_FromLong(a);
             PyObject *operand2_long = PyLong_FromLong(b);
 
-            PyObject *result = BINARY_OPERATION_POW_LONG_LONG(operand1_long, operand2_long);
+            PyObject *result = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
             Py_DECREF(operand1_long);
             Py_DECREF(operand2_long);
 
-            return result;
+            {{ target.getReturnFromObjectExpressionCode("result") }}
         }
     }
 
-    return PyInt_FromLong(ix);
+    {{ target.getReturnFromLongExpressionCode("ix") }}
+{% elif operand == "divmod" %}
+    if (unlikely(b == 0)) {
+        PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        return {{target.getExceptionResultIndicatorValue()}};
+    }
+
+    if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+        long a_div_b = a / b;
+        long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
+
+        if (a_mod_b && (b ^ a_mod_b) < 0) {
+            a_mod_b += b;
+            a_div_b -= 1;
+        }
+
+        {{ target.getReturnTupleFromLongExpressionsCode("a_div_b", "a_mod_b") }}
+    }
 {% else %}
 #error Operand {{operand}} not implemented in {{name}}
 {% endif %}
@@ -244,5 +268,5 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
     {{left.releaseAsObjectValueStatement("op1")}}
     {{right.releaseAsObjectValueStatement("op2")}}
 
-    return o;
+    {{ target.getReturnFromObjectExpressionCode("o") }}
 }

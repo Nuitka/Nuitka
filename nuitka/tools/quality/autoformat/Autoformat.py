@@ -247,7 +247,7 @@ def _cleanupImportSortOrder(filename):
                 "-m3",  # "vert-hanging"
                 "-up",  # Prefer braces () over \ for line continuation.
                 "-tc",  # Trailing commas
-                "-p",   # make sure nuitka is first party package in import sorting.
+                "-p",  # make sure nuitka is first party package in import sorting.
                 "nuitka",
                 "-ns",  # Do not ignore those:
                 "__init__.py",
@@ -279,7 +279,9 @@ def _cleanupClangFormat(filename):
     # the form of a module, pylint: disable=global-statement
     global warned_clang_format
 
-    clang_format_path = getExecutablePath("clang-format-7")
+    clang_format_path = getExecutablePath("clang-format-8") or getExecutablePath(
+        "clang-format-7"
+    )
 
     # Extra ball on Windows, check default installation PATH too.
     if not clang_format_path and getOS() == "Windows":
@@ -339,7 +341,7 @@ def _isPythonFile(filename):
     return False
 
 
-def transferBOM(source_filename, target_filename):
+def _transferBOM(source_filename, target_filename):
     with open(source_filename, "rb") as f:
         source_code = f.read()
 
@@ -353,21 +355,41 @@ def transferBOM(source_filename, target_filename):
                 f.write(source_code)
 
 
-def autoformat(filename, git_stage, abort):
-    # This does a lot of distinctions, pylint: disable=too-many-branches
+def autoformat(filename, git_stage, abort, effective_filename=None):
+    """ Format source code with external tools
 
-    if os.path.isdir(filename):
+    Args:
+        filename: filename to work on
+        git_stage: indicate if this is to be done on staged content
+        abort: error exit in case a tool shows a problem
+        effective_filename: derive type of file from this name
+
+    Notes:
+        The effective filename can be used in case this is already a
+        temporary filename intended to replace another.
+
+    Returns:
+        None
+    """
+
+    # This does a lot of distinctions, pylint: disable=too-many-branches,too-many-statements
+
+    if effective_filename is None:
+        effective_filename = filename
+
+    if os.path.isdir(effective_filename):
         return
 
     filename = os.path.normpath(filename)
+    effective_filename = os.path.normpath(effective_filename)
 
     my_print("Consider", filename, end=": ")
 
-    is_python = _isPythonFile(filename)
+    is_python = _isPythonFile(effective_filename)
 
-    is_c = filename.endswith((".c", ".h"))
+    is_c = effective_filename.endswith((".c", ".h"))
 
-    is_txt = filename.endswith(
+    is_txt = effective_filename.endswith(
         (
             ".patch",
             ".txt",
@@ -393,7 +415,7 @@ def autoformat(filename, git_stage, abort):
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
     if not (is_python or is_c or is_txt):
-        my_print("Ignored file type")
+        my_print("Ignored file type.")
         return
 
     # Work on a temporary copy
@@ -411,7 +433,7 @@ def autoformat(filename, git_stage, abort):
         if is_python:
             cleanupWindowsNewlines(tmp_filename)
 
-            if not _shouldNotFormatCode(filename):
+            if not _shouldNotFormatCode(effective_filename):
                 _cleanupImportSortOrder(tmp_filename)
                 _cleanupPyLintComments(tmp_filename, abort)
 
@@ -429,7 +451,7 @@ def autoformat(filename, git_stage, abort):
             _cleanupTrailingWhitespace(tmp_filename)
             cleanupWindowsNewlines(tmp_filename)
 
-        transferBOM(filename, tmp_filename)
+        _transferBOM(filename, tmp_filename)
 
         changed = False
         if old_code != getFileContents(tmp_filename, "rb"):

@@ -104,7 +104,8 @@ Requirements
 
   .. admonition:: It **has to** be CPython, AnaConda or MiniConda Python.
 
-     It is known that macOS "pyenv" does **not** work.
+     It is known that Windows app store Python definitely does not work, it's
+     checked against. And on macOS "pyenv" likely does **not** work.
 
 - Operating System: Linux, FreeBSD, NetBSD, macOS X, and Windows (32/64 bits).
 

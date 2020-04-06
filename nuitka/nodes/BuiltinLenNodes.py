@@ -27,7 +27,7 @@ good.
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionBuiltinSingleArgBase
-from .shapes.BuiltinTypeShapes import ShapeTypeIntOrLong
+from .shapes.BuiltinTypeShapes import tshape_int_or_long
 
 
 class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
@@ -49,7 +49,7 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
         )
 
     def getTypeShape(self):
-        return ShapeTypeIntOrLong
+        return tshape_int_or_long
 
     def mayRaiseException(self, exception_type):
         value = self.getValue()

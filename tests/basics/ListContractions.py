@@ -15,8 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Cover list contractions and a few special things in them.
+
+"""
+
 from __future__ import print_function
 
+# Tests do bad things, pylint: disable=redefined-outer-name,possibly-unused-variable
 
 def displayDict(d):
     result = "{"

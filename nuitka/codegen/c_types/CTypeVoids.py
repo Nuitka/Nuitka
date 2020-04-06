@@ -22,6 +22,8 @@ to assign to it.
 
 """
 
+from nuitka import Options
+
 from .CTypeBases import CTypeBase
 
 # This is going to not use arguments very commonly. For now disable
@@ -29,7 +31,10 @@ from .CTypeBases import CTypeBase
 
 
 class CTypeVoid(CTypeBase):
-    c_type = "void"
+    c_type = "nuitka_void"
+
+    # Return value only obviously.
+    helper_code = "NVOID"
 
     @classmethod
     def emitTruthCheckCode(cls, to_name, value_name, needs_check, emit, context):
@@ -52,6 +57,11 @@ class CTypeVoid(CTypeBase):
 
         getReleaseCode(value_name, emit, context)
 
+        # The only possible value, and in this case never read, but the compiler hates
+        # it being defined which is hard for us to know ahead of time.
+        if Options.is_debug:
+            emit("%s = NUITKA_VOID_OK;" % to_name)
+
     @classmethod
     def getInitValue(cls, init_from):
         assert False
@@ -68,6 +78,11 @@ class CTypeVoid(CTypeBase):
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
-        # We have no storage, the original user will cleanup after itself. This
-        # is the main point of the whole type.
-        pass
+        # The only possible value, and in this case never read, but the compiler hates
+        # it being defined which is hard for us to know ahead of time.
+        if Options.is_debug:
+            emit("%s = NUITKA_VOID_OK;" % to_name)
+
+    @classmethod
+    def getExceptionCheckCondition(cls, value_name):
+        return "%s == NUITKA_VOID_EXCEPTION" % value_name

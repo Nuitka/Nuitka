@@ -21,8 +21,8 @@ from nuitka import Variables
 from nuitka.containers.odict import OrderedDict
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
-from .shapes.BuiltinTypeShapes import ShapeTypeDict
-from .shapes.StandardShapes import ShapeUnknown
+from .shapes.BuiltinTypeShapes import tshape_dict
+from .shapes.StandardShapes import tshape_unknown
 
 locals_dict_handles = {}
 
@@ -79,7 +79,7 @@ class LocalsDictHandle(object):
 
     @staticmethod
     def getTypeShape():
-        return ShapeTypeDict
+        return tshape_dict
 
     def getCodeName(self):
         return self.locals_name
@@ -147,7 +147,7 @@ class LocalsMappingHandle(LocalsDictHandle):
     @staticmethod
     def getTypeShape():
         # TODO: Make mapping available for this.
-        return ShapeUnknown
+        return tshape_unknown
 
 
 class GlobalsDictHandle(object):

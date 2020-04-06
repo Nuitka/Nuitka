@@ -163,15 +163,15 @@ def main():
                 ]
 
                 if details["requirements_file"]:
-                    cmds += [
+                    cmds.append(
                         "python -m pip install -r %s" % details["requirements_file"]
-                    ]
+                    )
 
                 if details.get("extra_commands"):
                     cmds += details["extra_commands"]
 
                 # build uncompiled .whl
-                cmds += ["python setup.py bdist_wheel"]
+                cmds.append("python setup.py bdist_wheel")
 
                 venv.runCommand(commands=cmds)
 
@@ -202,7 +202,7 @@ def main():
                     cmds += details["extra_commands"]
 
                 # build nuitka compiled .whl
-                cmds += ["python setup.py bdist_nuitka"]
+                cmds.append("python setup.py bdist_nuitka")
 
                 venv.runCommand(commands=cmds)
 

@@ -168,7 +168,7 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
 
         # This conversion will not use it, and since it is borrowed, debug mode
         # would otherwise complain.
-        if to_name.c_type == "void":
+        if to_name.c_type == "nuitka_void":
             result_name.maybe_unused = True
 
 

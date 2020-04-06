@@ -41,7 +41,7 @@ from .ModuleAttributeNodes import (
     ExpressionModuleAttributeSpecRef,
 )
 from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
-from .shapes.StandardShapes import ShapeUnknown
+from .shapes.StandardShapes import tshape_unknown
 
 
 class ExpressionVariableNameRef(ExpressionBase):
@@ -127,7 +127,7 @@ class ExpressionVariableRefBase(ExpressionBase):
 
     def getTypeShape(self):
         if self.variable_trace is None:
-            return ShapeUnknown
+            return tshape_unknown
         else:
             return self.variable_trace.getTypeShape()
 
@@ -242,6 +242,24 @@ Subscript look-up to dictionary lowered to dictionary look-up."""
 
         return lookup_node, tags, message
 
+    def _applyReplacement(self, trace_collection, replacement):
+        trace_collection.signalChange(
+            "new_expression",
+            self.source_ref,
+            "Value propagated for '%s' from '%s'."
+            % (self.variable.getName(), replacement.getSourceReference().getAsString()),
+        )
+
+        # Special case for in-place assignments.
+        if self.parent.isExpressionOperationInplace():
+            statement = self.parent.parent
+
+            if statement.isStatementAssignmentVariable():
+                statement.unmarkAsInplaceSuspect()
+
+        # Need to compute the replacement still.
+        return replacement.computeExpressionRaw(trace_collection)
+
 
 _hard_names = ("dir", "eval", "exec", "execfile", "locals", "vars", "super")
 
@@ -299,17 +317,8 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         )
 
         replacement = self.variable_trace.getReplacementNode(self)
-
         if replacement is not None:
-            trace_collection.signalChange(
-                "new_expression",
-                self.source_ref,
-                "Value propagated for '%s' from '%s'."
-                % (variable.getName(), replacement.getSourceReference().getAsString()),
-            )
-
-            # Need to compute the replacement still.
-            return replacement.computeExpressionRaw(trace_collection)
+            return self._applyReplacement(trace_collection, replacement)
 
         if not self.variable_trace.mustHaveValue():
             # TODO: This could be way more specific surely.
@@ -504,13 +513,8 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
         )
 
         replacement = self.variable_trace.getReplacementNode(self)
-
         if replacement is not None:
-            return (
-                replacement,
-                "new_expression",
-                "Value propagated for temp '%s'." % self.variable.getName(),
-            )
+            return self._applyReplacement(trace_collection, replacement)
 
         self.variable_trace.addUsage()
 

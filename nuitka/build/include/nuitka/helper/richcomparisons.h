@@ -18,60 +18,13 @@
 #ifndef __NUITKA_HELPER_RICHCOMPARISONS_H__
 #define __NUITKA_HELPER_RICHCOMPARISONS_H__
 
-extern int RICH_COMPARE_BOOL_LT_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_LTE_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_EQ_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_EQ_INT_OBJECT_NORECURSE(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_NOTEQ_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_GT_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_GTE_INT_OBJECT(PyObject *operand1, PyObject *operand2);
+#include "nuitka/helper/comparisons_eq.h"
+#include "nuitka/helper/comparisons_ge.h"
+#include "nuitka/helper/comparisons_gt.h"
+#include "nuitka/helper/comparisons_le.h"
+#include "nuitka/helper/comparisons_lt.h"
+#include "nuitka/helper/comparisons_ne.h"
 
-extern int RICH_COMPARE_BOOL_LT_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_LTE_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_EQ_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_EQ_OBJECT_INT_NORECURSE(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_NOTEQ_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_GT_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_GTE_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-
-extern int RICH_COMPARE_BOOL_LT_INT_INT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_LTE_INT_INT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_EQ_INT_INT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_NOTEQ_INT_INT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_GT_INT_INT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_GTE_INT_INT(PyObject *operand1, PyObject *operand2);
-#define RICH_COMPARE_BOOL_EQ_INT_INT_NORECURSE RICH_COMPARE_BOOL_EQ_INT_INT
-
-extern int RICH_COMPARE_BOOL_LT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_LTE_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_NOTEQ_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_GT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern int RICH_COMPARE_BOOL_GTE_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-
-extern PyObject *RICH_COMPARE_LT_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_LTE_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_EQ_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_EQ_INT_OBJECT_NORECURSE(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_NOTEQ_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_GT_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_GTE_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-
-extern PyObject *RICH_COMPARE_LT_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_LTE_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_EQ_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_EQ_OBJECT_INT_NORECURSE(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_NOTEQ_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_GT_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_GTE_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-
-extern PyObject *RICH_COMPARE_LT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_LTE_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_NORECURSE(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_NOTEQ_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_GT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-extern PyObject *RICH_COMPARE_GTE_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
+#define RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT_NORECURSE RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT
 
 #endif

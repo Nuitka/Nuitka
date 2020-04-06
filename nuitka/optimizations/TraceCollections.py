@@ -32,10 +32,10 @@ from nuitka.importing.ImportCache import getImportedModuleByNameAndPath
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
-    ShapeTypeDict,
-    ShapeTypeInt,
-    ShapeTypeIntOrLong,
-    ShapeTypeLong,
+    tshape_dict,
+    tshape_int,
+    tshape_int_or_long,
+    tshape_long,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceLine
@@ -121,11 +121,11 @@ class CollectionTracingMixin(object):
             shapes.add(current_shape)
 
         if python_version < 300:
-            if ShapeTypeIntOrLong in shapes:
-                if ShapeTypeInt in shapes:
-                    shapes.discard(ShapeTypeInt)
-                if ShapeTypeLong in shapes:
-                    shapes.discard(ShapeTypeLong)
+            if tshape_int_or_long in shapes:
+                if tshape_int in shapes:
+                    shapes.discard(tshape_int)
+                if tshape_long in shapes:
+                    shapes.discard(tshape_long)
 
         # print(initial, shapes)
 
@@ -349,7 +349,7 @@ class CollectionStartpointMixin(object):
         elif variable.isTempVariable():
             result = self._initVariableUninit(variable)
         elif variable.isLocalsDictVariable():
-            if variable.getOwner().getTypeShape() is ShapeTypeDict:
+            if variable.getOwner().getTypeShape() is tshape_dict:
                 result = self._initVariableUninit(variable)
             else:
                 result = self.initVariableUnknown(variable)

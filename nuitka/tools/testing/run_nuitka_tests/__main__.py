@@ -95,7 +95,6 @@ The plugins tests, execute these to check if Nuitka handles its own plugin
 interfaces, e.g. user plugins, etc. fine. Default is %default.""",
     )
 
-
     parser.add_option(
         "--skip-optimizations-tests",
         action="store_false",

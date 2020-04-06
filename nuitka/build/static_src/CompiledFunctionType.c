@@ -1039,7 +1039,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
             PyObject **varnames = function->m_varnames;
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-                if (RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = value;
 
@@ -1061,7 +1061,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
                 PyObject **varnames = function->m_varnames;
 
-                if (RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
                     pos_only_error = true;
                     break;
                 }
@@ -2043,7 +2043,7 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
             PyObject **varnames = function->m_varnames;
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-                if (RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = kw_values[ppos];
                     Py_INCREF(python_pars[i]);
@@ -2064,7 +2064,7 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
                 PyObject **varnames = function->m_varnames;
 
-                if (RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
                     pos_only_error = true;
                     break;
                 }

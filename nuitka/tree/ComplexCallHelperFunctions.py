@@ -831,7 +831,7 @@ def _makeStarDictArgumentMergeToKwStatement(
     tmp_item_variable = result.allocateTempVariable(temp_scope, "item")
     tmp_key_variable = result.allocateTempVariable(temp_scope, "key")
 
-    final += [
+    final += (
         StatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
@@ -841,7 +841,7 @@ def _makeStarDictArgumentMergeToKwStatement(
         StatementReleaseVariable(
             variable=tmp_key_variable, source_ref=internal_source_ref
         ),
-    ]
+    )
 
     dict_loop_body = (
         StatementAssignmentVariable(

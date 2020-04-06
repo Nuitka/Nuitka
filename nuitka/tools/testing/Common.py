@@ -208,7 +208,7 @@ def convertUsing2to3(path, force=False):
     else:
         command = [sys.executable, "-m", "lib2to3"]
 
-    command += ["-w", "-n", "--no-diffs", new_path]
+    command += ("-w", "-n", "--no-diffs", new_path)
 
     with open(os.devnull, "w") as devnull:
         try:
@@ -255,6 +255,9 @@ def decideFilenameVersionSkip(filename):
     # Skip runner scripts by default.
     if filename.startswith("run_"):
         return False
+
+    if filename.endswith(".j2"):
+        filename = filename[:-3]
 
     # Skip tests that require Python 2.7 at least.
     if filename.endswith("27.py") and _python_version.startswith("2.6"):
@@ -1299,6 +1302,52 @@ def withDirectoryChange(path, allow_none=False):
 
     if path is not None or not allow_none:
         os.chdir(old_cwd)
+
+
+def scanDirectoryForTestCases(dirname, template_context=None):
+    filenames = os.listdir(dirname)
+
+    filenames = [
+        filename
+        for filename in filenames
+        if (filename.endswith(".py") and not filename + ".j2" in filenames)
+        or filename.endswith(".j2")
+    ]
+
+    # Jinja2 environment is optional.
+    env = None
+
+    for filename in sorted(filenames):
+        if not decideFilenameVersionSkip(filename):
+            continue
+
+        if filename.endswith(".j2"):
+            # Needs to be a dictionary with template arguments.
+            assert template_context is not None
+
+            if env is None:
+                import jinja2
+
+                env = jinja2.Environment(
+                    loader=jinja2.FileSystemLoader("."),
+                    trim_blocks=True,
+                    lstrip_blocks=True,
+                )
+                env.undefined = jinja2.StrictUndefined
+
+            template = env.get_template(filename)
+
+            code = template.render(name=template.name, **template_context)
+
+            filename = filename[:-3]
+            with open(filename, "w") as output:
+                output.write(
+                    "'''Automatically generated test, not part of releases or git.\n\n'''\n"
+                )
+
+                output.write(code)
+
+        yield filename
 
 
 def setupCacheHashSalt(test_code_path):

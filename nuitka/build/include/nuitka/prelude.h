@@ -166,7 +166,7 @@
 #endif
 
 #if PYTHON_VERSION < 300
-#define PyUnicode_GetLength(x) (PyUnicode_GetSize(x))
+#define PyUnicode_GET_LENGTH(x) (PyUnicode_GET_SIZE(x))
 #endif
 
 /* With the idea to reduce the amount of exported symbols in the DLLs, make it

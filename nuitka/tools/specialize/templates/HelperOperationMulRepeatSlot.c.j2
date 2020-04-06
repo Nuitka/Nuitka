@@ -15,22 +15,22 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
-static PyObject *SLOT_sq_repeat_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
-    {{left.getCheckValueCode("operand1")|indent}}
-    {{right.getCheckValueCode("operand2")|indent}}
+static {{target.getTypeDecl()}} SLOT_sq_repeat_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    {{left.getCheckValueCode("operand1")}}
+    {{right.getCheckValueCode("operand2")}}
 
 {# This is SEQUENCE_REPEAT specialized #}
     if (unlikely(!{{right.getIndexCheckExpression("operand2")}})) {
         PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
 
-        return NULL;
+        return {{target.getExceptionResultIndicatorValue()}};
     }
 
     {% if right.needsIndexConversion() %}
     PyObject *index_value = PyNumber_Index(operand2);
 
     if (unlikely(index_value == NULL)) {
-        return NULL;
+        return {{target.getExceptionResultIndicatorValue()}};
     }
     {% else %}
     PyObject *index_value = operand2;
@@ -46,12 +46,10 @@ static PyObject *SLOT_sq_repeat_{{left.getHelperCodeName()}}_{{right.getHelperCo
     {% endif %}
 
     /* Above conversion indicates an error as -1 */
-    if (unlikely(count == -1))
-    {
+    if (unlikely(count == -1)) {
         PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(operand2)->tp_name);
-        return NULL;
+        return {{target.getExceptionResultIndicatorValue()}};
     }
-
     {% endif %}
 
     NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = {{left.getTypeValueExpression("operand1")}};
@@ -59,10 +57,5 @@ static PyObject *SLOT_sq_repeat_{{left.getHelperCodeName()}}_{{right.getHelperCo
 
     PyObject *result = (*repeatfunc)(operand1, count);
 
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-    return result;
-
+    {{ target.getReturnFromObjectExpressionCode("result") }}
 }

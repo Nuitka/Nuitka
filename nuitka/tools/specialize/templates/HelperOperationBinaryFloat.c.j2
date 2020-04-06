@@ -15,49 +15,59 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
-static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
-    {{left.getCheckValueCode("operand1")|indent}}
-    {{right.getCheckValueCode("operand2")|indent}}
+static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    {{left.getCheckValueCode("operand1")}}
+    {{right.getCheckValueCode("operand2")}}
 
     double a = PyFloat_AS_DOUBLE(operand1);
     double b = PyFloat_AS_DOUBLE(operand2);
 
 {% if operand in "+-*" %}
-    return PyFloat_FromDouble(a {{operand}} b);
+    double result = a {{operand}} b;
+    {{ target.getReturnFromFloatExpressionCode("result") }}
 {% elif operand == "//" %}
     if (unlikely(b == 0)) {
         PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
-        return NULL;
+        return {{target.getExceptionResultIndicatorValue()}};
     }
 
-    /* TODO: Isn't this a very specific value only, of which we could
-     * hardcode the constant result. Not sure how well the C compiler
-     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-     * -1 has to be rare anyway.
-     */
-
-    if (unlikely(b == -1 && UNARY_NEG_WOULD_OVERFLOW(a))) {
-        return PyLong_Type.tp_as_number->nb_true_divide(operand1, operand2);
+    if (b == 0.0) {
+        PyErr_SetString(PyExc_ZeroDivisionError, "float modulo");
+        return {{target.getExceptionResultIndicatorValue()}};
     }
 
-    /* We use C11 or C++03 which have no trouble doing floor with
-     * signs correctly unlike standard CPython code, which does heavy lifting
-     * to avoid the issue.
-     */
-    double result = (double)(a / b);
+    double mod = fmod(a, b);
+    double div = (a - mod) / b;
 
-    return PyFloat_FromDouble(result);
+    if (mod) {
+        if ((a < 0) != (mod < 0)) {
+            div -= 1.0;
+        }
+    }
+
+    double floordiv;
+    if (div) {
+        floordiv = floor(div);
+        if (div - floordiv > 0.5) {
+            floordiv += 1.0;
+        }
+    } else {
+        floordiv = copysign(0.0, a/b);
+    }
+
+    {{ target.getReturnFromFloatExpressionCode("floordiv") }}
 {% elif operand == "/" %}
     if (b == 0.0) {
         PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
-        return NULL;
+        return {{target.getExceptionResultIndicatorValue()}};
     }
 
-    return PyFloat_FromDouble(a {{operand}} b);
+    double result = a {{operand}} b;
+    {{ target.getReturnFromFloatExpressionCode("result") }}
 {% elif operand == "%" %}
     if (b == 0.0) {
         PyErr_SetString(PyExc_ZeroDivisionError, "float modulo");
-        return NULL;
+        return {{target.getExceptionResultIndicatorValue()}};
     }
 
     double mod = fmod(a, b);
@@ -69,79 +79,119 @@ static PyObject *SLOT_{{nb_slot}}_{{left.getHelperCodeName()}}_{{right.getHelper
         mod = copysign(0.0, b);
     }
 
-    return PyFloat_FromDouble(mod);
-{% elif operand == "**" %}
-    PyObject *result;
+    {{ target.getReturnFromFloatExpressionCode("mod") }}
+{% elif operand == "divmod" %}
+    if (b == 0.0) {
+        PyErr_SetString(PyExc_ZeroDivisionError, "float modulo");
+        return {{target.getExceptionResultIndicatorValue()}};
+    }
 
-    if (b == 0) {
-        result = const_float_1_0;
-        Py_INCREF(result);
-    } else if (Py_IS_NAN(a)) {
-        // TODO: Why not use operand1
-        result = PyFloat_FromDouble(a);
-    } else if (Py_IS_NAN(b)) {
-        if (a == 1.0) {
-            result = const_float_1_0;
-            Py_INCREF(result);
-        } else {
-            // TODO: Why not use operand2
-            result = PyFloat_FromDouble(b);
-        }
-    } else if (Py_IS_INFINITY(b)) {
-        a = fabs(a);
-        if (a == 1.0) {
-            result = const_float_1_0;
-            Py_INCREF(result);
-        } else if ((b > 0.0) == (a > 1.0)) {
-            result = PyFloat_FromDouble(fabs(b));
-        } else {
-            result = const_float_0_0;
-            Py_INCREF(result);
-        }
-    } else if (Py_IS_INFINITY(a)) {
-        bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
-        if (b > 0.0)
-        {
-            result = PyFloat_FromDouble(b_is_odd ? a : fabs(a));
-        } else {
-            result = PyFloat_FromDouble(b_is_odd ? copysign(0.0, a) : 0.0);
-        }
-    } else if (a == 0.0) {
-        if (b < 0.0) {
-            PyErr_SetString(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
-            return NULL;
-        }
+    double mod = fmod(a, b);
+    double div = (a - mod) / b;
 
-        bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
-        result = PyFloat_FromDouble(b_is_odd ? a : 0.0);
+    if (mod) {
+        if ((a < 0) != (mod < 0)) {
+            mod += b;
+            div -= 1.0;
+        }
     } else {
-        bool negate_result = false;
+        mod = copysign(0.0, b);
+    }
 
-        if (a < 0.0) {
-            if (b != floor(b)) {
-                PyErr_SetString(PyExc_ValueError, "negative number cannot be raised to a fractional power");
-                return NULL;
-            }
-            a = -a;
-            negate_result = DOUBLE_IS_ODD_INTEGER(b);
+    double floordiv;
+    if (div) {
+        floordiv = floor(div);
+        if (div - floordiv > 0.5) {
+            floordiv += 1.0;
         }
+    } else {
+        floordiv = copysign(0.0, a/b);
+    }
 
+    {{ target.getReturnTupleFromFloatExpressionsCode("floordiv", "mod") }}
+{% elif operand == "**" %}
+    if (b == 0) {
+        {{ target.getReturnFromFloatConstantCode(1.0) }}
+    }
+
+    if (Py_IS_NAN(a)) {
+{% if target.type_name == "object" %}
+    {{ target.getReturnFromObjectExpressionCode("operand1", check_exception=False, take_ref=True) }}
+{% else %}
+    {{ target.getReturnFromFloatConstantCode("Py_NAN") }}
+{% endif %}
+    }
+
+    if (Py_IS_NAN(b)) {
         if (a == 1.0) {
-            result = PyFloat_FromDouble(negate_result ? -1.0 : 1.0);
+            {{ target.getReturnFromFloatConstantCode(1.0) }}
         } else {
-            errno = 0;
-            const double r = pow(a, b);
-
-            if (errno != 0) {
-                PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
-                return NULL;
-            }
-
-            result = PyFloat_FromDouble(negate_result ? -r : r);
+{% if target.type_name == "object" %}
+            {{ target.getReturnFromObjectExpressionCode("operand2", check_exception=False, take_ref=True) }}
+{% else %}
+            {{ target.getReturnFromFloatConstantCode("Py_NAN") }}
+{% endif %}
         }
     }
 
-    return result;
+    if (Py_IS_INFINITY(b)) {
+        a = fabs(a);
+        if (a == 1.0) {
+            {{ target.getReturnFromFloatConstantCode(1.0) }}
+        } else if ((b > 0.0) == (a > 1.0)) {
+            {{ target.getReturnFromFloatExpressionCode("fabs(b)") }}
+        } else {
+            {{ target.getReturnFromFloatConstantCode(0.0) }}
+        }
+    }
+
+    if (Py_IS_INFINITY(a)) {
+        bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
+        if (b > 0.0) {
+            {{ target.getReturnFromFloatExpressionCode("(b_is_odd ? a : fabs(a))") }}
+        } else {
+            {{ target.getReturnFromFloatExpressionCode("(b_is_odd ? copysign(0.0, a) : 0.0)") }}
+        }
+    }
+
+    if (a == 0.0) {
+        if (b < 0.0) {
+            PyErr_SetString(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
+            return {{target.getExceptionResultIndicatorValue()}};
+        }
+
+        bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
+        {{ target.getReturnFromFloatExpressionCode("(b_is_odd ? a : 0.0)") }}
+    }
+
+    bool negate_result = false;
+
+    if (a < 0.0) {
+        if (b != floor(b)) {
+            PyErr_SetString(PyExc_ValueError, "negative number cannot be raised to a fractional power");
+            return {{target.getExceptionResultIndicatorValue()}};
+        }
+        a = -a;
+        negate_result = DOUBLE_IS_ODD_INTEGER(b);
+    }
+
+    if (a == 1.0) {
+        if (negate_result) {
+            {{ target.getReturnFromFloatConstantCode(-1.0) }}
+        } else {
+            {{ target.getReturnFromFloatConstantCode(1.0) }}
+        }
+    } else {
+        errno = 0;
+        const double r = pow(a, b);
+
+        if (unlikely(errno != 0)) {
+            PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
+            return {{target.getExceptionResultIndicatorValue()}};
+        }
+
+        {{ target.getReturnFromFloatExpressionCode("(negate_result ? -r : r)") }}
+    }
 {% else %}
 #error Operand {{operand}} not implemented in {{name}}
 {% endif %}

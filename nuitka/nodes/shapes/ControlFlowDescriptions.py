@@ -87,6 +87,10 @@ class ControlFlowDescriptionComparisonUnorderable(ControlFlowDescriptionFullEsca
     pass
 
 
+class ControlFlowDescriptionFormatError(ControlFlowDescriptionFullEscape):
+    pass
+
+
 class ControlFlowDescriptionOperationUnsupportedBase(ControlFlowDescriptionFullEscape):
     @staticmethod
     def getExceptionExit():
@@ -139,6 +143,12 @@ class ControlFlowDescriptionModUnsupported(
     pass
 
 
+class ControlFlowDescriptionDivmodUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
 class ControlFlowDescriptionPowUnsupported(
     ControlFlowDescriptionOperationUnsupportedBase
 ):
@@ -170,6 +180,12 @@ class ControlFlowDescriptionLshiftUnsupported(
 
 
 class ControlFlowDescriptionRshiftUnsupported(
+    ControlFlowDescriptionOperationUnsupportedBase
+):
+    pass
+
+
+class ControlFlowDescriptionMatmultUnsupported(
     ControlFlowDescriptionOperationUnsupportedBase
 ):
     pass

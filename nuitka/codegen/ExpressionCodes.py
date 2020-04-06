@@ -34,8 +34,9 @@ def generateExpressionOnlyCode(statement, emit, context):
 
 def getStatementOnlyCode(value, emit, context):
     tmp_name = context.allocateTempName(
-        base_name="unused", type_name="void", unique=True
+        base_name="unused", type_name="nuitka_void", unique=True
     )
+    tmp_name.maybe_unused = True
 
     generateExpressionCode(
         expression=value, to_name=tmp_name, emit=emit, context=context

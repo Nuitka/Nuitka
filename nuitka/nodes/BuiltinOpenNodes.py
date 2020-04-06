@@ -24,7 +24,7 @@ to track it, so we can include files into the executable, or write more efficien
 from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .shapes.BuiltinTypeShapes import ShapeTypeFile
+from .shapes.BuiltinTypeShapes import tshape_file
 
 
 class ExpressionBuiltinOpenMixin(object):
@@ -34,7 +34,7 @@ class ExpressionBuiltinOpenMixin(object):
 
     @staticmethod
     def getTypeShape():
-        return ShapeTypeFile
+        return tshape_file
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)

@@ -55,24 +55,25 @@ from .NodeMakingHelpers import (
     wrapExpressionWithSideEffects,
 )
 from .shapes.BuiltinTypeShapes import (
-    ShapeTypeBool,
-    ShapeTypeBytearray,
-    ShapeTypeBytes,
-    ShapeTypeDict,
-    ShapeTypeEllipsisType,
-    ShapeTypeFloat,
-    ShapeTypeFrozenset,
-    ShapeTypeInt,
-    ShapeTypeList,
-    ShapeTypeLong,
-    ShapeTypeNoneType,
-    ShapeTypeSet,
-    ShapeTypeSlice,
-    ShapeTypeStr,
-    ShapeTypeTuple,
-    ShapeTypeType,
-    ShapeTypeUnicode,
-    ShapeTypeXrange,
+    tshape_bool,
+    tshape_bytearray,
+    tshape_bytes,
+    tshape_complex,
+    tshape_dict,
+    tshape_ellipsis,
+    tshape_float,
+    tshape_frozenset,
+    tshape_int,
+    tshape_list,
+    tshape_long,
+    tshape_none,
+    tshape_set,
+    tshape_slice,
+    tshape_str,
+    tshape_tuple,
+    tshape_type,
+    tshape_unicode,
+    tshape_xrange,
 )
 
 
@@ -379,7 +380,7 @@ class ExpressionConstantNoneRef(ExpressionConstantRefBase):
         return {}
 
     def getTypeShape(self):
-        return ShapeTypeNoneType
+        return tshape_none
 
 
 class ExpressionConstantBoolRefBase(ExpressionConstantRefBase):
@@ -395,7 +396,7 @@ class ExpressionConstantBoolRefBase(ExpressionConstantRefBase):
         return {}
 
     def getTypeShape(self):
-        return ShapeTypeBool
+        return tshape_bool
 
 
 class ExpressionConstantTrueRef(ExpressionConstantBoolRefBase):
@@ -434,7 +435,7 @@ class ExpressionConstantEllipsisRef(ExpressionConstantRefBase):
         return {}
 
     def getTypeShape(self):
-        return ShapeTypeEllipsisType
+        return tshape_ellipsis
 
 
 class ExpressionConstantDictRef(ExpressionConstantRefBase):
@@ -450,7 +451,7 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeDict
+        return tshape_dict
 
     def hasShapeDictionaryExact(self):
         return True
@@ -474,7 +475,7 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeTuple
+        return tshape_tuple
 
 
 the_empty_tuple = ()
@@ -512,7 +513,7 @@ class ExpressionConstantListRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeList
+        return tshape_list
 
 
 the_empty_list = []
@@ -550,7 +551,7 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeSet
+        return tshape_set
 
     def getIterationHandle(self):
         return ConstantSetAndDictIterationHandle(self)
@@ -591,7 +592,7 @@ class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeFrozenset
+        return tshape_frozenset
 
 
 the_empty_frozenset = frozenset()
@@ -629,7 +630,7 @@ class ExpressionConstantIntRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeInt
+        return tshape_int
 
 
 class ExpressionConstantLongRef(ExpressionConstantRefBase):
@@ -647,7 +648,7 @@ class ExpressionConstantLongRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeLong
+        return tshape_long
 
 
 class ExpressionConstantStrRef(ExpressionConstantRefBase):
@@ -665,7 +666,7 @@ class ExpressionConstantStrRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeStr
+        return tshape_str
 
 
 class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
@@ -683,7 +684,7 @@ class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeUnicode
+        return tshape_unicode
 
 
 class ExpressionConstantBytesRef(ExpressionConstantRefBase):
@@ -699,7 +700,7 @@ class ExpressionConstantBytesRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeBytes
+        return tshape_bytes
 
 
 class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
@@ -715,7 +716,7 @@ class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeBytearray
+        return tshape_bytearray
 
 
 class ExpressionConstantFloatRef(ExpressionConstantRefBase):
@@ -733,7 +734,7 @@ class ExpressionConstantFloatRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeFloat
+        return tshape_float
 
 
 class ExpressionConstantComplexRef(ExpressionConstantRefBase):
@@ -749,6 +750,9 @@ class ExpressionConstantComplexRef(ExpressionConstantRefBase):
     @staticmethod
     def isExpressionConstantComplexRef():
         return True
+
+    def getTypeShape(self):
+        return tshape_complex
 
 
 class ExpressionConstantSliceRef(ExpressionConstantRefBase):
@@ -766,7 +770,7 @@ class ExpressionConstantSliceRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeSlice
+        return tshape_slice
 
 
 class ExpressionConstantXrangeRef(ExpressionConstantRefBase):
@@ -784,7 +788,7 @@ class ExpressionConstantXrangeRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeXrange
+        return tshape_xrange
 
 
 class ExpressionConstantTypeRef(ExpressionConstantRefBase):
@@ -802,7 +806,7 @@ class ExpressionConstantTypeRef(ExpressionConstantRefBase):
         return True
 
     def getTypeShape(self):
-        return ShapeTypeType
+        return tshape_type
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall

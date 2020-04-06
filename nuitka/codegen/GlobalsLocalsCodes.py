@@ -20,7 +20,7 @@
 This also includes writing back to locals for exec statements.
 """
 
-from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
+from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 
 from .CodeHelpers import decideConversionCheckNeeded, withObjectCodeTemporaryAssignment
 from .Emission import SourceCodeCollector
@@ -81,7 +81,7 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
             locals_scope = expression.getLocalsScope()
 
             locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
-            is_dict = locals_scope.getTypeShape() is ShapeTypeDict
+            is_dict = locals_scope.getTypeShape() is tshape_dict
             # For Python3 it may really not be a dictionary.
 
             # TODO: Creation is not needed for classes.

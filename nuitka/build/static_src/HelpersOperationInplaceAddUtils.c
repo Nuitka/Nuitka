@@ -50,7 +50,7 @@ NUITKA_MAY_BE_UNUSED static bool STRING_RESIZE(PyObject **value, Py_ssize_t news
     return true;
 }
 
-NUITKA_MAY_BE_UNUSED static bool STRING_ADD_INCREMENTAL(PyObject **operand1, PyObject *operand2) {
+NUITKA_MAY_BE_UNUSED static bool STRING_ADD_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(PyString_CheckExact(*operand1));
     assert(!PyString_CHECK_INTERNED(*operand1));
     assert(PyString_CheckExact(operand2));
@@ -137,13 +137,4 @@ NUITKA_MAY_BE_UNUSED static bool UNICODE_ADD_INCREMENTAL(PyObject **operand1, Py
 
     return UNICODE_APPEND(operand1, operand2);
 #endif
-}
-
-static bool FLOAT_ADD_INCREMENTAL(PyObject **operand1, PyObject *operand2) {
-    assert(PyFloat_CheckExact(*operand1));
-    assert(PyFloat_CheckExact(operand2));
-
-    PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
-
-    return true;
 }

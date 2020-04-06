@@ -313,9 +313,6 @@ extern PyObject *BUILTIN_STATICMETHOD(PyObject *function);
 // For built-in classmethod() functionality.
 extern PyObject *BUILTIN_CLASSMETHOD(PyObject *function);
 
-// For built-in divmod() functionality.
-extern PyObject *BUILTIN_DIVMOD(PyObject *operand1, PyObject *operand2);
-
 // For built-in "int()" functionality with 2 arguments.
 extern PyObject *BUILTIN_INT2(PyObject *value, PyObject *base);
 
