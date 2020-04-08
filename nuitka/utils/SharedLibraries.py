@@ -41,6 +41,7 @@ def localDLLFromFilesystem(name, paths):
 
 
 def locateDLL(dll_name):
+    # This function is a case driven by returns, pylint: disable=too-many-return-statements
     import ctypes.util
 
     dll_name = ctypes.util.find_library(dll_name)
@@ -50,6 +51,9 @@ def locateDLL(dll_name):
 
     if isWin32Windows():
         return os.path.normpath(dll_name)
+
+    if sys.platform == "darwin":
+        return dll_name
 
     if os.path.sep in dll_name:
         # Use this from ctypes instead of rolling our own.
