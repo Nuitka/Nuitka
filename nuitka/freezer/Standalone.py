@@ -1206,7 +1206,10 @@ def detectBinaryDLLs(
         "otool" (macOS) the list of used DLLs is retrieved.
     """
 
-    if Utils.getOS() in ("Linux", "NetBSD", "FreeBSD") or Utils.isPosixWindows():
+    if (
+        Utils.getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD")
+        or Utils.isPosixWindows()
+    ):
         return _detectBinaryPathDLLsPosix(dll_filename=original_filename)
     elif Utils.isWin32Windows() and Options.getWindowsDependencyTool() == "pefile":
         with TimerReport(
