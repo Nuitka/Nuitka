@@ -29,7 +29,7 @@ Milestones
    behave absolutely compatible.
 
    Feature parity has been reached for CPython 2.6 and 2.7. We do not target
-   any older CPython release. For CPython 3.3 up to 3.7 it also has been
+   any older CPython release. For CPython 3.3 up to 3.8 it also has been
    reached. We do not target the older and practically unused CPython 3.0 to
    3.2 releases.
 
@@ -82,7 +82,7 @@ numbers should express which of these, we consider done.
   interface change, ``0.5.x`` version numbers are being used.
 
   Due to reaching type inference in code generation, even if only starting,
-  the `0.6.x`` version numbers were started to be used. This stage should
+  the ``0.6.x`` version numbers were started to be used. This stage should
   allow quick progress in performance for individual releases.
 
 - Future:
@@ -92,7 +92,7 @@ numbers should express which of these, we consider done.
 - Final:
 
   We will then round it up and call it Nuitka ``1.0`` when this works as
-  expected for a bunch of people. The plan is to reach this goal during 2019.
+  expected for a bunch of people. The plan is to reach this goal during 2021.
   This is based on positive assumptions that may not hold up though.
 
 Of course, all of this may be subject to change.
@@ -112,25 +112,34 @@ Nuitka top level works like this:
 
 This design is intended to last.
 
-Regarding Types, the state is:
+Regarding types, the state is:
 
-- Types are always ``PyObject *``, implicitly.
+- Types are always ``PyObject *``, and only a few C types, e.g. ``nuitka_bool``
+  and ``nuitka_void`` and more are coming. Even for objects, often it's know
+  that things are e.g. really a ``PyTupleObject **``, but no C type is available
+  for that yet.
 
-- There are a few more specific use of types beyond "compile time constant",
+- There are a somes specific use of types beyond "compile time constant",
   that are encoded in type and value shapes, which can be used to predict some
-  operations, conditions, etc.
+  operations, conditions, etc. if they raise, and result types they give.
 
-- Every code generation, every operation is expected to have ``PyObject *`` as
-  result, if it is not a constant, then we know nothing about it. For some
-  interfaces, e.g. iteration, there are initial attempts at abstracting it.
+- In code generation, the supported C types are used, and sometimes we have
+  specialized code generation, e.g. a binary operation that takes an ``int``
+  and a ``float`` and produces a ``float`` value. There will be fallbacks to
+  less specific types.
 
-The limitation to only do ``PyObject *`` will soon go away.
+The expansion with more C types is currently in progress, and there will also
+be alternative C types, where e.g. ``PyObject *`` and ``C long`` are in an enum
+that indicates which value is valid, and where special code will be available
+that can avoid creating the ``PyObject **`` unless the later overflows.
+
 
 Setting up the Development Environment for Nuitka
 =================================================
 
-Currently there are 3 kinds of files that we need support for. This is best
-addressed with an IDE. We cover here how to setup the common ones.
+Currently there are very different kinds of files that we need support for.
+This is best addressed with an IDE. We cover here how to setup the most common
+one.
 
 Visual Studio Code
 ------------------
@@ -144,50 +153,46 @@ Software IDE,designed to be universally extended, and it truly is. There are
 plugins available for nearly everything.
 
 The extensions to be installed are part of the Visual Code recommendations in
-.vscode/extensions.json and you will be prompted about that.
+``.vscode/extensions.json`` and you will be prompted about that and ought to
+install these.
 
 Another one we found useful to collaborate:
 
-- Live Share (ms-vsliveshare.vsliveshare)
+- Live Share (``ms-vsliveshare.vsliveshare``)
 
 Eclipse / PyCharm
 -----------------
 
-Don't use it anymore, we consider Visual Studio Code to be far superior for
+Don't use these anymore, we consider Visual Studio Code to be far superior for
 delivering a nice out of the box environment.
 
 
 Commit and Code Hygiene
 =======================
 
-In Nuitka we have tools to autoformat code, you can execute them
-manually, but it's probably best to execute them at commit time,
-to make sure when we share code, it's already well format, and
-to avoid noise doing cleanups.
+In Nuitka we have tools to autoformat code, you can execute them manually, but
+it's probably best to execute them at commit time, to make sure when we share
+code, it's already well format, and to avoid noise doing cleanups.
 
-The kinds of changes also often cause unnecessary merge
-conflicts, while the autoformat is designed to format code also
-in a way that it avoids merge conflicts in the normal case, e.g. by
-doing imports one item per line.
+The kinds of changes also often cause unnecessary merge conflicts, while the
+autoformat is designed to format code also in a way that it avoids merge
+conflicts in the normal case, e.g. by doing imports one item per line.
 
-In order to set up hooks, you need to execute these commands on
-Linux and alikes:
+In order to set up hooks, you need to execute these commands:
 
 .. code-block:: sh
 
-   ./misc/install-git-hooks.py
-
-For Windows do this:
-
-.. code-block:: sh
-
-   # Where python is the one which has the development requirements, can
-   # be a full PATH.
+   # Where python is the one you use with Nuitka, this then gets all
+   # development requirements, can be full PATH.
    python -m pip install requirements-devel.txt
-   python .\misc\install-git-hooks.py
+   python ./misc/install-git-hooks.py
 
-These commands will make sure that the `autoformat-nuitka-source` is run on
-every changed file at the time you do the commit.
+
+These commands will make sure that the ``autoformat-nuitka-source`` is run on
+every staged file content at the time you do the commit. For C files, it may
+complain unavailability of ``clang-format``, follow it's advice. You may call
+the above tool at all times, without arguments to format call Nuitka source
+code.
 
 Coding Rules Python
 ===================
@@ -204,16 +209,17 @@ formatting to code as much as possible. It uses ``black`` (internally) for
 consistent code formatting. The imports are sorted with ``isort`` for proper
 order.
 
-The tool (mostly black) encodes all formatting rules, and makes the decisions
-for us. The idea being that we can focus on actual code and do not have to
-care as much about other things.
+The tool (mostly ``black`` and ``isort``) encodes all formatting rules, and
+makes the decisions for us. The idea being that we can focus on actual code and
+do not have to care as much about other things. It also deals with Windows new
+lines, trailing space, etc. and even sorts pylint disable statements.
 
 Identifiers
 -----------
 
 Classes are camel case with leading upper case. Functions and methods are with
-leading verb in lower case, but also camel case. Variables and
-arguments are lower case with ``_`` as a separator.
+leading verb in lower case, but also camel case. Variables and arguments are
+lower case with ``_`` as a separator.
 
 .. code-block:: python
 
@@ -223,7 +229,8 @@ arguments are lower case with ``_`` as a separator.
          some_var = ("foo", "bar")
 
 Base classes that are abstract have their name end with ``Base``, so that a
-meta class can use that convention, and readers immediately know.
+meta class can use that convention, and readers immediately know, that it will
+not be instantiated like that.
 
 Function calls use keyword argument preferably. These are slower in CPython,
 but more readable:
@@ -236,19 +243,16 @@ but more readable:
         context=context
    )
 
-When the names don't add much value, sequential calls can be done, but
-ideally with one value per line:
+When the names don't add much value, sequential calls can be done:
 
 .. code-block:: python
 
-   context.setLoopContinueTarget(
-       handler_start_target,
-       continue_name
-   )
+   context.setLoopContinueTarget(handler_start_target)
 
 Here, ``setLoopContinueTarget`` will be so well known that the reader is
 expected to know the argument names and their meaning, but it would be still
-better to add them.
+better to add them. But in this instance, the variable name already indicates
+that it is.
 
 
 Module/Package Names
@@ -265,7 +269,10 @@ them from the modules.
 Packages shall only be used to group things. In ``nuitka.codegen`` the code
 generation packages are located, while the main interface is
 ``nuitka.codegen.CodeGeneration`` and may then use most of the entries as local
-imports. There is no code in packages themselves.
+imports.
+
+There is no code in packages themselves. For programs, we use ``__main__``
+package to carry the actual code.
 
 Names of modules should be plurals if they contain classes. Example is that a
 ``Nodes`` module that contains a ``Node`` class.
@@ -331,11 +338,12 @@ Coding Rules C
 ==============
 
 For the static C parts, e.g. compiled types, helper codes, the ``clang-format``
-from LLVM project is used.
+from LLVM project is used, the tool ``autoformat-nuitka-source`` does this for
+us.
 
-.. code-block:: sh
+We always have blocks for conditional statements to avoid typical mistakes made
+by adding a statement to a branch, forgetting to make it a block.
 
-   find . -name \*.[ch] -exec clang-format-6.0 -i {} -style='{BasedOnStyle: llvm, IndentWidth: 4, ColumnLimit: 120}' \;
 
 The "git flow" model
 ====================
@@ -366,6 +374,12 @@ The "git flow" model
   regressions frequently, and commits become **rebased all the time**, so do
   not base your patches on it, please prefer the ``develop`` branch for that,
   unless of course, it's about factory code itself.
+
+* Personal branches (jorj, orsiris, others as well)
+
+  Same as factory, but not integrated as factory normally is, and not rebased
+  all the time. For some branches, they will be rebased as a service when we
+  update develop.
 
 * Feature Branches
 
@@ -399,8 +413,9 @@ Nuitka "git/github" Workflow
         git pull --rebase upstream
         git checkout -b feature_branch
 
-  If you are having merge conflicts while doing the previous step, then
-  check out (DON'T FORGET TO SAVE YOUR CHANGES FIRST IF ANY): <https://stackoverflow.com/questions/1125968/how-do-i-force-git-pull-to-overwrite-local-files>
+  If you are having merge conflicts while doing the previous step, then check
+  out (DON'T FORGET TO SAVE YOUR CHANGES FIRST IF ANY):
+  <https://stackoverflow.com/questions/1125968/how-do-i-force-git-pull-to-overwrite-local-files>
 
   * In case you have an existing branch rebase it to develop
 
@@ -441,11 +456,13 @@ observed when creating or updating Python source:
 
 Use of Standard Python ``"__doc__"`` Strings
 --------------------------------------------
+
 Every class and every method **must be documented** via the standard Python
 delimiters (``""" ... """``) in the usual way.
 
 Special ``doxygen`` Anatomy of ``"__doc__"``
 --------------------------------------------
+
 * Immediately after the leading ``"""``, and after 1 space on the same line,
   enter a brief description or title of the class or method. This must be 1
   line and be followed by at least 1 empty line.
@@ -526,12 +543,8 @@ So, we currently use ``PyLint`` with options defined in a script.
 
    ./bin/check-nuitka-with-pylint
 
-Ideally, the above command gives no warnings. This is currently the case.
-
-If you submit a patch, it would be good if you checked that it doesn't
-introduce new warnings, but that is not strictly required. it will happen
-before release, and that is considered enough. You probably are already aware
-of the beneficial effects.
+The above command is expected to give no warnings. It is also run on our CI and
+we will not merge branches that do not pass.
 
 Running the Tests
 =================
@@ -602,6 +615,10 @@ For fine grained control, it has the following options::
                         are not run. Default is True.
   --skip-cpython37-tests
                         The standard CPython3.7 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.x these
+                        are not run. Default is True.
+  --skip-cpython38-tests
+                        The standard CPython3.8 test suite. Execute this for
                         all corner cases to be covered. With Python 2.x these
                         are not run. Default is True.
   --no-python2.6        Do not use Python 2.6 even if available on the system.
@@ -680,6 +697,18 @@ can be run like this:
 .. code-block:: sh
 
    ./tests/programs/run_all.py search
+
+Generated Tests
+---------------
+
+There are tests, which are generated from Jinja2 templates. They aim at e.g.
+combining at types with operations, in-place or not, or large constants. These
+can be run like this:
+
+.. code-block:: sh
+
+   ./tests/generated/run_all.py search
+
 
 Compile Nuitka with Nuitka
 --------------------------
@@ -782,89 +811,24 @@ but are not executed each time, the commands are also replicated here:
 Choice of the Target Language
 -----------------------------
 
-* Choosing the target language, is an important decision
+* Choosing the target language was important decision. factors
+  were:
 
   * The portability of Nuitka is decided here
-
-* Other factors:
-
   * How difficult is it to generate the code?
   * Does the Python C-API have bindings?
   * Is that language known?
   * Does the language aid to find bugs?
 
-* These candidates were considered
+The *decision for C11* is ultimately one for portability, general knowledge of
+the language and for control over created code, e.g. being able to edit and try
+that quickly.
 
-  * C++03, C++11, C11, C89, Ada
-
-.. table:: Requirement to Language matrix:
-
-   =====================  =====  ======== ======  =========   =========
-   Requirement\\Language  C89    C11      C++03   C++11       Ada
-   =====================  =====  ======== ======  =========   =========
-   Portable               Yes    Yes [5]_ Yes     No [1]_     Yes
-   ---------------------  -----  -------- ------  ---------   ---------
-   Knowledge              Yes    Yes      Yes     No [2]_     Yes
-   ---------------------  -----  -------- ------  ---------   ---------
-   Python C-API           Yes    Yes      Yes     Yes         No [3]_
-   ---------------------  -----  -------- ------  ---------   ---------
-   Runtime checks         No     No       No      No          Yes [4]_
-   ---------------------  -----  -------- ------  ---------   ---------
-   Code Generation        Tough  Medium   Hard    Easy        Harder
-   =====================  =====  ======== ======  =========   =========
-
-
-_`1`:: C++11 is not fully supported by all compilers.
-
-_`2`:: Not a whole lot of people have C++11 knowledge. My *only* C++11 code was
-that in Nuitka.
-
-_`3`:: The Python C-API for Ada would have to be created by us, possible just
-big project by itself.
-
-_`4`:: Run time checks exist only for Ada in that quality. I miss automatic
-``CONSTRAINT_ERROR`` exceptions, for data structures with validity indicators,
-where in other languages, I need to check myself.
-
-_`5`:: One can use a C++03 compiler as a C11 compiler for the largest part,
-e.g. with MSVC.
-
-The *decision for C11* is ultimate:
-
-* for portability
-* for language knowledge
-* for control over created code.
-
-All of these are important advantages.
-
-For C++11 initially spoke easy code generation:
-
-* variadic templates
-* raw strings
-
-Yet, as it turns out, variadic templates do not help at all with evaluation
-order, so that code that used it, needed to be changed to generating instances
-of their code. And raw strings turned out to be not as perfect as one wants to
-be, and solving the problem with C++03 is feasible too, even if not pretty.
-
-For C++03 initially spoke less explicit code generation:
-
-* Destructors can ensure cleanups happen
-* Local objects could e.g. repair the stack frames
-
-For Ada would have spoken the time savings through run time checks, which would
-have shortened some debugging sessions quite some. But building the Python
-C-API bindings on our own, and potentially incorrectly, would have eaten that
-up.
-
-Later, it was found that using C++ for exceptions is tremendously inefficient,
-and must be avoided. In order to do this, a more C style code generation is
-needed, where even less things are done with C++, e.g. the cleanup of temporary
-variables inside a statement will be done manually instead.
-
-The current status is Pure C11. All code compiles as C11, and also in terms of
-workaround to missing compiler support as C++03. Naturally we are not using any
-C++ features, just the allowances of C++ features that made it into C11.
+The current status is to use pure C11. All code compiles as C11, and also in
+terms of workaround to missing compiler support as C++03. This is mostly
+needed, because MSVC does not support C. Naturally we are not using any C++
+features, just the allowances of C++ features that made it into C11, which is
+e.g. allowing late definitions of variables.
 
 
 Use of Scons internally
@@ -1009,17 +973,16 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 Locating Modules and Packages
 -----------------------------
 
-The search for modules used is driven by ``nuitka.importing.Importing``
-module.
+The search for modules used is driven by ``nuitka.importing.Importing`` module.
 
 * Quoting the ``nuitka.importing.Importing`` documentation:
 
   Locating modules and package source on disk.
 
-  The actual import of a module would already execute code that changes
-  things. Imagine a module that does ``os.system()``, it would be done during
-  compilation. People often connect to databases, and these kind of things,
-  at import time.
+  The actual import of a module would already execute code that changes things.
+  Imagine a module that does ``os.system()``, it would be done during
+  compilation. People often connect to databases, and these kind of things, at
+  import time.
 
   Therefore CPython exhibits the interfaces in an ``imp`` module in standard
   library, which one can use those to know ahead of time, what file import
@@ -1266,9 +1229,8 @@ collections builds up traces. These are facts about how this works:
      This can be a merge of branches. Trace collection does do that and
      provides nodes with the currently active trace for a variable.
 
-The data structures used for trace collection need to be relatively compact
-as the trace information can become easily much more data than the program
-itself.
+The data structures used for trace collection need to be relatively compact as
+the trace information can become easily much more data than the program itself.
 
 Every trace collection has these:
 
@@ -1298,14 +1260,16 @@ Every trace collection has these:
 When merging branches of conditional statements, the merge shall apply as
 follows:
 
-  * Branches have their own collection, with deviating sets of
-    "variable_actives". These are children of an outer collections
+  * Branches have their own collection
+
+    Thee have potentially deviating sets of ``variable_actives``. These are
+    children of an outer collections.
 
   * Case a) One branch only.
 
     For that branch a collection is performed. As usual new assignments
-    generate a new version making it "active", references then related to
-    these "active" versions.
+    generate a new version making it "active", references then related to these
+    "active" versions.
 
     Then, when the branch is merged, for all "active" variables, it is
     considered, if that is a change related to before the branch. If it's not
@@ -1347,10 +1311,32 @@ Trace structure, there are different kinds of traces.
    to it, and it's value cannot be trusted to be unchanged. These are then
    traced as unknown.
 
-All traces have a base class ``ValueTraceBase`` which provides the interface
-to query facts about the state of a variable in that trace. It's e.g. of some
+All traces have a base class ``ValueTraceBase`` which provides the interface to
+query facts about the state of a variable in that trace. It's e.g. of some
 interest, if a variable must have a value or must not. This allows to e.g. omit
 checks, know what exceptions might raise.
+
+Loop SSA
+--------
+
+For loops we have the addition difficulty that we need would need to look ahead
+what types a variable has at loop exit, but that is a recursive dependency.
+
+Our solution is to consider the variable types at loop entry. When these
+change, we drop all gained information from inside the loop. We may e.g. think
+that a variable is a ``int`` or ``float``, but later recognize that it can only
+be a float. Derivations from ``int`` must be discarded, and the loop analysis
+restarted.
+
+Then during the loop, we assign an incomplete loop trace shape to the variable,
+which e.g. says it was an ``int`` initially and additional type shapes, e.g.
+``int or long`` are then derived. If at the end of the loop, a type produced no
+new types, we know we are finished and mark the trace as a complete loop trace.
+
+If it is not, and next time, we have the same initial types, we add the ones
+derived from this to the starting values, and see if this gives more types.
+
+
 
 Python Slots in Optimization
 ----------------------------
