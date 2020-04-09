@@ -29,7 +29,7 @@ from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 
 from .FileOperations import withMadeWritableFileMode
-from .Utils import getArchitecture, isAlpineLinux, isWin32Windows
+from .Utils import getArchitecture, getOS, isAlpineLinux, isWin32Windows
 from .WindowsResources import RT_MANIFEST, deleteWindowsResources, getResourcesFromDLL
 
 
@@ -52,7 +52,7 @@ def locateDLL(dll_name):
     if isWin32Windows():
         return os.path.normpath(dll_name)
 
-    if sys.platform == "darwin":
+    if getOS() == "Darwin":
         return dll_name
 
     if os.path.sep in dll_name:
