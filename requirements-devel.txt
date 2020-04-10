@@ -26,3 +26,6 @@ codespell ; python_version >= '2.7'
 # Distutils test, packaging test for PyPI, not fixed on purpose.
 virtualenv
 pytest
+
+# Packaging
+wheel
