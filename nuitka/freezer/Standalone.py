@@ -911,6 +911,16 @@ def getScanDirectories(package_name, original_dir):
         scan_dirs.append(original_dir)
         scan_dirs.extend(getSubDirectories(original_dir))
 
+    if (
+        Utils.isWin32Windows()
+        and package_name is not None
+        and package_name.isBelowNamespace("win32com")
+    ):
+        pywin32_dir = _getPyWin32Dir()
+
+        if pywin32_dir is not None:
+            scan_dirs.append(pywin32_dir)
+
     for path_dir in os.environ["PATH"].split(";"):
         if not os.path.isdir(path_dir):
             continue
@@ -923,16 +933,6 @@ def getScanDirectories(package_name, original_dir):
             continue
 
         scan_dirs.append(path_dir)
-
-    if (
-        Utils.isWin32Windows()
-        and package_name is not None
-        and package_name.isBelowNamespace("win32com")
-    ):
-        pywin32_dir = _getPyWin32Dir()
-
-        if pywin32_dir is not None:
-            scan_dirs.append(pywin32_dir)
 
     result = []
 
