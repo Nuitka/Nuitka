@@ -96,6 +96,7 @@ class CommonOptimizationTest:
             self.print_tests(test)
 
 
+# TODO: Right now this tests NOTHING of Nuitka, only the Python built-in
 print("Test for any")
 any_test = CommonOptimizationTest(any)
 any_test.run_all_tests()

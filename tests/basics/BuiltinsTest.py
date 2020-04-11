@@ -19,7 +19,7 @@
 
 """
 
-# pylint: disable=broad-except
+# pylint: disable=broad-except,global-variable-not-assigned,redefined-outer-name
 
 from __future__ import print_function
 
