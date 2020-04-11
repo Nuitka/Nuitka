@@ -1077,6 +1077,8 @@ def allocateNestedConstants(module_context):
                 considerForDeferral(constant_value.start)
                 considerForDeferral(constant_value.step)
                 considerForDeferral(constant_value.stop)
+        elif constant_type in (str, NoneType, int, long):
+            pass
         elif constant_value in builtin_named_values_list:
             considerForDeferral(builtin_named_values[constant_value])
 
