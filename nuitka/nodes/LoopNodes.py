@@ -38,13 +38,17 @@ class StatementLoop(StatementChildHavingBase):
 
     checker = checkStatementsSequenceOrNone
 
-    __slots__ = ("loop_variables", "loop_memory")
+    __slots__ = ("loop_variables", "loop_start", "loop_end", "loop_previous_end")
 
     def __init__(self, body, source_ref):
         StatementChildHavingBase.__init__(self, value=body, source_ref=source_ref)
 
         self.loop_variables = None
-        self.loop_memory = None
+
+        # Shapes of the variable at the start.
+        self.loop_start = {}
+        self.loop_end = {}
+        self.loop_previous_end = {}
 
     def mayReturn(self):
         loop_body = self.getLoopBody()
@@ -78,8 +82,74 @@ class StatementLoop(StatementChildHavingBase):
         #  return loop_body is not None and \
         #         self.getLoopBody().mayRaiseException(exception_type)
 
-    def computeLoopBody(self, trace_collection):
-        # Rather complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    def _computeLoopBody(self, trace_collection):
+        # Rather complex stuff, pylint: disable=too-many-branches,too-many-locals
+
+        loop_body = self.getLoopBody()
+        if loop_body is None:
+            return None, None
+
+        # Track if we got incomplete knowledge due to loop. If so, we are not done, even
+        # if no was optimization done, once we are complete, they can come.
+        has_incomplete = False
+
+        # Look ahead. what will be written and degrade to initial loop
+        # traces about that if we are in the first iteration, later we
+        # will have more precise knowledge.
+
+        if self.loop_variables is None:
+            self.loop_variables = getVariablesWritten(loop_body)
+
+            # Only important to mark these states as different, so we start with
+            # initial loop traces.
+            for loop_variable in self.loop_variables:
+                self.loop_start[loop_variable] = None
+
+                self.loop_previous_end[loop_variable] = None
+                self.loop_end[loop_variable] = set()
+
+            first_pass = True
+        else:
+            first_pass = False
+
+        # Mark all variables as loop wrap around that are written in the loop and
+        # hit a 'continue' and make them become loop merges. We will strive to
+        # reduce self.loop_variables if we find ones that have no change in all
+        # 'continue' exits.
+        loop_entry_traces = set()
+        for loop_variable in self.loop_variables:
+            current = trace_collection.getVariableCurrentTrace(loop_variable)
+
+            if first_pass:
+                incomplete = True
+                has_incomplete = True
+            else:
+                incomplete = (
+                    self.loop_start[loop_variable].getLoopTypeShapes()
+                    != current.getLoopTypeShapes()
+                    or self.loop_end[loop_variable]
+                    != self.loop_previous_end[loop_variable]
+                )
+
+                if incomplete:
+                    has_incomplete = True
+
+            loop_entry_traces.add(
+                (
+                    loop_variable,
+                    trace_collection.markActiveVariableAsLoopMerge(
+                        variable=loop_variable,
+                        shapes=self.loop_end[loop_variable],
+                        incomplete=incomplete,
+                        first_pass=first_pass,
+                    ),
+                )
+            )
+
+            # Remember what we started with, so we can detect changes from outside the
+            # loop and make them restart the collection process.
+            self.loop_start[loop_variable] = current
+
         abort_context = trace_collection.makeAbortStackContext(
             catch_breaks=True,
             catch_continues=True,
@@ -87,120 +157,55 @@ class StatementLoop(StatementChildHavingBase):
             catch_exceptions=False,
         )
 
-        has_initial = False
-
         with abort_context:
-            loop_body = self.getLoopBody()
+            # Forget all iterator and other value status. TODO: These should be using
+            # more proper tracing to benefit.
+            trace_collection.resetValueStates()
+
+            result = loop_body.computeStatementsSequence(
+                trace_collection=trace_collection
+            )
+
+            # Might be changed.
+            if result is not loop_body:
+                self.setLoopBody(result)
+                loop_body = result
 
             if loop_body is not None:
-                # Look ahead. what will be written and degrade to initial loop
-                # traces about that if we are in the first iteration, later we
-                # will have more precise knowledge.
-                if self.loop_variables is None:
-                    early = True
+                # Emulate terminal continue if not aborting.
+                if not loop_body.isStatementAborting():
+                    trace_collection.onLoopContinue()
 
-                    loop_variables = getVariablesWritten(loop_body)
+            continue_collections = trace_collection.getLoopContinueCollections()
 
-                    self.loop_variables = {}
-                    self.loop_memory = {}
+            for loop_variable, loop_entry_trace in loop_entry_traces:
+                loop_end_traces = set()
 
-                    for loop_variable in loop_variables:
-                        self.loop_variables[loop_variable] = set()
-                        self.loop_memory[loop_variable] = None
-                else:
-                    early = False
+                if not first_pass:
+                    self.loop_previous_end[loop_variable] = self.loop_end[loop_variable]
+                    self.loop_end[loop_variable] = set()
 
-                loop_entry_traces = set()
-
-                # List of variables to remove. TODO: Benchmark if it has any
-                # value to avoid creating the normally empty list.
-                to_remove = None
-
-                # Mark all variables as loop wrap around that are written in
-                # the loop and hit a 'continue'.
-                for loop_variable, current in self.loop_variables.items():
-                    # Loop variable became unused.
-                    if not current and not early:
-                        if to_remove is None:
-                            to_remove = []
-                        to_remove.append(loop_variable)
-                        continue
-
-                    last_ones = self.loop_memory[loop_variable]
-
-                    if last_ones is not True:
-                        last_ones = (
-                            self.loop_memory[loop_variable]
-                            == self.loop_variables[loop_variable]
-                        )
-
-                    loop_entry_traces.add(
-                        (
-                            loop_variable,
-                            trace_collection.markActiveVariableAsLoopMerge(
-                                variable=loop_variable,
-                                shapes=self.loop_variables[loop_variable],
-                                initial=last_ones is not True,
-                            ),
-                        )
+                for continue_collection in continue_collections:
+                    loop_end_trace = continue_collection.getVariableCurrentTrace(
+                        loop_variable
                     )
 
-                    has_initial = has_initial or last_ones is not True
-
-                    if last_ones is not True:
-                        self.loop_memory[loop_variable] = set(
-                            self.loop_variables[loop_variable]
-                        )
-
-                if to_remove is not None:
-                    for loop_variable in to_remove:
-                        del self.loop_memory[loop_variable]
-                        del self.loop_variables[loop_variable]
-
-                # Forget all iterator and other value status.
-                trace_collection.resetValueStates()
-
-                result = loop_body.computeStatementsSequence(
-                    trace_collection=trace_collection
-                )
-
-                # Might be changed.
-                if result is not loop_body:
-                    self.setLoopBody(result)
-                    loop_body = result
-
-                if loop_body is not None:
-                    # Emulate terminal continue if not aborting.
-                    if not loop_body.isStatementAborting():
-                        trace_collection.onLoopContinue()
-
-                continue_collections = trace_collection.getLoopContinueCollections()
-
-                for variable, loop_entry_trace in loop_entry_traces:
-                    loop_end_traces = set()
-
-                    for continue_collection in continue_collections:
-                        loop_end_trace = continue_collection.getVariableCurrentTrace(
-                            variable
-                        )
-
-                        if loop_end_trace is not loop_entry_trace:
+                    if loop_end_trace is not loop_entry_trace:
+                        if not first_pass:
                             loop_end_trace.getTypeShape().emitAlternatives(
-                                self.loop_variables[variable].add
+                                self.loop_end[loop_variable].add
                             )
 
-                            loop_end_traces.add(loop_end_trace)
+                        loop_end_traces.add(loop_end_trace)
 
-                    if loop_end_traces:
-                        loop_entry_trace.addLoopContinueTraces(loop_end_traces)
-
-                    loop_entry_trace.markLoopTraceComplete()
+                if loop_end_traces:
+                    loop_entry_trace.addLoopContinueTraces(loop_end_traces)
 
             # If we break, the outer collections becomes a merge of all those breaks
             # or just the one, if there is only one.
             break_collections = trace_collection.getLoopBreakCollections()
 
-        if has_initial:
+        if has_incomplete:
             trace_collection.signalChange(
                 "new_expression", self.source_ref, "Loop has incomplete variable types."
             )
@@ -211,7 +216,7 @@ class StatementLoop(StatementChildHavingBase):
         outer_trace_collection = trace_collection
         trace_collection = TraceCollectionBranch(parent=trace_collection, name="loop")
 
-        loop_body, break_collections = self.computeLoopBody(trace_collection)
+        loop_body, break_collections = self._computeLoopBody(trace_collection)
 
         # Consider trailing "continue" statements, these have no effect, so we
         # can remove them.

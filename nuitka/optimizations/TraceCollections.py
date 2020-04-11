@@ -47,7 +47,8 @@ from .ValueTraces import (
     ValueTraceAssign,
     ValueTraceInit,
     ValueTraceLoopComplete,
-    ValueTraceLoopInitial,
+    ValueTraceLoopFirstPass,
+    ValueTraceLoopIncomplete,
     ValueTraceMerge,
     ValueTraceUninit,
     ValueTraceUnknown,
@@ -109,7 +110,7 @@ class CollectionTracingMixin(object):
 
             self.markCurrentVariableTrace(variable, version)
 
-    def markActiveVariableAsLoopMerge(self, variable, shapes, initial):
+    def markActiveVariableAsLoopMerge(self, variable, shapes, incomplete, first_pass):
         current = self.getVariableCurrentTrace(variable=variable)
 
         version = variable.allocateTargetNumber()
@@ -129,8 +130,10 @@ class CollectionTracingMixin(object):
 
         # print(initial, shapes)
 
-        if initial:
-            result = ValueTraceLoopInitial(current, shapes)
+        if first_pass:
+            result = ValueTraceLoopFirstPass(current, shapes)
+        elif incomplete:
+            result = ValueTraceLoopIncomplete(current, shapes)
         else:
             result = ValueTraceLoopComplete(current, shapes)
 

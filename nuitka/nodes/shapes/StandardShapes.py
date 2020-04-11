@@ -602,8 +602,6 @@ class ShapeLoopInitialAlternative(ShapeBase):
     def __init__(self, shapes):
         self.type_shapes = shapes
 
-        assert ShapeLoopCompleteAlternative not in shapes
-
     def emitAlternatives(self, emit):
         for type_shape in self.type_shapes:
             type_shape.emitAlternatives(emit)
@@ -877,7 +875,15 @@ class ShapeLoopCompleteAlternative(ShapeBase):
     def __init__(self, shapes):
         self.type_shapes = shapes
 
-        assert ShapeLoopCompleteAlternative not in shapes
+    def __hash__(self):
+        # We are unhashable set, and need deep comparison.
+        return 27
+
+    def __eq__(self, other):
+        if self.__class__ is not other.__class__:
+            return False
+
+        return self.type_shapes == other.type_shapes
 
     def emitAlternatives(self, emit):
         for type_shape in self.type_shapes:

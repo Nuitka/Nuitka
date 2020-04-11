@@ -166,6 +166,9 @@ class ValueTraceBase(object):
         # Virtual method, pylint: disable=no-self-use
         return False
 
+    def getLoopTypeShapes(self):
+        return set((self.getTypeShape(),))
+
 
 class ValueTraceUninit(ValueTraceBase):
     __slots__ = ()
@@ -274,7 +277,7 @@ class ValueTraceUnknown(ValueTraceBase):
 class ValueTraceLoopComplete(ValueTraceBase):
     # Need them all, pylint: disable=too-many-instance-attributes
 
-    __slots__ = ("type_shapes", "type_shape", "incomplete")
+    __slots__ = ("type_shapes", "type_shape", "recursion")
 
     def __init__(self, previous, type_shapes):
         assert type_shapes
@@ -284,10 +287,16 @@ class ValueTraceLoopComplete(ValueTraceBase):
         self.type_shapes = type_shapes
         self.type_shape = None
 
-        assert ShapeLoopCompleteAlternative not in type_shapes
+        self.recursion = False
+
         previous.addLoopUsage()
 
-        self.incomplete = False
+    def __repr__(self):
+        return "<%s shapes %s of %s>" % (
+            self.__class__.__name__,
+            self.type_shapes,
+            self.owner,
+        )
 
     @staticmethod
     def isLoopTrace():
@@ -301,6 +310,9 @@ class ValueTraceLoopComplete(ValueTraceBase):
                 self.type_shape = next(iter(self.type_shapes))
 
         return self.type_shape
+
+    def getLoopTypeShapes(self):
+        return self.type_shapes
 
     def addUsage(self):
         self.usage_count += 1
@@ -340,37 +352,27 @@ class ValueTraceLoopComplete(ValueTraceBase):
         for previous in continue_traces:
             previous.addLoopUsage()
 
-    def markLoopTraceComplete(self):
-        pass
-
     def mustHaveValue(self):
-        if self.incomplete is True:
-            return False
-        elif self.incomplete is None:
-            # Lie to ourselves.
-            return True
-        else:
-            # To detect recursion.
-            self.incomplete = None
-
-            for previous in self.previous:
-                if not previous.mustHaveValue():
-                    self.incomplete = False
-                    return False
-
-            self.incomplete = False
+        # To handle recursion, we lie to ourselves.
+        if self.recursion:
             return True
 
+        self.recursion = True
 
-class ValueTraceLoopInitial(ValueTraceLoopComplete):
+        for previous in self.previous:
+            if not previous.mustHaveValue():
+                self.recursion = False
+                return False
+
+        self.recursion = False
+        return True
+
+
+class ValueTraceLoopIncomplete(ValueTraceLoopComplete):
     __slots__ = ()
 
     def __init__(self, previous, type_shapes):
         ValueTraceLoopComplete.__init__(self, previous, type_shapes)
-
-        # TODO: Do not use this attribute then, the inheritance is
-        # probably backwards.
-        self.incomplete = True
 
     def getTypeShape(self):
         if self.type_shape is None:
@@ -378,8 +380,13 @@ class ValueTraceLoopInitial(ValueTraceLoopComplete):
 
         return self.type_shape
 
-    def markLoopTraceComplete(self):
-        self.incomplete = False
+
+class ValueTraceLoopFirstPass(ValueTraceLoopIncomplete):
+    def __init__(self, previous, type_shapes):
+        ValueTraceLoopIncomplete.__init__(self, previous, type_shapes)
+
+    def mustHaveValue(self):
+        return False
 
 
 class ValueTraceAssign(ValueTraceBase):
