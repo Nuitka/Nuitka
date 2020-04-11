@@ -874,7 +874,7 @@ void PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyObje
     PRINT_REPR(exception_value);
 #if PYTHON_VERSION >= 300
     if (exception_value != NULL) {
-        PRINT_STRING(" <- ");
+        PRINT_STRING(" <- context ");
         PRINT_REPR(PyException_GetContext(exception_value));
     }
 #endif

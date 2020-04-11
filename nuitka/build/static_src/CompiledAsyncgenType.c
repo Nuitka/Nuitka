@@ -114,11 +114,11 @@ static PyObject *Nuitka_YieldFromAsyncgenCore(struct Nuitka_AsyncgenObject *asyn
     return yielded;
 }
 
-static PyObject *Nuitka_YieldFromAsyncgenInitial(struct Nuitka_AsyncgenObject *asyncgen) {
+static PyObject *Nuitka_YieldFromAsyncgenNext(struct Nuitka_AsyncgenObject *asyncgen) {
     return Nuitka_YieldFromAsyncgenCore(asyncgen, Py_None, true);
 }
 
-static PyObject *Nuitka_YieldFromAsyncgenNext(struct Nuitka_AsyncgenObject *asyncgen, PyObject *send_value) {
+static PyObject *Nuitka_YieldFromAsyncgenInitial(struct Nuitka_AsyncgenObject *asyncgen, PyObject *send_value) {
     return Nuitka_YieldFromAsyncgenCore(asyncgen, send_value, false);
 }
 
@@ -204,13 +204,13 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
         if (asyncgen->m_yieldfrom == NULL) {
             yielded = ((asyncgen_code)asyncgen->m_code)(asyncgen, value);
         } else {
-            yielded = Nuitka_YieldFromAsyncgenNext(asyncgen, value);
+            yielded = Nuitka_YieldFromAsyncgenInitial(asyncgen, value);
         }
 
         // If the asyncgen returns with m_yieldfrom set, it wants us to yield
         // from that value from now on.
         while (yielded == NULL && asyncgen->m_yieldfrom != NULL) {
-            yielded = Nuitka_YieldFromAsyncgenInitial(asyncgen);
+            yielded = Nuitka_YieldFromAsyncgenNext(asyncgen);
         }
 
         if (asyncgen->m_frame) {
@@ -398,8 +398,9 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
             PyObject *val;
 
             if (_PyGen_FetchStopIterationValue(&val) == 0) {
-                CHECK_OBJECT(val);
+                asyncgen->m_yieldfrom = NULL;
 
+                CHECK_OBJECT(val);
 #if _DEBUG_ASYNCGEN
                 PRINT_STRING("_Nuitka_Asyncgen_throw2: Value to send is");
                 PRINT_ITEM(val);
