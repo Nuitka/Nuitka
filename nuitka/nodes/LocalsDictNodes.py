@@ -497,7 +497,7 @@ class StatementLocalsDictOperationDel(StatementBase):
 
         # Record the deletion, needs to start a new version then.
         _variable_trace = trace_collection.onVariableDel(
-            variable=self.variable, version=self.variable_version
+            variable=self.variable, version=self.variable_version, del_node=self
         )
 
         trace_collection.onVariableContentEscapes(self.variable)

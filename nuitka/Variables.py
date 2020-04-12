@@ -218,6 +218,30 @@ class Variable(object):
 
         return None
 
+    def getMatchingDelTrace(self, del_node):
+        for trace in self.traces:
+            if trace.isUninitTrace() and trace.getDelNode() is del_node:
+                return trace
+
+        return None
+
+    def hasSuccessorTraces(self, trace):
+        def consider(candidate):
+            if candidate.isMergeTrace():
+                for p in candidate.previous:
+                    if consider(p):
+                        return True
+            elif candidate.hasPreviousTrace(trace):
+                return True
+
+            return False
+
+        for candidate in self.traces:
+            if consider(candidate):
+                return True
+
+        return False
+
     def getTypeShapes(self):
         result = set()
 
@@ -334,10 +358,11 @@ class LocalsDictVariable(Variable):
         return True
 
 
-def updateVariablesFromCollection(old_collection, new_collection):
+def updateVariablesFromCollection(old_collection, new_collection, source_ref):
     # After removing/adding traces, we need to pre-compute the users state
     # information.
     touched_variables = set()
+    loop_trace_removal = set()
 
     if old_collection is not None:
         for (variable, _version), variable_trace in iterItems(
@@ -346,12 +371,19 @@ def updateVariablesFromCollection(old_collection, new_collection):
             variable.removeTrace(variable_trace)
             touched_variables.add(variable)
 
+            if variable_trace.isLoopTrace():
+                loop_trace_removal.add(variable)
+
     if new_collection is not None:
         for (variable, _version), variable_trace in iterItems(
             new_collection.getVariableTracesAll()
         ):
             variable.addTrace(variable_trace)
             touched_variables.add(variable)
+
+            if variable_trace.isLoopTrace():
+                if variable in loop_trace_removal:
+                    loop_trace_removal.remove(variable)
 
         # Release the memory, and prevent the "active" state from being ever
         # inspected, it's useless now.
@@ -360,3 +392,12 @@ def updateVariablesFromCollection(old_collection, new_collection):
 
     for variable in touched_variables:
         variable.updateUsageState()
+
+    if loop_trace_removal:
+        if new_collection is not None:
+            new_collection.signalChange(
+                "var_usage",
+                source_ref,
+                lambda: "Loop variable '%s' usage ceased."
+                % ",".join(variable.getName() for variable in loop_trace_removal),
+            )

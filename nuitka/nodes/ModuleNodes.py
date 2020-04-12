@@ -512,7 +512,9 @@ class CompiledPythonModule(
                 message="Recursed to module package.",
             )
 
-        self.trace_collection.updateVariablesFromCollection(old_collection)
+        self.trace_collection.updateVariablesFromCollection(
+            old_collection, self.source_ref
+        )
 
     def getTraceCollections(self):
         yield self.trace_collection

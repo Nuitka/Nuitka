@@ -538,7 +538,9 @@ def makeOptimizationPass(initial_pass):
         if current_module.isCompiledPythonModule():
             for function in current_module.getUnusedFunctions():
                 Variables.updateVariablesFromCollection(
-                    old_collection=function.trace_collection, new_collection=None
+                    old_collection=function.trace_collection,
+                    new_collection=None,
+                    source_ref=function.getSourceReference(),
                 )
 
                 function.trace_collection = None

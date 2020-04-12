@@ -31,6 +31,7 @@ the traces.
 """
 
 from nuitka.ModuleRegistry import getOwnerFromCodeName
+from nuitka.Options import isExperimental
 
 from .NodeBases import StatementBase, StatementChildHavingBase
 from .NodeMakingHelpers import (
@@ -345,13 +346,11 @@ Removed assignment of %s from itself which is known to be defined."""
                                 and not last_trace.getNameUsageCount()
                             ):
                                 if not last_trace.getPrevious().isUninitTrace():
-                                    # TODO: We could well decide, if that's even necessary, but for now
-                                    # the "StatementDelVariable" is tasked with that.
                                     result = StatementDelVariable(
                                         variable=self.variable,
                                         version=self.variable_version,
                                         tolerant=True,
-                                        source_ref=self.getSourceReference(),
+                                        source_ref=self.source_ref,
                                     )
                                 else:
                                     result = None
@@ -377,13 +376,11 @@ Removed assignment of %s from itself which is known to be defined."""
                                 and not last_trace.getNameUsageCount()
                             ):
                                 if not last_trace.getPrevious().isUninitTrace():
-                                    # TODO: We could well decide, if that's even necessary, but for now
-                                    # the "StatementDelVariable" is tasked with that.
                                     result = StatementDelVariable(
                                         variable=self.variable,
                                         version=self.variable_version,
                                         tolerant=True,
-                                        source_ref=self.getSourceReference(),
+                                        source_ref=self.source_ref,
                                     )
                                 else:
                                     result = None
@@ -552,9 +549,39 @@ class StatementDelVariable(StatementBase):
                 % (self.getVariableName(),),
             )
 
+        # TODO: Why doesn't this module variable check not follow from other checks done here, e.g. name usages.
+        # TODO: This currently cannot be done as releases do not create successor traces yet, although they
+        # probably should.
+        if isExperimental("del_optimization") and not variable.isModuleVariable():
+            provider = trace_collection.getOwner()
+
+            if variable.hasAccessesOutsideOf(provider) is False:
+                last_trace = variable.getMatchingDelTrace(self)
+
+                if last_trace is not None and not variable.hasSuccessorTraces(
+                    last_trace
+                ):
+                    if (
+                        not last_trace.hasLoopUsages()
+                        and not last_trace.hasPotentialUsages()
+                        and not last_trace.hasDefiniteUsages()
+                        and not last_trace.getNameUsageCount()
+                    ):
+                        result = StatementReleaseVariable(
+                            variable=variable, source_ref=self.source_ref
+                        )
+
+                        return trace_collection.computedStatementResult(
+                            result,
+                            "new_statements",
+                            "Changed del to release for variable '%s' not used afterwards."
+                            % variable.getName(),
+                        )
+
         # The "del" is a potential use of a value. TODO: This could be made more
         # beautiful indication, as it's not any kind of usage.
-        self.previous_trace.addPotentialUsage()
+        if not self.tolerant:
+            self.previous_trace.addPotentialUsage()
 
         # If not tolerant, we may exception exit now during the __del__
         if not self.tolerant and not self.previous_trace.mustHaveValue():
@@ -562,7 +589,7 @@ class StatementDelVariable(StatementBase):
 
         # Record the deletion, needs to start a new version then.
         self.variable_trace = trace_collection.onVariableDel(
-            variable=variable, version=self.variable_version
+            variable=variable, version=self.variable_version, del_node=self
         )
 
         trace_collection.onVariableContentEscapes(variable)

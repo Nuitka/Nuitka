@@ -38,8 +38,10 @@ sys.path.insert(
 
 # isort:start
 
+import asyncio
 import types
 
+from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
     checkDebugPython,
     executeReferenceChecked,
@@ -47,6 +49,8 @@ from nuitka.tools.testing.Common import (
 )
 
 checkDebugPython()
+
+# Tests do bad stuff, pylint: disable=redefined-outer-name
 
 
 def raisy():
@@ -172,11 +176,39 @@ def simpleFunction9():
     return b
 
 
+async def rmtree(path):
+    return await asyncio.get_event_loop().run_in_executor(None, sync_rmtree, path)
+
+
+def sync_rmtree(path):
+    raise FileNotFoundError
+
+
+async def execute():
+    try:
+        await rmtree("/tmp/test1234.txt")
+    except FileNotFoundError:
+        pass
+
+    return 10 ** 10
+
+
+async def run():
+    await execute()
+
+
+def simpleFunction10():
+    asyncio.get_event_loop().run_until_complete(run())
+
+
 # These need stderr to be wrapped.
 tests_stderr = ()
 
 # Disabled tests
 tests_skipped = {}
+
+if python_version < 380:
+    tests_skipped[10] = "Incompatible refcount bugs of asyncio with python prior 3.8"
 
 result = executeReferenceChecked(
     prefix="simpleFunction",

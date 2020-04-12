@@ -411,7 +411,7 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
         self.computeFunction(trace_collection)
 
-        trace_collection.updateVariablesFromCollection(old_collection)
+        trace_collection.updateVariablesFromCollection(old_collection, self.source_ref)
 
     def computeFunction(self, trace_collection):
         statements_sequence = self.getBody()

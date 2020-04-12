@@ -305,14 +305,14 @@ class CollectionStartpointMixin(object):
         return trace
 
     def _initVariableUninit(self, variable):
-        trace = ValueTraceUninit(owner=self.owner, previous=None)
+        trace = ValueTraceUninit(owner=self.owner, previous=None, del_node=None)
 
         self.addVariableTrace(variable=variable, version=0, trace=trace)
 
         return trace
 
-    def updateVariablesFromCollection(self, old_collection):
-        Variables.updateVariablesFromCollection(old_collection, self)
+    def updateVariablesFromCollection(self, old_collection, source_ref):
+        Variables.updateVariablesFromCollection(old_collection, self, source_ref)
 
     @contextlib.contextmanager
     def makeAbortStackContext(
@@ -476,12 +476,14 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         return variable_trace
 
-    def onVariableDel(self, variable, version):
+    def onVariableDel(self, variable, version, del_node):
         # Add a new trace, allocating a new version for the variable, and
         # remember the delete of the current
         old_trace = self.getVariableCurrentTrace(variable)
 
-        variable_trace = ValueTraceUninit(owner=self.owner, previous=old_trace)
+        variable_trace = ValueTraceUninit(
+            owner=self.owner, del_node=del_node, previous=old_trace
+        )
 
         # Assign to not initialized again.
         self.addVariableTrace(variable=variable, version=version, trace=variable_trace)
@@ -546,6 +548,20 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         return new_node
 
+    def computedExpressionResult(self, expression, change_tags, change_desc):
+        # Need to compute the replacement still.
+        new_expression = expression.computeStatement(self)
+
+        if new_expression[0] is not expression:
+            # Signal intermediate result as well.
+            self.signalChange(
+                change_tags, new_expression.getSourceReference(), change_desc
+            )
+
+            return new_expression
+        else:
+            return expression, change_tags, change_desc
+
     def onStatement(self, statement):
         try:
             assert statement.isStatement(), statement
@@ -568,6 +584,18 @@ class TraceCollectionBase(CollectionTracingMixin):
                 )
             )
             raise
+
+    def computedStatementResult(self, statement, change_tags, change_desc):
+        # Need to compute the replacement still.
+        new_statement = statement.computeStatement(self)
+
+        if new_statement[0] is not statement:
+            # Signal intermediate result as well.
+            self.signalChange(change_tags, statement.getSourceReference(), change_desc)
+
+            return new_statement
+        else:
+            return statement, change_tags, change_desc
 
     def mergeBranches(self, collection_yes, collection_no):
         """ Merge two alternative branches into this trace.

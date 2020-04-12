@@ -86,6 +86,13 @@ class ValueTraceBase(object):
     def getOwner(self):
         return self.owner
 
+    @staticmethod
+    def isLoopTrace():
+        return False
+
+    def hasPreviousTrace(self, trace):
+        return trace is self.previous
+
     def addClosureUsage(self):
         self.addUsage()
         self.closure_usages = True
@@ -171,10 +178,13 @@ class ValueTraceBase(object):
 
 
 class ValueTraceUninit(ValueTraceBase):
-    __slots__ = ()
+    # TODO: Specialize for no del_node, which is most common.
+    __slots__ = ("del_node",)
 
-    def __init__(self, owner, previous):
+    def __init__(self, owner, previous, del_node):
         ValueTraceBase.__init__(self, owner=owner, previous=previous)
+
+        self.del_node = del_node
 
     @staticmethod
     def getTypeShape():
@@ -186,6 +196,9 @@ class ValueTraceUninit(ValueTraceBase):
 
     def mustNotHaveValue(self):
         return True
+
+    def getDelNode(self):
+        return self.del_node
 
     def dump(self):
         debug("  Starts out uninitialized")
@@ -472,6 +485,9 @@ class ValueTraceMerge(ValueTraceBase):
     @staticmethod
     def isMergeTrace():
         return True
+
+    def hasPreviousTrace(self, trace):
+        return trace in self.previous
 
     def dump(self):
         debug("  Merge of %s", " <-> ".join(self.previous))
