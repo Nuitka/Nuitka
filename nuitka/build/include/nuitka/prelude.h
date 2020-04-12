@@ -147,6 +147,7 @@
 #define Nuitka_StringIntern PyString_InternInPlace
 #define Nuitka_String_FromString PyString_FromString
 #define Nuitka_String_FromStringAndSize PyString_FromStringAndSize
+#define PyUnicode_CHECK_INTERNED (0)
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
 

@@ -39,19 +39,10 @@ static bool _BINARY_OPERATION_BITAND_LONG_LONG_INPLACE(PyObject **operand1, PyOb
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceBitand(*operand1, operand2);
 
@@ -84,19 +75,10 @@ static bool _BINARY_OPERATION_BITAND_OBJECT_LONG_INPLACE(PyObject **operand1, Py
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceBitand(*operand1, operand2);
 
@@ -129,19 +111,10 @@ static bool _BINARY_OPERATION_BITAND_LONG_OBJECT_INPLACE(PyObject **operand1, Py
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceBitand(*operand1, operand2);
 
@@ -198,19 +171,10 @@ static bool _BINARY_OPERATION_BITAND_INT_INT_INPLACE(PyObject **operand1, PyObje
     }
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceBitand(*operand1, operand2);
 
@@ -251,19 +215,10 @@ static bool _BINARY_OPERATION_BITAND_OBJECT_INT_INPLACE(PyObject **operand1, PyO
     }
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceBitand(*operand1, operand2);
 
@@ -304,19 +259,10 @@ static bool _BINARY_OPERATION_BITAND_INT_OBJECT_INPLACE(PyObject **operand1, PyO
     }
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceBitand(*operand1, operand2);
 
@@ -355,19 +301,10 @@ static bool _BINARY_OPERATION_BITAND_INT_LONG_INPLACE(PyObject **operand1, PyObj
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceBitand(*operand1, operand2);
 
@@ -406,19 +343,10 @@ static bool _BINARY_OPERATION_BITAND_LONG_INT_INPLACE(PyObject **operand1, PyObj
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceBitand(*operand1, operand2);
 
@@ -456,19 +384,10 @@ static bool _BINARY_OPERATION_BITAND_SET_SET_INPLACE(PyObject **operand1, PyObje
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceBitand(*operand1, operand2);
 
@@ -501,19 +420,10 @@ static bool _BINARY_OPERATION_BITAND_OBJECT_SET_INPLACE(PyObject **operand1, PyO
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceBitand(*operand1, operand2);
 
@@ -546,19 +456,10 @@ static bool _BINARY_OPERATION_BITAND_SET_OBJECT_INPLACE(PyObject **operand1, PyO
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceBitand(*operand1, operand2);
 
@@ -593,19 +494,10 @@ static bool _BINARY_OPERATION_BITAND_OBJECT_OBJECT_INPLACE(PyObject **operand1, 
     }
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceBitand(*operand1, operand2);
 

@@ -49,54 +49,56 @@ static bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.g
 #endif
 {% endif %}
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
 {% if operator == "+" and left.mayBothHaveType(right, "str") %}
+#if PYTHON_VERSION < 300
         if ({{left.getStringCheckExpression("*operand1")}} && !PyString_CHECK_INTERNED(*operand1) && {{right.getStringCheckExpression("operand2")}}) {
             return STRING_ADD_INPLACE(operand1, operand2);
         }
+#endif
 {% endif %}
-{% if operator in ("+", "-") and left.hasOneOrBothType(right, "float") %}
+
+{# Floats are very good for in-place operations. TODO: Probably a lot more could be added. #}
+{% if operator in ("+", "-", "*") and left.hasOneOrBothType(right, "float") %}
         if ({{left.getFloatCheckExpression("*operand1")}} && {{right.getFloatCheckExpression("operand2")}}) {
             PyFloat_AS_DOUBLE(*operand1) {{operator}}= PyFloat_AS_DOUBLE(operand2);
             return true;
         }
 {% endif %}
+
+{% if operator == "+" and left.mayBothHaveType(right, "unicode") %}
+#if PYTHON_VERSION >= 300
+        if ({{left.getUnicodeCheckExpression("*operand1")}} && !PyUnicode_CHECK_INTERNED(*operand1) && {{right.getUnicodeCheckExpression("operand2")}}) {
+            return UNICODE_ADD_INCREMENTAL(operand1, operand2);
+        }
+#endif
+{% endif %}
+
+{% if operator == "+" and left.hasOneOrBothType(right, "bytes") %}
+#if PYTHON_VERSION >= 300
+        if ({{left.getBytesCheckExpression("*operand1")}} && {{right.getBytesCheckExpression("operand2")}}) {
+            return BYTES_ADD_INCREMENTAL(operand1, operand2);
+        }
+#endif
+{% endif %}
     }
 
 {% if operator == "+" and left.mayBothHaveType(right, "str") %}
-    // Strings are to be treated differently, fall back to Python API here.
+#if PYTHON_VERSION < 300
+    // Python2 strings are to be treated differently, fall back to Python API here.
     if ({{left.getStringCheckExpression("*operand1")}} && {{right.getStringCheckExpression("operand2")}}) {
         {# This could be inlined too, but it has some detail behind it. #}
         PyString_Concat(operand1, operand2);
         return !ERROR_OCCURRED();
     }
+#endif
 {% endif %}
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-{% if operator == "+" and left.mayBothHaveType(right, "unicode") %}
-        if ({{left.getUnicodeCheckExpression("*operand1")}} && !PyUnicode_CHECK_INTERNED(*operand1) && {{right.getUnicodeCheckExpression("operand2")}}) {
-            return UNICODE_ADD_INCREMENTAL(operand1, operand2);
-        }
-{% endif %}
-{% if operator == "+" and left.hasOneOrBothType(right, "float") %}
-        if ({{left.getFloatCheckExpression("*operand1")}} && {{right.getFloatCheckExpression("operand2")}}) {
-            PyFloat_AS_DOUBLE(*operand1) {{operator}}= PyFloat_AS_DOUBLE(operand2);
-        }
-{% endif %}
-{% if operator == "+" and left.hasOneOrBothType(right, "bytes") %}
-        if ({{left.getBytesCheckExpression("*operand1")}} && {{right.getBytesCheckExpression("operand2")}}) {
-            return BYTES_ADD_INCREMENTAL(operand1, operand2);
-        }
-{% endif %}
-    }
 
+{# Fast path for unicode values, very important for Python3, rare for Python2. #}
 {% if operator == "+" and left.mayBothHaveType(right, "unicode") %}
-    // Strings are to be treated differently.
+    // Python3 Strings are to be treated differently.
     if ({{left.getUnicodeCheckExpression("*operand1")}} && {{right.getUnicodeCheckExpression("operand2")}}) {
         PyObject *result = UNICODE_CONCAT(*operand1, operand2);
 
@@ -110,7 +112,6 @@ static bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.g
         return true;
     }
 {% endif %}
-#endif
 
 {# Fast path for list in-place add with at least one known list. #}
 {% if operator == "+" and left.hasOneOrBothType(right, "list") %}

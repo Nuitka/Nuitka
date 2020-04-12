@@ -59,19 +59,10 @@ static bool _BINARY_OPERATION_MULT_INT_INT_INPLACE(PyObject **operand1, PyObject
     }
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -112,19 +103,10 @@ static bool _BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObject **operand1, PyObj
     }
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -165,19 +147,10 @@ static bool _BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObject **operand1, PyObj
     }
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -215,19 +188,10 @@ static bool _BINARY_OPERATION_MULT_LONG_LONG_INPLACE(PyObject **operand1, PyObje
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -260,19 +224,10 @@ static bool _BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(PyObject **operand1, PyOb
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -305,19 +260,10 @@ static bool _BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(PyObject **operand1, PyOb
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -354,19 +300,15 @@ static bool _BINARY_OPERATION_MULT_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyOb
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
 
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
+        if (1 && 1) {
+            PyFloat_AS_DOUBLE(*operand1) *= PyFloat_AS_DOUBLE(operand2);
+            return true;
+        }
     }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -399,19 +341,15 @@ static bool _BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyO
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
 
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
+        if (PyFloat_CheckExact(*operand1) && 1) {
+            PyFloat_AS_DOUBLE(*operand1) *= PyFloat_AS_DOUBLE(operand2);
+            return true;
+        }
     }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -444,19 +382,15 @@ static bool _BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyO
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
 
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
+        if (1 && PyFloat_CheckExact(operand2)) {
+            PyFloat_AS_DOUBLE(*operand1) *= PyFloat_AS_DOUBLE(operand2);
+            return true;
+        }
     }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -490,19 +424,10 @@ static bool _BINARY_OPERATION_MULT_OBJECT_STR_INPLACE(PyObject **operand1, PyObj
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -537,19 +462,10 @@ static bool _BINARY_OPERATION_MULT_STR_OBJECT_INPLACE(PyObject **operand1, PyObj
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -588,19 +504,10 @@ static bool _BINARY_OPERATION_MULT_INT_STR_INPLACE(PyObject **operand1, PyObject
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -639,19 +546,10 @@ static bool _BINARY_OPERATION_MULT_STR_INT_INPLACE(PyObject **operand1, PyObject
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -690,19 +588,10 @@ static bool _BINARY_OPERATION_MULT_LONG_STR_INPLACE(PyObject **operand1, PyObjec
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -741,19 +630,10 @@ static bool _BINARY_OPERATION_MULT_STR_LONG_INPLACE(PyObject **operand1, PyObjec
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -785,19 +665,10 @@ static bool _BINARY_OPERATION_MULT_OBJECT_UNICODE_INPLACE(PyObject **operand1, P
     assert(PyUnicode_CheckExact(operand2));
     assert(NEW_STYLE_NUMBER(operand2));
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -828,19 +699,10 @@ static bool _BINARY_OPERATION_MULT_UNICODE_OBJECT_INPLACE(PyObject **operand1, P
     assert(NEW_STYLE_NUMBER(*operand1));
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -876,19 +738,10 @@ static bool _BINARY_OPERATION_MULT_INT_UNICODE_INPLACE(PyObject **operand1, PyOb
     assert(PyUnicode_CheckExact(operand2));
     assert(NEW_STYLE_NUMBER(operand2));
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -925,19 +778,10 @@ static bool _BINARY_OPERATION_MULT_UNICODE_INT_INPLACE(PyObject **operand1, PyOb
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -974,19 +818,10 @@ static bool _BINARY_OPERATION_MULT_LONG_UNICODE_INPLACE(PyObject **operand1, PyO
     assert(PyUnicode_CheckExact(operand2));
     assert(NEW_STYLE_NUMBER(operand2));
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1022,19 +857,10 @@ static bool _BINARY_OPERATION_MULT_UNICODE_LONG_INPLACE(PyObject **operand1, PyO
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1067,19 +893,10 @@ static bool _BINARY_OPERATION_MULT_OBJECT_TUPLE_INPLACE(PyObject **operand1, PyO
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1112,19 +929,10 @@ static bool _BINARY_OPERATION_MULT_TUPLE_OBJECT_INPLACE(PyObject **operand1, PyO
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1162,19 +970,10 @@ static bool _BINARY_OPERATION_MULT_INT_TUPLE_INPLACE(PyObject **operand1, PyObje
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1213,19 +1012,10 @@ static bool _BINARY_OPERATION_MULT_TUPLE_INT_INPLACE(PyObject **operand1, PyObje
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1263,19 +1053,10 @@ static bool _BINARY_OPERATION_MULT_LONG_TUPLE_INPLACE(PyObject **operand1, PyObj
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1312,19 +1093,10 @@ static bool _BINARY_OPERATION_MULT_TUPLE_LONG_INPLACE(PyObject **operand1, PyObj
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1357,19 +1129,10 @@ static bool _BINARY_OPERATION_MULT_OBJECT_LIST_INPLACE(PyObject **operand1, PyOb
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1402,19 +1165,10 @@ static bool _BINARY_OPERATION_MULT_LIST_OBJECT_INPLACE(PyObject **operand1, PyOb
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1452,19 +1206,10 @@ static bool _BINARY_OPERATION_MULT_INT_LIST_INPLACE(PyObject **operand1, PyObjec
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1503,19 +1248,10 @@ static bool _BINARY_OPERATION_MULT_LIST_INT_INPLACE(PyObject **operand1, PyObjec
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1553,19 +1289,10 @@ static bool _BINARY_OPERATION_MULT_LONG_LIST_INPLACE(PyObject **operand1, PyObje
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1602,19 +1329,10 @@ static bool _BINARY_OPERATION_MULT_LIST_LONG_INPLACE(PyObject **operand1, PyObje
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1648,19 +1366,10 @@ static bool _BINARY_OPERATION_MULT_OBJECT_BYTES_INPLACE(PyObject **operand1, PyO
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1695,19 +1404,10 @@ static bool _BINARY_OPERATION_MULT_BYTES_OBJECT_INPLACE(PyObject **operand1, PyO
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1746,19 +1446,10 @@ static bool _BINARY_OPERATION_MULT_LONG_BYTES_INPLACE(PyObject **operand1, PyObj
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1797,19 +1488,10 @@ static bool _BINARY_OPERATION_MULT_BYTES_LONG_INPLACE(PyObject **operand1, PyObj
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1848,19 +1530,10 @@ static bool _BINARY_OPERATION_MULT_INT_LONG_INPLACE(PyObject **operand1, PyObjec
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1899,19 +1572,15 @@ static bool _BINARY_OPERATION_MULT_INT_FLOAT_INPLACE(PyObject **operand1, PyObje
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
 
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
+        if (0 && 1) {
+            PyFloat_AS_DOUBLE(*operand1) *= PyFloat_AS_DOUBLE(operand2);
+            return true;
+        }
     }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -1950,19 +1619,10 @@ static bool _BINARY_OPERATION_MULT_LONG_INT_INPLACE(PyObject **operand1, PyObjec
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -2000,19 +1660,15 @@ static bool _BINARY_OPERATION_MULT_LONG_FLOAT_INPLACE(PyObject **operand1, PyObj
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
 
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
+        if (0 && 1) {
+            PyFloat_AS_DOUBLE(*operand1) *= PyFloat_AS_DOUBLE(operand2);
+            return true;
+        }
     }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -2050,19 +1706,15 @@ static bool _BINARY_OPERATION_MULT_FLOAT_INT_INPLACE(PyObject **operand1, PyObje
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
 
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
+        if (1 && 0) {
+            PyFloat_AS_DOUBLE(*operand1) *= PyFloat_AS_DOUBLE(operand2);
+            return true;
+        }
     }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -2100,19 +1752,15 @@ static bool _BINARY_OPERATION_MULT_FLOAT_LONG_INPLACE(PyObject **operand1, PyObj
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
 
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
+        if (1 && 0) {
+            PyFloat_AS_DOUBLE(*operand1) *= PyFloat_AS_DOUBLE(operand2);
+            return true;
+        }
     }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 
@@ -2147,19 +1795,10 @@ static bool _BINARY_OPERATION_MULT_OBJECT_OBJECT_INPLACE(PyObject **operand1, Py
     }
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceMult(*operand1, operand2);
 

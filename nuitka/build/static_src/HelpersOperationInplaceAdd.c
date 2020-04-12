@@ -60,19 +60,10 @@ static bool _BINARY_OPERATION_ADD_INT_INT_INPLACE(PyObject **operand1, PyObject 
     }
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -113,19 +104,10 @@ static bool _BINARY_OPERATION_ADD_OBJECT_INT_INPLACE(PyObject **operand1, PyObje
     }
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -166,19 +148,10 @@ static bool _BINARY_OPERATION_ADD_INT_OBJECT_INPLACE(PyObject **operand1, PyObje
     }
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -216,19 +189,10 @@ static bool _BINARY_OPERATION_ADD_LONG_LONG_INPLACE(PyObject **operand1, PyObjec
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -261,19 +225,10 @@ static bool _BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE(PyObject **operand1, PyObj
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -306,19 +261,10 @@ static bool _BINARY_OPERATION_ADD_LONG_OBJECT_INPLACE(PyObject **operand1, PyObj
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -355,26 +301,15 @@ static bool _BINARY_OPERATION_ADD_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObj
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+
         if (1 && 1) {
             PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
             return true;
         }
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-        if (1 && 1) {
-            PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
-        }
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -407,26 +342,15 @@ static bool _BINARY_OPERATION_ADD_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyOb
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+
         if (PyFloat_CheckExact(*operand1) && 1) {
             PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
             return true;
         }
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-        if (PyFloat_CheckExact(*operand1) && 1) {
-            PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
-        }
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -459,26 +383,15 @@ static bool _BINARY_OPERATION_ADD_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyOb
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+
         if (1 && PyFloat_CheckExact(operand2)) {
             PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
             return true;
         }
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-        if (1 && PyFloat_CheckExact(operand2)) {
-            PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
-        }
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -516,26 +429,22 @@ static bool _BINARY_OPERATION_ADD_STR_STR_INPLACE(PyObject **operand1, PyObject 
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+#if PYTHON_VERSION < 300
         if (1 && !PyString_CHECK_INTERNED(*operand1) && 1) {
             return STRING_ADD_INPLACE(operand1, operand2);
         }
+#endif
     }
 
-    // Strings are to be treated differently, fall back to Python API here.
+#if PYTHON_VERSION < 300
+    // Python2 strings are to be treated differently, fall back to Python API here.
     if (1 && 1) {
         PyString_Concat(operand1, operand2);
         return !ERROR_OCCURRED();
     }
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
 #endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
@@ -571,26 +480,22 @@ static bool _BINARY_OPERATION_ADD_OBJECT_STR_INPLACE(PyObject **operand1, PyObje
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+#if PYTHON_VERSION < 300
         if (PyString_CheckExact(*operand1) && !PyString_CHECK_INTERNED(*operand1) && 1) {
             return STRING_ADD_INPLACE(operand1, operand2);
         }
+#endif
     }
 
-    // Strings are to be treated differently, fall back to Python API here.
+#if PYTHON_VERSION < 300
+    // Python2 strings are to be treated differently, fall back to Python API here.
     if (PyString_CheckExact(*operand1) && 1) {
         PyString_Concat(operand1, operand2);
         return !ERROR_OCCURRED();
     }
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
 #endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
@@ -626,26 +531,22 @@ static bool _BINARY_OPERATION_ADD_STR_OBJECT_INPLACE(PyObject **operand1, PyObje
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+#if PYTHON_VERSION < 300
         if (1 && !PyString_CHECK_INTERNED(*operand1) && PyString_CheckExact(operand2)) {
             return STRING_ADD_INPLACE(operand1, operand2);
         }
+#endif
     }
 
-    // Strings are to be treated differently, fall back to Python API here.
+#if PYTHON_VERSION < 300
+    // Python2 strings are to be treated differently, fall back to Python API here.
     if (1 && PyString_CheckExact(operand2)) {
         PyString_Concat(operand1, operand2);
         return !ERROR_OCCURRED();
     }
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
 #endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
@@ -681,22 +582,18 @@ static bool _BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE(PyObject **operand1, P
     assert(PyUnicode_CheckExact(operand2));
     assert(NEW_STYLE_NUMBER(operand2));
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
 
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
+#if PYTHON_VERSION >= 300
         if (1 && !PyUnicode_CHECK_INTERNED(*operand1) && 1) {
             return UNICODE_ADD_INCREMENTAL(operand1, operand2);
         }
+#endif
     }
 
-    // Strings are to be treated differently.
+    // Python3 Strings are to be treated differently.
     if (1 && 1) {
         PyObject *result = UNICODE_CONCAT(*operand1, operand2);
 
@@ -709,7 +606,6 @@ static bool _BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE(PyObject **operand1, P
 
         return true;
     }
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -740,22 +636,18 @@ static bool _BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE(PyObject **operand1, Py
     assert(PyUnicode_CheckExact(operand2));
     assert(NEW_STYLE_NUMBER(operand2));
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
 
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
+#if PYTHON_VERSION >= 300
         if (PyUnicode_CheckExact(*operand1) && !PyUnicode_CHECK_INTERNED(*operand1) && 1) {
             return UNICODE_ADD_INCREMENTAL(operand1, operand2);
         }
+#endif
     }
 
-    // Strings are to be treated differently.
+    // Python3 Strings are to be treated differently.
     if (PyUnicode_CheckExact(*operand1) && 1) {
         PyObject *result = UNICODE_CONCAT(*operand1, operand2);
 
@@ -768,7 +660,6 @@ static bool _BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE(PyObject **operand1, Py
 
         return true;
     }
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -799,22 +690,18 @@ static bool _BINARY_OPERATION_ADD_UNICODE_OBJECT_INPLACE(PyObject **operand1, Py
     assert(NEW_STYLE_NUMBER(*operand1));
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
 
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
+#if PYTHON_VERSION >= 300
         if (1 && !PyUnicode_CHECK_INTERNED(*operand1) && PyUnicode_CheckExact(operand2)) {
             return UNICODE_ADD_INCREMENTAL(operand1, operand2);
         }
+#endif
     }
 
-    // Strings are to be treated differently.
+    // Python3 Strings are to be treated differently.
     if (1 && PyUnicode_CheckExact(operand2)) {
         PyObject *result = UNICODE_CONCAT(*operand1, operand2);
 
@@ -827,7 +714,6 @@ static bool _BINARY_OPERATION_ADD_UNICODE_OBJECT_INPLACE(PyObject **operand1, Py
 
         return true;
     }
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -865,22 +751,16 @@ static bool _BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE(PyObject **operand1, PyObj
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
 
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
+#if PYTHON_VERSION >= 300
         if (1 && 1) {
             return BYTES_ADD_INCREMENTAL(operand1, operand2);
         }
-    }
-
 #endif
+    }
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -915,22 +795,16 @@ static bool _BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE(PyObject **operand1, PyOb
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
 
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
+#if PYTHON_VERSION >= 300
         if (PyBytes_CheckExact(*operand1) && 1) {
             return BYTES_ADD_INCREMENTAL(operand1, operand2);
         }
-    }
-
 #endif
+    }
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -965,22 +839,16 @@ static bool _BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE(PyObject **operand1, PyOb
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
 
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
+#if PYTHON_VERSION >= 300
         if (1 && PyBytes_CheckExact(operand2)) {
             return BYTES_ADD_INCREMENTAL(operand1, operand2);
         }
-    }
-
 #endif
+    }
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -1018,19 +886,10 @@ static bool _BINARY_OPERATION_ADD_TUPLE_TUPLE_INPLACE(PyObject **operand1, PyObj
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     if (1 && 1) {
         PyObject *result = PySequence_InPlaceConcat(*operand1, operand2);
@@ -1076,19 +935,10 @@ static bool _BINARY_OPERATION_ADD_OBJECT_TUPLE_INPLACE(PyObject **operand1, PyOb
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     if (PySequence_Check(*operand1) && 1) {
         PyObject *result = PySequence_InPlaceConcat(*operand1, operand2);
@@ -1134,19 +984,10 @@ static bool _BINARY_OPERATION_ADD_TUPLE_OBJECT_INPLACE(PyObject **operand1, PyOb
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     if (1 && PySequence_Check(operand2)) {
         PyObject *result = PySequence_InPlaceConcat(*operand1, operand2);
@@ -1196,19 +1037,10 @@ static bool _BINARY_OPERATION_ADD_LIST_LIST_INPLACE(PyObject **operand1, PyObjec
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     if (1 && 1) {
         return LIST_EXTEND_FROM_LIST(*operand1, operand2);
@@ -1258,19 +1090,10 @@ static bool _BINARY_OPERATION_ADD_OBJECT_LIST_INPLACE(PyObject **operand1, PyObj
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     if (PyList_CheckExact(*operand1) && 1) {
         return LIST_EXTEND_FROM_LIST(*operand1, operand2);
@@ -1320,19 +1143,10 @@ static bool _BINARY_OPERATION_ADD_LIST_OBJECT_INPLACE(PyObject **operand1, PyObj
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     if (1 && PyList_CheckExact(operand2)) {
         return LIST_EXTEND_FROM_LIST(*operand1, operand2);
@@ -1387,19 +1201,10 @@ static bool _BINARY_OPERATION_ADD_INT_LONG_INPLACE(PyObject **operand1, PyObject
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -1438,26 +1243,15 @@ static bool _BINARY_OPERATION_ADD_INT_FLOAT_INPLACE(PyObject **operand1, PyObjec
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+
         if (0 && 1) {
             PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
             return true;
         }
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-        if (0 && 1) {
-            PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
-        }
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -1496,19 +1290,10 @@ static bool _BINARY_OPERATION_ADD_LONG_INT_INPLACE(PyObject **operand1, PyObject
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -1546,26 +1331,15 @@ static bool _BINARY_OPERATION_ADD_LONG_FLOAT_INPLACE(PyObject **operand1, PyObje
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+
         if (0 && 1) {
             PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
             return true;
         }
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-        if (0 && 1) {
-            PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
-        }
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -1603,26 +1377,15 @@ static bool _BINARY_OPERATION_ADD_FLOAT_INT_INPLACE(PyObject **operand1, PyObjec
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+
         if (1 && 0) {
             PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
             return true;
         }
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-        if (1 && 0) {
-            PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
-        }
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -1660,26 +1423,15 @@ static bool _BINARY_OPERATION_ADD_FLOAT_LONG_INPLACE(PyObject **operand1, PyObje
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+
         if (1 && 0) {
             PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
             return true;
         }
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-        if (1 && 0) {
-            PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
-        }
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -1715,19 +1467,10 @@ static bool _BINARY_OPERATION_ADD_STR_UNICODE_INPLACE(PyObject **operand1, PyObj
     assert(PyUnicode_CheckExact(operand2));
     assert(NEW_STYLE_NUMBER(operand2));
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -1764,19 +1507,10 @@ static bool _BINARY_OPERATION_ADD_UNICODE_STR_INPLACE(PyObject **operand1, PyObj
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -1812,30 +1546,31 @@ static bool _BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyO
     }
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+#if PYTHON_VERSION < 300
         if (PyString_CheckExact(*operand1) && !PyString_CHECK_INTERNED(*operand1) && PyString_CheckExact(operand2)) {
             return STRING_ADD_INPLACE(operand1, operand2);
         }
+#endif
+
+#if PYTHON_VERSION >= 300
+        if (PyUnicode_CheckExact(*operand1) && !PyUnicode_CHECK_INTERNED(*operand1) && PyUnicode_CheckExact(operand2)) {
+            return UNICODE_ADD_INCREMENTAL(operand1, operand2);
+        }
+#endif
     }
 
-    // Strings are to be treated differently, fall back to Python API here.
+#if PYTHON_VERSION < 300
+    // Python2 strings are to be treated differently, fall back to Python API here.
     if (PyString_CheckExact(*operand1) && PyString_CheckExact(operand2)) {
         PyString_Concat(operand1, operand2);
         return !ERROR_OCCURRED();
     }
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-        if (PyUnicode_CheckExact(*operand1) && !PyUnicode_CHECK_INTERNED(*operand1) && PyUnicode_CheckExact(operand2)) {
-            return UNICODE_ADD_INCREMENTAL(operand1, operand2);
-        }
-    }
+#endif
 
-    // Strings are to be treated differently.
+    // Python3 Strings are to be treated differently.
     if (PyUnicode_CheckExact(*operand1) && PyUnicode_CheckExact(operand2)) {
         PyObject *result = UNICODE_CONCAT(*operand1, operand2);
 
@@ -1848,7 +1583,6 @@ static bool _BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyO
 
         return true;
     }
-#endif
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -1885,19 +1619,10 @@ static bool _BINARY_OPERATION_ADD_LIST_TUPLE_INPLACE(PyObject **operand1, PyObje
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
-
-#else
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#endif
 
     if (1 && 0) {
         return LIST_EXTEND_FROM_LIST(*operand1, operand2);
