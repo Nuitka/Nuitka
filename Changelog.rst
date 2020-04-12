@@ -4,11 +4,159 @@ Nuitka Release 0.6.8 (Draft)
 This releases contains bug fixes that enhance the Python 3.8 compatibility
 as well as general improvements.
 
+Bug Fixes
+---------
+
+- Python3.5+: Fix, coroutines and asyncgen could continue iteration of
+  awaited functions, after their return, leading to wrong behaviour.
+
+- Python3.5+: Fix, absolute imports of names might also refer to modules
+  and need to be handled for module loading as well.
+
+- Fix, the ``fromlist`` of imports could loose references, potentially
+  leading to corruption of contained strings.
+
+- Python3.8: Fix, positional only arguments were not enforced to actually
+  be that way.
+
+- Python3.8: Fix, evaluation order for nested dictionary contractions was
+  not followed yet.
+
+- Windows: Use short paths, these work much better to load extension modules
+  and TCL parts of TkInter cannot handle unicode paths at all. This makes
+  Nuitka work in locations, where normal Python cannot.
+
+- Windows: Fixup dependency walker in unicode input directories.
+
+- Standalone: Use frozen module loader only at ``libpython`` initialisation
+  and switch to built-in bytecode loader that is more compatible afterwards,
+  increasing compatibility.
+
+- Standalone: Fix for pydanctic support.
+
+- Standalone: Added missing hidden dependency of uvicorn.
+
+- Fix, the parser for .pyi files couldn't handle multiline imports.
+
+- Windows: Deriver linker arch of Python from running binary, since it can
+  happen that the Python binary is actually a script.
+
+- Fixup static linking with ``libpython.a`` that contains ``main.o`` by
+  making our colliding symbols for ``Py_GetArgcArgv`` weak.
+
+- Python3.7: Fix misdetection as asyncgen for a normal generator, if the
+  iterated value is async.
+
+- Distutils: Fix ``build_nuitka`` for modules under nested namespaces.
+
+- OpenBSD: Follow usage of clang and other corrections to make accelerated
+  mode work.
+
+- macOS: Fixup for standalone mode library scan.
+
+- Fix, the logging of ``--show-modules`` was broken.
+
+- Windows: Enable ``/bigobj`` mode for MSVC for large compilations to work.
+
+- Windows: Fixup crash in warning with pefile dependency manager.
+
+- Windows: Fixup ``win32com`` standalone detection of other Python version
+  ``win32com`` is in system ``PATH``.
+
+New Features
+------------
+
+- Plugin command line handling now allows for proper ``optparse`` options to
+  be used, doing away with special parameter code for plugins. The arguments
+  now also become automatically passed to the instantiations of plugins.
+
+  Loading and creation of plugins are now two separate phases. They are loaded
+  when they appear on the command line and can add options in their own group,
+  even required ones, but also with default values.
+
+- Fix, the python flag for static hashes wasn't working at all.
+
+- Started using logging with name-spaces. Applying logging per plugin to make
+  it easier to recognize which plugin said what. Warnings are now colored in
+  red.
+
+- Added experimental Windows Service plugin.
+
+- Python3.5+: Added support for two step module loading, making Nuitka loading
+  even more compatible.
+
+- Enhanced import tracing to work on standalone binaries is a useful manner.
+
+Optimization
+------------
+
+- Proper loop SSA capable of detecting shapes with an incremental initial
+  phase and a final result of alternatives for variables written in the
+  loop. This detects shapes of integer incrementing loops correctly now.
+
+- Added type shapes for all operations and all important built-in types to
+  allow more compile time optimization and better target type selection.
+
+- Target type code generation was expanded from manual usage with conditions
+  to all operations allowing to get at bool target values more directly.
+
+- Complex constants didn't annotate their type shape, preventing compile time
+  optimization for them.
+
+- Python3.8: Also support vectorcall for compiled method objects. These are
+  rarely used in new Python, but can make a difference.
+
+
 Organisational
 --------------
 
+- Updated developer manual with changes that happened, remvoing the obsolete
+  language choice section.
+
+- Added 3.8 support mentions is even more places.
+
 - The mailing list has been closed. We now prefer Gitter chat and Github issues
   for discussions.
+
+- Visual Code recommended extensions are now defined as such in the project
+  configuration and you will be prompted to install them.
+
+- Visual Code environents for ``Py38`` and ``Py27`` were added for easier
+  switch.
+
+- Catch usage of Python from the Microsoft App Store, it is not supported and
+  seems to limit access to the Python installation for security reasons that make
+  support impossible.
+
+- Added instructions for MSVC runtimes and standalone compilation to support
+  Windows 7.
+
+- More complete listing of copyright holders for Debian.
+
+Tests
+-----
+
+- Pylint cleanups for some of the tests.
+
+- Added test for loading of user plugins.
+
+- Removed useless outputs for ``search`` mode skipping non-matches.
+
+Cleanups
+--------
+
+- Limit command line handling for multiprocessing module to when the plugin is
+  actually used, avoiding useless code of Windows binaries.
+
+- Pylint cleanup also foreign code like ``oset`` and ``odict``.
+
+- In preparation of deprecating the alternative, ``--plugin-enable`` has become
+  the only form used in documentation and tests.
+
+- Avoid numeric pylint symbols more often.
+
+- Distutils: Cleanup module name for distutils commands, these are not actually
+  enforced by distutils, but very ugly in our coding conventions.
 
 This release is not done yet.
 
