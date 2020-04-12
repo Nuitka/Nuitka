@@ -329,9 +329,10 @@ codegen_group.add_option(
     default=True,
     help="""\
 Enforce absolute compatibility with CPython. Do not even allow minor
-deviations from CPython behavior, e.g. better tracebacks, which are
-not really incompatible, but different. This is intended for tests
-only and should not be necessary for normal use.""",
+deviations from CPython behavior, e.g. not having better tracebacks
+or exception messages which are not really incompatible, but only
+different. This is intended for tests only and should not be used
+for normal use.""",
 )
 
 codegen_group.add_option(
