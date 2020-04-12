@@ -316,6 +316,7 @@ def _shouldNotFormatCode(filename):
     elif "tests" in parts and not "basics" in parts and "programs" not in parts:
         return parts[-1] not in (
             "run_all.py",
+            "update_doctest_generated.py",
             "compile_itself.py",
             "compile_python_modules.py",
             "compile_extension_modules.py",

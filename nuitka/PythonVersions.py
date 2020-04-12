@@ -103,7 +103,7 @@ def getComplexCallSequenceErrorTemplate():
     if not hasattr(getComplexCallSequenceErrorTemplate, "result"):
         try:
             # We are doing this on purpose, to get the exception.
-            # pylint: disable=  not-an-iterable,not-callable
+            # pylint: disable=not-an-iterable,not-callable
             f = None
             f(*None)
         except TypeError as e:

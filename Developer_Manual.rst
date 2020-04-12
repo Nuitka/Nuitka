@@ -2533,7 +2533,7 @@ difficult stuff. Our example becomes this:
        tmp_pos_merged = merge_pos_arguments( called, tmp_pos, tmp_star_list )
 
        # On the C-API level, this is what it looks like.
-       return called( *tmp_pos_merged, **tmp_merged_dict )
+       return called(*tmp_pos_merged, **tmp_merged_dict)
 
    returned = _complex_call(
        called        = something,
@@ -3347,10 +3347,10 @@ We may want to take advantage of it. Consider e.g.
 
 .. code-block:: python
 
-   if type( a ) is list:
-       a.append( x )
+   if type(a) is list:
+       a.append(x)
    else:
-       a += ( x, )
+       a += (x,)
 
 In this case, the knowledge that ``a`` is a list, could be used to generate
 better code and with the definite knowledge that ``a`` is of type list. With
@@ -3813,8 +3813,8 @@ In order to do that, such code must be considered:
 
    a = []
 
-   a.append( 1 )
-   a.append( 2 )
+   a.append(1)
+   a.append(2)
 
    print len( a )
 

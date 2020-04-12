@@ -120,13 +120,13 @@ def getCallableNameDescBody():
     #
     # Note: The "called_type" is a temporary variable.
     #
-    # called_type = type( BuiltinFunctionType )
+    # called_type = type(BuiltinFunctionType)
     #
     # if ininstance( called, (FunctionType, MethodType, BuiltinFunctionType) ):
     #     return called.__name__
-    # elif python_version < 3 and isinstance( called, ClassType ):
+    # elif python_version < 3 and isinstance(called, ClassType):
     #     return called_type.__name__ + " constructor"
-    # elif python_version < 3 and isinstance( called, InstanceType ):
+    # elif python_version < 3 and isinstance(called, InstanceType):
     #     return called_type.__name__ + " instance"
     # else:
     #     return called_type.__name__ + " object"
@@ -968,16 +968,16 @@ def getFunctionCallHelperStarList():
     # Note: Call in here is not the same, as it can go without checks directly
     # to PyObject_Call.
     #
-    # if not isinstance( star_arg_list, tuple ):
+    # if not isinstance(star_arg_list, tuple):
     #     try:
-    #         star_arg_list = tuple( star_arg_list )
+    #         star_arg_list = tuple(star_arg_list)
     #     except TypeError:
     #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc( function ),
-    #             type( star_arg_list ).__name__
+    #             get_callable_name_desc(function),
+    #             type(star_arg_list).__name__
     #         )
     #
-    # return called( *star_arg_list )
+    # return called(*star_arg_list)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1050,16 +1050,16 @@ def getFunctionCallHelperKeywordsStarList():
     # Note: Call in here is not the same, as it can go without checks directly
     # to PyObject_Call.
     #
-    # if not isinstance( star_arg_list, tuple ):
+    # if not isinstance(star_arg_list, tuple):
     #     try:
-    #         star_arg_list = tuple( star_arg_list )
+    #         star_arg_list = tuple(star_arg_list)
     #     except TypeError:
     #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc( function ),
-    #             type( star_arg_list ).__name__
+    #             get_callable_name_desc(function),
+    #             type(star_arg_list).__name__
     #         )
     #
-    # return called( *star_arg_list )
+    # return called(*star_arg_list)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1138,16 +1138,16 @@ def getFunctionCallHelperPosStarList():
     # Note: Call in here is not the same, as it can go without checks directly
     # to PyObject_Call.
     #
-    # if not isinstance( star_arg_list, tuple ):
+    # if not isinstance(star_arg_list, tuple):
     #     try:
-    #         star_arg_list = tuple( star_arg_list )
+    #         star_arg_list = tuple(star_arg_list)
     #     except TypeError:
     #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc( function ),
-    #             type( star_arg_list ).__name__
+    #             get_callable_name_desc(function),
+    #             type(star_arg_list).__name__
     #         )
     #
-    # return called( *star_arg_list )
+    # return called(*star_arg_list)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1232,16 +1232,16 @@ def getFunctionCallHelperPosKeywordsStarList():
     # Note: Call in here is not the same, as it can go without checks directly
     # to PyObject_Call.
     #
-    # if not isinstance( star_arg_list, tuple ):
+    # if not isinstance(star_arg_list, tuple):
     #     try:
-    #         star_arg_list = tuple( star_arg_list )
+    #         star_arg_list = tuple(star_arg_list)
     #     except TypeError:
     #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc( function ),
-    #             type( star_arg_list ).__name__
+    #             get_callable_name_desc(function),
+    #             type(star_arg_list).__name__
     #         )
     #
-    # return called( *star_arg_list )
+    # return called(*star_arg_list)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1336,7 +1336,7 @@ def getFunctionCallHelperStarDict():
     #         tmp_keys =  star_arg_dict.keys()
     #     except AttributeError:
     #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc( function ),
+    #             get_callable_name_desc(function),
     #             type(star_arg_dict).__name__
     #         )
     #
@@ -1540,7 +1540,7 @@ def getFunctionCallHelperKeywordsStarDict():
     #     except AttributeError:
     #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
     #             get_callable_name_desc(function),
-    #             type( star_arg_dict ).__name__
+    #             type(star_arg_dict).__name__
     #         )
     #
     #     if keys:
