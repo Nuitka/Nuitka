@@ -87,7 +87,7 @@ class StatementLoop(StatementChildHavingBase):
 
         loop_body = self.getLoopBody()
         if loop_body is None:
-            return None, None
+            return None, None, None
 
         # Track if we got incomplete knowledge due to loop. If so, we are not done, even
         # if no was optimization done, once we are complete, they can come.
@@ -210,13 +210,18 @@ class StatementLoop(StatementChildHavingBase):
                 "new_expression", self.source_ref, "Loop has incomplete variable types."
             )
 
-        return loop_body, break_collections
+        return loop_body, break_collections, continue_collections
 
     def computeStatement(self, trace_collection):
         outer_trace_collection = trace_collection
         trace_collection = TraceCollectionBranch(parent=trace_collection, name="loop")
 
-        loop_body, break_collections = self._computeLoopBody(trace_collection)
+        loop_body, break_collections, continue_collections = self._computeLoopBody(
+            trace_collection
+        )
+
+        if break_collections:
+            outer_trace_collection.mergeMultipleBranches(break_collections)
 
         # Consider trailing "continue" statements, these have no effect, so we
         # can remove them.
@@ -245,9 +250,15 @@ class StatementLoop(StatementChildHavingBase):
                     """\
 Removed useless terminal 'continue' as last statement of loop.""",
                 )
+            elif last_statement.isStatementLoopBreak():
+                if not continue_collections and len(break_collections) == 1:
+                    loop_body = loop_body.removeStatement(last_statement)
 
-        if break_collections:
-            outer_trace_collection.mergeMultipleBranches(break_collections)
+                    return (
+                        loop_body,
+                        "new_statements",
+                        "Removed useless loop with only a break at the end.",
+                    )
 
         # Consider leading "break" statements, they should be the only, and
         # should lead to removing the whole loop statement. Trailing "break"

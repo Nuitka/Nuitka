@@ -81,8 +81,12 @@ class StatementsSequence(StatementChildHavingBase):
 
         statements = list(self.getStatements())
         statements.remove(statement)
-
         self.setChild("statements", statements)
+
+        if statements:
+            return self
+        else:
+            return None
 
     def replaceStatement(self, statement, statements):
         old_statements = list(self.getStatements())
