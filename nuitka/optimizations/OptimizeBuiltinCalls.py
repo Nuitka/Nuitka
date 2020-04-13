@@ -25,7 +25,11 @@ from logging import warning
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.Errors import NuitkaAssumptionError
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable, StatementDelVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable,
+    StatementReleaseVariable,
+)
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
     ExpressionBuiltinGetattr,
@@ -131,6 +135,7 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
+from nuitka.tree.ReformulationMinMaxStatements import computeMinMax
 from nuitka.tree.ReformulationTryFinallyStatements import makeTryFinallyStatement
 from nuitka.tree.TreeHelpers import (
     makeCallNode,
@@ -793,7 +798,6 @@ def eval_extractor(node):
             name="eval_call",
             source_ref=source_ref,
         )
-
         globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
             provider=provider,
             globals_node=globals_arg,
@@ -935,6 +939,80 @@ def eval_extractor(node):
         node=node,
         builtin_class=wrapEvalBuiltin,
         builtin_spec=BuiltinParameterSpecs.builtin_eval_spec,
+    )
+
+
+def max_extractor(node):
+    @calledWithBuiltinArgumentNamesDecorator
+    def wrapMaxBuiltin(args, source_ref):
+        # pylint: disable=unused-argument
+        outline_body = ExpressionOutlineBody(
+            provider=node.getParentVariableProvider(),
+            name="max_call",
+            source_ref=source_ref,
+        )
+
+        statements, final_statements = computeMinMax(
+            outline_body=outline_body,
+            call_args=args,
+            builtin_type="max",
+            source_ref=source_ref,
+        )
+
+        outline_body.setBody(
+            makeStatementsSequenceFromStatement(
+                statement=makeTryFinallyStatement(
+                    provider=outline_body,
+                    tried=statements,
+                    final=final_statements,
+                    source_ref=source_ref,
+                )
+            )
+        )
+
+        return outline_body
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=wrapMaxBuiltin,
+        builtin_spec=BuiltinParameterSpecs.builtin_max_spec,
+    )
+
+
+def min_extractor(node):
+    @calledWithBuiltinArgumentNamesDecorator
+    def wrapMinBuiltin(args, keyfunc, source_ref):
+        # pylint: disable=unused-argument
+        outline_body = ExpressionOutlineBody(
+            provider=node.getParentVariableProvider(),
+            name="min_call",
+            source_ref=source_ref,
+        )
+
+        statements, final_statements = computeMinMax(  # not a good name
+            outline_body=outline_body,
+            call_args=args,
+            builtin_name="min",
+            source_ref=source_ref,
+        )
+
+        outline_body.setBody(
+            makeStatementsSequenceFromStatement(
+                statement=makeTryFinallyStatement(
+                    provider=outline_body,
+                    tried=statements,
+                    final=final_statements,
+                    source_ref=source_ref,
+                )
+            )
+        )
+
+        return outline_body
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=wrapMinBuiltin,
+        builtin_spec=BuiltinParameterSpecs.builtin_min_spec,
     )
 
 
@@ -1280,6 +1358,8 @@ _dispatch_dict = {
     "globals": globals_extractor,
     "locals": locals_extractor,
     "eval": eval_extractor,
+    "max": max_extractor,
+    "min": min_extractor,
     "dir": dir_extractor,
     "vars": vars_extractor,
     "__import__": import_extractor,

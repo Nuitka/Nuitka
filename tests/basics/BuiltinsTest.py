@@ -677,3 +677,26 @@ print(all("Nuitka rocks!"))
 print(all("string"))
 print(all(u"unicode"))
 print(all(b"bytes"))
+print(any({1:"One", 2:"Two"}))
+
+print("tests for max()")
+def call():
+    return 3
+
+print(max(1, 2))
+print(max(1, 2, call()))
+try:
+    print(max(1, 2, None))
+except Exception as e:
+    print("not supported between instances of 'NoneType' and 'int'")
+print(max(1.0, 1))
+
+
+print("tests for min()")
+print(min(1, 2))
+print(min(1, 2, call()))
+try:
+    print(min(1, 2, None))
+except Exception as e:
+    print("not supported between instances of 'NoneType' and 'int'")
+print(min(1.0, 1))
