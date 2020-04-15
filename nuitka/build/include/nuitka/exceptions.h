@@ -150,6 +150,9 @@ extern PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int l
 // Add a frame to an existing exception trace-back.
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK(PyTracebackObject *exception_tb,
                                                              struct Nuitka_FrameObject *frame, int lineno) {
+    CHECK_OBJECT(exception_tb);
+    CHECK_OBJECT(frame);
+
     PyTracebackObject *traceback_new = MAKE_TRACEBACK(frame, lineno);
     traceback_new->tb_next = exception_tb;
     return traceback_new;

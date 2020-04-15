@@ -839,7 +839,7 @@ static PyObject *Nuitka_Coroutine_tp_repr(struct Nuitka_CoroutineObject *corouti
                                 coroutine);
 }
 
-static long Nuitka_Coroutine_tp_traverse(PyObject *coroutine, visitproc visit, void *arg) {
+static long Nuitka_Coroutine_tp_traverse(struct Nuitka_CoroutineObject *coroutine, visitproc visit, void *arg) {
     // TODO: Identify the impact of not visiting owned objects and/or if it
     // could be NULL instead. The "methodobject" visits its self and module. I
     // understand this is probably so that back references of this function to

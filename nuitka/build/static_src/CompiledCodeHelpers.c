@@ -1655,7 +1655,7 @@ static PyTypeObject Nuitka_BuiltinModule_Type = {
 extern PyObject *const_str_plain_open;
 
 int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObject *value) {
-    CHECK_OBJECT((PyObject *)module);
+    CHECK_OBJECT(module);
     CHECK_OBJECT(name);
 
     // This is used for "del" as well.

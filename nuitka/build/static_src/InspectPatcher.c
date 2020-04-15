@@ -269,7 +269,7 @@ void patchBuiltinModule() {
         return;
     init_done = true;
 #endif
-    CHECK_OBJECT((PyObject *)builtin_module);
+    CHECK_OBJECT(builtin_module);
 
     // Patch "inspect.isinstance" unless it is already patched.
     original_isinstance = PyObject_GetAttrString((PyObject *)builtin_module, "isinstance");

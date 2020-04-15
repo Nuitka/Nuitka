@@ -28,8 +28,8 @@ struct %(function_identifier)s_locals {
 %(function_local_types)s
 };
 
-static PyObject *%(function_identifier)s_context( struct Nuitka_CoroutineObject *coroutine, PyObject *yield_return_value ) {
-    CHECK_OBJECT((PyObject *)coroutine);
+static PyObject *%(function_identifier)s_context(struct Nuitka_CoroutineObject *coroutine, PyObject *yield_return_value) {
+    CHECK_OBJECT(coroutine);
     assert(Nuitka_Coroutine_Check((PyObject *)coroutine));
 
     // Heap access if used.

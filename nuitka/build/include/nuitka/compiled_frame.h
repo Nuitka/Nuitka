@@ -60,11 +60,11 @@ struct Nuitka_FrameObject {
     }                                                                                                                  \
     assert(((struct Nuitka_FrameObject *)cache_identifier)->m_type_description == NULL);
 
-inline static void assertCodeObject(PyCodeObject *code_object) { CHECK_OBJECT((PyObject *)code_object); }
+inline static void assertCodeObject(PyCodeObject *code_object) { CHECK_OBJECT(code_object); }
 
 NUITKA_MAY_BE_UNUSED static bool isFrameUnusable(struct Nuitka_FrameObject *frame_object) {
     if (frame_object)
-        CHECK_OBJECT((PyObject *)frame_object);
+        CHECK_OBJECT(frame_object);
 
     bool result =
         // Never used.
@@ -118,7 +118,7 @@ static inline void dumpFrameStack(void) {
 #endif
 
 inline static void assertFrameObject(struct Nuitka_FrameObject *frame_object) {
-    CHECK_OBJECT((PyObject *)frame_object);
+    CHECK_OBJECT(frame_object);
     assertCodeObject(frame_object->m_frame.f_code);
 }
 

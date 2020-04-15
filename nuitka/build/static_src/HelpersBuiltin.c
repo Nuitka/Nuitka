@@ -623,7 +623,7 @@ PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object) {
 
     Nuitka_GC_Track(result);
 
-    CHECK_OBJECT((PyObject *)result);
+    CHECK_OBJECT(result);
     assert(Py_TYPE(result) == &PySuper_Type);
 
     return (PyObject *)result;

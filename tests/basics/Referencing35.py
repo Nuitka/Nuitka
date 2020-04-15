@@ -149,7 +149,7 @@ class BadAsyncIter:
 
 def simpleFunction7():
     async def someCoroutine():
-        async for i in BadAsyncIter():
+        async for _i in BadAsyncIter():
             print("never going to happen")
 
     try:

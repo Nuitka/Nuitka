@@ -166,9 +166,9 @@ def generateYieldFromCode(to_name, expression, emit, context):
     preserve_exception = expression.isExceptionPreserving()
 
     getReferenceExportCode(value_name, emit, context)
-
     if context.needsCleanup(value_name):
         context.removeCleanupTempName(value_name)
+
     yield_code = """\
 generator->m_yieldfrom = %(yield_from)s;
 return NULL;

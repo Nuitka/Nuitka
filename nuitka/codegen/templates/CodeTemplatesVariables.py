@@ -159,7 +159,7 @@ Py_XDECREF(%(identifier)s);
 """
 
 template_release_clear = """\
-CHECK_OBJECT((PyObject *)%(identifier)s);
+CHECK_OBJECT(%(identifier)s);
 Py_DECREF(%(identifier)s);
 %(identifier)s = NULL;
 """
