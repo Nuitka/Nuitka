@@ -103,8 +103,7 @@ def _generateCallCodePosOnly(
                 _getCallCodeFromTuple(
                     to_name=to_name,
                     called_name=called_name,
-                    arg_tuple=context.getConstantCode(constant=call_args_value),
-                    arg_size=len(call_args_value),
+                    args_value=call_args_value,
                     needs_check=expression.mayRaiseException(BaseException),
                     emit=emit,
                     context=context,
@@ -354,7 +353,7 @@ def _getInstanceCallCodeNoArgs(
 
 
 # Outside helper code relies on some quick call to be present.
-quick_calls_used = set([1, 2, 3, 4, 5])
+quick_calls_used = set([2, 3, 4, 5])
 quick_instance_calls_used = set()
 
 
@@ -401,7 +400,6 @@ def getCallCodePosArgsQuick(
 ):
 
     arg_size = len(arg_names)
-    quick_calls_used.add(arg_size)
 
     # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
@@ -416,6 +414,8 @@ def getCallCodePosArgsQuick(
             % (to_name, called_name, arg_names[0])
         )
     else:
+        quick_calls_used.add(arg_size)
+
         emit(
             """\
 {
@@ -477,22 +477,33 @@ def _getInstanceCallCodeFromTuple(
     context.addCleanupTempName(to_name)
 
 
-def _getCallCodeFromTuple(
-    to_name, called_name, arg_tuple, arg_size, needs_check, emit, context
-):
-    quick_calls_used.add(arg_size)
+def _getCallCodeFromTuple(to_name, called_name, args_value, needs_check, emit, context):
+    arg_size = len(args_value)
 
     # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
 
     emitLineNumberUpdateCode(emit, context)
 
-    emit(
-        """\
+    if arg_size == 1:
+        arg_name = context.getConstantCode(args_value[0])
+
+        emit(
+            """%s = CALL_FUNCTION_WITH_SINGLE_ARG(%s, %s);"""
+            % (to_name, called_name, arg_name)
+        )
+    else:
+        # TODO: Having to use a full tuple is wasteful, a PyObject ** would do.
+        arg_tuple_name = context.getConstantCode(constant=args_value)
+
+        quick_calls_used.add(arg_size)
+
+        emit(
+            """\
 %s = CALL_FUNCTION_WITH_ARGS%d(%s, &PyTuple_GET_ITEM(%s, 0));
 """
-        % (to_name, arg_size, called_name, arg_tuple)
-    )
+            % (to_name, arg_size, called_name, arg_tuple_name)
+        )
 
     getErrorExitCode(
         check_name=to_name,
