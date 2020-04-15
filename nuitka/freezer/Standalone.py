@@ -948,7 +948,7 @@ def getScanDirectories(package_name, original_dir):
         if not any(entry[1].lower().endswith(".dll") for entry in listDir(scan_dir)):
             continue
 
-        result.append(scan_dir)
+        result.append(os.path.realpath(scan_dir))
 
     _scan_dir_cache[cache_key] = result
     return result

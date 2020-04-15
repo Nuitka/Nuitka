@@ -146,10 +146,17 @@ def listDir(path):
         Typically the full name and the basename are both needed
         so this function simply does both, for ease of use on the
         calling side.
+
+        This should be used, because it makes sure to resolve the
+        symlinks to directories on Windows, that a naive "os.listdir"
+        won't do by default.
     """
 
     return sorted(
-        [(os.path.join(path, filename), filename) for filename in os.listdir(path)]
+        [
+            (os.path.join(path, filename), filename)
+            for filename in os.listdir(os.path.realpath(path))
+        ]
     )
 
 
