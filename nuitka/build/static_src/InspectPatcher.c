@@ -351,17 +351,25 @@ PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) 
 }
 
 static void Nuitka_tb_dealloc(PyTracebackObject *tb) {
-    Nuitka_GC_UnTrack(tb);
+    // Need to use official method as it checks for recursion.
+    PyObject_GC_UnTrack(tb);
 
-    // TODO: This seems to clash with our free list implementation.
-    // Py_TRASHCAN_SAFE_BEGIN( tb )
+#if PYTHON_VERSION >= 380
+    Py_TRASHCAN_BEGIN(tb, Nuitka_tb_dealloc);
+#else
+    Py_TRASHCAN_SAFE_BEGIN(tb);
+#endif
 
     Py_XDECREF(tb->tb_next);
     Py_XDECREF(tb->tb_frame);
 
     releaseToFreeList(free_list_tracebacks, tb, MAX_TRACEBACK_FREE_LIST_COUNT);
 
-    // Py_TRASHCAN_SAFE_END( tb )
+#if PYTHON_VERSION >= 380
+    Py_TRASHCAN_END;
+#else
+    Py_TRASHCAN_SAFE_END(tb);
+#endif
 }
 
 void patchTracebackDealloc(void) { PyTraceBack_Type.tp_dealloc = (destructor)Nuitka_tb_dealloc; }
