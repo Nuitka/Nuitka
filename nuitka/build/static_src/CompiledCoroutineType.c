@@ -220,7 +220,7 @@ static PyObject *_Nuitka_YieldFromCoroutineCore(struct Nuitka_CoroutineObject *c
 }
 
 #if _DEBUG_COROUTINE
-static void _PRINT_COROUTINE_STATUS(char const *descriptor, char const *context,
+NUITKA_MAY_BE_UNUSED static void _PRINT_COROUTINE_STATUS(char const *descriptor, char const *context,
                                     struct Nuitka_CoroutineObject *coroutine) {
     char const *status;
 
@@ -251,14 +251,14 @@ static void _PRINT_COROUTINE_STATUS(char const *descriptor, char const *context,
 
 #define PRINT_COROUTINE_STATUS(context, coroutine) _PRINT_COROUTINE_STATUS(__FUNCTION__, context, coroutine)
 
-static void PRINT_COROUTINE_VALUE(char const *name, PyObject *value) {
+NUITKA_MAY_BE_UNUSED static void PRINT_COROUTINE_VALUE(char const *name, PyObject *value) {
     PRINT_STRING(name);
     PRINT_STRING("=");
     PRINT_ITEM(value);
     PRINT_NEW_LINE();
 }
 
-static void PRINT_COROUTINE_STRING(char const *name, char const *value) {
+NUITKA_MAY_BE_UNUSED static void PRINT_COROUTINE_STRING(char const *name, char const *value) {
     PRINT_STRING(name);
     PRINT_STRING("=");
     PRINT_STRING(value);
@@ -888,6 +888,11 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
     PyTracebackObject *save_exception_tb;
     FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
 
+#if _DEBUG_COROUTINE
+    PRINT_COROUTINE_STATUS("Enter", coroutine);
+    PRINT_NEW_LINE();
+#endif
+
     PyObject *close_result = Nuitka_Coroutine_close(coroutine, NULL);
 
     if (unlikely(close_result == NULL)) {
@@ -1269,6 +1274,14 @@ static void FORMAT_AWAIT_ERROR(PyObject *value, int await_kind) {
 
 PyObject *ASYNC_AWAIT(PyObject *awaitable, int await_kind) {
     PyObject *awaitable_iter = Nuitka_GetAwaitableIter(awaitable);
+
+#if _DEBUG_COROUTINE
+    PRINT_STRING("ASYNC_AWAIT: Enter for await ");
+    PRINT_STRING(await_kind == await_enter ? "enter" : "exit");
+    PRINT_STRING(" ");
+    PRINT_ITEM(awaitable);
+    PRINT_NEW_LINE();
+#endif
 
     if (unlikely(awaitable_iter == NULL)) {
 #if PYTHON_VERSION >= 366
