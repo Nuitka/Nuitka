@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import ast
 import atexit
+import gc
 import hashlib
 import os
 import re
@@ -794,22 +795,27 @@ m1 = {}
 m2 = {}
 
 
-def snapObjRefCntMap(before):
-    import gc
+def cleanObjRefCntMaps():
+    m1.clear()
+    m2.clear()
 
+    # Warm out repr
+    for x in gc.get_objects():
+        str(x)
+
+
+def snapObjRefCntMap(before):
     if before:
         m = m1
     else:
         m = m2
 
     for x in gc.get_objects():
-        if x is m1:
+        # The dictionary is cyclic, and contains itself, avoid that.
+        if x is m1 or x is m2:
             continue
 
-        if x is m2:
-            continue
-
-        m[str(x)] = sys.getrefcount(x)
+        m[type(x), str(x)] = sys.getrefcount(x)
 
 
 def checkReferenceCount(checked_function, max_rounds=10):
@@ -818,20 +824,23 @@ def checkReferenceCount(checked_function, max_rounds=10):
     print(checked_function.__name__ + ": ", end="")
     sys.stdout.flush()
 
+    # Make sure reference for these are already taken at the start.
     ref_count1 = 17
     ref_count2 = 17
 
     explain = False
 
-    import gc
+    if explain:
+        cleanObjRefCntMaps()
 
     assert max_rounds > 0
     for count in range(max_rounds):
         gc.collect()
-        ref_count1 = sys.gettotalrefcount()
 
         if explain and count == max_rounds - 1:
             snapObjRefCntMap(True)
+
+        ref_count1 = sys.gettotalrefcount()
 
         checked_function()
 
@@ -917,8 +926,6 @@ def reportSkip(reason, dirname, filename):
 
 
 def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
-    import gc
-
     gc.disable()
 
     extract_number = lambda name: int(name.replace(prefix, ""))
