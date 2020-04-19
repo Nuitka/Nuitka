@@ -36,23 +36,30 @@ def optimize_pngs(pngList):
 def makeLogoImages():
     basePathLogo = "doc/Logo/Nuitka-Logo-%s"
 
-    for logo in ("Vertical", "Symbol", "Horizontal"):
-        cmd = "convert -background none %s.svg %s.png" % (basePathLogo, basePathLogo)
-        subprocess.check_call((cmd % (logo, logo)).split())
+    try:
+        for logo in ("Vertical", "Symbol", "Horizontal"):
+            cmd = "convert -background none %s.svg %s.png" % (basePathLogo,
+                                                              basePathLogo)
+            subprocess.check_call((cmd % (logo, logo)).split())
+    except OSError:
+        sys.exit("Could not execute convert. Is it installed?")
 
-    optimize_pngs([basePathLogo % item for item in
-                  ("Vertical", "Symbol", "Horizontal")])
+    try:
+        optimize_pngs([basePathLogo % item for item in
+                      ("Vertical", "Symbol", "Horizontal")])
+    except OSError:
+        sys.exit("Could not execute optipng. Is it installed?")
 
     if os.path.exists("../nikola-site"):
         cmd = "convert -resize %s doc/Logo/Nuitka-Logo-Symbol.svg %s"
-        for icon, size in {"../nikola-site/files/favicon.ico": "32x32",
-                           "../nikola-site/files/favicon.png": "32x32",
-                           "../nikola-site/files/apple-touch-icon-ipad.png": "72x72",
-                           "../nikola-site/files/apple-touch-icon-ipad3.png": "144x144",
-                           "../nikola-site/files/apple-touch-icon-iphone.png": "57x57",
-                           "../nikola-site/files/apple-touch-icon-iphone4.png": "114x114",
-
-                           }:
+        for icon, size in {
+                "../nikola-site/files/favicon.ico": "32x32",
+                "../nikola-site/files/favicon.png": "32x32",
+                "../nikola-site/files/apple-touch-icon-ipad.png": "72x72",
+                "../nikola-site/files/apple-touch-icon-ipad3.png": "144x144",
+                "../nikola-site/files/apple-touch-icon-iphone.png": "57x57",
+                "../nikola-site/files/apple-touch-icon-iphone4.png": "114x114",
+                }:
             subprocess.check_call((cmd % (icon, size)).split())
 
 
@@ -82,15 +89,17 @@ def makeManpages():
         os.mkdir("man")
 
     def makeManpage(python, suffix):
-        cmd =  ["help2man", "-n", "'the Python compiler'", "--no-discard-stderr",
-                "--no-info", "--include doc/nuitka-man-include.txt",
-                "'%s ./bin/nuitka'" % python, ">doc/nuitka%s.1" % suffix]
+        cmd = ["help2man", "-n", "'the Python compiler'",
+               "--no-discard-stderr",
+               "--no-info", "--include doc/nuitka-man-include.txt",
+               "'%s ./bin/nuitka'" % python, ">doc/nuitka%s.1" % suffix]
         subprocess.check_call(cmd)
 
         cmd[-1] = ">doc/nuitka%s-run.1" % suffix
         subprocess.check_call(cmd)
 
-        for manpage in ("doc/nuitka%s.1" % suffix, "doc/nuitka%s-run.1" % suffix):
+        for manpage in ("doc/nuitka%s.1" % suffix,
+                        "doc/nuitka%s-run.1" % suffix):
             with open(manpage) as f:
                 manpage_contents = f.readlines()
             new_contents = []
@@ -112,13 +121,19 @@ def makeManpages():
             with open(manpage, "w") as f:
                 f.writelines(new_contents)
 
-    makeManpage("python2", "")
-    makeManpage("python3", "3")
+    try:
+        makeManpage("python2", "")
+        makeManpage("python3", "3")
+    except OSError:
+        sys.exit("Could not execute help2man. Is it installed?")
 
 
 def createRstPDF(document, args):
-    subprocess.check_call(
-        "rst2pdf %s  %s" % (" ".join(args), document), shell=True)
+    try:
+        subprocess.check_call(
+            "rst2pdf %s  %s" % (" ".join(args), document), shell=True)
+    except OSError:
+        sys.exit("Could not execute rst2pdf. Is it installed?")
 
 
 def createReleaseDocumentation():
