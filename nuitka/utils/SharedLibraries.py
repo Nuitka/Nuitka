@@ -276,7 +276,11 @@ def getPEFileInformation(filename):
     if extracted["AMD64"] is not python_is_64bit:
         warning(
             "Python %s bits with %s bits dependencies in '%s'"
-            % ("64" if python_is_64bit else "32" "32" if python_is_64bit else "64")
+            % (
+                "64" if python_is_64bit else "32",
+                "32" if python_is_64bit else "64",
+                filename,
+            )
         )
 
     return extracted
