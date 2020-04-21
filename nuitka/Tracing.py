@@ -108,17 +108,16 @@ def my_print(*args, **kwargs):
         del kwargs["style"]
 
         if style is not None and sys.stdout.isatty():
-            style = getEnableStyleCode(style)
+            enable_style = getEnableStyleCode(style)
 
-            if style is None:
+            if enable_style is None:
                 raise ValueError(
-                    "%r is an invalid value for keyword argument style"
-                    % kwargs["style"]
+                    "%r is an invalid value for keyword argument style" % style
                 )
 
             _enableAnsi()
 
-            print(style, end="")
+            print(enable_style, end="")
 
         print(*args, **kwargs)
 
