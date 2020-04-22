@@ -61,7 +61,7 @@ def generateBytecodeFrozenCode():
         )
 
         if Options.isShowInclusion():
-            general.info("Embedded as frozen module '%s'.", module_name)
+            general.info("Embedded as frozen module '%s'." % module_name)
 
     if frozen_defs:
         return template_frozen_modules % {"frozen_modules": indented(frozen_defs, 2)}
