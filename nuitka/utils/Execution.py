@@ -68,21 +68,23 @@ def getExecutablePath(filename):
     if getOS() == "Windows" and not filename.lower().endswith(".exe"):
         filename += ".exe"
 
-    # Search in PATH environment.
-    search_path = os.environ.get("PATH", "")
+    if sys.version_info >= (3, 3):
+        import shutil
+        return shutil.which(filename)
+    else:
+        # Search in PATH environment.
+        search_path = os.environ.get("PATH", "")
 
-    # Now check in each path element, much like the shell will.
-    path_elements = search_path.split(os.pathsep)
+        # Now check in each path element, much like the shell will.
+        path_elements = search_path.split(os.pathsep)
 
-    for path_element in path_elements:
-        path_element = path_element.strip('"')
+        for path_element in path_elements:
+            path_element = path_element.strip('"')
 
-        full = os.path.join(path_element, filename)
+            full = os.path.join(path_element, filename)
 
-        if os.path.exists(full):
-            return full
-
-    return None
+            if os.path.exists(full):
+                return full
 
 
 def getPythonExePathWindows(search, arch):
