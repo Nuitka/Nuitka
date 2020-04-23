@@ -23,8 +23,10 @@ the SSA (Single State Assignment) form being used in Nuitka.
 Values can be seen as:
 
 * Unknown (maybe initialized, maybe not, we cannot know)
-* Uninit (definitely not initialized, first version, or after "del" statement)
+* Uninit (definitely not initialized, first version)
 * Init (definitely initialized, e.g. parameter variables)
+* Assign (assignment was done)
+* Deleted (del was done, now unassigned, uninitialted)
 * Merge (result of diverged code paths, loop potentially)
 * LoopFirstPass (aggregation during loops, first pass even, not fully knowable yet)
 * LoopIncomplete (aggregation during loops, not yet fully known)
@@ -141,6 +143,10 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def isDeletedTrace():
+        return False
+
+    @staticmethod
     def isUninitTrace():
         return False
 
@@ -179,13 +185,10 @@ class ValueTraceBase(object):
 
 
 class ValueTraceUninit(ValueTraceBase):
-    # TODO: Specialize for no del_node, which is most common.
-    __slots__ = ("del_node",)
+    __slots__ = ()
 
-    def __init__(self, owner, previous, del_node):
+    def __init__(self, owner, previous):
         ValueTraceBase.__init__(self, owner=owner, previous=previous)
-
-        self.del_node = del_node
 
     @staticmethod
     def getTypeShape():
@@ -198,9 +201,6 @@ class ValueTraceUninit(ValueTraceBase):
     def mustNotHaveValue(self):
         return True
 
-    def getDelNode(self):
-        return self.del_node
-
     def dump(self):
         debug("  Starts out uninitialized")
 
@@ -209,6 +209,26 @@ class ValueTraceUninit(ValueTraceBase):
 
         if self.is_escaped:
             debug("  -> value escapes")
+
+
+class ValueTraceDeleted(ValueTraceUninit):
+    """ Trace caused by a deletion.
+
+    """
+
+    __slots__ = ("del_node",)
+
+    def __init__(self, owner, previous, del_node):
+        ValueTraceUninit.__init__(self, owner=owner, previous=previous)
+
+        self.del_node = del_node
+
+    @staticmethod
+    def isDeletedTrace():
+        return True
+
+    def getDelNode(self):
+        return self.del_node
 
 
 class ValueTraceInit(ValueTraceBase):

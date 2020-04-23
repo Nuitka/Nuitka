@@ -220,7 +220,7 @@ class Variable(object):
 
     def getMatchingDelTrace(self, del_node):
         for trace in self.traces:
-            if trace.isUninitTrace() and trace.getDelNode() is del_node:
+            if trace.isDeletedTrace() and trace.getDelNode() is del_node:
                 return trace
 
         return None

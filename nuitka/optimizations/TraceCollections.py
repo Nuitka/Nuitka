@@ -45,6 +45,7 @@ from nuitka.utils.ModuleNames import ModuleName
 
 from .ValueTraces import (
     ValueTraceAssign,
+    ValueTraceDeleted,
     ValueTraceInit,
     ValueTraceLoopComplete,
     ValueTraceLoopFirstPass,
@@ -305,7 +306,7 @@ class CollectionStartpointMixin(object):
         return trace
 
     def _initVariableUninit(self, variable):
-        trace = ValueTraceUninit(owner=self.owner, previous=None, del_node=None)
+        trace = ValueTraceUninit(owner=self.owner, previous=None)
 
         self.addVariableTrace(variable=variable, version=0, trace=trace)
 
@@ -481,7 +482,7 @@ class TraceCollectionBase(CollectionTracingMixin):
         # remember the delete of the current
         old_trace = self.getVariableCurrentTrace(variable)
 
-        variable_trace = ValueTraceUninit(
+        variable_trace = ValueTraceDeleted(
             owner=self.owner, del_node=del_node, previous=old_trace
         )
 
