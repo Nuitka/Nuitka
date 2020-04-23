@@ -21,6 +21,21 @@
 
 #include "structmember.h"
 
+// For reporting about reference counts per type.
+#if _DEBUG_REFCOUNTS
+int count_active_Nuitka_Frame_Type = 0;
+int count_allocated_Nuitka_Frame_Type = 0;
+int count_released_Nuitka_Frame_Type = 0;
+#endif
+
+// For reporting about frame cache usage
+#if _DEBUG_REFCOUNTS
+int count_active_frame_cache_instances = 0;
+int count_allocated_frame_cache_instances = 0;
+int count_released_frame_cache_instances = 0;
+int count_hit_frame_cache_instances = 0;
+#endif
+
 #define OFF(x) offsetof(PyFrameObject, x)
 
 static PyMemberDef Nuitka_Frame_memberlist[] = {
@@ -314,6 +329,11 @@ static struct Nuitka_FrameObject *free_list_frames = NULL;
 static int free_list_frames_count = 0;
 
 static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Frame_Type -= 1;
+    count_released_Nuitka_Frame_Type += 1;
+#endif
+
 #ifndef __NUITKA_NO_ASSERT__
     // Save the current exception, if any, we must to not corrupt it.
     PyObject *save_exception_type, *save_exception_value;
@@ -499,6 +519,11 @@ extern PyObject *const_str_plain___module__;
 static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *module, bool is_module,
                                              Py_ssize_t locals_size) {
     assertCodeObject(code);
+
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Frame_Type += 1;
+    count_allocated_Nuitka_Frame_Type += 1;
+#endif
 
     PyObject *globals = ((PyModuleObject *)module)->md_dict;
     assert(PyDict_Check(globals));
@@ -710,4 +735,34 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *typ
 
     va_end(ap);
     assert(t - frame->m_locals_storage <= Py_SIZE(frame));
+}
+
+// Make a dump of the active frame stack. For debugging purposes only.
+void dumpFrameStack(void) {
+    PyFrameObject *current = PyThreadState_GET()->frame;
+    int total = 0;
+
+    while (current) {
+        total++;
+        current = current->f_back;
+    }
+
+    current = PyThreadState_GET()->frame;
+
+    PRINT_STRING(">--------->\n");
+
+    while (current) {
+        PyObject *current_repr = PyObject_Str((PyObject *)current);
+        PyObject *code_repr = PyObject_Str((PyObject *)current->f_code);
+
+        PRINT_FORMAT("Frame stack %d: %s %d %s\n", total--, Nuitka_String_AsString(current_repr), Py_REFCNT(current),
+                     Nuitka_String_AsString(code_repr));
+
+        Py_DECREF(current_repr);
+        Py_DECREF(code_repr);
+
+        current = current->f_back;
+    }
+
+    PRINT_STRING(">---------<\n");
 }

@@ -21,7 +21,7 @@
 
 # Frame in a function
 template_frame_guard_full_block = """\
-MAKE_OR_REUSE_FRAME(%(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s);
+MAKE_OR_REUSE_FRAME(&%(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s);
 %(frame_identifier)s = %(frame_cache_identifier)s;
 
 // Push the new frame as the currently active one.
@@ -80,6 +80,11 @@ if (%(exception_tb)s == NULL) {
 
 // Release cached frame.
 if (%(frame_identifier)s == %(frame_cache_identifier)s) {
+#if _DEBUG_REFCOUNTS
+    count_active_frame_cache_instances -= 1;
+    count_released_frame_cache_instances += 1;
+#endif
+
     Py_DECREF(%(frame_identifier)s);
 }
 %(frame_cache_identifier)s = NULL;
@@ -139,7 +144,7 @@ goto %(parent_exception_exit)s;
 
 # Frame in a generator, coroutine or asyncgen.
 template_frame_guard_generator = """\
-MAKE_OR_REUSE_FRAME(%(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s);
+MAKE_OR_REUSE_FRAME(&%(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s);
 %(context_identifier)s->m_frame = %(frame_cache_identifier)s;
 
 // Mark the frame object as in use, ref count 1 will be up for reuse.
@@ -150,6 +155,7 @@ assert(Py_REFCNT(%(context_identifier)s->m_frame) == 2); // Frame stack
 %(context_identifier)s->m_frame->m_frame.f_gen = (PyObject *)%(context_identifier)s;
 #endif
 
+assert(%(context_identifier)s->m_frame->m_frame.f_back == NULL);
 Py_CLEAR(%(context_identifier)s->m_frame->m_frame.f_back);
 
 %(context_identifier)s->m_frame->m_frame.f_back = PyThreadState_GET()->frame;
@@ -224,6 +230,11 @@ if (!EXCEPTION_MATCH_GENERATOR(%(exception_type)s)) {
 
     // Release cached frame.
     if (%(frame_identifier)s == %(frame_cache_identifier)s) {
+#if _DEBUG_REFCOUNTS
+        count_active_frame_cache_instances -= 1;
+        count_released_frame_cache_instances += 1;
+#endif
+
         Py_DECREF(%(frame_identifier)s);
     }
     %(frame_cache_identifier)s = NULL;
