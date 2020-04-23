@@ -22,36 +22,29 @@
 from __future__ import print_function
 
 import os
-import subprocess
 import sys
 
 from nuitka.utils.FileOperations import getFileList
-
+from nuitka.utils.Execution import check_call
 
 def optimize_pngs(pngList):
     for png in pngList:
-        subprocess.check_call(["optipng", "-o2", "%s.png" % png])
+        check_call(["optipng", "-o2", "%s.png" % png])
 
 
 def makeLogoImages():
     basePathLogo = "doc/Logo/Nuitka-Logo-%s"
 
-    try:
-        for logo in ("Vertical", "Symbol", "Horizontal"):
-            cmd = "convert -background none %s.svg %s.png" % (
-                basePathLogo,
-                basePathLogo,
-            )
-            subprocess.check_call((cmd % (logo, logo)).split())
-    except OSError:
-        sys.exit("Could not execute convert. Is it installed?")
-
-    try:
-        optimize_pngs(
-            [basePathLogo % item for item in ("Vertical", "Symbol", "Horizontal")]
+    for logo in ("Vertical", "Symbol", "Horizontal"):
+        cmd = "convert -background none %s.svg %s.png" % (
+            basePathLogo,
+            basePathLogo,
         )
-    except OSError:
-        sys.exit("Could not execute optipng. Is it installed?")
+        check_call((cmd % (logo, logo)).split())
+
+    optimize_pngs(
+        [basePathLogo % item for item in ("Vertical", "Symbol", "Horizontal")]
+    )
 
     if os.path.exists("../nikola-site"):
         cmd = "convert -resize %s doc/Logo/Nuitka-Logo-Symbol.svg %s"
@@ -63,7 +56,7 @@ def makeLogoImages():
             "../nikola-site/files/apple-touch-icon-iphone.png": "57x57",
             "../nikola-site/files/apple-touch-icon-iphone4.png": "114x114",
         }:
-            subprocess.check_call((cmd % (icon, size)).split())
+            check_call((cmd % (icon, size)).split())
 
 
 def checkRstLint(document):
@@ -95,17 +88,16 @@ def makeManpages():
         cmd = [
             "help2man",
             "-n",
-            "'the Python compiler'",
+            "the Python compiler",
             "--no-discard-stderr",
             "--no-info",
-            "--include doc/nuitka-man-include.txt",
-            "'%s ./bin/nuitka'" % python,
-            ">doc/nuitka%s.1" % suffix,
+            "--include",
+            "doc/nuitka-man-include.txt",
+            "%s ./bin/nuitka" % python
         ]
-        subprocess.check_call(cmd)
-
-        cmd[-1] = ">doc/nuitka%s-run.1" % suffix
-        subprocess.check_call(cmd)
+        check_call(cmd, stdout=open("doc/nuitka%s.1" % suffix, "wb"))
+        cmd[-1] += "-run"
+        check_call(cmd, stdout=open("doc/nuitka%s-run.1" % suffix, "wb"))
 
         for manpage in ("doc/nuitka%s.1" % suffix, "doc/nuitka%s-run.1" % suffix):
             with open(manpage) as f:
@@ -129,18 +121,12 @@ def makeManpages():
             with open(manpage, "w") as f:
                 f.writelines(new_contents)
 
-    try:
-        makeManpage("python2", "")
-        makeManpage("python3", "3")
-    except OSError:
-        sys.exit("Could not execute help2man. Is it installed?")
+    makeManpage("python2", "")
+    makeManpage("python3", "3")
 
 
 def createRstPDF(document, args):
-    try:
-        subprocess.check_call("rst2pdf %s  %s" % (" ".join(args), document), shell=True)
-    except OSError:
-        sys.exit("Could not execute rst2pdf. Is it installed?")
+    check_call(["rst2pdf"] + args + [document])
 
 
 def createReleaseDocumentation():
@@ -150,7 +136,8 @@ def createReleaseDocumentation():
         args = []
 
         if document != "Changelog.rst":
-            args.append("-s doc/page-styles.txt")
+            args.append("-s")
+            args.append("doc/page-styles.txt")
 
             args.append('--header="###Title### - ###Section###"')
             args.append('--footer="###Title### - page ###Page### - ###Section###"')

@@ -139,6 +139,9 @@ def check_output(*popenargs, **kwargs):
 
         This is for Python 2.6 compatibility, which doesn't have that in its
         standard library.
+
+        Note: We use same name as in Python stdlib, violating our rules to
+        make it more recognizable what this does.
     """
 
     if "stdout" in kwargs:
@@ -157,6 +160,20 @@ def check_output(*popenargs, **kwargs):
 
     return output
 
+
+def check_call(*popenargs, **kwargs):
+    """ Call a process and check result code.
+
+        Note: This catches the error, and makes it nicer, and an error
+        exit. So this is for tooling only.
+
+        Note: We use same name as in Python stdlib, violating our rules to
+        make it more recognizable what this does.
+    """
+    try:
+        subprocess.check_call(*popenargs, **kwargs)
+    except OSError:
+        sys.exit("Error, failed to execute '%s'. Is it installed?" % popenargs[0])
 
 @contextmanager
 def withEnvironmentPathAdded(env_var_name, path):
