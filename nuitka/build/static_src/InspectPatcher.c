@@ -331,6 +331,14 @@ static int free_list_tracebacks_count = 0;
 // Create a traceback for a given frame, using a freelist hacked into the
 // existing type.
 PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) {
+#if 0
+    PRINT_STRING("MAKE_TRACEBACK: Enter");
+    PRINT_ITEM((PyObject *)frame);
+    PRINT_NEW_LINE();
+
+    dumpFrameStack();
+#endif
+
     CHECK_OBJECT(frame);
     assert(lineno != 0);
 

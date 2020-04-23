@@ -213,4 +213,20 @@ extern PyObject *ASYNC_AWAIT(PyObject *awaitable, int await_kind);
 
 #endif
 
+// For reference count debugging.
+#if _DEBUG_REFCOUNTS
+extern int count_active_Nuitka_Coroutine_Type;
+extern int count_allocated_Nuitka_Coroutine_Type;
+extern int count_released_Nuitka_Coroutine_Type;
+
+extern int count_active_Nuitka_CoroutineWrapper_Type;
+extern int count_allocated_Nuitka_CoroutineWrapper_Type;
+extern int count_released_Nuitka_CoroutineWrapper_Type;
+
+extern int count_active_Nuitka_AIterWrapper_Type;
+extern int count_allocated_Nuitka_AIterWrapper_Type;
+extern int count_released_Nuitka_AIterWrapper_Type;
+
+#endif
+
 #endif

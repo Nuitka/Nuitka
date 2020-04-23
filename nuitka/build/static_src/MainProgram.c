@@ -247,6 +247,27 @@ static void setenv(char const *name, char const *value, int overwrite) {
 static void unsetenv(char const *name) { SetEnvironmentVariableA(name, NULL); }
 #endif
 
+#if _DEBUG_REFCOUNTS
+static void PRINT_REFCOUNTS() {
+    PRINT_STRING("REFERENCE counts at program end:\n");
+    PRINT_STRING("active | allocated | released\n");
+    PRINT_FORMAT("Compiled Coroutines: %d | %d | %d\n", count_active_Nuitka_Coroutine_Type,
+                 count_allocated_Nuitka_Coroutine_Type, count_released_Nuitka_Coroutine_Type);
+    PRINT_FORMAT("Compiled Coroutines Wrappers: %d | %d | %d\n", count_active_Nuitka_CoroutineWrapper_Type,
+                 count_allocated_Nuitka_CoroutineWrapper_Type, count_released_Nuitka_CoroutineWrapper_Type);
+
+    PRINT_FORMAT("Compiled Coroutines AIter Wrappers: %d | %d | %d\n", count_active_Nuitka_AIterWrapper_Type,
+                 count_allocated_Nuitka_AIterWrapper_Type, count_released_Nuitka_AIterWrapper_Type);
+    PRINT_FORMAT("Compiled Frames: %d | %d | %d (cache usage may occur)\n", count_active_Nuitka_Frame_Type,
+                 count_allocated_Nuitka_Frame_Type, count_released_Nuitka_Frame_Type);
+    PRINT_STRING("CACHED counts at program end:\n");
+    PRINT_STRING("active | allocated | released | hits\n");
+    PRINT_FORMAT("Cached Frames: %d | %d | %d | %d\n", count_active_frame_cache_instances,
+                 count_allocated_frame_cache_instances, count_released_frame_cache_instances,
+                 count_hit_frame_cache_instances);
+}
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
 #if defined(__MINGW32__) && !defined(_W64)
@@ -566,6 +587,8 @@ int main(int argc, char **argv) {
 
 #endif
 
+    int exit_code;
+
     if (ERROR_OCCURRED()) {
 #if PYTHON_VERSION >= 300
         /* Remove the frozen importlib traceback part, which would not be compatible. */
@@ -587,11 +610,17 @@ int main(int argc, char **argv) {
 #endif
 
         PyErr_PrintEx(0);
-        Py_Exit(1);
+
+        exit_code = 1;
     } else {
-        Py_Exit(0);
+        exit_code = 0;
     }
 
+#if _DEBUG_REFCOUNTS
+    PRINT_REFCOUNTS();
+#endif
+
+    Py_Exit(exit_code);
     /* The above branches both do "Py_Exit()" calls which are not supposed to
      * return.
      */

@@ -24,6 +24,7 @@
 #define _DEBUG_COROUTINE 0
 #define _DEBUG_ASYNCGEN 0
 #define _DEBUG_CLASSES 0
+#define _DEBUG_REFCOUNTS 0
 
 extern PyObject *const_tuple_empty;
 extern PyObject *const_str_plain___dict__;

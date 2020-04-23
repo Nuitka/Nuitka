@@ -372,6 +372,7 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
         if (PyGen_CheckExact(asyncgen->m_yieldfrom) || PyCoro_CheckExact(asyncgen->m_yieldfrom)) {
             PyGenObject *gen = (PyGenObject *)asyncgen->m_yieldfrom;
 
+            // Transferred exception ownership to "Nuitka_UncompiledGenerator_throw".
             ret = Nuitka_UncompiledGenerator_throw(gen, 1, exception_type, exception_value, (PyObject *)exception_tb);
         } else {
             PyObject *meth = PyObject_GetAttr(asyncgen->m_yieldfrom, const_str_plain_throw);

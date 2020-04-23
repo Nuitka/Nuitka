@@ -120,6 +120,7 @@ static
             Py_DECREF(close_method);
 
             if (unlikely(close_value == NULL)) {
+                // Release exception, we are done with it, raising the one from close instead.
                 Py_DECREF(exception_type);
                 Py_XDECREF(exception_value);
                 Py_XDECREF(exception_tb);
@@ -136,6 +137,7 @@ static
             }
         }
 
+        // Transfer exception ownership to pusblished.
         RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
 
         return NULL;
@@ -149,12 +151,9 @@ static
     ) {
         PyGenObject *gen = (PyGenObject *)value;
 
+        // Handing exception ownership over.
         PyObject *result =
             Nuitka_UncompiledGenerator_throw(gen, 1, exception_type, exception_value, (PyObject *)exception_tb);
-
-        Py_DECREF(exception_type);
-        Py_XDECREF(exception_value);
-        Py_XDECREF(exception_tb);
 
         return result;
     } else
@@ -162,10 +161,11 @@ static
 #if PYTHON_VERSION >= 350
         if (Nuitka_Coroutine_Check(value)) {
         struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineObject *)value);
-
+        // Handing exception ownership over.
         return _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
     } else if (Nuitka_CoroutineWrapper_Check(value)) {
         struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineWrapperObject *)value)->m_coroutine;
+        // Handing exception ownership over.
         return _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
     } else
 #endif
@@ -177,18 +177,21 @@ static
                 PyObject_CallFunctionObjArgs(throw_method, exception_type, exception_value, exception_tb, NULL);
             Py_DECREF(throw_method);
 
+            // Releasing exception we own.
             Py_DECREF(exception_type);
             Py_XDECREF(exception_value);
             Py_XDECREF(exception_tb);
 
             return result;
         } else if (EXCEPTION_MATCH_BOOL_SINGLE(GET_ERROR_OCCURRED(), PyExc_AttributeError)) {
+            // Restoring the exception we own, to be released when handling it.
             RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
 
             return NULL;
         } else {
             assert(ERROR_OCCURRED());
 
+            // Releasing exception we own.
             Py_DECREF(exception_type);
             Py_XDECREF(exception_value);
             Py_XDECREF(exception_tb);
@@ -225,6 +228,7 @@ static PyObject *_Nuitka_YieldFromGeneratorCore(struct Nuitka_GeneratorObject *g
 
     // Exception, was thrown into us, need to send that to sub-generator.
     if (exception_type != NULL) {
+        // Passing ownership of exception fetch to it.
         retval = _Nuitka_YieldFromPassExceptionTo(yieldfrom, exception_type, exception_value, exception_tb);
 
         if (unlikely(send_value == NULL)) {
@@ -281,7 +285,7 @@ static PyObject *_Nuitka_YieldFromGeneratorCore(struct Nuitka_GeneratorObject *g
 
 static PyObject *Nuitka_YieldFromGeneratorCore(struct Nuitka_GeneratorObject *generator, PyObject *send_value) {
     PyObject *yieldfrom = generator->m_yieldfrom;
-    assert(yieldfrom);
+    CHECK_OBJECT(yieldfrom);
 
     // Need to make it unaccessible while using it.
     generator->m_yieldfrom = NULL;
@@ -300,17 +304,6 @@ static PyObject *Nuitka_YieldFromGeneratorCore(struct Nuitka_GeneratorObject *ge
             yielded = ((generator_code)generator->m_code)(generator, NULL);
         }
 
-#if 0
-        if (ERROR_OCCURRED())
-        {
-            yielded = ((generator_code)generator->m_code)(generator, NULL);
-        } else {
-            PyObject *yield_from_result = generator->m_returned;
-            generator->m_returned = NULL;
-
-            yielded = ((generator_code)generator->m_code)(generator, yield_from_result);
-        }
-#endif
     } else {
         generator->m_yieldfrom = yieldfrom;
     }
@@ -604,8 +597,8 @@ static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator,
 
     if (result == NULL) {
         if (GET_ERROR_OCCURRED() == NULL) {
-            RESTORE_ERROR_OCCURRED(PyExc_StopIteration, NULL, NULL);
             Py_INCREF(PyExc_StopIteration);
+            RESTORE_ERROR_OCCURRED(PyExc_StopIteration, NULL, NULL);
         }
     }
 
