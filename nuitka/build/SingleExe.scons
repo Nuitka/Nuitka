@@ -1029,7 +1029,7 @@ if full_compat_mode:
 if experimental:
     env.Append(
         CPPDEFINES=[
-            "_NUITKA_EXPERIMENTAL_" + experiment.upper()
+            "_NUITKA_EXPERIMENTAL_" + experiment.upper().replace("-", "_")
             for experiment in experimental
             if experiment
         ]

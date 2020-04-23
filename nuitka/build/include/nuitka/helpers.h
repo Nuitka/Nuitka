@@ -24,7 +24,12 @@
 #define _DEBUG_COROUTINE 0
 #define _DEBUG_ASYNCGEN 0
 #define _DEBUG_CLASSES 0
+
+#ifdef _NUITKA_EXPERIMENTAL_REPORT_REFCOUNTS
+#define _DEBUG_REFCOUNTS 1
+#else
 #define _DEBUG_REFCOUNTS 0
+#endif
 
 extern PyObject *const_tuple_empty;
 extern PyObject *const_str_plain___dict__;
