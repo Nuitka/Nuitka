@@ -22,10 +22,7 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonExceptionMatch,
@@ -72,8 +69,9 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise, source
     # the tried block executed up to the end. And then we make the else block be
     # a conditional statement checking that.
 
+    # Indicator variable, will end up with C bool type, and need not be released.
     tmp_handler_indicator_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="unhandled_indicator"
+        temp_scope=temp_scope, name="unhandled_indicator", temp_type="bool"
     )
 
     statements = mergeStatements(
@@ -81,7 +79,7 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise, source
             StatementAssignmentVariable(
                 variable=tmp_handler_indicator_variable,
                 source=makeConstantRefNode(constant=False, source_ref=source_ref),
-                source_ref=no_raise.getSourceReference().atInternal(),
+                source_ref=no_raise.getSourceReference(),
             ),
             handling,
         ),
@@ -90,7 +88,12 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise, source
 
     handling = StatementsSequence(statements=statements, source_ref=source_ref)
 
-    tried = (
+    return makeStatementsSequenceFromStatements(
+        StatementAssignmentVariable(
+            variable=tmp_handler_indicator_variable,
+            source=makeConstantRefNode(constant=True, source_ref=source_ref),
+            source_ref=source_ref,
+        ),
         StatementTry(
             tried=tried,
             except_handler=handling,
@@ -110,21 +113,6 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise, source
             yes_branch=no_raise,
             no_branch=None,
             source_ref=source_ref,
-        ),
-    )
-
-    final = StatementReleaseVariable(
-        variable=tmp_handler_indicator_variable, source_ref=source_ref.atInternal()
-    )
-
-    return makeStatementsSequenceFromStatements(
-        StatementAssignmentVariable(
-            variable=tmp_handler_indicator_variable,
-            source=makeConstantRefNode(constant=True, source_ref=source_ref),
-            source_ref=source_ref.atInternal(),
-        ),
-        makeTryFinallyStatement(
-            provider=provider, tried=tried, final=final, source_ref=source_ref
         ),
     )
 

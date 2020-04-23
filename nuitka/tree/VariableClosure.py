@@ -43,6 +43,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef,
 )
 from nuitka.PythonVersions import getErrorMessageExecWithNestedFunction, python_version
+from nuitka.Variables import isSharedAmongScopes, releaseSharedScopeInformation
 
 from .Operations import VisitorNoopMixin, visitTree
 from .ReformulationFunctionStatements import addFunctionVariableReleases
@@ -466,7 +467,7 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
         if python_version < 300 and node.isStatementDelVariable():
             variable = node.getVariable()
 
-            if not variable.isModuleVariable() and variable.isSharedAmongScopes():
+            if not variable.isModuleVariable() and isSharedAmongScopes(variable):
                 raiseSyntaxError(
                     """\
 can not delete variable '%s' referenced in nested scope"""
@@ -500,3 +501,6 @@ def completeVariableClosures(tree):
 
     for visitor in visitors:
         visitTree(tree, visitor)
+
+    # Only used to detect syntax errors.
+    releaseSharedScopeInformation(tree)

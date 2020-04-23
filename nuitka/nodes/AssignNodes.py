@@ -164,6 +164,7 @@ class StatementAssignmentVariable(StatementChildHavingBase):
         return {
             "variable_name": self.getVariableName(),
             "is_temp": self.variable.isTempVariable(),
+            "var_type": self.variable.getVariableType(),
             "owner": self.variable.getOwner().getCodeName(),
         }
 
@@ -174,11 +175,14 @@ class StatementAssignmentVariable(StatementChildHavingBase):
         owner = getOwnerFromCodeName(args["owner"])
 
         if args["is_temp"] == "True":
-            variable = owner.createTempVariable(args["variable_name"])
+            variable = owner.createTempVariable(
+                args["variable_name"], temp_type=["var_type"]
+            )
         else:
             variable = owner.getProvidedVariable(args["variable_name"])
 
         del args["is_temp"]
+        del args["var_type"]
         del args["owner"]
 
         version = variable.allocateTargetNumber()
@@ -479,6 +483,7 @@ class StatementDelVariable(StatementBase):
         return {
             "variable_name": self.getVariableName(),
             "is_temp": self.variable.isTempVariable(),
+            "var_type": self.variable.getVariableType(),
             "owner": self.variable.getOwner().getCodeName(),
             "tolerant": self.tolerant,
         }
@@ -490,11 +495,14 @@ class StatementDelVariable(StatementBase):
         owner = getOwnerFromCodeName(args["owner"])
 
         if args["is_temp"] == "True":
-            variable = owner.createTempVariable(args["variable_name"])
+            variable = owner.createTempVariable(
+                args["variable_name"], temp_type=args["var_type"]
+            )
         else:
             variable = owner.getProvidedVariable(args["variable_name"])
 
         del args["is_temp"]
+        del args["var_type"]
         del args["owner"]
 
         version = variable.allocateTargetNumber()

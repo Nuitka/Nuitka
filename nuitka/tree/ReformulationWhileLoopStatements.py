@@ -54,10 +54,7 @@ loops.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -66,12 +63,11 @@ from nuitka.nodes.OperatorNodes import ExpressionOperationNot
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
     makeStatementsSequence,
-    mergeStatements,
+    makeStatementsSequenceFromStatements,
     popBuildContext,
     pushBuildContext,
 )
@@ -92,8 +88,9 @@ def buildWhileLoopNode(provider, node, source_ref):
     if else_block is not None:
         temp_scope = provider.allocateTempScope("while_loop")
 
+        # Indicator variable, will end up with C bool type, and need not be released.
         tmp_break_indicator = provider.allocateTempVariable(
-            temp_scope=temp_scope, name="break_indicator"
+            temp_scope=temp_scope, name="break_indicator", temp_type="bool"
         )
 
         statements = (
@@ -139,7 +136,7 @@ def buildWhileLoopNode(provider, node, source_ref):
     if else_block is None:
         return loop_statement
     else:
-        statements = (
+        return makeStatementsSequenceFromStatements(
             StatementAssignmentVariable(
                 variable=tmp_break_indicator,
                 source=makeConstantRefNode(constant=False, source_ref=source_ref),
@@ -158,19 +155,4 @@ def buildWhileLoopNode(provider, node, source_ref):
                 no_branch=None,
                 source_ref=source_ref,
             ),
-        )
-
-        statements = (
-            makeTryFinallyStatement(
-                provider=provider,
-                tried=statements,
-                final=StatementReleaseVariable(
-                    variable=tmp_break_indicator, source_ref=source_ref
-                ),
-                source_ref=source_ref,
-            ),
-        )
-
-        return StatementsSequence(
-            statements=mergeStatements(statements, False), source_ref=source_ref
         )

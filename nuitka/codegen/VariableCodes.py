@@ -30,6 +30,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
 )
 from nuitka.PythonVersions import python_version
 
+from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
 from .c_types.CTypePyObjectPtrs import (
     CTypeCellObject,
     CTypePyObjectPtr,
@@ -236,6 +237,8 @@ def getPickedCType(variable, context):
 def decideLocalVariableCodeType(context, variable):
     # Now must be local or temporary variable.
 
+    # Complexity should be moved out of here, pylint: disable=too-many-branches
+
     user = context.getOwner()
     owner = variable.getOwner()
 
@@ -251,7 +254,10 @@ def decideLocalVariableCodeType(context, variable):
         )
         owner = entry_point
 
-    c_type = getPickedCType(variable, context)
+    if variable.isTempVariableBool():
+        c_type = CTypeNuitkaBoolEnum
+    else:
+        c_type = getPickedCType(variable, context)
 
     if owner is user:
         result = _getVariableCodeName(in_context=False, variable=variable)

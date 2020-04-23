@@ -79,8 +79,10 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     tmp_enter_variable = provider.allocateTempVariable(
         temp_scope=temp_scope, name="enter"
     )
+
+    # Indicator variable, will end up with C bool type, and need not be released.
     tmp_indicator_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="indicator"
+        temp_scope=temp_scope, name="indicator", temp_type="bool"
     )
 
     statements = (
@@ -278,9 +280,6 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
             ),
             StatementReleaseVariable(
                 variable=tmp_exit_variable, source_ref=with_exit_source_ref
-            ),
-            StatementReleaseVariable(
-                variable=tmp_indicator_variable, source_ref=with_exit_source_ref
             ),
         ),
         source_ref=source_ref,

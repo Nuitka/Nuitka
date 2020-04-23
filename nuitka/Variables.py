@@ -23,23 +23,25 @@ module variable references.
 
 """
 
-from nuitka.__past__ import iterItems
+from abc import abstractmethod
+
+from nuitka.__past__ import getMetaClassBase, iterItems
 from nuitka.nodes.shapes.StandardShapes import tshape_unknown
 from nuitka.utils import InstanceCounters, Utils
 
 complete = False
 
 
-class Variable(object):
+class Variable(getMetaClassBase("Variable")):
 
     # We will need all of these attributes, since we track the global
-    # state and cache some decisions as attributes, pylint: disable=too-many-instance-attributes
+    # state and cache some decisions as attributes. TODO: But in some
+    # cases, part of the these might be moved to the outside.
     __slots__ = (
         "variable_name",
         "owner",
         "version_number",
         "shared_users",
-        "shared_scopes",
         "traces",
         "users",
         "writers",
@@ -56,7 +58,6 @@ class Variable(object):
         self.version_number = 0
 
         self.shared_users = False
-        self.shared_scopes = False
 
         self.traces = set()
 
@@ -71,6 +72,17 @@ class Variable(object):
         del self.writers
         del self.traces
         del self.owner
+
+    def __repr__(self):
+        return "<%s '%s' of '%s'>" % (
+            self.__class__.__name__,
+            self.variable_name,
+            self.owner.getName(),
+        )
+
+    @abstractmethod
+    def getVariableType(self):
+        pass
 
     def getDescription(self):
         return "variable '%s'" % self.variable_name
@@ -96,23 +108,29 @@ class Variable(object):
 
         return self.version_number
 
-    # pylint: disable=no-self-use
-    def isLocalVariable(self):
+    @staticmethod
+    def isLocalVariable():
         return False
 
-    def isParameterVariable(self):
+    @staticmethod
+    def isParameterVariable():
         return False
 
-    def isModuleVariable(self):
+    @staticmethod
+    def isModuleVariable():
         return False
 
-    def isTempVariable(self):
+    @staticmethod
+    def isTempVariable():
         return False
 
-    def isLocalsDictVariable(self):
+    @staticmethod
+    def isTempVariableBool():
         return False
 
-    # pylint: enable=R0201
+    @staticmethod
+    def isLocalsDictVariable():
+        return False
 
     def addVariableUser(self, user):
         # Update the shared scopes flag.
@@ -128,13 +146,7 @@ class Variable(object):
                 if self.owner is user.getParentVariableProvider():
                     return
 
-            self.shared_scopes = True
-
-    def isSharedAmongScopes(self):
-        # TODO: This is only used for Python2, and could be made
-        # and optional slot.
-
-        return self.shared_scopes
+            _variables_in_shared_scopes.add(self)
 
     def isSharedTechnically(self):
         if not self.shared_users:
@@ -272,15 +284,13 @@ class LocalVariable(Variable):
     def __init__(self, owner, variable_name):
         Variable.__init__(self, owner=owner, variable_name=variable_name)
 
-    def __repr__(self):
-        return "<%s '%s' of '%s'>" % (
-            self.__class__.__name__,
-            self.variable_name,
-            self.owner.getName(),
-        )
-
-    def isLocalVariable(self):
+    @staticmethod
+    def isLocalVariable():
         return True
+
+    @staticmethod
+    def getVariableType():
+        return "object"
 
 
 class ParameterVariable(LocalVariable):
@@ -292,7 +302,8 @@ class ParameterVariable(LocalVariable):
     def getDescription(self):
         return "parameter variable '%s'" % self.variable_name
 
-    def isParameterVariable(self):
+    @staticmethod
+    def isParameterVariable():
         return True
 
 
@@ -316,11 +327,16 @@ class ModuleVariable(Variable):
     def getDescription(self):
         return "global variable '%s'" % self.variable_name
 
-    def isModuleVariable(self):
+    @staticmethod
+    def isModuleVariable():
         return True
 
     def getModule(self):
         return self.module
+
+    @staticmethod
+    def getVariableType():
+        return "object"
 
 
 class TempVariable(Variable):
@@ -329,17 +345,31 @@ class TempVariable(Variable):
     def __init__(self, owner, variable_name):
         Variable.__init__(self, owner=owner, variable_name=variable_name)
 
-    def __repr__(self):
-        return "<TempVariable '%s' of '%s'>" % (
-            self.getName(),
-            self.getOwner().getName(),
-        )
-
     def getDescription(self):
         return "temp variable '%s'" % self.variable_name
 
-    def isTempVariable(self):
+    @staticmethod
+    def isTempVariable():
         return True
+
+    @staticmethod
+    def getVariableType():
+        return "object"
+
+
+class TempVariableBool(TempVariable):
+    __slots__ = ()
+
+    def getDescription(self):
+        return "temp bool variable '%s'" % self.variable_name
+
+    @staticmethod
+    def isTempVariableBool():
+        return True
+
+    @staticmethod
+    def getVariableType():
+        return "bool"
 
 
 class LocalsDictVariable(Variable):
@@ -348,14 +378,13 @@ class LocalsDictVariable(Variable):
     def __init__(self, owner, variable_name):
         Variable.__init__(self, owner=owner, variable_name=variable_name)
 
-    def __repr__(self):
-        return "<LocalsDictVariable '%s' of '%s'>" % (
-            self.getName(),
-            self.getOwner().getName(),
-        )
-
-    def isLocalsDictVariable(self):
+    @staticmethod
+    def isLocalsDictVariable():
         return True
+
+    @staticmethod
+    def getVariableType():
+        return "object"
 
 
 def updateVariablesFromCollection(old_collection, new_collection, source_ref):
@@ -401,3 +430,25 @@ def updateVariablesFromCollection(old_collection, new_collection, source_ref):
                 lambda: "Loop variable '%s' usage ceased."
                 % ",".join(variable.getName() for variable in loop_trace_removal),
             )
+
+
+# To detect the Python2 shared variable deletion, that would be a syntax
+# error
+_variables_in_shared_scopes = set()
+
+
+def isSharedAmongScopes(variable):
+    return variable in _variables_in_shared_scopes
+
+
+def releaseSharedScopeInformation(tree):
+    # Singleton, pylint: disable=global-statement
+
+    assert tree.isCompiledPythonModule()
+
+    global _variables_in_shared_scopes
+    _variables_in_shared_scopes = set(
+        variable
+        for variable in _variables_in_shared_scopes
+        if variable.getOwner().getParentModule() is not tree
+    )

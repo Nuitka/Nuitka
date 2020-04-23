@@ -81,8 +81,9 @@ def _buildForLoopNode(provider, node, sync, source_ref):
     )
 
     if else_block is not None:
+        # Indicator variable, will end up with C bool type, and need not be released.
         tmp_break_indicator = provider.allocateTempVariable(
-            temp_scope=temp_scope, name="break_indicator"
+            temp_scope=temp_scope, name="break_indicator", temp_type="bool"
         )
 
         statements = [
@@ -205,17 +206,6 @@ def _buildForLoopNode(provider, node, sync, source_ref):
                 no_branch=None,
                 source_ref=source_ref,
             )
-        )
-
-        statements = (
-            makeTryFinallyStatement(
-                provider=provider,
-                tried=statements,
-                final=StatementReleaseVariable(
-                    variable=tmp_break_indicator, source_ref=source_ref
-                ),
-                source_ref=source_ref,
-            ),
         )
 
     return makeStatementsSequenceFromStatements(*statements)
