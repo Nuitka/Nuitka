@@ -31,7 +31,7 @@ And releasing of values, as this is what the error case commonly does.
 from nuitka.PythonVersions import python_version
 
 from .ExceptionCodes import getExceptionIdentifier
-from .Indentation import getCommentCode, indented
+from .Indentation import indented
 from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .templates.CodeTemplatesExceptions import (
     template_error_catch_exception,
@@ -248,16 +248,13 @@ def getReleaseCodes(release_names, emit, context):
         getReleaseCode(release_name=release_name, emit=emit, context=context)
 
 
-def getMustNotGetHereCode(reason, context, emit):
-    getCommentCode(reason, emit)
-
-    provider = context.getEntryPoint()
-
+def getMustNotGetHereCode(reason, emit):
     emit(
-        "NUITKA_CANNOT_GET_HERE(%(function_identifier)s);"
-        % {"function_identifier": provider.getCodeName()}
+        """\
+NUITKA_CANNOT_GET_HERE("%s");
+return NULL;"""
+        % reason
     )
-    emit("return NULL;")
 
 
 def getAssertionCode(check, emit):

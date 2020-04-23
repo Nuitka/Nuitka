@@ -65,20 +65,20 @@ template_make_coroutine = """\
 %(closure_copy)s
 """
 
+# TODO: For functions NUITKA_CANNOT_GET_HERE is injected by composing code.
 template_coroutine_exception_exit = """\
-    // Return statement must be present.
-    NUITKA_CANNOT_GET_HERE(%(function_identifier)s);
+    NUITKA_CANNOT_GET_HERE("Return statement must be present");
 
     function_exception_exit:
 %(function_cleanup)s\
+
     assert(%(exception_type)s);
     RESTORE_ERROR_OCCURRED(%(exception_type)s, %(exception_value)s, %(exception_tb)s);
     return NULL;
 """
 
 template_coroutine_noexception_exit = """\
-    // Return statement must be present.
-    NUITKA_CANNOT_GET_HERE(%(function_identifier)s);
+    NUITKA_CANNOT_GET_HERE("Return statement must be present");
 
 %(function_cleanup)s\
 

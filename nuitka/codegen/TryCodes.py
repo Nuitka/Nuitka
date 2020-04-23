@@ -109,9 +109,7 @@ def generateTryCode(statement, emit, context):
 
         getGotoCode(post_label, emit)
     else:
-        getMustNotGetHereCode(
-            reason="tried codes exits in all cases", context=context, emit=emit
-        )
+        getMustNotGetHereCode(reason="tried codes exits in all cases", emit=emit)
 
     if return_handler is not None:
         assert tried_block.mayReturn()
@@ -194,9 +192,7 @@ def generateTryCode(statement, emit, context):
             getGotoCode(post_label, emit)
 
             getMustNotGetHereCode(
-                reason="exception handler codes exits in all cases",
-                context=context,
-                emit=emit,
+                reason="exception handler codes exits in all cases", emit=emit
             )
 
         context.setExceptionKeeperVariables(old_keepers)

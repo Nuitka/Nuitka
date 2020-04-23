@@ -85,7 +85,6 @@ def getAsyncgenObjectCode(
         )
 
         generator_exit = template_asyncgen_exception_exit % {
-            "function_identifier": function_identifier,
             "function_cleanup": indented(function_cleanup),
             "exception_type": exception_type,
             "exception_value": exception_value,
@@ -93,8 +92,7 @@ def getAsyncgenObjectCode(
         }
     else:
         generator_exit = template_asyncgen_noexception_exit % {
-            "function_identifier": function_identifier,
-            "function_cleanup": indented(function_cleanup),
+            "function_cleanup": indented(function_cleanup)
         }
 
     if needs_generator_return:

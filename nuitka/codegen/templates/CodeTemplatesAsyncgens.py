@@ -65,9 +65,9 @@ template_make_asyncgen = """\
 %(closure_copy)s
 """
 
+# TODO: For functions NUITKA_CANNOT_GET_HERE is injected by composing code.
 template_asyncgen_exception_exit = """\
-    // Return statement must be present.
-    NUITKA_CANNOT_GET_HERE(%(function_identifier)s);
+    NUITKA_CANNOT_GET_HERE("return must be present");
 
     function_exception_exit:
 %(function_cleanup)s\
@@ -77,8 +77,7 @@ template_asyncgen_exception_exit = """\
 """
 
 template_asyncgen_noexception_exit = """\
-    // Return statement must be present.
-    NUITKA_CANNOT_GET_HERE(%(function_identifier)s);
+    NUITKA_CANNOT_GET_HERE("return must be present");
 
 %(function_cleanup)s\
 

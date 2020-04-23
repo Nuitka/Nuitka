@@ -617,7 +617,7 @@ def _getFunctionCode(
     emit = SourceCodeCollector()
 
     getMustNotGetHereCode(
-        reason="Return statement must have exited already.", context=context, emit=emit
+        reason="Return statement must have exited already.", emit=emit
     )
 
     function_exit = indented(emit.codes) + "\n\n"
@@ -767,9 +767,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         context.addCleanupTempName(return_value_name)
 
         getMustNotGetHereCode(
-            reason="Return statement must have exited already.",
-            context=context,
-            emit=emit,
+            reason="Return statement must have exited already.", emit=emit
         )
 
         if exception_target is not None:

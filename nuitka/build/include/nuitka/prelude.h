@@ -111,9 +111,14 @@
 #endif
 
 /* This is used to indicate code control flows we know cannot happen. */
+#ifndef __NUITKA_NO_ASSERT__
 #define NUITKA_CANNOT_GET_HERE(NAME)                                                                                   \
-    assert(false && #NAME);                                                                                            \
+    PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
+    assert(false);                                                                                                     \
     abort();
+#else
+#define NUITKA_CANNOT_GET_HERE(NAME) abort();
+#endif
 
 #ifdef __GNUC__
 #define NUITKA_FORCE_INLINE __attribute__((always_inline))
