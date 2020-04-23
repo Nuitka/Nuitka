@@ -31,11 +31,7 @@
 // This function takes no reference to value, and publishes a StopIteration
 // exception with it.
 #if PYTHON_VERSION >= 300
-#if PYTHON_VERSION < 350
-static
-#endif
-    void
-    Nuitka_SetStopIterationValue(PyObject *value) {
+static void Nuitka_SetStopIterationValue(PyObject *value) {
     CHECK_OBJECT(value);
 
 #if PYTHON_VERSION <= 352
@@ -88,8 +84,9 @@ static inline void Nuitka_PyGen_exc_state_clear(_PyErr_StackItem *exc_state) {
 
 // This is for CPython iterator objects, the respective code is not exported as
 // API, so we need to redo it. This is an re-implementation that closely follows
-// what it does. It's unrelated to compiled generators.
-PyObject *PyGen_Send(PyGenObject *gen, PyObject *arg) {
+// what it does. It's unrelated to compiled generators, and used from coroutines
+// and asyncgen to interact with them.
+static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
     if (unlikely(gen->gi_running)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "generator already executing");
         return NULL;
@@ -480,8 +477,8 @@ static PyObject *Nuitka_PyGen_gen_close(PyGenObject *gen, PyObject *args) {
 //   Exception arguments are passed for ownership and must be released before returning. The
 //   value of exception_type will not be NULL, but the actual exception will not necessarily
 //   be normalized.
-PyObject *Nuitka_UncompiledGenerator_throw(PyGenObject *gen, int close_on_genexit, PyObject *exception_type,
-                                           PyObject *exception_value, PyObject *exception_tb) {
+static PyObject *Nuitka_UncompiledGenerator_throw(PyGenObject *gen, int close_on_genexit, PyObject *exception_type,
+                                                  PyObject *exception_value, PyObject *exception_tb) {
     PyObject *yf = Nuitka_PyGen_yf(gen);
 
     if (yf != NULL) {

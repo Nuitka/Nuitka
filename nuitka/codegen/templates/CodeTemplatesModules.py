@@ -114,12 +114,6 @@ extern void _initCompiledGeneratorType();
 extern void _initCompiledFunctionType();
 extern void _initCompiledMethodType();
 extern void _initCompiledFrameType();
-#if PYTHON_VERSION >= 350
-extern void _initCompiledCoroutineTypes();
-#endif
-#if PYTHON_VERSION >= 360
-extern void _initCompiledAsyncgenTypes();
-#endif
 
 extern PyTypeObject Nuitka_Loader_Type;
 
@@ -314,12 +308,6 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module) {
     _initCompiledFunctionType();
     _initCompiledMethodType();
     _initCompiledFrameType();
-#if PYTHON_VERSION >= 350
-    _initCompiledCoroutineTypes();
-#endif
-#if PYTHON_VERSION >= 360
-    _initCompiledAsyncgenTypes();
-#endif
 
 #if PYTHON_VERSION < 300
     _initSlotCompare();

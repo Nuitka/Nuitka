@@ -184,4 +184,23 @@ static inline void RESTORE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyn
 
 #endif
 
+// For reference count debugging.
+#if _DEBUG_REFCOUNTS
+extern int count_active_Nuitka_Asyncgen_Type;
+extern int count_allocated_Nuitka_Asyncgen_Type;
+extern int count_released_Nuitka_Asyncgen_Type;
+
+extern int count_active_Nuitka_AsyncgenValueWrapper_Type;
+extern int count_allocated_Nuitka_AsyncgenValueWrapper_Type;
+extern int count_released_Nuitka_AsyncgenValueWrapper_Type;
+
+extern int count_active_Nuitka_AsyncgenAsend_Type;
+extern int count_allocated_Nuitka_AsyncgenAsend_Type;
+extern int count_released_Nuitka_AsyncgenAsend_Type;
+
+extern int count_active_Nuitka_AsyncgenAthrow_Type;
+extern int count_allocated_Nuitka_AsyncgenAthrow_Type;
+extern int count_released_Nuitka_AsyncgenAthrow_Type;
+#endif
+
 #endif

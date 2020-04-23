@@ -16,10 +16,21 @@
 //     limitations under the License.
 //
 
-#include "nuitka/prelude.h"
+/** Compiled methods.
+ *
+ * It strives to be full replacement for normal method objects, but
+ * normally should be avoided to exist in Nuitka calls.
+ *
+ */
 
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
 #include "nuitka/freelists.h"
+#include "nuitka/prelude.h"
+#endif
 
+// Note: Compiled functions do not use this, so we include it here.
 #include "structmember.h"
 
 static PyObject *Nuitka_Method_get__doc__(struct Nuitka_MethodObject *method, void *closure) {

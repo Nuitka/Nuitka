@@ -226,7 +226,6 @@ extern int count_released_Nuitka_CoroutineWrapper_Type;
 extern int count_active_Nuitka_AIterWrapper_Type;
 extern int count_allocated_Nuitka_AIterWrapper_Type;
 extern int count_released_Nuitka_AIterWrapper_Type;
-
 #endif
 
 #endif

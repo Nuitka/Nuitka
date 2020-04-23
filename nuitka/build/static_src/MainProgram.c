@@ -130,12 +130,6 @@ extern void _initCompiledGeneratorType();
 extern void _initCompiledFunctionType();
 extern void _initCompiledMethodType();
 extern void _initCompiledFrameType();
-#if PYTHON_VERSION >= 350
-extern void _initCompiledCoroutineTypes();
-#endif
-#if PYTHON_VERSION >= 360
-extern void _initCompiledAsyncgenTypes();
-#endif
 
 #include <locale.h>
 
@@ -258,6 +252,17 @@ static void PRINT_REFCOUNTS() {
 
     PRINT_FORMAT("Compiled Coroutines AIter Wrappers: %d | %d | %d\n", count_active_Nuitka_AIterWrapper_Type,
                  count_allocated_Nuitka_AIterWrapper_Type, count_released_Nuitka_AIterWrapper_Type);
+#if PYTHON_VERSION >= 360
+    PRINT_FORMAT("Compiled Asyncgen: %d | %d | %d\n", count_active_Nuitka_Asyncgen_Type,
+                 count_allocated_Nuitka_Asyncgen_Type, count_released_Nuitka_Asyncgen_Type);
+    PRINT_FORMAT("Compiled Asyncgen Wrappers: %d | %d | %d\n", count_active_Nuitka_AsyncgenValueWrapper_Type,
+                 count_allocated_Nuitka_AsyncgenValueWrapper_Type, count_released_Nuitka_AsyncgenValueWrapper_Type);
+    PRINT_FORMAT("Compiled Asyncgen Asend: %d | %d | %d\n", count_active_Nuitka_AsyncgenAsend_Type,
+                 count_allocated_Nuitka_AsyncgenAsend_Type, count_released_Nuitka_AsyncgenAsend_Type);
+    PRINT_FORMAT("Compiled Asyncgen Athrow: %d | %d | %d\n", count_active_Nuitka_AsyncgenAthrow_Type,
+                 count_allocated_Nuitka_AsyncgenAthrow_Type, count_released_Nuitka_AsyncgenAthrow_Type);
+#endif
+
     PRINT_FORMAT("Compiled Frames: %d | %d | %d (cache usage may occur)\n", count_active_Nuitka_Frame_Type,
                  count_allocated_Nuitka_Frame_Type, count_released_Nuitka_Frame_Type);
     PRINT_STRING("CACHED counts at program end:\n");
@@ -466,12 +471,6 @@ int main(int argc, char **argv) {
     _initCompiledFunctionType();
     _initCompiledMethodType();
     _initCompiledFrameType();
-#if PYTHON_VERSION >= 350
-    _initCompiledCoroutineTypes();
-#endif
-#if PYTHON_VERSION >= 360
-    _initCompiledAsyncgenTypes();
-#endif
 
 #if PYTHON_VERSION < 300
     _initSlotCompare();
