@@ -810,15 +810,28 @@ def snapObjRefCntMap(before):
     else:
         m = m2
 
+    m.clear()
+    gc.collect()
+
     for x in gc.get_objects():
         # The dictionary is cyclic, and contains itself, avoid that.
         if x is m1 or x is m2:
             continue
 
-        m[type(x), str(x)] = sys.getrefcount(x)
+        if type(x) is str and (x in m1 or x in m2):
+            continue
+
+        if type(x) is dict and "__builtins__" in x:
+            k = "<module dict %s>" % x["__name__"]
+        else:
+            k = str(x)
+
+        m[k] = sys.getrefcount(x)
 
 
 def checkReferenceCount(checked_function, max_rounds=10):
+    # This is obviously going to be complex, pylint: disable=too-many-branches
+
     assert sys.exc_info() == (None, None, None), sys.exc_info()
 
     print(checked_function.__name__ + ": ", end="")
@@ -834,25 +847,24 @@ def checkReferenceCount(checked_function, max_rounds=10):
         cleanObjRefCntMaps()
 
     assert max_rounds > 0
+
     for count in range(max_rounds):
-        gc.collect()
-
         if explain and count == max_rounds - 1:
-            snapObjRefCntMap(True)
+            snapObjRefCntMap(before=True)
 
+        gc.collect()
         ref_count1 = sys.gettotalrefcount()
 
         checked_function()
+        gc.collect()
+
+        ref_count2 = sys.gettotalrefcount()
+
+        if explain and count == max_rounds - 1:
+            snapObjRefCntMap(before=False)
 
         # Not allowed, but happens when bugs occur.
         assert sys.exc_info() == (None, None, None), sys.exc_info()
-
-        gc.collect()
-
-        if explain and count == max_rounds - 1:
-            snapObjRefCntMap(False)
-
-        ref_count2 = sys.gettotalrefcount()
 
         if ref_count1 == ref_count2:
             result = True
@@ -871,12 +883,18 @@ def checkReferenceCount(checked_function, max_rounds=10):
             for key in m1:
                 if key not in m2:
                     print("*" * 80)
-                    print("extra", key)
+                    print("extra:", m1[key], key)
                 elif m1[key] != m2[key]:
                     print("*" * 80)
                     print(m1[key], "->", m2[key], key)
                 else:
                     pass
+
+            for key in m2:
+                if key not in m1:
+                    print("*" * 80)
+                    print("missing:", m2[key], key)
+
                     # print m1[key]
 
     assert sys.exc_info() == (None, None, None), sys.exc_info()
