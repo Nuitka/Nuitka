@@ -930,12 +930,12 @@ if gcc_mode and not clang_mode and gcc_version >= "8":
         # TODO: This also lies for modules codes.
         env.Append(
             CCFLAGS=[
+                "--file-prefix-map=%s=%s" % (os.path.normpath(source_dir), "."),
                 "--file-prefix-map=%s=%s"
                 % (
                     os.path.normpath(os.path.join(source_dir, "static_src")),
-                    os.path.join(nuitka_src, "static_src"),
+                    os.path.normpath(os.path.join(nuitka_src, "static_src")),
                 ),
-                "--file-prefix-map=%s=%s" % (os.path.normpath(source_dir), ""),
             ]
         )
 
