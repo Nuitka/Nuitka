@@ -324,7 +324,9 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyObject **exception
     PRINT_EXCEPTION(*exception_type, *exception_value, (PyObject *)*exception_tb);
 #endif
 
+    // TODO: Often we already know this to be true.
     if (*exception_type != Py_None && *exception_type != NULL) {
+        // TODO: Inline for performance.
         PyErr_NormalizeException(exception_type, exception_value, (PyObject **)exception_tb);
     }
 

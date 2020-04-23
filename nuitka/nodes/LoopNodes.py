@@ -272,6 +272,9 @@ Removed useless terminal 'continue' as last statement of loop.""",
             assert statements  # Cannot be empty
 
             if len(statements) == 1 and statements[-1].isStatementLoopBreak():
+                # TODO: Should be dead code now, due to the optimization above.
+                assert False
+
                 return (
                     None,
                     "new_statements",

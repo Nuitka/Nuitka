@@ -15,7 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Looping in various forms.
+
+"""
+
 from __future__ import print_function
+
+# pylint: disable=superfluous-parens,useless-else-on-loop,using-constant-test
 
 
 def cond():

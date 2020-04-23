@@ -26,7 +26,8 @@ Values can be seen as:
 * Uninit (definitely not initialized, first version, or after "del" statement)
 * Init (definitely initialized, e.g. parameter variables)
 * Merge (result of diverged code paths, loop potentially)
-* LoopInitial (aggregation during loops, not yet fully known)
+* LoopFirstPass (aggregation during loops, first pass even, not fully knowable yet)
+* LoopIncomplete (aggregation during loops, not yet fully known)
 * LoopComplete (complete knowledge of loop types)
 """
 
