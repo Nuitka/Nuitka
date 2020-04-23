@@ -40,14 +40,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, P
 
             if (int_subscript < 0) {
                 if (-int_subscript > list_size) {
-                    PyErr_Format(PyExc_IndexError, "list index out of range");
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_IndexError, "list index out of range");
                     return NULL;
                 }
 
                 int_subscript += list_size;
             } else {
                 if (int_subscript >= list_size) {
-                    PyErr_Format(PyExc_IndexError, "list index out of range");
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_IndexError, "list index out of range");
                     return NULL;
                 }
             }
@@ -63,14 +63,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, P
 
             if (int_subscript < 0) {
                 if (-int_subscript > string_size) {
-                    PyErr_Format(PyExc_IndexError, "string index out of range");
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_IndexError, "string index out of range");
                     return NULL;
                 }
 
                 int_subscript += string_size;
             } else {
                 if (int_subscript >= string_size) {
-                    PyErr_Format(PyExc_IndexError, "string index out of range");
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_IndexError, "string index out of range");
                     return NULL;
                 }
             }
@@ -203,7 +203,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject 
 
             if (int_subscript < 0) {
                 if (-int_subscript > list_size) {
-                    PyErr_Format(PyExc_IndexError, "list assignment index out of range");
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_IndexError, "list assignment index out of range");
 
                     return false;
                 }

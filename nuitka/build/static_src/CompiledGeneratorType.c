@@ -319,7 +319,8 @@ static PyObject *Nuitka_YieldFromGeneratorInitial(struct Nuitka_GeneratorObject 
             Py_DECREF(generator->m_yieldfrom);
             generator->m_yieldfrom = NULL;
 
-            PyErr_Format(PyExc_TypeError, "cannot 'yield from' a coroutine object in a non-coroutine generator");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
+                                            "cannot 'yield from' a coroutine object in a non-coroutine generator");
             return NULL;
         }
     } else
@@ -374,7 +375,7 @@ static PyObject *Nuitka_Generator_send2(struct Nuitka_GeneratorObject *generator
 #endif
 
         if (generator->m_running) {
-            PyErr_Format(PyExc_ValueError, "generator already executing");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "generator already executing");
             return NULL;
         }
 
@@ -489,7 +490,7 @@ static PyObject *Nuitka_Generator_send2(struct Nuitka_GeneratorObject *generator
                 FETCH_ERROR_OCCURRED(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
                 NORMALIZE_EXCEPTION(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
 
-                PyErr_Format(PyExc_RuntimeError, "generator raised StopIteration");
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "generator raised StopIteration");
 
                 FETCH_ERROR_OCCURRED(&exception_type, &exception_value, &exception_tb);
 
@@ -589,7 +590,7 @@ static PyObject *Nuitka_Generator_send2(struct Nuitka_GeneratorObject *generator
 
 static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator, PyObject *value) {
     if (generator->m_status == status_Unused && value != NULL && value != Py_None) {
-        PyErr_Format(PyExc_TypeError, "can't send non-None value to a just-started generator");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't send non-None value to a just-started generator");
         return NULL;
     }
 
@@ -597,8 +598,7 @@ static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator,
 
     if (result == NULL) {
         if (GET_ERROR_OCCURRED() == NULL) {
-            Py_INCREF(PyExc_StopIteration);
-            RESTORE_ERROR_OCCURRED(PyExc_StopIteration, NULL, NULL);
+            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
         }
     }
 
@@ -641,7 +641,7 @@ static
         if (unlikely(result)) {
             Py_DECREF(result);
 
-            PyErr_Format(PyExc_RuntimeError, "generator ignored GeneratorExit");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "generator ignored GeneratorExit");
             return NULL;
         } else {
             PyObject *error = GET_ERROR_OCCURRED();
@@ -684,7 +684,7 @@ static PyObject *Nuitka_Generator_throw(struct Nuitka_GeneratorObject *generator
     if ((PyObject *)exception_tb == Py_None) {
         exception_tb = NULL;
     } else if (exception_tb != NULL && !PyTraceBack_Check(exception_tb)) {
-        PyErr_Format(PyExc_TypeError, "throw() third argument must be a traceback object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "throw() third argument must be a traceback object");
 
         return NULL;
     }
@@ -704,7 +704,7 @@ static PyObject *Nuitka_Generator_throw(struct Nuitka_GeneratorObject *generator
 #endif
     } else if (PyExceptionInstance_Check(exception_type)) {
         if (exception_value != NULL && exception_value != Py_None) {
-            PyErr_Format(PyExc_TypeError, "instance exception may not have a separate value");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "instance exception may not have a separate value");
             return NULL;
         }
 
@@ -858,7 +858,7 @@ static PyObject *Nuitka_Generator_get_name(struct Nuitka_GeneratorObject *genera
 static int Nuitka_Generator_set_name(struct Nuitka_GeneratorObject *generator, PyObject *value) {
     // Cannot be deleted, not be non-unicode value.
     if (unlikely((value == NULL) || !PyUnicode_Check(value))) {
-        PyErr_Format(PyExc_TypeError, "__name__ must be set to a string object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__name__ must be set to a string object");
 
         return -1;
     }
@@ -880,7 +880,7 @@ static PyObject *Nuitka_Generator_get_qualname(struct Nuitka_GeneratorObject *ge
 static int Nuitka_Generator_set_qualname(struct Nuitka_GeneratorObject *generator, PyObject *value) {
     // Cannot be deleted, not be non-unicode value.
     if (unlikely((value == NULL) || !PyUnicode_Check(value))) {
-        PyErr_Format(PyExc_TypeError, "__qualname__ must be set to a string object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__qualname__ must be set to a string object");
 
         return -1;
     }
@@ -912,7 +912,7 @@ static PyObject *Nuitka_Generator_get_code(struct Nuitka_GeneratorObject *genera
 }
 
 static int Nuitka_Generator_set_code(struct Nuitka_GeneratorObject *generator, PyObject *value) {
-    PyErr_Format(PyExc_RuntimeError, "gi_code is not writable in Nuitka");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "gi_code is not writable in Nuitka");
     return -1;
 }
 
@@ -930,7 +930,7 @@ static PyObject *Nuitka_Generator_get_frame(struct Nuitka_GeneratorObject *gener
 }
 
 static int Nuitka_Generator_set_frame(struct Nuitka_GeneratorObject *generator, PyObject *value) {
-    PyErr_Format(PyExc_RuntimeError, "gi_frame is not writable in Nuitka");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "gi_frame is not writable in Nuitka");
     return -1;
 }
 

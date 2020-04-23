@@ -1529,7 +1529,7 @@ static PyObject *SLOT_nb_remainder_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObje
     double b = PyFloat_AS_DOUBLE(operand2);
 
     if (b == 0.0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "float modulo");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
         return NULL;
     }
 
@@ -1869,7 +1869,7 @@ static nuitka_bool SLOT_nb_remainder_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObj
     double b = PyFloat_AS_DOUBLE(operand2);
 
     if (b == 0.0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "float modulo");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
         return NUITKA_BOOL_EXCEPTION;
     }
 

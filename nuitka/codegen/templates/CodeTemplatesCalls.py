@@ -176,7 +176,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
                 // Other buggy C functions do this, return NULL, but with
                 // no error set, not allowed.
                 if (unlikely(!ERROR_OCCURRED())) {
-                    PyErr_Format(
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(
                         PyExc_SystemError,
                         "NULL result without error in PyObject_Call"
                     );
@@ -221,7 +221,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
                 // Other buggy C functions do this, return NULL, but with
                 // no error set, not allowed.
                 if (unlikely(!ERROR_OCCURRED())) {
-                    PyErr_Format(
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(
                         PyExc_SystemError,
                         "NULL result without error in PyObject_Call"
                     );
@@ -287,7 +287,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
                 // Other buggy C functions do this, return NULL, but with
                 // no error set, not allowed.
                 if (unlikely(!ERROR_OCCURRED())) {
-                    PyErr_Format(
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(
                         PyExc_SystemError,
                         "NULL result without error in PyObject_Call"
                     );

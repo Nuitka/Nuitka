@@ -1536,7 +1536,7 @@ static PyObject *SLOT_nb_divide_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject 
     double b = PyFloat_AS_DOUBLE(operand2);
 
     if (b == 0.0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
         return NULL;
     }
 
@@ -1867,7 +1867,7 @@ static nuitka_bool SLOT_nb_divide_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject
     double b = PyFloat_AS_DOUBLE(operand2);
 
     if (b == 0.0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
         return NUITKA_BOOL_EXCEPTION;
     }
 

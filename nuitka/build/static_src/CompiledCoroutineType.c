@@ -59,7 +59,7 @@ static int Nuitka_Coroutine_set_name(struct Nuitka_CoroutineObject *coroutine, P
 
     // Cannot be deleted, not be non-unicode value.
     if (unlikely((value == NULL) || !PyUnicode_Check(value))) {
-        PyErr_Format(PyExc_TypeError, "__name__ must be set to a string object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__name__ must be set to a string object");
 
         return -1;
     }
@@ -85,7 +85,7 @@ static int Nuitka_Coroutine_set_qualname(struct Nuitka_CoroutineObject *coroutin
 
     // Cannot be deleted, not be non-unicode value.
     if (unlikely((value == NULL) || !PyUnicode_Check(value))) {
-        PyErr_Format(PyExc_TypeError, "__qualname__ must be set to a string object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__qualname__ must be set to a string object");
 
         return -1;
     }
@@ -122,7 +122,7 @@ static PyObject *Nuitka_Coroutine_get_code(struct Nuitka_CoroutineObject *corout
 static int Nuitka_Coroutine_set_code(struct Nuitka_CoroutineObject *coroutine, PyObject *value) {
     CHECK_OBJECT(coroutine);
 
-    PyErr_Format(PyExc_RuntimeError, "cr_code is not writable in Nuitka");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cr_code is not writable in Nuitka");
     return -1;
 }
 
@@ -143,7 +143,7 @@ static int Nuitka_Coroutine_set_frame(struct Nuitka_CoroutineObject *coroutine, 
     CHECK_OBJECT(coroutine);
     CHECK_OBJECT_X(value);
 
-    PyErr_Format(PyExc_RuntimeError, "gi_frame is not writable in Nuitka");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "gi_frame is not writable in Nuitka");
     return -1;
 }
 
@@ -389,7 +389,7 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
     if (coroutine->m_status == status_Unused && value != NULL && value != Py_None) {
         // No exception if value is given.
 
-        PyErr_Format(PyExc_TypeError, "can't send non-None value to a just-started coroutine");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't send non-None value to a just-started coroutine");
         return NULL;
     }
 
@@ -397,7 +397,7 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
         PyThreadState *thread_state = PyThreadState_GET();
 
         if (coroutine->m_running) {
-            PyErr_Format(PyExc_ValueError, "coroutine already executing");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "coroutine already executing");
             return NULL;
         }
 
@@ -533,7 +533,7 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
                 PyObject *error = GET_ERROR_OCCURRED();
 
                 if (error == NULL) {
-                    PyErr_SetObject(PyExc_StopIteration, Py_None);
+                    SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
                 } else if (error == PyExc_StopIteration) {
                     PyObject *saved_exception_type, *saved_exception_value;
                     PyTracebackObject *saved_exception_tb;
@@ -597,7 +597,7 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
         } else
 #endif
         {
-            PyErr_SetObject(PyExc_StopIteration, NULL);
+            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
         }
 
         return NULL;
@@ -612,8 +612,7 @@ static PyObject *Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine,
 
     if (result == NULL) {
         if (GET_ERROR_OCCURRED() == NULL) {
-            Py_INCREF(PyExc_StopIteration);
-            RESTORE_ERROR_OCCURRED(PyExc_StopIteration, NULL, NULL);
+            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
         }
     }
 
@@ -633,7 +632,7 @@ PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine, PyObj
         if (unlikely(result)) {
             Py_DECREF(result);
 
-            PyErr_Format(PyExc_RuntimeError, "coroutine ignored GeneratorExit");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "coroutine ignored GeneratorExit");
             return NULL;
         } else {
             PyObject *error = GET_ERROR_OCCURRED();
@@ -858,7 +857,7 @@ throw_here:
         Py_XDECREF(exception_value);
         Py_XDECREF(exception_tb);
 
-        PyErr_Format(PyExc_TypeError, "throw() third argument must be a traceback object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "throw() third argument must be a traceback object");
         return NULL;
     }
 
@@ -871,7 +870,7 @@ throw_here:
             Py_XDECREF(exception_value);
             Py_XDECREF(exception_tb);
 
-            PyErr_Format(PyExc_TypeError, "instance exception may not have a separate value");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "instance exception may not have a separate value");
             return NULL;
         }
 
@@ -982,8 +981,7 @@ static PyObject *Nuitka_Coroutine_throw(struct Nuitka_CoroutineObject *coroutine
 
     if (result == NULL) {
         if (GET_ERROR_OCCURRED() == NULL) {
-            Py_INCREF(PyExc_StopIteration);
-            RESTORE_ERROR_OCCURRED(PyExc_StopIteration, NULL, NULL);
+            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
         }
     }
 
@@ -1544,7 +1542,7 @@ PyObject *ASYNC_AWAIT(PyObject *awaitable, int await_kind) {
         if (awaited_coroutine->m_awaiting) {
             Py_DECREF(awaitable_iter);
 
-            PyErr_Format(PyExc_RuntimeError, "coroutine is being awaited already");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "coroutine is being awaited already");
 
             return NULL;
         }
@@ -1572,17 +1570,16 @@ static PyObject *Nuitka_AIterWrapper_iternext(struct Nuitka_AIterWrapper *aw) {
     CHECK_OBJECT(aw);
 
 #if PYTHON_VERSION < 360
-    PyErr_SetObject(PyExc_StopIteration, aw->aw_aiter);
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_StopIteration, aw->aw_aiter);
 #else
     if (!PyTuple_Check(aw->aw_aiter) && !PyExceptionInstance_Check(aw->aw_aiter)) {
-        PyErr_SetObject(PyExc_StopIteration, aw->aw_aiter);
+        SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_StopIteration, aw->aw_aiter);
     } else {
         PyObject *result = PyObject_CallFunctionObjArgs(PyExc_StopIteration, aw->aw_aiter, NULL);
         if (unlikely(result == NULL)) {
             return NULL;
         }
-        PyErr_SetObject(PyExc_StopIteration, result);
-        Py_DECREF(result);
+        SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyExc_StopIteration, result);
     }
 #endif
 

@@ -180,7 +180,7 @@ PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals) {
     CHECK_OBJECT(locals);
 
     if (PyDict_Check(globals) == 0) {
-        PyErr_Format(PyExc_TypeError, "exec: arg 2 must be a dictionary or None");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "exec: arg 2 must be a dictionary or None");
         return NULL;
     }
 
@@ -190,7 +190,7 @@ PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals) {
     }
 
     if (PyMapping_Check(locals) == 0) {
-        PyErr_Format(PyExc_TypeError, "exec: arg 3 must be a mapping or None");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "exec: arg 3 must be a mapping or None");
         return NULL;
     }
 
@@ -330,14 +330,14 @@ PyObject *BUILTIN_OCT(PyObject *value) {
     return result;
 #else
     if (unlikely(value == NULL)) {
-        PyErr_Format(PyExc_TypeError, "oct() argument can't be converted to oct");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "oct() argument can't be converted to oct");
         return NULL;
     }
 
     PyNumberMethods *nb = Py_TYPE(value)->tp_as_number;
 
     if (unlikely(nb == NULL || nb->nb_oct == NULL)) {
-        PyErr_Format(PyExc_TypeError, "oct() argument can't be converted to oct");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "oct() argument can't be converted to oct");
         return NULL;
     }
 
@@ -371,14 +371,14 @@ PyObject *BUILTIN_HEX(PyObject *value) {
     return result;
 #else
     if (unlikely(value == NULL)) {
-        PyErr_Format(PyExc_TypeError, "hex() argument can't be converted to hex");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "hex() argument can't be converted to hex");
         return NULL;
     }
 
     PyNumberMethods *nb = Py_TYPE(value)->tp_as_number;
 
     if (unlikely(nb == NULL || nb->nb_hex == NULL)) {
-        PyErr_Format(PyExc_TypeError, "hex() argument can't be converted to hex");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "hex() argument can't be converted to hex");
         return NULL;
     }
 
@@ -611,7 +611,8 @@ PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object) {
                     Py_DECREF(class_attr);
                 }
 
-                PyErr_Format(PyExc_TypeError, "super(type, obj): obj must be an instance or subtype of type");
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
+                                                "super(type, obj): obj must be an instance or subtype of type");
 
                 return NULL;
             }
@@ -657,12 +658,12 @@ PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *defau
     }
 
     if (unlikely(!PyString_Check(attribute))) {
-        PyErr_Format(PyExc_TypeError, "getattr(): attribute name must be string");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "getattr(): attribute name must be string");
         return NULL;
     }
 #else
     if (!PyUnicode_Check(attribute)) {
-        PyErr_Format(PyExc_TypeError, "getattr(): attribute name must be string");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "getattr(): attribute name must be string");
         return NULL;
     }
 #endif
@@ -744,7 +745,7 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
 
 #if PYTHON_VERSION < 300
     if (unlikely(!Nuitka_String_Check(value) && !PyUnicode_Check(value))) {
-        PyErr_Format(PyExc_TypeError, "int() can't convert non-string with explicit base");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "int() can't convert non-string with explicit base");
         return NULL;
     }
 
@@ -787,7 +788,7 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
 
         return result;
     } else {
-        PyErr_Format(PyExc_TypeError, "int() can't convert non-string with explicit base");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "int() can't convert non-string with explicit base");
         return NULL;
     }
 #endif
@@ -805,7 +806,7 @@ PyObject *BUILTIN_LONG2(PyObject *value, PyObject *base) {
     }
 
     if (unlikely(!Nuitka_String_Check(value) && !PyUnicode_Check(value))) {
-        PyErr_Format(PyExc_TypeError, "long() can't convert non-string with explicit base");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "long() can't convert non-string with explicit base");
         return NULL;
     }
 

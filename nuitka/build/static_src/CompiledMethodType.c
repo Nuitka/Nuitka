@@ -51,7 +51,7 @@ static PyMemberDef Nuitka_Method_members[] = {
     {NULL}};
 
 static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
-    PyErr_Format(PyExc_TypeError, "Can't pickle instancemethod objects");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Can't pickle instancemethod objects");
 
     return NULL;
 }
@@ -63,7 +63,7 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
         return NULL;
     }
 
-    PyErr_Format(PyExc_TypeError, "Can't pickle instancemethod objects");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Can't pickle instancemethod objects");
 
     return NULL;
 }
@@ -482,7 +482,7 @@ static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObje
     } else if (!PyArg_UnpackTuple(args, "compiled_method", 2, 3, &func, &self, &klass)) {
         return NULL;
     } else if (!PyCallable_Check(func)) {
-        PyErr_Format(PyExc_TypeError, "first argument must be callable");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "first argument must be callable");
         return NULL;
     } else {
         if (self == Py_None) {
@@ -490,7 +490,7 @@ static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObje
         }
 
         if (self == NULL && klass == NULL) {
-            PyErr_Format(PyExc_TypeError, "unbound methods must have non-NULL im_class");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "unbound methods must have non-NULL im_class");
             return NULL;
         }
     }

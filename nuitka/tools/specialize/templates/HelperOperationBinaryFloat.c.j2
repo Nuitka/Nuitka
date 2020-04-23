@@ -27,12 +27,12 @@ static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_
     {{ target.getReturnFromFloatExpressionCode("result") }}
 {% elif operand == "//" %}
     if (unlikely(b == 0)) {
-        PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
         return {{target.getExceptionResultIndicatorValue()}};
     }
 
     if (b == 0.0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "float modulo");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
         return {{target.getExceptionResultIndicatorValue()}};
     }
 
@@ -58,7 +58,7 @@ static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_
     {{ target.getReturnFromFloatExpressionCode("floordiv") }}
 {% elif operand == "/" %}
     if (b == 0.0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "float division by zero");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
         return {{target.getExceptionResultIndicatorValue()}};
     }
 
@@ -66,7 +66,7 @@ static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_
     {{ target.getReturnFromFloatExpressionCode("result") }}
 {% elif operand == "%" %}
     if (b == 0.0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "float modulo");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
         return {{target.getExceptionResultIndicatorValue()}};
     }
 
@@ -82,7 +82,7 @@ static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_
     {{ target.getReturnFromFloatExpressionCode("mod") }}
 {% elif operand == "divmod" %}
     if (b == 0.0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "float modulo");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
         return {{target.getExceptionResultIndicatorValue()}};
     }
 
@@ -156,7 +156,7 @@ static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_
 
     if (a == 0.0) {
         if (b < 0.0) {
-            PyErr_SetString(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
             return {{target.getExceptionResultIndicatorValue()}};
         }
 
@@ -168,7 +168,7 @@ static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_
 
     if (a < 0.0) {
         if (b != floor(b)) {
-            PyErr_SetString(PyExc_ValueError, "negative number cannot be raised to a fractional power");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative number cannot be raised to a fractional power");
             return {{target.getExceptionResultIndicatorValue()}};
         }
         a = -a;

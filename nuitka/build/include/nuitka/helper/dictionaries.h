@@ -246,10 +246,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *DICT_GET_ITEM(PyObject *dict, PyObject *ke
          */
         if (PyTuple_Check(key)) {
             PyObject *tuple = PyTuple_Pack(1, key);
-            PyErr_SetObject(PyExc_KeyError, tuple);
-            Py_DECREF(tuple);
+            SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyExc_KeyError, tuple);
         } else {
-            PyErr_SetObject(PyExc_KeyError, key);
+            SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_KeyError, key);
         }
         return NULL;
     } else {

@@ -263,7 +263,7 @@ PyObject *BUILTIN_RANGE3(PyObject *low, PyObject *high, PyObject *step) {
         Py_DECREF(step_temp);
 
         if (unlikely(step_long == 0)) {
-            PyErr_Format(PyExc_ValueError, "range() step argument must not be zero");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "range() step argument must not be zero");
             return NULL;
         }
 
@@ -294,7 +294,7 @@ PyObject *MAKE_XRANGE(long start, long stop, long step) {
     unsigned long n = getLengthOfRange(start, stop, step);
 
     if (n > (unsigned long)LONG_MAX || (long)n > PY_SSIZE_T_MAX) {
-        PyErr_SetString(PyExc_OverflowError, "xrange() result has too many items");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_OverflowError, "xrange() result has too many items");
 
         return NULL;
     }
@@ -344,7 +344,7 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
         }
 
         if (res == 1) {
-            PyErr_Format(PyExc_ValueError, "range() arg 3 must not be zero");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "range() arg 3 must not be zero");
 
             return NULL;
         }
@@ -430,7 +430,7 @@ static PyObject *MAKE_XRANGE(PyObject *start, PyObject *stop, PyObject *step) {
 PyObject *BUILTIN_XRANGE1(PyObject *high) {
 #if PYTHON_VERSION < 300
     if (unlikely(PyFloat_Check(high))) {
-        PyErr_SetString(PyExc_TypeError, "integer argument expected, got float");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
 
         return NULL;
     }
@@ -469,7 +469,7 @@ PyObject *BUILTIN_XRANGE1(PyObject *high) {
 PyObject *BUILTIN_XRANGE2(PyObject *low, PyObject *high) {
 #if PYTHON_VERSION < 300
     if (unlikely(PyFloat_Check(low))) {
-        PyErr_SetString(PyExc_TypeError, "integer argument expected, got float");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
 
         return NULL;
     }
@@ -481,7 +481,7 @@ PyObject *BUILTIN_XRANGE2(PyObject *low, PyObject *high) {
     }
 
     if (unlikely(PyFloat_Check(high))) {
-        PyErr_SetString(PyExc_TypeError, "integer argument expected, got float");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
 
         return NULL;
     }
@@ -502,7 +502,7 @@ PyObject *BUILTIN_XRANGE2(PyObject *low, PyObject *high) {
 PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step) {
 #if PYTHON_VERSION < 300
     if (unlikely(PyFloat_Check(low))) {
-        PyErr_SetString(PyExc_TypeError, "integer argument expected, got float");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
 
         return NULL;
     }
@@ -514,7 +514,7 @@ PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step) {
     }
 
     if (unlikely(PyFloat_Check(high))) {
-        PyErr_SetString(PyExc_TypeError, "integer argument expected, got float");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
 
         return NULL;
     }
@@ -526,7 +526,7 @@ PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step) {
     }
 
     if (unlikely(PyFloat_Check(step))) {
-        PyErr_SetString(PyExc_TypeError, "integer argument expected, got float");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
 
         return NULL;
     }
@@ -538,7 +538,7 @@ PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step) {
     }
 
     if (unlikely(int_step == 0)) {
-        PyErr_Format(PyExc_ValueError, "range() arg 3 must not be zero");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "range() arg 3 must not be zero");
 
         return NULL;
     }
@@ -938,7 +938,7 @@ PyObject *GET_STDOUT() {
     PyObject *result = PySys_GetObject((char *)"stdout");
 
     if (unlikely(result == NULL)) {
-        PyErr_Format(PyExc_RuntimeError, "lost sys.stdout");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "lost sys.stdout");
         return NULL;
     }
 
@@ -949,7 +949,7 @@ PyObject *GET_STDERR() {
     PyObject *result = PySys_GetObject((char *)"stderr");
 
     if (unlikely(result == NULL)) {
-        PyErr_Format(PyExc_RuntimeError, "lost sys.stderr");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "lost sys.stderr");
         return NULL;
     }
 
@@ -1111,7 +1111,7 @@ static void set_attr_slots(PyClassObject *klass) {
 
 static bool set_dict(PyClassObject *klass, PyObject *value) {
     if (value == NULL || !PyDict_Check(value)) {
-        PyErr_SetString(PyExc_TypeError, (char *)"__dict__ must be a dictionary object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__dict__ must be a dictionary object");
         return false;
     } else {
         set_slot(&klass->cl_dict, value);
@@ -1123,7 +1123,7 @@ static bool set_dict(PyClassObject *klass, PyObject *value) {
 
 static bool set_bases(PyClassObject *klass, PyObject *value) {
     if (value == NULL || !PyTuple_Check(value)) {
-        PyErr_SetString(PyExc_TypeError, (char *)"__bases__ must be a tuple object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__bases__ must be a tuple object");
         return false;
     } else {
         Py_ssize_t n = PyTuple_Size(value);
@@ -1132,12 +1132,12 @@ static bool set_bases(PyClassObject *klass, PyObject *value) {
             PyObject *base = PyTuple_GET_ITEM(value, i);
 
             if (unlikely(!PyClass_Check(base))) {
-                PyErr_SetString(PyExc_TypeError, (char *)"__bases__ items must be classes");
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__bases__ items must be classes");
                 return false;
             }
 
             if (unlikely(PyClass_IsSubclass(base, (PyObject *)klass))) {
-                PyErr_SetString(PyExc_TypeError, (char *)"a __bases__ item causes an inheritance cycle");
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "a __bases__ item causes an inheritance cycle");
                 return false;
             }
         }
@@ -1151,12 +1151,12 @@ static bool set_bases(PyClassObject *klass, PyObject *value) {
 
 static bool set_name(PyClassObject *klass, PyObject *value) {
     if (value == NULL || !PyDict_Check(value)) {
-        PyErr_SetString(PyExc_TypeError, (char *)"__name__ must be a string object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__name__ must be a string object");
         return false;
     }
 
     if (strlen(PyString_AS_STRING(value)) != (size_t)PyString_GET_SIZE(value)) {
-        PyErr_SetString(PyExc_TypeError, (char *)"__name__ must not contain null bytes");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__name__ must not contain null bytes");
         return false;
     }
 

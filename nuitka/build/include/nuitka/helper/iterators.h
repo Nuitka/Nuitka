@@ -196,7 +196,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1(PyObject *iterator) {
         // The iteration can return NULL with no error, which means
         // StopIteration.
         if (!ERROR_OCCURRED()) {
-            PyErr_SetNone(PyExc_StopIteration);
+            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
         }
 
         return NULL;
@@ -256,7 +256,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT(PyObject *iterator, int seq_si
         {
 #if PYTHON_VERSION < 350
             if (seq_size_so_far == 1) {
-                PyErr_Format(PyExc_ValueError, "need more than 1 value to unpack");
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "need more than 1 value to unpack");
             } else {
                 PyErr_Format(PyExc_ValueError, "need more than %d values to unpack", seq_size_so_far);
             }
@@ -307,7 +307,7 @@ NUITKA_MAY_BE_UNUSED static bool UNPACK_ITERATOR_CHECK(PyObject *iterator) {
     } else {
         Py_DECREF(attempt);
 
-        PyErr_Format(PyExc_ValueError, "too many values to unpack");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "too many values to unpack");
         return false;
     }
 }

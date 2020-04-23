@@ -717,7 +717,7 @@ static PyObject *SLOT_nb_divmod_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject 
     double b = PyFloat_AS_DOUBLE(operand2);
 
     if (b == 0.0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "float modulo");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
         return NULL;
     }
 

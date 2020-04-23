@@ -41,7 +41,7 @@ PyObject *BUILTIN_CHR(PyObject *value) {
 
     if (unlikely(x == -1 && ERROR_OCCURRED())) {
 #if PYTHON_VERSION < 300 && defined(_NUITKA_FULL_COMPAT)
-        PyErr_Format(PyExc_TypeError, "an integer is required");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "an integer is required");
 #else
         PyErr_Format(PyExc_TypeError, "an integer is required (got type %s)", Py_TYPE(value)->tp_name);
 #endif
@@ -50,7 +50,7 @@ PyObject *BUILTIN_CHR(PyObject *value) {
 
 #if PYTHON_VERSION < 300
     if (unlikely(x < 0 || x >= 256)) {
-        PyErr_Format(PyExc_ValueError, "chr() arg not in range(256)");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "chr() arg not in range(256)");
         return NULL;
     }
 
@@ -480,7 +480,7 @@ PyObject *UNICODE_CONCAT(PyObject *left, PyObject *right) {
     Py_ssize_t left_len = PyUnicode_GET_LENGTH(left);
     Py_ssize_t right_len = PyUnicode_GET_LENGTH(right);
     if (left_len > PY_SSIZE_T_MAX - right_len) {
-        PyErr_Format(PyExc_OverflowError, "strings are too large to concat");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_OverflowError, "strings are too large to concat");
         return NULL;
     }
     Py_ssize_t new_len = left_len + right_len;
@@ -523,7 +523,7 @@ bool UNICODE_APPEND(PyObject **p_left, PyObject *right) {
     Py_ssize_t right_len = PyUnicode_GET_LENGTH(right);
 
     if (left_len > PY_SSIZE_T_MAX - right_len) {
-        PyErr_Format(PyExc_OverflowError, "strings are too large to concat");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_OverflowError, "strings are too large to concat");
         return false;
     }
     Py_ssize_t new_len = left_len + right_len;

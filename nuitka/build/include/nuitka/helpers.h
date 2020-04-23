@@ -186,7 +186,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyObject *source) {
     PyObject *result = PyObject_GetAttr(source, const_str_plain___dict__);
 
     if (unlikely(result == NULL)) {
-        PyErr_Format(PyExc_TypeError, "vars() argument must have __dict__ attribute");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "vars() argument must have __dict__ attribute");
 
         return NULL;
     }

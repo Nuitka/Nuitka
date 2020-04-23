@@ -133,7 +133,7 @@ static int Nuitka_Cell_tp_clear(struct Nuitka_CellObject *cell) {
 
 static PyObject *Nuitka_Cell_get_contents(struct Nuitka_CellObject *cell, void *closure) {
     if (cell->ob_ref == NULL) {
-        PyErr_SetString(PyExc_ValueError, "Cell is empty");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "Cell is empty");
         return NULL;
     }
 

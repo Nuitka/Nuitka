@@ -84,7 +84,7 @@ static PyObject *SLOT_nb_power_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *
 
     if (a == 0.0) {
         if (b < 0.0) {
-            PyErr_SetString(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
             return NULL;
         }
 
@@ -96,7 +96,7 @@ static PyObject *SLOT_nb_power_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *
 
     if (a < 0.0) {
         if (b != floor(b)) {
-            PyErr_SetString(PyExc_ValueError, "negative number cannot be raised to a fractional power");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative number cannot be raised to a fractional power");
             return NULL;
         }
         a = -a;
@@ -196,7 +196,7 @@ static nuitka_bool SLOT_nb_power_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject 
 
     if (a == 0.0) {
         if (b < 0.0) {
-            PyErr_SetString(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
             return NUITKA_BOOL_EXCEPTION;
         }
 
@@ -208,7 +208,7 @@ static nuitka_bool SLOT_nb_power_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject 
 
     if (a < 0.0) {
         if (b != floor(b)) {
-            PyErr_SetString(PyExc_ValueError, "negative number cannot be raised to a fractional power");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative number cannot be raised to a fractional power");
             return NUITKA_BOOL_EXCEPTION;
         }
         a = -a;

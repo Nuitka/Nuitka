@@ -55,7 +55,7 @@ static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_
     }
 {% elif operand == "//" or nb_slot == "nb_divide" %}
     if (unlikely(b == 0)) {
-        PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
         return {{target.getExceptionResultIndicatorValue()}};
     }
 
@@ -78,7 +78,7 @@ static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_
     }
 {% elif operand=="/" and "true_div" in nb_slot %}
     if (unlikely(b == 0)) {
-        PyErr_Format(PyExc_ZeroDivisionError, "division by zero");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "division by zero");
         return {{target.getExceptionResultIndicatorValue()}};
     }
 
@@ -123,7 +123,7 @@ static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_
     {{ target.getReturnFromLongExpressionCode("result") }}
 {% elif operand == "<<" %}
     if (unlikely(b < 0)) {
-        PyErr_SetString(PyExc_ValueError, "negative shift count");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
         return {{target.getExceptionResultIndicatorValue()}};
     }
     /* Short cut for zero shift or shifting zero. */
@@ -160,7 +160,7 @@ static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_
     }
 {% elif operand == ">>" %}
     if (unlikely(b < 0)) {
-        PyErr_SetString(PyExc_ValueError, "negative shift count");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
         return {{target.getExceptionResultIndicatorValue()}};
     }
 
@@ -239,7 +239,7 @@ static {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeName()}}_
     {{ target.getReturnFromLongExpressionCode("ix") }}
 {% elif operand == "divmod" %}
     if (unlikely(b == 0)) {
-        PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
         return {{target.getExceptionResultIndicatorValue()}};
     }
 

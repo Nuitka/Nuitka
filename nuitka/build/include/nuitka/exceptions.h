@@ -234,6 +234,85 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyObject *exceptio
 #endif
 }
 
+// Helper that sets the current thread exception, and has no reference passed.
+NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0(PyObject *exception_type) {
+    CHECK_OBJECT(exception_type);
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *old_exception_type = tstate->curexc_type;
+    PyObject *old_exception_value = tstate->curexc_value;
+    PyObject *old_exception_traceback = tstate->curexc_traceback;
+
+    tstate->curexc_type = exception_type;
+    Py_INCREF(exception_type);
+    tstate->curexc_value = NULL;
+    tstate->curexc_traceback = NULL;
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE0:\n");
+    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
+#endif
+
+    Py_XDECREF(old_exception_type);
+    Py_XDECREF(old_exception_value);
+    Py_XDECREF(old_exception_traceback);
+}
+
+NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyObject *exception_type,
+                                                                           PyObject *exception_value) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *old_exception_type = tstate->curexc_type;
+    PyObject *old_exception_value = tstate->curexc_value;
+    PyObject *old_exception_traceback = tstate->curexc_traceback;
+
+    tstate->curexc_type = exception_type;
+    Py_INCREF(exception_type);
+    tstate->curexc_value = exception_value;
+    Py_INCREF(exception_value);
+    tstate->curexc_traceback = NULL;
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE0_VALUE0:\n");
+    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
+#endif
+
+    Py_XDECREF(old_exception_type);
+    Py_XDECREF(old_exception_value);
+    Py_XDECREF(old_exception_traceback);
+}
+
+NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyObject *exception_type,
+                                                                           PyObject *exception_value) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *old_exception_type = tstate->curexc_type;
+    PyObject *old_exception_value = tstate->curexc_value;
+    PyObject *old_exception_traceback = tstate->curexc_traceback;
+
+    tstate->curexc_type = exception_type;
+    Py_INCREF(exception_type);
+    tstate->curexc_value = exception_value;
+    tstate->curexc_traceback = NULL;
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE0_VALUE1:\n");
+    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
+#endif
+
+    Py_XDECREF(old_exception_type);
+    Py_XDECREF(old_exception_value);
+    Py_XDECREF(old_exception_traceback);
+}
+
+// Helper that sets the current thread exception, and has no reference passed.
+NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_STR(PyObject *exception_type, char const *value) {
+    PyObject *exception_value = Nuitka_String_FromString(value);
+
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(exception_type, exception_value);
+}
+
 #if PYTHON_VERSION < 300
 
 // Preserve the current exception as the frame to restore.
@@ -434,12 +513,14 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL(PyObject *exception_
             PyObject *element = PyTuple_GET_ITEM(exception_checked, i);
 
             if (unlikely(!PyExceptionClass_Check(element))) {
-                PyErr_Format(PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed");
+                SET_CURRENT_EXCEPTION_TYPE0_STR(
+                    PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed");
                 return -1;
             }
         }
     } else if (unlikely(!PyExceptionClass_Check(exception_checked))) {
-        PyErr_Format(PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
+                                        "catching classes that do not inherit from BaseException is not allowed");
         return -1;
     }
 #endif

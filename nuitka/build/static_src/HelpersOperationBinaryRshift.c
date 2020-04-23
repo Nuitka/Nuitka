@@ -749,7 +749,7 @@ static PyObject *SLOT_nb_rshift_OBJECT_INT_INT(PyObject *operand1, PyObject *ope
     const long b = PyInt_AS_LONG(operand2);
 
     if (unlikely(b < 0)) {
-        PyErr_SetString(PyExc_ValueError, "negative shift count");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
         return NULL;
     }
 
@@ -1109,7 +1109,7 @@ static nuitka_bool SLOT_nb_rshift_NBOOL_INT_INT(PyObject *operand1, PyObject *op
     const long b = PyInt_AS_LONG(operand2);
 
     if (unlikely(b < 0)) {
-        PyErr_SetString(PyExc_ValueError, "negative shift count");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
         return NUITKA_BOOL_EXCEPTION;
     }
 

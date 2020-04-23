@@ -424,7 +424,7 @@ PyObject *callIntoShlibModule(const char *full_name, const char *filename) {
             PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed: %s", filename, error_message);
         }
 
-        PyErr_SetString(PyExc_ImportError, buffer);
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ImportError, buffer);
         return NULL;
     }
 
@@ -445,7 +445,7 @@ PyObject *callIntoShlibModule(const char *full_name, const char *filename) {
             error = "unknown dlopen() error";
         }
 
-        PyErr_SetString(PyExc_ImportError, error);
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ImportError, error);
         return NULL;
     }
 

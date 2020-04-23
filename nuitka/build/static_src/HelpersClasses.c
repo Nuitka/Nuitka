@@ -45,8 +45,9 @@ PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases) {
                 winner = base_type;
                 continue;
             } else {
-                PyErr_Format(PyExc_TypeError, "metaclass conflict: the metaclass of a derived class must be a "
-                                              "(non-strict) subclass of the metaclasses of all its bases");
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
+                                                "metaclass conflict: the metaclass of a derived class must be a "
+                                                "(non-strict) subclass of the metaclasses of all its bases");
 
                 return NULL;
             }

@@ -212,7 +212,7 @@ static PyObject *Nuitka_Frame_gettrace(PyFrameObject *frame, void *closure) {
 }
 
 static int Nuitka_Frame_settrace(PyFrameObject *frame, PyObject *v, void *closure) {
-    PyErr_Format(PyExc_RuntimeError, "f_trace is not writable in Nuitka");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "f_trace is not writable in Nuitka");
     return -1;
 }
 
@@ -224,7 +224,7 @@ static PyObject *Nuitka_Frame_gettracelines(PyFrameObject *frame, void *closure)
 }
 
 static int Nuitka_Frame_settracelines(PyFrameObject *frame, PyObject *v, void *closure) {
-    PyErr_Format(PyExc_RuntimeError, "f_trace_lines is not writable in Nuitka");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "f_trace_lines is not writable in Nuitka");
     return -1;
 }
 
@@ -235,7 +235,7 @@ static PyObject *Nuitka_Frame_gettraceopcodes(PyFrameObject *frame, void *closur
 }
 
 static int Nuitka_Frame_settraceopcodes(PyFrameObject *frame, PyObject *v, void *closure) {
-    PyErr_Format(PyExc_RuntimeError, "f_trace_opcodes is not writable in Nuitka");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "f_trace_opcodes is not writable in Nuitka");
     return -1;
 }
 
@@ -399,7 +399,7 @@ extern PyObject *Nuitka_Asyncgen_close(struct Nuitka_AsyncgenObject *asyncgen, P
 
 static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
     if (frame->m_frame.f_executing) {
-        PyErr_Format(PyExc_RuntimeError, "cannot clear an executing frame");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cannot clear an executing frame");
 
         return NULL;
     }

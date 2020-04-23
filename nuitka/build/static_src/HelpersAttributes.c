@@ -485,13 +485,13 @@ int BUILTIN_HASATTR_BOOL(PyObject *source, PyObject *attr_name) {
     }
 
     if (unlikely(!PyString_Check(attr_name))) {
-        PyErr_Format(PyExc_TypeError, "hasattr(): attribute name must be string");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "hasattr(): attribute name must be string");
 
         return -1;
     }
 #else
     if (unlikely(!PyUnicode_Check(attr_name))) {
-        PyErr_Format(PyExc_TypeError, "hasattr(): attribute name must be string");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "hasattr(): attribute name must be string");
 
         return -1;
     }
@@ -606,7 +606,7 @@ bool SET_ATTRIBUTE_DICT_SLOT(PyObject *target, PyObject *value) {
 
         /* Note seems this doesn't have to be an exact dictionary. */
         if (unlikely(!PyDict_Check(value))) {
-            PyErr_SetString(PyExc_TypeError, "__dict__ must be set to a dictionary");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__dict__ must be set to a dictionary");
             return false;
         }
 
@@ -657,7 +657,7 @@ bool SET_ATTRIBUTE_CLASS_SLOT(PyObject *target, PyObject *value) {
         PyInstanceObject *target_instance = (PyInstanceObject *)target;
 
         if (unlikely(!PyClass_Check(value))) {
-            PyErr_SetString(PyExc_TypeError, "__class__ must be set to a class");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__class__ must be set to a class");
             return false;
         }
 
@@ -727,6 +727,6 @@ PyObject *LOOKUP_SPECIAL(PyObject *source, PyObject *attr_name) {
         }
     }
 
-    PyErr_SetObject(PyExc_AttributeError, attr_name);
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, attr_name);
     return NULL;
 }

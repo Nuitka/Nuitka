@@ -156,7 +156,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE(PyObject **exception
         Py_XDECREF(exception_cause);
 
 #ifdef _NUITKA_FULL_COMPAT
-        PyErr_Format(PyExc_TypeError, "exception causes must derive from BaseException");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "exception causes must derive from BaseException");
 #else
         PyErr_Format(PyExc_TypeError, "exception causes must derive from BaseException (%s does not)",
                      Py_TYPE(exception_cause)->tp_name);
@@ -235,7 +235,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_VALUE(PyObject **exception
         return;
     } else if (PyExceptionInstance_Check(*exception_type)) {
         if (unlikely(*exception_value != NULL && *exception_value != Py_None)) {
-            PyErr_Format(PyExc_TypeError, "instance exception may not have a separate value");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "instance exception may not have a separate value");
 
             Py_DECREF(*exception_type);
             Py_XDECREF(*exception_value);

@@ -1545,7 +1545,7 @@ static PyObject *SLOT_nb_floor_divide_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyO
     }
 
     if (b == 0.0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "float modulo");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
         return NULL;
     }
 
@@ -1900,7 +1900,7 @@ static nuitka_bool SLOT_nb_floor_divide_NBOOL_FLOAT_FLOAT(PyObject *operand1, Py
     }
 
     if (b == 0.0) {
-        PyErr_SetString(PyExc_ZeroDivisionError, "float modulo");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
         return NUITKA_BOOL_EXCEPTION;
     }
 

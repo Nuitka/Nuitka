@@ -145,7 +145,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
     }
 
     if (Nuitka_Function_Check(func) == false) {
-        PyErr_Format(PyExc_TypeError, "not a compiled function");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "not a compiled function");
         return NULL;
     }
 
@@ -164,7 +164,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
     }
 
     if (*current == NULL) {
-        PyErr_Format(PyExc_TypeError, "Cannot find compiled function in module.");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Cannot find compiled function in module.");
         return NULL;
     }
 
@@ -220,7 +220,7 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
     }
 
     if (offset > sizeof(functable_%(module_identifier)s) || offset < 0) {
-        PyErr_Format(PyExc_TypeError, "Wrong offset for compiled function.");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Wrong offset for compiled function.");
         return NULL;
     }
 

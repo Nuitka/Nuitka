@@ -132,7 +132,7 @@ static int Nuitka_Function_set_name(struct Nuitka_FunctionObject *object, PyObje
     if (unlikely(value == NULL || PyUnicode_Check(value) == 0))
 #endif
     {
-        PyErr_Format(PyExc_TypeError, "__name__ must be set to a string object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__name__ must be set to a string object");
         return -1;
     }
 
@@ -153,7 +153,7 @@ static PyObject *Nuitka_Function_get_qualname(struct Nuitka_FunctionObject *obje
 
 static int Nuitka_Function_set_qualname(struct Nuitka_FunctionObject *object, PyObject *value) {
     if (unlikely(value == NULL || PyUnicode_Check(value) == 0)) {
-        PyErr_Format(PyExc_TypeError, "__qualname__ must be set to a string object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__qualname__ must be set to a string object");
         return -1;
     }
 
@@ -199,7 +199,7 @@ static PyObject *Nuitka_Function_get_dict(struct Nuitka_FunctionObject *object) 
 
 static int Nuitka_Function_set_dict(struct Nuitka_FunctionObject *object, PyObject *value) {
     if (unlikely(value == NULL)) {
-        PyErr_Format(PyExc_TypeError, "function's dictionary may not be deleted");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "function's dictionary may not be deleted");
         return -1;
     }
 
@@ -211,7 +211,7 @@ static int Nuitka_Function_set_dict(struct Nuitka_FunctionObject *object, PyObje
 
         return 0;
     } else {
-        PyErr_SetString(PyExc_TypeError, "setting function's dictionary to a non-dict");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "setting function's dictionary to a non-dict");
         return -1;
     }
 }
@@ -223,7 +223,7 @@ static PyObject *Nuitka_Function_get_code(struct Nuitka_FunctionObject *object) 
 }
 
 static int Nuitka_Function_set_code(struct Nuitka_FunctionObject *object, PyObject *value) {
-    PyErr_Format(PyExc_RuntimeError, "__code__ is not writable in Nuitka");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "__code__ is not writable in Nuitka");
     return -1;
 }
 
@@ -244,7 +244,7 @@ static PyObject *Nuitka_Function_get_closure(struct Nuitka_FunctionObject *objec
 }
 
 static int Nuitka_Function_set_closure(struct Nuitka_FunctionObject *object, PyObject *value) {
-    PyErr_Format(
+    SET_CURRENT_EXCEPTION_TYPE0_STR(
 #if PYTHON_VERSION < 300
         PyExc_TypeError,
 #else
@@ -275,7 +275,7 @@ static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *object, Py
     }
 
     if (unlikely(value != Py_None && PyTuple_Check(value) == false)) {
-        PyErr_Format(PyExc_TypeError, "__defaults__ must be set to a tuple object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__defaults__ must be set to a tuple object");
         return -1;
     }
 
@@ -283,13 +283,13 @@ static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *object, Py
 // parsing per function anymore.
 #ifndef _NUITKA_PLUGIN_DILL_ENABLED
     if (object->m_defaults == Py_None && value != Py_None) {
-        PyErr_Format(PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes");
         return -1;
     }
 
     if (object->m_defaults != Py_None &&
         (value == Py_None || PyTuple_Size(object->m_defaults) != PyTuple_Size(value))) {
-        PyErr_Format(PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes");
         return -1;
     }
 #endif
@@ -322,7 +322,7 @@ static int Nuitka_Function_set_kwdefaults(struct Nuitka_FunctionObject *object, 
     }
 
     if (unlikely(value != Py_None && PyDict_Check(value) == false)) {
-        PyErr_Format(PyExc_TypeError, "__kwdefaults__ must be set to a dict object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__kwdefaults__ must be set to a dict object");
         return -1;
     }
 
@@ -349,7 +349,7 @@ static PyObject *Nuitka_Function_get_annotations(struct Nuitka_FunctionObject *o
 
 static int Nuitka_Function_set_annotations(struct Nuitka_FunctionObject *object, PyObject *value) {
     if (unlikely(value != NULL && PyDict_Check(value) == false)) {
-        PyErr_Format(PyExc_TypeError, "__annotations__ must be set to a dict object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__annotations__ must be set to a dict object");
         return -1;
     }
 
@@ -364,7 +364,7 @@ static int Nuitka_Function_set_annotations(struct Nuitka_FunctionObject *object,
 #endif
 
 static int Nuitka_Function_set_globals(struct Nuitka_FunctionObject *function, PyObject *value) {
-    PyErr_Format(PyExc_TypeError, "readonly attribute");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "readonly attribute");
     return -1;
 }
 

@@ -46,11 +46,11 @@ if (likely(%(attempt_name)s == NULL))
 } else {
     Py_DECREF(%(attempt_name)s);
 
-    // TODO: Could avoid PyErr_Format.
+    // TODO: Could avoid SET_CURRENT_EXCEPTION_TYPE0_STR.
 #if PYTHON_VERSION < 300
-    PyErr_Format(PyExc_ValueError, "too many values to unpack");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "too many values to unpack");
 #else
-    PyErr_Format(PyExc_ValueError, "too many values to unpack (expected %(count)d)");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "too many values to unpack (expected %(count)d)");
 #endif
     FETCH_ERROR_OCCURRED(&%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
 %(release_temps_2)s
