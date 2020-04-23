@@ -48,7 +48,7 @@ class CTypeNuitkaBoolEnum(CTypeBase):
                 to_name=value_name, condition=test_code, emit=emit
             )
 
-            # TODO: Refcount and context needs release are redundent.
+            # TODO: Refcount and context needs release are redundant.
             if ref_count:
                 getReleaseCode(tmp_name, emit, context)
 

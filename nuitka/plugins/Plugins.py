@@ -40,7 +40,7 @@ from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builti
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.PythonVersions import python_version
+from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName
 
 from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
@@ -440,57 +440,6 @@ def isObjectAUserPluginBaseClass(obj):
         return False
 
 
-def importFilePy3NewWay(filename):
-    """ Import a file for Python versions 3.5+.
-    """
-    import importlib.util  # pylint: disable=I0021,import-error,no-name-in-module
-
-    spec = importlib.util.spec_from_file_location(filename, filename)
-    user_plugin_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(user_plugin_module)
-    return user_plugin_module
-
-
-def importFilePy3OldWay(filename):
-    """ Import a file for Python versions 3.x where x < 5.
-    """
-    from importlib.machinery import (  # pylint: disable=I0021,import-error,no-name-in-module
-        SourceFileLoader,
-    )
-
-    # pylint: disable=I0021,deprecated-method
-    return SourceFileLoader(filename, filename).load_module(filename)
-
-
-def importFilePy2(filename):
-    """ Import a file for Python version 2.
-    """
-    import imp
-
-    basename = os.path.splitext(os.path.basename(filename))[0]
-    return imp.load_source(basename, filename)
-
-
-def importFile(filename):
-    """ Import Python module given as a file name.
-
-    Notes:
-        Provides a Python version independent way to import any script files.
-
-    Args:
-        filename: complete path of a Python script
-
-    Returns:
-        Imported Python module defined in filename.
-    """
-    if python_version < 300:
-        return importFilePy2(filename)
-    elif python_version < 350:
-        return importFilePy3OldWay(filename)
-    else:
-        return importFilePy3NewWay(filename)
-
-
 def loadUserPlugin(plugin_filename):
     """ Load of a user plugins and store them in list of active plugins.
 
@@ -504,7 +453,8 @@ def loadUserPlugin(plugin_filename):
     if not os.path.exists(plugin_filename):
         sys.exit("Error, cannot find '%s'." % plugin_filename)
 
-    user_plugin_module = importFile(plugin_filename)
+    user_plugin_module = importFileAsModule(plugin_filename)
+
     valid_file = False
     plugin_class = None
     for key in dir(user_plugin_module):
