@@ -23,9 +23,12 @@ binaries (needed for exec) and run them capturing outputs.
 
 
 import os
+import shutil
 import subprocess
 import sys
 from contextlib import contextmanager
+
+from nuitka.PythonVersions import python_version
 
 from .Utils import getArchitecture, getOS, isWin32Windows
 
@@ -64,14 +67,13 @@ def callExec(args):
 def getExecutablePath(filename):
     """ Find an execute in PATH environment. """
 
-    # Append ".exe" suffix  on Windows if not already present.
-    if getOS() == "Windows" and not filename.lower().endswith(".exe"):
-        filename += ".exe"
-
-    if sys.version_info >= (3, 3):
-        import shutil
+    if python_version >= 300:
         return shutil.which(filename)
     else:
+        # Append ".exe" suffix  on Windows if not already present.
+        if getOS() == "Windows" and not filename.lower().endswith(".exe"):
+            filename += ".exe"
+
         # Search in PATH environment.
         search_path = os.environ.get("PATH", "")
 

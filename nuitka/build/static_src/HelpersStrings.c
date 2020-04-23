@@ -15,12 +15,18 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-
 /* This helpers is used to quickly create a string object from C char.
 
    Currently this is used for string subscript code, but may also be used
    for the "char" C type in the future.
 */
+
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 PyObject *STRING_FROM_CHAR(unsigned char c) {
     // TODO: A switch statement might be faster, because no object needs to be
     // created at all, this here is how CPython does it.
