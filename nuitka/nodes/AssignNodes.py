@@ -546,6 +546,17 @@ class StatementDelVariable(StatementBase):
     def computeStatement(self, trace_collection):
         variable = self.variable
 
+        # Special case, boolean temp variables need no "del".
+        # TODO: Later, these might not exist, if we forward propagate them not as "del"
+        # at all
+        if variable.isTempVariableBool():
+            return (
+                None,
+                "new_statements",
+                "Removed 'del' statement of boolean '%s' without effect."
+                % (self.getVariableName(),),
+            )
+
         self.previous_trace = trace_collection.getVariableCurrentTrace(variable)
 
         # First eliminate us entirely if we can.
