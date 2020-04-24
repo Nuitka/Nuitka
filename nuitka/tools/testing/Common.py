@@ -801,7 +801,10 @@ def cleanObjRefCntMaps():
 
     # Warm out repr
     for x in gc.get_objects():
-        str(x)
+        try:
+            str(x)
+        except Exception:  # Catch all the things, pylint: disable=broad-except
+            pass
 
 
 def snapObjRefCntMap(before):
@@ -829,6 +832,27 @@ def snapObjRefCntMap(before):
         m[k] = sys.getrefcount(x)
 
 
+orig_print = None
+
+
+def disablePrinting():
+    # Singleton, pylint: disable=global-statement
+    global orig_print
+
+    if orig_print is None:
+        orig_print = __builtins__["print"]
+        __builtins__["print"] = lambda *args, **kwargs: None
+
+
+def reenablePrinting():
+    # Singleton, pylint: disable=global-statement
+    global orig_print
+
+    if orig_print is not None:
+        __builtins__["print"] = orig_print
+        orig_print = None
+
+
 def checkReferenceCount(checked_function, max_rounds=10):
     # This is obviously going to be complex, pylint: disable=too-many-branches
 
@@ -836,6 +860,8 @@ def checkReferenceCount(checked_function, max_rounds=10):
 
     print(checked_function.__name__ + ": ", end="")
     sys.stdout.flush()
+
+    disablePrinting()
 
     # Make sure reference for these are already taken at the start.
     ref_count1 = 17
@@ -868,12 +894,17 @@ def checkReferenceCount(checked_function, max_rounds=10):
 
         if ref_count1 == ref_count2:
             result = True
+
             print("PASSED")
             break
-
-        # print count, ref_count1, ref_count2
     else:
         result = False
+
+    reenablePrinting()
+
+    if result:
+        print("PASSED")
+    else:
         print("FAILED", ref_count1, ref_count2, "leaked", ref_count2 - ref_count1)
 
         if explain:
