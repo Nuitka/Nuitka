@@ -117,7 +117,7 @@ def generateListOperationExtendCode(to_name, expression, emit, context):
 
 
 def generateListOperationPopCode(to_name, expression, emit, context):
-    list_arg_name, = generateChildExpressionsCode(
+    (list_arg_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 

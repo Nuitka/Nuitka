@@ -34,7 +34,11 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
-from .TreeHelpers import buildNode, getKind, makeStatementsSequenceFromStatement
+from .TreeHelpers import (
+    buildNode,
+    getKind,
+    makeStatementsSequenceFromStatement,
+)
 
 
 def _makeComparisonNode(left, right, comparator, source_ref):

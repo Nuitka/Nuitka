@@ -35,9 +35,13 @@ from .ModuleCodes import getModuleAccessCode
 
 def generateBuiltinImportCode(to_name, expression, emit, context):
     # We know that 5 expressions are created, pylint: disable=W0632
-    module_name, globals_name, locals_name, import_list_name, level_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
+    (
+        module_name,
+        globals_name,
+        locals_name,
+        import_list_name,
+        level_name,
+    ) = generateChildExpressionsCode(expression=expression, emit=emit, context=context)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context

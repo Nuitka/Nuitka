@@ -1455,9 +1455,11 @@ def _getNbSlotFromOperand(operand, op_code):
 
 
 def _parseTypesFromHelper(helper_name):
-    target_code, left_code, right_code = nuitka.codegen.HelperDefinitions.parseTypesFromHelper(
-        helper_name
-    )
+    (
+        target_code,
+        left_code,
+        right_code,
+    ) = nuitka.codegen.HelperDefinitions.parseTypesFromHelper(helper_name)
 
     if target_code is not None:
         target = findTypeFromCodeName(target_code)

@@ -28,7 +28,10 @@ expression only stuff.
 from abc import abstractmethod
 
 from nuitka import Options, Tracing, TreeXML, Variables
-from nuitka.__past__ import intern, iterItems  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    intern,
+    iterItems,
+)
 from nuitka.Errors import NuitkaNodeError
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference

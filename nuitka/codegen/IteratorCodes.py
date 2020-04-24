@@ -44,7 +44,7 @@ from .templates.CodeTemplatesIterators import (
 
 
 def generateBuiltinNext1Code(to_name, expression, emit, context):
-    value_name, = generateChildExpressionsCode(
+    (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -77,9 +77,12 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
     else:
         break_indicator_code = ""
 
-    exception_type, exception_value, exception_tb, _exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     emit(
         template_loop_break_next
@@ -163,9 +166,12 @@ def generateUnpackCheckCode(statement, emit, context):
         statement.getSourceReference()
     )
 
-    exception_type, exception_value, exception_tb, _exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     emit(
         template_iterator_check

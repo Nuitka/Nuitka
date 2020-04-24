@@ -29,7 +29,11 @@ from .CodeHelpers import (
     pickCodeHelper,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getTakeReferenceCode
+from .ErrorCodes import (
+    getErrorExitBoolCode,
+    getErrorExitCode,
+    getTakeReferenceCode,
+)
 
 
 def generateOperationBinaryCode(to_name, expression, emit, context):
@@ -52,7 +56,7 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
 
 
 def generateOperationNotCode(to_name, expression, emit, context):
-    arg_name, = generateChildExpressionsCode(
+    (arg_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -74,7 +78,7 @@ def generateOperationNotCode(to_name, expression, emit, context):
 
 
 def generateOperationUnaryCode(to_name, expression, emit, context):
-    arg_name, = generateChildExpressionsCode(
+    (arg_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 

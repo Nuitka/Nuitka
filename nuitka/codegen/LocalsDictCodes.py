@@ -23,7 +23,10 @@ statements.
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 
-from .CodeHelpers import generateExpressionCode, withObjectCodeTemporaryAssignment
+from .CodeHelpers import (
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment,
+)
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitBoolCode,

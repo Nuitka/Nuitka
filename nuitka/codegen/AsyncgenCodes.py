@@ -80,9 +80,12 @@ def getAsyncgenObjectCode(
     function_cleanup = finalizeFunctionLocalVariables(context)
 
     if needs_exception_exit:
-        exception_type, exception_value, exception_tb, _exception_lineno = (
-            context.variable_storage.getExceptionVariableDescriptions()
-        )
+        (
+            exception_type,
+            exception_value,
+            exception_tb,
+            _exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
 
         generator_exit = template_asyncgen_exception_exit % {
             "function_cleanup": indented(function_cleanup),

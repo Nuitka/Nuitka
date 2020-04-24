@@ -37,7 +37,10 @@ from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinRef
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
-from nuitka.nodes.ClassNodes import ExpressionClassBody, ExpressionSelectMetaclass
+from nuitka.nodes.ClassNodes import (
+    ExpressionClassBody,
+    ExpressionSelectMetaclass,
+)
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import (
@@ -77,7 +80,10 @@ from nuitka.nodes.NodeMakingHelpers import (
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
-from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance, ExpressionBuiltinType1
+from nuitka.nodes.TypeNodes import (
+    ExpressionBuiltinIsinstance,
+    ExpressionBuiltinType1,
+)
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,

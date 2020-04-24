@@ -31,7 +31,10 @@ from nuitka.nodes.ContainerMakingNodes import (
     ExpressionMakeSetLiteral,
     ExpressionMakeTuple,
 )
-from nuitka.nodes.DictionaryNodes import ExpressionKeyValuePair, ExpressionMakeDict
+from nuitka.nodes.DictionaryNodes import (
+    ExpressionKeyValuePair,
+    ExpressionMakeDict,
+)
 from nuitka.nodes.ExceptionNodes import StatementReraiseException
 from nuitka.nodes.FrameNodes import (
     StatementsFrameAsyncgen,
@@ -44,7 +47,10 @@ from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.PythonVersions import needsSetLiteralReverseInsertion, python_version
+from nuitka.PythonVersions import (
+    needsSetLiteralReverseInsertion,
+    python_version,
+)
 
 
 def dump(node):

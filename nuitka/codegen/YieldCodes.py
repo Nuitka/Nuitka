@@ -20,7 +20,10 @@
 The normal "yield", and the Python 3.3 or higher "yield from" variant.
 """
 
-from .CodeHelpers import generateChildExpressionsCode, withObjectCodeTemporaryAssignment
+from .CodeHelpers import (
+    generateChildExpressionsCode,
+    withObjectCodeTemporaryAssignment,
+)
 from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import getReferenceExportCode
 from .VariableDeclarations import VariableDeclaration
@@ -121,7 +124,7 @@ def _getYieldPreserveCode(
 
 
 def generateYieldCode(to_name, expression, emit, context):
-    value_name, = generateChildExpressionsCode(
+    (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -158,7 +161,7 @@ def generateYieldCode(to_name, expression, emit, context):
 
 
 def generateYieldFromCode(to_name, expression, emit, context):
-    value_name, = generateChildExpressionsCode(
+    (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -198,7 +201,7 @@ def generateYieldFromWaitableCode(to_name, expression, emit, context):
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 
-    awaited_name, = generateChildExpressionsCode(
+    (awaited_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 

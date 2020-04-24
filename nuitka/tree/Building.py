@@ -54,7 +54,10 @@ import sys
 from logging import info, warning
 
 from nuitka import Options, OutputDirectories, SourceCodeReferences
-from nuitka.__past__ import long, unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    long,
+    unicode,
+)
 from nuitka.freezer.Standalone import detectEarlyImports
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
@@ -95,7 +98,10 @@ from nuitka.nodes.ModuleNodes import (
     PythonMainModule,
     PythonShlibModule,
 )
-from nuitka.nodes.OperatorNodes import ExpressionOperationUnary, makeBinaryOperationNode
+from nuitka.nodes.OperatorNodes import (
+    ExpressionOperationUnary,
+    makeBinaryOperationNode,
+)
 from nuitka.nodes.ReturnNodes import (
     StatementReturn,
     StatementReturnNone,
@@ -133,8 +139,14 @@ from .ReformulationContractionExpressions import (
 )
 from .ReformulationDictionaryCreation import buildDictionaryNode
 from .ReformulationExecStatements import buildExecNode
-from .ReformulationForLoopStatements import buildAsyncForLoopNode, buildForLoopNode
-from .ReformulationFunctionStatements import buildAsyncFunctionNode, buildFunctionNode
+from .ReformulationForLoopStatements import (
+    buildAsyncForLoopNode,
+    buildForLoopNode,
+)
+from .ReformulationFunctionStatements import (
+    buildAsyncFunctionNode,
+    buildFunctionNode,
+)
 from .ReformulationImportStatements import (
     buildImportFromNode,
     buildImportModulesNode,
@@ -144,7 +156,10 @@ from .ReformulationImportStatements import (
     pushFutureSpec,
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
-from .ReformulationNamespacePackages import createNamespacePackage, createPathAssignment
+from .ReformulationNamespacePackages import (
+    createNamespacePackage,
+    createPathAssignment,
+)
 from .ReformulationPrintStatements import buildPrintNode
 from .ReformulationSequenceCreation import buildSequenceCreationNode
 from .ReformulationSubscriptExpressions import buildSubscriptNode
@@ -153,7 +168,10 @@ from .ReformulationTryFinallyStatements import buildTryFinallyNode
 from .ReformulationWhileLoopStatements import buildWhileLoopNode
 from .ReformulationWithStatements import buildAsyncWithNode, buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
-from .SourceReading import checkPythonVersionFromCode, readSourceCodeFromFilename
+from .SourceReading import (
+    checkPythonVersionFromCode,
+    readSourceCodeFromFilename,
+)
 from .TreeHelpers import (
     buildNode,
     buildNodeList,

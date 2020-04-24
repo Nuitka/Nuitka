@@ -27,7 +27,11 @@ import os
 import sys
 import tempfile
 
-from nuitka.tools.testing.Common import compileLibraryTest, createSearchMode, setup
+from nuitka.tools.testing.Common import (
+    compileLibraryTest,
+    createSearchMode,
+    setup,
+)
 from nuitka.Tracing import my_print
 from nuitka.utils.SharedLibraries import getSxsFromDLL
 

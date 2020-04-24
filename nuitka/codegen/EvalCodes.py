@@ -21,7 +21,10 @@ from nuitka import Options
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import generateExpressionCode, withObjectCodeTemporaryAssignment
+from .CodeHelpers import (
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment,
+)
 from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .PythonAPICodes import getReferenceExportCode

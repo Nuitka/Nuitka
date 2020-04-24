@@ -32,7 +32,10 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional,
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef, makeConstantRefNode
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantNoneRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.ExecEvalNodes import StatementExec, StatementLocalsDictSync
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals

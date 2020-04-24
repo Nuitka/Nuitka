@@ -32,7 +32,7 @@ def formatOutput(e):
         if lineno is not None and lineno == 0:
             lineno = 1
     else:
-        reason, = e.args
+        (reason,) = e.args
 
         filename = None
         lineno = None

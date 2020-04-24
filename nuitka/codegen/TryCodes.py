@@ -137,9 +137,12 @@ def generateTryCode(statement, emit, context):
         getLabelCode(tried_handler_escape, emit)
 
         # Need to preserve exception state.
-        keeper_type, keeper_value, keeper_tb, keeper_lineno = (
-            context.allocateExceptionKeeperVariables()
-        )
+        (
+            keeper_type,
+            keeper_value,
+            keeper_tb,
+            keeper_lineno,
+        ) = context.allocateExceptionKeeperVariables()
 
         old_keepers = context.setExceptionKeeperVariables(
             (keeper_type, keeper_value, keeper_tb, keeper_lineno)
@@ -147,9 +150,12 @@ def generateTryCode(statement, emit, context):
 
         assert keeper_type is not None
 
-        exception_type, exception_value, exception_tb, exception_lineno = (
-            context.variable_storage.getExceptionVariableDescriptions()
-        )
+        (
+            exception_type,
+            exception_value,
+            exception_tb,
+            exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
 
         # TODO: That normalization and chaining is only necessary if the
         # exception is published.

@@ -104,7 +104,7 @@ def checkSequence(filename, statements):
 
         # Printing is fine.
         if kind == "PrintValue":
-            print_arg, = getRole(statement, "value")
+            (print_arg,) = getRole(statement, "value")
 
             if not isConstantExpression(print_arg):
                 search_mode.onErrorDetected(
@@ -154,7 +154,7 @@ def checkSequence(filename, statements):
             if variable_name == "__spec__":
                 continue
 
-            assign_source, = getRole(statement, "source")
+            (assign_source,) = getRole(statement, "source")
 
             if getKind(assign_source) == "FunctionCreation":
                 continue
@@ -167,7 +167,7 @@ def checkSequence(filename, statements):
             continue
 
         if kind == "AssignmentAttribute":
-            assign_source, = getRole(statement, "expression")
+            (assign_source,) = getRole(statement, "expression")
 
             if getKind(assign_source) == "ModuleAttributeSpecRef":
                 continue
@@ -262,7 +262,7 @@ def main():
                 checkSequence(filename, module_statements)
 
                 for function in root.xpath('role[@name="functions"]/node'):
-                    function_body, = function.xpath('role[@name="body"]')
+                    (function_body,) = function.xpath('role[@name="body"]')
                     function_statements_sequence = function_body[0]
                     assert len(function_statements_sequence) == 1
                     function_statements = next(iter(function_statements_sequence))

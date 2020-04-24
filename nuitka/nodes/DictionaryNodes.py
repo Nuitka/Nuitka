@@ -29,8 +29,14 @@ from nuitka.PythonVersions import python_version
 
 from .AttributeNodes import ExpressionAttributeLookup
 from .BuiltinHashNodes import ExpressionBuiltinHash
-from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
-from .NodeBases import SideEffectsFromChildrenMixin, StatementChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase,
+)
+from .NodeBases import (
+    SideEffectsFromChildrenMixin,
+    StatementChildrenHavingBase,
+)
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeRaiseExceptionExpressionFromTemplate,

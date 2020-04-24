@@ -40,7 +40,10 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.Tracing import my_print
-from nuitka.utils.Execution import check_output, wrapCommandForDebuggerForSubprocess
+from nuitka.utils.Execution import (
+    check_output,
+    wrapCommandForDebuggerForSubprocess,
+)
 from nuitka.utils.Timing import StopWatch
 
 
@@ -145,9 +148,12 @@ def getCPythonResults(cpython_cmd, cpython_cached):
 
         if os.path.exists(cache_filename):
             with open(cache_filename, "rb") as cache_file:
-                cpython_time, stdout_cpython, stderr_cpython, exit_cpython = pickle.load(
-                    cache_file
-                )
+                (
+                    cpython_time,
+                    stdout_cpython,
+                    stderr_cpython,
+                    exit_cpython,
+                ) = pickle.load(cache_file)
                 cached = True
 
     if not cached:

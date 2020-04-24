@@ -27,7 +27,10 @@ from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeList, ExpressionMakeTuple
+from nuitka.nodes.ContainerMakingNodes import (
+    ExpressionMakeList,
+    ExpressionMakeTuple,
+)
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModuleNameHard,
@@ -38,7 +41,10 @@ from nuitka.nodes.ModuleNodes import CompiledPythonPackage
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 
-from .TreeHelpers import makeAbsoluteImportNode, makeStatementsSequenceFromStatement
+from .TreeHelpers import (
+    makeAbsoluteImportNode,
+    makeStatementsSequenceFromStatement,
+)
 from .VariableClosure import completeVariableClosures
 
 

@@ -251,9 +251,12 @@ def getFrameGuardHeavyCode(
         frame_identifier.code_name
     )
 
-    _exception_type, _exception_value, _exception_tb, exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        _exception_type,
+        _exception_value,
+        _exception_tb,
+        exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     emit(
         template_frame_guard_full_block
@@ -281,9 +284,12 @@ def getFrameGuardHeavyCode(
         )
 
     if frame_exception_exit is not None:
-        _exception_type, _exception_value, exception_tb, exception_lineno = (
-            context.variable_storage.getExceptionVariableDescriptions()
-        )
+        (
+            _exception_type,
+            _exception_value,
+            exception_tb,
+            exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
 
         emit(
             template_frame_guard_full_exception_handler
@@ -335,9 +341,12 @@ def getFrameGuardOnceCode(
     )
 
     if frame_exception_exit is not None:
-        _exception_type, _exception_value, exception_tb, exception_lineno = (
-            context.variable_storage.getExceptionVariableDescriptions()
-        )
+        (
+            _exception_type,
+            _exception_value,
+            exception_tb,
+            exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
 
         emit(
             template_frame_guard_once_exception_handler
@@ -370,9 +379,12 @@ def getFrameGuardLightCode(
 ):
     # We really need this many parameters here and it gets very
     # detail rich, pylint: disable=too-many-locals
-    exception_type, _exception_value, exception_tb, exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        _exception_value,
+        exception_tb,
+        exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     context_identifier = context.getContextObjectName()
 
@@ -443,9 +455,11 @@ def generateFramePreserveExceptionCode(statement, emit, context):
         preserver_id = statement.getPreserverId()
 
         assert preserver_id != 0, statement
-        exception_preserved_type, exception_preserved_value, exception_preserved_tb = context.addExceptionPreserverVariables(
-            preserver_id
-        )
+        (
+            exception_preserved_type,
+            exception_preserved_value,
+            exception_preserved_tb,
+        ) = context.addExceptionPreserverVariables(preserver_id)
 
         # TODO: Multiple thread state calls should be avoided.
         emit(
@@ -476,9 +490,11 @@ def generateFrameRestoreExceptionCode(statement, emit, context):
     else:
         preserver_id = statement.getPreserverId()
 
-        exception_preserved_type, exception_preserved_value, exception_preserved_tb = context.addExceptionPreserverVariables(
-            preserver_id
-        )
+        (
+            exception_preserved_type,
+            exception_preserved_value,
+            exception_preserved_tb,
+        ) = context.addExceptionPreserverVariables(preserver_id)
 
         emit(
             "SET_CURRENT_EXCEPTION(%s, %s, %s);"

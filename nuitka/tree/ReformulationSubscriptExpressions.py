@@ -27,7 +27,10 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
-from nuitka.nodes.SliceNodes import ExpressionBuiltinSlice, ExpressionSliceLookup
+from nuitka.nodes.SliceNodes import (
+    ExpressionBuiltinSlice,
+    ExpressionSliceLookup,
+)
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.PythonVersions import python_version
 

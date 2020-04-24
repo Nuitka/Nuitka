@@ -33,7 +33,10 @@ from nuitka import Options, Tracing
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
-from nuitka.utils.FileOperations import getExternalUsePath, getWindowsShortPathName
+from nuitka.utils.FileOperations import (
+    getExternalUsePath,
+    getWindowsShortPathName,
+)
 
 
 def getSconsDataPath():

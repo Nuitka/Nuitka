@@ -24,7 +24,10 @@ it that could be in-lined sometimes for more static analysis.
 
 from nuitka.specs import BuiltinParameterSpecs
 
-from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase,
+)
 
 
 class ExpressionBuiltinSumMixin(object):

@@ -100,7 +100,7 @@ def generateDelAttributeCode(statement, emit, context):
 
 
 def generateAttributeLookupCode(to_name, expression, emit, context):
-    source_name, = generateChildExpressionsCode(
+    (source_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -194,7 +194,7 @@ def getAttributeDelCode(target_name, attribute_name, emit, context):
 
 
 def generateAttributeLookupSpecialCode(to_name, expression, emit, context):
-    source_name, = generateChildExpressionsCode(
+    (source_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -251,7 +251,7 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
 
 
 def generateAttributeCheckCode(to_name, expression, emit, context):
-    source_name, = generateChildExpressionsCode(
+    (source_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 

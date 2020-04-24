@@ -29,7 +29,10 @@ from nuitka import PythonOperators
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 
-from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase,
+)
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,

@@ -46,7 +46,12 @@ sys.path.insert(
 # isort:start
 
 import nuitka
-from nuitka.tools.testing.Common import createSearchMode, my_print, reportSkip, setup
+from nuitka.tools.testing.Common import (
+    createSearchMode,
+    my_print,
+    reportSkip,
+    setup,
+)
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.AppDirs import getCacheDir

@@ -98,7 +98,7 @@ The mode of update, prerelease, hotfix, release, auto (default auto determines f
     with open("nuitka/Version.py") as f:
         option_lines = f.readlines()
 
-    version_line, = [line for line in option_lines if line.startswith("Nuitka V")]
+    (version_line,) = [line for line in option_lines if line.startswith("Nuitka V")]
 
     old_version = version_line[8:].rstrip()
 

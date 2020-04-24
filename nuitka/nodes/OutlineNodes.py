@@ -80,7 +80,9 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
         if temp_scope is None:
             temp_scope = self.getOutlineTempScope()
 
-        return self.provider.allocateTempVariable(temp_scope=temp_scope, name=name, temp_type=temp_type)
+        return self.provider.allocateTempVariable(
+            temp_scope=temp_scope, name=name, temp_type=temp_type
+        )
 
     def allocateTempScope(self, name):
 
@@ -278,7 +280,9 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
         if temp_scope is None:
             temp_scope = self.getOutlineTempScope()
 
-        return self.provider.allocateTempVariable(temp_scope=temp_scope, name=name, temp_type=None)
+        return self.provider.allocateTempVariable(
+            temp_scope=temp_scope, name=name, temp_type=None
+        )
 
     def allocateTempScope(self, name):
 

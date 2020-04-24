@@ -25,7 +25,10 @@ import os
 
 from nuitka import Options, Variables
 from nuitka.containers.oset import OrderedSet
-from nuitka.importing.Importing import findModule, getModuleNameAndKindFromFilename
+from nuitka.importing.Importing import (
+    findModule,
+    getModuleNameAndKindFromFilename,
+)
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule

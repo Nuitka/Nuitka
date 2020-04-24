@@ -91,9 +91,12 @@ def getErrorExitBoolCode(
         getAssertionCode("!(%s)" % condition, emit)
         return
 
-    exception_type, exception_value, exception_tb, _exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     if quick_exception:
         emit(
@@ -159,9 +162,12 @@ def getErrorExitCode(
 def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
     assert not condition.endswith(";")
 
-    exception_type, exception_value, exception_tb, _exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     if len(args) == 1 and type(args[0]) is str:
         from .ConstantCodes import getModuleConstantCode

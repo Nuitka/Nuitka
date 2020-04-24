@@ -43,7 +43,7 @@ if os.name == "nt":
 # don't mean to pollute with ".pyc" files and similar effects.
 def detectVersion():
     with open("nuitka/Version.py") as version_file:
-        version_line, = [line for line in version_file if line.startswith("Nuitka V")]
+        (version_line,) = [line for line in version_file if line.startswith("Nuitka V")]
 
         return version_line.split("V")[1].strip()
 

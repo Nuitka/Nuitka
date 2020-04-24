@@ -649,7 +649,7 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         for variable, versions in iterItems(variable_versions):
             if len(versions) == 1:
-                version, = versions
+                (version,) = versions
             else:
                 version = self.addVariableMergeMultipleTrace(
                     variable=variable,

@@ -41,7 +41,12 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     xrange,
 )
 from nuitka.Builtins import builtin_named_values, builtin_named_values_list
-from nuitka.Constants import NoneType, compareConstants, getConstantWeight, isMutable
+from nuitka.Constants import (
+    NoneType,
+    compareConstants,
+    getConstantWeight,
+    isMutable,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import codegen_missing, general
 from nuitka.Version import getNuitkaVersion

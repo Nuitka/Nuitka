@@ -28,7 +28,11 @@ from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getAssertionCode, getErrorExitBoolCode, getErrorExitCode
+from .ErrorCodes import (
+    getAssertionCode,
+    getErrorExitBoolCode,
+    getErrorExitCode,
+)
 from .PythonAPICodes import generateCAPIObjectCode
 
 
@@ -316,7 +320,7 @@ def generateBuiltinComplex2Code(to_name, expression, emit, context):
 
 
 def generateBuiltinBoolCode(to_name, expression, emit, context):
-    arg_name, = generateChildExpressionsCode(
+    (arg_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 

@@ -48,7 +48,10 @@ from .templates.CodeTemplatesFunction import (
     template_maker_function_body,
 )
 from .TupleCodes import getTupleCreationCode
-from .VariableCodes import decideLocalVariableCodeType, getLocalVariableDeclaration
+from .VariableCodes import (
+    decideLocalVariableCodeType,
+    getLocalVariableDeclaration,
+)
 
 
 def _getFunctionCreationArgs(defaults_name, kw_defaults_name, annotations_name):
@@ -624,9 +627,12 @@ def _getFunctionCode(
     del emit
 
     if needs_exception_exit:
-        exception_type, exception_value, exception_tb, _exception_lineno = (
-            context.variable_storage.getExceptionVariableDescriptions()
-        )
+        (
+            exception_type,
+            exception_value,
+            exception_tb,
+            _exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
 
         function_exit += template_function_exception_exit % {
             "function_cleanup": indented(function_cleanup),

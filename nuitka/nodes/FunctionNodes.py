@@ -31,7 +31,11 @@ classes.
 
 from nuitka import Options, Variables
 from nuitka.PythonVersions import python_version
-from nuitka.specs.ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
+from nuitka.specs.ParameterSpecs import (
+    ParameterSpec,
+    TooManyArguments,
+    matchCall,
+)
 from nuitka.tree.Extractions import updateVariableUsage
 
 from .Checkers import checkStatementsSequenceOrNone
@@ -43,7 +47,10 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
 )
 from .FutureSpecs import fromFlags
-from .IndicatorMixins import EntryPointMixin, MarkUnoptimizedFunctionIndicatorMixin
+from .IndicatorMixins import (
+    EntryPointMixin,
+    MarkUnoptimizedFunctionIndicatorMixin,
+)
 from .LocalsScopes import getLocalsDictHandle, setLocalsDictType
 from .NodeBases import (
     ClosureGiverNodeMixin,

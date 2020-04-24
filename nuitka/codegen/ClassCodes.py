@@ -23,7 +23,10 @@ of the metaclass remains as specific.
 
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import generateChildExpressionsCode, withObjectCodeTemporaryAssignment
+from .CodeHelpers import (
+    generateChildExpressionsCode,
+    withObjectCodeTemporaryAssignment,
+)
 from .ErrorCodes import getErrorExitCode
 
 

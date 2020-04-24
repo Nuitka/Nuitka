@@ -63,12 +63,18 @@ from nuitka.nodes.SubscriptNodes import (
     ExpressionSubscriptLookup,
     StatementAssignmentSubscript,
 )
-from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance, ExpressionBuiltinType1
+from nuitka.nodes.TypeNodes import (
+    ExpressionBuiltinIsinstance,
+    ExpressionBuiltinType1,
+)
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.PythonVersions import getComplexCallSequenceErrorTemplate, python_version
+from nuitka.PythonVersions import (
+    getComplexCallSequenceErrorTemplate,
+    python_version,
+)
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .InternalModule import (

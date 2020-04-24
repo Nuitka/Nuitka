@@ -77,7 +77,10 @@ from .ComparisonCodes import (
     generateBuiltinIsinstanceCode,
     generateComparisonExpressionCode,
 )
-from .ConditionalCodes import generateConditionalAndOrCode, generateConditionalCode
+from .ConditionalCodes import (
+    generateConditionalAndOrCode,
+    generateConditionalCode,
+)
 from .ConstantCodes import (
     generateConstantEllipsisReferenceCode,
     generateConstantFalseReferenceCode,
@@ -118,7 +121,10 @@ from .ExceptionCodes import (
     generateExceptionPublishCode,
     generateExceptionRefCode,
 )
-from .ExpressionCodes import generateExpressionOnlyCode, generateSideEffectsCode
+from .ExpressionCodes import (
+    generateExpressionOnlyCode,
+    generateSideEffectsCode,
+)
 from .FrameCodes import (
     generateFramePreserveExceptionCode,
     generateFrameRestoreExceptionCode,
@@ -186,7 +192,11 @@ from .LocalsDictCodes import (
     generateReleaseLocalsDictCode,
     generateSetLocalsDictCode,
 )
-from .LoopCodes import generateLoopBreakCode, generateLoopCode, generateLoopContinueCode
+from .LoopCodes import (
+    generateLoopBreakCode,
+    generateLoopCode,
+    generateLoopContinueCode,
+)
 from .ModuleCodes import (
     generateModuleAttributeCode,
     generateModuleAttributeFileCode,

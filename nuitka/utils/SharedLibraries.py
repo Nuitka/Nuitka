@@ -30,7 +30,11 @@ from nuitka.PythonVersions import python_version
 
 from .FileOperations import withMadeWritableFileMode
 from .Utils import getArchitecture, getOS, isAlpineLinux, isWin32Windows
-from .WindowsResources import RT_MANIFEST, deleteWindowsResources, getResourcesFromDLL
+from .WindowsResources import (
+    RT_MANIFEST,
+    deleteWindowsResources,
+    getResourcesFromDLL,
+)
 
 
 def localDLLFromFilesystem(name, paths):

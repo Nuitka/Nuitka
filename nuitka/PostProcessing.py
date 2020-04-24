@@ -26,7 +26,11 @@ import sys
 
 from nuitka import Options
 from nuitka.codegen import ConstantCodes
-from nuitka.PythonVersions import getPythonABI, getTargetPythonDLLPath, python_version
+from nuitka.PythonVersions import (
+    getPythonABI,
+    getTargetPythonDLLPath,
+    python_version,
+)
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     callInstallNameToolAddRPath,

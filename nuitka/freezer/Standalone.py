@@ -42,7 +42,10 @@ from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
     isStandardLibraryPath,
 )
-from nuitka.nodes.ModuleNodes import PythonShlibModule, makeUncompiledPythonModule
+from nuitka.nodes.ModuleNodes import (
+    PythonShlibModule,
+    makeUncompiledPythonModule,
+)
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename

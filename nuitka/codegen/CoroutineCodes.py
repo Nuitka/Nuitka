@@ -86,9 +86,12 @@ def getCoroutineObjectCode(
     function_cleanup = finalizeFunctionLocalVariables(context)
 
     if needs_exception_exit:
-        exception_type, exception_value, exception_tb, _exception_lineno = (
-            context.variable_storage.getExceptionVariableDescriptions()
-        )
+        (
+            exception_type,
+            exception_value,
+            exception_tb,
+            _exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
 
         generator_exit = template_coroutine_exception_exit % {
             "function_cleanup": indented(function_cleanup),
@@ -169,7 +172,7 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
 def generateAsyncWaitCode(to_name, expression, emit, context):
     emitLineNumberUpdateCode(emit, context)
 
-    value_name, = generateChildExpressionsCode(
+    (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -190,7 +193,7 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
 
 
 def generateAsyncIterCode(to_name, expression, emit, context):
-    value_name, = generateChildExpressionsCode(
+    (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -208,7 +211,7 @@ def generateAsyncIterCode(to_name, expression, emit, context):
 
 
 def generateAsyncNextCode(to_name, expression, emit, context):
-    value_name, = generateChildExpressionsCode(
+    (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 

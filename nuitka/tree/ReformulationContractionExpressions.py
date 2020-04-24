@@ -48,7 +48,10 @@ from nuitka.nodes.DictionaryNodes import (
     StatementDictOperationSet,
     StatementDictOperationSetKeyValue,
 )
-from nuitka.nodes.FrameNodes import StatementsFrameFunction, StatementsFrameGenerator
+from nuitka.nodes.FrameNodes import (
+    StatementsFrameFunction,
+    StatementsFrameGenerator,
+)
 from nuitka.nodes.FunctionNodes import ExpressionFunctionRef
 from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
@@ -57,11 +60,20 @@ from nuitka.nodes.GeneratorNodes import (
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.NodeMakingHelpers import makeVariableRefNode
-from nuitka.nodes.OutlineNodes import ExpressionOutlineBody, ExpressionOutlineFunction
+from nuitka.nodes.OutlineNodes import (
+    ExpressionOutlineBody,
+    ExpressionOutlineFunction,
+)
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.StatementNodes import StatementExpressionOnly, StatementsSequence
+from nuitka.nodes.StatementNodes import (
+    StatementExpressionOnly,
+    StatementsSequence,
+)
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFromWaitable
+from nuitka.nodes.YieldNodes import (
+    ExpressionYield,
+    ExpressionYieldFromWaitable,
+)
 from nuitka.PythonVersions import python_version
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements

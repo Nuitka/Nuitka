@@ -23,7 +23,10 @@ import marshal
 from logging import info
 
 from nuitka import Options
-from nuitka.importing.ImportCache import isImportedModuleByName, replaceImportedModule
+from nuitka.importing.ImportCache import (
+    isImportedModuleByName,
+    replaceImportedModule,
+)
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 from nuitka.plugins.Plugins import Plugins

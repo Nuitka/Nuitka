@@ -36,7 +36,10 @@ and annotation is happening in the nodes that implement these compute slots.
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 
-from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase,
+)
 from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
@@ -329,7 +332,11 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
 
                 # If source or attribute have side effects, they must be
                 # evaluated, before the lookup.
-                result, tags, change_desc = trace_collection.getCompileTimeComputationResult(
+                (
+                    result,
+                    tags,
+                    change_desc,
+                ) = trace_collection.getCompileTimeComputationResult(
                     node=self,
                     computation=lambda: hasattr(
                         source.getCompileTimeConstant(), attribute_name
@@ -373,7 +380,11 @@ class ExpressionAttributeCheck(ExpressionChildHavingBase):
         source = self.getLookupSource()
 
         if source.isCompileTimeConstant():
-            result, tags, change_desc = trace_collection.getCompileTimeComputationResult(
+            (
+                result,
+                tags,
+                change_desc,
+            ) = trace_collection.getCompileTimeComputationResult(
                 node=self,
                 computation=lambda: hasattr(
                     source.getCompileTimeConstant(), self.attribute_name

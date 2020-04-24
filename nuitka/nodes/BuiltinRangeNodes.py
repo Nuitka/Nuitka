@@ -28,7 +28,10 @@ import math
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
-from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase,
+)
 from .IterationHandles import (
     ConstantIterationHandleRange1,
     ConstantIterationHandleRange2,

@@ -216,9 +216,11 @@ if python_version < 300:
         builtin_spec = BuiltinParameterSpecs.builtin_str_spec
 
         def computeExpression(self, trace_collection):
-            new_node, change_tags, change_desc = ExpressionBuiltinTypeBase.computeExpression(
-                self, trace_collection
-            )
+            (
+                new_node,
+                change_tags,
+                change_desc,
+            ) = ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
 
             if new_node is self:
                 str_value = self.getValue().getStrValue()

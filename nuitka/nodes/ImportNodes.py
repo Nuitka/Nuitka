@@ -28,9 +28,15 @@ deeper that what it normally could. The import expression node can recurse.
 import os
 from logging import warning
 
-from nuitka.__past__ import long, unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    long,
+    unicode,
+)
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
-from nuitka.importing.Importing import findModule, getModuleNameAndKindFromFilename
+from nuitka.importing.Importing import (
+    findModule,
+    getModuleNameAndKindFromFilename,
+)
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
 from nuitka.ModuleRegistry import getUncompiledModule
@@ -414,7 +420,11 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                 # TODO: This doesn't preserve side effects.
 
                 # Non-strings is going to raise an error.
-                new_node, change_tags, message = trace_collection.getCompileTimeComputationResult(
+                (
+                    new_node,
+                    change_tags,
+                    message,
+                ) = trace_collection.getCompileTimeComputationResult(
                     node=self,
                     computation=lambda: __import__(module_name.getConstant()),
                     description="Replaced '__import__' call with non-string module name argument.",

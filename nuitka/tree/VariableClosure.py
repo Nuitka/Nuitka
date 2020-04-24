@@ -36,13 +36,19 @@ from nuitka.nodes.LocalsDictNodes import (
     StatementLocalsDictOperationDel,
     StatementLocalsDictOperationSet,
 )
-from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode, mergeStatements
+from nuitka.nodes.NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    mergeStatements,
+)
 from nuitka.nodes.OperatorNodes import makeExpressionOperationBinaryInplace
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.PythonVersions import getErrorMessageExecWithNestedFunction, python_version
+from nuitka.PythonVersions import (
+    getErrorMessageExecWithNestedFunction,
+    python_version,
+)
 from nuitka.Variables import isSharedAmongScopes, releaseSharedScopeInformation
 
 from .Operations import VisitorNoopMixin, visitTree

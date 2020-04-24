@@ -31,7 +31,10 @@ from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
     ExpressionAttributeLookupSpecial,
 )
-from nuitka.nodes.CallNodes import ExpressionCallEmpty, ExpressionCallNoKeywords
+from nuitka.nodes.CallNodes import (
+    ExpressionCallEmpty,
+    ExpressionCallNoKeywords,
+)
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -45,7 +48,10 @@ from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTypeRef,
     ExpressionCaughtExceptionValueRef,
 )
-from nuitka.nodes.StatementNodes import StatementExpressionOnly, StatementsSequence
+from nuitka.nodes.StatementNodes import (
+    StatementExpressionOnly,
+    StatementsSequence,
+)
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.PythonVersions import python_version

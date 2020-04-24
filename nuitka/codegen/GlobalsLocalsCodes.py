@@ -22,7 +22,10 @@ This also includes writing back to locals for exec statements.
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 
-from .CodeHelpers import decideConversionCheckNeeded, withObjectCodeTemporaryAssignment
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    withObjectCodeTemporaryAssignment,
+)
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitBoolCode
 from .Indentation import indented
@@ -33,7 +36,10 @@ from .templates.CodeTemplatesVariables import (
     template_update_locals_dict_value,
     template_update_locals_mapping_value,
 )
-from .VariableCodes import getLocalVariableDeclaration, getVariableReferenceCode
+from .VariableCodes import (
+    getLocalVariableDeclaration,
+    getVariableReferenceCode,
+)
 from .VariableDeclarations import VariableDeclaration
 
 

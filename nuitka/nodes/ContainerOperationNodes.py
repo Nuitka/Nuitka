@@ -21,7 +21,10 @@
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 
-from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase,
+)
 from .NodeBases import StatementChildrenHavingBase
 
 
