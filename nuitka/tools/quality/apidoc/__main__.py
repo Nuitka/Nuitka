@@ -26,12 +26,15 @@ from __future__ import print_function
 import os
 import shutil
 import stat
-import subprocess
 import sys
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
-from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
+from nuitka.utils.Execution import (
+    check_call,
+    getExecutablePath,
+    withEnvironmentPathAdded,
+)
 from nuitka.utils.FileOperations import getFileContents, withTemporaryFile
 from nuitka.utils.Utils import getOS
 
@@ -101,7 +104,7 @@ Default is %default.""",
 
     print("Running doxygen:")
     try:
-        subprocess.check_call([doxygen_path, doxy_filename])
+        check_call([doxygen_path, doxy_filename])
     finally:
         os.unlink(doxy_filename)
         os.unlink(doxy_batch_filename)

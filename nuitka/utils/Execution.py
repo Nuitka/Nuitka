@@ -175,6 +175,7 @@ def check_call(*popenargs, **kwargs):
     except OSError:
         sys.exit("Error, failed to execute '%s'. Is it installed?" % popenargs[0])
 
+
 @contextmanager
 def withEnvironmentPathAdded(env_var_name, path):
     if type(path) in (tuple, list):

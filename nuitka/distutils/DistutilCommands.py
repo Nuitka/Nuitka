@@ -22,12 +22,12 @@
 import distutils.command.build  # pylint: disable=I0021,import-error,no-name-in-module
 import distutils.command.install  # pylint: disable=I0021,import-error,no-name-in-module
 import os
-import subprocess
 import sys
 
 import wheel.bdist_wheel  # pylint: disable=I0021,import-error,no-name-in-module
 
 from nuitka.tools.testing.Common import my_print
+from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import copyTree, removeDirectory
 
 
@@ -223,7 +223,7 @@ class build(distutils.command.build.build):
 
             # added for clarity
             my_print("Building: %s" % to_build, style="yellow")
-            subprocess.check_call(command, cwd=build_lib)
+            check_call(command, cwd=build_lib)
 
             for root, _, filenames in os.walk(build_lib):
                 for filename in filenames:

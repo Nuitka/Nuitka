@@ -34,7 +34,11 @@ from nuitka.tools.quality.Git import (
     updateWorkingFile,
 )
 from nuitka.Tracing import my_print
-from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
+from nuitka.utils.Execution import (
+    check_call,
+    getExecutablePath,
+    withEnvironmentPathAdded,
+)
 from nuitka.utils.FileOperations import (
     getFileContents,
     renameFile,
@@ -239,7 +243,7 @@ def _cleanupImportSortOrder(filename):
             out_file.write(contents)
 
     with open(os.devnull, "w") as devnull:
-        subprocess.check_call(
+        check_call(
             isort_call
             + [
                 "-q",  # quiet, but stdout is still garbage

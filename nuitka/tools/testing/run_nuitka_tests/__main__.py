@@ -33,6 +33,7 @@ from optparse import OptionParser
 from nuitka.tools.Basics import goHome
 from nuitka.tools.testing.Common import withDirectoryChange
 from nuitka.utils.Execution import (
+    check_call,
     check_output,
     getExecutablePath,
     getPythonExePathWindows,
@@ -393,7 +394,7 @@ def publishCoverageData():
         if coverage_dir is None:
             return
 
-        subprocess.check_call(("scp", source, os.path.join(coverage_dir, target)))
+        check_call(("scp", source, os.path.join(coverage_dir, target)))
 
     if os.name == "nt":
         suffix = "win"

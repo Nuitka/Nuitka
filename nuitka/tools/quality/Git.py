@@ -27,6 +27,8 @@ Original author: Jesse Hallett <jesse@sitr.us>
 import re
 import subprocess
 
+from nuitka.utils.Execution import check_call, check_output
+
 
 # Parse output from `git diff-index`
 def _parseIndexDiffLine(line):
@@ -59,7 +61,7 @@ def _parseIndexDiffLine(line):
 
 def getStagedFileChangeDesc():
     # Only file additions and modifications
-    output = subprocess.check_output(
+    output = check_output(
         ["git", "diff-index", "--cached", "--diff-filter=AM", "--no-renames", "HEAD"]
     )
 
@@ -71,11 +73,11 @@ def getStagedFileChangeDesc():
 
 
 def getFileHashContent(object_hash):
-    return subprocess.check_output(["git", "cat-file", "-p", object_hash])
+    return check_output(["git", "cat-file", "-p", object_hash])
 
 
 def putFileHashContent(filename):
-    new_hash = subprocess.check_output(
+    new_hash = check_output(
         ["git", "hash-object", "-w", "--stdin"], stdin=open(filename)
     )
 
@@ -87,7 +89,7 @@ def putFileHashContent(filename):
 
 
 def updateFileIndex(diff_entry, new_object_hash):
-    subprocess.check_call(
+    check_call(
         [
             "git",
             "update-index",
@@ -99,7 +101,7 @@ def updateFileIndex(diff_entry, new_object_hash):
 
 
 def updateWorkingFile(path, orig_object_hash, new_object_hash):
-    patch = subprocess.check_output(["git", "diff", orig_object_hash, new_object_hash])
+    patch = check_output(["git", "diff", orig_object_hash, new_object_hash])
 
     # Substitute object hashes in patch header with path to working tree file
     patch_b = patch.replace(orig_object_hash.encode(), path.encode()).replace(

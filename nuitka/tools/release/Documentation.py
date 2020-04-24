@@ -24,8 +24,9 @@ from __future__ import print_function
 import os
 import sys
 
-from nuitka.utils.FileOperations import getFileList
 from nuitka.utils.Execution import check_call
+from nuitka.utils.FileOperations import getFileList
+
 
 def optimize_pngs(pngList):
     for png in pngList:
@@ -36,10 +37,7 @@ def makeLogoImages():
     basePathLogo = "doc/Logo/Nuitka-Logo-%s"
 
     for logo in ("Vertical", "Symbol", "Horizontal"):
-        cmd = "convert -background none %s.svg %s.png" % (
-            basePathLogo,
-            basePathLogo,
-        )
+        cmd = "convert -background none %s.svg %s.png" % (basePathLogo, basePathLogo)
         check_call((cmd % (logo, logo)).split())
 
     optimize_pngs(
@@ -93,7 +91,7 @@ def makeManpages():
             "--no-info",
             "--include",
             "doc/nuitka-man-include.txt",
-            "%s ./bin/nuitka" % python
+            "%s ./bin/nuitka" % python,
         ]
         check_call(cmd, stdout=open("doc/nuitka%s.1" % suffix, "wb"))
         cmd[-1] += "-run"
