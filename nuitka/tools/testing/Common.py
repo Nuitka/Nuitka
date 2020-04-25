@@ -824,7 +824,9 @@ def snapObjRefCntMap(before):
         if type(x) is str and (x in m1 or x in m2):
             continue
 
-        if type(x) is dict and "__builtins__" in x:
+        if type(x) is not str and isinstance(x, str):
+            k = "str_overload_" + x.__class__.__name__ + str(x)
+        elif type(x) is dict and "__builtins__" in x:
             k = "<module dict %s>" % x["__name__"]
         else:
             k = str(x)
@@ -853,16 +855,41 @@ def reenablePrinting():
         orig_print = None
 
 
+_debug_python = hasattr(sys, "gettotalrefcount")
+
+
 def getTotalReferenceCount():
-    try:
-        sys.gettotalrefcount()
-    except AttributeError:
-        return len(gc.get_objects())
+    if _debug_python:
+        gc.collect()
+        return sys.gettotalrefcount()
+    else:
+        gc.collect()
+        all_objects = gc.get_objects()
+
+        # Sum object reference twice, once without the sum value type, then switch
+        # the type, and use the type used to avoid the integers before that.
+        result = 0.0
+        for obj in all_objects:
+            if type(obj) is float:
+                continue
+
+            result += sys.getrefcount(obj)
+
+        result = int(result)
+
+        for obj in all_objects:
+            if type(obj) is not float:
+                continue
+
+            result += sys.getrefcount(obj)
+
+        return result
 
 
-def checkReferenceCount(checked_function, max_rounds=10):
+def checkReferenceCount(checked_function, max_rounds=20, explain=False):
     # This is obviously going to be complex, pylint: disable=too-many-branches
 
+    # Clean start conditions.
     assert sys.exc_info() == (None, None, None), sys.exc_info()
 
     print(checked_function.__name__ + ": ", end="")
@@ -874,39 +901,32 @@ def checkReferenceCount(checked_function, max_rounds=10):
     ref_count1 = 17
     ref_count2 = 17
 
-    explain = False
-
     if explain:
         cleanObjRefCntMaps()
 
     assert max_rounds > 0
 
+    result = False
+
     for count in range(max_rounds):
         if explain and count == max_rounds - 1:
             snapObjRefCntMap(before=True)
 
-        gc.collect()
         ref_count1 = getTotalReferenceCount()
 
         checked_function()
 
+        ref_count2 = getTotalReferenceCount()
+
         # Not allowed, but happens when bugs occur.
         assert sys.exc_info() == (None, None, None), sys.exc_info()
 
-        gc.collect()
-
-        ref_count2 = getTotalReferenceCount()
+        if ref_count1 == ref_count2:
+            result = True
+            break
 
         if explain and count == max_rounds - 1:
             snapObjRefCntMap(before=False)
-
-        if ref_count1 == ref_count2:
-            result = True
-
-            print("PASSED")
-            break
-    else:
-        result = False
 
     reenablePrinting()
 
@@ -916,6 +936,7 @@ def checkReferenceCount(checked_function, max_rounds=10):
         print("FAILED", ref_count1, ref_count2, "leaked", ref_count2 - ref_count1)
 
         if explain:
+            print("REPORT of differences:")
             assert m1
             assert m2
 
@@ -982,7 +1003,7 @@ def reportSkip(reason, dirname, filename):
     my_print("Skipped, %s (%s)." % (case, reason))
 
 
-def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
+def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr, explain=False):
     gc.disable()
 
     extract_number = lambda name: int(name.replace(prefix, ""))
@@ -1010,10 +1031,10 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
             if number in tests_stderr:
                 sys.stderr = open(os.devnull, "wb")
         except OSError:  # Windows
-            if not checkReferenceCount(names[name]):
+            if not checkReferenceCount(names[name], explain=explain):
                 result = False
         else:
-            if not checkReferenceCount(names[name]):
+            if not checkReferenceCount(names[name], explain=explain):
                 result = False
 
             if number in tests_stderr:

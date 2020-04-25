@@ -41,8 +41,6 @@ from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
     decideNeeds2to3,
-    hasDebugPython,
-    my_print,
     scanDirectoryForTestCases,
     setup,
 )
@@ -100,10 +98,6 @@ def main():
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
-            if filename.startswith("Referencing") and not hasDebugPython():
-                my_print("Skipped (no debug Python)")
-                continue
-
             compareWithCPython(
                 dirname=None,
                 filename=filename,

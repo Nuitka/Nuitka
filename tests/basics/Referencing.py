@@ -714,12 +714,13 @@ def simpleFunction76():
             pass
 
 
-def simpleFunction77():
-    class weirdstr(str):
-        def __getitem__(self, index):
-            return weirdstr(str.__getitem__(self, index))
+class weirdstr(str):
+    def __getitem__(self, index):
+        return weirdstr(str.__getitem__(self, index))
 
-    filter(lambda x: x >= "33", weirdstr("1234"))
+
+def simpleFunction77():
+    return filter(lambda x: x >= "33", weirdstr("1234"))
 
 
 def simpleFunction78():

@@ -25,18 +25,20 @@ import os
 from nuitka.PythonVersions import python_version
 
 
-def importFilePy3NewWay(filename):
+def _importFilePy3NewWay(filename):
     """ Import a file for Python versions 3.5+.
     """
     import importlib.util  # pylint: disable=I0021,import-error,no-name-in-module
 
-    spec = importlib.util.spec_from_file_location(filename, filename)
+    spec = importlib.util.spec_from_file_location(
+        os.path.basename(filename).split(".")[0], filename
+    )
     user_plugin_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(user_plugin_module)
     return user_plugin_module
 
 
-def importFilePy3OldWay(filename):
+def _importFilePy3OldWay(filename):
     """ Import a file for Python versions before 3.5.
     """
     from importlib.machinery import (  # pylint: disable=I0021,import-error,no-name-in-module
@@ -71,6 +73,6 @@ def importFileAsModule(filename):
     if python_version < 300:
         return importFilePy2(filename)
     elif python_version < 350:
-        return importFilePy3OldWay(filename)
+        return _importFilePy3OldWay(filename)
     else:
-        return importFilePy3NewWay(filename)
+        return _importFilePy3NewWay(filename)

@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-""" Tool to compare output of CPython and Nuitka.
+""" Tool to compare reference counting behaviour of CPython and Nuitka.
 
 """
 
@@ -43,16 +43,29 @@ def main():
 Module with main() function to be checked for reference count stability.""",
     )
 
+    parser.add_option(
+        "--explain",
+        action="store_true",
+        dest="explain",
+        default=False,
+        help="""\
+Try to explain the differences by comparing object counts.""",
+    )
+
     options, positional_args = parser.parse_args()
 
-    if positional_args:
+    if positional_args and options.checked_module is None:
+        options.checked_module = positional_args.pop()
+
+    if positional_args and options.checked_module:
         parser.print_help()
 
         sys.exit("\nError, no positional argument allowed.")
 
     # First with pure Python.
     checked_module = importFileAsModule(options.checked_module)
-    checkReferenceCount(checked_module.main)
+    print("Using", checked_module.main)
+    checkReferenceCount(checked_module.main, explain=options.explain)
 
     temp_dir = getTempDir()
     command = [
@@ -65,7 +78,19 @@ Module with main() function to be checked for reference count stability.""",
         temp_dir,
     ]
 
+    if hasattr(sys, "gettotalrefcount"):
+        command.append("--python-debug")
+
+    # print(command)
     check_call(command)
+
+    module_name = os.path.basename(options.checked_module).split(".")[0]
+
+    sys.path.insert(0, temp_dir)
+    checked_module = __import__(module_name)
+
+    print("Using", checked_module.main)
+    checkReferenceCount(checked_module.main)
 
 
 if __name__ == "__main__":
