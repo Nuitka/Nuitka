@@ -134,6 +134,13 @@ class StatementLoop(StatementChildHavingBase):
                 if incomplete:
                     has_incomplete = True
 
+            # TODO: We should be able to avoid these, but it breaks assumptions for assertions
+            # of asssigned and deleted values in the loop.
+            # if (
+            #     incomplete
+            #     and not current.isUninitTrace()
+            #     or self.loop_end[loop_variable]
+            # ):
             loop_entry_traces.add(
                 (
                     loop_variable,
@@ -178,6 +185,9 @@ class StatementLoop(StatementChildHavingBase):
 
             continue_collections = trace_collection.getLoopContinueCollections()
 
+            # Rebuild this with only the ones that actually changed in the loop.
+            self.loop_variables = set()
+
             for loop_variable, loop_entry_trace in loop_entry_traces:
                 loop_end_traces = set()
 
@@ -200,6 +210,7 @@ class StatementLoop(StatementChildHavingBase):
 
                 if loop_end_traces:
                     loop_entry_trace.addLoopContinueTraces(loop_end_traces)
+                    self.loop_variables.add(loop_variable)
 
             # If we break, the outer collections becomes a merge of all those breaks
             # or just the one, if there is only one.
