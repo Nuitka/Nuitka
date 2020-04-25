@@ -853,6 +853,13 @@ def reenablePrinting():
         orig_print = None
 
 
+def getTotalReferenceCount():
+    try:
+        sys.gettotalrefcount()
+    except AttributeError:
+        return len(gc.get_objects())
+
+
 def checkReferenceCount(checked_function, max_rounds=10):
     # This is obviously going to be complex, pylint: disable=too-many-branches
 
@@ -879,18 +886,19 @@ def checkReferenceCount(checked_function, max_rounds=10):
             snapObjRefCntMap(before=True)
 
         gc.collect()
-        ref_count1 = sys.gettotalrefcount()
+        ref_count1 = getTotalReferenceCount()
 
         checked_function()
-        gc.collect()
-
-        ref_count2 = sys.gettotalrefcount()
-
-        if explain and count == max_rounds - 1:
-            snapObjRefCntMap(before=False)
 
         # Not allowed, but happens when bugs occur.
         assert sys.exc_info() == (None, None, None), sys.exc_info()
+
+        gc.collect()
+
+        ref_count2 = getTotalReferenceCount()
+
+        if explain and count == max_rounds - 1:
+            snapObjRefCntMap(before=False)
 
         if ref_count1 == ref_count2:
             result = True
@@ -1015,17 +1023,6 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
 
     gc.enable()
     return result
-
-
-def checkDebugPython():
-    if not hasattr(sys, "gettotalrefcount"):
-        my_print("Warning, using non-debug Python makes this test ineffective.")
-        sys.gettotalrefcount = lambda: 0
-    elif sys.version_info >= (3, 7, 0) and sys.version_info < (3, 7, 1):
-        my_print(
-            "Warning, bug of CPython 3.7.0/1 breaks reference counting and makes this test ineffective."
-        )
-        sys.gettotalrefcount = lambda: 0
 
 
 def addToPythonPath(python_path, in_front=False):

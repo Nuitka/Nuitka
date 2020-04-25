@@ -41,13 +41,10 @@ sys.path.insert(
 import types
 
 from nuitka.tools.testing.Common import (
-    checkDebugPython,
     executeReferenceChecked,
     someGenerator,
     someGeneratorRaising,
 )
-
-checkDebugPython()
 
 
 def simpleFunction1():

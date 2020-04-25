@@ -32,7 +32,7 @@ sys.path.insert(
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
     ),
 )
-from nuitka.tools.testing.Common import executeReferenceChecked, checkDebugPython
+from nuitka.tools.testing.Common import executeReferenceChecked
 
 # isort:start
 
@@ -41,9 +41,6 @@ from nuitka.tools.testing.Common import executeReferenceChecked, checkDebugPytho
 # pylint: disable=broad-except,eval-used,redefined-outer-name,unused-argument,unused-variable
 # pylint: disable=attribute-defined-outside-init,bare-except,lost-exception,pointless-statement
 # pylint: disable=exec-used,global-statement,invalid-name,super-init-not-called
-
-checkDebugPython()
-
 
 x = 17
 
@@ -722,8 +719,7 @@ def simpleFunction77():
         def __getitem__(self, index):
             return weirdstr(str.__getitem__(self, index))
 
-    (weirdstr("1234"))
-    # filter(lambda x: x>="33", weirdstr("1234"))
+    filter(lambda x: x >= "33", weirdstr("1234"))
 
 
 def simpleFunction78():

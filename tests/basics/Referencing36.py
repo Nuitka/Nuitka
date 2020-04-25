@@ -43,12 +43,9 @@ import types
 
 from nuitka.tools.testing.Common import (
     async_iterate,
-    checkDebugPython,
     executeReferenceChecked,
     run_async,
 )
-
-checkDebugPython()
 
 
 class AwaitException(Exception):

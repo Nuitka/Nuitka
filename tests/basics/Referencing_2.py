@@ -38,9 +38,7 @@ sys.path.insert(
 
 # isort:start
 
-from nuitka.tools.testing.Common import checkDebugPython, executeReferenceChecked
-
-checkDebugPython()
+from nuitka.tools.testing.Common import executeReferenceChecked
 
 x = 17
 

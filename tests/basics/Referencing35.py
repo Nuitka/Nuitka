@@ -42,13 +42,7 @@ import asyncio
 import types
 
 from nuitka.PythonVersions import python_version
-from nuitka.tools.testing.Common import (
-    checkDebugPython,
-    executeReferenceChecked,
-    run_async,
-)
-
-checkDebugPython()
+from nuitka.tools.testing.Common import executeReferenceChecked, run_async
 
 # Tests do bad stuff, pylint: disable=redefined-outer-name
 
