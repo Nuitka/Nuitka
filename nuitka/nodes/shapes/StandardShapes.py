@@ -494,6 +494,13 @@ class ShapeTypeUnknown(ShapeBase):
 tshape_unknown = ShapeTypeUnknown()
 
 
+class ShapeTypeUninit(ShapeTypeUnknown):
+    pass
+
+
+tshape_uninit = ShapeTypeUninit()
+
+
 class ValueShapeBase(object):
     __slots__ = ()
 

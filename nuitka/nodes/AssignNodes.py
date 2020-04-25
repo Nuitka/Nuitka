@@ -350,7 +350,7 @@ Removed assignment of %s from itself which is known to be defined."""
                                 and not last_trace.hasDefiniteUsages()
                                 and not last_trace.getNameUsageCount()
                             ):
-                                if not last_trace.getPrevious().isUninitTrace():
+                                if not last_trace.getPrevious().isUnassignedTrace():
                                     result = StatementDelVariable(
                                         variable=self.variable,
                                         version=self.variable_version,
@@ -380,7 +380,7 @@ Removed assignment of %s from itself which is known to be defined."""
                                 not last_trace.hasPotentialUsages()
                                 and not last_trace.getNameUsageCount()
                             ):
-                                if not last_trace.getPrevious().isUninitTrace():
+                                if not last_trace.getPrevious().isUnassignedTrace():
                                     result = StatementDelVariable(
                                         variable=self.variable,
                                         version=self.variable_version,
@@ -728,7 +728,7 @@ class StatementReleaseVariable(StatementBase):
 
         self.variable_trace = trace_collection.getVariableCurrentTrace(self.variable)
 
-        if self.variable_trace.isUninitTrace():
+        if self.variable_trace.mustNotHaveValue():
             return (
                 None,
                 "new_statements",

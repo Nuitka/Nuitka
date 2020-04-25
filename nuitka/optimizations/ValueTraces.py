@@ -39,6 +39,7 @@ from logging import debug
 from nuitka.nodes.shapes.StandardShapes import (
     ShapeLoopCompleteAlternative,
     ShapeLoopInitialAlternative,
+    tshape_uninit,
     tshape_unknown,
 )
 from nuitka.utils import InstanceCounters
@@ -143,6 +144,10 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def isUnassignedTrace():
+        return False
+
+    @staticmethod
     def isDeletedTrace():
         return False
 
@@ -184,25 +189,22 @@ class ValueTraceBase(object):
         return set((self.getTypeShape(),))
 
 
-class ValueTraceUninit(ValueTraceBase):
+class ValueTraceUnassignedBase(ValueTraceBase):
     __slots__ = ()
 
-    def __init__(self, owner, previous):
-        ValueTraceBase.__init__(self, owner=owner, previous=previous)
+    @staticmethod
+    def isUnassignedTrace():
+        return True
 
     @staticmethod
     def getTypeShape():
-        return tshape_unknown
-
-    @staticmethod
-    def isUninitTrace():
-        return True
+        return tshape_uninit
 
     def mustNotHaveValue(self):
         return True
 
     def dump(self):
-        debug("  Starts out uninitialized")
+        debug("  Starts out unassigned")
 
         if self.usage_count:
             debug("  -> has %s usages" % self.usage_count)
@@ -211,7 +213,18 @@ class ValueTraceUninit(ValueTraceBase):
             debug("  -> value escapes")
 
 
-class ValueTraceDeleted(ValueTraceUninit):
+class ValueTraceUninit(ValueTraceUnassignedBase):
+    __slots__ = ()
+
+    def __init__(self, owner, previous):
+        ValueTraceUnassignedBase.__init__(self, owner=owner, previous=previous)
+
+    @staticmethod
+    def isUninitTrace():
+        return True
+
+
+class ValueTraceDeleted(ValueTraceUnassignedBase):
     """ Trace caused by a deletion.
 
     """
@@ -219,7 +232,7 @@ class ValueTraceDeleted(ValueTraceUninit):
     __slots__ = ("del_node",)
 
     def __init__(self, owner, previous, del_node):
-        ValueTraceUninit.__init__(self, owner=owner, previous=previous)
+        ValueTraceUnassignedBase.__init__(self, owner=owner, previous=previous)
 
         self.del_node = del_node
 
@@ -308,14 +321,12 @@ class ValueTraceUnknown(ValueTraceBase):
                 self.previous.addPotentialUsage()
 
 
-class ValueTraceLoopComplete(ValueTraceBase):
+class ValueTraceLoopBase(ValueTraceBase):
     # Need them all, pylint: disable=too-many-instance-attributes
 
     __slots__ = ("type_shapes", "type_shape", "recursion")
 
     def __init__(self, previous, type_shapes):
-        assert type_shapes
-
         ValueTraceBase.__init__(self, owner=previous.owner, previous=(previous,))
 
         self.type_shapes = type_shapes
@@ -329,7 +340,7 @@ class ValueTraceLoopComplete(ValueTraceBase):
         return "<%s shapes %s of %s>" % (
             self.__class__.__name__,
             self.type_shapes,
-            self.owner,
+            self.owner.getCodeName(),
         )
 
     @staticmethod
@@ -402,11 +413,18 @@ class ValueTraceLoopComplete(ValueTraceBase):
         return True
 
 
-class ValueTraceLoopIncomplete(ValueTraceLoopComplete):
+class ValueTraceLoopComplete(ValueTraceLoopBase):
     __slots__ = ()
 
     def __init__(self, previous, type_shapes):
-        ValueTraceLoopComplete.__init__(self, previous, type_shapes)
+        ValueTraceLoopBase.__init__(self, previous, type_shapes)
+
+
+class ValueTraceLoopIncomplete(ValueTraceLoopBase):
+    __slots__ = ()
+
+    def __init__(self, previous, type_shapes):
+        ValueTraceLoopBase.__init__(self, previous, type_shapes)
 
     def getTypeShape(self):
         if self.type_shape is None:

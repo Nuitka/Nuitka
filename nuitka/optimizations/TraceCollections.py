@@ -37,6 +37,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_int_or_long,
     tshape_long,
 )
+from nuitka.nodes.shapes.StandardShapes import tshape_uninit
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceLine
 from nuitka.utils.FileOperations import relpath
@@ -114,13 +115,12 @@ class CollectionTracingMixin(object):
     def markActiveVariableAsLoopMerge(self, variable, shapes, incomplete, first_pass):
         current = self.getVariableCurrentTrace(variable=variable)
 
-        version = variable.allocateTargetNumber()
+        if not current.isUninitTrace():
+            current_shape = current.getTypeShape()
 
-        current_shape = current.getTypeShape()
-
-        if current_shape not in shapes:
-            shapes = set(shapes)
-            shapes.add(current_shape)
+            if current_shape not in shapes:
+                shapes = set(shapes)
+                shapes.add(current_shape)
 
         if python_version < 300:
             if tshape_int_or_long in shapes:
@@ -129,15 +129,21 @@ class CollectionTracingMixin(object):
                 if tshape_long in shapes:
                     shapes.discard(tshape_long)
 
-        # print(initial, shapes)
-
         if first_pass:
             result = ValueTraceLoopFirstPass(current, shapes)
         elif incomplete:
             result = ValueTraceLoopIncomplete(current, shapes)
         else:
+            # TODO: Empty is a missing optimization somewhere, but it also happens that
+            # a variable is getting released in a loop.
+            # assert shapes, (variable, current)
+
+            if not shapes:
+                shapes.add(tshape_uninit)
+
             result = ValueTraceLoopComplete(current, shapes)
 
+        version = variable.allocateTargetNumber()
         self.addVariableTrace(variable=variable, version=version, trace=result)
 
         self.markCurrentVariableTrace(variable, version)
@@ -548,20 +554,6 @@ class TraceCollectionBase(CollectionTracingMixin):
             parent.replaceChild(expression, new_node)
 
         return new_node
-
-    def computedExpressionResult(self, expression, change_tags, change_desc):
-        # Need to compute the replacement still.
-        new_expression = expression.computeStatement(self)
-
-        if new_expression[0] is not expression:
-            # Signal intermediate result as well.
-            self.signalChange(
-                change_tags, new_expression.getSourceReference(), change_desc
-            )
-
-            return new_expression
-        else:
-            return expression, change_tags, change_desc
 
     def onStatement(self, statement):
         try:

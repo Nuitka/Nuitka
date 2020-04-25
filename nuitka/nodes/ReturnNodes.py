@@ -77,7 +77,7 @@ Return statement raises in returned expression, removed return.""",
                 result,
                 "new_statements",
                 """\
-Return value is always constant.""",
+Return value is constant.""",
             )
 
         return self, None, None

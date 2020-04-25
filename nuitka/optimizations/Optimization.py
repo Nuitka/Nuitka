@@ -184,11 +184,13 @@ def areReadOnlyTraces(variable_traces):
             return False
         elif variable_trace.isInitTrace():
             pass
-        elif variable_trace.isUninitTrace():
+        elif variable_trace.isDeletedTrace():
             # A "del" statement can do this, and needs to prevent variable
             # from being not released.
 
             return False
+        elif variable_trace.isUninitTrace():
+            pass
         elif variable_trace.isUnknownTrace():
             return False
         elif variable_trace.isMergeTrace():
@@ -213,13 +215,13 @@ def areEmptyTraces(variable_traces):
             return False
         elif variable_trace.isInitTrace():
             return False
-        elif variable_trace.isUninitTrace():
-            if variable_trace.getPrevious():
-                # A "del" statement can do this, and needs to prevent variable
-                # from being removed.
+        elif variable_trace.isDeletedTrace():
+            # A "del" statement can do this, and needs to prevent variable
+            # from being removed.
 
-                return False
-            elif variable_trace.hasDefiniteUsages():
+            return False
+        elif variable_trace.isUninitTrace():
+            if variable_trace.hasDefiniteUsages():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
                 return False
@@ -335,13 +337,14 @@ def optimizeLocalsDictsHandles():
                     ):
                         propagate = False
                         break
-                elif variable_trace.isUninitTrace():
-                    if variable_trace.previous is not None:
-                        propagate = False
-                        break
+                elif variable_trace.isDeletedTrace():
+                    propagate = False
+                    break
                 elif variable_trace.isMergeTrace():
                     propagate = False
                     break
+                elif variable_trace.isUninitTrace():
+                    pass
                 elif variable_trace.isUnknownTrace():
                     propagate = False
                     break

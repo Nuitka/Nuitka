@@ -291,6 +291,11 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
             ):
                 return True
 
+        # Slot warning that is impossible to disable
+        if pylint_version < "2.0.0":
+            if os.path.basename(filename) in ("Variables.py",):
+                return True
+
         return False
 
     filenames = [

@@ -193,7 +193,7 @@ class Variable(getMetaClassBase("Variable")):
 
             if trace.isAssignTrace():
                 writers.add(owner)
-            elif trace.isUninitTrace() and owner is not self.owner:
+            elif trace.isDeletedTrace() and owner is not self.owner:
                 writers.add(owner)
 
         self.writers = writers
@@ -262,11 +262,10 @@ class Variable(getMetaClassBase("Variable")):
                 result.add(trace.getAssignNode().getAssignSource().getTypeShape())
             elif trace.isUnknownTrace():
                 result.add(tshape_unknown)
-            elif trace.isUninitTrace():
-                if trace.hasDefiniteUsages() or trace.hasPotentialUsages():
-                    result.add(tshape_unknown)
             elif trace.isInitTrace():
                 result.add(tshape_unknown)
+            elif trace.isUnassignedTrace():
+                pass
             elif trace.isMergeTrace():
                 pass
             # TODO: Remove this and be not unknown.
