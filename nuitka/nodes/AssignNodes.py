@@ -35,6 +35,7 @@ from nuitka.Options import isExperimental
 
 from .NodeBases import StatementBase, StatementChildHavingBase
 from .NodeMakingHelpers import (
+    makeRaiseExceptionReplacementStatement,
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode,
 )
@@ -560,13 +561,30 @@ class StatementDelVariable(StatementBase):
         self.previous_trace = trace_collection.getVariableCurrentTrace(variable)
 
         # First eliminate us entirely if we can.
-        if self.tolerant and self.previous_trace.isUninitTrace():
-            return (
-                None,
-                "new_statements",
-                "Removed tolerant 'del' statement of '%s' without effect."
-                % (self.getVariableName(),),
-            )
+        if self.previous_trace.mustNotHaveValue():
+            if self.tolerant:
+                return (
+                    None,
+                    "new_statements",
+                    "Removed tolerant 'del' statement of '%s' without effect."
+                    % (self.getVariableName(),),
+                )
+            else:
+                assert self.variable.isLocalVariable(), self.variable
+
+                result = makeRaiseExceptionReplacementStatement(
+                    statement=self,
+                    exception_type="UnboundLocalError",
+                    exception_value="""local variable '%s' referenced before assignment"""
+                    % variable.getName(),
+                )
+
+                return trace_collection.computedStatementResult(
+                    result,
+                    "new_raise",
+                    "Variable del of not initialized variable '%s'"
+                    % variable.getName(),
+                )
 
         # TODO: Why doesn't this module variable check not follow from other checks done here, e.g. name usages.
         # TODO: This currently cannot be done as releases do not create successor traces yet, although they
