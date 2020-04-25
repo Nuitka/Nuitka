@@ -422,8 +422,7 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
             result = makeRaiseExceptionReplacementExpression(
                 expression=self,
                 exception_type="UnboundLocalError",
-                exception_value="""\
-local variable '%s' referenced before assignment"""
+                exception_value="""local variable '%s' referenced before assignment"""
                 % variable_name,
             )
 

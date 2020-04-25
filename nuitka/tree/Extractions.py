@@ -38,6 +38,8 @@ class VariableWriteExtractor(VisitorNoopMixin):
             self.written_to.add(node.getVariable())
 
     def getResult(self):
+        # TODO: This can cause ordering issues should execution be based on this
+        # container order.
         return self.written_to
 
 
