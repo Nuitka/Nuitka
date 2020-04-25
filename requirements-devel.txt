@@ -23,8 +23,10 @@ Jinja2 == 2.10.1 ; python_version >= '2.7'
 # Codespell can be used as well, no need to fix version
 codespell ; python_version >= '2.7'
 
-# Distutils test, packaging test for PyPI, not fixed on purpose.
-virtualenv
+# Distutils test, packaging test for PyPI, fixed for Python2 breakage
+# of newer virtualenv.
+virtualenv == 16.7.10; python_version == '2.7'
+virtualenv ; python_version >= '3.6'
 pytest
 
 # Packaging
