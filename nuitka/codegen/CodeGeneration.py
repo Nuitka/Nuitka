@@ -69,6 +69,7 @@ from .BuiltinCodes import (
     generateBuiltinXrange1Code,
     generateBuiltinXrange2Code,
     generateBuiltinXrange3Code,
+    generateBuiltinZipCode,
 )
 from .CallCodes import generateCallCode, getCallsCode, getCallsDecls
 from .ClassCodes import generateBuiltinSuperCode, generateSelectMetaclassCode
@@ -558,6 +559,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_REF": generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_EXCEPTION_REF": generateExceptionRefCode,
         "EXPRESSION_BUILTIN_ANONYMOUS_REF": generateBuiltinAnonymousRefCode,
+        "EXPRESSION_BUILTIN_ZIP": generateBuiltinZipCode,
         "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF": generateExceptionCaughtTypeCode,
         "EXPRESSION_CAUGHT_EXCEPTION_VALUE_REF": generateExceptionCaughtValueCode,
         "EXPRESSION_CAUGHT_EXCEPTION_TRACEBACK_REF": generateExceptionCaughtTracebackCode,

@@ -102,6 +102,9 @@ class ExpressionFunctionBodyBase(
         if python_version >= 300:
             self.non_local_declarations = None
 
+    def finalize(self):
+        del self.parent
+
     @staticmethod
     def isExpressionFunctionBodyBase():
         return True

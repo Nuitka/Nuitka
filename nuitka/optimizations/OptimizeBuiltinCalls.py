@@ -25,7 +25,11 @@ from logging import warning
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.Errors import NuitkaAssumptionError
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable, StatementDelVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable,
+    StatementReleaseVariable,
+)
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
     ExpressionBuiltinGetattr,
@@ -74,6 +78,7 @@ from nuitka.nodes.BuiltinRangeNodes import (
 )
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
+    ExpressionBuiltinExceptionRef,
     makeExpressionBuiltinRef,
 )
 from nuitka.nodes.BuiltinSumNodes import ExpressionBuiltinSum1, ExpressionBuiltinSum2
@@ -89,6 +94,7 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinTuple,
 )
 from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
+from nuitka.nodes.BuiltinZipNodes import ExpressionBuiltinZip
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import ExpressionBuiltinType3
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
@@ -96,13 +102,20 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional,
 )
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantListEmptyRef,
+    makeConstantRefNode,
+)
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerOperationNodes import StatementListOperationAppend
+from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinCompile, ExpressionBuiltinEval
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinDir1,
     ExpressionBuiltinGlobals,
 )
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
+from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeExpressionBuiltinLocals,
@@ -131,6 +144,7 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
+from nuitka.tree.ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from nuitka.tree.ReformulationTryFinallyStatements import makeTryFinallyStatement
 from nuitka.tree.TreeHelpers import (
     makeCallNode,
@@ -1000,6 +1014,180 @@ if python_version >= 300:
         )
 
 
+def zip2_extractor(node):
+    assert python_version < 300
+
+    def wrapZipBuiltin(call_args, source_ref):
+        outline_body = ExpressionOutlineBody(
+            provider=node.getParentVariableProvider(),
+            name="zip_call",
+            source_ref=source_ref,
+        )
+
+        zip_arg_variables = [
+            outline_body.allocateTempVariable(
+                temp_scope=None, name="zip_arg_%d" % (i + 1)
+            )
+            for i in range(len(call_args))
+        ]
+
+        statements = [
+            StatementAssignmentVariable(
+                variable=zip_arg_variable, source=call_arg, source_ref=source_ref
+            )
+            for call_arg, zip_arg_variable in zip(call_args, zip_arg_variables)
+        ]
+
+        zip_iter_variables = [
+            outline_body.allocateTempVariable(
+                temp_scope=None, name="zip_iter_%d" % (i + 1)
+            )
+            for i in range(len(call_args))
+        ]
+
+        # Try creating iterators of all zip arguments.
+
+        # TODO: Use class derived from
+        # ExpressionBuiltinIter1 that takes "i" as an
+        # argument, and raises exceptions with the proper
+        # message directly.
+
+        statements += [
+            makeTryExceptSingleHandlerNode(
+                tried=makeStatementsSequenceFromStatement(
+                    StatementAssignmentVariable(
+                        variable=zip_iter_variable,
+                        source=ExpressionBuiltinIter1(
+                            value=ExpressionTempVariableRef(
+                                variable=zip_arg_variable, source_ref=source_ref
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        source_ref=source_ref,
+                    )
+                ),
+                exception_name="TypeError",
+                handler_body=StatementRaiseException(
+                    exception_type=ExpressionBuiltinExceptionRef(
+                        exception_name="TypeError", source_ref=source_ref
+                    ),
+                    exception_value=makeConstantRefNode(
+                        constant="zip argument #%d must support iteration" % (i + 1),
+                        source_ref=source_ref,
+                    ),
+                    exception_trace=None,
+                    exception_cause=None,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+            for i, zip_iter_variable, zip_arg_variable in zip(
+                range(len(call_args)), zip_iter_variables, zip_arg_variables
+            )
+        ]
+
+        tmp_result = outline_body.allocateTempVariable(
+            temp_scope=None, name="tmp_result"
+        )
+
+        statements += [
+            StatementAssignmentVariable(
+                variable=tmp_result,
+                source=makeConstantRefNode(constant=[], source_ref=source_ref),
+                source_ref=source_ref,
+            )
+        ]
+
+        # When we append all values at once, all we
+        # need to do is to check StopIteration for
+        # any of the next attempts, ExpressionMakeTuple
+        # takes care of all releasing.
+        append_statement = StatementListOperationAppend(
+            list_arg=ExpressionTempVariableRef(
+                variable=tmp_result, source_ref=source_ref
+            ),
+            value=ExpressionMakeTuple(
+                elements=[
+                    ExpressionBuiltinNext1(
+                        value=ExpressionTempVariableRef(
+                            variable=zip_iter_variable, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    )
+                    for zip_iter_variable in zip_iter_variables
+                ],
+                source_ref=source_ref,
+            ),
+            source_ref=source_ref,
+        )
+
+        # Can check all next in once go.
+        loop_body = StatementLoop(
+            body=makeStatementsSequenceFromStatement(
+                statement=makeTryExceptSingleHandlerNode(
+                    tried=append_statement,
+                    exception_name="StopIteration",
+                    handler_body=StatementLoopBreak(source_ref=source_ref),
+                    source_ref=source_ref,
+                )
+            ),
+            source_ref=source_ref,
+        )
+
+        statements.append(loop_body)
+
+        statements.append(
+            StatementReturn(
+                ExpressionTempVariableRef(variable=tmp_result, source_ref=source_ref),
+                source_ref=source_ref,
+            )
+        )
+
+        final_statements = [
+            StatementReleaseVariable(variable=tmp_result, source_ref=source_ref)
+        ]
+
+        final_statements += [
+            StatementReleaseVariable(variable=tmp_variable, source_ref=source_ref)
+            for tmp_variable in zip_arg_variables
+        ]
+
+        final_statements += [
+            StatementReleaseVariable(variable=tmp_variable, source_ref=source_ref)
+            for tmp_variable in zip_iter_variables
+        ]
+
+        outline_body.setBody(
+            makeStatementsSequenceFromStatement(
+                statement=makeTryFinallyStatement(
+                    provider=outline_body,
+                    tried=statements,
+                    final=final_statements,
+                    source_ref=source_ref,
+                )
+            )
+        )
+
+        return outline_body
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=wrapZipBuiltin,
+        builtin_spec=BuiltinParameterSpecs.builtin_zip_spec,
+        empty_special_class=ExpressionConstantListEmptyRef,
+    )
+
+
+def zip3_extractor(node):
+    assert python_version >= 300
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=ExpressionBuiltinZip,
+        builtin_spec=BuiltinParameterSpecs.builtin_zip_spec,
+    )
+
+
 def compile_extractor(node):
     def wrapExpressionBuiltinCompileCreation(
         source_code, filename, mode, flags, dont_inherit, optimize=None, source_ref=None
@@ -1331,6 +1519,7 @@ if python_version < 300:
     _dispatch_dict["xrange"] = xrange_extractor
 
     _dispatch_dict["range"] = range_extractor
+    _dispatch_dict["zip"] = zip2_extractor
 else:
     # This one is not in Python2:
     _dispatch_dict["bytes"] = bytes_extractor
@@ -1339,6 +1528,7 @@ else:
 
     # The Python3 range is really an xrange, use that.
     _dispatch_dict["range"] = xrange_extractor
+    _dispatch_dict["zip"] = zip3_extractor
 
 
 def check():

@@ -2629,12 +2629,23 @@ Builtin ``zip`` for Python2
        tmp_arg3 = c
        ...
 
-       tmp_iter_1 = iter(tmp_arg1)
-       tmp_iter_2 = iter(tmp_arg2)
-       tmp_iter_3 = iter(tmp_arg3)
-       ...
+       # Checks?
+       try:
+          tmp_iter_1 = iter(tmp_arg1)
+       except TypeError:
+          raise TypeError("zip argument #1 must support iteration")
+       try:
+          tmp_iter_2 = iter(tmp_arg2)
+       except TypeError:
+          raise TypeError("zip argument #2 must support iteration")
+       try:
+          tmp_iter_3 = iter(tmp_arg3)
+       except TypeError:
+          raise TypeError("zip argument #3 must support iteration")
 
        # could be more
+       ...
+
        tmp_result = []
        try:
            while 1:
@@ -2647,9 +2658,41 @@ Builtin ``zip`` for Python2
                    )
                 )
           except StopIteration:
-              pass
+              break
 
        return tmp_result
+
+Builtin ``zip`` for Python3
++++++++++++++++++++++++++++
+
+
+.. code-block:: python
+
+    for x, y, z in zip(a, b, c):
+        ...
+
+.. code-block:: python
+
+    def _zip_gen_object(a, b, c, ...):
+        ...
+        # See Python2
+        ...
+
+       # could be more
+       ...
+       while 1:
+            yield (
+                next(tmp_iter_1),
+                next(tmp_iter_2),
+                next(tmp_iter_3),
+                ...
+            )
+        except StopIteration:
+            break
+
+    for x, y, z in _zip_gen_object(a, b, c):
+        ...
+
 
 Builtin ``map`` for Python2
 +++++++++++++++++++++++++++

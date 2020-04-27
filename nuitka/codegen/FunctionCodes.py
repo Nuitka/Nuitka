@@ -782,7 +782,9 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 
             context.setExceptionEscape(old_exception_target)
 
-        getLabelCode(return_target, emit)
+        if expression.getBody().mayReturn():
+            # TODO: Add warning if not the case
+            getLabelCode(return_target, emit)
 
     # Restore previous "return" handling.
     context.setReturnTarget(old_return_target)

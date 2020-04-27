@@ -437,6 +437,12 @@ def optimizeVariables(module):
     try:
         try:
             for function_body in module.getUsedFunctions():
+                # Freshly reformulated or bug.
+                if function_body.getTraceCollection() is None:
+                    assert function_body.parent
+
+                    continue
+
                 if Variables.complete:
                     if optimizeUnusedUserVariables(function_body):
                         changed = True
@@ -552,6 +558,7 @@ def makeOptimizationPass(initial_pass):
 
             for unused_function in current_module.getUnusedFunctions():
                 unused_function.trace_collection = None
+                unused_function.finalize()
 
             used_functions = tuple(
                 function

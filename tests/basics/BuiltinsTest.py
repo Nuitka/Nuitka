@@ -608,49 +608,6 @@ elif isinstance(v, complex):
 else:
     print("Oops, must not happen.")
 
-# Test for any builtins
-print(any([None, None, None]))
-print(any([None, 4, None]))
-print(any([]))
-print(any([0] * 20000))
-print(any([0] * 255))
-print(any(range(260)))
-print(any(range(1, 270)))
-print(any(range(2, 1024, 5)))
-
-
-def S():
-    print("Yielding 40")
-    yield 40
-    print("Yielding 60")
-    yield 60
-    print("Yielding 30")
-    yield 30
-
-
-print(any(x > 42 for x in S()))
-
-print("Disallowed any() without args:")
-try:
-    print(any())
-except Exception as e:
-    print("caught ", repr(e))
-
-print("any() with float not iterable:")
-try:
-    print(any(1.0))
-except Exception as e:
-    print("caught ", repr(e))
-
-print("any() with float type not iterable:")
-try:
-    print(any(float))
-except Exception as e:
-    print("caught ", repr(e))
-
-print("any() with sets:")
-print(any(set([0, 1, 2, 3, 3])))
-print(any({1: "One", 2: "Two"}))
 print("Tests for abs():")
 print(abs(-1000000 ** 10))
 print(abs(len([1, 2, 3])))
@@ -662,18 +619,17 @@ try:
 except Exception as e:
     print("caught ", repr(e))
 
-# Test for all builtins
-print(all([None, None, None]))
-print(all([None, 4, None]))
-print(all([]))
-print(all([0] * 20000))
-print(all([0] * 255))
-print("All with ranges:")
-print(all(range(1, 10000)))
-print(all(range(10000)))
-print(all(range(2, 999, 4)))
-print("All with strings:")
-print(all("Nuitka rocks!"))
-print(all("string"))
-print(all(u"unicode"))
-print(all(b"bytes"))
+
+print("Tests for zip():")
+print(zip("abc", "cdd"))
+print(zip([1, 2, 3], [2, 3, 4]))
+print(zip([1, 2, 3], "String"))
+try:
+    zip(1, "String")
+except TypeError as e:
+    print(e)
+print(zip())
+x = [(u, v) for (u, v) in zip(range(8), reversed(range(8)))]
+print(x)
+for v in zip([1, 2, 3], "String"):
+    print(v)

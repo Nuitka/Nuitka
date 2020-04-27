@@ -370,6 +370,8 @@ builtin_globals_spec = BuiltinParameterSpecNoKeywords("globals", (), default_cou
 builtin_eval_spec = BuiltinParameterSpecNoKeywords(
     "eval", ("source", "globals", "locals"), 2
 )
+builtin_zip_spec = BuiltinParameterSpecNoKeywords("zip", (), 0, "call_args")
+
 if python_version < 300:
     builtin_compile_spec = BuiltinParameterSpec(
         "compile",
