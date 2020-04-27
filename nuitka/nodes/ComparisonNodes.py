@@ -98,8 +98,7 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
             return (
                 result,
                 "new_expression",
-                """\
-Replaced negated comparison '%s' with inverse comparison '%s'."""
+                """Replaced negated comparison '%s' with inverse comparison '%s'."""
                 % (self.comparator, result.comparator),
             )
 
@@ -371,11 +370,7 @@ class ExpressionComparisonIsNot(ExpressionComparisonIsIsNotBase):
         )
 
 
-class ExpressionComparisonExceptionMatch(ExpressionComparisonBase):
-    kind = "EXPRESSION_COMPARISON_EXCEPTION_MATCH"
-
-    comparator = "exception_match"
-
+class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
     def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self, left=left, right=right, source_ref=source_ref
@@ -384,10 +379,26 @@ class ExpressionComparisonExceptionMatch(ExpressionComparisonBase):
     def getDetails(self):
         return {}
 
+    def getTypeShape(self):
+        return tshape_bool
+
     def getSimulator(self):
+        # TODO: Doesn't happen yet, but will once we trace exceptions.
         assert False
 
         return PythonOperators.all_comparison_functions[self.comparator]
+
+
+class ExpressionComparisonExceptionMatch(ExpressionComparisonExceptionMatchBase):
+    kind = "EXPRESSION_COMPARISON_EXCEPTION_MATCH"
+
+    comparator = "exception_match"
+
+
+class ExpressionComparisonExceptionMismatch(ExpressionComparisonExceptionMatchBase):
+    kind = "EXPRESSION_COMPARISON_EXCEPTION_MISMATCH"
+
+    comparator = "exception_mismatch"
 
 
 class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
@@ -448,32 +459,23 @@ class ExpressionComparisonNotIn(ExpressionComparisonInNotInBase):
         )
 
 
-def makeComparisonExpression(left, right, comparator, source_ref):
-    if comparator == "Is":
-        result = ExpressionComparisonIs(left=left, right=right, source_ref=source_ref)
-    elif comparator == "IsNot":
-        result = ExpressionComparisonIsNot(
-            left=left, right=right, source_ref=source_ref
-        )
-    elif comparator == "In":
-        result = ExpressionComparisonIn(left=left, right=right, source_ref=source_ref)
-    elif comparator == "NotIn":
-        result = ExpressionComparisonNotIn(
-            left=left, right=right, source_ref=source_ref
-        )
-    elif comparator == "Lt":
-        result = ExpressionComparisonLt(left=left, right=right, source_ref=source_ref)
-    elif comparator == "LtE":
-        result = ExpressionComparisonLte(left=left, right=right, source_ref=source_ref)
-    elif comparator == "Gt":
-        result = ExpressionComparisonGt(left=left, right=right, source_ref=source_ref)
-    elif comparator == "GtE":
-        result = ExpressionComparisonGte(left=left, right=right, source_ref=source_ref)
-    elif comparator == "Eq":
-        result = ExpressionComparisonEq(left=left, right=right, source_ref=source_ref)
-    elif comparator == "NotEq":
-        result = ExpressionComparisonNeq(left=left, right=right, source_ref=source_ref)
-    else:
-        assert False, comparator
+_comparator_to_nodeclass = {
+    "Is": ExpressionComparisonIs,
+    "IsNot": ExpressionComparisonIsNot,
+    "In": ExpressionComparisonIn,
+    "NotIn": ExpressionComparisonNotIn,
+    "Lt": ExpressionComparisonLt,
+    "LtE": ExpressionComparisonLte,
+    "Gt": ExpressionComparisonGt,
+    "GtE": ExpressionComparisonGte,
+    "Eq": ExpressionComparisonEq,
+    "NotEq": ExpressionComparisonNeq,
+    "exception_match": ExpressionComparisonExceptionMatch,
+    "exception_mismatch": ExpressionComparisonExceptionMismatch,
+}
 
-    return result
+
+def makeComparisonExpression(left, right, comparator, source_ref):
+    return _comparator_to_nodeclass[comparator](
+        left=left, right=right, source_ref=source_ref
+    )

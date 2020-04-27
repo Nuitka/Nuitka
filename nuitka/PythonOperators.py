@@ -102,6 +102,8 @@ comparison_inversions = {
     "NotEq": "Eq",
     "Gt": "LtE",
     "LtE": "Gt",
+    "exception_match": "exception_mismatch",
+    "exception_mismatch": "exception_match",
 }
 
 all_comparison_functions = dict(rich_comparison_functions)

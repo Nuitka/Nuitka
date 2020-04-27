@@ -147,8 +147,6 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             condition="%s == %d" % (res_name, 1 if comparator == "In" else 0),
             emit=emit,
         )
-
-        return
     elif comparator == "Is":
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
             to_name=to_name, condition="%s == %s" % (left_name, right_name), emit=emit
@@ -157,8 +155,6 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         getReleaseCodes(
             release_names=(left_name, right_name), emit=emit, context=context
         )
-
-        return
     elif comparator == "IsNot":
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
             to_name=to_name, condition="%s != %s" % (left_name, right_name), emit=emit
@@ -167,8 +163,6 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         getReleaseCodes(
             release_names=(left_name, right_name), emit=emit, context=context
         )
-
-        return
     elif comparator in OperatorCodes.rich_comparison_codes:
         needs_check = expression.mayRaiseExceptionComparison()
 
@@ -203,9 +197,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             emit=emit,
             context=context,
         )
-
-        return
-    elif comparator == "exception_match":
+    elif comparator in ("exception_match", "exception_mismatch"):
         needs_check = expression.mayRaiseExceptionBool(BaseException)
 
         res_name = context.getIntResName()
@@ -221,7 +213,10 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         )
 
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name=to_name, condition="%s != 0" % res_name, emit=emit
+            to_name=to_name,
+            condition="%s %s 0"
+            % (res_name, "!=" if comparator == "exception_match" else "=="),
+            emit=emit,
         )
     else:
         assert False, comparator
