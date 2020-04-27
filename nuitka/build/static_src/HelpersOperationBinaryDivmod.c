@@ -25,8 +25,19 @@
 #include "HelpersOperationBinaryDivmodUtils.c"
 /* C helpers for type specialized "divmod" (DIVMOD) operations */
 
+/* Disable warnings about unused goto targets for compilers */
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4102)
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
+#endif
+
 #if PYTHON_VERSION < 300
-static PyObject *SLOT_nb_divmod_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
+static inline PyObject *SLOT_nb_divmod_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -42,7 +53,7 @@ static PyObject *SLOT_nb_divmod_OBJECT_INT_INT(PyObject *operand1, PyObject *ope
     const long b = PyInt_AS_LONG(operand2);
 
     if (unlikely(b == 0)) {
-        PyErr_Format(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
         return NULL;
     }
 
@@ -1198,3 +1209,11 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
 PyObject *BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(operand1, operand2);
 }
+
+/* Reneable warnings about unused goto targets for compilers */
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif

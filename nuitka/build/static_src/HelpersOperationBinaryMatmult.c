@@ -24,6 +24,17 @@
 
 /* C helpers for type specialized "@" (MATMULT) operations */
 
+/* Disable warnings about unused goto targets for compilers */
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4102)
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
+#endif
+
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -1041,3 +1052,11 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
 PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(operand1, operand2);
 }
+
+/* Reneable warnings about unused goto targets for compilers */
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif

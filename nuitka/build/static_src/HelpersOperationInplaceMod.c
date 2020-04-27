@@ -24,9 +24,20 @@
 
 /* C helpers for type in-place "%" (MOD) operations */
 
+/* Disable warnings about unused goto targets for compilers */
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4102)
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
+#endif
+
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
-static bool _BINARY_OPERATION_MOD_INT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_INT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -41,12 +52,59 @@ static bool _BINARY_OPERATION_MOD_INT_INT_INPLACE(PyObject **operand1, PyObject 
 #endif
 
 #if PYTHON_VERSION < 300
-    {
-        PyObject *result = _BINARY_OPERATION_MOD_OBJECT_INT_INT(*operand1, operand2);
+    if (1 && 1) {
+
+        PyObject *result;
+        PyObject *op1 = *operand1;
+
+        CHECK_OBJECT(op1);
+        assert(PyInt_CheckExact(op1));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(op1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(op1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        /* TODO: Isn't this a very specific value only, of which we could
+         * hardcode the constant result. Not sure how well the C compiler
+         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+         * -1 has to be rare anyway.
+         */
+
+        if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+            long r = a % b;
+
+            // Sign handling.
+            if (r != 0 && ((b ^ r) < 0)) {
+                r += b;
+            }
+
+            result = PyInt_FromLong(r);
+            goto exit_result_ok;
+        }
+
+        PyObject *operand1_object = op1;
+        PyObject *operand2_object = operand2;
+
+        PyObject *o = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
+        assert(o != Py_NotImplemented);
+
+        result = o;
+        goto exit_result;
+
+    exit_result:
 
         if (unlikely(result == NULL)) {
             return false;
         }
+
+    exit_result_ok:
 
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
@@ -56,6 +114,9 @@ static bool _BINARY_OPERATION_MOD_INT_INT_INPLACE(PyObject **operand1, PyObject 
         *operand1 = result;
 
         return true;
+
+    exit_result_exception:
+        return false;
     }
 #endif
 
@@ -87,7 +148,7 @@ bool BINARY_OPERATION_MOD_INT_INT_INPLACE(PyObject **operand1, PyObject *operand
 
 #if PYTHON_VERSION < 300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-static bool _BINARY_OPERATION_MOD_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -99,7 +160,70 @@ static bool _BINARY_OPERATION_MOD_OBJECT_INT_INPLACE(PyObject **operand1, PyObje
 
 #if PYTHON_VERSION < 300
     if (PyInt_CheckExact(*operand1) && 1) {
-        return _BINARY_OPERATION_MOD_INT_INT_INPLACE(operand1, operand2);
+
+        PyObject *result;
+        PyObject *op1 = *operand1;
+
+        CHECK_OBJECT(op1);
+        assert(PyInt_CheckExact(op1));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(op1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(op1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        /* TODO: Isn't this a very specific value only, of which we could
+         * hardcode the constant result. Not sure how well the C compiler
+         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+         * -1 has to be rare anyway.
+         */
+
+        if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+            long r = a % b;
+
+            // Sign handling.
+            if (r != 0 && ((b ^ r) < 0)) {
+                r += b;
+            }
+
+            result = PyInt_FromLong(r);
+            goto exit_result_ok;
+        }
+
+        PyObject *operand1_object = op1;
+        PyObject *operand2_object = operand2;
+
+        PyObject *o = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
+        assert(o != Py_NotImplemented);
+
+        result = o;
+        goto exit_result;
+
+    exit_result:
+
+        if (unlikely(result == NULL)) {
+            return false;
+        }
+
+    exit_result_ok:
+
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        // That's our return value then. As we use a dedicated variable, it's
+        // OK that way.
+        *operand1 = result;
+
+        return true;
+
+    exit_result_exception:
+        return false;
     }
 #endif
 
@@ -131,7 +255,7 @@ bool BINARY_OPERATION_MOD_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *oper
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-static bool _BINARY_OPERATION_MOD_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -143,7 +267,70 @@ static bool _BINARY_OPERATION_MOD_INT_OBJECT_INPLACE(PyObject **operand1, PyObje
 
 #if PYTHON_VERSION < 300
     if (1 && PyInt_CheckExact(operand2)) {
-        return _BINARY_OPERATION_MOD_INT_INT_INPLACE(operand1, operand2);
+
+        PyObject *result;
+        PyObject *op1 = *operand1;
+
+        CHECK_OBJECT(op1);
+        assert(PyInt_CheckExact(op1));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(op1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(op1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        /* TODO: Isn't this a very specific value only, of which we could
+         * hardcode the constant result. Not sure how well the C compiler
+         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+         * -1 has to be rare anyway.
+         */
+
+        if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+            long r = a % b;
+
+            // Sign handling.
+            if (r != 0 && ((b ^ r) < 0)) {
+                r += b;
+            }
+
+            result = PyInt_FromLong(r);
+            goto exit_result_ok;
+        }
+
+        PyObject *operand1_object = op1;
+        PyObject *operand2_object = operand2;
+
+        PyObject *o = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
+        assert(o != Py_NotImplemented);
+
+        result = o;
+        goto exit_result;
+
+    exit_result:
+
+        if (unlikely(result == NULL)) {
+            return false;
+        }
+
+    exit_result_ok:
+
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        // That's our return value then. As we use a dedicated variable, it's
+        // OK that way.
+        *operand1 = result;
+
+        return true;
+
+    exit_result_exception:
+        return false;
     }
 #endif
 
@@ -174,7 +361,7 @@ bool BINARY_OPERATION_MOD_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *oper
 #endif
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
-static bool _BINARY_OPERATION_MOD_LONG_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_LONG_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -214,7 +401,7 @@ bool BINARY_OPERATION_MOD_LONG_LONG_INPLACE(PyObject **operand1, PyObject *opera
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-static bool _BINARY_OPERATION_MOD_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -250,7 +437,7 @@ bool BINARY_OPERATION_MOD_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *ope
 }
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-static bool _BINARY_OPERATION_MOD_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -286,7 +473,7 @@ bool BINARY_OPERATION_MOD_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *ope
 }
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
-static bool _BINARY_OPERATION_MOD_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -326,7 +513,7 @@ bool BINARY_OPERATION_MOD_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *ope
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
-static bool _BINARY_OPERATION_MOD_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -362,7 +549,7 @@ bool BINARY_OPERATION_MOD_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *op
 }
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
-static bool _BINARY_OPERATION_MOD_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -399,7 +586,7 @@ bool BINARY_OPERATION_MOD_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *op
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-static bool _BINARY_OPERATION_MOD_INT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_INT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -441,7 +628,7 @@ bool BINARY_OPERATION_MOD_INT_LONG_INPLACE(PyObject **operand1, PyObject *operan
 
 #if PYTHON_VERSION < 300
 /* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
-static bool _BINARY_OPERATION_MOD_INT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_INT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -483,7 +670,7 @@ bool BINARY_OPERATION_MOD_INT_FLOAT_INPLACE(PyObject **operand1, PyObject *opera
 
 #if PYTHON_VERSION < 300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-static bool _BINARY_OPERATION_MOD_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -524,7 +711,7 @@ bool BINARY_OPERATION_MOD_LONG_INT_INPLACE(PyObject **operand1, PyObject *operan
 #endif
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
-static bool _BINARY_OPERATION_MOD_LONG_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_LONG_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -565,7 +752,7 @@ bool BINARY_OPERATION_MOD_LONG_FLOAT_INPLACE(PyObject **operand1, PyObject *oper
 
 #if PYTHON_VERSION < 300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
-static bool _BINARY_OPERATION_MOD_FLOAT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_FLOAT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -606,7 +793,7 @@ bool BINARY_OPERATION_MOD_FLOAT_INT_INPLACE(PyObject **operand1, PyObject *opera
 #endif
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
-static bool _BINARY_OPERATION_MOD_FLOAT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_FLOAT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -647,7 +834,7 @@ bool BINARY_OPERATION_MOD_FLOAT_LONG_INPLACE(PyObject **operand1, PyObject *oper
 
 #if PYTHON_VERSION < 300
 /* Code referring to "STR" corresponds to Python2 'str' and "INT" to Python2 'int'. */
-static bool _BINARY_OPERATION_MOD_STR_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_STR_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -689,7 +876,7 @@ bool BINARY_OPERATION_MOD_STR_INT_INPLACE(PyObject **operand1, PyObject *operand
 
 #if PYTHON_VERSION < 300
 /* Code referring to "STR" corresponds to Python2 'str' and "LONG" to Python2 'long', Python3 'int'. */
-static bool _BINARY_OPERATION_MOD_STR_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_STR_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -731,7 +918,7 @@ bool BINARY_OPERATION_MOD_STR_LONG_INPLACE(PyObject **operand1, PyObject *operan
 
 #if PYTHON_VERSION < 300
 /* Code referring to "STR" corresponds to Python2 'str' and "FLOAT" to Python 'float'. */
-static bool _BINARY_OPERATION_MOD_STR_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_STR_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -773,7 +960,7 @@ bool BINARY_OPERATION_MOD_STR_FLOAT_INPLACE(PyObject **operand1, PyObject *opera
 
 #if PYTHON_VERSION < 300
 /* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
-static bool _BINARY_OPERATION_MOD_STR_STR_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_STR_STR_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -815,7 +1002,7 @@ bool BINARY_OPERATION_MOD_STR_STR_INPLACE(PyObject **operand1, PyObject *operand
 
 #if PYTHON_VERSION < 300
 /* Code referring to "STR" corresponds to Python2 'str' and "UNICODE" to Python2 'unicode', Python3 'str'. */
-static bool _BINARY_OPERATION_MOD_STR_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_STR_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -855,7 +1042,7 @@ bool BINARY_OPERATION_MOD_STR_UNICODE_INPLACE(PyObject **operand1, PyObject *ope
 
 #if PYTHON_VERSION < 300
 /* Code referring to "STR" corresponds to Python2 'str' and "TUPLE" to Python 'tuple'. */
-static bool _BINARY_OPERATION_MOD_STR_TUPLE_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_STR_TUPLE_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -897,7 +1084,7 @@ bool BINARY_OPERATION_MOD_STR_TUPLE_INPLACE(PyObject **operand1, PyObject *opera
 
 #if PYTHON_VERSION < 300
 /* Code referring to "STR" corresponds to Python2 'str' and "LIST" to Python 'list'. */
-static bool _BINARY_OPERATION_MOD_STR_LIST_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_STR_LIST_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -939,7 +1126,7 @@ bool BINARY_OPERATION_MOD_STR_LIST_INPLACE(PyObject **operand1, PyObject *operan
 
 #if PYTHON_VERSION < 300
 /* Code referring to "STR" corresponds to Python2 'str' and "DICT" to Python 'dict'. */
-static bool _BINARY_OPERATION_MOD_STR_DICT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_STR_DICT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -981,7 +1168,7 @@ bool BINARY_OPERATION_MOD_STR_DICT_INPLACE(PyObject **operand1, PyObject *operan
 
 #if PYTHON_VERSION < 300
 /* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
-static bool _BINARY_OPERATION_MOD_STR_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_STR_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1019,7 +1206,7 @@ bool BINARY_OPERATION_MOD_STR_OBJECT_INPLACE(PyObject **operand1, PyObject *oper
 
 #if PYTHON_VERSION < 300
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "INT" to Python2 'int'. */
-static bool _BINARY_OPERATION_MOD_UNICODE_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_UNICODE_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1059,7 +1246,7 @@ bool BINARY_OPERATION_MOD_UNICODE_INT_INPLACE(PyObject **operand1, PyObject *ope
 
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "LONG" to Python2 'long', Python3
  * 'int'. */
-static bool _BINARY_OPERATION_MOD_UNICODE_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_UNICODE_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1097,7 +1284,7 @@ bool BINARY_OPERATION_MOD_UNICODE_LONG_INPLACE(PyObject **operand1, PyObject *op
 }
 
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "FLOAT" to Python 'float'. */
-static bool _BINARY_OPERATION_MOD_UNICODE_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_UNICODE_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1136,7 +1323,7 @@ bool BINARY_OPERATION_MOD_UNICODE_FLOAT_INPLACE(PyObject **operand1, PyObject *o
 
 #if PYTHON_VERSION < 300
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "STR" to Python2 'str'. */
-static bool _BINARY_OPERATION_MOD_UNICODE_STR_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_UNICODE_STR_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1176,7 +1363,7 @@ bool BINARY_OPERATION_MOD_UNICODE_STR_INPLACE(PyObject **operand1, PyObject *ope
 
 #if PYTHON_VERSION >= 300
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "BYTES" to Python3 'bytes'. */
-static bool _BINARY_OPERATION_MOD_UNICODE_BYTES_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_UNICODE_BYTES_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1216,7 +1403,7 @@ bool BINARY_OPERATION_MOD_UNICODE_BYTES_INPLACE(PyObject **operand1, PyObject *o
 
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "UNICODE" to Python2 'unicode',
  * Python3 'str'. */
-static bool _BINARY_OPERATION_MOD_UNICODE_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_UNICODE_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1252,7 +1439,7 @@ bool BINARY_OPERATION_MOD_UNICODE_UNICODE_INPLACE(PyObject **operand1, PyObject 
 }
 
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "TUPLE" to Python 'tuple'. */
-static bool _BINARY_OPERATION_MOD_UNICODE_TUPLE_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_UNICODE_TUPLE_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1290,7 +1477,7 @@ bool BINARY_OPERATION_MOD_UNICODE_TUPLE_INPLACE(PyObject **operand1, PyObject *o
 }
 
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "LIST" to Python 'list'. */
-static bool _BINARY_OPERATION_MOD_UNICODE_LIST_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_UNICODE_LIST_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1328,7 +1515,7 @@ bool BINARY_OPERATION_MOD_UNICODE_LIST_INPLACE(PyObject **operand1, PyObject *op
 }
 
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "DICT" to Python 'dict'. */
-static bool _BINARY_OPERATION_MOD_UNICODE_DICT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_UNICODE_DICT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1366,7 +1553,7 @@ bool BINARY_OPERATION_MOD_UNICODE_DICT_INPLACE(PyObject **operand1, PyObject *op
 }
 
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "OBJECT" to any Python object. */
-static bool _BINARY_OPERATION_MOD_UNICODE_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_UNICODE_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1401,7 +1588,7 @@ bool BINARY_OPERATION_MOD_UNICODE_OBJECT_INPLACE(PyObject **operand1, PyObject *
 
 #if PYTHON_VERSION >= 300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
-static bool _BINARY_OPERATION_MOD_BYTES_BYTES_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_BYTES_BYTES_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1443,7 +1630,7 @@ bool BINARY_OPERATION_MOD_BYTES_BYTES_INPLACE(PyObject **operand1, PyObject *ope
 
 #if PYTHON_VERSION >= 300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "LONG" to Python2 'long', Python3 'int'. */
-static bool _BINARY_OPERATION_MOD_BYTES_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_BYTES_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1485,7 +1672,7 @@ bool BINARY_OPERATION_MOD_BYTES_LONG_INPLACE(PyObject **operand1, PyObject *oper
 
 #if PYTHON_VERSION >= 300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "FLOAT" to Python 'float'. */
-static bool _BINARY_OPERATION_MOD_BYTES_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_BYTES_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1527,7 +1714,7 @@ bool BINARY_OPERATION_MOD_BYTES_FLOAT_INPLACE(PyObject **operand1, PyObject *ope
 
 #if PYTHON_VERSION >= 300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "UNICODE" to Python2 'unicode', Python3 'str'. */
-static bool _BINARY_OPERATION_MOD_BYTES_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_BYTES_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1567,7 +1754,7 @@ bool BINARY_OPERATION_MOD_BYTES_UNICODE_INPLACE(PyObject **operand1, PyObject *o
 
 #if PYTHON_VERSION >= 300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "TUPLE" to Python 'tuple'. */
-static bool _BINARY_OPERATION_MOD_BYTES_TUPLE_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_BYTES_TUPLE_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1609,7 +1796,7 @@ bool BINARY_OPERATION_MOD_BYTES_TUPLE_INPLACE(PyObject **operand1, PyObject *ope
 
 #if PYTHON_VERSION >= 300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "LIST" to Python 'list'. */
-static bool _BINARY_OPERATION_MOD_BYTES_LIST_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_BYTES_LIST_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1651,7 +1838,7 @@ bool BINARY_OPERATION_MOD_BYTES_LIST_INPLACE(PyObject **operand1, PyObject *oper
 
 #if PYTHON_VERSION >= 300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "DICT" to Python 'dict'. */
-static bool _BINARY_OPERATION_MOD_BYTES_DICT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_BYTES_DICT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1693,7 +1880,7 @@ bool BINARY_OPERATION_MOD_BYTES_DICT_INPLACE(PyObject **operand1, PyObject *oper
 
 #if PYTHON_VERSION >= 300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
-static bool _BINARY_OPERATION_MOD_BYTES_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_BYTES_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1731,7 +1918,7 @@ bool BINARY_OPERATION_MOD_BYTES_OBJECT_INPLACE(PyObject **operand1, PyObject *op
 
 #if PYTHON_VERSION < 300
 /* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
-static bool _BINARY_OPERATION_MOD_OBJECT_STR_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_OBJECT_STR_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1769,7 +1956,7 @@ bool BINARY_OPERATION_MOD_OBJECT_STR_INPLACE(PyObject **operand1, PyObject *oper
 
 #if PYTHON_VERSION >= 300
 /* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
-static bool _BINARY_OPERATION_MOD_OBJECT_BYTES_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_OBJECT_BYTES_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1806,7 +1993,7 @@ bool BINARY_OPERATION_MOD_OBJECT_BYTES_INPLACE(PyObject **operand1, PyObject *op
 #endif
 
 /* Code referring to "OBJECT" corresponds to any Python object and "UNICODE" to Python2 'unicode', Python3 'str'. */
-static bool _BINARY_OPERATION_MOD_OBJECT_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_OBJECT_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1840,7 +2027,7 @@ bool BINARY_OPERATION_MOD_OBJECT_UNICODE_INPLACE(PyObject **operand1, PyObject *
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
-static bool _BINARY_OPERATION_MOD_OBJECT_TUPLE_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_OBJECT_TUPLE_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1876,7 +2063,7 @@ bool BINARY_OPERATION_MOD_OBJECT_TUPLE_INPLACE(PyObject **operand1, PyObject *op
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
-static bool _BINARY_OPERATION_MOD_OBJECT_LIST_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_OBJECT_LIST_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1912,7 +2099,7 @@ bool BINARY_OPERATION_MOD_OBJECT_LIST_INPLACE(PyObject **operand1, PyObject *ope
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "DICT" to Python 'dict'. */
-static bool _BINARY_OPERATION_MOD_OBJECT_DICT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_OBJECT_DICT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1948,7 +2135,7 @@ bool BINARY_OPERATION_MOD_OBJECT_DICT_INPLACE(PyObject **operand1, PyObject *ope
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
-static bool _BINARY_OPERATION_MOD_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _BINARY_OPERATION_MOD_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1956,7 +2143,70 @@ static bool _BINARY_OPERATION_MOD_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyO
 
 #if PYTHON_VERSION < 300
     if (PyInt_CheckExact(*operand1) && PyInt_CheckExact(operand2)) {
-        return _BINARY_OPERATION_MOD_INT_INT_INPLACE(operand1, operand2);
+
+        PyObject *result;
+        PyObject *op1 = *operand1;
+
+        CHECK_OBJECT(op1);
+        assert(PyInt_CheckExact(op1));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(op1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(op1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        /* TODO: Isn't this a very specific value only, of which we could
+         * hardcode the constant result. Not sure how well the C compiler
+         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+         * -1 has to be rare anyway.
+         */
+
+        if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+            long r = a % b;
+
+            // Sign handling.
+            if (r != 0 && ((b ^ r) < 0)) {
+                r += b;
+            }
+
+            result = PyInt_FromLong(r);
+            goto exit_result_ok;
+        }
+
+        PyObject *operand1_object = op1;
+        PyObject *operand2_object = operand2;
+
+        PyObject *o = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
+        assert(o != Py_NotImplemented);
+
+        result = o;
+        goto exit_result;
+
+    exit_result:
+
+        if (unlikely(result == NULL)) {
+            return false;
+        }
+
+    exit_result_ok:
+
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        // That's our return value then. As we use a dedicated variable, it's
+        // OK that way.
+        *operand1 = result;
+
+        return true;
+
+    exit_result_exception:
+        return false;
     }
 #endif
 
@@ -1984,3 +2234,11 @@ static bool _BINARY_OPERATION_MOD_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyO
 bool BINARY_OPERATION_MOD_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MOD_OBJECT_OBJECT_INPLACE(operand1, operand2);
 }
+
+/* Reneable warnings about unused goto targets for compilers */
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif

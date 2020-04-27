@@ -577,6 +577,26 @@ return %(return_value)s;""" % {
         )
 
     @classmethod
+    def getAssignFromObjectExpressionCode(cls, result, operand, take_ref=False):
+        if cls.type_name == "object":
+            if take_ref:
+                return "Py_INCREF(%s); %s = %s;" % (operand, result, operand)
+            else:
+                return "%s = %s;" % (result, operand)
+        else:
+            if take_ref:
+                return """%s = %s; """ % (
+                    result,
+                    cls.getToValueFromObjectExpression(operand),
+                )
+            else:
+                return """%s = %s; Py_DECREF(%s); """ % (
+                    result,
+                    cls.getToValueFromObjectExpression(operand),
+                    operand,
+                )
+
+    @classmethod
     def _getReturnFromObjectExpressionCode(cls, operand, take_ref):
         if cls.type_name == "object":
             if take_ref:
@@ -603,6 +623,19 @@ return %(return_value)s;""" % {
             return "return PyInt_FromLong(%s);" % operand
         elif cls.type_name == "nbool":
             return "return %s;" % cls.getToValueFromBoolExpression("%s != 0" % operand)
+        else:
+            assert False, cls
+
+    @classmethod
+    def getAssignFromLongExpressionCode(cls, result, operand):
+        if cls.type_name == "object":
+            # TODO: Python3?
+            return "%s = PyInt_FromLong(%s);" % (result, operand)
+        elif cls.type_name == "nbool":
+            return "%s = %s;" % (
+                result,
+                cls.getToValueFromBoolExpression("%s != 0" % operand),
+            )
         else:
             assert False, cls
 
@@ -640,6 +673,20 @@ return %(return_value)s;""" % {
             assert False, cls
 
     @classmethod
+    def getAssignFromFloatExpressionCode(cls, result, operand):
+        if cls.type_name == "object":
+            return "%s = PyFloat_FromDouble(%s);" % (result, operand)
+        elif cls.type_name == "nbool":
+            return "%s = %s;" % (
+                result,
+                cls.getToValueFromBoolExpression("%s == 0.0" % operand),
+            )
+        elif cls.type_name == "float":
+            return "%s = %s;" % (result, operand)
+        else:
+            assert False, cls
+
+    @classmethod
     def getReturnFromFloatConstantCode(cls, value):
         if cls.type_name == "object":
             const_name = "const_" + nuitka.codegen.Namify.namifyConstant(value)
@@ -653,6 +700,20 @@ return %(return_value)s;""" % {
             assert False, cls
 
     @classmethod
+    def getAssignFromFloatConstantCode(cls, result, value):
+        if cls.type_name == "object":
+            const_name = "const_" + nuitka.codegen.Namify.namifyConstant(value)
+
+            return "Py_INCREF(%(const_name)s); %(result)s = %(const_name)s;" % {
+                "result": result,
+                "const_name": const_name,
+            }
+        elif cls.type_name in ("nbool", "float"):
+            return cls.getAssignFromFloatExpressionCode(result, value)
+        else:
+            assert False, cls
+
+    @classmethod
     def getReturnFromIntConstantCode(cls, value):
         if cls.type_name == "object":
             const_name = "const_" + nuitka.codegen.Namify.namifyConstant(value)
@@ -662,6 +723,20 @@ return %(return_value)s;""" % {
             }
         elif cls.type_name in ("nbool", "float"):
             return cls.getReturnFromLongExpressionCode(value)
+        else:
+            assert False, cls
+
+    @classmethod
+    def getAssignFromIntConstantCode(cls, result, value):
+        if cls.type_name == "object":
+            const_name = "const_" + nuitka.codegen.Namify.namifyConstant(value)
+
+            return "Py_INCREF(%(const_name)s); %(result)s = %(const_name)s;" % {
+                "result": result,
+                "const_name": const_name,
+            }
+        elif cls.type_name in ("nbool", "float"):
+            return cls.getAssignFromLongExpressionCode(result, value)
         else:
             assert False, cls
 
@@ -1502,6 +1577,20 @@ def makeHelperOperations(
     )
     emit()
 
+    emit_c(
+        """/* Disable warnings about unused goto targets for compilers */
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4102)
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
+#endif
+"""
+    )
+
     for helper_name in helpers_set:
         assert helper_name.split("_")[:3] == ["BINARY", "OPERATION", op_code], (
             op_code,
@@ -1592,6 +1681,8 @@ def makeHelperOperations(
             operator=operand,  # TODO: Rename operand to operator
             nb_slot=_getNbSlotFromOperand(operand, op_code),
             sq_slot1=sq_slot,
+            object_desc=object_desc,
+            int_desc=int_desc,
         )
 
         emit_c(code)
@@ -1600,6 +1691,7 @@ def makeHelperOperations(
             + code.splitlines()[0]
             .replace(" {", ";")
             .replace("static ", "")
+            .replace("inline ", "")
             .replace("_BINARY", "BINARY")
         )
 
@@ -1607,6 +1699,17 @@ def makeHelperOperations(
             emit("#endif")
 
         emit()
+
+    emit_c(
+        """/* Reneable warnings about unused goto targets for compilers */
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+    """
+    )
 
 
 def makeHelperComparisons(
@@ -1861,13 +1964,6 @@ def writeline(output, *args):
 
 
 def main():
-    makeHelpersComparisonOperation("==", "EQ")
-    makeHelpersComparisonOperation("!=", "NE")
-    makeHelpersComparisonOperation("<=", "LE")
-    makeHelpersComparisonOperation(">=", "GE")
-    makeHelpersComparisonOperation(">", "GT")
-    makeHelpersComparisonOperation("<", "LT")
-
     makeHelpersInplaceOperation("+", "ADD")
     makeHelpersInplaceOperation("-", "SUB")
     makeHelpersInplaceOperation("*", "MULT")
@@ -1898,6 +1994,13 @@ def main():
     makeHelpersBinaryOperation("divmod", "DIVMOD")
     makeHelpersBinaryOperation("**", "POW")
     makeHelpersBinaryOperation("@", "MATMULT")
+
+    makeHelpersComparisonOperation("==", "EQ")
+    makeHelpersComparisonOperation("!=", "NE")
+    makeHelpersComparisonOperation("<=", "LE")
+    makeHelpersComparisonOperation(">=", "GE")
+    makeHelpersComparisonOperation(">", "GT")
+    makeHelpersComparisonOperation("<", "LT")
 
 
 if __name__ == "__main__":

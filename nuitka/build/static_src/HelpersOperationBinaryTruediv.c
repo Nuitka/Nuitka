@@ -25,8 +25,19 @@
 #include "HelpersOperationBinaryTruedivUtils.c"
 /* C helpers for type specialized "/" (TRUEDIV) operations */
 
+/* Disable warnings about unused goto targets for compilers */
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4102)
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
+#endif
+
 #if PYTHON_VERSION < 300
-static PyObject *SLOT_nb_true_divide_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
+static inline PyObject *SLOT_nb_true_divide_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -42,7 +53,7 @@ static PyObject *SLOT_nb_true_divide_OBJECT_INT_INT(PyObject *operand1, PyObject
     const long b = PyInt_AS_LONG(operand2);
 
     if (unlikely(b == 0)) {
-        PyErr_Format(PyExc_ZeroDivisionError, "division by zero");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "division by zero");
         return NULL;
     }
 
@@ -392,7 +403,7 @@ PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_INT_OBJECT(PyObject *operand1, PyObjec
 #endif
 
 #if PYTHON_VERSION < 300
-static nuitka_bool SLOT_nb_true_divide_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
+static inline nuitka_bool SLOT_nb_true_divide_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -408,7 +419,7 @@ static nuitka_bool SLOT_nb_true_divide_NBOOL_INT_INT(PyObject *operand1, PyObjec
     const long b = PyInt_AS_LONG(operand2);
 
     if (unlikely(b == 0)) {
-        PyErr_Format(PyExc_ZeroDivisionError, "division by zero");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "division by zero");
         return NUITKA_BOOL_EXCEPTION;
     }
 
@@ -4568,3 +4579,11 @@ static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_OBJECT(PyObject *opera
 nuitka_bool BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_OBJECT(operand1, operand2);
 }
+
+/* Reneable warnings about unused goto targets for compilers */
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
