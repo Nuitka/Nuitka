@@ -55,7 +55,7 @@ struct Nuitka_FrameObject {
 
 inline static void assertCodeObject(PyCodeObject *code_object) { CHECK_OBJECT(code_object); }
 
-static bool isFrameUnusable(struct Nuitka_FrameObject *frame_object) {
+NUITKA_MAY_BE_UNUSED static inline bool isFrameUnusable(struct Nuitka_FrameObject *frame_object) {
     CHECK_OBJECT_X(frame_object);
 
     bool result =
@@ -91,30 +91,6 @@ extern int count_allocated_frame_cache_instances;
 extern int count_released_frame_cache_instances;
 extern int count_hit_frame_cache_instances;
 #endif
-
-// TODO: Move to the frame templates maybe.
-NUITKA_MAY_BE_UNUSED static void MAKE_OR_REUSE_FRAME(struct Nuitka_FrameObject **frame_object, PyCodeObject *code,
-                                                     PyObject *module, Py_ssize_t locals_size) {
-    if (isFrameUnusable(*frame_object)) {
-        Py_XDECREF(*frame_object);
-
-#if _DEBUG_REFCOUNTS
-        if (*frame_object == NULL) {
-            count_active_frame_cache_instances += 1;
-        } else {
-            count_released_frame_cache_instances += 1;
-        }
-        count_allocated_frame_cache_instances += 1;
-
-#endif
-        *frame_object = MAKE_FUNCTION_FRAME(code, module, locals_size);
-    } else {
-#if _DEBUG_REFCOUNTS
-        count_hit_frame_cache_instances += 1;
-#endif
-    }
-    assert((*frame_object)->m_type_description == NULL);
-}
 
 extern void dumpFrameStack(void);
 

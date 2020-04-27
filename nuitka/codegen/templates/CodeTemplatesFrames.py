@@ -21,7 +21,24 @@
 
 # Frame in a function
 template_frame_guard_full_block = """\
-MAKE_OR_REUSE_FRAME(&%(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s);
+if (isFrameUnusable(%(frame_cache_identifier)s)) {
+    Py_XDECREF(%(frame_cache_identifier)s);
+
+#if _DEBUG_REFCOUNTS
+    if (%(frame_cache_identifier)s == NULL) {
+        count_active_frame_cache_instances += 1;
+    } else {
+        count_released_frame_cache_instances += 1;
+    }
+    count_allocated_frame_cache_instances += 1;
+#endif
+    %(frame_cache_identifier)s = MAKE_FUNCTION_FRAME(%(code_identifier)s, %(module_identifier)s, %(locals_size)s);
+#if _DEBUG_REFCOUNTS
+} else {
+    count_hit_frame_cache_instances += 1;
+#endif
+}
+assert(%(frame_cache_identifier)s->m_type_description == NULL);
 %(frame_identifier)s = %(frame_cache_identifier)s;
 
 // Push the new frame as the currently active one.
@@ -144,7 +161,23 @@ goto %(parent_exception_exit)s;
 
 # Frame in a generator, coroutine or asyncgen.
 template_frame_guard_generator = """\
-MAKE_OR_REUSE_FRAME(&%(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s);
+if (isFrameUnusable(%(frame_cache_identifier)s)) {
+    Py_XDECREF(%(frame_cache_identifier)s);
+
+#if _DEBUG_REFCOUNTS
+    if (%(frame_cache_identifier)s == NULL) {
+        count_active_frame_cache_instances += 1;
+    } else {
+        count_released_frame_cache_instances += 1;
+    }
+    count_allocated_frame_cache_instances += 1;
+#endif
+    %(frame_cache_identifier)s = MAKE_FUNCTION_FRAME(%(code_identifier)s, %(module_identifier)s, %(locals_size)s);
+#if _DEBUG_REFCOUNTS
+} else {
+    count_hit_frame_cache_instances += 1;
+#endif
+}
 %(context_identifier)s->m_frame = %(frame_cache_identifier)s;
 
 // Mark the frame object as in use, ref count 1 will be up for reuse.
