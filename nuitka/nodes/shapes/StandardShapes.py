@@ -24,6 +24,13 @@ from .ControlFlowDescriptions import ControlFlowDescriptionFullEscape
 
 
 class ShapeBase(object):
+    def __repr__(self):
+        return "<%s %s %s>" % (
+            self.__class__.__name__,
+            self.getTypeName(),
+            self.helper_code,
+        )
+
     @staticmethod
     def getTypeName():
         return None
