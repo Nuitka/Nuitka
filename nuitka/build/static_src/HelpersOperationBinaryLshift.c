@@ -24,6 +24,17 @@
 
 /* C helpers for type specialized "<<" (LSHIFT) operations */
 
+/* Disable warnings about unused goto targets for compilers */
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4102)
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
+#endif
+
 static PyObject *SLOT_nb_lshift_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     PyObject *x = PyLong_Type.tp_as_number->nb_lshift(operand1, operand2);
     assert(x != Py_NotImplemented);
@@ -733,7 +744,7 @@ nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObje
 }
 
 #if PYTHON_VERSION < 300
-static PyObject *SLOT_nb_lshift_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
+static inline PyObject *SLOT_nb_lshift_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -1109,7 +1120,7 @@ PyObject *BINARY_OPERATION_LSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION < 300
-static nuitka_bool SLOT_nb_lshift_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
+static inline nuitka_bool SLOT_nb_lshift_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 300
@@ -2553,3 +2564,11 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operan
 nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(operand1, operand2);
 }
+
+/* Reneable warnings about unused goto targets for compilers */
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
