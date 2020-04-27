@@ -609,6 +609,7 @@ setExpressionDispatchDict(
         "EXPRESSION_COMPARISON_IN": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_NOT_IN": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_EXCEPTION_MATCH": generateComparisonExpressionCode,
+        "EXPRESSION_COMPARISON_EXCEPTION_MISMATCH": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_LT": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_LTE": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_GT": generateComparisonExpressionCode,
