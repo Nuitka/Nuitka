@@ -362,10 +362,12 @@ static void Nuitka_tb_dealloc(PyTracebackObject *tb) {
     // Need to use official method as it checks for recursion.
     PyObject_GC_UnTrack(tb);
 
+#if 0
 #if PYTHON_VERSION >= 380
     Py_TRASHCAN_BEGIN(tb, Nuitka_tb_dealloc);
 #else
     Py_TRASHCAN_SAFE_BEGIN(tb);
+#endif
 #endif
 
     Py_XDECREF(tb->tb_next);
@@ -373,10 +375,12 @@ static void Nuitka_tb_dealloc(PyTracebackObject *tb) {
 
     releaseToFreeList(free_list_tracebacks, tb, MAX_TRACEBACK_FREE_LIST_COUNT);
 
+#if 0
 #if PYTHON_VERSION >= 380
     Py_TRASHCAN_END;
 #else
     Py_TRASHCAN_SAFE_END(tb);
+#endif
 #endif
 }
 
