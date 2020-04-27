@@ -55,5 +55,7 @@ def onMissingHelper(helper_name, source_ref):
         _missing_helpers[helper_name].append(source_ref)
 
 
-def onMissingOperation(*args):
-    _missing_operations.add(args)
+def onMissingOperation(operation, left, right):
+    # Avoid the circular dependency on tshape_uninit from StandardShapes.
+    if right.__class__.__name__ != "ShapeTypeUninit":
+        _missing_operations.add((operation, left, right))
