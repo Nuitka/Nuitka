@@ -545,7 +545,7 @@ NUITKA_MAY_BE_UNUSED static inline void ADD_EXCEPTION_CONTEXT(PyObject **excepti
 #endif
 
 /* Special helper that checks for StopIteration and if so clears it, only
- indicating if it was set.
+   indicating if it was set in the return value.
 
    Equivalent to if(PyErr_ExceptionMatches(PyExc_StopIteration) PyErr_Clear();
 
@@ -567,8 +567,12 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(void) {
     }
 }
 
-// Special helper that checks for KeyError and if so clears it, only
-// indicating if it was set.
+/* Special helper that checks for KeyError and if so clears it, only
+   indicating if it was set in the return value.
+
+   Equivalent to if(PyErr_ExceptionMatches(PyExc_KeyError) PyErr_Clear();
+
+*/
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(void) {
     PyObject *error = GET_ERROR_OCCURRED();
 
@@ -580,6 +584,26 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(void) {
     } else {
         return false;
     }
+}
+
+static inline void FORMAT_TYPE_ERROR1(PyObject **exception_type, PyObject **exception_value, char const *format,
+                                      char const *arg) {
+    *exception_type = PyExc_TypeError;
+    Py_INCREF(*exception_type);
+
+    *exception_value = Nuitka_String_FromFormat(format, arg);
+    CHECK_OBJECT(*exception_value);
+    Py_INCREF(*exception_value);
+}
+
+static inline void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exception_value, char const *format,
+                                      char const *arg1, char const *arg2) {
+    *exception_type = PyExc_TypeError;
+    Py_INCREF(*exception_type);
+
+    *exception_value = Nuitka_String_FromFormat(format, arg1, arg2);
+    CHECK_OBJECT(*exception_value);
+    Py_INCREF(*exception_value);
 }
 
 #endif

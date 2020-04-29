@@ -152,6 +152,7 @@
 #define Nuitka_StringIntern PyString_InternInPlace
 #define Nuitka_String_FromString PyString_FromString
 #define Nuitka_String_FromStringAndSize PyString_FromStringAndSize
+#define Nuitka_String_FromFormat PyString_FromFormat
 #define PyUnicode_CHECK_INTERNED (0)
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
@@ -169,6 +170,7 @@
 #define Nuitka_StringIntern PyUnicode_InternInPlace
 #define Nuitka_String_FromString PyUnicode_FromString
 #define Nuitka_String_FromStringAndSize PyUnicode_FromStringAndSize
+#define Nuitka_String_FromFormat PyUnicode_FromFormat
 #endif
 
 #if PYTHON_VERSION < 300
