@@ -1094,7 +1094,7 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_TUPLE_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-    if (PySequence_Check(*operand1) && 1) {
+    if ((PyTuple_CheckExact(*operand1) || PySequence_Check(*operand1)) && 1) {
         PyObject *result = PySequence_InPlaceConcat(*operand1, operand2);
 
         if (unlikely(result == NULL)) {
@@ -1143,7 +1143,7 @@ static inline bool _BINARY_OPERATION_ADD_TUPLE_OBJECT_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-    if (1 && PySequence_Check(operand2)) {
+    if (1 && (PyTuple_CheckExact(operand2) || PySequence_Check(operand2))) {
         PyObject *result = PySequence_InPlaceConcat(*operand1, operand2);
 
         if (unlikely(result == NULL)) {
