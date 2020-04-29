@@ -237,6 +237,15 @@ extern PyThreadState *_PyThreadState_Current;
 #define PyThreadState_GET() (_PyThreadState_Current)
 #endif
 
+#ifndef _NUITKA_FULL_COMPAT
+// Remove useless recursion control guards, we have no need for them or we
+// are achieving deeper recursion anyway.
+#undef Py_EnterRecursiveCall
+#define Py_EnterRecursiveCall(arg) (0)
+#undef Py_LeaveRecursiveCall
+#define Py_LeaveRecursiveCall()
+#endif
+
 #include "nuitka/helpers.h"
 
 #include "nuitka/compiled_frame.h"
