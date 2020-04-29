@@ -26,14 +26,11 @@ CHECK_OBJECT(%(iterator_name)s); assert(HAS_ITERNEXT(%(iterator_name)s));
 
 %(attempt_name)s = (*Py_TYPE(%(iterator_name)s)->tp_iternext)(%(iterator_name)s);
 
-if (likely(%(attempt_name)s == NULL))
-{
+if (likely(%(attempt_name)s == NULL)) {
     PyObject *error = GET_ERROR_OCCURRED();
 
-    if (error != NULL)
-    {
-        if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_StopIteration))
-        {
+    if (error != NULL) {
+        if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_StopIteration)) {
             CLEAR_ERROR_OCCURRED();
         } else {
             FETCH_ERROR_OCCURRED(&%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
@@ -46,13 +43,11 @@ if (likely(%(attempt_name)s == NULL))
 } else {
     Py_DECREF(%(attempt_name)s);
 
-    // TODO: Could avoid SET_CURRENT_EXCEPTION_TYPE0_STR.
-#if PYTHON_VERSION < 300
-    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "too many values to unpack");
-#else
-    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "too many values to unpack (expected %(count)d)");
-#endif
-    FETCH_ERROR_OCCURRED(&%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
+    %(exception_type)s = PyExc_ValueError;
+    Py_INCREF(PyExc_ValueError);
+    %(exception_value)s = %(too_many_values_error)s;
+    Py_INCREF(%(exception_value)s);
+    %(exception_tb)s = NULL;
 %(release_temps_2)s
 %(var_description_code_2)s
 %(line_number_code_2)s
