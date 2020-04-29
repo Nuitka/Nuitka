@@ -178,7 +178,6 @@ def generateUnpackCheckCode(statement, emit, context):
         % {
             "iterator_name": iterator_name,
             "attempt_name": attempt_name,
-            "count": statement.getCount(),
             "exception_exit": context.getExceptionEscape(),
             "release_temps_1": indented(release_code, 3),
             "line_number_code_1": indented(getErrorLineNumberUpdateCode(context), 3),
@@ -189,6 +188,11 @@ def generateUnpackCheckCode(statement, emit, context):
             "exception_type": exception_type,
             "exception_value": exception_value,
             "exception_tb": exception_tb,
+            "too_many_values_error": context.getConstantCode(
+                "too many values to unpack"
+                if python_version < 300
+                else "too many values to unpack (expected %d)" % statement.getCount()
+            ),
         }
     )
 
