@@ -228,7 +228,7 @@ typedef long Py_hash_t;
 #define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
 #endif
 
-#if _NUITKA_EXPERIMENTAL_FAST_THREAD_GET && PYTHON_VERSION >= 300
+#if _NUITKA_EXPERIMENTAL_FAST_THREAD_GET && PYTHON_VERSION >= 300 && PYTHON_VERSION < 370
 // We are careful, access without locking under the assumption that we hold
 // the GIL over uses of this or the same thread continues to execute code of
 // ours.
