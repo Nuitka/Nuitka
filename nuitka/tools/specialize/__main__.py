@@ -178,12 +178,18 @@ class TypeDescBase(getMetaClassBase("Type")):
         else:
             return "0"
 
-    def getSequenceCheckExpression(self, operand):
+    def getSequenceCheckExpression(self, operand, right):
         # Dictionaries are not really sequences despite slots.
         if self.type_name == "dict":
             return "0"
         elif self.type_name == "object":
-            return "PySequence_Check(%s)" % operand
+            if right.type_name == "tuple":
+                return "(PyTuple_CheckExact(%s) || PySequence_Check(%s))" % (
+                    operand,
+                    operand,
+                )
+            else:
+                return "PySequence_Check(%s)" % operand
         elif self.hasSlot("sq_item"):
             return "1"
         else:
