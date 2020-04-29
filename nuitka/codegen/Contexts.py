@@ -1306,9 +1306,8 @@ class PythonFunctionOutlineContext(
         return self.parent.isForDirectCall()
 
     def mayRecurse(self):
-        # TODO: In modules, there could be loops with outlines, we could detect
-        # that.
-        return True
+        # The outline is only accessible via its parent.
+        return self.parent.mayRecurse()
 
     def addLocalsDictName(self, locals_dict_name):
         return self.parent.addLocalsDictName(locals_dict_name)
