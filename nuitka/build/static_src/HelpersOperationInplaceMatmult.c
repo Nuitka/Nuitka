@@ -31,7 +31,6 @@
 #pragma warning(disable : 4102)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
 
@@ -288,14 +287,16 @@ static inline bool _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_INPLACE(PyObject **op
 
 #error Operator @ not implemented
 
-        PyObject *operand1_object = op1;
-        PyObject *operand2_object = operand2;
+        {
+            PyObject *operand1_object = op1;
+            PyObject *operand2_object = operand2;
 
-        PyObject *o = PyLong_Type.tp_as_number->nb_matrix_multiply(operand1_object, operand2_object);
-        assert(o != Py_NotImplemented);
+            PyObject *o = PyLong_Type.tp_as_number->nb_matrix_multiply(operand1_object, operand2_object);
+            assert(o != Py_NotImplemented);
 
-        result = o;
-        goto exit_result;
+            result = o;
+            goto exit_result;
+        }
 
     exit_result:
 
@@ -349,5 +350,5 @@ bool BINARY_OPERATION_MATMULT_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObjec
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic pop
+#pragma GCC diagnostic warning "-Wunused-label"
 #endif

@@ -31,7 +31,6 @@
 #pragma warning(disable : 4102)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
 
@@ -781,14 +780,16 @@ static inline PyObject *SLOT_nb_rshift_OBJECT_INT_INT(PyObject *operand1, PyObje
         return PyInt_FromLong(r);
     }
 
-    PyObject *op1 = operand1;
-    PyObject *op2 = operand2;
+    {
+        PyObject *op1 = operand1;
+        PyObject *op2 = operand2;
 
-    // TODO: Could in-line and specialize these as well.
-    PyObject *o = PyLong_Type.tp_as_number->nb_rshift(op1, op2);
-    assert(o != Py_NotImplemented);
+        // TODO: Could in-line and specialize these as well.
+        PyObject *o = PyLong_Type.tp_as_number->nb_rshift(op1, op2);
+        assert(o != Py_NotImplemented);
 
-    return o;
+        return o;
+    }
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -1139,20 +1140,22 @@ static inline nuitka_bool SLOT_nb_rshift_NBOOL_INT_INT(PyObject *operand1, PyObj
         return r != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
     }
 
-    PyObject *op1 = operand1;
-    PyObject *op2 = operand2;
+    {
+        PyObject *op1 = operand1;
+        PyObject *op2 = operand2;
 
-    // TODO: Could in-line and specialize these as well.
-    PyObject *o = PyLong_Type.tp_as_number->nb_rshift(op1, op2);
-    assert(o != Py_NotImplemented);
+        // TODO: Could in-line and specialize these as well.
+        PyObject *o = PyLong_Type.tp_as_number->nb_rshift(op1, op2);
+        assert(o != Py_NotImplemented);
 
-    if (unlikely(o == NULL)) {
-        return NUITKA_BOOL_EXCEPTION;
+        if (unlikely(o == NULL)) {
+            return NUITKA_BOOL_EXCEPTION;
+        }
+
+        nuitka_bool r = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(o);
+        return r;
     }
-
-    nuitka_bool r = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(o);
-    return r;
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -2524,5 +2527,5 @@ nuitka_bool BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyOb
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic pop
+#pragma GCC diagnostic warning "-Wunused-label"
 #endif

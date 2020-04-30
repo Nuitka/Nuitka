@@ -31,7 +31,6 @@
 #pragma warning(disable : 4102)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
 
@@ -78,25 +77,27 @@ static inline bool _BINARY_OPERATION_MULT_INT_INT_INPLACE(PyObject **operand1, P
         if (likely(doubled_longprod == doubleprod)) {
             result = PyInt_FromLong(longprod);
             goto exit_result_ok;
+        } else {
+            const double diff = doubled_longprod - doubleprod;
+            const double absdiff = diff >= 0.0 ? diff : -diff;
+            const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+            if (likely(32.0 * absdiff <= absprod)) {
+                result = PyInt_FromLong(longprod);
+                goto exit_result_ok;
+            }
         }
 
-        const double diff = doubled_longprod - doubleprod;
-        const double absdiff = diff >= 0.0 ? diff : -diff;
-        const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+        {
+            PyObject *operand1_object = op1;
+            PyObject *operand2_object = operand2;
 
-        if (likely(32.0 * absdiff <= absprod)) {
-            result = PyInt_FromLong(longprod);
-            goto exit_result_ok;
+            PyObject *o = PyLong_Type.tp_as_number->nb_multiply(operand1_object, operand2_object);
+            assert(o != Py_NotImplemented);
+
+            result = o;
+            goto exit_result;
         }
-
-        PyObject *operand1_object = op1;
-        PyObject *operand2_object = operand2;
-
-        PyObject *o = PyLong_Type.tp_as_number->nb_multiply(operand1_object, operand2_object);
-        assert(o != Py_NotImplemented);
-
-        result = o;
-        goto exit_result;
 
     exit_result:
 
@@ -185,25 +186,27 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObject **operand1
         if (likely(doubled_longprod == doubleprod)) {
             result = PyInt_FromLong(longprod);
             goto exit_result_ok;
+        } else {
+            const double diff = doubled_longprod - doubleprod;
+            const double absdiff = diff >= 0.0 ? diff : -diff;
+            const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+            if (likely(32.0 * absdiff <= absprod)) {
+                result = PyInt_FromLong(longprod);
+                goto exit_result_ok;
+            }
         }
 
-        const double diff = doubled_longprod - doubleprod;
-        const double absdiff = diff >= 0.0 ? diff : -diff;
-        const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+        {
+            PyObject *operand1_object = op1;
+            PyObject *operand2_object = operand2;
 
-        if (likely(32.0 * absdiff <= absprod)) {
-            result = PyInt_FromLong(longprod);
-            goto exit_result_ok;
+            PyObject *o = PyLong_Type.tp_as_number->nb_multiply(operand1_object, operand2_object);
+            assert(o != Py_NotImplemented);
+
+            result = o;
+            goto exit_result;
         }
-
-        PyObject *operand1_object = op1;
-        PyObject *operand2_object = operand2;
-
-        PyObject *o = PyLong_Type.tp_as_number->nb_multiply(operand1_object, operand2_object);
-        assert(o != Py_NotImplemented);
-
-        result = o;
-        goto exit_result;
 
     exit_result:
 
@@ -292,25 +295,27 @@ static inline bool _BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObject **operand1
         if (likely(doubled_longprod == doubleprod)) {
             result = PyInt_FromLong(longprod);
             goto exit_result_ok;
+        } else {
+            const double diff = doubled_longprod - doubleprod;
+            const double absdiff = diff >= 0.0 ? diff : -diff;
+            const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+            if (likely(32.0 * absdiff <= absprod)) {
+                result = PyInt_FromLong(longprod);
+                goto exit_result_ok;
+            }
         }
 
-        const double diff = doubled_longprod - doubleprod;
-        const double absdiff = diff >= 0.0 ? diff : -diff;
-        const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+        {
+            PyObject *operand1_object = op1;
+            PyObject *operand2_object = operand2;
 
-        if (likely(32.0 * absdiff <= absprod)) {
-            result = PyInt_FromLong(longprod);
-            goto exit_result_ok;
+            PyObject *o = PyLong_Type.tp_as_number->nb_multiply(operand1_object, operand2_object);
+            assert(o != Py_NotImplemented);
+
+            result = o;
+            goto exit_result;
         }
-
-        PyObject *operand1_object = op1;
-        PyObject *operand2_object = operand2;
-
-        PyObject *o = PyLong_Type.tp_as_number->nb_multiply(operand1_object, operand2_object);
-        assert(o != Py_NotImplemented);
-
-        result = o;
-        goto exit_result;
 
     exit_result:
 
@@ -2003,25 +2008,27 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_OBJECT_INPLACE(PyObject **opera
         if (likely(doubled_longprod == doubleprod)) {
             result = PyInt_FromLong(longprod);
             goto exit_result_ok;
+        } else {
+            const double diff = doubled_longprod - doubleprod;
+            const double absdiff = diff >= 0.0 ? diff : -diff;
+            const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+            if (likely(32.0 * absdiff <= absprod)) {
+                result = PyInt_FromLong(longprod);
+                goto exit_result_ok;
+            }
         }
 
-        const double diff = doubled_longprod - doubleprod;
-        const double absdiff = diff >= 0.0 ? diff : -diff;
-        const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+        {
+            PyObject *operand1_object = op1;
+            PyObject *operand2_object = operand2;
 
-        if (likely(32.0 * absdiff <= absprod)) {
-            result = PyInt_FromLong(longprod);
-            goto exit_result_ok;
+            PyObject *o = PyLong_Type.tp_as_number->nb_multiply(operand1_object, operand2_object);
+            assert(o != Py_NotImplemented);
+
+            result = o;
+            goto exit_result;
         }
-
-        PyObject *operand1_object = op1;
-        PyObject *operand2_object = operand2;
-
-        PyObject *o = PyLong_Type.tp_as_number->nb_multiply(operand1_object, operand2_object);
-        assert(o != Py_NotImplemented);
-
-        result = o;
-        goto exit_result;
 
     exit_result:
 
@@ -2075,5 +2082,5 @@ bool BINARY_OPERATION_MULT_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic pop
+#pragma GCC diagnostic warning "-Wunused-label"
 #endif

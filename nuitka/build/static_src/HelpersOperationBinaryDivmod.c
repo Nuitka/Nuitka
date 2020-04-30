@@ -32,7 +32,6 @@
 #pragma warning(disable : 4102)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
 
@@ -68,15 +67,16 @@ static inline PyObject *SLOT_nb_divmod_OBJECT_INT_INT(PyObject *operand1, PyObje
 
         return Py_BuildValue("(ll)", a_div_b, a_mod_b);
     }
+    {
+        PyObject *op1 = operand1;
+        PyObject *op2 = operand2;
 
-    PyObject *op1 = operand1;
-    PyObject *op2 = operand2;
+        // TODO: Could in-line and specialize these as well.
+        PyObject *o = PyLong_Type.tp_as_number->nb_divmod(op1, op2);
+        assert(o != Py_NotImplemented);
 
-    // TODO: Could in-line and specialize these as well.
-    PyObject *o = PyLong_Type.tp_as_number->nb_divmod(op1, op2);
-    assert(o != Py_NotImplemented);
-
-    return o;
+        return o;
+    }
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -1215,5 +1215,5 @@ PyObject *BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObj
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic pop
+#pragma GCC diagnostic warning "-Wunused-label"
 #endif

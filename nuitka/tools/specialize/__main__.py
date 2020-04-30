@@ -1591,7 +1591,6 @@ def makeHelperOperations(
 #pragma warning(disable: 4102)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
 """
@@ -1712,7 +1711,7 @@ def makeHelperOperations(
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic pop
+#pragma GCC diagnostic warning "-Wunused-label"
 #endif
     """
     )
