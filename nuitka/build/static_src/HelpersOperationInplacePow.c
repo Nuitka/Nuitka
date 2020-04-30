@@ -31,7 +31,6 @@
 #pragma warning(disable : 4102)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
 
@@ -307,20 +306,40 @@ static inline bool _BINARY_OPERATION_POW_INT_INT_INPLACE(PyObject **operand1, Py
 
             result = r;
             goto exit_result;
-        }
+        } else {
 
-        long temp = a;
-        long ix = 1;
-        long bb = b;
+            long temp = a;
+            long ix = 1;
+            long bb = b;
 
-        while (bb > 0) {
-            long prev = ix;
-            if (bb & 1) {
-                ix = (unsigned long)ix * temp;
-                if (temp == 0) {
+            while (bb > 0) {
+                long prev = ix;
+                if (bb & 1) {
+                    ix = (unsigned long)ix * temp;
+                    if (temp == 0) {
+                        break;
+                    }
+                    if (ix / temp != prev) {
+                        PyObject *operand1_long = PyLong_FromLong(a);
+                        PyObject *operand2_long = PyLong_FromLong(b);
+
+                        PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                        Py_DECREF(operand1_long);
+                        Py_DECREF(operand2_long);
+
+                        result = r;
+                        goto exit_result;
+                    }
+                }
+                bb >>= 1;
+                if (bb == 0) {
                     break;
                 }
-                if (ix / temp != prev) {
+                prev = temp;
+                temp = (unsigned long)temp * temp;
+
+                if (prev != 0 && temp / prev != prev) {
                     PyObject *operand1_long = PyLong_FromLong(a);
                     PyObject *operand2_long = PyLong_FromLong(b);
 
@@ -333,38 +352,21 @@ static inline bool _BINARY_OPERATION_POW_INT_INT_INPLACE(PyObject **operand1, Py
                     goto exit_result;
                 }
             }
-            bb >>= 1;
-            if (bb == 0) {
-                break;
-            }
-            prev = temp;
-            temp = (unsigned long)temp * temp;
 
-            if (prev != 0 && temp / prev != prev) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
-
-                PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
-
-                Py_DECREF(operand1_long);
-                Py_DECREF(operand2_long);
-
-                result = r;
-                goto exit_result;
-            }
+            result = PyInt_FromLong(ix);
+            goto exit_result_ok;
         }
 
-        result = PyInt_FromLong(ix);
-        goto exit_result_ok;
+        {
+            PyObject *operand1_object = op1;
+            PyObject *operand2_object = operand2;
 
-        PyObject *operand1_object = op1;
-        PyObject *operand2_object = operand2;
+            PyObject *o = PyLong_Type.tp_as_number->nb_power(operand1_object, operand2_object, Py_None);
+            assert(o != Py_NotImplemented);
 
-        PyObject *o = PyLong_Type.tp_as_number->nb_power(operand1_object, operand2_object, Py_None);
-        assert(o != Py_NotImplemented);
-
-        result = o;
-        goto exit_result;
+            result = o;
+            goto exit_result;
+        }
 
     exit_result:
 
@@ -458,20 +460,40 @@ static inline bool _BINARY_OPERATION_POW_OBJECT_INT_INPLACE(PyObject **operand1,
 
             result = r;
             goto exit_result;
-        }
+        } else {
 
-        long temp = a;
-        long ix = 1;
-        long bb = b;
+            long temp = a;
+            long ix = 1;
+            long bb = b;
 
-        while (bb > 0) {
-            long prev = ix;
-            if (bb & 1) {
-                ix = (unsigned long)ix * temp;
-                if (temp == 0) {
+            while (bb > 0) {
+                long prev = ix;
+                if (bb & 1) {
+                    ix = (unsigned long)ix * temp;
+                    if (temp == 0) {
+                        break;
+                    }
+                    if (ix / temp != prev) {
+                        PyObject *operand1_long = PyLong_FromLong(a);
+                        PyObject *operand2_long = PyLong_FromLong(b);
+
+                        PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                        Py_DECREF(operand1_long);
+                        Py_DECREF(operand2_long);
+
+                        result = r;
+                        goto exit_result;
+                    }
+                }
+                bb >>= 1;
+                if (bb == 0) {
                     break;
                 }
-                if (ix / temp != prev) {
+                prev = temp;
+                temp = (unsigned long)temp * temp;
+
+                if (prev != 0 && temp / prev != prev) {
                     PyObject *operand1_long = PyLong_FromLong(a);
                     PyObject *operand2_long = PyLong_FromLong(b);
 
@@ -484,38 +506,21 @@ static inline bool _BINARY_OPERATION_POW_OBJECT_INT_INPLACE(PyObject **operand1,
                     goto exit_result;
                 }
             }
-            bb >>= 1;
-            if (bb == 0) {
-                break;
-            }
-            prev = temp;
-            temp = (unsigned long)temp * temp;
 
-            if (prev != 0 && temp / prev != prev) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
-
-                PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
-
-                Py_DECREF(operand1_long);
-                Py_DECREF(operand2_long);
-
-                result = r;
-                goto exit_result;
-            }
+            result = PyInt_FromLong(ix);
+            goto exit_result_ok;
         }
 
-        result = PyInt_FromLong(ix);
-        goto exit_result_ok;
+        {
+            PyObject *operand1_object = op1;
+            PyObject *operand2_object = operand2;
 
-        PyObject *operand1_object = op1;
-        PyObject *operand2_object = operand2;
+            PyObject *o = PyLong_Type.tp_as_number->nb_power(operand1_object, operand2_object, Py_None);
+            assert(o != Py_NotImplemented);
 
-        PyObject *o = PyLong_Type.tp_as_number->nb_power(operand1_object, operand2_object, Py_None);
-        assert(o != Py_NotImplemented);
-
-        result = o;
-        goto exit_result;
+            result = o;
+            goto exit_result;
+        }
 
     exit_result:
 
@@ -609,20 +614,40 @@ static inline bool _BINARY_OPERATION_POW_INT_OBJECT_INPLACE(PyObject **operand1,
 
             result = r;
             goto exit_result;
-        }
+        } else {
 
-        long temp = a;
-        long ix = 1;
-        long bb = b;
+            long temp = a;
+            long ix = 1;
+            long bb = b;
 
-        while (bb > 0) {
-            long prev = ix;
-            if (bb & 1) {
-                ix = (unsigned long)ix * temp;
-                if (temp == 0) {
+            while (bb > 0) {
+                long prev = ix;
+                if (bb & 1) {
+                    ix = (unsigned long)ix * temp;
+                    if (temp == 0) {
+                        break;
+                    }
+                    if (ix / temp != prev) {
+                        PyObject *operand1_long = PyLong_FromLong(a);
+                        PyObject *operand2_long = PyLong_FromLong(b);
+
+                        PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                        Py_DECREF(operand1_long);
+                        Py_DECREF(operand2_long);
+
+                        result = r;
+                        goto exit_result;
+                    }
+                }
+                bb >>= 1;
+                if (bb == 0) {
                     break;
                 }
-                if (ix / temp != prev) {
+                prev = temp;
+                temp = (unsigned long)temp * temp;
+
+                if (prev != 0 && temp / prev != prev) {
                     PyObject *operand1_long = PyLong_FromLong(a);
                     PyObject *operand2_long = PyLong_FromLong(b);
 
@@ -635,38 +660,21 @@ static inline bool _BINARY_OPERATION_POW_INT_OBJECT_INPLACE(PyObject **operand1,
                     goto exit_result;
                 }
             }
-            bb >>= 1;
-            if (bb == 0) {
-                break;
-            }
-            prev = temp;
-            temp = (unsigned long)temp * temp;
 
-            if (prev != 0 && temp / prev != prev) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
-
-                PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
-
-                Py_DECREF(operand1_long);
-                Py_DECREF(operand2_long);
-
-                result = r;
-                goto exit_result;
-            }
+            result = PyInt_FromLong(ix);
+            goto exit_result_ok;
         }
 
-        result = PyInt_FromLong(ix);
-        goto exit_result_ok;
+        {
+            PyObject *operand1_object = op1;
+            PyObject *operand2_object = operand2;
 
-        PyObject *operand1_object = op1;
-        PyObject *operand2_object = operand2;
+            PyObject *o = PyLong_Type.tp_as_number->nb_power(operand1_object, operand2_object, Py_None);
+            assert(o != Py_NotImplemented);
 
-        PyObject *o = PyLong_Type.tp_as_number->nb_power(operand1_object, operand2_object, Py_None);
-        assert(o != Py_NotImplemented);
-
-        result = o;
-        goto exit_result;
+            result = o;
+            goto exit_result;
+        }
 
     exit_result:
 
@@ -839,20 +847,40 @@ static inline bool _BINARY_OPERATION_POW_OBJECT_OBJECT_INPLACE(PyObject **operan
 
             result = r;
             goto exit_result;
-        }
+        } else {
 
-        long temp = a;
-        long ix = 1;
-        long bb = b;
+            long temp = a;
+            long ix = 1;
+            long bb = b;
 
-        while (bb > 0) {
-            long prev = ix;
-            if (bb & 1) {
-                ix = (unsigned long)ix * temp;
-                if (temp == 0) {
+            while (bb > 0) {
+                long prev = ix;
+                if (bb & 1) {
+                    ix = (unsigned long)ix * temp;
+                    if (temp == 0) {
+                        break;
+                    }
+                    if (ix / temp != prev) {
+                        PyObject *operand1_long = PyLong_FromLong(a);
+                        PyObject *operand2_long = PyLong_FromLong(b);
+
+                        PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                        Py_DECREF(operand1_long);
+                        Py_DECREF(operand2_long);
+
+                        result = r;
+                        goto exit_result;
+                    }
+                }
+                bb >>= 1;
+                if (bb == 0) {
                     break;
                 }
-                if (ix / temp != prev) {
+                prev = temp;
+                temp = (unsigned long)temp * temp;
+
+                if (prev != 0 && temp / prev != prev) {
                     PyObject *operand1_long = PyLong_FromLong(a);
                     PyObject *operand2_long = PyLong_FromLong(b);
 
@@ -865,38 +893,21 @@ static inline bool _BINARY_OPERATION_POW_OBJECT_OBJECT_INPLACE(PyObject **operan
                     goto exit_result;
                 }
             }
-            bb >>= 1;
-            if (bb == 0) {
-                break;
-            }
-            prev = temp;
-            temp = (unsigned long)temp * temp;
 
-            if (prev != 0 && temp / prev != prev) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
-
-                PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
-
-                Py_DECREF(operand1_long);
-                Py_DECREF(operand2_long);
-
-                result = r;
-                goto exit_result;
-            }
+            result = PyInt_FromLong(ix);
+            goto exit_result_ok;
         }
 
-        result = PyInt_FromLong(ix);
-        goto exit_result_ok;
+        {
+            PyObject *operand1_object = op1;
+            PyObject *operand2_object = operand2;
 
-        PyObject *operand1_object = op1;
-        PyObject *operand2_object = operand2;
+            PyObject *o = PyLong_Type.tp_as_number->nb_power(operand1_object, operand2_object, Py_None);
+            assert(o != Py_NotImplemented);
 
-        PyObject *o = PyLong_Type.tp_as_number->nb_power(operand1_object, operand2_object, Py_None);
-        assert(o != Py_NotImplemented);
-
-        result = o;
-        goto exit_result;
+            result = o;
+            goto exit_result;
+        }
 
     exit_result:
 
@@ -950,5 +961,5 @@ bool BINARY_OPERATION_POW_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *o
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic pop
+#pragma GCC diagnostic warning "-Wunused-label"
 #endif

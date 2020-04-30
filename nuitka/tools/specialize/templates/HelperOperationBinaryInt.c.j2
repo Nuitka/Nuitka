@@ -44,14 +44,14 @@ static inline {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeNa
 
     if (likely(doubled_longprod == doubleprod)) {
         {{ target.getReturnFromLongExpressionCode("longprod") }}
-    }
+    } else {
+        const double diff = doubled_longprod - doubleprod;
+        const double absdiff = diff >= 0.0 ? diff : -diff;
+        const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
 
-    const double diff = doubled_longprod - doubleprod;
-    const double absdiff = diff >= 0.0 ? diff : -diff;
-    const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
-
-    if (likely(32.0 * absdiff <= absprod)) {
-        {{ target.getReturnFromLongExpressionCode("longprod") }}
+        if (likely(32.0 * absdiff <= absprod)) {
+            {{ target.getReturnFromLongExpressionCode("longprod") }}
+        }
     }
 {% elif operand == "//" or nb_slot == "nb_divide" %}
     if (unlikely(b == 0)) {
@@ -191,20 +191,38 @@ static inline {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeNa
         Py_DECREF(operand2_float);
 
         {{ target.getReturnFromObjectExpressionCode("result") }}
-    }
+    } else {
+        long temp = a;
+        long ix = 1;
+        long bb = b;
 
-    long temp = a;
-    long ix = 1;
-    long bb = b;
+        while (bb > 0) {
+            long prev = ix;
+            if (bb & 1) {
+                ix = (unsigned long)ix * temp;
+                if (temp == 0) {
+                    break;
+                }
+                if (ix / temp != prev) {
+                    PyObject *operand1_long = PyLong_FromLong(a);
+                    PyObject *operand2_long = PyLong_FromLong(b);
 
-    while (bb > 0) {
-        long prev = ix;
-        if (bb & 1) {
-            ix = (unsigned long)ix * temp;
-            if (temp == 0) {
+                    PyObject *result = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                    Py_DECREF(operand1_long);
+                    Py_DECREF(operand2_long);
+
+                    {{ target.getReturnFromObjectExpressionCode("result") }}
+                }
+            }
+            bb >>= 1;
+            if (bb==0) {
                 break;
             }
-            if (ix / temp != prev) {
+            prev = temp;
+            temp = (unsigned long)temp * temp;
+
+            if (prev != 0 && temp / prev != prev) {
                 PyObject *operand1_long = PyLong_FromLong(a);
                 PyObject *operand2_long = PyLong_FromLong(b);
 
@@ -216,27 +234,9 @@ static inline {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeNa
                 {{ target.getReturnFromObjectExpressionCode("result") }}
             }
         }
-        bb >>= 1;
-        if (bb==0) {
-            break;
-        }
-        prev = temp;
-        temp = (unsigned long)temp * temp;
 
-        if (prev != 0 && temp / prev != prev) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
-
-            PyObject *result = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
-
-            Py_DECREF(operand1_long);
-            Py_DECREF(operand2_long);
-
-            {{ target.getReturnFromObjectExpressionCode("result") }}
-        }
+        {{ target.getReturnFromLongExpressionCode("ix") }}
     }
-
-    {{ target.getReturnFromLongExpressionCode("ix") }}
 {% elif operand == "divmod" %}
     if (unlikely(b == 0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
@@ -257,16 +257,17 @@ static inline {{target.getTypeDecl()}} SLOT_{{nb_slot}}_{{target.getHelperCodeNa
 {% else %}
 #error Operand {{operand}} not implemented in {{name}}
 {% endif %}
+    {
+        PyObject *op1 = {{left.getAsObjectValueExpression("operand1")}};
+        PyObject *op2 = {{right.getAsObjectValueExpression("operand2")}};
 
-    PyObject *op1 = {{left.getAsObjectValueExpression("operand1")}};
-    PyObject *op2 = {{right.getAsObjectValueExpression("operand2")}};
+        // TODO: Could in-line and specialize these as well.
+        PyObject *o = {{left.getSlotCallExpression(nb_slot, "PyLong_Type.tp_as_number->"+nb_slot, "op1", "op2")}};
+        assert(o != Py_NotImplemented);
 
-    // TODO: Could in-line and specialize these as well.
-    PyObject *o = {{left.getSlotCallExpression(nb_slot, "PyLong_Type.tp_as_number->"+nb_slot, "op1", "op2")}};
-    assert(o != Py_NotImplemented);
+        {{left.releaseAsObjectValueStatement("op1")}}
+        {{right.releaseAsObjectValueStatement("op2")}}
 
-    {{left.releaseAsObjectValueStatement("op1")}}
-    {{right.releaseAsObjectValueStatement("op2")}}
-
-    {{ target.getReturnFromObjectExpressionCode("o") }}
+        {{ target.getReturnFromObjectExpressionCode("o") }}
+    }
 }

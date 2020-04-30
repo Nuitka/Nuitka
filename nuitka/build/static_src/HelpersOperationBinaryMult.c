@@ -32,7 +32,6 @@
 #pragma warning(disable : 4102)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
 
@@ -58,24 +57,25 @@ static inline PyObject *SLOT_nb_multiply_OBJECT_INT_INT(PyObject *operand1, PyOb
 
     if (likely(doubled_longprod == doubleprod)) {
         return PyInt_FromLong(longprod);
+    } else {
+        const double diff = doubled_longprod - doubleprod;
+        const double absdiff = diff >= 0.0 ? diff : -diff;
+        const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+        if (likely(32.0 * absdiff <= absprod)) {
+            return PyInt_FromLong(longprod);
+        }
     }
+    {
+        PyObject *op1 = operand1;
+        PyObject *op2 = operand2;
 
-    const double diff = doubled_longprod - doubleprod;
-    const double absdiff = diff >= 0.0 ? diff : -diff;
-    const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+        // TODO: Could in-line and specialize these as well.
+        PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
+        assert(o != Py_NotImplemented);
 
-    if (likely(32.0 * absdiff <= absprod)) {
-        return PyInt_FromLong(longprod);
+        return o;
     }
-
-    PyObject *op1 = operand1;
-    PyObject *op2 = operand2;
-
-    // TODO: Could in-line and specialize these as well.
-    PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
-    assert(o != Py_NotImplemented);
-
-    return o;
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -446,30 +446,31 @@ static inline nuitka_bool SLOT_nb_multiply_NBOOL_INT_INT(PyObject *operand1, PyO
 
     if (likely(doubled_longprod == doubleprod)) {
         return longprod != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    } else {
+        const double diff = doubled_longprod - doubleprod;
+        const double absdiff = diff >= 0.0 ? diff : -diff;
+        const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+        if (likely(32.0 * absdiff <= absprod)) {
+            return longprod != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        }
     }
+    {
+        PyObject *op1 = operand1;
+        PyObject *op2 = operand2;
 
-    const double diff = doubled_longprod - doubleprod;
-    const double absdiff = diff >= 0.0 ? diff : -diff;
-    const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+        // TODO: Could in-line and specialize these as well.
+        PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
+        assert(o != Py_NotImplemented);
 
-    if (likely(32.0 * absdiff <= absprod)) {
-        return longprod != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        if (unlikely(o == NULL)) {
+            return NUITKA_BOOL_EXCEPTION;
+        }
+
+        nuitka_bool r = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(o);
+        return r;
     }
-
-    PyObject *op1 = operand1;
-    PyObject *op2 = operand2;
-
-    // TODO: Could in-line and specialize these as well.
-    PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
-    assert(o != Py_NotImplemented);
-
-    if (unlikely(o == NULL)) {
-        return NUITKA_BOOL_EXCEPTION;
-    }
-
-    nuitka_bool r = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(o);
-    return r;
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -2517,27 +2518,28 @@ static inline PyObject *SLOT_nb_multiply_OBJECT_CLONG_CLONG(long operand1, long 
 
     if (likely(doubled_longprod == doubleprod)) {
         return PyInt_FromLong(longprod);
+    } else {
+        const double diff = doubled_longprod - doubleprod;
+        const double absdiff = diff >= 0.0 ? diff : -diff;
+        const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+        if (likely(32.0 * absdiff <= absprod)) {
+            return PyInt_FromLong(longprod);
+        }
     }
+    {
+        PyObject *op1 = PyLong_FromLong(operand1);
+        PyObject *op2 = PyLong_FromLong(operand2);
 
-    const double diff = doubled_longprod - doubleprod;
-    const double absdiff = diff >= 0.0 ? diff : -diff;
-    const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+        // TODO: Could in-line and specialize these as well.
+        PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
+        assert(o != Py_NotImplemented);
 
-    if (likely(32.0 * absdiff <= absprod)) {
-        return PyInt_FromLong(longprod);
+        Py_DECREF(op1);
+        Py_DECREF(op2);
+
+        return o;
     }
-
-    PyObject *op1 = PyLong_FromLong(operand1);
-    PyObject *op2 = PyLong_FromLong(operand2);
-
-    // TODO: Could in-line and specialize these as well.
-    PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
-    assert(o != Py_NotImplemented);
-
-    Py_DECREF(op1);
-    Py_DECREF(op2);
-
-    return o;
 }
 /* Code referring to "CLONG" corresponds to C platform long value and "CLONG" to C platform long value. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_CLONG_CLONG(long operand1, long operand2) {
@@ -2566,26 +2568,27 @@ static inline PyObject *SLOT_nb_multiply_OBJECT_INT_CLONG(PyObject *operand1, lo
 
     if (likely(doubled_longprod == doubleprod)) {
         return PyInt_FromLong(longprod);
+    } else {
+        const double diff = doubled_longprod - doubleprod;
+        const double absdiff = diff >= 0.0 ? diff : -diff;
+        const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+        if (likely(32.0 * absdiff <= absprod)) {
+            return PyInt_FromLong(longprod);
+        }
     }
+    {
+        PyObject *op1 = operand1;
+        PyObject *op2 = PyLong_FromLong(operand2);
 
-    const double diff = doubled_longprod - doubleprod;
-    const double absdiff = diff >= 0.0 ? diff : -diff;
-    const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+        // TODO: Could in-line and specialize these as well.
+        PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
+        assert(o != Py_NotImplemented);
 
-    if (likely(32.0 * absdiff <= absprod)) {
-        return PyInt_FromLong(longprod);
+        Py_DECREF(op2);
+
+        return o;
     }
-
-    PyObject *op1 = operand1;
-    PyObject *op2 = PyLong_FromLong(operand2);
-
-    // TODO: Could in-line and specialize these as well.
-    PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
-    assert(o != Py_NotImplemented);
-
-    Py_DECREF(op2);
-
-    return o;
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
@@ -2621,26 +2624,27 @@ static inline PyObject *SLOT_nb_multiply_OBJECT_CLONG_INT(long operand1, PyObjec
 
     if (likely(doubled_longprod == doubleprod)) {
         return PyInt_FromLong(longprod);
+    } else {
+        const double diff = doubled_longprod - doubleprod;
+        const double absdiff = diff >= 0.0 ? diff : -diff;
+        const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+        if (likely(32.0 * absdiff <= absprod)) {
+            return PyInt_FromLong(longprod);
+        }
     }
+    {
+        PyObject *op1 = PyLong_FromLong(operand1);
+        PyObject *op2 = operand2;
 
-    const double diff = doubled_longprod - doubleprod;
-    const double absdiff = diff >= 0.0 ? diff : -diff;
-    const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+        // TODO: Could in-line and specialize these as well.
+        PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
+        assert(o != Py_NotImplemented);
 
-    if (likely(32.0 * absdiff <= absprod)) {
-        return PyInt_FromLong(longprod);
+        Py_DECREF(op1);
+
+        return o;
     }
-
-    PyObject *op1 = PyLong_FromLong(operand1);
-    PyObject *op2 = operand2;
-
-    // TODO: Could in-line and specialize these as well.
-    PyObject *o = PyLong_Type.tp_as_number->nb_multiply(op1, op2);
-    assert(o != Py_NotImplemented);
-
-    Py_DECREF(op1);
-
-    return o;
 }
 /* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_CLONG_INT(long operand1, PyObject *operand2) {
@@ -10062,5 +10066,5 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObje
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic pop
+#pragma GCC diagnostic warning "-Wunused-label"
 #endif

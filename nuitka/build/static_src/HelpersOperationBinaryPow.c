@@ -32,7 +32,6 @@
 #pragma warning(disable : 4102)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
 
@@ -1635,20 +1634,38 @@ static inline PyObject *SLOT_nb_power_OBJECT_INT_INT(PyObject *operand1, PyObjec
         Py_DECREF(operand2_float);
 
         return result;
-    }
+    } else {
+        long temp = a;
+        long ix = 1;
+        long bb = b;
 
-    long temp = a;
-    long ix = 1;
-    long bb = b;
+        while (bb > 0) {
+            long prev = ix;
+            if (bb & 1) {
+                ix = (unsigned long)ix * temp;
+                if (temp == 0) {
+                    break;
+                }
+                if (ix / temp != prev) {
+                    PyObject *operand1_long = PyLong_FromLong(a);
+                    PyObject *operand2_long = PyLong_FromLong(b);
 
-    while (bb > 0) {
-        long prev = ix;
-        if (bb & 1) {
-            ix = (unsigned long)ix * temp;
-            if (temp == 0) {
+                    PyObject *result = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                    Py_DECREF(operand1_long);
+                    Py_DECREF(operand2_long);
+
+                    return result;
+                }
+            }
+            bb >>= 1;
+            if (bb == 0) {
                 break;
             }
-            if (ix / temp != prev) {
+            prev = temp;
+            temp = (unsigned long)temp * temp;
+
+            if (prev != 0 && temp / prev != prev) {
                 PyObject *operand1_long = PyLong_FromLong(a);
                 PyObject *operand2_long = PyLong_FromLong(b);
 
@@ -1660,36 +1677,19 @@ static inline PyObject *SLOT_nb_power_OBJECT_INT_INT(PyObject *operand1, PyObjec
                 return result;
             }
         }
-        bb >>= 1;
-        if (bb == 0) {
-            break;
-        }
-        prev = temp;
-        temp = (unsigned long)temp * temp;
 
-        if (prev != 0 && temp / prev != prev) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
-
-            PyObject *result = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
-
-            Py_DECREF(operand1_long);
-            Py_DECREF(operand2_long);
-
-            return result;
-        }
+        return PyInt_FromLong(ix);
     }
+    {
+        PyObject *op1 = operand1;
+        PyObject *op2 = operand2;
 
-    return PyInt_FromLong(ix);
+        // TODO: Could in-line and specialize these as well.
+        PyObject *o = PyLong_Type.tp_as_number->nb_power(op1, op2, Py_None);
+        assert(o != Py_NotImplemented);
 
-    PyObject *op1 = operand1;
-    PyObject *op2 = operand2;
-
-    // TODO: Could in-line and specialize these as well.
-    PyObject *o = PyLong_Type.tp_as_number->nb_power(op1, op2, Py_None);
-    assert(o != Py_NotImplemented);
-
-    return o;
+        return o;
+    }
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -1745,20 +1745,44 @@ static inline nuitka_bool SLOT_nb_power_NBOOL_INT_INT(PyObject *operand1, PyObje
         nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         Py_DECREF(result);
         return r;
-    }
+    } else {
+        long temp = a;
+        long ix = 1;
+        long bb = b;
 
-    long temp = a;
-    long ix = 1;
-    long bb = b;
+        while (bb > 0) {
+            long prev = ix;
+            if (bb & 1) {
+                ix = (unsigned long)ix * temp;
+                if (temp == 0) {
+                    break;
+                }
+                if (ix / temp != prev) {
+                    PyObject *operand1_long = PyLong_FromLong(a);
+                    PyObject *operand2_long = PyLong_FromLong(b);
 
-    while (bb > 0) {
-        long prev = ix;
-        if (bb & 1) {
-            ix = (unsigned long)ix * temp;
-            if (temp == 0) {
+                    PyObject *result = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                    Py_DECREF(operand1_long);
+                    Py_DECREF(operand2_long);
+
+                    if (unlikely(result == NULL)) {
+                        return NUITKA_BOOL_EXCEPTION;
+                    }
+
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+            bb >>= 1;
+            if (bb == 0) {
                 break;
             }
-            if (ix / temp != prev) {
+            prev = temp;
+            temp = (unsigned long)temp * temp;
+
+            if (prev != 0 && temp / prev != prev) {
                 PyObject *operand1_long = PyLong_FromLong(a);
                 PyObject *operand2_long = PyLong_FromLong(b);
 
@@ -1776,48 +1800,25 @@ static inline nuitka_bool SLOT_nb_power_NBOOL_INT_INT(PyObject *operand1, PyObje
                 return r;
             }
         }
-        bb >>= 1;
-        if (bb == 0) {
-            break;
-        }
-        prev = temp;
-        temp = (unsigned long)temp * temp;
 
-        if (prev != 0 && temp / prev != prev) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
-
-            PyObject *result = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
-
-            Py_DECREF(operand1_long);
-            Py_DECREF(operand2_long);
-
-            if (unlikely(result == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
-        }
+        return ix != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
     }
+    {
+        PyObject *op1 = operand1;
+        PyObject *op2 = operand2;
 
-    return ix != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        // TODO: Could in-line and specialize these as well.
+        PyObject *o = PyLong_Type.tp_as_number->nb_power(op1, op2, Py_None);
+        assert(o != Py_NotImplemented);
 
-    PyObject *op1 = operand1;
-    PyObject *op2 = operand2;
+        if (unlikely(o == NULL)) {
+            return NUITKA_BOOL_EXCEPTION;
+        }
 
-    // TODO: Could in-line and specialize these as well.
-    PyObject *o = PyLong_Type.tp_as_number->nb_power(op1, op2, Py_None);
-    assert(o != Py_NotImplemented);
-
-    if (unlikely(o == NULL)) {
-        return NUITKA_BOOL_EXCEPTION;
+        nuitka_bool r = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(o);
+        return r;
     }
-
-    nuitka_bool r = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(o);
-    return r;
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_POW_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -3483,5 +3484,5 @@ nuitka_bool BINARY_OPERATION_POW_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObjec
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic pop
+#pragma GCC diagnostic warning "-Wunused-label"
 #endif

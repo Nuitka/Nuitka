@@ -31,7 +31,6 @@
 #pragma warning(disable : 4102)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
 
@@ -1058,5 +1057,5 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyOb
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic pop
+#pragma GCC diagnostic warning "-Wunused-label"
 #endif

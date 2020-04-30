@@ -31,7 +31,6 @@
 #pragma warning(disable : 4102)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
 
@@ -89,14 +88,16 @@ static inline bool _BINARY_OPERATION_MOD_INT_INT_INPLACE(PyObject **operand1, Py
             goto exit_result_ok;
         }
 
-        PyObject *operand1_object = op1;
-        PyObject *operand2_object = operand2;
+        {
+            PyObject *operand1_object = op1;
+            PyObject *operand2_object = operand2;
 
-        PyObject *o = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
-        assert(o != Py_NotImplemented);
+            PyObject *o = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
+            assert(o != Py_NotImplemented);
 
-        result = o;
-        goto exit_result;
+            result = o;
+            goto exit_result;
+        }
 
     exit_result:
 
@@ -196,14 +197,16 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_INT_INPLACE(PyObject **operand1,
             goto exit_result_ok;
         }
 
-        PyObject *operand1_object = op1;
-        PyObject *operand2_object = operand2;
+        {
+            PyObject *operand1_object = op1;
+            PyObject *operand2_object = operand2;
 
-        PyObject *o = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
-        assert(o != Py_NotImplemented);
+            PyObject *o = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
+            assert(o != Py_NotImplemented);
 
-        result = o;
-        goto exit_result;
+            result = o;
+            goto exit_result;
+        }
 
     exit_result:
 
@@ -303,14 +306,16 @@ static inline bool _BINARY_OPERATION_MOD_INT_OBJECT_INPLACE(PyObject **operand1,
             goto exit_result_ok;
         }
 
-        PyObject *operand1_object = op1;
-        PyObject *operand2_object = operand2;
+        {
+            PyObject *operand1_object = op1;
+            PyObject *operand2_object = operand2;
 
-        PyObject *o = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
-        assert(o != Py_NotImplemented);
+            PyObject *o = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
+            assert(o != Py_NotImplemented);
 
-        result = o;
-        goto exit_result;
+            result = o;
+            goto exit_result;
+        }
 
     exit_result:
 
@@ -2179,14 +2184,16 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_OBJECT_INPLACE(PyObject **operan
             goto exit_result_ok;
         }
 
-        PyObject *operand1_object = op1;
-        PyObject *operand2_object = operand2;
+        {
+            PyObject *operand1_object = op1;
+            PyObject *operand2_object = operand2;
 
-        PyObject *o = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
-        assert(o != Py_NotImplemented);
+            PyObject *o = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
+            assert(o != Py_NotImplemented);
 
-        result = o;
-        goto exit_result;
+            result = o;
+            goto exit_result;
+        }
 
     exit_result:
 
@@ -2240,5 +2247,5 @@ bool BINARY_OPERATION_MOD_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *o
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
-#pragma GCC diagnostic pop
+#pragma GCC diagnostic warning "-Wunused-label"
 #endif
