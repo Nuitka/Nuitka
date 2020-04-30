@@ -36,7 +36,7 @@ void loadConstantsResource();
 #ifdef __cplusplus
 extern "C" const unsigned char constant_bin[];
 #else
-const unsigned char constant_bin[0];
+extern const unsigned char constant_bin[0];
 #endif
 #endif
 

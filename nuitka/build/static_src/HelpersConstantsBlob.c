@@ -27,9 +27,7 @@
 
 #if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
 
-#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
 unsigned char const *constant_bin = NULL;
-#endif
 
 void loadConstantsResource() {
 
