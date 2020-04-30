@@ -516,7 +516,29 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
     tmp_keys_variable = result.allocateTempVariable(temp_scope, "keys")
     tmp_key_variable = result.allocateTempVariable(temp_scope, "key")
 
-    loop_body = (
+    loop_body = []
+
+    if python_version >= 380:
+        loop_body.append(
+            makeStatementConditional(
+                condition=ExpressionComparisonIn(
+                    left=ExpressionTempVariableRef(
+                        variable=tmp_key_variable, source_ref=internal_source_ref
+                    ),
+                    right=ExpressionVariableRef(
+                        variable=tmp_dict_variable, source_ref=internal_source_ref
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                yes_branch=_makeRaiseDuplicationItem(
+                    called_variable=called_variable, tmp_key_variable=tmp_key_variable
+                ),
+                no_branch=None,
+                source_ref=internal_source_ref,
+            )
+        )
+
+    loop_body.append(
         StatementAssignmentSubscript(
             expression=ExpressionTempVariableRef(
                 variable=tmp_dict_variable, source_ref=internal_source_ref
@@ -534,7 +556,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
                 source_ref=internal_source_ref,
             ),
             source_ref=internal_source_ref,
-        ),
+        )
     )
 
     mapping_case = makeStatementsSequenceFromStatements(
