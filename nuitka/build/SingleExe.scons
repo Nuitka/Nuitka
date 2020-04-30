@@ -418,6 +418,14 @@ def detectVersion(env, cc):  # pylint: disable=redefined-outer-name
     )
 
     line = pipe.stdout.readline()
+    # Non-GNU compiler's output (like AIX xlc's) may exceed the stdout buffer:
+    # So continue with reading to let the child process actually terminate.
+    while pipe.stdout.readline():
+        pass
+
+    ret = pipe.wait()
+    if ret != 0:
+        return None
 
     if str is not bytes and type(line) is bytes:
         line = _decode(line)
@@ -427,21 +435,14 @@ def detectVersion(env, cc):  # pylint: disable=redefined-outer-name
     match = re.findall(r"[0-9]+(?:\.[0-9]+)+", line)
     if match:
         version = match[0]
-    elif line.isdigit():
+    else:
         # gcc 8 or higher
         version = line.strip()
 
+    version = tuple(int(part) for part in version.split("."))
+
     if show_scons_mode:
         print("Scons: CC %r version check gives %r from %r" % (cc, version, line))
-
-    # Non-GNU compiler's output (like AIX xlc's) may exceed the stdout buffer:
-    # So continue with reading to let the child process actually terminate.
-    while pipe.stdout.readline():
-        pass
-
-    ret = pipe.wait()
-    if ret != 0:
-        return None
 
     v_cache[clvar] = version
     return version
@@ -476,7 +477,7 @@ def myDetect(self, progs):
 
             # Ignore gcc before gcc version 5, no C11 support. We will find the
             # C++ compiler of it though.
-            if gcc_version < "5":
+            if gcc_version < (5,):
                 progs = [
                     "gcc-6.5",
                     "gcc-6.3",
@@ -828,7 +829,7 @@ if gcc_mode:
     env.Append(CCFLAGS=["-fwrapv"])
 
     # Save some memory for gcc by not tracing macro code locations at all.
-    if gcc_version >= "5" and not debug_mode and not clang_mode:
+    if gcc_version >= (5,) and not debug_mode and not clang_mode:
         env.Append(CCFLAGS=["-ftrack-macro-expansion=0"])
 
 
@@ -853,7 +854,7 @@ if gcc_mode and "clang" not in the_cc_name:
     # binary if it's not high enough. This is esp. useful under Debian which
     # allows all compiler to exist next to each other and where g++ might not be
     # good enough, but g++-4.5 would be.
-    if gcc_version < "4.4":
+    if gcc_version < (4, 4):
         sys.exit(
             """\
 The gcc compiler %s (version %s) doesn't have the sufficient \
@@ -862,7 +863,7 @@ version (>= 4.4)."""
         )
 
     # CondaCC or newer.
-    if mingw_mode and gcc_version < "5.3":
+    if mingw_mode and gcc_version < (5, 3):
         sys.exit(
             """\
 The MinGW64 compiler %s (version %s) doesn't have the sufficient \
@@ -872,11 +873,11 @@ version (>= 5.3)."""
 
     # Older g++ complains about aliasing with Py_True and Py_False, but we don't
     # care.
-    if gcc_version < "4.5":
+    if gcc_version < (4, 5):
         env.Append(CCFLAGS=["-fno-strict-aliasing"])
 
     # For LTO mode, the version requirement is even higher, so try that too.
-    if lto_mode and gcc_version < "4.6":
+    if lto_mode and gcc_version < (4, 6):
         sys.exit(
             """\
 The gcc compiler %s (version %s) doesn't have the sufficient \
@@ -887,8 +888,8 @@ version for lto mode (>= 4.6)."""
     if lto_mode and mingw_mode:
         sys.exit("""The gcc compiler on Windows, doesn't currently support lto mode.""")
 
-    # For g++ 4.6 there are some new interesting functions.
-    if gcc_version >= "4.6":
+    # For gcc 4.6 there are some new interesting functions.
+    if gcc_version >= (4, 6):
         env.Append(CCFLAGS=["-fpartial-inlining"])
 
         if debug_mode:
@@ -898,7 +899,7 @@ version for lto mode (>= 4.6)."""
     # files, but unfortunately at this time it seriously slows down the compiled
     # code. This may be because it needs -O3 option to be effective.
 
-    if lto_mode and gcc_version >= "4.6":
+    if lto_mode and gcc_version >= (4, 6):
         env.Append(CCFLAGS=["-flto"])
         env.Append(LINKFLAGS=["-flto=%d" % job_count])
 
@@ -916,7 +917,7 @@ version for lto mode (>= 4.6)."""
         env.Append(LINKFLAGS=["-fno-lto"])
 
     # Give a warning if LTO mode was specified, but won't be used.
-    if lto_mode and gcc_version < "4.6":
+    if lto_mode and gcc_version < (4, 6):
         print("Warning, LTO mode specified, but not available.", file=sys.stderr)
 
     # The var-tracking does not scale, disable it. Should we really need it, we
@@ -925,7 +926,7 @@ version for lto mode (>= 4.6)."""
 
 # Avoid them as appearing to be different files. TODO: Find out which
 # clang version has this, clang-8 does not.
-if gcc_mode and not clang_mode and gcc_version >= "8":
+if gcc_mode and not clang_mode and gcc_version >= (8,):
     if source_dir != ".":
         # TODO: This also lies for modules codes.
         env.Append(
@@ -973,7 +974,7 @@ if mingw_mode:
     env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])
 
 # At least older MinGW64 has issues with this, so disable it.
-if mingw_mode and gcc_version < "6" and not clang_mode:
+if mingw_mode and gcc_version < (6,) and not clang_mode:
     env.Append(LINKFLAGS=["-Wl,--no-gc-sections"])
 
 if debug_mode:
@@ -996,7 +997,7 @@ if debug_mode:
             ]
         )
 
-        if not clang_mode and gcc_version >= "6":
+        if not clang_mode and gcc_version >= (6,):
             env.Append(
                 CCFLAGS=[
                     # For large files, these can issue warnings about disabling
