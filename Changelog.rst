@@ -80,8 +80,6 @@ New Features
   it easier to recognize which plugin said what. Warnings are now colored in
   red.
 
-- Added experimental Windows Service plugin.
-
 - Python3.5+: Added support for two step module loading, making Nuitka loading
   even more compatible.
 
