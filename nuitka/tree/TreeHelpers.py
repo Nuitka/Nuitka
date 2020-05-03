@@ -122,7 +122,6 @@ def detectFunctionBodyKind(nodes, start_value=None):
 
         indications.clear()
         indications.update(old)
-        del old
 
     def _check(node):
         node_class = node.__class__
@@ -227,6 +226,22 @@ def detectFunctionBodyKind(nodes, start_value=None):
                     pass
                 elif name == "generators":
                     _check(field[0].iter)
+                else:
+                    assert False, (name, field, ast.dump(node))
+        elif python_version >= 370 and node_class is ast.comprehension:
+            for name, field in ast.iter_fields(node):
+                if name in ("name", "target"):
+                    pass
+                elif name == "iter":
+                    # Top level comprehension iterators do not influence those.
+                    if node not in nodes:
+                        _check(field)
+                elif name == "ifs":
+                    for child in field:
+                        _check(child)
+                elif name == "is_async":
+                    if field:
+                        indications.add("Coroutine")
                 else:
                     assert False, (name, field, ast.dump(node))
         elif node_class is ast.Name:
