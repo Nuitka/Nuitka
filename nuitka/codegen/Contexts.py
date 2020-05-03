@@ -649,6 +649,12 @@ def _getConstantDefaultPopulation():
         "rb",
     ]
 
+    # Pickling of instance methods.
+    if python_version < 340:
+        result += ("__newobj__",)
+    else:
+        result += ("getattr",)
+
     if python_version >= 300:
         # For Python3 modules
         result += ("__cached__", "__loader__")
