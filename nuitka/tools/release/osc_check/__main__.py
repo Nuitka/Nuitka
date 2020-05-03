@@ -74,6 +74,10 @@ def main():
         if "ppc" in title:
             continue
 
+        # This fails for other reasons often, and is not critical to Nuitka.
+        if "openSUSE_Tumbleweed" in title:
+            continue
+
         if status in bad:
             problems.append((row1[0], title, status))
 
