@@ -140,19 +140,17 @@ def _updateCommentNode(comment_node):
 
 
 def _cleanupPyLintComments(filename, abort):
-    from baron.parser import (  # pylint: disable=I0021,import-error,no-name-in-module
-        ParsingError,
-    )
     from redbaron import (  # pylint: disable=I0021,import-error,no-name-in-module
         RedBaron,
     )
 
     old_code = getFileContents(filename)
 
+    # Baron does assertions too, and all kinds of strange errors, pylint: disable=broad-except
+
     try:
         red = RedBaron(old_code)
-        # red = RedBaron(old_code.rstrip()+'\n')
-    except (ParsingError, AssertionError, TypeError):  # Baron does assertions too.
+    except Exception:
         if abort:
             raise
 
