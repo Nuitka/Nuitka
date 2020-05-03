@@ -61,11 +61,30 @@ static PyMemberDef Nuitka_Method_members[] = {
      (char *)"the instance to which a method is bound; None for unbound method"},
     {NULL}};
 
-static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
-    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Can't pickle instancemethod objects");
+extern PyObject *const_str_plain_getattr;
 
+static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
+#if PYTHON_VERSION < 300
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't pickle instancemethod objects");
     return NULL;
+#elif PYTHON_VERSION < 340
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't pickle method objects");
+    return NULL;
+#else
+    PyObject *result = PyTuple_New(2);
+    PyTuple_SET_ITEM0(result, 0, LOOKUP_BUILTIN(const_str_plain_getattr));
+    PyObject *arg_tuple = PyTuple_New(2);
+    PyTuple_SET_ITEM0(arg_tuple, 0, method->m_object);
+    PyTuple_SET_ITEM0(arg_tuple, 1, method->m_function->m_name);
+    PyTuple_SET_ITEM(result, 1, arg_tuple);
+
+    CHECK_OBJECT_DEEP(result);
+
+    return result;
+#endif
 }
+
+extern PyObject *const_str_plain___newobj__;
 
 static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyObject *args) {
     int proto;
@@ -74,9 +93,34 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
         return NULL;
     }
 
-    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Can't pickle instancemethod objects");
+#if PYTHON_VERSION < 340
+#if PYTHON_VERSION < 300
+    PyObject *copy_reg = PyImport_ImportModule("copy_reg");
+#else
+    PyObject *copy_reg = PyImport_ImportModule("copyreg");
+#endif
+    CHECK_OBJECT(copy_reg);
+    PyObject *newobj_func = LOOKUP_ATTRIBUTE(copy_reg, const_str_plain___newobj__);
+    Py_DECREF(copy_reg);
+    if (unlikely(newobj_func == NULL)) {
+        return NULL;
+    }
 
-    return NULL;
+    PyObject *result = PyTuple_New(5);
+    PyTuple_SET_ITEM(result, 0, newobj_func);
+    PyObject *type_tuple = PyTuple_New(1);
+    PyTuple_SET_ITEM0(type_tuple, 0, (PyObject *)&Nuitka_Method_Type);
+    PyTuple_SET_ITEM(result, 1, type_tuple);
+    PyTuple_SET_ITEM0(result, 2, Py_None);
+    PyTuple_SET_ITEM0(result, 3, Py_None);
+    PyTuple_SET_ITEM0(result, 4, Py_None);
+
+    CHECK_OBJECT_DEEP(result);
+
+    return result;
+#else
+    return Nuitka_Method_reduce(method);
+#endif
 }
 
 static PyObject *Nuitka_Method_deepcopy(struct Nuitka_MethodObject *method, PyObject *memo) {

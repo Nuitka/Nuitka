@@ -40,7 +40,7 @@ from nuitka.tools.testing.Common import executeReferenceChecked
 # pylint: disable=misplaced-bare-raise,raising-bad-type,reimported,undefined-variable
 # pylint: disable=broad-except,eval-used,redefined-outer-name,unused-argument,unused-variable
 # pylint: disable=attribute-defined-outside-init,bare-except,lost-exception,pointless-statement
-# pylint: disable=exec-used,global-statement,invalid-name,super-init-not-called
+# pylint: disable=exec-used,global-statement,invalid-name,not-callable,super-init-not-called
 
 x = 17
 
@@ -790,10 +790,15 @@ def simpleFunction87():
     x += 2000
 
 
+class C:
+    def f(self):
+        pass
+
+    def __iadd__(self, other):
+        return self
+
+
 def simpleFunction88():
-    class C:
-        def __iadd__(self, other):
-            return self
 
     x = C()
     x += C()
@@ -1162,6 +1167,17 @@ def simpleFunction129():
 def simpleFunction130():
     # Operation list+object with add slot.
     return ListWithSlots() + list(t)
+
+
+def simpleFunction131():
+    try:
+        C().f.__reduce__()
+    except Exception as e:
+        assert sys.version_info < (3, 4)
+
+
+def simpleFunction132():
+    C().f.__reduce_ex__(5)
 
 
 ####################################
