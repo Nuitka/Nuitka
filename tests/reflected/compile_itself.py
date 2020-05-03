@@ -278,6 +278,7 @@ def compileAndCompareWith(nuitka):
                 result = subprocess.call(command)
 
                 if result != 0:
+                    my_print("An error occurred, aborting.")
                     sys.exit(result)
 
                 has_diff = diffRecursive(os.path.join(package, target), target_dir)
@@ -338,6 +339,8 @@ def executePASS3():
         "--follow-imports",
         #        "--include-package=nuitka.plugins",
     ]
+
+    my_print("Command: ", " ".join(command))
     result = subprocess.call(command)
 
     if result != 0:
