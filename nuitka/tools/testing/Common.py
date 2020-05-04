@@ -1208,6 +1208,7 @@ except Exception as __e:
 
         return evaluated.split()[0] in (
             "def",
+            "with",
             "class",
             "for",
             "while",
