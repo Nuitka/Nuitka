@@ -100,11 +100,8 @@ template_generator_noexception_exit = """\
     return NULL;
 """
 
-# TODO: Clarify if cannot get here function is to be used.
 template_generator_return_exit = """\
-    // The above won't return, but we need to make it clear to the compiler
-    // as well, or else it will complain and/or generate inferior code.
-    assert(false);
+    NUITKA_CANNOT_GET_HERE("Generator must have exited already.");
     return NULL;
 
     function_return_exit:
