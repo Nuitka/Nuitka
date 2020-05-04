@@ -278,7 +278,7 @@ def compileAndCompareWith(nuitka):
                 result = subprocess.call(command)
 
                 if result != 0:
-                    my_print("An error occurred, aborting.")
+                    my_print("An error exit %s occurred, aborting." % result)
                     sys.exit(result)
 
                 has_diff = diffRecursive(os.path.join(package, target), target_dir)
