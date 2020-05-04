@@ -815,6 +815,11 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
 
     Nuitka_Generator_release_closure(generator);
 
+    Py_REFCNT(generator) -= 1;
+    if (Py_REFCNT(generator) >= 1) {
+        return;
+    }
+
     if (generator->m_frame != NULL) {
 #if PYTHON_VERSION >= 340
         generator->m_frame->m_frame.f_gen = NULL;
@@ -822,9 +827,6 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
         Py_DECREF(generator->m_frame);
         generator->m_frame = NULL;
     }
-
-    assert(Py_REFCNT(generator) == 1);
-    Py_REFCNT(generator) = 0;
 
     // Now it is safe to release references and memory for it.
     Nuitka_GC_UnTrack(generator);
