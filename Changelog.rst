@@ -19,6 +19,9 @@ Bug Fixes
 - Python3.8: Fix, positional only arguments were not enforced to actually
   be that way.
 
+- Python3.8: Fix, complex calls with star arguments that yielded the same
+  value twice, were not yet caught.
+
 - Python3.8: Fix, evaluation order for nested dictionary contractions was
   not followed yet.
 
@@ -63,6 +66,8 @@ Bug Fixes
 - Windows: Fixup ``win32com`` standalone detection of other Python version
   ``win32com`` is in system ``PATH``.
 
+- Fix, the python flag for static hashes wasn't working at all.
+
 New Features
 ------------
 
@@ -73,8 +78,6 @@ New Features
   Loading and creation of plugins are now two separate phases. They are loaded
   when they appear on the command line and can add options in their own group,
   even required ones, but also with default values.
-
-- Fix, the python flag for static hashes wasn't working at all.
 
 - Started using logging with name-spaces. Applying logging per plugin to make
   it easier to recognize which plugin said what. Warnings are now colored in
@@ -103,7 +106,6 @@ Optimization
 
 - Python3.8: Also support vectorcall for compiled method objects. These are
   rarely used in new Python, but can make a difference.
-
 
 Organisational
 --------------
