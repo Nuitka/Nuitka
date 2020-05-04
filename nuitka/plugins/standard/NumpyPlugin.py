@@ -43,7 +43,7 @@ def get_sys_prefix():
     return sys_prefix
 
 
-def get_scipy_core_binaries(module):
+def getScipyCoreBinaries(module):
     """ Return binaries from the extra-dlls folder (Windows only).
     """
     binaries = []
@@ -63,7 +63,7 @@ def get_scipy_core_binaries(module):
     return binaries
 
 
-def get_numpy_core_binaries(module):
+def getNumpyCoreBinaries(module):
     """ Return any binaries in numpy/core and/or numpy/.libs.
 
     Notes:
@@ -126,7 +126,7 @@ def get_numpy_core_binaries(module):
 # ------------------------------------------------------------------------------
 
 
-def get_matplotlibrc():
+def getMatplotlibRc():
     """Determine the filename of matplotlibrc and the default backend.
 
     Notes:
@@ -149,14 +149,14 @@ print(get_backend())
     return matplotlibrc, backend
 
 
-def copy_mpl_data(module, dist_dir):
-    """Write matplotlib data files ('mpl-data')."""
+def copyMplDataFiles(module, dist_dir):
+    """ Write matplotlib data files ('mpl-data')."""
 
     data_dir = os.path.join(module.getCompileTimeDirectory(), "mpl-data")  # must exist
     if not os.path.isdir(data_dir):
         sys.exit("mpl-data missing: matplotlib installation is broken")
 
-    matplotlibrc, backend = get_matplotlibrc()  # get matplotlibrc, backend
+    matplotlibrc, backend = getMatplotlibRc()  # get matplotlibrc, backend
 
     prefix = os.path.join("matplotlib", "mpl-data")
     for item in getFileList(data_dir):  # copy data files to dist folder
@@ -207,10 +207,11 @@ class NumpyPlugin(NuitkaPluginBase):
     plugin_desc = "Required for numpy, scipy, pandas, matplotlib, etc."
 
     def __init__(self, matplotlib, scipy):
-        self.enabled_plugins = None  # list of active standard plugins
-        self.numpy_copied = False  # indicator: numpy files copied
         self.matplotlib = matplotlib
         self.scipy = scipy
+
+        self.enabled_plugins = None  # list of active standard plugins
+        self.numpy_copied = False  # indicator: numpy files copied
         self.scipy_copied = True  # indicator: scipy files copied
         if self.scipy:
             self.scipy_copied = False
@@ -260,7 +261,7 @@ Should matplotlib be included with numpy, Default is %default.""",
 
         if not self.numpy_copied and full_name == "numpy":
             self.numpy_copied = True
-            binaries = get_numpy_core_binaries(module)
+            binaries = getNumpyCoreBinaries(module)
 
             for f in binaries:
                 bin_file, idx = f  # (filename, pos. prefix + 1)
@@ -281,7 +282,7 @@ Should matplotlib be included with numpy, Default is %default.""",
 
         if not self.scipy_copied and full_name == "scipy":
             self.scipy_copied = True
-            binaries = get_scipy_core_binaries(module)
+            binaries = getScipyCoreBinaries(module)
 
             for f in binaries:
                 bin_file, idx = f  # (filename, pos. prefix + 1)
@@ -302,24 +303,27 @@ Should matplotlib be included with numpy, Default is %default.""",
 
         if not self.mpl_data_copied and "matplotlib" in elements:
             self.mpl_data_copied = True
-            copy_mpl_data(module, dist_dir)
+            copyMplDataFiles(module, dist_dir)
             self.info("Copied 'matplotlib/mpl-data'.")
 
         return ()
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         # pylint: disable=too-many-branches,too-many-return-statements
-        elements = module_name.split(".")
-        if not self.scipy and elements[0] in ("scipy", "sklearn", "skimage"):
+        if not self.scipy and module_name.hasOneOfNamespaces(
+            "scipy", "sklearn", "skimage"
+        ):
             return False, "Omit unneeded components"
 
-        if not self.matplotlib and elements[0] in ("matplotlib", "skimage"):
+        if not self.matplotlib and module_name.hasOneOfNamespaces(
+            "matplotlib", "skimage"
+        ):
             return False, "Omit unneeded components"
 
         if module_name == "scipy.sparse.csgraph._validation":
             return True, "Replicate implicit import"
 
-        if self.matplotlib and elements[0] == "mpl_toolkits":
+        if self.matplotlib and module_name.hasNamespace("mpl_toolkits"):
             return True, "Needed by matplotlib"
 
         if module_name in ("cv2", "cv2.cv2", "cv2.data"):
@@ -408,13 +412,7 @@ class NumpyPluginDetector(NuitkaPluginBase):
         Returns:
             None
         """
-        elements = module.getFullName().split(".")
-        if elements[0] in (
-            "numpy",
-            "scipy",
-            "skimage",
-            "pandas",
-            "matplotlib",
-            "sklearn",
+        if module.getFullName().hasOneOfNamespaces(
+            "numpy", "scipy", "skimage", "pandas", "matplotlib", "sklearn",
         ):
-            self.warnUnusedPlugin("numpy support.")
+            self.warnUnusedPlugin("Numpy support.")

@@ -52,11 +52,15 @@ plugin_values = {}
 user_plugins = OrderedSet()
 
 
-def _addActivePlugin(plugin_class, args=True):
+def _addActivePlugin(plugin_class, args, force=False):
     plugin_name = plugin_class.plugin_name
 
     # No duplicates please.
-    assert plugin_name not in active_plugins.keys(), plugin_name
+    if not force:
+        assert plugin_name not in active_plugins.keys(), (
+            plugin_name,
+            active_plugins[plugin_name],
+        )
 
     if args:
         plugin_args = getPluginOptions(plugin_name)
@@ -536,11 +540,11 @@ def activatePlugins():
         plugin_name2plugin_classes.items()
     ):
         if plugin_name in Options.getPluginsEnabled():
-            _addActivePlugin(plugin_class)
+            _addActivePlugin(plugin_class, args=True)
         elif plugin_name in Options.getPluginsDisabled():
             pass
         elif plugin_class.isAlwaysEnabled() and plugin_class.isRelevant():
-            _addActivePlugin(plugin_class)
+            _addActivePlugin(plugin_class, args=True)
         elif (
             plugin_detector is not None
             and Options.shallDetectMissingPlugins()
@@ -550,6 +554,18 @@ def activatePlugins():
 
     for plugin_class in user_plugins:
         _addActivePlugin(plugin_class, args=True)
+
+
+def lateActivatePlugin(plugin_name, option_values):
+    """ Activate plugin after the command line parsing, expects options to be set.
+
+    """
+
+    values = getPluginClass(plugin_name).getPluginDefaultOptionValues()
+    values.update(option_values)
+    setPluginOptions(plugin_name, values)
+
+    _addActivePlugin(getPluginClass(plugin_name), args=True, force=True)
 
 
 def _addPluginCommandLineOptions(parser, plugin_class):

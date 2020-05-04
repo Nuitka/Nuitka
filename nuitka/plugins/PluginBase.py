@@ -115,6 +115,26 @@ class NuitkaPluginBase(object):
         # Call group.add_option() here.
         pass
 
+    @classmethod
+    def getPluginDefaultOptionValues(cls):
+        """ This method is used to get a values to use as defaults.
+
+            Since the defaults are in the command line options, we call
+            that and extract them.
+        """
+
+        from optparse import OptionGroup, OptionParser
+
+        parser = OptionParser()
+        group = OptionGroup(parser, "Pseudo Target")
+        cls.addPluginCommandLineOptions(group)
+
+        result = {}
+        for option in group.option_list:
+            result[option.dest] = option.default
+
+        return result
+
     def considerImplicitImports(self, module, signal_change):
         """ Provide additional modules to import implicitly when encountering the module.
 
@@ -616,11 +636,11 @@ class NuitkaPluginBase(object):
 
     @classmethod
     def warning(cls, message):
-        plugins_logger.warning(cls.plugin_name + ":" + message)
+        plugins_logger.warning(cls.plugin_name + ": " + message)
 
     @classmethod
     def info(cls, message):
-        plugins_logger.info(cls.plugin_name + ":" + message)
+        plugins_logger.info(cls.plugin_name + ": " + message)
 
 
 def isTriggerModule(module):

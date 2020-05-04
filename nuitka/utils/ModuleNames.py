@@ -94,5 +94,12 @@ class ModuleName(str):
     def hasNamespace(self, package_name):
         return self == package_name or self.isBelowNamespace(package_name)
 
+    def hasOneOfNamespaces(self, *package_names):
+        for package_name in package_names:
+            if self.hasNamespace(package_name):
+                return True
+
+        return False
+
     def isBelowNamespace(self, package_name):
         return self.startswith(package_name + ".")

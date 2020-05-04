@@ -40,7 +40,7 @@ from nuitka.utils.Utils import isWin32Windows
 
 
 class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
-    """ This is for plugins of PySide/PyQt4/PyQt5.
+    """ This is for plugins of PyQt4/PyQt5 and PySide once it is supported.
 
         When loads an image, it may use a plug-in, which in turn used DLLs,
         which for standalone mode, can cause issues of not having it.
