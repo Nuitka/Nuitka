@@ -1551,6 +1551,12 @@ PyObject *ASYNC_AWAIT(PyObject *awaitable, int await_kind) {
     }
 #endif
 
+#if _DEBUG_COROUTINE
+    PRINT_STRING("ASYNC_AWAIT: Result ");
+    PRINT_ITEM(awaitable);
+    PRINT_NEW_LINE();
+#endif
+
     return awaitable_iter;
 }
 

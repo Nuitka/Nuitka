@@ -227,7 +227,7 @@ static PyObject *Nuitka_YieldFromAsyncgenNext(struct Nuitka_AsyncgenObject *asyn
     PRINT_NEW_LINE();
 #endif
     PyObject *result = Nuitka_YieldFromAsyncgenCore(asyncgen, Py_None, true);
-#if _DEBUG_COROUTINE
+#if _DEBUG_ASYNCGEN
     PRINT_ASYNCGEN_STATUS("Leave", asyncgen);
     PRINT_CURRENT_EXCEPTION();
     PRINT_NEW_LINE();
