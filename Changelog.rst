@@ -2,7 +2,8 @@ Nuitka Release 0.6.8 (Draft)
 ============================
 
 This releases contains bug fixes that enhance the Python 3.8 compatibility
-as well as general improvements.
+as well as general improvements and performance improvements and enhanced
+optimization.
 
 Bug Fixes
 ---------
@@ -39,7 +40,7 @@ Bug Fixes
 
 - Standalone: Added missing hidden dependency of uvicorn.
 
-- Fix, the parser for .pyi files couldn't handle multiline imports.
+- Fix, the parser for ``.pyi`` files couldn't handle multiline imports.
 
 - Windows: Deriver linker arch of Python from running binary, since it can
   happen that the Python binary is actually a script.
@@ -66,7 +67,13 @@ Bug Fixes
 - Windows: Fixup ``win32com`` standalone detection of other Python version
   ``win32com`` is in system ``PATH``.
 
-- Fix, the python flag for static hashes wasn't working at all.
+- Fix, the python flag for static hashes didn't have the intended effect.
+
+- Fix, generators may be resurrected in the cause of their destruction,
+  and then must not be released.
+
+- Fix, method objects didn't implement the methods ``__reduce__`` and
+  ``__reduce_ex__`` necessary for pickling them.
 
 New Features
 ------------
