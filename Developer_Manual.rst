@@ -238,7 +238,7 @@ but more readable:
 .. code-block:: python
 
    return getSequenceCreationCode(
-        sequence_kind= sequence_kind,
+        sequence_kind=sequence_kind,
         element_identifiers=identifiers,
         context=context
    )
