@@ -901,14 +901,17 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
 
     Nuitka_Asyncgen_release_closure(asyncgen);
 
+    // Allow for above code to resurrect the coroutine.
+    Py_REFCNT(asyncgen) -= 1;
+    if (Py_REFCNT(asyncgen) >= 1) {
+        return;
+    }
+
     if (asyncgen->m_frame) {
         asyncgen->m_frame->m_frame.f_gen = NULL;
         Py_DECREF(asyncgen->m_frame);
         asyncgen->m_frame = NULL;
     }
-
-    assert(Py_REFCNT(asyncgen) == 1);
-    Py_REFCNT(asyncgen) = 0;
 
     // Now it is safe to release references and memory for it.
     Nuitka_GC_UnTrack(asyncgen);

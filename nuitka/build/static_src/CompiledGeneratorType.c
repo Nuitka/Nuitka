@@ -815,6 +815,7 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
 
     Nuitka_Generator_release_closure(generator);
 
+    // Allow for above code to resurrect the generator.
     Py_REFCNT(generator) -= 1;
     if (Py_REFCNT(generator) >= 1) {
         return;
