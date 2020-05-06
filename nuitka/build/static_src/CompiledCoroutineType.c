@@ -1104,14 +1104,17 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
 
     Nuitka_Coroutine_release_closure(coroutine);
 
+    // Allow for above code to resurrect the coroutine.
+    Py_REFCNT(coroutine) -= 1;
+    if (Py_REFCNT(coroutine) >= 1) {
+        return;
+    }
+
     if (coroutine->m_frame) {
         coroutine->m_frame->m_frame.f_gen = NULL;
         Py_DECREF(coroutine->m_frame);
         coroutine->m_frame = NULL;
     }
-
-    assert(Py_REFCNT(coroutine) == 1);
-    Py_REFCNT(coroutine) = 0;
 
     // Now it is safe to release references and memory for it.
     Nuitka_GC_UnTrack(coroutine);
