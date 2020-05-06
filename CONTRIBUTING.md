@@ -25,8 +25,7 @@ PR yet), drop a note in that issue before opening the PR.
 1. Fork the repo on github.
 2. Install the pre-commit hook that is going to automatically format your
    code as described in the Developer Manual.
-3. Make a new branch. For feature additions/changes base your new branch at
-   `develop`, for pure bugfixes base your new branch at e.g. `master`.
+3. Make a new branch and base your new branch on `develop`.
 4. Ideally add a test specific for your change to demonstrate it. Due to Nuitka
    testing being basically to compile the whole world, it's ok to not have one.
    But obviously if you fix something, it wasn't observed by that, it would be
