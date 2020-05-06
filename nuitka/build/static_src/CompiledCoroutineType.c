@@ -297,6 +297,7 @@ NUITKA_MAY_BE_UNUSED static void _PRINT_COROUTINE_STATUS(char const *descriptor,
     PRINT_STRING(" ");
     PRINT_ITEM((PyObject *)coroutine);
     PRINT_STRING(" ");
+    PRINT_REFCOUNT((PyObject *)coroutine);
     PRINT_STRING(status);
     PRINT_NEW_LINE();
 }
@@ -792,22 +793,20 @@ static PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *corouti
         }
 
         if (unlikely(ret == NULL)) {
-            PyObject *val;
+            // Return value or exception, not to continue with yielding from.
+            if (coroutine->m_yieldfrom != NULL) {
+                CHECK_OBJECT(coroutine->m_yieldfrom);
+#if _DEBUG_COROUTINE
+                PRINT_COROUTINE_STATUS("Null return, yield from removal:", coroutine);
+                PRINT_COROUTINE_VALUE("yieldfrom", coroutine->m_yieldfrom);
+#endif
+                Py_DECREF(coroutine->m_yieldfrom);
+                coroutine->m_yieldfrom = NULL;
+            }
 
+            PyObject *val;
             if (_PyGen_FetchStopIterationValue(&val) == 0) {
                 CHECK_OBJECT(val);
-
-                // Return value, not to continue with yielding from.
-                if (coroutine->m_yieldfrom != NULL) {
-                    CHECK_OBJECT(coroutine->m_yieldfrom);
-#if _DEBUG_COROUTINE
-                    PRINT_COROUTINE_STATUS("Yield from removal:", coroutine);
-                    PRINT_COROUTINE_VALUE("yieldfrom", coroutine->m_yieldfrom);
-
-#endif
-                    Py_DECREF(coroutine->m_yieldfrom);
-                    coroutine->m_yieldfrom = NULL;
-                }
 
 #if _DEBUG_COROUTINE
                 PRINT_COROUTINE_STATUS("Sending return value into ourselves", coroutine);
@@ -819,7 +818,6 @@ static PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *corouti
             } else {
 #if _DEBUG_COROUTINE
                 PRINT_COROUTINE_STATUS("Sending exception value into ourselves", coroutine);
-                PRINT_COROUTINE_VALUE("yieldfrom", coroutine->m_yieldfrom);
                 PRINT_CURRENT_EXCEPTION();
                 PRINT_NEW_LINE();
 #endif
@@ -1029,11 +1027,14 @@ static PyObject *Nuitka_Coroutine_tp_repr(struct Nuitka_CoroutineObject *corouti
 static long Nuitka_Coroutine_tp_traverse(struct Nuitka_CoroutineObject *coroutine, visitproc visit, void *arg) {
     CHECK_OBJECT(coroutine);
 
-    // TODO: Identify the impact of not visiting owned objects and/or if it
-    // could be NULL instead. The "methodobject" visits its self and module. I
-    // understand this is probably so that back references of this function to
-    // its upper do not make it stay in the memory. A specific test if that
-    // works might be needed.
+    // TODO: Identify the impact of not visiting owned objects like module and
+    // frame.
+    Py_VISIT(coroutine->m_yieldfrom);
+
+    for (Py_ssize_t i = 0; i < coroutine->m_closure_given; i++) {
+        Py_VISIT(coroutine->m_closure[i]);
+    }
+
     return 0;
 }
 
