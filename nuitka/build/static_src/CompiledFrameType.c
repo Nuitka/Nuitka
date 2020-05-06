@@ -165,13 +165,18 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *frame, void *
             }
             case NUITKA_TYPE_DESCRIPTION_CELL: {
                 struct Nuitka_CellObject *value = *(struct Nuitka_CellObject **)t;
+                assert(Nuitka_Cell_Check((PyObject *)value));
+                CHECK_OBJECT(value);
+
                 PyDict_SetItem(result, *varnames, value->ob_ref);
+
                 t += sizeof(value);
 
                 break;
             }
             case NUITKA_TYPE_DESCRIPTION_NULL: {
                 t += sizeof(void *);
+
                 break;
             }
             case NUITKA_TYPE_DESCRIPTION_BOOL: {
@@ -295,6 +300,9 @@ static void Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
             }
             case NUITKA_TYPE_DESCRIPTION_CELL: {
                 struct Nuitka_CellObject *value = *(struct Nuitka_CellObject **)t;
+                assert(Nuitka_Cell_Check((PyObject *)value));
+                CHECK_OBJECT(value);
+
                 Py_DECREF(value);
 
                 t += sizeof(value);
@@ -376,13 +384,56 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
     Py_VISIT(frame->m_frame.f_builtins);
     Py_VISIT(frame->m_frame.f_globals);
     // Py_VISIT(frame->f_locals);
-    // TODO: Traverse attached locals too.
 
 #if PYTHON_VERSION < 370
     Py_VISIT(frame->m_frame.f_exc_type);
     Py_VISIT(frame->m_frame.f_exc_value);
     Py_VISIT(frame->m_frame.f_exc_traceback);
 #endif
+
+    // Traverse attached locals too.
+    char const *w = frame->m_type_description;
+    char const *t = frame->m_locals_storage;
+
+    while (w != NULL && *w != 0) {
+        switch (*w) {
+        case NUITKA_TYPE_DESCRIPTION_OBJECT:
+        case NUITKA_TYPE_DESCRIPTION_OBJECT_PTR: {
+            PyObject *value = *(PyObject **)t;
+            CHECK_OBJECT_X(value);
+
+            Py_VISIT(value);
+            t += sizeof(value);
+
+            break;
+        }
+        case NUITKA_TYPE_DESCRIPTION_CELL: {
+            struct Nuitka_CellObject *value = *(struct Nuitka_CellObject **)t;
+            assert(Nuitka_Cell_Check((PyObject *)value));
+            CHECK_OBJECT(value);
+
+            Py_VISIT(value);
+
+            t += sizeof(value);
+
+            break;
+        }
+        case NUITKA_TYPE_DESCRIPTION_NULL: {
+            t += sizeof(void *);
+
+            break;
+        }
+        case NUITKA_TYPE_DESCRIPTION_BOOL: {
+            t += sizeof(int);
+
+            break;
+        }
+        default:
+            assert(false);
+        }
+
+        w += 1;
+    }
 
     return 0;
 }
@@ -674,9 +725,11 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *typ
     assert(frame->m_type_description == NULL);
 
     // TODO: Do not call this if there is nothing to do. Instead make all the
-    // places handle NULL pointer.
-    if (type_description == NULL)
+    // places handle NULL pointer and recognize that there is nothing to do.
+    // assert(type_description != NULL && assert(strlen(type_description)>0));
+    if (type_description == NULL) {
         type_description = "";
+    }
 
     frame->m_type_description = type_description;
 
@@ -697,7 +750,8 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *typ
             break;
         }
         case NUITKA_TYPE_DESCRIPTION_OBJECT_PTR: {
-            /* We store the pointed object only. */
+            /* Note: We store the pointed object only, so this is only
+               a shortcut for the calling side. */
             PyObject **value = va_arg(ap, PyObject **);
             memcpy(t, value, sizeof(PyObject *));
             Py_XINCREF(*value);
@@ -707,23 +761,29 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *typ
         }
         case NUITKA_TYPE_DESCRIPTION_CELL: {
             struct Nuitka_CellObject *value = va_arg(ap, struct Nuitka_CellObject *);
+            assert(Nuitka_Cell_Check((PyObject *)value));
             CHECK_OBJECT(value);
 
             memcpy(t, &value, sizeof(value));
             Py_INCREF(value);
+
             t += sizeof(value);
 
             break;
         }
         case NUITKA_TYPE_DESCRIPTION_NULL: {
             void *value = va_arg(ap, struct Nuitka_CellObject *);
+
             t += sizeof(value);
+
             break;
         }
         case NUITKA_TYPE_DESCRIPTION_BOOL: {
             int value = va_arg(ap, int);
             memcpy(t, &value, sizeof(int));
+
             t += sizeof(value);
+
             break;
         }
         default:
