@@ -942,13 +942,16 @@ static PyObject *Nuitka_Asyncgen_tp_repr(struct Nuitka_AsyncgenObject *asyncgen)
 static int Nuitka_Asyncgen_tp_traverse(struct Nuitka_AsyncgenObject *asyncgen, visitproc visit, void *arg) {
     CHECK_OBJECT(asyncgen);
 
+    // TODO: Identify the impact of not visiting owned objects like module and
+    // frame.
+    Py_VISIT(asyncgen->m_yieldfrom);
+
+    for (Py_ssize_t i = 0; i < asyncgen->m_closure_given; i++) {
+        Py_VISIT(asyncgen->m_closure[i]);
+    }
+
     Py_VISIT(asyncgen->m_finalizer);
 
-    // TODO: Identify the impact of not visiting owned objects and/or if it
-    // could be NULL instead. The "methodobject" visits its self and module. I
-    // understand this is probably so that back references of this function to
-    // its upper do not make it stay in the memory. A specific test if that
-    // works might be needed.
     return 0;
 }
 
