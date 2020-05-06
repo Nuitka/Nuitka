@@ -49,8 +49,17 @@ static PyObject *Nuitka_Generator_tp_repr(struct Nuitka_GeneratorObject *generat
 }
 
 static long Nuitka_Generator_tp_traverse(struct Nuitka_GeneratorObject *generator, visitproc visit, void *arg) {
-    // Not needed.
-    // Py_VISIT( (PyObject *)generator->m_frame );
+    CHECK_OBJECT(generator);
+
+    // TODO: Identify the impact of not visiting owned objects like module and
+    // frame.
+#if PYTHON_VERSION >= 300
+    Py_VISIT(generator->m_yieldfrom);
+#endif
+
+    for (Py_ssize_t i = 0; i < generator->m_closure_given; i++) {
+        Py_VISIT(generator->m_closure[i]);
+    }
 
     return 0;
 }
