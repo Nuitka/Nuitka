@@ -24,12 +24,8 @@ compiled when Nuitka is running compiled and uncompiled, so we can discover
 changes in order of execution in this test.
 """
 
-import difflib
 import os
-import shutil
-import subprocess
 import sys
-import time
 
 # Find nuitka package relative to us.
 sys.path.insert(
@@ -41,10 +37,14 @@ sys.path.insert(
 
 # isort:start
 
-from nuitka.tools.testing.Common import getTempDir, my_print, setup
-from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
+import difflib
+import shutil
+import subprocess
+import time
 
-python_version = setup(needs_io_encoding=True)
+from nuitka.tools.testing.Common import getTempDir, my_print, setup
+from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
+from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 
@@ -76,13 +76,15 @@ exe_suffix = ".exe" if os.name == "nt" else ".bin"
 
 
 def readSource(filename):
-    if python_version < "3":
+    if str is bytes:
         return open(filename, "rb").read()
     else:
         return open(filename, "rb").read().decode("latin1")
 
 
 def diffRecursive(dir1, dir2):
+    # Complex in nature, pylint: disable=too-many-branches
+
     done = set()
 
     result = False
@@ -277,11 +279,16 @@ def compileAndCompareWith(nuitka):
                 command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
                 my_print("Command: ", " ".join(command))
-                result = subprocess.call(command)
+                exit_nuitka = subprocess.call(command)
 
-                if result != 0:
-                    my_print("An error exit %s occurred, aborting." % result)
-                    sys.exit(result)
+                # In case of segfault or assertion triggered, run in debugger.
+                if exit_nuitka in (-11, -6) and sys.platform != "nt":
+                    command2 = wrapCommandForDebuggerForSubprocess(*command)
+                    subprocess.call(command2)
+
+                if exit_nuitka != 0:
+                    my_print("An error exit %s occurred, aborting." % exit_nuitka)
+                    sys.exit(exit_nuitka)
 
                 has_diff = diffRecursive(os.path.join(package, target), target_dir)
 
@@ -391,14 +398,21 @@ def executePASS5():
     shutil.rmtree(os.path.join(tmp_dir, "nuitka.build"))
 
 
-executePASS1()
-executePASS2()
-executePASS3()
-executePASS4()
+def main():
+    _python_version = setup(needs_io_encoding=True)
 
-shutil.rmtree("nuitka")
+    executePASS1()
+    executePASS2()
+    executePASS3()
+    executePASS4()
 
-executePASS5()
+    shutil.rmtree("nuitka")
 
-os.unlink(os.path.join(tmp_dir, "nuitka" + exe_suffix))
-os.rmdir(tmp_dir)
+    executePASS5()
+
+    os.unlink(os.path.join(tmp_dir, "nuitka" + exe_suffix))
+    os.rmdir(tmp_dir)
+
+
+if __name__ == "__main__":
+    main()

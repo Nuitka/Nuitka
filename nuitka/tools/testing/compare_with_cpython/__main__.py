@@ -597,6 +597,7 @@ Stderr was:
                     stderr_nuitka = stderr_nuitka1 + stderr_nuitka2
                     exit_nuitka = process.returncode
 
+                    # In case of segfault or assertion triggered, run in debugger.
                     if exit_nuitka in (-11, -6) and sys.platform != "nt":
                         nuitka_cmd2 = wrapCommandForDebuggerForSubprocess(*nuitka_cmd2)
 
