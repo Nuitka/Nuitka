@@ -28,8 +28,7 @@ from nuitka.Options import isExperimental, shallTraceExecution
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import my_print, printError
 
-from .Emission import SourceCodeCollector
-from .Indentation import indented
+from .Emission import withSubCollector
 from .LabelCodes import getStatementTrace
 from .Reports import onMissingHelper
 
@@ -208,32 +207,10 @@ def _generateStatementSequenceCode(statement_sequence, emit, context):
                 statement_sequence=statement, emit=emit, context=context
             )
         else:
-            context.pushCleanupScope()
-
-            with context.variable_storage.withLocalStorage():
-                statement_codes = SourceCodeCollector()
-
+            with withSubCollector(emit, context) as statement_emit:
                 generateStatementCode(
-                    statement=statement, emit=statement_codes, context=context
+                    statement=statement, emit=statement_emit, context=context
                 )
-
-                statement_declarations = (
-                    context.variable_storage.makeCLocalDeclarations()
-                )
-
-                block = False
-                for s in statement_declarations:
-                    if not block:
-                        emit("{")
-
-                        block = True
-                    emit(indented(s))
-
-                statement_codes.emitTo(emit, 1 if statement_declarations else 0)
-                if block:
-                    emit("}")
-
-            context.popCleanupScope()
 
 
 def generateStatementSequenceCode(statement_sequence, emit, context, allow_none=False):

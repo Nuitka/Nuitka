@@ -23,8 +23,8 @@ of frames for different uses.
 
 from nuitka.PythonVersions import python_version
 
-from . import Emission
 from .CodeHelpers import _generateStatementSequenceCode
+from .Emission import SourceCodeCollector
 from .ErrorCodes import getFrameVariableTypeDescriptionCode
 from .ExceptionCodes import getTracebackMakingIdentifier
 from .Indentation import indented
@@ -122,7 +122,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
 
     # Now generate the statements code into a local buffer, to we can wrap
     # the frame stuff around it.
-    local_emit = Emission.SourceCodeCollector()
+    local_emit = SourceCodeCollector()
 
     _generateStatementSequenceCode(
         statement_sequence=statement_sequence, emit=local_emit, context=context
