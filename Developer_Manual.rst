@@ -237,7 +237,7 @@ but more readable:
 
 .. code-block:: python
 
-   return getSequenceCreationCode(
+   getSequenceCreationCode(
         sequence_kind=sequence_kind,
         element_identifiers=identifiers,
         context=context
@@ -1040,17 +1040,17 @@ changed.
 
      class X:
         def f1(self):
-           print( locals() )
+           print(locals())
 
         def f2(self):
-           print( locals() )
+           print(locals())
            super # Just using the name, not even calling it.
 
      x = X()
      x.f1()
      x.f2()
 
-  .. code-block:: python
+  Output is:
 
      {'self': <__main__.X object at 0x7f1773762390>}
      {'self': <__main__.X object at 0x7f1773762390>, '__class__': <class '__main__.X'>}
@@ -1132,7 +1132,7 @@ So we start out with code like this one:
 .. code-block:: python
 
    def f():
-       with frame_guard( "f" ):
+       with frame_guard("f"):
            if someNotRaisingCall():
                return somePotentiallyRaisingCall()
            else:
@@ -1144,7 +1144,7 @@ This is to be optimized into:
 
    def f():
        if someNotRaisingCall():
-           with frame_guard( "f" ):
+           with frame_guard("f"):
                return somePotentiallyRaisingCall()
        else:
            return None
@@ -1363,7 +1363,7 @@ go through a slot mechanism, which then can be overloaded.
          return 3.14
 
    something = SomeStrangeFloat()
-   ...
+   # ...
    1.0 + float(something) // 4.140000000000001
 
 Here it is the case, that this is used by user code, but more often
@@ -1834,7 +1834,7 @@ When one learns about decorators, you see that:
    # Is basically the same as:
    def function():
       pass
-   function = decorator( function )
+   function = decorator(function)
 
 The only difference is the assignment to function. In the ``@decorator`` case,
 if the decorator fails with an exception, the name ``function`` is not assigned
@@ -1865,11 +1865,11 @@ the unpacking and gives the errors that come from this:
 
 .. code-block:: python
 
-   def function(a,".1"):
+   def function(a, _1):
       def _tmp(a, b, c):
          return a, b, c
 
-      a, b = ".1"
+      a, b = _1
       return _tmp(a, b, c)
 
 The ``".1"`` is the variable name used by CPython internally, and actually
@@ -1895,7 +1895,7 @@ makes it explicit that the assign target may change its value.
 
 .. code-block:: python
 
-   _tmp = a.__iadd__( b )
+   _tmp = a.__iadd__(b)
 
    if a is not _tmp:
        a = _tmp
@@ -1993,7 +1993,7 @@ is fulfilled by ``try``/``except`` clause instead.
 .. code-block:: python
 
     with some_context as x:
-        something( x )
+        something(x)
 
 .. code-block:: python
 
@@ -2018,7 +2018,7 @@ is fulfilled by ``try``/``except`` clause instead.
         x = tmp_enter_result
 
         # Then the code of the "with" block.
-        something( x )
+        something(x)
     except Exception:
         # Note: This part of the code must not set line numbers, which we
         # indicate with special source code references, which we call "internal".
@@ -2029,7 +2029,7 @@ is fulfilled by ``try``/``except`` clause instead.
         if not tmp_exit(*sys.exc_info()):
             raise
     finally:
-        if not tmp_indicator
+         if not tmp_indicator:
             # Call the exit if no exception occurred with all arguments
             # as "None".
             tmp_exit(None, None, None)
@@ -2053,7 +2053,7 @@ implicit in the code explicitly.
 .. code-block:: python
 
     for x, y in iterable:
-        if something( x ):
+        if something(x):
             break
     else:
         otherwise()
@@ -2066,9 +2066,9 @@ This is roughly equivalent to the following code:
     _no_break_indicator = False
 
     while 1:
-        try:
+         try:
             _tmp_value = next(_iter)
-        except StopIteration:
+         except StopIteration:
             # Set the indicator that the else branch may be executed.
             _no_break_indicator = True
 
@@ -2247,14 +2247,14 @@ re-formulation:
    # in module "SomeModule"
    # ...
 
-   class SomeClass(SomeBase, AnotherBase)
+   class SomeClass(SomeBase, AnotherBase):
        """ This is the class documentation. """
 
        some_member = 3
 
 .. code-block:: python
 
-   def _makeSomeClass:
+   def _makeSomeClass():
        # The module name becomes a normal local variable too.
        __module__ = "SomeModule"
 
@@ -2294,12 +2294,12 @@ locals for it, which is hidden away in "prepare_class_dict" below.
 What's noteworthy, is that this dictionary, could e.g. be an ``OrderDict``. I
 am not sure, what ``__prepare__`` is allowed to return.
 
-.. code-block:: python
+.. code-block:: python3
 
    # in module "SomeModule"
    # ...
 
-   class SomeClass(SomeBase, AnotherBase, metaclass = SomeMetaClass)
+   class SomeClass(SomeBase, AnotherBase, metaclass = SomeMetaClass):
        """ This is the class documentation. """
 
        some_member = 3
@@ -2307,7 +2307,7 @@ am not sure, what ``__prepare__`` is allowed to return.
 .. code-block:: python
 
    # Non-keyword arguments, need to be evaluated first.
-   tmp_bases = ( SomeBase, AnotherBase )
+   tmp_bases = (SomeBase, AnotherBase)
 
    # Keyword arguments go next, __metaclass__ is just one of them. In principle
    # we need to forward the others as well, but this is ignored for the sake of
@@ -2318,10 +2318,10 @@ am not sure, what ``__prepare__`` is allowed to return.
 
    # The function that creates the class dictionary. Receives temporary variables
    # to work with.
-   def _makeSomeClass:
-       # This has effect, currently I don't know how to force that in Python3
-       # syntax, but we will use something that ensures it.
-       locals() = tmp_prepared
+   def _makeSomeClass():
+       # This has effect, currently I don't know how to express that in Python3
+       # syntax, but we will have a node that does that.
+       locals().replace(tmp_prepared)
 
        # The module name becomes a normal local variable too.
        __module__ = "SomeModule"
@@ -2414,7 +2414,7 @@ that they produce an actual helper function:
 
        return result
 
-    set_value = _setcontr_helper( range(8) )
+    set_value = _setcontr_helper(range(8))
 
 
 Dictionary Contractions
@@ -2438,7 +2438,7 @@ they produce an actual helper function:
 
        return result
 
-    set_value = _dictcontr_helper( range(8) )
+    set_value = _dictcontr_helper(range(8))
 
 
 Boolean expressions ``and`` and ``or``
@@ -2527,10 +2527,10 @@ difficult stuff. Our example becomes this:
    def _complex_call(called, pos, kw, star_list_arg, star_dict_arg):
        # Raises errors in case of duplicate arguments or tmp_star_dict not
        # being a mapping.
-       tmp_merged_dict = merge_star_dict_arguments( called, tmp_named, mapping_check( called, tmp_star_dict ) )
+       tmp_merged_dict = merge_star_dict_arguments(called, tmp_named, mapping_check(called, tmp_star_dict))
 
        # Raises an error if tmp_star_list is not a sequence.
-       tmp_pos_merged = merge_pos_arguments( called, tmp_pos, tmp_star_list )
+       tmp_pos_merged = merge_pos_arguments(called, tmp_pos, tmp_star_list)
 
        # On the C-API level, this is what it looks like.
        return called(*tmp_pos_merged, **tmp_merged_dict)
@@ -2540,10 +2540,10 @@ difficult stuff. Our example becomes this:
        pos           = (pos1, pos2),
        named         = {
            "name1" : named1,
-           "name2" = named2
+           "name2" : named2
        },
        star_list_arg = star_list,
-       star_list_arg = star_dict
+       star_dict_arg = star_dict
    )
 
 
@@ -2562,6 +2562,9 @@ compile time optimized, this is made visible in the node tree.
 .. code-block:: python
 
     print arg1, "1", 1
+
+This is in Nuitka then like this, where the code for print doesn't do any
+conversions anymore and relies on the string nature of its input.
 
 .. code-block:: python
 
@@ -2607,18 +2610,18 @@ Builtin ``zip`` for Python2
 
 .. code-block:: python
 
-    def _zip(a, b, c, ... ):
+    def _zip(a, b, c): # Potentially more arguments.
        # First assign, to preserve order of execution,
        # the arguments might be complex expressions.
        tmp_arg1 = a
        tmp_arg2 = b
        tmp_arg3 = c
-       ...
+       # more arguments here ...
 
        tmp_iter_1 = iter(tmp_arg1)
        tmp_iter_2 = iter(tmp_arg2)
        tmp_iter_3 = iter(tmp_arg3)
-       ...
+       # more arguments here ...
 
        # could be more
        tmp_result = []
@@ -2629,11 +2632,11 @@ Builtin ``zip`` for Python2
                         next(tmp_iter_1),
                         next(tmp_iter_2),
                         next(tmp_iter_3),
-                        ...
+                        # more arguments here ...
                    )
                 )
-          except StopIteration:
-              pass
+       except StopIteration:
+           pass
 
        return tmp_result
 
@@ -2643,7 +2646,9 @@ Builtin ``map`` for Python2
 .. code-block:: python
 
     def _map():
-        ...
+        # TODO: Not done yet.
+        pass
+
 
 Builtin ``min``
 +++++++++++++++
@@ -2651,11 +2656,11 @@ Builtin ``min``
 .. code-block:: python
 
     # TODO: keyfunc (Python2/3), defaults (Python3)
-    def _min(a, b, c, ...):
+    def _min(a, b, c): # Potentially more arguments.
         tmp_arg1 = a
         tmp_arg2 = b
         tmp_arg3 = c
-        ...
+        # more arguments here ...
 
         result = tmp_arg1
         if keyfunc is None: # can be decided during re-formulation
@@ -2668,13 +2673,13 @@ Builtin ``min``
             if tmp_key_candidate < tmp_key_result:
                 result = tmp_arg3
                 tmp_key_result = tmp_key_candidate
-            ...
+            # more arguments here ...
         else:
             if tmp_arg2 < result:
                 result = tmp_arg2
             if tmp_arg3 < result:
                 result = tmp_arg3
-            ...
+            # more arguments here ...
 
         return result
 
@@ -2702,7 +2707,7 @@ calls to variable references to function references.
     def f(arg1, arg2):
         return some_op(arg1, arg2)
 
-    ... # other code
+    # ... other code
 
     x = f(a, b+c)
 
@@ -2711,9 +2716,9 @@ In the optimization it is turned into
 .. code-block:: python
 
 
-    ... # other code
+    # ... other code
 
-    x = lamdba arg1, arg2 : some_op(arg1, arg2)(a, b+c)
+    x = lambda arg1, arg2 : some_op(arg1, arg2)(a, b+c)
 
 .. note::
 
@@ -2736,7 +2741,7 @@ function call.
 
 .. code-block:: python
 
-    ... # other code
+    # ... other code
 
     def _f():
         tmp_arg1 = arg1
@@ -2761,7 +2766,7 @@ Lets consider an example with default values first.
     def f(arg1, arg2=some_default()):
         return some_op(arg1, arg2)
 
-    ... # other code
+    # ... other code
 
     x = f(a, b+c)
 
@@ -2773,7 +2778,7 @@ point and make them available.
 
     tmp_defaults = (some_default,) # that was f.__defaults__
 
-    ... # other code
+    # ... other code
 
     def _f():
         tmp_arg1 = arg1
@@ -2789,7 +2794,7 @@ Now, one where keyword arguments are ordered the other way.
     def f(arg1, arg2):
         return some_op(arg1, arg2)
 
-    ... # other code
+    # ... other code
 
     x = f(arg2=b+c, arg1=a) # "b+c" is evaluated before "a"
 
@@ -2798,7 +2803,7 @@ order by names and then assign parameters from it:
 
 .. code-block:: python
 
-    ... # other code
+    # ... other code
 
     def _f():
         tmp_given_value1 = b+c
@@ -2856,15 +2861,15 @@ leads to code that is internally like this:
 
 .. code-block:: python
 
-   f(a(), raise ZeroDivisionError)
+   f(a(), raise_ZeroDivisionError())
 
 which is then modeled as:
 
 .. code-block:: python
 
-   side_effect(a(), f, raise ZeroDivisionError)
+   side_effect(a(), f, raise_ZeroDivisionError())
 
-where we can consider "side_effect" to be a function that returns the last
+where we can consider ``side_effect`` to be a function that returns the last
 expression. Of course, if this is not part of another expression, but close to
 statement level, side effects, can be converted to multiple statements simply.
 
@@ -2874,7 +2879,10 @@ the language still requires things to happen, consider this:
 .. code-block:: python
 
    a = len(
-      ( f(), g() )
+      (
+         f(),
+         g()
+      )
    )
 
 We can tell that ``a`` will be 2, but the call to ``f`` and ``g`` must still be
@@ -3049,7 +3057,7 @@ Now lets look at a more complete use case:
 
 .. code-block:: python
 
-   for x in range( 10000000000000 ):
+   for x in range(10000000000000):
        doSomething()
 
 Looking at this example, one traditional way to look at it, would be to turn
@@ -3251,7 +3259,7 @@ Excursion to Loops
        if cond():
           break
 
-   print a
+   print(a)
 
 The handling of loops (both ``for`` and ``while`` are re-formulated to this
 kind of loops with ``break`` statements) has its own problem. The loop start
@@ -3599,7 +3607,7 @@ on that level. Imagine e.g. the following calls:
 
 .. code-block:: python
 
-   c_call( other_c_call() )
+   c_call(other_c_call())
 
 Value returned by "other_c_call()" of say ``c_int`` type, should be possible to
 be fed directly into another call. That should be easy by having a ``asIntC()``
@@ -3632,10 +3640,11 @@ one:
 
 .. code-block:: python
 
+
    a = 3
    b = 7
    c = a / b
-   return c
+   print(c)
 
 to:
 
@@ -3644,7 +3653,7 @@ to:
    a = 3
    b = 7
    c = 3 / 7
-   return c
+   print(c)
 
 and then:
 
@@ -3653,7 +3662,7 @@ and then:
    a = 3
    b = 7
    c = 0
-   return c
+   print(c)
 
 and then:
 
@@ -3662,10 +3671,11 @@ and then:
    a = 3
    b = 7
    c = 0
-   return 0
+   print(0)
 
 This depends on SSA form to be able to tell us the values of ``a``, ``b``, and
-``c`` to be written to by constants, which can be forward propagated at no cost.
+``c`` to be written to by constants, which can be forward propagated at no
+cost.
 
 Goal 2 (Reached)
 ++++++++++++++++
@@ -3676,7 +3686,7 @@ assignment source has no effect, so they can be simply dropped.
 
 .. code-block:: python
 
-   return 0
+   print(0)
 
 In the SSA form, these are then assignments without references. These
 assignments, can be removed if the assignment source has no side effect. Or at
@@ -3692,17 +3702,17 @@ impact, and leave the value as a side effect, so we arrive at this first:
    3
    7
    0
-   return 0
+   print(0)
 
 When applying the removal of expression only statements without effect, this
 gives us:
 
 .. code-block:: python
 
-   return 0
+   print(0)
 
 which is the perfect result. Doing it in one step would only be an
-optimization.
+optimization at the cost of generalization.
 
 In order to be able to manipulate nodes related to a variable trace, we need to
 attach the nodes that did it. Consider this:
@@ -3715,9 +3725,9 @@ attach the nodes that did it. Consider this:
        x = 3
 
    # Not using "x".
-   return 0
+   print(0)
 
-In the above case, the merge of the value friends, should say that ``x`` may be
+In the above case, the merge of the value traces, should say that ``x`` may be
 undefined, or one of ``1`` or ``3``, but since ``x`` is not used, apply the
 "dead value" trick to each branch.
 
@@ -3735,10 +3745,10 @@ Then third goal is to understand all of this:
    def f():
       a = []
 
-      print a
+      print(a)
 
       for i in range(1000):
-          print a
+          print(a)
 
           a.append(i)
 
@@ -3764,10 +3774,10 @@ The code should therefore become equivalent to:
    def f():
       a = []
 
-      print []
+      print([])
 
       for i in range(1000):
-          print a
+          print(a)
 
           a.append(i)
 
@@ -3795,15 +3805,16 @@ The fourth goal is to understand the following:
        else:
            x = 2
 
-   return x < y
+       return x < y
 
 In this we have a branch, and we will be required to keep track of both the
 branches separately, and then to merge with the original knowledge. After the
 conditional statement we will know that "x" is an "int" with possible values in
-"(1,2)", which can be used to predict that the return value is always "True".
+``(1,2)``, which can be used to predict that the return value is always
+``True``.
 
 The forth goal will therefore be that the "ValueFriendConstantList" knows that
-append changes "a" value, but it remains a list, and that the size increases by
+append changes ``a`` value, but it remains a list, and that the size increases by
 one. It should provide an other value friend "ValueFriendList" for "a" due to
 that.
 
@@ -3816,28 +3827,28 @@ In order to do that, such code must be considered:
    a.append(1)
    a.append(2)
 
-   print len( a )
+   print(len(a))
 
-It will be good, if ``len`` still knows that "a" is a list, but not the
-constant list anymore.
+It will be good, if ``len`` still knows that ``a`` is a list object, but not
+the constant list anymore.
 
 From here, work should be done to demonstrate the correctness of it with the
 basic tests applied to discover undetected issues.
 
 Fifth and optional goal: Extra bonus points for being able to track and predict
-"append" to update the constant list in a known way. Using "list.append" that
-should be done and lead to a constant result of "len" being used.
+``append`` to update the constant list in a known way. Using ``list.append``
+that should be done and lead to a constant result of ``len`` being used.
 
 The sixth and challenging goal will be to make the code generation be impacted
-by the value friends types. It should have a knowledge that "PyList_Append"
-does the job of append and use "PyList_Size" for "len". The "ValueFriends"
+by the value friends types. It should have a knowledge that ``PyList_Append``
+does the job of append and use ``PyList_Size`` for ``len``. The "ValueFriends"
 should aid the code generation too.
 
-Last and right now optional goal will be to make "range" have a value friend,
-that can interact with iteration of the for loop, and "append" of the "list"
-value friend, so it knows it's possible to iterate 5000 times, and that "a" has
-then after the "loop" this size, so "len( a )" could be predicted. For during
-the loop, about a the range of its length should be known to be less
+Last and right now optional goal will be to make ``range`` have a value friend,
+that can interact with iteration of the for loop, and ``append`` of the
+``list`` value friend, so it knows it's possible to iterate 5000 times, and
+that "a" has then after the "loop" this size, so ``len(a)`` could be predicted.
+For during the loop, about a the range of its length should be known to be less
 than 5000. That would make the code of goal 2 completely analyzed at compile
 time.
 
@@ -3849,7 +3860,7 @@ Limitations for now
 
   .. code-block:: python
 
-     print ctypes.c_int( 17 ) + ctypes.c_long( 19 )
+     print(ctypes.c_int(17) + ctypes.c_long(19))
 
   Later then call to "libc" or something else universally available,
   e.g. "strlen()" or "strcmp()" from full blown declarations of the callable.
@@ -3931,9 +3942,9 @@ e.g. code like this:
 .. code-block:: python
 
    if Options.isExperimental("use_feature"):
-      ... # experimental code for "feature"
+      experimental_code()
    else:
-      ... # standard code
+      standard_code()
 
 When to use it
 --------------
@@ -3980,8 +3991,6 @@ The list of runtime dependencies is in ``requirements.txt`` and it is for
 those the case, that they are not really required to be installed by the
 user, consider this snippet:
 
-.. code-block:: python
-
    # Folders to use for cache files.
    appdirs == 1.4.3
 
@@ -4014,8 +4023,6 @@ big, say all of SciPy, we might want to justify it a bit better.
 
 The list of development dependencies is in ``requirements-devel.txt`` and it
 is for example like this:
-
-.. code-block:: python
 
    # API doc, doxygen helper for Python
    doxypypy == 0.8.8.6 ; python_version >= '2.7'
@@ -4057,38 +4064,38 @@ etc.
 
   .. code-block:: python
 
-     a = iter( ( 2, 3 ) )
-     b = next( a )
-     c = next( a )
+     a = iter((2, 3))
+     b = next(a)
+     c = next(a)
      del a
 
-  It would be sweet if we could recognize that:
+  It would be sweet if we could recognize that as:
 
   .. code-block:: python
 
-     a = iter( ( 2, 3 ) )
-     b = side_effect( next( a ), 2 )
-     c = side_effect( next( a ), 3 )
+     a = iter((2,3))
+     b = side_effect(next(a), 2)
+     c = side_effect(next(a), 3)
      del a
 
   That trivially becomes:
 
   .. code-block:: python
 
-     a = iter( ( 2, 3 ) )
-     next( a )
+     a = iter((2, 3))
+     next(a)
      b = 2
-     next( a )
+     next(a)
      c = 3
      del a
 
-  When the "del a" is examined at the end of scope, or due to another assignment
-  to the same variable, ending the trace, we would have to consider of the
-  "next" uses, and retrofit the information that they had no effect.
+  When the ``del a`` is examined at the end of scope, or due to another
+  assignment to the same variable, ending the trace, we would have to consider
+  of the ``next`` uses, and retrofit the information that they had no effect.
 
   .. code-block:: python
 
-     a = iter( ( 2, 3 ) )
+     a = iter((2, 3))
      b = 2
      b = 3
      del a
@@ -4100,20 +4107,20 @@ etc.
 
   .. code-block:: python
 
-     a = iter( range(9 ))
+     a = iter(range(9))
      b = a
      c = next(b)
      d = next(a)
 
-  If we fail to detect the aliasing nature, we will calculate "d" wrongly. We
+  If we fail to detect the aliasing nature, we will calculate ``d`` wrongly. We
   may incref and decref values to trace it.
 
-  Aliasing is automatically traced already in SSA form. The "b" is assigned to
-  version of "a". So, that should allow to replace it with this:
+  Aliasing is automatically traced already in SSA form. The ``b`` is assigned
+  to version of ``a``. So, that should allow to replace it with this:
 
   .. code-block:: python
 
-     a = iter( range(9 ))
+     a = iter(range(9))
      c = next(a)
      d = next(a)
 
