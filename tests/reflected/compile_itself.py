@@ -90,6 +90,9 @@ def diffRecursive(dir1, dir2):
     result = False
 
     for path1, filename in listDir(dir1):
+        if "cache-" in path1:
+            continue
+
         path2 = os.path.join(dir2, filename)
 
         done.add(path1)
@@ -98,12 +101,14 @@ def diffRecursive(dir1, dir2):
         # TODO: Temporary ignore ".bin", until we have something better than marshal which behaves
         # differently in compiled Nuitka:
         if filename.endswith(
-            (".o", ".os", ".obj", ".dblite", ".tmp", ".sconsign", ".txt", ".bin")
+            (".o", ".os", ".obj", ".dblite", ".tmp", ".sconsign", ".txt", ".bin", ".exp")
         ):
             continue
 
         if not os.path.exists(path2):
-            sys.exit("Only in %s: %s" % (dir1, filename))
+            my_print("Only in %s: %s" % (dir1, filename))
+            result = False
+            continue
 
         if os.path.isdir(path1):
             r = diffRecursive(path1, path2)
@@ -137,13 +142,18 @@ def diffRecursive(dir1, dir2):
             assert False, path1
 
     for path1, filename in listDir(dir2):
+        if "cache-" in path1:
+            continue
+
         path2 = os.path.join(dir2, filename)
 
         if path1 in done:
             continue
 
         if not os.path.exists(path1):
-            sys.exit("Only in %s: %s" % (dir2, filename))
+            my_print("Only in %s: %s" % (dir2, filename))
+            result = False
+            continue
 
     return result
 
