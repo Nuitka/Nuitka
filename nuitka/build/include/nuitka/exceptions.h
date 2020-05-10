@@ -593,7 +593,6 @@ static inline void FORMAT_TYPE_ERROR1(PyObject **exception_type, PyObject **exce
 
     *exception_value = Nuitka_String_FromFormat(format, arg);
     CHECK_OBJECT(*exception_value);
-    Py_INCREF(*exception_value);
 }
 
 static inline void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exception_value, char const *format,
@@ -603,7 +602,6 @@ static inline void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exce
 
     *exception_value = Nuitka_String_FromFormat(format, arg1, arg2);
     CHECK_OBJECT(*exception_value);
-    Py_INCREF(*exception_value);
 }
 
 #endif
