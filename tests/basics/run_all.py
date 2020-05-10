@@ -41,6 +41,7 @@ from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
     decideNeeds2to3,
+    hasDebugPython,
     scanDirectoryForTestCases,
     setup,
 )
@@ -74,6 +75,9 @@ def main():
         # standard error that might be ignored.
         if filename.startswith("Referencing"):
             extra_flags.append("recurse_not:nuitka")
+
+            if hasDebugPython():
+                extra_flags.append("python_debug")
 
         # This tests warns about __import__() used.
         if filename == "OrderChecks.py":
