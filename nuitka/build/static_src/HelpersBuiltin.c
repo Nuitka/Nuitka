@@ -691,11 +691,11 @@ PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *defau
 PyObject *BUILTIN_SETATTR(PyObject *object, PyObject *attribute, PyObject *value) {
     int res = PyObject_SetAttr(object, attribute, value);
 
-    if (res < 0) {
+    if (unlikely(res < 0)) {
         return NULL;
     }
 
-    Py_INCREF(Py_None);
+    // No reference returned.
     return Py_None;
 }
 
