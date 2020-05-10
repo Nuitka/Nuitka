@@ -428,6 +428,8 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "six.moves",
         # Python3 namespace packages.
         "_frozen_importlib_external",
+        # Garbage from PyWin32
+        "pywin32_bootstrap",
     )
 
 

@@ -74,7 +74,7 @@ goto %(return_exit)s;
 
 template_frame_attach_locals = """\
 Nuitka_Frame_AttachLocals(
-    (struct Nuitka_FrameObject *)%(frame_identifier)s,
+    %(frame_identifier)s,
     %(type_description)s%(frame_variable_refs)s
 );
 """

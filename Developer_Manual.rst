@@ -119,7 +119,7 @@ Regarding types, the state is:
   that things are e.g. really a ``PyTupleObject **``, but no C type is available
   for that yet.
 
-- There are a somes specific use of types beyond "compile time constant",
+- There are a some specific use of types beyond "compile time constant",
   that are encoded in type and value shapes, which can be used to predict some
   operations, conditions, etc. if they raise, and result types they give.
 
