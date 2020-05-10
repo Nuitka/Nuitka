@@ -215,7 +215,7 @@ NUITKA_MAY_BE_UNUSED static void _PRINT_ASYNCGEN_STATUS(char const *descriptor, 
     PRINT_NEW_LINE();
 }
 
-#define PRINT_ASYNCGEN_STATUS(context, coroutine) _PRINT_ASYNCGEN_STATUS(__FUNCTION__, context, asyncgen)
+#define PRINT_ASYNCGEN_STATUS(context, asyncgen) _PRINT_ASYNCGEN_STATUS(__FUNCTION__, context, asyncgen)
 
 #endif
 
@@ -241,12 +241,12 @@ static PyObject *Nuitka_YieldFromAsyncgenInitial(struct Nuitka_AsyncgenObject *a
     CHECK_OBJECT_X(send_value);
 
 #if _DEBUG_ASYNCGEN
-    PRINT_ASYNCGEN_STATUS("Enter", coroutine);
+    PRINT_ASYNCGEN_STATUS("Enter", asyncgen);
     PRINT_NEW_LINE();
 #endif
     PyObject *result = Nuitka_YieldFromAsyncgenCore(asyncgen, send_value, false);
 #if _DEBUG_ASYNCGEN
-    PRINT_ASYNCGEN_STATUS("Leave", coroutine);
+    PRINT_ASYNCGEN_STATUS("Leave", asyncgen);
     PRINT_CURRENT_EXCEPTION();
     PRINT_NEW_LINE();
 #endif
@@ -340,7 +340,7 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
         PyObject *yielded;
 
 #if _DEBUG_ASYNCGEN
-        PRINT_ASYNCGEN_STATUS("Switching to coroutine", asyncgen);
+        PRINT_ASYNCGEN_STATUS("Switching to asyncgen", asyncgen);
         dumpFrameStack();
 #endif
 
@@ -460,10 +460,8 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
 }
 
 // Note: Used by compiled frames.
-PyObject *Nuitka_Asyncgen_close(struct Nuitka_AsyncgenObject *asyncgen, PyObject *args) {
+PyObject *Nuitka_Asyncgen_close(struct Nuitka_AsyncgenObject *asyncgen) {
     CHECK_OBJECT(asyncgen);
-    // Note: The args argument is never given.
-    assert(args == NULL);
 
     if (asyncgen->m_status == status_Running) {
         Py_INCREF(PyExc_GeneratorExit);
@@ -549,7 +547,11 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
             PyGenObject *gen = (PyGenObject *)asyncgen->m_yieldfrom;
 
             // Transferred exception ownership to "Nuitka_UncompiledGenerator_throw".
-            ret = Nuitka_UncompiledGenerator_throw(gen, 1, exception_type, exception_value, (PyObject *)exception_tb);
+            ret = Nuitka_UncompiledGenerator_throw(gen, 1, exception_type, exception_value, exception_tb);
+        } else if (Nuitka_Generator_Check(asyncgen->m_yieldfrom)) {
+            struct Nuitka_GeneratorObject *gen = ((struct Nuitka_GeneratorObject *)asyncgen->m_yieldfrom);
+            // Transferred exception ownership to "_Nuitka_Generator_throw2".
+            ret = _Nuitka_Generator_throw2(gen, exception_type, exception_value, exception_tb);
         } else if (Nuitka_Coroutine_Check(asyncgen->m_yieldfrom)) {
             struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineObject *)asyncgen->m_yieldfrom);
             // Transferred exception ownership to "_Nuitka_Coroutine_throw2".
@@ -652,7 +654,7 @@ throw_here:
     CHECK_OBJECT_X(exception_value);
     CHECK_OBJECT_X(exception_tb);
 
-    if ((PyObject *)exception_tb == Py_None) {
+    if (exception_tb == (PyTracebackObject *)Py_None) {
         Py_DECREF(exception_tb);
         exception_tb = NULL;
     } else if (exception_tb != NULL && !PyTraceBack_Check(exception_tb)) {
@@ -717,7 +719,7 @@ throw_here:
         RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
 
 #if _DEBUG_ASYNCGEN
-        PRINT_ASYNCGEN_STATUS("Finishing from exception", asnycgen);
+        PRINT_ASYNCGEN_STATUS("Finishing from exception", asyncgen);
         PRINT_NEW_LINE();
 #endif
 
@@ -766,6 +768,10 @@ static PyObject *Nuitka_Asyncgen_throw(struct Nuitka_AsyncgenObject *asyncgen, P
     PRINT_COROUTINE_VALUE("return value", result);
     PRINT_CURRENT_EXCEPTION();
 #endif
+
+    CHECK_OBJECT(exception_type);
+    CHECK_OBJECT_X(exception_value);
+    CHECK_OBJECT_X(exception_tb);
 
     return result;
 }
@@ -816,11 +822,19 @@ static PyObject *Nuitka_Asyncgen_anext(struct Nuitka_AsyncgenObject *asyncgen) {
     }
 
 #if _DEBUG_ASYNCGEN
-    PRINT_STRING("Nuitka_Asyncgen_anext: Making Nuitka_AsyncgenAsend object.");
+    PRINT_ASYNCGEN_STATUS("Enter", asyncgen);
     PRINT_NEW_LINE();
 #endif
 
-    return Nuitka_AsyncgenAsend_New(asyncgen, Py_None);
+    PyObject *result = Nuitka_AsyncgenAsend_New(asyncgen, Py_None);
+
+#if _DEBUG_ASYNCGEN
+    PRINT_ASYNCGEN_STATUS("Leave", asyncgen);
+    PRINT_COROUTINE_VALUE("result", result);
+    PRINT_NEW_LINE();
+#endif
+
+    return result;
 }
 
 static PyObject *Nuitka_Asyncgen_asend(struct Nuitka_AsyncgenObject *asyncgen, PyObject *value) {
@@ -833,7 +847,7 @@ static PyObject *Nuitka_Asyncgen_asend(struct Nuitka_AsyncgenObject *asyncgen, P
     return Nuitka_AsyncgenAsend_New(asyncgen, value);
 }
 
-static PyObject *Nuitka_Asyncgen_aclose(struct Nuitka_AsyncgenObject *asyncgen, PyObject *arg) {
+static PyObject *Nuitka_Asyncgen_aclose(struct Nuitka_AsyncgenObject *asyncgen) {
     CHECK_OBJECT(asyncgen);
 
     if (Nuitka_Asyncgen_init_hooks(asyncgen)) {
@@ -891,7 +905,7 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
 
     FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
 
-    PyObject *close_result = Nuitka_Asyncgen_close(asyncgen, NULL);
+    PyObject *close_result = Nuitka_Asyncgen_close(asyncgen);
 
     if (unlikely(close_result == NULL)) {
         PyErr_WriteUnraisable((PyObject *)asyncgen);
@@ -942,8 +956,6 @@ static PyObject *Nuitka_Asyncgen_tp_repr(struct Nuitka_AsyncgenObject *asyncgen)
 static int Nuitka_Asyncgen_tp_traverse(struct Nuitka_AsyncgenObject *asyncgen, visitproc visit, void *arg) {
     CHECK_OBJECT(asyncgen);
 
-    // TODO: Identify the impact of not visiting owned objects like module and
-    // frame.
     Py_VISIT(asyncgen->m_yieldfrom);
 
     for (Py_ssize_t i = 0; i < asyncgen->m_closure_given; i++) {
@@ -1196,8 +1208,6 @@ static PyObject *Nuitka_AsyncgenValueWrapper_New(PyObject *value) {
 
 #define Nuitka_AsyncgenWrappedValue_CheckExact(o) (Py_TYPE(o) == &Nuitka_AsyncgenValueWrapper_Type)
 
-// TODO: We could change all generators to use that kind of enum, if
-// it's properly supported.
 typedef enum {
     AWAITABLE_STATE_INIT = 0,   /* Has not yet been iterated. */
     AWAITABLE_STATE_ITER = 1,   /* Being iterated currently. */
@@ -1214,19 +1224,41 @@ struct Nuitka_AsyncgenAsendObject {
     AwaitableState m_state;
 };
 
-/* For debug outputs only. */
-char const *getAwaitableStateStr(AwaitableState state) {
-    switch (state) {
+#if _DEBUG_ASYNCGEN
+
+NUITKA_MAY_BE_UNUSED static void _PRINT_ASYNCGENASEND_STATUS(char const *descriptor, char const *context,
+                                                             struct Nuitka_AsyncgenAsendObject *asyncgen_asend) {
+    char const *status;
+
+    switch (asyncgen_asend->m_state) {
     case AWAITABLE_STATE_INIT:
-        return "AWAITABLE_STATE_INIT";
+        status = "(init)";
+        break;
     case AWAITABLE_STATE_ITER:
-        return "AWAITABLE_STATE_ITER";
+        status = "(iter)";
+        break;
     case AWAITABLE_STATE_CLOSED:
-        return "AWAITABLE_STATE_CLOSED";
+        status = "(closed)";
+        break;
     default:
-        return "AWAITABLE_STATE_ILLEGAL";
+        status = "(ILLEGAL)";
+        break;
     }
+
+    PRINT_STRING(descriptor);
+    PRINT_STRING(" : ");
+    PRINT_STRING(context);
+    PRINT_STRING(" ");
+    PRINT_ITEM((PyObject *)asyncgen_asend);
+    PRINT_STRING(" ");
+    PRINT_STRING(status);
+    PRINT_NEW_LINE();
 }
+
+#define PRINT_ASYNCGENASEND_STATUS(context, asyncgen_asend)                                                            \
+    _PRINT_ASYNCGENASEND_STATUS(__FUNCTION__, context, asyncgen_asend)
+
+#endif
 
 /**
  * These can be created by byte code loop, and we don't now its internals,
@@ -1309,6 +1341,9 @@ static int Nuitka_AsyncgenAsend_tp_traverse(struct Nuitka_AsyncgenAsendObject *a
                                             void *arg) {
     CHECK_OBJECT(asyncgen_asend);
 
+    CHECK_OBJECT(asyncgen_asend->m_gen);
+    CHECK_OBJECT(asyncgen_asend->m_sendval);
+
     Py_VISIT(asyncgen_asend->m_gen);
     Py_VISIT(asyncgen_asend->m_sendval);
 
@@ -1317,20 +1352,21 @@ static int Nuitka_AsyncgenAsend_tp_traverse(struct Nuitka_AsyncgenAsendObject *a
 
 static PyObject *Nuitka_AsyncgenAsend_send(struct Nuitka_AsyncgenAsendObject *asyncgen_asend, PyObject *arg) {
 #if _DEBUG_ASYNCGEN
-    PRINT_STRING("Nuitka_AsyncgenAsend_send: Enter with state:\nasyncgen_asend:");
-    PRINT_ITEM((PyObject *)asyncgen_asend);
-    PRINT_NEW_LINE();
-    PRINT_FORMAT("State on entry is asyncgen_send->m_state = %d (%s)\n", asyncgen_asend->m_state,
-                 getAwaitableStateStr(asyncgen_asend->m_state));
-    PRINT_STRING("Nuitka_AsyncgenAsend_send: arg:");
-    PRINT_ITEM(arg);
+    PRINT_ASYNCGENASEND_STATUS("Enter", asyncgen_asend);
+    PRINT_COROUTINE_VALUE("arg", arg);
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *result;
-
     if (asyncgen_asend->m_state == AWAITABLE_STATE_CLOSED) {
         SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+
+#if _DEBUG_ASYNCGEN
+        PRINT_ASYNCGENASEND_STATUS("Leave", asyncgen_asend);
+        PRINT_STRING("Closed -> StopIteration\n");
+        PRINT_CURRENT_EXCEPTION();
+        PRINT_NEW_LINE();
+#endif
+
         return NULL;
     } else if (asyncgen_asend->m_state == AWAITABLE_STATE_INIT) {
 #if PYTHON_VERSION >= 380
@@ -1344,12 +1380,21 @@ static PyObject *Nuitka_AsyncgenAsend_send(struct Nuitka_AsyncgenAsendObject *as
         }
 
         asyncgen_asend->m_state = AWAITABLE_STATE_ITER;
+
+#if _DEBUG_ASYNCGEN
+        PRINT_STRING("Init -> begin iteration\n");
+        PRINT_COROUTINE_VALUE("computed arg from sendval", arg);
+        PRINT_NEW_LINE();
+#endif
     }
 
 #if PYTHON_VERSION >= 380
     asyncgen_asend->m_gen->m_running_async = true;
 #endif
-    result = _Nuitka_Asyncgen_send(asyncgen_asend->m_gen, arg, false, NULL, NULL, NULL);
+    // TODO: Who releases arg.
+    // Py_INCREF(arg);
+
+    PyObject *result = _Nuitka_Asyncgen_send(asyncgen_asend->m_gen, arg, false, NULL, NULL, NULL);
     result = Nuitka_Asyncgen_unwrap_value(asyncgen_asend->m_gen, result);
 
     if (result == NULL) {
@@ -1357,8 +1402,8 @@ static PyObject *Nuitka_AsyncgenAsend_send(struct Nuitka_AsyncgenAsendObject *as
     }
 
 #if _DEBUG_ASYNCGEN
-    PRINT_STRING("Nuitka_AsyncgenAsend_send: Result ");
-    PRINT_ITEM(result);
+    PRINT_ASYNCGENASEND_STATUS("Leave", asyncgen_asend);
+    PRINT_COROUTINE_VALUE("result", result);
     PRINT_NEW_LINE();
 #endif
 
@@ -1367,20 +1412,25 @@ static PyObject *Nuitka_AsyncgenAsend_send(struct Nuitka_AsyncgenAsendObject *as
 
 static PyObject *Nuitka_AsyncgenAsend_tp_iternext(struct Nuitka_AsyncgenAsendObject *asyncgen_asend) {
 #if _DEBUG_ASYNCGEN
-    PRINT_STRING("Nuitka_AsyncgenAsend_tp_iternext: refer to Nuitka_AsyncgenAsend_send");
+    PRINT_ASYNCGENASEND_STATUS("Enter", asyncgen_asend);
+    PRINT_STRING("Defering to Nuitka_AsyncgenAsend_send(Py_None)\n");
     PRINT_NEW_LINE();
 #endif
 
-    return Nuitka_AsyncgenAsend_send(asyncgen_asend, Py_None);
+    PyObject *result = Nuitka_AsyncgenAsend_send(asyncgen_asend, Py_None);
+
+#if _DEBUG_ASYNCGEN
+    PRINT_ASYNCGENASEND_STATUS("Leave", asyncgen_asend);
+    PRINT_COROUTINE_VALUE("result", result);
+    PRINT_NEW_LINE();
+#endif
+
+    return result;
 }
 
 static PyObject *Nuitka_AsyncgenAsend_throw(struct Nuitka_AsyncgenAsendObject *asyncgen_asend, PyObject *args) {
 #if _DEBUG_ASYNCGEN
-    PRINT_STRING("Nuitka_AsyncgenAsend_throw: Enter with state:\nasyncgen_asend:");
-    PRINT_ITEM((PyObject *)asyncgen_asend);
-    PRINT_NEW_LINE();
-    PRINT_FORMAT("State on entry is asyncgen_send->m_state = %d (%s)\n", asyncgen_asend->m_state,
-                 getAwaitableStateStr(asyncgen_asend->m_state));
+    PRINT_ASYNCGENASEND_STATUS("Enter", asyncgen_asend);
     PRINT_STRING("Nuitka_AsyncgenAsend_throw: args:");
     PRINT_ITEM(args);
     PRINT_NEW_LINE();
@@ -1388,14 +1438,13 @@ static PyObject *Nuitka_AsyncgenAsend_throw(struct Nuitka_AsyncgenAsendObject *a
     PRINT_CURRENT_EXCEPTION();
 #endif
 
-    PyObject *result;
-
     if (asyncgen_asend->m_state == AWAITABLE_STATE_CLOSED) {
         SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
         return NULL;
     }
 
-    result = Nuitka_Asyncgen_throw(asyncgen_asend->m_gen, args);
+    PyObject *result = Nuitka_Asyncgen_throw(asyncgen_asend->m_gen, args);
+
 #if _DEBUG_ASYNCGEN
     PRINT_STRING("Nuitka_AsyncgenAsend_throw: Async throw result:");
     PRINT_ITEM(result);
@@ -1405,7 +1454,7 @@ static PyObject *Nuitka_AsyncgenAsend_throw(struct Nuitka_AsyncgenAsendObject *a
 
     result = Nuitka_Asyncgen_unwrap_value(asyncgen_asend->m_gen, result);
 
-    if (asyncgen_asend == NULL) {
+    if (result == NULL) {
         asyncgen_asend->m_state = AWAITABLE_STATE_CLOSED;
     }
 
@@ -1419,7 +1468,59 @@ static PyObject *Nuitka_AsyncgenAsend_throw(struct Nuitka_AsyncgenAsendObject *a
     PRINT_PUBLISHED_EXCEPTION();
     PRINT_NEW_LINE();
 #endif
+    CHECK_OBJECT_DEEP(args);
 
+    return result;
+}
+
+static PyObject *_Nuitka_AsyncgenAsend_throw2(struct Nuitka_AsyncgenAsendObject *asyncgen_asend,
+                                              PyObject *exception_type, PyObject *exception_value,
+                                              PyTracebackObject *exception_tb) {
+#if _DEBUG_ASYNCGEN
+    PRINT_ASYNCGENASEND_STATUS("Enter", asyncgen_asend);
+    PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_CURRENT_EXCEPTION();
+    PRINT_NEW_LINE();
+#endif
+
+    if (asyncgen_asend->m_state == AWAITABLE_STATE_CLOSED) {
+        SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+        return NULL;
+    }
+
+    PyObject *result =
+        _Nuitka_Asyncgen_throw2(asyncgen_asend->m_gen, false, exception_type, exception_value, exception_tb);
+
+    // TODO: This might not be all that necessary as this is not directly outside facing.
+    if (result == NULL) {
+        if (GET_ERROR_OCCURRED() == NULL) {
+            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+        }
+    }
+
+#if _DEBUG_ASYNCGEN
+    PRINT_STRING("_Nuitka_AsyncgenAsend_throw2: Async throw result:");
+    PRINT_ITEM(result);
+    PRINT_NEW_LINE();
+    PRINT_CURRENT_EXCEPTION();
+#endif
+
+    result = Nuitka_Asyncgen_unwrap_value(asyncgen_asend->m_gen, result);
+
+    if (result == NULL) {
+        asyncgen_asend->m_state = AWAITABLE_STATE_CLOSED;
+    }
+
+#if _DEBUG_ASYNCGEN
+    PRINT_STRING("_Nuitka_AsyncgenAsend_throw2: Leave with result: ");
+    PRINT_ITEM(result);
+    PRINT_NEW_LINE();
+    PRINT_STRING("_Nuitka_AsyncgenAsend_throw2: Leave with current exception: ");
+    PRINT_CURRENT_EXCEPTION();
+    PRINT_STRING("_Nuitka_AsyncgenAsend_throw2: Leave with published exception: ");
+    PRINT_PUBLISHED_EXCEPTION();
+    PRINT_NEW_LINE();
+#endif
     return result;
 }
 
@@ -1487,6 +1588,8 @@ static PyTypeObject Nuitka_AsyncgenAsend_Type = {
     0,                                                               /* tp_new */
 };
 
+static bool Nuitka_AsyncgenAsend_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_AsyncgenAsend_Type; }
+
 static PyObject *Nuitka_AsyncgenAsend_New(struct Nuitka_AsyncgenObject *asyncgen, PyObject *send_value) {
     CHECK_OBJECT(asyncgen);
     CHECK_OBJECT(send_value);
@@ -1524,6 +1627,42 @@ struct Nuitka_AsyncgenAthrowObject {
     AwaitableState m_state;
 };
 
+#if _DEBUG_ASYNCGEN
+
+NUITKA_MAY_BE_UNUSED static void _PRINT_ASYNCGENATHROW_STATUS(char const *descriptor, char const *context,
+                                                              struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow) {
+    char const *status;
+
+    switch (asyncgen_athrow->m_state) {
+    case AWAITABLE_STATE_INIT:
+        status = "(init)";
+        break;
+    case AWAITABLE_STATE_ITER:
+        status = "(iter)";
+        break;
+    case AWAITABLE_STATE_CLOSED:
+        status = "(closed)";
+        break;
+    default:
+        status = "(ILLEGAL)";
+        break;
+    }
+
+    PRINT_STRING(descriptor);
+    PRINT_STRING(" : ");
+    PRINT_STRING(context);
+    PRINT_STRING(" ");
+    PRINT_ITEM((PyObject *)asyncgen_athrow);
+    PRINT_STRING(" ");
+    PRINT_STRING(status);
+    PRINT_NEW_LINE();
+}
+
+#define PRINT_ASYNCGENATHROW_STATUS(context, coroutine)                                                                \
+    _PRINT_ASYNCGENATHROW_STATUS(__FUNCTION__, context, asyncgen_athrow)
+
+#endif
+
 static struct Nuitka_AsyncgenAthrowObject *free_list_asyncgen_athrows = NULL;
 static int free_list_asyncgen_athrows_count = 0;
 
@@ -1555,13 +1694,8 @@ static int Nuitka_AsyncgenAthrow_traverse(struct Nuitka_AsyncgenAthrowObject *as
 
 static PyObject *Nuitka_AsyncgenAthrow_send(struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow, PyObject *arg) {
 #if _DEBUG_ASYNCGEN
-    PRINT_STRING("Nuitka_AsyncgenAthrow_send: Enter with state:\asyncgen_athrow:");
-    PRINT_ITEM((PyObject *)asyncgen_athrow);
-    PRINT_NEW_LINE();
-    PRINT_FORMAT("State on entry is asyncgen_athrow->m_state = %d (%s)\n", asyncgen_athrow->m_state,
-                 getAwaitableStateStr(asyncgen_athrow->m_state));
-    PRINT_STRING("Nuitka_AsyncgenAthrow_send: arg:");
-    PRINT_ITEM(arg);
+    PRINT_ASYNCGENATHROW_STATUS("Enter", asyncgen_athrow);
+    PRINT_COROUTINE_VALUE("arg", arg);
     PRINT_NEW_LINE();
 #endif
 
@@ -1717,13 +1851,8 @@ check_error:
 
 static PyObject *Nuitka_AsyncgenAthrow_throw(struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow, PyObject *args) {
 #if _DEBUG_ASYNCGEN
-    PRINT_STRING("Nuitka_AsyncgenAthrow_throw: Enter with state:\asyncgen_athrow:");
-    PRINT_ITEM((PyObject *)asyncgen_athrow);
-    PRINT_NEW_LINE();
-    PRINT_FORMAT("State on entry is asyncgen_athrow->m_state = %d (%s)\n", asyncgen_athrow->m_state,
-                 getAwaitableStateStr(asyncgen_athrow->m_state));
-    PRINT_STRING("Nuitka_AsyncgenAthrow_throw: args:");
-    PRINT_ITEM(args);
+    PRINT_ASYNCGENATHROW_STATUS("Enter", asyncgen_athrow);
+    PRINT_COROUTINE_VALUE("args", args);
     PRINT_NEW_LINE();
 #endif
 
@@ -1768,7 +1897,7 @@ static PyObject *Nuitka_AsyncgenAthrow_tp_iternext(struct Nuitka_AsyncgenAthrowO
     return Nuitka_AsyncgenAthrow_send(asyncgen_athrow, Py_None);
 }
 
-static PyObject *Nuitka_AsyncgenAthrow_close(struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow, PyObject *args) {
+static PyObject *Nuitka_AsyncgenAthrow_close(struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow) {
     asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
 
     Py_INCREF(Py_None);

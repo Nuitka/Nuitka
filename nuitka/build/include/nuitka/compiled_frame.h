@@ -187,7 +187,6 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
 
 // Attach locals to a frame object.
 extern void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *type_description, ...);
-extern void Nuitka_Frame_ReleaseLocals(struct Nuitka_FrameObject *frame);
 
 // Codes used for type_description.
 #define NUITKA_TYPE_DESCRIPTION_NULL 'N'

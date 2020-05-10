@@ -168,15 +168,15 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *frame, void *
                 assert(Nuitka_Cell_Check((PyObject *)value));
                 CHECK_OBJECT(value);
 
-                PyDict_SetItem(result, *varnames, value->ob_ref);
+                if (value->ob_ref != NULL) {
+                    PyDict_SetItem(result, *varnames, value->ob_ref);
+                }
 
                 t += sizeof(value);
 
                 break;
             }
             case NUITKA_TYPE_DESCRIPTION_NULL: {
-                t += sizeof(void *);
-
                 break;
             }
             case NUITKA_TYPE_DESCRIPTION_BOOL: {
@@ -292,6 +292,8 @@ static void Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
             case NUITKA_TYPE_DESCRIPTION_OBJECT:
             case NUITKA_TYPE_DESCRIPTION_OBJECT_PTR: {
                 PyObject *value = *(PyObject **)t;
+                CHECK_OBJECT_X(value);
+
                 Py_XDECREF(value);
 
                 t += sizeof(value);
@@ -310,8 +312,6 @@ static void Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
                 break;
             }
             case NUITKA_TYPE_DESCRIPTION_NULL: {
-                t += sizeof(void *);
-
                 break;
             }
             case NUITKA_TYPE_DESCRIPTION_BOOL: {
@@ -329,8 +329,6 @@ static void Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
         frame->m_type_description = NULL;
     }
 }
-
-void Nuitka_Frame_ReleaseLocals(struct Nuitka_FrameObject *frame) { Nuitka_Frame_tp_clear(frame); }
 
 #define MAX_FRAME_FREE_LIST_COUNT 100
 static struct Nuitka_FrameObject *free_list_frames = NULL;
@@ -419,8 +417,6 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
             break;
         }
         case NUITKA_TYPE_DESCRIPTION_NULL: {
-            t += sizeof(void *);
-
             break;
         }
         case NUITKA_TYPE_DESCRIPTION_BOOL: {
@@ -440,12 +436,12 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
 
 #if PYTHON_VERSION >= 340
 
-extern PyObject *Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator, PyObject *args);
+extern PyObject *Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator);
 #if PYTHON_VERSION >= 350
-extern PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine, PyObject *args);
+extern PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine);
 #endif
 #if PYTHON_VERSION >= 360
-extern PyObject *Nuitka_Asyncgen_close(struct Nuitka_AsyncgenObject *asyncgen, PyObject *args);
+extern PyObject *Nuitka_Asyncgen_close(struct Nuitka_AsyncgenObject *asyncgen);
 #endif
 
 static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
@@ -468,14 +464,14 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
             struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)frame->m_frame.f_gen;
             frame->m_frame.f_gen = NULL;
 
-            close_result = Nuitka_Generator_close(generator, NULL);
+            close_result = Nuitka_Generator_close(generator);
         }
 #if PYTHON_VERSION >= 350
         else if (Nuitka_Coroutine_Check(frame->m_frame.f_gen)) {
             struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)frame->m_frame.f_gen;
             frame->m_frame.f_gen = NULL;
 
-            close_result = Nuitka_Coroutine_close(coroutine, NULL);
+            close_result = Nuitka_Coroutine_close(coroutine);
         }
 #endif
 #if PYTHON_VERSION >= 360
@@ -483,7 +479,7 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
             struct Nuitka_AsyncgenObject *asyncgen = (struct Nuitka_AsyncgenObject *)frame->m_frame.f_gen;
             frame->m_frame.f_gen = NULL;
 
-            close_result = Nuitka_Asyncgen_close(asyncgen, NULL);
+            close_result = Nuitka_Asyncgen_close(asyncgen);
         }
 #endif
         else {
@@ -772,9 +768,7 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *typ
             break;
         }
         case NUITKA_TYPE_DESCRIPTION_NULL: {
-            void *value = va_arg(ap, struct Nuitka_CellObject *);
-
-            t += sizeof(value);
+            NUITKA_MAY_BE_UNUSED void *value = va_arg(ap, struct Nuitka_CellObject *);
 
             break;
         }
@@ -799,6 +793,11 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *typ
 
 // Make a dump of the active frame stack. For debugging purposes only.
 void dumpFrameStack(void) {
+    PyObject *saved_exception_type, *saved_exception_value;
+    PyTracebackObject *saved_exception_tb;
+
+    FETCH_ERROR_OCCURRED(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
+
     PyFrameObject *current = PyThreadState_GET()->frame;
     int total = 0;
 
@@ -825,4 +824,6 @@ void dumpFrameStack(void) {
     }
 
     PRINT_STRING(">---------<\n");
+
+    RESTORE_ERROR_OCCURRED(saved_exception_type, saved_exception_value, saved_exception_tb);
 }

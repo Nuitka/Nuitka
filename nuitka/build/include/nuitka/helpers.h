@@ -21,6 +21,7 @@
 #define _DEBUG_FRAME 0
 #define _DEBUG_REFRAME 0
 #define _DEBUG_EXCEPTIONS 0
+#define _DEBUG_GENERATOR 0
 #define _DEBUG_COROUTINE 0
 #define _DEBUG_ASYNCGEN 0
 #define _DEBUG_CLASSES 0

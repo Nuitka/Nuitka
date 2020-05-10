@@ -478,7 +478,14 @@ static PyObject *Nuitka_PyGen_gen_close(PyGenObject *gen, PyObject *args) {
 //   value of exception_type will not be NULL, but the actual exception will not necessarily
 //   be normalized.
 static PyObject *Nuitka_UncompiledGenerator_throw(PyGenObject *gen, int close_on_genexit, PyObject *exception_type,
-                                                  PyObject *exception_value, PyObject *exception_tb) {
+                                                  PyObject *exception_value, PyTracebackObject *exception_tb) {
+#if _DEBUG_GENERATOR
+    PRINT_STRING("Nuitka_UncompiledGenerator_throw: Enter ");
+    PRINT_ITEM((PyObject *)gen);
+    PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_NEW_LINE();
+#endif
+
     PyObject *yf = Nuitka_PyGen_yf(gen);
 
     if (yf != NULL) {
@@ -586,7 +593,7 @@ throw_here:
     CHECK_OBJECT_X(exception_value);
     CHECK_OBJECT_X(exception_tb);
 
-    if (exception_tb == Py_None) {
+    if (exception_tb == (PyTracebackObject *)Py_None) {
         Py_DECREF(exception_tb);
         exception_tb = NULL;
     } else if (exception_tb != NULL && !PyTraceBack_Check(exception_tb)) {
@@ -613,7 +620,7 @@ throw_here:
         Py_INCREF(exception_type);
 
         if (exception_tb == NULL) {
-            exception_tb = PyException_GetTraceback(exception_value);
+            exception_tb = (PyTracebackObject *)PyException_GetTraceback(exception_value);
         }
     } else {
         PyErr_Format(PyExc_TypeError, "exceptions must be classes or instances deriving from BaseException, not %s",
