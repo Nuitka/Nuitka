@@ -510,16 +510,18 @@ def simpleFunction55():
 
 
 def simpleFunction56():
-    def f():
-        f()
+    """ Throw into finished generator. """
+    g = (x for x in range(9))
+
+    list(g)
 
     try:
-        f()
-    except RuntimeError:
+        g.throw(ValueError(9))
+    except ValueError as _e:
         pass
 
 
-def simpleFunction57():
+def simpleFunction60():
     x = 1
     y = 2
 
@@ -531,7 +533,7 @@ def simpleFunction57():
     f(3, 4)
 
 
-def simpleFunction58():
+def simpleFunction61():
     a = 3
     b = 5
 
@@ -543,7 +545,7 @@ def simpleFunction58():
         a / b
 
 
-def simpleFunction59():
+def simpleFunction62():
     a = 3
     b = 5
 
