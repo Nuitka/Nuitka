@@ -163,7 +163,7 @@ def dir_extractor(node):
 
         result = makeCallNode(
             ExpressionAttributeLookup(
-                source=source, attribute_name="keys", source_ref=source_ref
+                expression=source, attribute_name="keys", source_ref=source_ref
             ),
             source_ref,
         )
@@ -754,7 +754,7 @@ if python_version < 300:
                         expression=ExpressionBuiltinExecfile(
                             source_code=makeCallNode(
                                 ExpressionAttributeLookup(
-                                    source=ExpressionBuiltinOpen(
+                                    expression=ExpressionBuiltinOpen(
                                         filename=filename,
                                         mode=makeConstantRefNode(
                                             constant="rU", source_ref=source_ref
@@ -869,7 +869,7 @@ def eval_extractor(node):
             variable=source_variable,
             source=makeExpressionCall(
                 called=ExpressionAttributeLookup(
-                    source=ExpressionTempVariableRef(
+                    expression=ExpressionTempVariableRef(
                         variable=source_variable, source_ref=source_ref
                     ),
                     attribute_name="strip",

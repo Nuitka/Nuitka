@@ -46,7 +46,7 @@ from .VariableDeclarations import VariableDeclaration
 
 
 def generateAssignmentVariableCode(statement, emit, context):
-    assign_source = statement.getAssignSource()
+    assign_source = statement.subnode_source
 
     variable = statement.getVariable()
     variable_trace = statement.getVariableTrace()

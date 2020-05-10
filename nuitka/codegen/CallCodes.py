@@ -247,7 +247,7 @@ def generateCallCode(to_name, expression, emit, context):
         called_name = context.allocateTempName("called_instance")
         generateExpressionCode(
             to_name=called_name,
-            expression=called.getLookupSource(),
+            expression=called.subnode_expression,
             emit=emit,
             context=context,
         )

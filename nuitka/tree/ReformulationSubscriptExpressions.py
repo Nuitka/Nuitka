@@ -55,7 +55,7 @@ def buildSubscriptNode(provider, node, source_ref):
 
     if kind == "Index":
         return ExpressionSubscriptLookup(
-            subscribed=buildNode(provider, node.value, source_ref),
+            expression=buildNode(provider, node.value, source_ref),
             subscript=buildNode(provider, node.slice.value, source_ref),
             source_ref=source_ref,
         )
@@ -86,7 +86,7 @@ def buildSubscriptNode(provider, node, source_ref):
 
         if use_sliceobj:
             return ExpressionSubscriptLookup(
-                subscribed=buildNode(provider, node.value, source_ref),
+                expression=buildNode(provider, node.value, source_ref),
                 subscript=ExpressionBuiltinSlice(
                     start=lower, stop=upper, step=step, source_ref=source_ref
                 ),
@@ -101,13 +101,13 @@ def buildSubscriptNode(provider, node, source_ref):
             )
     elif kind == "ExtSlice":
         return ExpressionSubscriptLookup(
-            subscribed=buildNode(provider, node.value, source_ref),
+            expression=buildNode(provider, node.value, source_ref),
             subscript=buildExtSliceNode(provider, node, source_ref),
             source_ref=source_ref,
         )
     elif kind == "Ellipsis":
         return ExpressionSubscriptLookup(
-            subscribed=buildNode(provider, node.value, source_ref),
+            expression=buildNode(provider, node.value, source_ref),
             subscript=ExpressionConstantEllipsisRef(source_ref=source_ref),
             source_ref=source_ref,
         )

@@ -107,7 +107,7 @@ def generateSliceLookupCode(to_name, expression, emit, context):
 
         generateExpressionCode(
             to_name=source_name,
-            expression=expression.getLookupSource(),
+            expression=expression.subnode_expression,
             emit=emit,
             context=context,
         )
@@ -128,7 +128,7 @@ def generateSliceLookupCode(to_name, expression, emit, context):
         source_name, lower_name, upper_name = generateExpressionsCode(
             names=("slice_source", "slice_lower", "slice_upper"),
             expressions=(
-                expression.getLookupSource(),
+                expression.subnode_expression,
                 expression.getLower(),
                 expression.getUpper(),
             ),
@@ -152,10 +152,10 @@ def generateSliceLookupCode(to_name, expression, emit, context):
 def generateAssignmentSliceCode(statement, emit, context):
     assert python_version < 300
 
-    lookup_source = statement.getLookupSource()
+    lookup_source = statement.subnode_expression
     lower = statement.getLower()
     upper = statement.getUpper()
-    value = statement.getAssignSource()
+    value = statement.subnode_source
 
     value_name = context.allocateTempName("sliceass_value")
 
@@ -219,7 +219,7 @@ def generateAssignmentSliceCode(statement, emit, context):
 def generateDelSliceCode(statement, emit, context):
     assert python_version < 300
 
-    target = statement.getLookupSource()
+    target = statement.subnode_expression
     lower = statement.getLower()
     upper = statement.getUpper()
 

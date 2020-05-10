@@ -422,7 +422,7 @@ def buildClassNode3(provider, node, source_ref):
     if node.bases:
         unspecified_metaclass_expression = ExpressionBuiltinType1(
             value=ExpressionSubscriptLookup(
-                subscribed=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_bases, source_ref=source_ref
                 ),
                 subscript=makeConstantRefNode(
@@ -455,7 +455,7 @@ def buildClassNode3(provider, node, source_ref):
         variable=tmp_prepared,
         source=makeExpressionCall(
             called=ExpressionAttributeLookup(
-                source=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_metaclass, source_ref=source_ref
                 ),
                 attribute_name="__prepare__",
@@ -507,7 +507,7 @@ def buildClassNode3(provider, node, source_ref):
                             source_ref=source_ref,
                         ),
                         ExpressionAttributeLookup(
-                            source=ExpressionBuiltinType1(
+                            expression=ExpressionBuiltinType1(
                                 value=ExpressionTempVariableRef(
                                     variable=tmp_prepared, source_ref=source_ref
                                 ),
@@ -668,7 +668,7 @@ def getClassBasesMroConversionHelper():
                 ),
                 value=makeExpressionCall(
                     called=ExpressionAttributeLookup(
-                        source=ExpressionTempVariableRef(
+                        expression=ExpressionTempVariableRef(
                             variable=tmp_item_variable, source_ref=internal_source_ref
                         ),
                         attribute_name="__mro_entries__",

@@ -522,7 +522,7 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
 
     def computeExpressionNext1(self, next_node, trace_collection):
         if self.variable_trace.isAssignTrace():
-            value = self.variable_trace.getAssignNode().getAssignSource()
+            value = self.variable_trace.getAssignNode().subnode_source
 
             # TODO: Add iteration handles to trace collections instead.
             current_index = trace_collection.getIteratorNextCount(value)
@@ -574,10 +574,8 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
 
     def mayRaiseExceptionImportName(self, exception_type, import_name):
         if self.variable_trace is not None and self.variable_trace.isAssignTrace():
-            return (
-                self.variable_trace.getAssignNode()
-                .getAssignSource()
-                .mayRaiseExceptionImportName(exception_type, import_name)
+            return self.variable_trace.getAssignNode().subnode_source.mayRaiseExceptionImportName(
+                exception_type, import_name
             )
 
         else:

@@ -126,8 +126,7 @@ class StatementGeneratorReturn(StatementReturn):
         StatementReturn.__init__(self, expression=expression, source_ref=source_ref)
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(self.getExpression())
-        expression = self.getExpression()
+        expression = trace_collection.onExpression(self.getExpression())
 
         if expression.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)

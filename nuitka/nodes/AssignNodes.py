@@ -39,6 +39,7 @@ from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode,
 )
+from .shapes.StandardShapes import tshape_unknown
 
 
 class StatementAssignmentVariableName(StatementChildHavingBase):
@@ -50,7 +51,6 @@ class StatementAssignmentVariableName(StatementChildHavingBase):
 
     named_child = "source"
     nice_child = "assignment source"
-    getAssignSource = StatementChildHavingBase.childGetter("source")
 
     __slots__ = ("variable_name", "provider")
 
@@ -134,14 +134,21 @@ class StatementAssignmentVariable(StatementChildHavingBase):
         it can be determined.
     """
 
+    # Using slots, they don't need that
+    # pylint: disable=access-member-before-definition,attribute-defined-outside-init
+
     kind = "STATEMENT_ASSIGNMENT_VARIABLE"
 
     named_child = "source"
     nice_child = "assignment source"
-    getAssignSource = StatementChildHavingBase.childGetter("source")
-    setAssignSource = StatementChildHavingBase.childSetter("source")
 
-    __slots__ = ("variable", "variable_version", "variable_trace", "inplace_suspect")
+    __slots__ = (
+        "subnode_source",
+        "variable",
+        "variable_version",
+        "variable_trace",
+        "inplace_suspect",
+    )
 
     def __init__(self, source, variable, source_ref, version=None):
         assert source is not None, source_ref
@@ -157,6 +164,12 @@ class StatementAssignmentVariable(StatementChildHavingBase):
 
         self.variable_trace = None
         self.inplace_suspect = None
+
+    def finalize(self):
+        StatementChildHavingBase.finalize(self)
+
+        del self.variable
+        del self.variable_trace
 
     def getDetails(self):
         return {"variable": self.variable}
@@ -197,7 +210,7 @@ class StatementAssignmentVariable(StatementChildHavingBase):
             version = None
 
         return StatementAssignmentVariable(
-            source=self.getAssignSource().makeClone(),
+            source=self.subnode_source.makeClone(),
             variable=self.variable,
             version=version,
             source_ref=self.source_ref,
@@ -226,14 +239,14 @@ class StatementAssignmentVariable(StatementChildHavingBase):
         self.inplace_suspect = False
 
     def mayRaiseException(self, exception_type):
-        return self.getAssignSource().mayRaiseException(exception_type)
+        return self.subnode_source.mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
         # This is very complex stuff, pylint: disable=too-many-branches,too-many-return-statements
 
         # TODO: Way too ugly to have global trace kinds just here, and needs to
         # be abstracted somehow. But for now we let it live here.
-        source = self.getAssignSource()
+        source = self.subnode_source
 
         if source.isExpressionSideEffects():
             # If the assignment source has side effects, we can put them into a
@@ -250,7 +263,7 @@ class StatementAssignmentVariable(StatementChildHavingBase):
 
             # Need to update ourselves to no longer reference the side effects,
             # but go to the wrapped thing.
-            self.setAssignSource(source.getExpression())
+            self.subnode_source = source.getExpression()
 
             result = makeStatementsSequenceReplacementNode(
                 statements=statements, node=self
@@ -265,8 +278,7 @@ Side effects of assignments promoted to statements.""",
             )
 
         # Let assignment source may re-compute first.
-        trace_collection.onExpression(self.getAssignSource())
-        source = self.getAssignSource()
+        source = trace_collection.onExpression(self.subnode_source)
 
         # No assignment will occur, if the assignment source raises, so give up
         # on this, and return it as the only side effect.
@@ -420,6 +432,15 @@ Removed assignment of %s from itself which is known to be defined."""
 
     def getStatementNiceName(self):
         return "variable assignment statement"
+
+    def getTypeShape(self):
+        # Might be finalized, e.g. due to being dead code.
+        try:
+            source = self.subnode_source
+        except AttributeError:
+            return tshape_unknown
+
+        return source.getTypeShape()
 
 
 class StatementDelVariable(StatementBase):

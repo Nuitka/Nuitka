@@ -181,7 +181,7 @@ def buildClassNode2(provider, node, source_ref):
             StatementAssignmentVariable(
                 variable=tmp_base,
                 source=ExpressionSubscriptLookup(
-                    subscribed=ExpressionTempVariableRef(
+                    expression=ExpressionTempVariableRef(
                         variable=tmp_bases, source_ref=source_ref
                     ),
                     subscript=makeConstantRefNode(
@@ -197,7 +197,7 @@ def buildClassNode2(provider, node, source_ref):
                     tried=makeStatementsSequenceFromStatement(
                         statement=StatementReturn(
                             expression=ExpressionAttributeLookup(
-                                source=ExpressionTempVariableRef(
+                                expression=ExpressionTempVariableRef(
                                     variable=tmp_base, source_ref=source_ref
                                 ),
                                 attribute_name="__class__",

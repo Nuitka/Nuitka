@@ -114,7 +114,7 @@ def orderArgs(*args):
 
 def _makeNameAttributeLookup(node, attribute_name="__name__"):
     return ExpressionAttributeLookup(
-        source=node, attribute_name=attribute_name, source_ref=internal_source_ref
+        expression=node, attribute_name=attribute_name, source_ref=internal_source_ref
     )
 
 
@@ -547,7 +547,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
                 variable=tmp_key_variable, source_ref=internal_source_ref
             ),
             source=ExpressionSubscriptLookup(
-                subscribed=ExpressionVariableRef(
+                expression=ExpressionVariableRef(
                     variable=star_dict_variable, source_ref=internal_source_ref
                 ),
                 subscript=ExpressionTempVariableRef(
@@ -796,7 +796,7 @@ def _makeStarDictArgumentMergeToKwStatement(
                 variable=tmp_key_variable, source_ref=internal_source_ref
             ),
             source=ExpressionSubscriptLookup(
-                subscribed=ExpressionVariableRef(
+                expression=ExpressionVariableRef(
                     variable=star_dict_variable, source_ref=internal_source_ref
                 ),
                 subscript=ExpressionTempVariableRef(
@@ -875,7 +875,7 @@ def _makeStarDictArgumentMergeToKwStatement(
         StatementAssignmentVariable(
             variable=tmp_key_variable,
             source=ExpressionSubscriptLookup(
-                subscribed=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_item_variable, source_ref=internal_source_ref
                 ),
                 subscript=makeConstantRefNode(
@@ -909,7 +909,7 @@ def _makeStarDictArgumentMergeToKwStatement(
                 variable=tmp_key_variable, source_ref=internal_source_ref
             ),
             source=ExpressionSubscriptLookup(
-                subscribed=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_item_variable, source_ref=internal_source_ref
                 ),
                 subscript=makeConstantRefNode(
@@ -2279,7 +2279,7 @@ def getFunctionCallHelperDictionaryUnpacking():
                 variable=tmp_key_variable, source_ref=internal_source_ref
             ),
             value=ExpressionSubscriptLookup(
-                subscribed=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_item_variable, source_ref=internal_source_ref
                 ),
                 subscript=ExpressionTempVariableRef(

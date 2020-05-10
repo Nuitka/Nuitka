@@ -159,7 +159,7 @@ def getDictUnpackingHelper():
                             right=ExpressionMakeTuple(
                                 elements=(
                                     ExpressionAttributeLookup(
-                                        source=ExpressionBuiltinType1(
+                                        expression=ExpressionBuiltinType1(
                                             value=ExpressionTempVariableRef(
                                                 variable=tmp_item_variable,
                                                 source_ref=internal_source_ref,

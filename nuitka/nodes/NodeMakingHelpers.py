@@ -174,7 +174,7 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
             exception_type="TypeError",
             template="object of type '%s' has no len()",
             template_args=ExpressionAttributeLookup(
-                source=ExpressionBuiltinType1(
+                expression=ExpressionBuiltinType1(
                     value=value_node.makeClone(), source_ref=source_ref
                 ),
                 attribute_name="__name__",

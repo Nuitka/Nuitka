@@ -114,7 +114,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     )
 
                     if class_variable.isModuleVariable():
-                        qualname_node = qualname_assign.subnode_value
+                        qualname_node = qualname_assign.subnode_source
 
                         new_node = makeConstantReplacementNode(
                             constant=class_variable.getName(), node=qualname_node

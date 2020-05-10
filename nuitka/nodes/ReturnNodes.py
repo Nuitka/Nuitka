@@ -44,8 +44,7 @@ class StatementReturn(StatementChildHavingBase):
         return self.getExpression().mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(self.getExpression())
-        expression = self.getExpression()
+        expression = trace_collection.onExpression(self.getExpression())
 
         if expression.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)

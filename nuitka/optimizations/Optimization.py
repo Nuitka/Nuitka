@@ -331,9 +331,7 @@ def optimizeLocalsDictsHandles():
                     # variables and dictionary building allows for unset values
                     # remove this
                     if (
-                        variable_trace.getAssignNode()
-                        .getAssignSource()
-                        .mayHaveSideEffects()
+                        variable_trace.getAssignNode().subnode_source.mayHaveSideEffects()
                     ):
                         propagate = False
                         break

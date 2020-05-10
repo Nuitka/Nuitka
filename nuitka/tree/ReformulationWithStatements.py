@@ -132,7 +132,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
 
     enter_value = ExpressionCallEmpty(
         called=attribute_lookup_class(
-            source=ExpressionTempVariableRef(
+            expression=ExpressionTempVariableRef(
                 variable=tmp_source_variable, source_ref=source_ref
             ),
             attribute_name="__enter__" if sync else "__aenter__",
@@ -198,7 +198,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         StatementAssignmentVariable(
             variable=tmp_exit_variable,
             source=attribute_lookup_class(
-                source=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_source_variable, source_ref=source_ref
                 ),
                 attribute_name="__exit__" if sync else "__aexit__",

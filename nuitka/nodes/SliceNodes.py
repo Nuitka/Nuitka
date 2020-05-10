@@ -43,10 +43,8 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_SLICE"
 
     named_children = ("source", "expression", "lower", "upper")
-    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
     getLower = StatementChildrenHavingBase.childGetter("lower")
     getUpper = StatementChildrenHavingBase.childGetter("upper")
-    getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
     def __init__(self, expression, lower, upper, source, source_ref):
         assert python_version < 300
@@ -63,8 +61,7 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
         )
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(self.getAssignSource())
-        source = self.getAssignSource()
+        source = trace_collection.onExpression(self.subnode_source)
 
         # No assignment will occur, if the assignment source raises, so strip it
         # away.
@@ -80,8 +77,7 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
 Slice assignment raises exception in assigned value, removed assignment.""",
             )
 
-        trace_collection.onExpression(self.getLookupSource())
-        lookup_source = self.getLookupSource()
+        lookup_source = trace_collection.onExpression(self.subnode_expression)
 
         if lookup_source.willRaiseException(BaseException):
             result = makeStatementOnlyNodesFromExpressions(
@@ -95,8 +91,7 @@ Slice assignment raises exception in assigned value, removed assignment.""",
 Slice assignment raises exception in sliced value, removed assignment.""",
             )
 
-        trace_collection.onExpression(self.getLower(), allow_none=True)
-        lower = self.getLower()
+        lower = trace_collection.onExpression(self.getLower(), allow_none=True)
 
         if lower is not None and lower.willRaiseException(BaseException):
             result = makeStatementOnlyNodesFromExpressions(
@@ -111,8 +106,7 @@ Slice assignment raises exception in lower slice boundary value, removed \
 assignment.""",
             )
 
-        trace_collection.onExpression(self.getUpper(), allow_none=True)
-        upper = self.getUpper()
+        upper = trace_collection.onExpression(self.getUpper(), allow_none=True)
 
         if upper is not None and upper.willRaiseException(BaseException):
             result = makeStatementOnlyNodesFromExpressions(
@@ -140,7 +134,6 @@ class StatementDelSlice(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_SLICE"
 
     named_children = ("expression", "lower", "upper")
-    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
     getLower = StatementChildrenHavingBase.childGetter("lower")
     getUpper = StatementChildrenHavingBase.childGetter("upper")
 
@@ -152,8 +145,7 @@ class StatementDelSlice(StatementChildrenHavingBase):
         )
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(self.getLookupSource())
-        lookup_source = self.getLookupSource()
+        lookup_source = trace_collection.onExpression(self.subnode_expression)
 
         if lookup_source.willRaiseException(BaseException):
             result = makeStatementExpressionOnlyReplacementNode(
@@ -167,8 +159,7 @@ class StatementDelSlice(StatementChildrenHavingBase):
 Slice del raises exception in sliced value, removed del""",
             )
 
-        trace_collection.onExpression(self.getLower(), allow_none=True)
-        lower = self.getLower()
+        lower = trace_collection.onExpression(self.getLower(), allow_none=True)
 
         if lower is not None and lower.willRaiseException(BaseException):
             result = makeStatementOnlyNodesFromExpressions(
@@ -206,11 +197,8 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SLICE_LOOKUP"
 
     named_children = ("expression", "lower", "upper")
-    getLookupSource = ExpressionChildrenHavingBase.childGetter("expression")
     getLower = ExpressionChildrenHavingBase.childGetter("lower")
-    setLower = ExpressionChildrenHavingBase.childSetter("lower")
     getUpper = ExpressionChildrenHavingBase.childGetter("upper")
-    setUpper = ExpressionChildrenHavingBase.childSetter("upper")
 
     checkers = {"upper": convertNoneConstantToNone, "lower": convertNoneConstantToNone}
 
@@ -224,7 +212,7 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
         )
 
     def computeExpression(self, trace_collection):
-        lookup_source = self.getLookupSource()
+        lookup_source = self.subnode_expression
 
         return lookup_source.computeExpressionSlice(
             lookup_node=self,

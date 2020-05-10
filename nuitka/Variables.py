@@ -259,7 +259,7 @@ class Variable(getMetaClassBase("Variable")):
 
         for trace in self.traces:
             if trace.isAssignTrace():
-                result.add(trace.getAssignNode().getAssignSource().getTypeShape())
+                result.add(trace.getAssignNode().getTypeShape())
             elif trace.isUnknownTrace():
                 result.add(tshape_unknown)
             elif trace.isInitTrace():

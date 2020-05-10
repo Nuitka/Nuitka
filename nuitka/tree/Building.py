@@ -469,7 +469,7 @@ def buildStatementLoopBreak(provider, node, source_ref):
 
 def buildAttributeNode(provider, node, source_ref):
     return ExpressionAttributeLookup(
-        source=buildNode(provider, node.value, source_ref),
+        expression=buildNode(provider, node.value, source_ref),
         attribute_name=node.attr,
         source_ref=source_ref,
     )

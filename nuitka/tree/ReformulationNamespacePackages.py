@@ -51,7 +51,7 @@ from .VariableClosure import completeVariableClosures
 def _makeCall(module_name, import_name, attribute_name, source_ref, *args):
     return ExpressionCallNoKeywords(
         called=ExpressionAttributeLookup(
-            source=ExpressionImportModuleNameHard(
+            expression=ExpressionImportModuleNameHard(
                 module_name=module_name, import_name=import_name, source_ref=source_ref
             ),
             attribute_name=attribute_name,
@@ -73,7 +73,7 @@ def createPathAssignment(package, source_ref):
         elements = [
             ExpressionCallNoKeywords(
                 called=ExpressionAttributeLookup(
-                    source=ExpressionImportModuleNameHard(
+                    expression=ExpressionImportModuleNameHard(
                         module_name="os", import_name="path", source_ref=source_ref
                     ),
                     attribute_name="dirname",

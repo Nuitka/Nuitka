@@ -274,7 +274,7 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
     if not tried_statement.isStatementAssignmentVariable():
         return False
 
-    assign_source = tried_statement.getAssignSource()
+    assign_source = tried_statement.subnode_source
 
     if not assign_source.isExpressionBuiltinNext1():
         return False

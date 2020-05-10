@@ -34,7 +34,6 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
     named_children = ("source", "expression", "subscript")
     getSubscribed = StatementChildrenHavingBase.childGetter("expression")
     getSubscript = StatementChildrenHavingBase.childGetter("subscript")
-    getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
     def __init__(self, expression, subscript, source, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -54,7 +53,7 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
         return self.getSubscribed().computeExpressionSetSubscript(
             set_node=self,
             subscript=self.getSubscript(),
-            value_node=self.getAssignSource(),
+            value_node=self.subnode_source,
             trace_collection=trace_collection,
         )
 
@@ -97,21 +96,19 @@ class StatementDelSubscript(StatementChildrenHavingBase):
 class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SUBSCRIPT_LOOKUP"
 
-    named_children = ("subscribed", "subscript")
-    getLookupSource = ExpressionChildrenHavingBase.childGetter("subscribed")
-    getSubscript = ExpressionChildrenHavingBase.childGetter("subscript")
+    named_children = ("expression", "subscript")
 
-    def __init__(self, subscribed, subscript, source_ref):
+    def __init__(self, expression, subscript, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values={"subscribed": subscribed, "subscript": subscript},
+            values={"expression": expression, "subscript": subscript},
             source_ref=source_ref,
         )
 
     def computeExpression(self, trace_collection):
-        return self.getLookupSource().computeExpressionSubscript(
+        return self.subnode_expression.computeExpressionSubscript(
             lookup_node=self,
-            subscript=self.getSubscript(),
+            subscript=self.subnode_subscript,
             trace_collection=trace_collection,
         )
 

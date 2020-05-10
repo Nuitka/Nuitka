@@ -139,7 +139,7 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildHavingBase
                     exception_type="TypeError",
                     template="unhashable type: '%s'",
                     template_args=ExpressionAttributeLookup(
-                        source=ExpressionBuiltinType1(
+                        expression=ExpressionBuiltinType1(
                             value=key.extractUnhashableNode(), source_ref=key.source_ref
                         ),
                         attribute_name="__name__",

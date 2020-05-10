@@ -113,7 +113,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
         if node.isStatementAssignmentVariable():
             target_var = node.getVariable()
-            assign_source = node.getAssignSource()
+            assign_source = node.subnode_source
 
             if assign_source.isExpressionOperationBinary():
                 left_arg = assign_source.getLeft()

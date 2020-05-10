@@ -453,7 +453,7 @@ class ValueTraceAssign(ValueTraceBase):
     def __repr__(self):
         return "<ValueTraceAssign at {source_ref} of {value}>".format(
             source_ref=self.assign_node.getSourceReference().getAsString(),
-            value=self.assign_node.getAssignSource(),
+            value=self.assign_node.subnode_source,
         )
 
     @staticmethod
@@ -461,7 +461,7 @@ class ValueTraceAssign(ValueTraceBase):
         return True
 
     def getTypeShape(self):
-        return self.assign_node.subnode_source.getTypeShape()
+        return self.assign_node.getTypeShape()
 
     def dump(self):
         debug("  Starts assigned")
@@ -485,7 +485,7 @@ class ValueTraceAssign(ValueTraceBase):
             return None
 
     def hasShapeDictionaryExact(self):
-        return self.assign_node.getAssignSource().hasShapeDictionaryExact()
+        return self.assign_node.subnode_source.hasShapeDictionaryExact()
 
 
 class ValueTraceMerge(ValueTraceBase):

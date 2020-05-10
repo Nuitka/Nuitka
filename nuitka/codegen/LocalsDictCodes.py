@@ -86,7 +86,7 @@ def generateLocalsDictSetCode(statement, emit, context):
     value_arg_name = context.allocateTempName("dictset_value", unique=True)
     generateExpressionCode(
         to_name=value_arg_name,
-        expression=statement.subnode_value,
+        expression=statement.subnode_source,
         emit=emit,
         context=context,
     )

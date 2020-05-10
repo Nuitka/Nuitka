@@ -758,7 +758,7 @@ def _buildInplaceAssignAttributeNode(
     preserve_to_tmp = StatementAssignmentVariable(
         variable=tmp_variable,
         source=ExpressionAttributeLookup(
-            source=lookup_source.makeClone(),
+            expression=lookup_source.makeClone(),
             attribute_name=attribute_name,
             source_ref=source_ref,
         ),
@@ -824,7 +824,7 @@ def _buildInplaceAssignSubscriptNode(
         StatementAssignmentVariable(
             variable=tmp_variable3,
             source=ExpressionSubscriptLookup(
-                subscribed=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_variable1, source_ref=source_ref
                 ),
                 subscript=ExpressionTempVariableRef(
@@ -953,7 +953,7 @@ def _buildInplaceAssignSliceNode(
             StatementAssignmentVariable(
                 variable=tmp_variable4,
                 source=ExpressionSubscriptLookup(
-                    subscribed=ExpressionTempVariableRef(
+                    expression=ExpressionTempVariableRef(
                         variable=tmp_variable1, source_ref=source_ref
                     ),
                     subscript=ExpressionBuiltinSlice(

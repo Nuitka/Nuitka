@@ -165,8 +165,7 @@ class StatementExec(StatementChildrenHavingBase):
         return StatementChildrenHavingBase.setChild(self, name, value)
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(expression=self.getSourceCode())
-        source_code = self.getSourceCode()
+        source_code = trace_collection.onExpression(expression=self.getSourceCode())
 
         if source_code.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -181,8 +180,9 @@ class StatementExec(StatementChildrenHavingBase):
 Exec statement raises implicitly when determining source code argument.""",
             )
 
-        trace_collection.onExpression(expression=self.getGlobals(), allow_none=True)
-        globals_arg = self.getGlobals()
+        globals_arg = trace_collection.onExpression(
+            expression=self.getGlobals(), allow_none=True
+        )
 
         if globals_arg is not None and globals_arg.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -199,8 +199,9 @@ Exec statement raises implicitly when determining source code argument.""",
 Exec statement raises implicitly when determining globals argument.""",
             )
 
-        trace_collection.onExpression(expression=self.getLocals(), allow_none=True)
-        locals_arg = self.getLocals()
+        locals_arg = trace_collection.onExpression(
+            expression=self.getLocals(), allow_none=True
+        )
 
         if locals_arg is not None and locals_arg.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)

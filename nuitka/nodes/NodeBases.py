@@ -1069,8 +1069,11 @@ class StatementChildHavingBase(StatementBase):
     def finalize(self):
         del self.parent
 
-        for c in self.getVisitableNodes():
-            c.finalize()
+        attr_name = "subnode_" + self.named_child
+        child = getattr(self, attr_name)
+        if child is not None:
+            child.finalize()
+        delattr(self, attr_name)
 
 
 class SideEffectsFromChildrenMixin(object):

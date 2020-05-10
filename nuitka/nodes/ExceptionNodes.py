@@ -84,10 +84,9 @@ class StatementRaiseException(
         self.reraise_finally = False
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(
+        exception_type = trace_collection.onExpression(
             expression=self.getExceptionType(), allow_none=True
         )
-        exception_type = self.getExceptionType()
 
         # TODO: Limit by type.
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -108,10 +107,9 @@ class StatementRaiseException(
 Explicit raise already raises implicitly building exception type.""",
             )
 
-        trace_collection.onExpression(
+        exception_value = trace_collection.onExpression(
             expression=self.getExceptionValue(), allow_none=True
         )
-        exception_value = self.getExceptionValue()
 
         if exception_value is not None and exception_value.willRaiseException(
             BaseException
@@ -127,10 +125,9 @@ Explicit raise already raises implicitly building exception type.""",
 Explicit raise already raises implicitly building exception value.""",
             )
 
-        trace_collection.onExpression(
+        exception_trace = trace_collection.onExpression(
             expression=self.getExceptionTrace(), allow_none=True
         )
-        exception_trace = self.getExceptionTrace()
 
         if exception_trace is not None and exception_trace.willRaiseException(
             BaseException
@@ -146,10 +143,9 @@ Explicit raise already raises implicitly building exception value.""",
 Explicit raise already raises implicitly building exception traceback.""",
             )
 
-        trace_collection.onExpression(
+        exception_cause = trace_collection.onExpression(
             expression=self.getExceptionCause(), allow_none=True
         )
-        exception_cause = self.getExceptionCause()
 
         if exception_cause is not None and exception_cause.willRaiseException(
             BaseException

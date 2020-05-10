@@ -177,8 +177,7 @@ class StatementSpecialUnpackCheck(StatementChildHavingBase):
         return self.count
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(self.getIterator())
-        iterator = self.getIterator()
+        iterator = trace_collection.onExpression(self.getIterator())
 
         if iterator.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -202,7 +201,7 @@ Explicit raise already raises implicitly building exception type.""",
             and iterator.variable_trace.isAssignTrace()
         ):
 
-            iterator = iterator.variable_trace.getAssignNode().getAssignSource()
+            iterator = iterator.variable_trace.getAssignNode().subnode_source
 
             current_index = trace_collection.getIteratorNextCount(iterator)
         else:
