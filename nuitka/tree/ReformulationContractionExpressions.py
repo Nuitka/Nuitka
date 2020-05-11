@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,7 +48,10 @@ from nuitka.nodes.DictionaryNodes import (
     StatementDictOperationSet,
     StatementDictOperationSetKeyValue,
 )
-from nuitka.nodes.FrameNodes import StatementsFrameFunction, StatementsFrameGenerator
+from nuitka.nodes.FrameNodes import (
+    StatementsFrameFunction,
+    StatementsFrameGenerator,
+)
 from nuitka.nodes.FunctionNodes import ExpressionFunctionRef
 from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
@@ -57,11 +60,20 @@ from nuitka.nodes.GeneratorNodes import (
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.NodeMakingHelpers import makeVariableRefNode
-from nuitka.nodes.OutlineNodes import ExpressionOutlineBody, ExpressionOutlineFunction
+from nuitka.nodes.OutlineNodes import (
+    ExpressionOutlineBody,
+    ExpressionOutlineFunction,
+)
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.StatementNodes import StatementExpressionOnly, StatementsSequence
+from nuitka.nodes.StatementNodes import (
+    StatementExpressionOnly,
+    StatementsSequence,
+)
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFromWaitable
+from nuitka.nodes.YieldNodes import (
+    ExpressionYield,
+    ExpressionYieldFromWaitable,
+)
 from nuitka.PythonVersions import python_version
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
@@ -240,10 +252,14 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         future_spec=parent_module.getFutureSpec(),
     )
 
-    if python_version < 370:
-        is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
-    else:
-        is_async = detectFunctionBodyKind(nodes=[node])[0] in ("Asyncgen", "Coroutine")
+    is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
+
+    # Some of the newly allowed stuff in 3.7 fails to set the async flag.
+    if not is_async and python_version >= 370:
+        is_async = detectFunctionBodyKind(nodes=node.generators)[0] in (
+            "Asyncgen",
+            "Coroutine",
+        )
 
     if is_async:
         code_body = ExpressionAsyncgenObjectBody(

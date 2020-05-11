@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,10 @@ import marshal
 from logging import info
 
 from nuitka import Options
-from nuitka.importing.ImportCache import isImportedModuleByName, replaceImportedModule
+from nuitka.importing.ImportCache import (
+    isImportedModuleByName,
+    replaceImportedModule,
+)
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 from nuitka.plugins.Plugins import Plugins

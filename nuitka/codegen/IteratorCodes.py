@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -44,7 +44,7 @@ from .templates.CodeTemplatesIterators import (
 
 
 def generateBuiltinNext1Code(to_name, expression, emit, context):
-    value_name, = generateChildExpressionsCode(
+    (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -77,9 +77,12 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
     else:
         break_indicator_code = ""
 
-    exception_type, exception_value, exception_tb, _exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     emit(
         template_loop_break_next
@@ -163,16 +166,18 @@ def generateUnpackCheckCode(statement, emit, context):
         statement.getSourceReference()
     )
 
-    exception_type, exception_value, exception_tb, _exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     emit(
         template_iterator_check
         % {
             "iterator_name": iterator_name,
             "attempt_name": attempt_name,
-            "count": statement.getCount(),
             "exception_exit": context.getExceptionEscape(),
             "release_temps_1": indented(release_code, 3),
             "line_number_code_1": indented(getErrorLineNumberUpdateCode(context), 3),
@@ -183,6 +188,11 @@ def generateUnpackCheckCode(statement, emit, context):
             "exception_type": exception_type,
             "exception_value": exception_value,
             "exception_tb": exception_tb,
+            "too_many_values_error": context.getConstantCode(
+                "too many values to unpack"
+                if python_version < 300
+                else "too many values to unpack (expected %d)" % statement.getCount()
+            ),
         }
     )
 

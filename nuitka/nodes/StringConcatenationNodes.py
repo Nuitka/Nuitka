@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,7 +24,7 @@ to this.
 """
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionChildHavingBase
-from .shapes.BuiltinTypeShapes import ShapeTypeStrOrUnicode
+from .shapes.BuiltinTypeShapes import tshape_str_or_unicode
 
 
 class ExpressionStringConcatenation(ExpressionChildHavingBase):
@@ -41,7 +41,7 @@ class ExpressionStringConcatenation(ExpressionChildHavingBase):
         )
 
     def getTypeShape(self):
-        return ShapeTypeStrOrUnicode
+        return tshape_str_or_unicode
 
     def computeExpression(self, trace_collection):
         # TODO: Could remove itself if only one argument or merge arguments

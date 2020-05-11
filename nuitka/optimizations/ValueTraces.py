@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,10 +23,13 @@ the SSA (Single State Assignment) form being used in Nuitka.
 Values can be seen as:
 
 * Unknown (maybe initialized, maybe not, we cannot know)
-* Uninit (definitely not initialized, first version, or after "del" statement)
+* Uninit (definitely not initialized, first version)
 * Init (definitely initialized, e.g. parameter variables)
+* Assign (assignment was done)
+* Deleted (del was done, now unassigned, uninitialted)
 * Merge (result of diverged code paths, loop potentially)
-* LoopInitial (aggregation during loops, not yet fully known)
+* LoopFirstPass (aggregation during loops, first pass even, not fully knowable yet)
+* LoopIncomplete (aggregation during loops, not yet fully known)
 * LoopComplete (complete knowledge of loop types)
 """
 
@@ -36,7 +39,8 @@ from logging import debug
 from nuitka.nodes.shapes.StandardShapes import (
     ShapeLoopCompleteAlternative,
     ShapeLoopInitialAlternative,
-    ShapeUnknown,
+    tshape_uninit,
+    tshape_unknown,
 )
 from nuitka.utils import InstanceCounters
 
@@ -86,6 +90,13 @@ class ValueTraceBase(object):
     def getOwner(self):
         return self.owner
 
+    @staticmethod
+    def isLoopTrace():
+        return False
+
+    def hasPreviousTrace(self, trace):
+        return trace is self.previous
+
     def addClosureUsage(self):
         self.addUsage()
         self.closure_usages = True
@@ -133,6 +144,14 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def isUnassignedTrace():
+        return False
+
+    @staticmethod
+    def isDeletedTrace():
+        return False
+
+    @staticmethod
     def isUninitTrace():
         return False
 
@@ -166,32 +185,63 @@ class ValueTraceBase(object):
         # Virtual method, pylint: disable=no-self-use
         return False
 
+    def getLoopTypeShapes(self):
+        return set((self.getTypeShape(),))
 
-class ValueTraceUninit(ValueTraceBase):
+
+class ValueTraceUnassignedBase(ValueTraceBase):
     __slots__ = ()
 
-    def __init__(self, owner, previous):
-        ValueTraceBase.__init__(self, owner=owner, previous=previous)
+    @staticmethod
+    def isUnassignedTrace():
+        return True
 
     @staticmethod
     def getTypeShape():
-        return ShapeUnknown
-
-    @staticmethod
-    def isUninitTrace():
-        return True
+        return tshape_uninit
 
     def mustNotHaveValue(self):
         return True
 
     def dump(self):
-        debug("  Starts out uninitialized")
+        debug("  Starts out unassigned")
 
         if self.usage_count:
             debug("  -> has %s usages" % self.usage_count)
 
         if self.is_escaped:
             debug("  -> value escapes")
+
+
+class ValueTraceUninit(ValueTraceUnassignedBase):
+    __slots__ = ()
+
+    def __init__(self, owner, previous):
+        ValueTraceUnassignedBase.__init__(self, owner=owner, previous=previous)
+
+    @staticmethod
+    def isUninitTrace():
+        return True
+
+
+class ValueTraceDeleted(ValueTraceUnassignedBase):
+    """ Trace caused by a deletion.
+
+    """
+
+    __slots__ = ("del_node",)
+
+    def __init__(self, owner, previous, del_node):
+        ValueTraceUnassignedBase.__init__(self, owner=owner, previous=previous)
+
+        self.del_node = del_node
+
+    @staticmethod
+    def isDeletedTrace():
+        return True
+
+    def getDelNode(self):
+        return self.del_node
 
 
 class ValueTraceInit(ValueTraceBase):
@@ -202,7 +252,7 @@ class ValueTraceInit(ValueTraceBase):
 
     @staticmethod
     def getTypeShape():
-        return ShapeUnknown
+        return tshape_unknown
 
     def dump(self):
         debug("  Starts initialized")
@@ -226,7 +276,7 @@ class ValueTraceUnknown(ValueTraceBase):
 
     @staticmethod
     def getTypeShape():
-        return ShapeUnknown
+        return tshape_unknown
 
     def dump(self):
         debug("  Starts unknown")
@@ -271,23 +321,27 @@ class ValueTraceUnknown(ValueTraceBase):
                 self.previous.addPotentialUsage()
 
 
-class ValueTraceLoopComplete(ValueTraceBase):
+class ValueTraceLoopBase(ValueTraceBase):
     # Need them all, pylint: disable=too-many-instance-attributes
 
-    __slots__ = ("type_shapes", "type_shape", "incomplete")
+    __slots__ = ("type_shapes", "type_shape", "recursion")
 
     def __init__(self, previous, type_shapes):
-        assert type_shapes
-
         ValueTraceBase.__init__(self, owner=previous.owner, previous=(previous,))
 
         self.type_shapes = type_shapes
         self.type_shape = None
 
-        assert ShapeLoopCompleteAlternative not in type_shapes
+        self.recursion = False
+
         previous.addLoopUsage()
 
-        self.incomplete = False
+    def __repr__(self):
+        return "<%s shapes %s of %s>" % (
+            self.__class__.__name__,
+            self.type_shapes,
+            self.owner.getCodeName(),
+        )
 
     @staticmethod
     def isLoopTrace():
@@ -301,6 +355,9 @@ class ValueTraceLoopComplete(ValueTraceBase):
                 self.type_shape = next(iter(self.type_shapes))
 
         return self.type_shape
+
+    def getLoopTypeShapes(self):
+        return self.type_shapes
 
     def addUsage(self):
         self.usage_count += 1
@@ -340,37 +397,34 @@ class ValueTraceLoopComplete(ValueTraceBase):
         for previous in continue_traces:
             previous.addLoopUsage()
 
-    def markLoopTraceComplete(self):
-        pass
-
     def mustHaveValue(self):
-        if self.incomplete is True:
-            return False
-        elif self.incomplete is None:
-            # Lie to ourselves.
-            return True
-        else:
-            # To detect recursion.
-            self.incomplete = None
-
-            for previous in self.previous:
-                if not previous.mustHaveValue():
-                    self.incomplete = False
-                    return False
-
-            self.incomplete = False
+        # To handle recursion, we lie to ourselves.
+        if self.recursion:
             return True
 
+        self.recursion = True
 
-class ValueTraceLoopInitial(ValueTraceLoopComplete):
+        for previous in self.previous:
+            if not previous.mustHaveValue():
+                self.recursion = False
+                return False
+
+        self.recursion = False
+        return True
+
+
+class ValueTraceLoopComplete(ValueTraceLoopBase):
     __slots__ = ()
 
     def __init__(self, previous, type_shapes):
-        ValueTraceLoopComplete.__init__(self, previous, type_shapes)
+        ValueTraceLoopBase.__init__(self, previous, type_shapes)
 
-        # TODO: Do not use this attribute then, the inheritance is
-        # probably backwards.
-        self.incomplete = True
+
+class ValueTraceLoopIncomplete(ValueTraceLoopBase):
+    __slots__ = ()
+
+    def __init__(self, previous, type_shapes):
+        ValueTraceLoopBase.__init__(self, previous, type_shapes)
 
     def getTypeShape(self):
         if self.type_shape is None:
@@ -378,8 +432,13 @@ class ValueTraceLoopInitial(ValueTraceLoopComplete):
 
         return self.type_shape
 
-    def markLoopTraceComplete(self):
-        self.incomplete = False
+
+class ValueTraceLoopFirstPass(ValueTraceLoopIncomplete):
+    def __init__(self, previous, type_shapes):
+        ValueTraceLoopIncomplete.__init__(self, previous, type_shapes)
+
+    def mustHaveValue(self):
+        return False
 
 
 class ValueTraceAssign(ValueTraceBase):
@@ -394,7 +453,7 @@ class ValueTraceAssign(ValueTraceBase):
     def __repr__(self):
         return "<ValueTraceAssign at {source_ref} of {value}>".format(
             source_ref=self.assign_node.getSourceReference().getAsString(),
-            value=self.assign_node.getAssignSource(),
+            value=self.assign_node.subnode_source,
         )
 
     @staticmethod
@@ -402,7 +461,7 @@ class ValueTraceAssign(ValueTraceBase):
         return True
 
     def getTypeShape(self):
-        return self.assign_node.subnode_source.getTypeShape()
+        return self.assign_node.getTypeShape()
 
     def dump(self):
         debug("  Starts assigned")
@@ -426,7 +485,7 @@ class ValueTraceAssign(ValueTraceBase):
             return None
 
     def hasShapeDictionaryExact(self):
-        return self.assign_node.getAssignSource().hasShapeDictionaryExact()
+        return self.assign_node.subnode_source.hasShapeDictionaryExact()
 
 
 class ValueTraceMerge(ValueTraceBase):
@@ -451,8 +510,8 @@ class ValueTraceMerge(ValueTraceBase):
         for trace in self.previous:
             type_shape = trace.getTypeShape()
 
-            if type_shape is ShapeUnknown:
-                return ShapeUnknown
+            if type_shape is tshape_unknown:
+                return tshape_unknown
 
             type_shapes.add(type_shape)
 
@@ -460,11 +519,14 @@ class ValueTraceMerge(ValueTraceBase):
         if len(type_shapes) == 1:
             return type_shapes.pop()
         else:
-            return ShapeUnknown
+            return tshape_unknown
 
     @staticmethod
     def isMergeTrace():
         return True
+
+    def hasPreviousTrace(self, trace):
+        return trace in self.previous
 
     def dump(self):
         debug("  Merge of %s", " <-> ".join(self.previous))

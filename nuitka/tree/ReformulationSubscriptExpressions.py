@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,7 +27,10 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
-from nuitka.nodes.SliceNodes import ExpressionBuiltinSlice, ExpressionSliceLookup
+from nuitka.nodes.SliceNodes import (
+    ExpressionBuiltinSlice,
+    ExpressionSliceLookup,
+)
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.PythonVersions import python_version
 
@@ -52,7 +55,7 @@ def buildSubscriptNode(provider, node, source_ref):
 
     if kind == "Index":
         return ExpressionSubscriptLookup(
-            subscribed=buildNode(provider, node.value, source_ref),
+            expression=buildNode(provider, node.value, source_ref),
             subscript=buildNode(provider, node.slice.value, source_ref),
             source_ref=source_ref,
         )
@@ -83,7 +86,7 @@ def buildSubscriptNode(provider, node, source_ref):
 
         if use_sliceobj:
             return ExpressionSubscriptLookup(
-                subscribed=buildNode(provider, node.value, source_ref),
+                expression=buildNode(provider, node.value, source_ref),
                 subscript=ExpressionBuiltinSlice(
                     start=lower, stop=upper, step=step, source_ref=source_ref
                 ),
@@ -98,13 +101,13 @@ def buildSubscriptNode(provider, node, source_ref):
             )
     elif kind == "ExtSlice":
         return ExpressionSubscriptLookup(
-            subscribed=buildNode(provider, node.value, source_ref),
+            expression=buildNode(provider, node.value, source_ref),
             subscript=buildExtSliceNode(provider, node, source_ref),
             source_ref=source_ref,
         )
     elif kind == "Ellipsis":
         return ExpressionSubscriptLookup(
-            subscribed=buildNode(provider, node.value, source_ref),
+            expression=buildNode(provider, node.value, source_ref),
             subscript=ExpressionConstantEllipsisRef(source_ref=source_ref),
             source_ref=source_ref,
         )

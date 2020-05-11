@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,7 @@ C call to the built-ins resulting wrapper, will speed up things.
 """
 
 from .ExpressionBases import ExpressionChildHavingBase
-from .shapes.BuiltinTypeShapes import ShapeTypeClassmethod, ShapeTypeStaticmethod
+from .shapes.BuiltinTypeShapes import tshape_classmethod, tshape_staticmethod
 
 
 class ExpressionBuiltinStaticmethod(ExpressionChildHavingBase):
@@ -45,7 +45,7 @@ class ExpressionBuiltinStaticmethod(ExpressionChildHavingBase):
         return False
 
     def getTypeShape(self):
-        return ShapeTypeStaticmethod
+        return tshape_staticmethod
 
 
 class ExpressionBuiltinClassmethod(ExpressionChildHavingBase):
@@ -67,4 +67,4 @@ class ExpressionBuiltinClassmethod(ExpressionChildHavingBase):
         return False
 
     def getTypeShape(self):
-        return ShapeTypeClassmethod
+        return tshape_classmethod

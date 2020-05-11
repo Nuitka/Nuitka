@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,12 +31,9 @@ are in another context.
 
 """
 
-from logging import warning
 
-from nuitka import Options, Tracing
+from nuitka import Tracing
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
-from nuitka.importing.Importing import isWhiteListedImport
-from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 
 from .FinalizeBase import FinalizationVisitorBase
@@ -61,7 +58,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
     def _onEnterNode(self, node):
         # This has many different things it deals with, so there need to be a
-        # lot of branches and statements, pylint: disable=too-many-branches,too-many-statements
+        # lot of branches and statements, pylint: disable=too-many-branches
 
         # Also all self specific things have been done on the outside,
         # pylint: disable=no-self-use
@@ -83,23 +80,6 @@ class FinalizeMarkups(FinalizationVisitorBase):
                     search.markAsNeedsGeneratorReturnHandling(2)
                 else:
                     search.markAsNeedsGeneratorReturnHandling(1)
-
-        if (
-            node.isExpressionBuiltinImport()
-            and not Options.getShallFollowExtra()
-            and not Options.getShallFollowExtraFilePatterns()
-            and not Options.shallFollowNoImports()
-            and not isWhiteListedImport(node)
-            and not node.recurse_attempted
-            and not Plugins.suppressBuiltinImportWarning(
-                node.getParentModule(), node.getSourceReference()
-            )
-        ):
-            warning(
-                """Unresolved '__import__' call at '%s' may require use \
-of '--include-plugin-directory' or '--include-plugin-files'."""
-                % (node.getSourceReference().getAsString())
-            )
 
         if node.isExpressionBuiltinImport() and node.recurse_attempted:
             module_name = node.getImportName()
@@ -133,23 +113,21 @@ of '--include-plugin-directory' or '--include-plugin-files'."""
 
         if node.isStatementAssignmentVariable():
             target_var = node.getVariable()
-            assign_source = node.getAssignSource()
+            assign_source = node.subnode_source
 
             if assign_source.isExpressionOperationBinary():
                 left_arg = assign_source.getLeft()
 
-                if left_arg.isExpressionVariableRef():
+                if (
+                    left_arg.isExpressionVariableRef()
+                    or left_arg.isExpressionTempVariableRef()
+                ):
                     if assign_source.getLeft().getVariable() is target_var:
                         if assign_source.isInplaceSuspect():
                             node.markAsInplaceSuspect()
                 elif left_arg.isExpressionLocalsVariableRefOrFallback():
+                    # TODO: This might be bad.
                     assign_source.unmarkAsInplaceSuspect()
-
-        if node.isStatementLocalsDictOperationSet():
-            assign_source = node.getAssignSource()
-
-            if assign_source.isExpressionOperationBinary():
-                assign_source.unmarkAsInplaceSuspect()
 
         if python_version < 300 and node.isStatementPublishException():
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()
@@ -167,7 +145,6 @@ of '--include-plugin-directory' or '--include-plugin-files'."""
                     and not search.isExpressionCoroutineObjectBody()
                     and not search.isExpressionAsyncgenObjectBody()
                 ):
-
                     last_search = search
                     search = search.getParent()
 

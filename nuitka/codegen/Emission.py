@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,6 +22,8 @@ this is to collect them, providing the emit implementation. Sometimes nested
 use of these will occur.
 
 """
+import contextlib
+
 from .Indentation import indented
 
 
@@ -41,3 +43,30 @@ class SourceCodeCollector(object):
             emit(indented(code, level))
 
         self.codes = None
+
+
+@contextlib.contextmanager
+def withSubCollector(emit, context):
+    context.pushCleanupScope()
+
+    with context.variable_storage.withLocalStorage():
+        sub_emit = SourceCodeCollector()
+
+        # To use the collector and put code in it and C declarations on the context.
+        yield sub_emit
+
+        local_declarations = context.variable_storage.makeCLocalDeclarations()
+
+        if local_declarations:
+            emit("{")
+
+            for local_declaration in local_declarations:
+                emit(indented(local_declaration))
+
+            sub_emit.emitTo(emit, level=1)
+
+            emit("}")
+        else:
+            sub_emit.emitTo(emit, level=0)
+
+        context.popCleanupScope()

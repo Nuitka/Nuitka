@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -17,28 +17,11 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-module_value1 = 1000
-module_value2 = 50
+""" Just something to allow the plugin to look at.
 
-def calledRepeatedly():
-    # Force frame and eliminate forward propagation (currently).
-    module_value1
+"""
 
-    local_value = module_value1
-    local_value2 = module_value2
+from __future__ import print_function
 
-# construct_begin
-    local_value2 = local_value * 2
-# construct_alternative
-    local_value * 2
-# construct_end
-
-    local_value2 = local_value * 4
-
-    return local_value
-
-import itertools
-for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
-
-print("OK.")
+import math
+print(math.pi)

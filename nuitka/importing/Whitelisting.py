@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -428,6 +428,8 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "six.moves",
         # Python3 namespace packages.
         "_frozen_importlib_external",
+        # Garbage from PyWin32
+        "pywin32_bootstrap",
     )
 
 

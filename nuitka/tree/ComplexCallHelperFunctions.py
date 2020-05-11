@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -63,12 +63,18 @@ from nuitka.nodes.SubscriptNodes import (
     ExpressionSubscriptLookup,
     StatementAssignmentSubscript,
 )
-from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance, ExpressionBuiltinType1
+from nuitka.nodes.TypeNodes import (
+    ExpressionBuiltinIsinstance,
+    ExpressionBuiltinType1,
+)
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.PythonVersions import getComplexCallSequenceErrorTemplate, python_version
+from nuitka.PythonVersions import (
+    getComplexCallSequenceErrorTemplate,
+    python_version,
+)
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .InternalModule import (
@@ -108,7 +114,7 @@ def orderArgs(*args):
 
 def _makeNameAttributeLookup(node, attribute_name="__name__"):
     return ExpressionAttributeLookup(
-        source=node, attribute_name=attribute_name, source_ref=internal_source_ref
+        expression=node, attribute_name=attribute_name, source_ref=internal_source_ref
     )
 
 
@@ -120,13 +126,13 @@ def getCallableNameDescBody():
     #
     # Note: The "called_type" is a temporary variable.
     #
-    # called_type = type( BuiltinFunctionType )
+    # called_type = type(BuiltinFunctionType)
     #
     # if ininstance( called, (FunctionType, MethodType, BuiltinFunctionType) ):
     #     return called.__name__
-    # elif python_version < 3 and isinstance( called, ClassType ):
+    # elif python_version < 3 and isinstance(called, ClassType):
     #     return called_type.__name__ + " constructor"
-    # elif python_version < 3 and isinstance( called, InstanceType ):
+    # elif python_version < 3 and isinstance(called, InstanceType):
     #     return called_type.__name__ + " instance"
     # else:
     #     return called_type.__name__ + " object"
@@ -510,7 +516,29 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
     tmp_keys_variable = result.allocateTempVariable(temp_scope, "keys")
     tmp_key_variable = result.allocateTempVariable(temp_scope, "key")
 
-    loop_body = (
+    loop_body = []
+
+    if python_version >= 380:
+        loop_body.append(
+            makeStatementConditional(
+                condition=ExpressionComparisonIn(
+                    left=ExpressionTempVariableRef(
+                        variable=tmp_key_variable, source_ref=internal_source_ref
+                    ),
+                    right=ExpressionVariableRef(
+                        variable=tmp_dict_variable, source_ref=internal_source_ref
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                yes_branch=_makeRaiseDuplicationItem(
+                    called_variable=called_variable, tmp_key_variable=tmp_key_variable
+                ),
+                no_branch=None,
+                source_ref=internal_source_ref,
+            )
+        )
+
+    loop_body.append(
         StatementAssignmentSubscript(
             expression=ExpressionTempVariableRef(
                 variable=tmp_dict_variable, source_ref=internal_source_ref
@@ -519,7 +547,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
                 variable=tmp_key_variable, source_ref=internal_source_ref
             ),
             source=ExpressionSubscriptLookup(
-                subscribed=ExpressionVariableRef(
+                expression=ExpressionVariableRef(
                     variable=star_dict_variable, source_ref=internal_source_ref
                 ),
                 subscript=ExpressionTempVariableRef(
@@ -528,7 +556,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
                 source_ref=internal_source_ref,
             ),
             source_ref=internal_source_ref,
-        ),
+        )
     )
 
     mapping_case = makeStatementsSequenceFromStatements(
@@ -768,7 +796,7 @@ def _makeStarDictArgumentMergeToKwStatement(
                 variable=tmp_key_variable, source_ref=internal_source_ref
             ),
             source=ExpressionSubscriptLookup(
-                subscribed=ExpressionVariableRef(
+                expression=ExpressionVariableRef(
                     variable=star_dict_variable, source_ref=internal_source_ref
                 ),
                 subscript=ExpressionTempVariableRef(
@@ -831,7 +859,7 @@ def _makeStarDictArgumentMergeToKwStatement(
     tmp_item_variable = result.allocateTempVariable(temp_scope, "item")
     tmp_key_variable = result.allocateTempVariable(temp_scope, "key")
 
-    final += [
+    final += (
         StatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
@@ -841,13 +869,13 @@ def _makeStarDictArgumentMergeToKwStatement(
         StatementReleaseVariable(
             variable=tmp_key_variable, source_ref=internal_source_ref
         ),
-    ]
+    )
 
     dict_loop_body = (
         StatementAssignmentVariable(
             variable=tmp_key_variable,
             source=ExpressionSubscriptLookup(
-                subscribed=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_item_variable, source_ref=internal_source_ref
                 ),
                 subscript=makeConstantRefNode(
@@ -881,7 +909,7 @@ def _makeStarDictArgumentMergeToKwStatement(
                 variable=tmp_key_variable, source_ref=internal_source_ref
             ),
             source=ExpressionSubscriptLookup(
-                subscribed=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_item_variable, source_ref=internal_source_ref
                 ),
                 subscript=makeConstantRefNode(
@@ -968,16 +996,16 @@ def getFunctionCallHelperStarList():
     # Note: Call in here is not the same, as it can go without checks directly
     # to PyObject_Call.
     #
-    # if not isinstance( star_arg_list, tuple ):
+    # if not isinstance(star_arg_list, tuple):
     #     try:
-    #         star_arg_list = tuple( star_arg_list )
+    #         star_arg_list = tuple(star_arg_list)
     #     except TypeError:
     #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc( function ),
-    #             type( star_arg_list ).__name__
+    #             get_callable_name_desc(function),
+    #             type(star_arg_list).__name__
     #         )
     #
-    # return called( *star_arg_list )
+    # return called(*star_arg_list)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1050,16 +1078,16 @@ def getFunctionCallHelperKeywordsStarList():
     # Note: Call in here is not the same, as it can go without checks directly
     # to PyObject_Call.
     #
-    # if not isinstance( star_arg_list, tuple ):
+    # if not isinstance(star_arg_list, tuple):
     #     try:
-    #         star_arg_list = tuple( star_arg_list )
+    #         star_arg_list = tuple(star_arg_list)
     #     except TypeError:
     #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc( function ),
-    #             type( star_arg_list ).__name__
+    #             get_callable_name_desc(function),
+    #             type(star_arg_list).__name__
     #         )
     #
-    # return called( *star_arg_list )
+    # return called(*star_arg_list)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1138,16 +1166,16 @@ def getFunctionCallHelperPosStarList():
     # Note: Call in here is not the same, as it can go without checks directly
     # to PyObject_Call.
     #
-    # if not isinstance( star_arg_list, tuple ):
+    # if not isinstance(star_arg_list, tuple):
     #     try:
-    #         star_arg_list = tuple( star_arg_list )
+    #         star_arg_list = tuple(star_arg_list)
     #     except TypeError:
     #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc( function ),
-    #             type( star_arg_list ).__name__
+    #             get_callable_name_desc(function),
+    #             type(star_arg_list).__name__
     #         )
     #
-    # return called( *star_arg_list )
+    # return called(*star_arg_list)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1232,16 +1260,16 @@ def getFunctionCallHelperPosKeywordsStarList():
     # Note: Call in here is not the same, as it can go without checks directly
     # to PyObject_Call.
     #
-    # if not isinstance( star_arg_list, tuple ):
+    # if not isinstance(star_arg_list, tuple):
     #     try:
-    #         star_arg_list = tuple( star_arg_list )
+    #         star_arg_list = tuple(star_arg_list)
     #     except TypeError:
     #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc( function ),
-    #             type( star_arg_list ).__name__
+    #             get_callable_name_desc(function),
+    #             type(star_arg_list).__name__
     #         )
     #
-    # return called( *star_arg_list )
+    # return called(*star_arg_list)
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
@@ -1336,7 +1364,7 @@ def getFunctionCallHelperStarDict():
     #         tmp_keys =  star_arg_dict.keys()
     #     except AttributeError:
     #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc( function ),
+    #             get_callable_name_desc(function),
     #             type(star_arg_dict).__name__
     #         )
     #
@@ -1540,7 +1568,7 @@ def getFunctionCallHelperKeywordsStarDict():
     #     except AttributeError:
     #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
     #             get_callable_name_desc(function),
-    #             type( star_arg_dict ).__name__
+    #             type(star_arg_dict).__name__
     #         )
     #
     #     if keys:
@@ -2251,7 +2279,7 @@ def getFunctionCallHelperDictionaryUnpacking():
                 variable=tmp_key_variable, source_ref=internal_source_ref
             ),
             value=ExpressionSubscriptLookup(
-                subscribed=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_item_variable, source_ref=internal_source_ref
                 ),
                 subscript=ExpressionTempVariableRef(

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,13 +36,24 @@ def _normalizePath(path):
 
     best = None
 
-    for path_entry in sys.path:
-        if path.startswith(path_entry):
+    paths = list(sys.path)
+
+    # Nuitka standalone mode.
+    try:
+        paths.append(__nuitka_binary_dir)
+        paths.append(os.getcwd())
+    except NameError:
+        pass
+
+    for path_entry in paths:
+        path_entry = os.path.normcase(path_entry)
+
+        if os.path.normcase(path).startswith(path_entry):
             if best is None or len(path_entry) > len(best):
                 best = path_entry
 
     if best is not None:
-        path = path.replace(best, "$PYTHONPATH")
+        path = "$PYTHONPATH" + path[len(best) :]
 
     return path
 

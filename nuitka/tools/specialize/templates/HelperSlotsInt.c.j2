@@ -1,0 +1,295 @@
+{#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+{% macro int_slot(operator, nb_slot, target, left, right, result, operand1, operand2, exit_result, exit_result_ok, exit_result_exception) %}
+    {{left.getCheckValueCode(operand1)}}
+    {{right.getCheckValueCode(operand2)}}
+
+    {# This is supposed to be Python2 code #}
+    const long a = {{left.getAsLongValueExpression(operand1)}};
+    const long b = {{right.getAsLongValueExpression(operand2)}};
+
+{% if operator in "+-" %}
+    const long x = (long)((unsigned long)a {{operator}} b);
+    bool no_overflow = ((x^a) >= 0 || (x^{{"~" if operator == "-" else ""}}b) >= 0);
+{% if target.type_name in ("nuitka_bool", "nbool") %}
+    bool t = !no_overflow || x != 0;
+
+    {{target.getAssignFromBoolExpression(result, "t", give_ref=True)}};
+
+    goto {{exit_result_ok}};
+{% else %}
+    if (likely(no_overflow)) {
+        {{ target.getAssignFromLongExpressionCode(result, "x") }}
+        goto {{exit_result_ok}};
+    }
+{% endif %}
+{% elif operator == "*" %}
+    const long longprod = (long)((unsigned long)a * b);
+    const double doubleprod = (double)a * (double)b;
+    const double doubled_longprod = (double)longprod;
+
+    if (likely(doubled_longprod == doubleprod)) {
+        {{ target.getAssignFromLongExpressionCode(result, "longprod") }}
+        goto {{exit_result_ok}};
+    } else {
+        const double diff = doubled_longprod - doubleprod;
+        const double absdiff = diff >= 0.0 ? diff : -diff;
+        const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+        if (likely(32.0 * absdiff <= absprod)) {
+            {{ target.getAssignFromLongExpressionCode(result, "longprod") }}
+            goto {{exit_result_ok}};
+        }
+    }
+{% elif operator == "//" or nb_slot == "nb_divide" %}
+    if (unlikely(b == 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        goto {{exit_result_exception}};
+    }
+
+    /* TODO: Isn't this a very specific value only, of which we could
+     * hardcode the constant result. Not sure how well the C compiler
+     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+     * -1 has to be rare anyway.
+     */
+
+    if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+        long a_div_b = a / b;
+        long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
+
+        if (a_mod_b && (b ^ a_mod_b) < 0) {
+            a_mod_b += b;
+            a_div_b -= 1;
+        }
+
+        {{ target.getAssignFromLongExpressionCode(result, "a_div_b") }}
+        goto {{exit_result_ok}};
+    }
+{% elif operator=="/" and "true_div" in nb_slot %}
+    if (unlikely(b == 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "division by zero");
+        goto {{exit_result_exception}};
+    }
+
+    if (a == 0) {
+        if (b < 0) {
+            {{ target.getAssignFromFloatConstantCode(result, -0.0) }}
+        } else {
+            {{ target.getAssignFromFloatConstantCode(result, 0.0) }}
+        }
+        goto {{exit_result_ok}};
+    }
+
+/* May need to resort to LONG code, which we currently do not
+ * specialize yet. TODO: Once we do that, call it here instead.
+ */
+#if DBL_MANT_DIG < WIDTH_OF_ULONG
+    if ((a >= 0 ? 0UL + a : 0UL - a) >> DBL_MANT_DIG || (b >= 0 ? 0UL + b : 0UL - b) >> DBL_MANT_DIG) {
+    } else
+#endif
+    {
+        double r = (double)a / (double)b;
+        {{ target.getAssignFromFloatExpressionCode(result, "r") }}
+        goto {{exit_result_ok}};
+    }
+{% elif operator=="%" %}
+    /* TODO: Isn't this a very specific value only, of which we could
+     * hardcode the constant result. Not sure how well the C compiler
+     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+     * -1 has to be rare anyway.
+     */
+
+    if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+        long r = a % b;
+
+        // Sign handling.
+        if (r != 0 && ((b ^ r) < 0) ) {
+            r += b;
+        }
+
+        {{ target.getAssignFromLongExpressionCode(result, "r") }}
+        goto {{exit_result_ok}};
+    }
+{% elif operator in "|^&" %}
+    const long r = a {{operator}} b;
+    {{ target.getAssignFromLongExpressionCode(result, "r") }}
+    goto {{exit_result_ok}};
+{% elif operator == "<<" %}
+    if (unlikely(b < 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+        goto {{exit_result_exception}};
+    }
+    /* Short cut for zero shift or shifting zero. */
+    if (a == 0 || b == 0) {
+        {{ target.getAssignFromObjectExpressionCode(result, operand1, take_ref=True) }}
+        goto {{exit_result_ok}};
+    } else if (b >= LONG_BIT) {
+        PyObject *operand1_long = PyLong_FromLong(a);
+        PyObject *operand2_long = PyLong_FromLong(b);
+
+        // TODO: Change this to using CLONG once we specialize that too.
+        PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+        Py_DECREF(operand1_long);
+        Py_DECREF(operand2_long);
+
+        {{ target.getAssignFromObjectExpressionCode(result, "r") }}
+        goto {{exit_result}};
+    } else {
+        long c = a << b;
+
+        if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
+            PyObject *operand1_long = PyLong_FromLong(a);
+            PyObject *operand2_long = PyLong_FromLong(b);
+
+            // TODO: Change this to using CLONG once we specialize that too.
+            PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+            Py_DECREF(operand1_long);
+            Py_DECREF(operand2_long);
+
+            {{ target.getAssignFromObjectExpressionCode(result, "r") }}
+            goto {{exit_result}};
+        } else {
+            {{ target.getAssignFromLongExpressionCode(result, "c") }}
+            goto {{exit_result_ok}};
+        }
+    }
+{% elif operator == ">>" %}
+    if (unlikely(b < 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+        goto {{exit_result_exception}};
+    }
+
+    /* Short cut for zero shift or shifting zero. */
+    if (a == 0 || b == 0) {
+        {{ target.getAssignFromObjectExpressionCode(result, operand1, take_ref=True) }}
+        goto {{exit_result_ok}};
+    } else if (b >= LONG_BIT) {
+        if (a < 0) {
+            {{ target.getAssignFromIntConstantCode(result, -1) }}
+        } else {
+            {{ target.getAssignFromIntConstantCode(result, 0) }}
+        }
+        goto {{exit_result_ok}};
+    } else {
+        long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
+        {{ target.getAssignFromLongExpressionCode(result, "r") }}
+        goto {{exit_result_ok}};
+    }
+{% elif operator == "**" %}
+    if (b < 0) {
+        // TODO: Use CFLOAT once available.
+        PyObject *operand1_float = PyFloat_FromDouble(a);
+        PyObject *operand2_float = PyFloat_FromDouble(b);
+
+        PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
+
+        Py_DECREF(operand1_float);
+        Py_DECREF(operand2_float);
+
+        {{ target.getAssignFromObjectExpressionCode(result, "r") }}
+        goto {{exit_result}};
+    } else {
+
+        long temp = a;
+        long ix = 1;
+        long bb = b;
+
+        while (bb > 0) {
+            long prev = ix;
+            if (bb & 1) {
+                ix = (unsigned long)ix * temp;
+                if (temp == 0) {
+                    break;
+                }
+                if (ix / temp != prev) {
+                    PyObject *operand1_long = PyLong_FromLong(a);
+                    PyObject *operand2_long = PyLong_FromLong(b);
+
+                    PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                    Py_DECREF(operand1_long);
+                    Py_DECREF(operand2_long);
+
+                    {{ target.getAssignFromObjectExpressionCode(result, "r") }}
+                    goto {{exit_result}};
+                }
+            }
+            bb >>= 1;
+            if (bb==0) {
+                break;
+            }
+            prev = temp;
+            temp = (unsigned long)temp * temp;
+
+            if (prev != 0 && temp / prev != prev) {
+                PyObject *operand1_long = PyLong_FromLong(a);
+                PyObject *operand2_long = PyLong_FromLong(b);
+
+                PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                Py_DECREF(operand1_long);
+                Py_DECREF(operand2_long);
+
+                {{ target.getAssignFromObjectExpressionCode(result, "r") }}
+                goto {{exit_result}};
+            }
+        }
+
+        {{ target.getAssignFromLongExpressionCode(result, "ix") }}
+        goto {{exit_result_ok}};
+    }
+
+{% elif operator == "divmod" %}
+    if (unlikely(b == 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        goto {{exit_result_exception}};
+    }
+
+    if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+        long a_div_b = a / b;
+        long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
+
+        if (a_mod_b && (b ^ a_mod_b) < 0) {
+            a_mod_b += b;
+            a_div_b -= 1;
+        }
+
+        {{ target.getAssignTupleFromLongExpressionsCode(result, "a_div_b", "a_mod_b") }}
+        goto {{exit_result_ok}};
+    }
+{% else %}
+#error Operator {{operator}} not implemented
+{% endif %}
+
+    {
+        PyObject *operand1_object = {{left.getAsObjectValueExpression(operand1)}};
+        PyObject *operand2_object = {{right.getAsObjectValueExpression(operand2)}};
+
+        PyObject *o = {{left.getSlotCallExpression(nb_slot, "PyLong_Type.tp_as_number->"+nb_slot, "operand1_object", "operand2_object")}};
+        assert(o != Py_NotImplemented);
+
+        {{left.releaseAsObjectValueStatement("operand1_object")}}
+        {{right.releaseAsObjectValueStatement("operand2_object")}}
+
+        {{ target.getAssignFromObjectExpressionCode(result, "o") }}
+        goto {{exit_result}};
+    }
+
+{% endmacro %}

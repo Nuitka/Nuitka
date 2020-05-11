@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,7 +31,11 @@ classes.
 
 from nuitka import Options, Variables
 from nuitka.PythonVersions import python_version
-from nuitka.specs.ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
+from nuitka.specs.ParameterSpecs import (
+    ParameterSpec,
+    TooManyArguments,
+    matchCall,
+)
 from nuitka.tree.Extractions import updateVariableUsage
 
 from .Checkers import checkStatementsSequenceOrNone
@@ -43,7 +47,10 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
 )
 from .FutureSpecs import fromFlags
-from .IndicatorMixins import EntryPointMixin, MarkUnoptimizedFunctionIndicatorMixin
+from .IndicatorMixins import (
+    EntryPointMixin,
+    MarkUnoptimizedFunctionIndicatorMixin,
+)
 from .LocalsScopes import getLocalsDictHandle, setLocalsDictType
 from .NodeBases import (
     ClosureGiverNodeMixin,
@@ -411,7 +418,7 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
         self.computeFunction(trace_collection)
 
-        trace_collection.updateVariablesFromCollection(old_collection)
+        trace_collection.updateVariablesFromCollection(old_collection, self.source_ref)
 
     def computeFunction(self, trace_collection):
         statements_sequence = self.getBody()

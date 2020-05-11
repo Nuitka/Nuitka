@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -182,6 +182,25 @@ static inline void RESTORE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyn
     CHECK_OBJECT_X(EXC_TRACEBACK(thread_state));
 }
 
+#endif
+
+// For reference count debugging.
+#if _DEBUG_REFCOUNTS
+extern int count_active_Nuitka_Asyncgen_Type;
+extern int count_allocated_Nuitka_Asyncgen_Type;
+extern int count_released_Nuitka_Asyncgen_Type;
+
+extern int count_active_Nuitka_AsyncgenValueWrapper_Type;
+extern int count_allocated_Nuitka_AsyncgenValueWrapper_Type;
+extern int count_released_Nuitka_AsyncgenValueWrapper_Type;
+
+extern int count_active_Nuitka_AsyncgenAsend_Type;
+extern int count_allocated_Nuitka_AsyncgenAsend_Type;
+extern int count_released_Nuitka_AsyncgenAsend_Type;
+
+extern int count_active_Nuitka_AsyncgenAthrow_Type;
+extern int count_allocated_Nuitka_AsyncgenAthrow_Type;
+extern int count_released_Nuitka_AsyncgenAthrow_Type;
 #endif
 
 #endif

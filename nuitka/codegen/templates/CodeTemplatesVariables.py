@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -159,7 +159,7 @@ Py_XDECREF(%(identifier)s);
 """
 
 template_release_clear = """\
-CHECK_OBJECT((PyObject *)%(identifier)s);
+CHECK_OBJECT(%(identifier)s);
 Py_DECREF(%(identifier)s);
 %(identifier)s = NULL;
 """

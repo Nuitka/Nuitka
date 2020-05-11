@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,8 +29,12 @@ from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 
 from .FileOperations import withMadeWritableFileMode
-from .Utils import getArchitecture, isAlpineLinux, isWin32Windows
-from .WindowsResources import RT_MANIFEST, deleteWindowsResources, getResourcesFromDLL
+from .Utils import getArchitecture, getOS, isAlpineLinux, isWin32Windows
+from .WindowsResources import (
+    RT_MANIFEST,
+    deleteWindowsResources,
+    getResourcesFromDLL,
+)
 
 
 def localDLLFromFilesystem(name, paths):
@@ -41,6 +45,7 @@ def localDLLFromFilesystem(name, paths):
 
 
 def locateDLL(dll_name):
+    # This function is a case driven by returns, pylint: disable=too-many-return-statements
     import ctypes.util
 
     dll_name = ctypes.util.find_library(dll_name)
@@ -50,6 +55,9 @@ def locateDLL(dll_name):
 
     if isWin32Windows():
         return os.path.normpath(dll_name)
+
+    if getOS() == "Darwin":
+        return dll_name
 
     if os.path.sep in dll_name:
         # Use this from ctypes instead of rolling our own.
@@ -272,7 +280,11 @@ def getPEFileInformation(filename):
     if extracted["AMD64"] is not python_is_64bit:
         warning(
             "Python %s bits with %s bits dependencies in '%s'"
-            % ("64" if python_is_64bit else "32" "32" if python_is_64bit else "64")
+            % (
+                ("32" if python_is_64bit else "64"),
+                ("64" if extracted["AMD64"] else "32"),
+                filename,
+            )
         )
 
     return extracted
@@ -293,7 +305,7 @@ def callInstallNameTool(filename, mapping):
     """
     command = ["install_name_tool"]
     for old_path, new_path in mapping:
-        command += ["-change", old_path, new_path]
+        command += ("-change", old_path, new_path)
     command.append(filename)
 
     with withMadeWritableFileMode(filename):

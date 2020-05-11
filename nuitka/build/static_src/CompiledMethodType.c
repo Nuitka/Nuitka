@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -16,10 +16,21 @@
 //     limitations under the License.
 //
 
-#include "nuitka/prelude.h"
+/** Compiled methods.
+ *
+ * It strives to be full replacement for normal method objects, but
+ * normally should be avoided to exist in Nuitka calls.
+ *
+ */
 
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
 #include "nuitka/freelists.h"
+#include "nuitka/prelude.h"
+#endif
 
+// Note: Compiled functions do not use this, so we include it here.
 #include "structmember.h"
 
 static PyObject *Nuitka_Method_get__doc__(struct Nuitka_MethodObject *method, void *closure) {
@@ -50,11 +61,30 @@ static PyMemberDef Nuitka_Method_members[] = {
      (char *)"the instance to which a method is bound; None for unbound method"},
     {NULL}};
 
-static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
-    PyErr_Format(PyExc_TypeError, "Can't pickle instancemethod objects");
+extern PyObject *const_str_plain_getattr;
 
+static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
+#if PYTHON_VERSION < 300
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't pickle instancemethod objects");
     return NULL;
+#elif PYTHON_VERSION < 340
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't pickle method objects");
+    return NULL;
+#else
+    PyObject *result = PyTuple_New(2);
+    PyTuple_SET_ITEM0(result, 0, LOOKUP_BUILTIN(const_str_plain_getattr));
+    PyObject *arg_tuple = PyTuple_New(2);
+    PyTuple_SET_ITEM0(arg_tuple, 0, method->m_object);
+    PyTuple_SET_ITEM0(arg_tuple, 1, method->m_function->m_name);
+    PyTuple_SET_ITEM(result, 1, arg_tuple);
+
+    CHECK_OBJECT_DEEP(result);
+
+    return result;
+#endif
 }
+
+extern PyObject *const_str_plain___newobj__;
 
 static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyObject *args) {
     int proto;
@@ -63,9 +93,34 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
         return NULL;
     }
 
-    PyErr_Format(PyExc_TypeError, "Can't pickle instancemethod objects");
+#if PYTHON_VERSION < 340
+#if PYTHON_VERSION < 300
+    PyObject *copy_reg = PyImport_ImportModule("copy_reg");
+#else
+    PyObject *copy_reg = PyImport_ImportModule("copyreg");
+#endif
+    CHECK_OBJECT(copy_reg);
+    PyObject *newobj_func = LOOKUP_ATTRIBUTE(copy_reg, const_str_plain___newobj__);
+    Py_DECREF(copy_reg);
+    if (unlikely(newobj_func == NULL)) {
+        return NULL;
+    }
 
-    return NULL;
+    PyObject *result = PyTuple_New(5);
+    PyTuple_SET_ITEM(result, 0, newobj_func);
+    PyObject *type_tuple = PyTuple_New(1);
+    PyTuple_SET_ITEM0(type_tuple, 0, (PyObject *)&Nuitka_Method_Type);
+    PyTuple_SET_ITEM(result, 1, type_tuple);
+    PyTuple_SET_ITEM0(result, 2, Py_None);
+    PyTuple_SET_ITEM0(result, 3, Py_None);
+    PyTuple_SET_ITEM0(result, 4, Py_None);
+
+    CHECK_OBJECT_DEEP(result);
+
+    return result;
+#else
+    return Nuitka_Method_reduce(method);
+#endif
 }
 
 static PyObject *Nuitka_Method_deepcopy(struct Nuitka_MethodObject *method, PyObject *memo) {
@@ -177,6 +232,58 @@ static char const *GET_CALLABLE_NAME(PyObject *object) {
         return Py_TYPE(object)->tp_name;
     }
 }
+
+#if PYTHON_VERSION >= 380
+static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method, PyObject *const *stack, size_t nargsf,
+                                             PyObject *kwnames) {
+    assert(kwnames == NULL || PyTuple_CheckExact(kwnames));
+    Py_ssize_t nkwargs = (kwnames == NULL) ? 0 : PyTuple_GET_SIZE(kwnames);
+    Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
+
+    assert(nargs >= 0);
+    assert((nargs == 0 && nkwargs == 0) || stack != NULL);
+
+    PyObject *result;
+
+    if (nargsf & PY_VECTORCALL_ARGUMENTS_OFFSET) {
+        /* We are allowed to mutate the stack. TODO: Is this the normal case, so
+           we can consider the else branch irrelevant? Also does it not make sense
+           to check pos arg and kw counts and shortcut somewhat. */
+
+        PyObject **newargs = (PyObject **)stack - 1;
+        nargs += 1;
+        PyObject *tmp = newargs[0];
+        newargs[0] = method->m_object;
+        result = Nuitka_CallFunctionVectorcall(method->m_function, newargs, nargs,
+                                               kwnames ? &PyTuple_GET_ITEM(kwnames, 0) : NULL, nkwargs);
+        newargs[0] = tmp;
+    } else {
+        Py_ssize_t totalargs = nargs + nkwargs;
+
+        // Shortcut possible, no args.
+        if (totalargs == 0) {
+            return Nuitka_CallMethodFunctionNoArgs(method->m_function, method->m_object);
+        }
+
+#ifdef _MSC_VER
+        PyObject **new_args = (PyObject **)_alloca(sizeof(PyObject *) * (totalargs + 1));
+#else
+        PyObject *new_args[totalargs + 1];
+#endif
+
+        new_args[0] = method->m_object;
+
+        /* Definitely have args at this point. */
+        assert(stack != NULL);
+        memcpy(new_args + 1, stack, totalargs * sizeof(PyObject *));
+
+        result = Nuitka_CallFunctionVectorcall(method->m_function, new_args, nargs + 1,
+                                               kwnames ? &PyTuple_GET_ITEM(kwnames, 0) : NULL, nkwargs);
+    }
+
+    return result;
+}
+#endif
 
 static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObject *args, PyObject *kw) {
     Py_ssize_t arg_count = PyTuple_Size(args);
@@ -430,7 +537,7 @@ static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObje
     } else if (!PyArg_UnpackTuple(args, "compiled_method", 2, 3, &func, &self, &klass)) {
         return NULL;
     } else if (!PyCallable_Check(func)) {
-        PyErr_Format(PyExc_TypeError, "first argument must be callable");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "first argument must be callable");
         return NULL;
     } else {
         if (self == Py_None) {
@@ -438,7 +545,7 @@ static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObje
         }
 
         if (self == NULL && klass == NULL) {
-            PyErr_Format(PyExc_TypeError, "unbound methods must have non-NULL im_class");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "unbound methods must have non-NULL im_class");
             return NULL;
         }
     }
@@ -453,9 +560,13 @@ PyTypeObject Nuitka_Method_Type = {
     sizeof(struct Nuitka_MethodObject),
     0,
     (destructor)Nuitka_Method_tp_dealloc, /* tp_dealloc */
-    0,                                    /* tp_print   */
-    0,                                    /* tp_getattr */
-    0,                                    /* tp_setattr */
+#if PYTHON_VERSION < 380
+    0, /* tp_print */
+#else
+    offsetof(struct Nuitka_MethodObject, m_vectorcall), /* tp_vectorcall_offset */
+#endif
+    0, /* tp_getattr */
+    0, /* tp_setattr */
 #if PYTHON_VERSION < 300
     (cmpfunc)Nuitka_Method_tp_compare, /* tp_compare */
 #else
@@ -474,6 +585,9 @@ PyTypeObject Nuitka_Method_Type = {
     Py_TPFLAGS_DEFAULT |                     /* tp_flags */
 #if PYTHON_VERSION < 300
         Py_TPFLAGS_HAVE_WEAKREFS |
+#endif
+#if PYTHON_VERSION >= 380
+        _Py_TPFLAGS_HAVE_VECTORCALL |
 #endif
         Py_TPFLAGS_HAVE_GC,
     0,                                                /* tp_doc */
@@ -538,6 +652,10 @@ PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *ob
     Py_XINCREF(klass);
 
     result->m_weakrefs = NULL;
+
+#if PYTHON_VERSION >= 380
+    result->m_vectorcall = (vectorcallfunc)Nuitka_Method_tp_vectorcall;
+#endif
 
     Nuitka_GC_Track(result);
     return (PyObject *)result;

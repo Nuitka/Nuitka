@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -96,6 +96,7 @@ class CommonOptimizationTest:
             self.print_tests(test)
 
 
+# TODO: Right now this tests NOTHING of Nuitka, only the Python built-in
 print("Test for any")
 any_test = CommonOptimizationTest(any)
 any_test.run_all_tests()

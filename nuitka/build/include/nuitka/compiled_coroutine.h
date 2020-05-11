@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -211,6 +211,21 @@ extern PyObject *ASYNC_ITERATOR_NEXT(PyObject *value);
 // Create the object for plain "await".
 extern PyObject *ASYNC_AWAIT(PyObject *awaitable, int await_kind);
 
+#endif
+
+// For reference count debugging.
+#if _DEBUG_REFCOUNTS
+extern int count_active_Nuitka_Coroutine_Type;
+extern int count_allocated_Nuitka_Coroutine_Type;
+extern int count_released_Nuitka_Coroutine_Type;
+
+extern int count_active_Nuitka_CoroutineWrapper_Type;
+extern int count_allocated_Nuitka_CoroutineWrapper_Type;
+extern int count_released_Nuitka_CoroutineWrapper_Type;
+
+extern int count_active_Nuitka_AIterWrapper_Type;
+extern int count_allocated_Nuitka_AIterWrapper_Type;
+extern int count_released_Nuitka_AIterWrapper_Type;
 #endif
 
 #endif

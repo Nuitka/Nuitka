@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -103,7 +103,7 @@ def getComplexCallSequenceErrorTemplate():
     if not hasattr(getComplexCallSequenceErrorTemplate, "result"):
         try:
             # We are doing this on purpose, to get the exception.
-            # pylint: disable=  not-an-iterable,not-callable
+            # pylint: disable=not-an-iterable,not-callable
             f = None
             f(*None)
         except TypeError as e:

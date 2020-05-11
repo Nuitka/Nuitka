@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,7 +36,7 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
 )
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
-from .shapes.BuiltinTypeShapes import ShapeTypeType
+from .shapes.BuiltinTypeShapes import tshape_type
 
 
 class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
@@ -91,7 +91,7 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
         return self, None, None
 
     def getTypeShape(self):
-        return ShapeTypeType
+        return tshape_type
 
     def computeExpressionDrop(self, statement, trace_collection):
         from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode

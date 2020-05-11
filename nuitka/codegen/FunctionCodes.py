@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,9 +19,9 @@
 
 """
 
-from logging import warning
 
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import general
 
 from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
 from .CodeHelpers import (
@@ -48,7 +48,10 @@ from .templates.CodeTemplatesFunction import (
     template_maker_function_body,
 )
 from .TupleCodes import getTupleCreationCode
-from .VariableCodes import decideLocalVariableCodeType, getLocalVariableDeclaration
+from .VariableCodes import (
+    decideLocalVariableCodeType,
+    getLocalVariableDeclaration,
+)
 
 
 def _getFunctionCreationArgs(defaults_name, kw_defaults_name, annotations_name):
@@ -569,7 +572,7 @@ def getFunctionCode(
             needs_exception_exit=needs_exception_exit,
         )
     except Exception:
-        warning("Problem creating function code %r." % function_identifier)
+        general.warning("Problem creating function code %r." % function_identifier)
         raise
 
 
@@ -617,16 +620,19 @@ def _getFunctionCode(
     emit = SourceCodeCollector()
 
     getMustNotGetHereCode(
-        reason="Return statement must have exited already.", context=context, emit=emit
+        reason="Return statement must have exited already.", emit=emit
     )
 
     function_exit = indented(emit.codes) + "\n\n"
     del emit
 
     if needs_exception_exit:
-        exception_type, exception_value, exception_tb, _exception_lineno = (
-            context.variable_storage.getExceptionVariableDescriptions()
-        )
+        (
+            exception_type,
+            exception_value,
+            exception_tb,
+            _exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
 
         function_exit += template_function_exception_exit % {
             "function_cleanup": indented(function_cleanup),
@@ -645,7 +651,7 @@ def _getFunctionCode(
     else:
         parameter_objects_decl = []
 
-    parameter_objects_decl += ["PyObject **python_pars"]
+    parameter_objects_decl.append("PyObject **python_pars")
 
     if context.isForDirectCall():
         for closure_variable in closure_variables:
@@ -767,9 +773,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         context.addCleanupTempName(return_value_name)
 
         getMustNotGetHereCode(
-            reason="Return statement must have exited already.",
-            context=context,
-            emit=emit,
+            reason="Return statement must have exited already.", emit=emit
         )
 
         if exception_target is not None:

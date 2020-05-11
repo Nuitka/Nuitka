@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,6 +21,7 @@
 
 from .CodeHelpers import generateStatementSequenceCode
 from .ConditionalCodes import generateConditionCode
+from .Emission import withSubCollector
 from .LabelCodes import getGotoCode, getLabelCode
 
 
@@ -36,9 +37,12 @@ def generateBranchCode(statement, emit, context):
     context.setTrueBranchTarget(true_target)
     context.setFalseBranchTarget(false_target)
 
-    generateConditionCode(
-        condition=statement.getCondition(), emit=emit, context=context
-    )
+    # Have own declaration scope for condition, to limit visibility from branches
+    # which can be huge.
+    with withSubCollector(emit, context) as condition_emit:
+        generateConditionCode(
+            condition=statement.getCondition(), emit=condition_emit, context=context
+        )
 
     context.setTrueBranchTarget(old_true_target)
     context.setFalseBranchTarget(old_false_target)

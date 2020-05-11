@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -49,7 +49,7 @@ def _decideIntegerSubscript(subscript):
 def generateAssignmentSubscriptCode(statement, emit, context):
     subscribed = statement.getSubscribed()
     subscript = statement.getSubscript()
-    value = statement.getAssignSource()
+    value = statement.subnode_source
 
     subscript_constant, integer_subscript = _decideIntegerSubscript(subscript)
 
@@ -124,8 +124,8 @@ def generateDelSubscriptCode(statement, emit, context):
 
 
 def generateSubscriptLookupCode(to_name, expression, emit, context):
-    subscribed = expression.getLookupSource()
-    subscript = expression.getSubscript()
+    subscribed = expression.subnode_expression
+    subscript = expression.subnode_subscript
 
     subscribed_name = generateChildExpressionCode(
         expression=subscribed, emit=emit, context=context

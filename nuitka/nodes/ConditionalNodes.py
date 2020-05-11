@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -64,8 +64,7 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
 
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
-        trace_collection.onExpression(expression=self.getCondition())
-        condition = self.getCondition()
+        condition = trace_collection.onExpression(expression=self.getCondition())
 
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
@@ -245,8 +244,7 @@ class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
     def computeExpressionRaw(self, trace_collection):
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
-        trace_collection.onExpression(expression=self.getLeft())
-        left = self.getLeft()
+        left = trace_collection.onExpression(expression=self.getLeft())
 
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
@@ -501,8 +499,7 @@ class StatementConditional(StatementChildrenHavingBase):
     def computeStatement(self, trace_collection):
         # This is rather complex stuff, pylint: disable=too-many-branches,too-many-statements
 
-        trace_collection.onExpression(expression=self.getCondition())
-        condition = self.getCondition()
+        condition = trace_collection.onExpression(expression=self.getCondition())
 
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,10 +18,13 @@
 """ Eval/exec/execfile/compile built-in related codes. """
 
 from nuitka import Options
-from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
+from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import generateExpressionCode, withObjectCodeTemporaryAssignment
+from .CodeHelpers import (
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment,
+)
 from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .PythonAPICodes import getReferenceExportCode
@@ -403,7 +406,7 @@ def generateLocalsDictSyncCode(statement, emit, context):
     _getStoreLocalsCode(
         locals_name=locals_name,
         variable_traces=statement.getPreviousVariablesTraces(),
-        is_dict=locals_arg.getTypeShape() is ShapeTypeDict,
+        is_dict=locals_arg.getTypeShape() is tshape_dict,
         emit=emit,
         context=context,
     )

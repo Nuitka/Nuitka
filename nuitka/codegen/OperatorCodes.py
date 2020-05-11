@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,47 +20,6 @@
 These are mostly used to look up the Python C/API from operations or a wrapper used.
 
 """
-
-from nuitka.PythonVersions import python_version
-
-binary_operator_codes = {
-    # Those commented out in this section have fully specialized variants already.
-    # TODO: Get rid of this dictionary entirely.
-    #    "Add"       : "PyNumber_Add",
-    #    "Sub"       : "PyNumber_Subtract",
-    #    "Div"       : "PyNumber_Divide",
-    #    "Mult"      : "PyNumber_Multiply",
-    #    "Mod"       : "PyNumber_Remainder",
-    #    "Div"       : "PyNumber_Divide",
-    #    "FloorDiv"  : "PyNumber_FloorDivide",
-    #    "TrueDiv"   : "PyNumber_TrueDivide",
-    #    "Pow"       : "PyNumber_Power",
-    #    "LShift"    : "PyNumber_Lshift",
-    #    "RShift"    : "PyNumber_Rshift",
-    #    "BitAnd"    : "PyNumber_And",
-    #    "BitOr"     : "PyNumber_Or",
-    #    "BitXor"    : "PyNumber_Xor",
-    "IAdd": "PyNumber_InPlaceAdd",
-    "ISub": "PyNumber_InPlaceSubtract",
-    "IMult": "PyNumber_InPlaceMultiply",
-    "IDiv": "PyNumber_InPlaceDivide",
-    "IFloorDiv": "PyNumber_InPlaceFloorDivide",
-    "ITrueDiv": "PyNumber_InPlaceTrueDivide",
-    "IMod": "PyNumber_InPlaceRemainder",
-    "ILShift": "PyNumber_InPlaceLshift",
-    "IRShift": "PyNumber_InPlaceRshift",
-    "IBitAnd": "PyNumber_InPlaceAnd",
-    "IBitOr": "PyNumber_InPlaceOr",
-    "IBitXor": "PyNumber_InPlaceXor",
-    # This has its own variant only to make sure the generic code is in-lined
-    # but the CPython code is not in-lined.
-    #    "IPow"      : "PyNumber_InPlacePower",
-}
-
-# Python 3.5 only operator
-if python_version >= 350:
-    # binary_operator_codes["MatMult"] = "PyNumber_MatrixMultiply"
-    binary_operator_codes["IMatMult"] = "PyNumber_InPlaceMatrixMultiply"
 
 unary_operator_codes = {
     "UAdd": ("PyNumber_Positive", 1),

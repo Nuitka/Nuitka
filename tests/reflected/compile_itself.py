@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -24,12 +24,8 @@ compiled when Nuitka is running compiled and uncompiled, so we can discover
 changes in order of execution in this test.
 """
 
-import difflib
 import os
-import shutil
-import subprocess
 import sys
-import time
 
 # Find nuitka package relative to us.
 sys.path.insert(
@@ -41,10 +37,14 @@ sys.path.insert(
 
 # isort:start
 
-from nuitka.tools.testing.Common import getTempDir, my_print, setup
-from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
+import difflib
+import shutil
+import subprocess
+import time
 
-python_version = setup(needs_io_encoding=True)
+from nuitka.tools.testing.Common import getTempDir, my_print, setup
+from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
+from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 
@@ -76,30 +76,39 @@ exe_suffix = ".exe" if os.name == "nt" else ".bin"
 
 
 def readSource(filename):
-    if python_version < "3":
+    if str is bytes:
         return open(filename, "rb").read()
     else:
         return open(filename, "rb").read().decode("latin1")
 
 
 def diffRecursive(dir1, dir2):
+    # Complex in nature, pylint: disable=too-many-branches
+
     done = set()
 
     result = False
 
     for path1, filename in listDir(dir1):
+        if "cache-" in path1:
+            continue
+
         path2 = os.path.join(dir2, filename)
 
         done.add(path1)
 
         # Skip these binary files and scons build database of course.
+        # TODO: Temporary ignore ".bin", until we have something better than marshal which behaves
+        # differently in compiled Nuitka:
         if filename.endswith(
-            (".o", ".os", ".obj", ".dblite", ".tmp", ".sconsign", ".txt")
+            (".o", ".os", ".obj", ".dblite", ".tmp", ".sconsign", ".txt", ".bin", ".exp")
         ):
             continue
 
         if not os.path.exists(path2):
-            sys.exit("Only in %s: %s" % (dir1, filename))
+            my_print("Only in %s: %s" % (dir1, filename))
+            result = False
+            continue
 
         if os.path.isdir(path1):
             r = diffRecursive(path1, path2)
@@ -133,13 +142,18 @@ def diffRecursive(dir1, dir2):
             assert False, path1
 
     for path1, filename in listDir(dir2):
+        if "cache-" in path1:
+            continue
+
         path2 = os.path.join(dir2, filename)
 
         if path1 in done:
             continue
 
         if not os.path.exists(path1):
-            sys.exit("Only in %s: %s" % (dir2, filename))
+            my_print("Only in %s: %s" % (dir2, filename))
+            result = False
+            continue
 
     return result
 
@@ -177,6 +191,7 @@ def executePASS1():
                     os.environ["PYTHON"],
                     nuitka_main_path,
                     "--module",
+                    "--debug",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % target_dir,
                     "--no-pyi-file",
@@ -265,6 +280,7 @@ def compileAndCompareWith(nuitka):
                 command = [
                     nuitka,
                     "--module",
+                    "--debug",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % tmp_dir,
                     "--no-pyi-file",
@@ -273,20 +289,20 @@ def compileAndCompareWith(nuitka):
                 command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
                 my_print("Command: ", " ".join(command))
-                result = subprocess.call(command)
+                exit_nuitka = subprocess.call(command)
 
-                if result != 0:
-                    sys.exit(result)
+                # In case of segfault or assertion triggered, run in debugger.
+                if exit_nuitka in (-11, -6) and sys.platform != "nt":
+                    command2 = wrapCommandForDebuggerForSubprocess(*command)
+                    subprocess.call(command2)
+
+                if exit_nuitka != 0:
+                    my_print("An error exit %s occurred, aborting." % exit_nuitka)
+                    sys.exit(exit_nuitka)
 
                 has_diff = diffRecursive(os.path.join(package, target), target_dir)
 
-                # TODO: Temporary, until we have something better than marshal which behaves
-                # differently in compiled Nuitka:
-                if has_diff and filename not in (
-                    "Contexts.py",
-                    "Whitelisting.py",
-                    "ImplicitImports.py",
-                ):
+                if has_diff:
                     sys.exit("There were differences!")
 
                 shutil.rmtree(target_dir)
@@ -340,7 +356,10 @@ def executePASS3():
         "--output-dir=%s" % tmp_dir,
         "--python-flag=-S",
         "--follow-imports",
+        #        "--include-package=nuitka.plugins",
     ]
+
+    my_print("Command: ", " ".join(command))
     result = subprocess.call(command)
 
     if result != 0:
@@ -389,14 +408,21 @@ def executePASS5():
     shutil.rmtree(os.path.join(tmp_dir, "nuitka.build"))
 
 
-executePASS1()
-executePASS2()
-executePASS3()
-executePASS4()
+def main():
+    _python_version = setup(needs_io_encoding=True)
 
-shutil.rmtree("nuitka")
+    executePASS1()
+    executePASS2()
+    executePASS3()
+    executePASS4()
 
-executePASS5()
+    shutil.rmtree("nuitka")
 
-os.unlink(os.path.join(tmp_dir, "nuitka" + exe_suffix))
-os.rmdir(tmp_dir)
+    executePASS5()
+
+    os.unlink(os.path.join(tmp_dir, "nuitka" + exe_suffix))
+    os.rmdir(tmp_dir)
+
+
+if __name__ == "__main__":
+    main()

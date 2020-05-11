@@ -4,6 +4,7 @@
     "C_Cpp.dimInactiveRegions": false,
     "files.exclude": {
         "**/*.build": true,
+        "**/*.dist" : true,
         "**/*.exe": true,
         "**/*.exe.away": true,
         "**/*.bin": true,
@@ -45,7 +46,10 @@
         "--disable=useless-object-inheritance,useless-return,assignment-from-no-return",
         "--disable=import-outside-toplevel",
     ],
-    "python.linting.ignorePatterns" : ["tests/CPython??/test/**"],
-    "restructuredtext.confPath": "",
+    "python.linting.ignorePatterns": [
+        "tests/CPython??/test/**",
+        "tests/syntax/**"
+    ],
     "python.formatting.provider": "black",
+    "restructuredtext.confPath": "",
 }

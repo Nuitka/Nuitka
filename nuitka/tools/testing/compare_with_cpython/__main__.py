@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -40,7 +40,10 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.Tracing import my_print
-from nuitka.utils.Execution import check_output, wrapCommandForDebuggerForSubprocess
+from nuitka.utils.Execution import (
+    check_output,
+    wrapCommandForDebuggerForSubprocess,
+)
 from nuitka.utils.Timing import StopWatch
 
 
@@ -145,9 +148,12 @@ def getCPythonResults(cpython_cmd, cpython_cached):
 
         if os.path.exists(cache_filename):
             with open(cache_filename, "rb") as cache_file:
-                cpython_time, stdout_cpython, stderr_cpython, exit_cpython = pickle.load(
-                    cache_file
-                )
+                (
+                    cpython_time,
+                    stdout_cpython,
+                    stderr_cpython,
+                    exit_cpython,
+                ) = pickle.load(cache_file)
                 cached = True
 
     if not cached:
@@ -210,17 +216,21 @@ def main():
     syntax_errors = hasArg("syntax_errors")
 
     plugins_enabled = []
-
     for count, arg in reversed(tuple(enumerate(args))):
         if arg.startswith("plugin_enable:"):
             plugins_enabled.append(arg[len("plugin_enable:") :])
             del args[count]
 
     plugins_disabled = []
-
     for count, arg in reversed(tuple(enumerate(args))):
         if arg.startswith("plugin_disable:"):
             plugins_disabled.append(arg[len("plugin_disable:") :])
+            del args[count]
+
+    user_plugins = []
+    for count, arg in reversed(tuple(enumerate(args))):
+        if arg.startswith("user_plugin:"):
+            user_plugins.append(arg[len("user_plugin:") :])
             del args[count]
 
     recurse_not = []
@@ -423,6 +433,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     for plugin_disabled in plugins_disabled:
         extra_options.append("--plugin-disable=" + plugin_disabled)
 
+    for user_plugin in user_plugins:
+        extra_options.append("--user-plugin=" + user_plugin)
+
     # Now build the command to run Nuitka.
     if not two_step_execution:
         if module_mode:
@@ -584,6 +597,7 @@ Stderr was:
                     stderr_nuitka = stderr_nuitka1 + stderr_nuitka2
                     exit_nuitka = process.returncode
 
+                    # In case of segfault or assertion triggered, run in debugger.
                     if exit_nuitka in (-11, -6) and sys.platform != "nt":
                         nuitka_cmd2 = wrapCommandForDebuggerForSubprocess(*nuitka_cmd2)
 

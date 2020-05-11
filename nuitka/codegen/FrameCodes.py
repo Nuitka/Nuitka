@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,8 +23,8 @@ of frames for different uses.
 
 from nuitka.PythonVersions import python_version
 
-from . import Emission
 from .CodeHelpers import _generateStatementSequenceCode
+from .Emission import SourceCodeCollector
 from .ErrorCodes import getFrameVariableTypeDescriptionCode
 from .ExceptionCodes import getTracebackMakingIdentifier
 from .Indentation import indented
@@ -122,7 +122,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
 
     # Now generate the statements code into a local buffer, to we can wrap
     # the frame stuff around it.
-    local_emit = Emission.SourceCodeCollector()
+    local_emit = SourceCodeCollector()
 
     _generateStatementSequenceCode(
         statement_sequence=statement_sequence, emit=local_emit, context=context
@@ -251,9 +251,12 @@ def getFrameGuardHeavyCode(
         frame_identifier.code_name
     )
 
-    _exception_type, _exception_value, _exception_tb, exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        _exception_type,
+        _exception_value,
+        _exception_tb,
+        exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     emit(
         template_frame_guard_full_block
@@ -281,9 +284,12 @@ def getFrameGuardHeavyCode(
         )
 
     if frame_exception_exit is not None:
-        _exception_type, _exception_value, exception_tb, exception_lineno = (
-            context.variable_storage.getExceptionVariableDescriptions()
-        )
+        (
+            _exception_type,
+            _exception_value,
+            exception_tb,
+            exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
 
         emit(
             template_frame_guard_full_exception_handler
@@ -335,9 +341,12 @@ def getFrameGuardOnceCode(
     )
 
     if frame_exception_exit is not None:
-        _exception_type, _exception_value, exception_tb, exception_lineno = (
-            context.variable_storage.getExceptionVariableDescriptions()
-        )
+        (
+            _exception_type,
+            _exception_value,
+            exception_tb,
+            exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
 
         emit(
             template_frame_guard_once_exception_handler
@@ -370,9 +379,12 @@ def getFrameGuardLightCode(
 ):
     # We really need this many parameters here and it gets very
     # detail rich, pylint: disable=too-many-locals
-    exception_type, _exception_value, exception_tb, exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        _exception_value,
+        exception_tb,
+        exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     context_identifier = context.getContextObjectName()
 
@@ -443,9 +455,11 @@ def generateFramePreserveExceptionCode(statement, emit, context):
         preserver_id = statement.getPreserverId()
 
         assert preserver_id != 0, statement
-        exception_preserved_type, exception_preserved_value, exception_preserved_tb = context.addExceptionPreserverVariables(
-            preserver_id
-        )
+        (
+            exception_preserved_type,
+            exception_preserved_value,
+            exception_preserved_tb,
+        ) = context.addExceptionPreserverVariables(preserver_id)
 
         # TODO: Multiple thread state calls should be avoided.
         emit(
@@ -476,9 +490,11 @@ def generateFrameRestoreExceptionCode(statement, emit, context):
     else:
         preserver_id = statement.getPreserverId()
 
-        exception_preserved_type, exception_preserved_value, exception_preserved_tb = context.addExceptionPreserverVariables(
-            preserver_id
-        )
+        (
+            exception_preserved_type,
+            exception_preserved_value,
+            exception_preserved_tb,
+        ) = context.addExceptionPreserverVariables(preserver_id)
 
         emit(
             "SET_CURRENT_EXCEPTION(%s, %s, %s);"

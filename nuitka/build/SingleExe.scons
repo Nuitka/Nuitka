@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -157,6 +157,8 @@ noelf_mode = getBoolOption("noelf_mode", False)
 
 macosx_target = sys.platform == "darwin"
 
+openbsd_target = sys.platform.startswith("openbsd")
+
 # Windows subsystem mode: Disable console for windows builds.
 win_disable_console = getBoolOption("win_disable_console", False)
 
@@ -172,7 +174,11 @@ target_arch = ARGUMENTS["target_arch"]
 
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
-if macosx_target or ("freebsd" in sys.platform and target_arch != "powerpc"):
+if (
+    macosx_target
+    or openbsd_target
+    or ("freebsd" in sys.platform and target_arch != "powerpc")
+):
     clang_mode = True
 
 # Clang on Windows is always clang-cl for now.
@@ -229,6 +235,10 @@ python_sysflag_unicode = getBoolOption("python_sysflag_unicode", False)
 python_sysflag_utf8 = getBoolOption("python_sysflag_utf8", False)
 # python_sysflag_optimize
 python_sysflag_optimize = getBoolOption("python_sysflag_optimize", False)
+# python_sysflag_no_randomization
+python_sysflag_no_randomization = getBoolOption(
+    "python_sysflag_no_randomization", False
+)
 
 # Preprocessor defines from plugins
 cpp_defines = getListOption("cpp_defines", "")
@@ -408,6 +418,14 @@ def detectVersion(env, cc):  # pylint: disable=redefined-outer-name
     )
 
     line = pipe.stdout.readline()
+    # Non-GNU compiler's output (like AIX xlc's) may exceed the stdout buffer:
+    # So continue with reading to let the child process actually terminate.
+    while pipe.stdout.readline():
+        pass
+
+    ret = pipe.wait()
+    if ret != 0:
+        return None
 
     if str is not bytes and type(line) is bytes:
         line = _decode(line)
@@ -417,21 +435,14 @@ def detectVersion(env, cc):  # pylint: disable=redefined-outer-name
     match = re.findall(r"[0-9]+(?:\.[0-9]+)+", line)
     if match:
         version = match[0]
-    elif line.isdigit():
+    else:
         # gcc 8 or higher
         version = line.strip()
 
+    version = tuple(int(part) for part in version.split("."))
+
     if show_scons_mode:
         print("Scons: CC %r version check gives %r from %r" % (cc, version, line))
-
-    # Non-GNU compiler's output (like AIX xlc's) may exceed the stdout buffer:
-    # So continue with reading to let the child process actually terminate.
-    while pipe.stdout.readline():
-        pass
-
-    ret = pipe.wait()
-    if ret != 0:
-        return None
 
     v_cache[clvar] = version
     return version
@@ -466,7 +477,7 @@ def myDetect(self, progs):
 
             # Ignore gcc before gcc version 5, no C11 support. We will find the
             # C++ compiler of it though.
-            if gcc_version < "5":
+            if gcc_version < (5,):
                 progs = [
                     "gcc-6.5",
                     "gcc-6.3",
@@ -818,7 +829,7 @@ if gcc_mode:
     env.Append(CCFLAGS=["-fwrapv"])
 
     # Save some memory for gcc by not tracing macro code locations at all.
-    if gcc_version >= "5" and not debug_mode and not clang_mode:
+    if gcc_version >= (5,) and not debug_mode and not clang_mode:
         env.Append(CCFLAGS=["-ftrack-macro-expansion=0"])
 
 
@@ -843,7 +854,7 @@ if gcc_mode and "clang" not in the_cc_name:
     # binary if it's not high enough. This is esp. useful under Debian which
     # allows all compiler to exist next to each other and where g++ might not be
     # good enough, but g++-4.5 would be.
-    if gcc_version < "4.4":
+    if gcc_version < (4, 4):
         sys.exit(
             """\
 The gcc compiler %s (version %s) doesn't have the sufficient \
@@ -852,7 +863,7 @@ version (>= 4.4)."""
         )
 
     # CondaCC or newer.
-    if mingw_mode and gcc_version < "5.3":
+    if mingw_mode and gcc_version < (5, 3):
         sys.exit(
             """\
 The MinGW64 compiler %s (version %s) doesn't have the sufficient \
@@ -862,11 +873,11 @@ version (>= 5.3)."""
 
     # Older g++ complains about aliasing with Py_True and Py_False, but we don't
     # care.
-    if gcc_version < "4.5":
+    if gcc_version < (4, 5):
         env.Append(CCFLAGS=["-fno-strict-aliasing"])
 
     # For LTO mode, the version requirement is even higher, so try that too.
-    if lto_mode and gcc_version < "4.6":
+    if lto_mode and gcc_version < (4, 6):
         sys.exit(
             """\
 The gcc compiler %s (version %s) doesn't have the sufficient \
@@ -877,8 +888,8 @@ version for lto mode (>= 4.6)."""
     if lto_mode and mingw_mode:
         sys.exit("""The gcc compiler on Windows, doesn't currently support lto mode.""")
 
-    # For g++ 4.6 there are some new interesting functions.
-    if gcc_version >= "4.6":
+    # For gcc 4.6 there are some new interesting functions.
+    if gcc_version >= (4, 6):
         env.Append(CCFLAGS=["-fpartial-inlining"])
 
         if debug_mode:
@@ -888,14 +899,14 @@ version for lto mode (>= 4.6)."""
     # files, but unfortunately at this time it seriously slows down the compiled
     # code. This may be because it needs -O3 option to be effective.
 
-    if lto_mode and gcc_version >= "4.6":
+    if lto_mode and gcc_version >= (4, 6):
         env.Append(CCFLAGS=["-flto"])
         env.Append(LINKFLAGS=["-flto=%d" % job_count])
 
-        # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=noreturn" ] )
-        # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=pure" ] )
-        # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=const" ] )
-        # env.Append( CCFLAGS = [ "-Wnoexcept" ] )
+        # env.append(LINKFLAGS = ["-Wsuggest-attribute=noreturn"])
+        # env.append(LINKFLAGS = ["-Wsuggest-attribute=pure"])
+        # env.append(LINKFLAGS = ["-Wsuggest-attribute=const"])
+        # env.append(CCFLAGS = ["-Wnoexcept"])
 
         if debug_mode:
             env.Append(LINKFLAGS=["-O2"])
@@ -906,7 +917,7 @@ version for lto mode (>= 4.6)."""
         env.Append(LINKFLAGS=["-fno-lto"])
 
     # Give a warning if LTO mode was specified, but won't be used.
-    if lto_mode and gcc_version < "4.6":
+    if lto_mode and gcc_version < (4, 6):
         print("Warning, LTO mode specified, but not available.", file=sys.stderr)
 
     # The var-tracking does not scale, disable it. Should we really need it, we
@@ -915,17 +926,17 @@ version for lto mode (>= 4.6)."""
 
 # Avoid them as appearing to be different files. TODO: Find out which
 # clang version has this, clang-8 does not.
-if gcc_mode and not clang_mode and gcc_version >= "8":
+if gcc_mode and not clang_mode and gcc_version >= (8,):
     if source_dir != ".":
         # TODO: This also lies for modules codes.
         env.Append(
             CCFLAGS=[
+                "--file-prefix-map=%s=%s" % (os.path.normpath(source_dir), "."),
                 "--file-prefix-map=%s=%s"
                 % (
                     os.path.normpath(os.path.join(source_dir, "static_src")),
-                    os.path.join(nuitka_src, "static_src"),
+                    os.path.normpath(os.path.join(nuitka_src, "static_src")),
                 ),
-                "--file-prefix-map=%s=%s" % (os.path.normpath(source_dir), ""),
             ]
         )
 
@@ -934,7 +945,7 @@ if gcc_mode and not noelf_mode and not macosx_target:
 
 if msvc_mode:
     # With Clang on Windows, there is also an linker to use.
-    env.Append(CCFLAGS=["/EHsc", "/J", "/Gd"])
+    env.Append(CCFLAGS=["/EHsc", "/J", "/Gd", "/bigobj"])
 
     # No incremental linking.
     env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
@@ -963,7 +974,7 @@ if mingw_mode:
     env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])
 
 # At least older MinGW64 has issues with this, so disable it.
-if mingw_mode and gcc_version < "6" and not clang_mode:
+if mingw_mode and gcc_version < (6,) and not clang_mode:
     env.Append(LINKFLAGS=["-Wl,--no-gc-sections"])
 
 if debug_mode:
@@ -986,7 +997,7 @@ if debug_mode:
             ]
         )
 
-        if not clang_mode and gcc_version >= "6":
+        if not clang_mode and gcc_version >= (6,):
             env.Append(
                 CCFLAGS=[
                     # For large files, these can issue warnings about disabling
@@ -1019,7 +1030,7 @@ if full_compat_mode:
 if experimental:
     env.Append(
         CPPDEFINES=[
-            "_NUITKA_EXPERIMENTAL_" + experiment.upper()
+            "_NUITKA_EXPERIMENTAL_" + experiment.upper().replace("-", "_")
             for experiment in experimental
             if experiment
         ]
@@ -1082,6 +1093,12 @@ env.Append(
     CPPDEFINES=["_NUITKA_SYSFLAG_OPTIMIZE=%d" % (1 if python_sysflag_optimize else 0)]
 )
 
+env.Append(
+    CPPDEFINES=[
+        "_NUITKA_SYSFLAG_NO_RANDOMIZATION=%d"
+        % (1 if python_sysflag_no_randomization else 0)
+    ]
+)
 
 if win_target:
     # For MinGW and cross compilation, we need to tell the subsystem
@@ -1345,7 +1362,7 @@ else:
         # Check inlining of calls, except in debug mode, where it will all be
         # wrong due to additional code.
         # if not debug_mode:
-        #     env.Append( CCFLAGS = [ "-Winline" ] )
+        #     env.append(CCFLAGS = ["-Winline"])
     elif msvc_mode:
         env.Append(CCFLAGS=["/Ox"])
 
@@ -1421,7 +1438,14 @@ def getLinkerArch():
     global _linker_arch_determined, _linker_arch
 
     if not _linker_arch_determined:
-        _linker_arch = _getBinaryArch(os.environ["NUITKA_PYTHON_EXE_PATH"])
+        if win_target:
+            if target_arch == "x86_64":
+                _linker_arch = "pei-x86-64"
+            else:
+                _linker_arch = "pei-i386"
+        else:
+            _linker_arch = _getBinaryArch(os.environ["NUITKA_PYTHON_EXE_PATH"])
+
         _linker_arch_determined = True
 
     return _linker_arch
@@ -1461,13 +1485,11 @@ def getCompilerArch():
         _rv = proc.wait()
 
         if b"x86" in err or b"i686" in data:
-            _compiler_arch = "x86"
-            _compiler_arch_determined = True
+            _compiler_arch = "pei-i386"
         elif b"x64" in err:
-            _compiler_arch = "x86_64"
-            _compiler_arch_determined = True
-        else:
-            _compiler_arch_determined = True
+            _compiler_arch = "pei-x86-64"
+
+        _compiler_arch_determined = True
     else:
         assert False, the_compiler
 
@@ -1478,14 +1500,13 @@ if win_target:
     # Check most common user error related to MinGW64. People install 32 and
     # 64 variants and do not consider that MinGW64 could be 32 bits too.
 
-    if (getLinkerArch() or target_arch) != getCompilerArch():
+    if getLinkerArch() != getCompilerArch():
         sys.exit(
-            "Error, mismatch between Python ('%s') and C compiler ('%s') arches."
+            "Error, mismatch between Python binary ('%s' -> '%s') and C compiler ('%s' -> '%s') arches."
             % (
-                "%s"
-                % (
-                    getLinkerArch() or target_arch or "unknown, but likely 'pei-x86-64'"
-                ),
+                os.environ["NUITKA_PYTHON_EXE_PATH"],
+                getLinkerArch(),
+                getExecutablePath(the_compiler, initial=False),
                 getCompilerArch(),
             )
         )
@@ -1667,12 +1688,7 @@ def discoverSourceFiles():
     # Compiled types.
     result.append(provideStatic("CompiledCellType.c"))
     result.append(provideStatic("CompiledFunctionType.c"))
-    result.append(provideStatic("CompiledMethodType.c"))
     result.append(provideStatic("CompiledGeneratorType.c"))
-    if python_version >= "3.5":
-        result.append(provideStatic("CompiledCoroutineType.c"))
-    if python_version >= "3.6":
-        result.append(provideStatic("CompiledAsyncgenType.c"))
     result.append(provideStatic("CompiledFrameType.c"))
 
     # Helper codes.

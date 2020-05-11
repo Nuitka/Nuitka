@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -56,8 +56,8 @@ binary_operator_functions = {
 
 # Python 2 only operator
 if python_version < 300:
-    binary_operator_functions["Div"] = operator.div
-    binary_operator_functions["IDiv"] = operator.idiv
+    binary_operator_functions["OldDiv"] = operator.div
+    binary_operator_functions["IOldDiv"] = operator.idiv
 
 # Python 3.5 only operator
 if python_version >= 350:
@@ -102,6 +102,8 @@ comparison_inversions = {
     "NotEq": "Eq",
     "Gt": "LtE",
     "LtE": "Gt",
+    "exception_match": "exception_mismatch",
+    "exception_mismatch": "exception_match",
 }
 
 all_comparison_functions = dict(rich_comparison_functions)

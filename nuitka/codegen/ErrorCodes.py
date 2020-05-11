@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,7 +31,7 @@ And releasing of values, as this is what the error case commonly does.
 from nuitka.PythonVersions import python_version
 
 from .ExceptionCodes import getExceptionIdentifier
-from .Indentation import getCommentCode, indented
+from .Indentation import indented
 from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .templates.CodeTemplatesExceptions import (
     template_error_catch_exception,
@@ -91,9 +91,12 @@ def getErrorExitBoolCode(
         getAssertionCode("!(%s)" % condition, emit)
         return
 
-    exception_type, exception_value, exception_tb, _exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     if quick_exception:
         emit(
@@ -146,7 +149,7 @@ def getErrorExitCode(
     needs_check=True,
 ):
     getErrorExitBoolCode(
-        condition="%s == NULL" % check_name,
+        condition=check_name.getCType().getExceptionCheckCondition(check_name),
         release_names=release_names,
         release_name=release_name,
         needs_check=needs_check,
@@ -159,9 +162,12 @@ def getErrorExitCode(
 def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
     assert not condition.endswith(";")
 
-    exception_type, exception_value, exception_tb, _exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     if len(args) == 1 and type(args[0]) is str:
         from .ConstantCodes import getModuleConstantCode
@@ -214,9 +220,32 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
     )
 
 
+def getTakeReferenceCode(value_name, emit):
+    # TODO: This should be done via the C type
+    if value_name.c_type == "PyObject *":
+        emit("Py_INCREF(%s);" % value_name)
+    elif value_name.c_type == "nuitka_bool":
+        pass
+    elif value_name.c_type == "nuitka_void":
+        pass
+    else:
+        assert False, repr(value_name)
+
+
 def getReleaseCode(release_name, emit, context):
     if context.needsCleanup(release_name):
-        emit("Py_DECREF(%s);" % release_name)
+        # TODO: This should be done via the C type and its getReleaseCode() method, but this
+        # one does too much for object, in that it always assigns NULL to the object for no
+        # good reason in non-debug mode.
+        if release_name.c_type == "PyObject *":
+            emit("Py_DECREF(%s);" % release_name)
+        elif release_name.c_type == "nuitka_bool":
+            pass
+        elif release_name.c_type == "nuitka_void":
+            pass
+        else:
+            assert False, repr(release_name)
+
         context.removeCleanupTempName(release_name)
 
 
@@ -225,16 +254,13 @@ def getReleaseCodes(release_names, emit, context):
         getReleaseCode(release_name=release_name, emit=emit, context=context)
 
 
-def getMustNotGetHereCode(reason, context, emit):
-    getCommentCode(reason, emit)
-
-    provider = context.getEntryPoint()
-
+def getMustNotGetHereCode(reason, emit):
     emit(
-        "NUITKA_CANNOT_GET_HERE(%(function_identifier)s);"
-        % {"function_identifier": provider.getCodeName()}
+        """\
+NUITKA_CANNOT_GET_HERE("%s");
+return NULL;"""
+        % reason
     )
-    emit("return NULL;")
 
 
 def getAssertionCode(check, emit):

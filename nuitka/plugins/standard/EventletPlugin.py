@@ -1,4 +1,4 @@
-#     Copyright 2019, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2020, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -45,10 +45,10 @@ class EventlettPluginDetector(NuitkaPluginBase):
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    plugin_name = "eventlet"
+    detector_for = EventletPlugin
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         """ One time only check: may this plugin be required?
 
         Returns:

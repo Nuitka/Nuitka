@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -33,7 +33,10 @@ from nuitka import Options, Tracing
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
-from nuitka.utils.FileOperations import getExternalUsePath, getWindowsShortPathName
+from nuitka.utils.FileOperations import (
+    getExternalUsePath,
+    getWindowsShortPathName,
+)
 
 
 def getSconsDataPath():
@@ -279,6 +282,10 @@ def runScons(options, quiet):
             if "result_exe" in options:
                 options["result_exe"] = getExternalUsePath(
                     options["result_exe"], only_dirname=True
+                )
+            if "icon_path" in options:
+                options["icon_path"] = getExternalUsePath(
+                    options["icon_path"], only_dirname=True
                 )
         else:
             source_dir = None

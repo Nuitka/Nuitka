@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -81,9 +81,12 @@ def getGeneratorObjectCode(
     function_cleanup = finalizeFunctionLocalVariables(context)
 
     if needs_exception_exit:
-        exception_type, exception_value, exception_tb, _exception_lineno = (
-            context.variable_storage.getExceptionVariableDescriptions()
-        )
+        (
+            exception_type,
+            exception_value,
+            exception_tb,
+            _exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
 
         generator_exit = template_generator_exception_exit % {
             "function_cleanup": indented(function_cleanup),

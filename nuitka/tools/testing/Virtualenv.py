@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,6 +28,7 @@ import sys
 from contextlib import contextmanager
 
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import removeDirectory
 
 from .Common import my_print, withDirectoryChange
@@ -104,7 +105,7 @@ def withVirtualenv(env_name, base_dir=None, python=None, delete=True, style=None
         command = [python, "-m", "virtualenv", env_name]
         if style is not None:
             my_print("Executing: %s" % " ".join(command))
-        subprocess.check_call(command)
+        check_call(command)
 
         yield Virtualenv(env_dir)
 

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,11 @@ from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getAssertionCode, getErrorExitBoolCode, getErrorExitCode
+from .ErrorCodes import (
+    getAssertionCode,
+    getErrorExitBoolCode,
+    getErrorExitCode,
+)
 from .PythonAPICodes import generateCAPIObjectCode
 
 
@@ -316,7 +320,7 @@ def generateBuiltinComplex2Code(to_name, expression, emit, context):
 
 
 def generateBuiltinBoolCode(to_name, expression, emit, context):
-    arg_name, = generateChildExpressionsCode(
+    (arg_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -102,7 +102,7 @@ class VariableDeclaration(object):
             return CTypeNuitkaIntOrLongStruct
         elif c_type == "module_var":
             return CTypeModuleDictVariable
-        elif c_type == "void":
+        elif c_type == "nuitka_void":
             return CTypeVoid
 
         assert False, c_type
@@ -245,7 +245,6 @@ class VariableStorage(object):
         return [
             variable_declaration.makeCFunctionLevelDeclaration()
             for variable_declaration in self.variable_declarations_main
-            if variable_declaration.c_type != "void"
         ]
 
     def getLocalPreservationDeclarations(self):

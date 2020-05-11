@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,15 +22,16 @@
 import distutils.command.build  # pylint: disable=I0021,import-error,no-name-in-module
 import distutils.command.install  # pylint: disable=I0021,import-error,no-name-in-module
 import os
-import subprocess
 import sys
 
 import wheel.bdist_wheel  # pylint: disable=I0021,import-error,no-name-in-module
 
 from nuitka.tools.testing.Common import my_print
+from nuitka.utils.Execution import check_call
+from nuitka.utils.FileOperations import copyTree, removeDirectory
 
 
-def setuptools_build_hook(dist, keyword, value):
+def setupNuitkaDistutilsCommands(dist, keyword, value):
     # If the user project setup.py includes the key "build_with_nuitka=True" all
     # build operations (build, bdist_wheel, install etc) will run via Nuitka.
     # pylint: disable=unused-argument
@@ -77,7 +78,7 @@ class PyModule(object):
 
 
 # Class name enforced by distutils, must match the command name.
-# pylint: disable=C0103
+# Required by distutils, used as command name, pylint: disable=invalid-name
 class build(distutils.command.build.build):
 
     # pylint: disable=attribute-defined-outside-init
@@ -113,7 +114,11 @@ class build(distutils.command.build.build):
 
         while py_packages:
             current_package = min(py_packages)
-            related = [p for p in py_packages if p == current_package or p.startswith(current_package + ".")]
+            related = [
+                p
+                for p in py_packages
+                if p == current_package or p.startswith(current_package + ".")
+            ]
 
             builds.append(PyPackage(current_package, related_packages=related))
 
@@ -122,7 +127,11 @@ class build(distutils.command.build.build):
 
         while py_modules:
             current_module = min(py_modules)
-            related = [m for m in py_modules if m == current_module or m.startswith(current_module + ".")]
+            related = [
+                m
+                for m in py_modules
+                if m == current_module or m.startswith(current_module + ".")
+            ]
 
             builds.append(PyModule(current_module, related_modules=related))
 
@@ -180,16 +189,16 @@ class build(distutils.command.build.build):
             ]
 
             if type(to_build) is PyPackage:
-                command += [
+                command += (
                     "--include-package=%s" % package_name.replace("/", ".")
                     for package_name in to_build.related_packages
-                ]
+                )
 
             else:  # type(to_build) is PyModule
-                command += [
+                command += (
                     "--include-module=%s" % module_name
                     for module_name in to_build.related_modules
-                ]
+                )
 
             # Process any extra options from setuptools
             if "nuitka" in self.distribution.command_options:
@@ -214,7 +223,7 @@ class build(distutils.command.build.build):
 
             # added for clarity
             my_print("Building: %s" % to_build, style="yellow")
-            subprocess.check_call(command, cwd=build_lib)
+            check_call(command, cwd=build_lib)
 
             for root, _, filenames in os.walk(build_lib):
                 for filename in filenames:
@@ -223,12 +232,24 @@ class build(distutils.command.build.build):
                     if fullpath.lower().endswith((".py", ".pyw", ".pyc", ".pyo")):
                         os.unlink(fullpath)
 
+            # If the Python module has more than one parent package (e.g.
+            # 'a.b.mod'), the compiled module will be in 'a.b/mod.so'. Move it
+            # to 'a/b/mod.so', to make imports work.
+            if package and "." in package:
+                compiled_package_path = os.path.join(build_lib, package)
+                assert os.path.isdir(compiled_package_path), compiled_package_path
+
+                parts = package.split(".")
+                fixed_package_path = os.path.join(build_lib, *parts)
+                copyTree(compiled_package_path, fixed_package_path)
+                removeDirectory(compiled_package_path, ignore_errors=False)
+
             os.chdir(old_dir)
 
             self.build_lib = build_lib
 
 
-# pylint: disable=C0103
+# Required by distutils, used as command name, pylint: disable=invalid-name
 class install(distutils.command.install.install):
 
     # pylint: disable=attribute-defined-outside-init
@@ -238,7 +259,7 @@ class install(distutils.command.install.install):
         self.install_lib = self.install_platlib
 
 
-# pylint: disable=C0103
+# Required by distutils, used as command name, pylint: disable=invalid-name
 class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
     def initialize_options(self):
         # Register the command class overrides above

@@ -19,14 +19,10 @@ to answer commonly asked questions regarding that, and to provide some insight
 
 Pull requests are great. Here's a quick guide:
 
-First, if the PR is directly related to an already existing issue (which has no
-PR yet), drop a note in that issue before opening the PR.
-
 1. Fork the repo on github.
-2. Install the pre-commit hook that is going to automatically format your
+2. Install the `pre-commit` git hook that is going to automatically format your
    code as described in the Developer Manual.
-3. Make a new branch. For feature additions/changes base your new branch at
-   `develop`, for pure bugfixes base your new branch at e.g. `master`.
+3. Make a new branch and base your new branch on `develop`.
 4. Ideally add a test specific for your change to demonstrate it. Due to Nuitka
    testing being basically to compile the whole world, it's ok to not have one.
    But obviously if you fix something, it wasn't observed by that, it would be
@@ -38,19 +34,17 @@ PR yet), drop a note in that issue before opening the PR.
    request has been opened by adding more commits to the branch.
 
 All the submitted pieces including potential data must be compatible with the
-Apache License 2, which already says that you sending source, e.g. via pull
-request, license it as that too.
+Apache License 2, which already says that once you are sending source, e.g.
+via pull request, you automatically license it as that too.
 
 ## Submitting an Issue
 
-If you want to ask a question about a specific Nuitka aspect, please first of all..
+If you want to ask a question about a specific Nuitka aspect, please be kind
+and first of all..
 
-* Search through [Github issues tagged as "question"](https://github.com/kayhayen/Nuitka/issues?q=label%3Aquestion)
-* Search the [nuitka-dev] mailing list archives, e.g.
-  searching for term "standalone macos" via Google with search string
-  `standalone site:https://www.freelists.org/archive` may already reveal what
-  you are looking for.
-* If asked in neither forum, ask it there.
+* Search through [Github issues tagged as
+"question"](https://github.com/kayhayen/Nuitka/issues?q=label%3Aquestion)
+* If not asked yet, ask it there.
 
 If you want to post a problem/bug, to help us understand and resolve your issue
 please check that you have provided the information below:
@@ -65,10 +59,10 @@ please check that you have provided the information below:
 * If this is a regression (used to work in an earlier version of Nuitka),
   please note what you know about that.
 
-You can also do a quick check whether..
+You also ought to do a quick check whether..
 
 * the bug was already fixed in the branch for the next release, e.g. for the
-   `develop` branch try pre-release packages out.
+  `develop` branch try pre-release packages out. Many times this is the case.
 
 * if it was already reported and/or is maybe even being worked on already by
   checking open issues of the corresponding milestone, e.g. see [open and closed
@@ -76,4 +70,4 @@ You can also do a quick check whether..
 
 ## And finally
 
-Welcome on board. Nuitka is an ambitious project. Join it now.
+Welcome on board. Nuitka is an ambitious project. We are friendly. Join it now.

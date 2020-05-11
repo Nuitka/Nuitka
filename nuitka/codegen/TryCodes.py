@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -109,9 +109,7 @@ def generateTryCode(statement, emit, context):
 
         getGotoCode(post_label, emit)
     else:
-        getMustNotGetHereCode(
-            reason="tried codes exits in all cases", context=context, emit=emit
-        )
+        getMustNotGetHereCode(reason="tried codes exits in all cases", emit=emit)
 
     if return_handler is not None:
         assert tried_block.mayReturn()
@@ -139,9 +137,12 @@ def generateTryCode(statement, emit, context):
         getLabelCode(tried_handler_escape, emit)
 
         # Need to preserve exception state.
-        keeper_type, keeper_value, keeper_tb, keeper_lineno = (
-            context.allocateExceptionKeeperVariables()
-        )
+        (
+            keeper_type,
+            keeper_value,
+            keeper_tb,
+            keeper_lineno,
+        ) = context.allocateExceptionKeeperVariables()
 
         old_keepers = context.setExceptionKeeperVariables(
             (keeper_type, keeper_value, keeper_tb, keeper_lineno)
@@ -149,9 +150,12 @@ def generateTryCode(statement, emit, context):
 
         assert keeper_type is not None
 
-        exception_type, exception_value, exception_tb, exception_lineno = (
-            context.variable_storage.getExceptionVariableDescriptions()
-        )
+        (
+            exception_type,
+            exception_value,
+            exception_tb,
+            exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
 
         # TODO: That normalization and chaining is only necessary if the
         # exception is published.
@@ -194,9 +198,7 @@ def generateTryCode(statement, emit, context):
             getGotoCode(post_label, emit)
 
             getMustNotGetHereCode(
-                reason="exception handler codes exits in all cases",
-                context=context,
-                emit=emit,
+                reason="exception handler codes exits in all cases", emit=emit
             )
 
         context.setExceptionKeeperVariables(old_keepers)
@@ -272,7 +274,7 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
     if not tried_statement.isStatementAssignmentVariable():
         return False
 
-    assign_source = tried_statement.getAssignSource()
+    assign_source = tried_statement.subnode_source
 
     if not assign_source.isExpressionBuiltinNext1():
         return False

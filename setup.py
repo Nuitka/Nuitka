@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -43,7 +43,7 @@ if os.name == "nt":
 # don't mean to pollute with ".pyc" files and similar effects.
 def detectVersion():
     with open("nuitka/Version.py") as version_file:
-        version_line, = [line for line in version_file if line.startswith("Nuitka V")]
+        (version_line,) = [line for line in version_file if line.startswith("Nuitka V")]
 
         return version_line.split("V")[1].strip()
 
@@ -161,9 +161,9 @@ def get_args(cls, dist, header=None):
         for name, _ep in dist.get_entry_map(group).items():
             script_text = runner_script_template
 
-            args = cls._get_script_args(
+            args = cls._get_script_args(  # pylint: disable=protected-access
                 type_, name, header, script_text
-            )  # pylint: disable=protected-access
+            )
             for res in args:
                 yield res
 
@@ -255,6 +255,7 @@ setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         # We depend on CPython.
         "Programming Language :: Python :: Implementation :: CPython",
         # We generate C intermediate code and implement part of the
@@ -298,14 +299,14 @@ Python compiler with full language support and CPython compatibility""",
     entry_points={
         "distutils.commands": [
             "bdist_nuitka = \
-             nuitka.distutils.bdist_nuitka:bdist_nuitka",
+             nuitka.distutils.DistutilCommands:bdist_nuitka",
             "build_nuitka = \
-             nuitka.distutils.bdist_nuitka:build",
+             nuitka.distutils.DistutilCommands:build",
             "install_nuitka = \
-             nuitka.distutils.bdist_nuitka:install",
+             nuitka.distutils.DistutilCommands:install",
         ],
         "distutils.setup_keywords": [
-            "build_with_nuitka = nuitka.distutils.bdist_nuitka:setuptools_build_hook"
+            "build_with_nuitka = nuitka.distutils.DistutilCommands:setupNuitkaDistutilsCommands"
         ],
         "console_scripts": [
             "nuitka%s = nuitka.__main__:main" % binary_suffix,

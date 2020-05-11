@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,7 +20,10 @@
 The normal "yield", and the Python 3.3 or higher "yield from" variant.
 """
 
-from .CodeHelpers import generateChildExpressionsCode, withObjectCodeTemporaryAssignment
+from .CodeHelpers import (
+    generateChildExpressionsCode,
+    withObjectCodeTemporaryAssignment,
+)
 from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import getReferenceExportCode
 from .VariableDeclarations import VariableDeclaration
@@ -121,7 +124,7 @@ def _getYieldPreserveCode(
 
 
 def generateYieldCode(to_name, expression, emit, context):
-    value_name, = generateChildExpressionsCode(
+    (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -150,7 +153,7 @@ def generateYieldCode(to_name, expression, emit, context):
 
         # This conversion will not use it, and since it is borrowed, debug mode
         # would otherwise complain.
-        if to_name.c_type == "void":
+        if to_name.c_type == "nuitka_void":
             result_name.maybe_unused = True
 
         # Comes as only borrowed.
@@ -158,7 +161,7 @@ def generateYieldCode(to_name, expression, emit, context):
 
 
 def generateYieldFromCode(to_name, expression, emit, context):
-    value_name, = generateChildExpressionsCode(
+    (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -166,9 +169,9 @@ def generateYieldFromCode(to_name, expression, emit, context):
     preserve_exception = expression.isExceptionPreserving()
 
     getReferenceExportCode(value_name, emit, context)
-
     if context.needsCleanup(value_name):
         context.removeCleanupTempName(value_name)
+
     yield_code = """\
 generator->m_yieldfrom = %(yield_from)s;
 return NULL;
@@ -198,7 +201,7 @@ def generateYieldFromWaitableCode(to_name, expression, emit, context):
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 
-    awaited_name, = generateChildExpressionsCode(
+    (awaited_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 

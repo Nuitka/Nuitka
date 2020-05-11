@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -23,6 +23,12 @@
  * built-in and should be avoided.
  *
  **/
+
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
 
 static PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const **arg_names, int max_args) {
     int i = 0;
@@ -174,7 +180,7 @@ PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals) {
     CHECK_OBJECT(locals);
 
     if (PyDict_Check(globals) == 0) {
-        PyErr_Format(PyExc_TypeError, "exec: arg 2 must be a dictionary or None");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "exec: arg 2 must be a dictionary or None");
         return NULL;
     }
 
@@ -184,7 +190,7 @@ PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals) {
     }
 
     if (PyMapping_Check(locals) == 0) {
-        PyErr_Format(PyExc_TypeError, "exec: arg 3 must be a mapping or None");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "exec: arg 3 must be a mapping or None");
         return NULL;
     }
 
@@ -324,14 +330,14 @@ PyObject *BUILTIN_OCT(PyObject *value) {
     return result;
 #else
     if (unlikely(value == NULL)) {
-        PyErr_Format(PyExc_TypeError, "oct() argument can't be converted to oct");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "oct() argument can't be converted to oct");
         return NULL;
     }
 
     PyNumberMethods *nb = Py_TYPE(value)->tp_as_number;
 
     if (unlikely(nb == NULL || nb->nb_oct == NULL)) {
-        PyErr_Format(PyExc_TypeError, "oct() argument can't be converted to oct");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "oct() argument can't be converted to oct");
         return NULL;
     }
 
@@ -365,14 +371,14 @@ PyObject *BUILTIN_HEX(PyObject *value) {
     return result;
 #else
     if (unlikely(value == NULL)) {
-        PyErr_Format(PyExc_TypeError, "hex() argument can't be converted to hex");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "hex() argument can't be converted to hex");
         return NULL;
     }
 
     PyNumberMethods *nb = Py_TYPE(value)->tp_as_number;
 
     if (unlikely(nb == NULL || nb->nb_hex == NULL)) {
-        PyErr_Format(PyExc_TypeError, "hex() argument can't be converted to hex");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "hex() argument can't be converted to hex");
         return NULL;
     }
 
@@ -605,7 +611,8 @@ PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object) {
                     Py_DECREF(class_attr);
                 }
 
-                PyErr_Format(PyExc_TypeError, "super(type, obj): obj must be an instance or subtype of type");
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
+                                                "super(type, obj): obj must be an instance or subtype of type");
 
                 return NULL;
             }
@@ -617,7 +624,7 @@ PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object) {
 
     Nuitka_GC_Track(result);
 
-    CHECK_OBJECT((PyObject *)result);
+    CHECK_OBJECT(result);
     assert(Py_TYPE(result) == &PySuper_Type);
 
     return (PyObject *)result;
@@ -651,12 +658,12 @@ PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *defau
     }
 
     if (unlikely(!PyString_Check(attribute))) {
-        PyErr_Format(PyExc_TypeError, "getattr(): attribute name must be string");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "getattr(): attribute name must be string");
         return NULL;
     }
 #else
     if (!PyUnicode_Check(attribute)) {
-        PyErr_Format(PyExc_TypeError, "getattr(): attribute name must be string");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "getattr(): attribute name must be string");
         return NULL;
     }
 #endif
@@ -684,127 +691,12 @@ PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *defau
 PyObject *BUILTIN_SETATTR(PyObject *object, PyObject *attribute, PyObject *value) {
     int res = PyObject_SetAttr(object, attribute, value);
 
-    if (res < 0) {
+    if (unlikely(res < 0)) {
         return NULL;
     }
 
-    Py_INCREF(Py_None);
+    // No reference returned.
     return Py_None;
-}
-
-/** The "divmod" built-in.
- *
- * This is really a binary number operation and probably should live
- * where the others are.
- *
- **/
-
-PyObject *BUILTIN_DIVMOD(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_divmod;
-    }
-
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_divmod;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 300
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
-
-        if (err < 0) {
-            return NULL;
-        }
-
-        if (err == 0) {
-            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
-
-            if (mv) {
-                binaryfunc slot = mv->nb_divmod;
-
-                if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
-
-                    Py_DECREF(operand1);
-                    Py_DECREF(operand2);
-
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-            }
-
-            // CoerceEx did that
-            Py_DECREF(operand1);
-            Py_DECREF(operand2);
-        }
-    }
-#endif
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for divmod(): '%s' and '%s'", type1->tp_name,
-                 type2->tp_name);
-
-    return NULL;
 }
 
 PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
@@ -853,7 +745,7 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
 
 #if PYTHON_VERSION < 300
     if (unlikely(!Nuitka_String_Check(value) && !PyUnicode_Check(value))) {
-        PyErr_Format(PyExc_TypeError, "int() can't convert non-string with explicit base");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "int() can't convert non-string with explicit base");
         return NULL;
     }
 
@@ -874,7 +766,7 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
     } else if (PyBytes_Check(value) || PyByteArray_Check(value)) {
         // Check for "NUL" as PyLong_FromString has no length parameter,
         Py_ssize_t size = Py_SIZE(value);
-        char *value_str;
+        char const *value_str;
 
         if (PyByteArray_Check(value)) {
             value_str = PyByteArray_AS_STRING(value);
@@ -885,7 +777,7 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
         PyObject *result = NULL;
 
         if (size != 0 && strlen(value_str) == (size_t)size) {
-            result = PyInt_FromString(value_str, NULL, (int)base_int);
+            result = PyLong_FromString((char *)value_str, NULL, (int)base_int);
         }
 
         if (unlikely(result == NULL)) {
@@ -896,7 +788,7 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
 
         return result;
     } else {
-        PyErr_Format(PyExc_TypeError, "int() can't convert non-string with explicit base");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "int() can't convert non-string with explicit base");
         return NULL;
     }
 #endif
@@ -914,7 +806,7 @@ PyObject *BUILTIN_LONG2(PyObject *value, PyObject *base) {
     }
 
     if (unlikely(!Nuitka_String_Check(value) && !PyUnicode_Check(value))) {
-        PyErr_Format(PyExc_TypeError, "long() can't convert non-string with explicit base");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "long() can't convert non-string with explicit base");
         return NULL;
     }
 

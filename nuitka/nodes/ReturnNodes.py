@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -44,8 +44,7 @@ class StatementReturn(StatementChildHavingBase):
         return self.getExpression().mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(self.getExpression())
-        expression = self.getExpression()
+        expression = trace_collection.onExpression(self.getExpression())
 
         if expression.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -77,7 +76,7 @@ Return statement raises in returned expression, removed return.""",
                 result,
                 "new_statements",
                 """\
-Return value is always constant.""",
+Return value is constant.""",
             )
 
         return self, None, None

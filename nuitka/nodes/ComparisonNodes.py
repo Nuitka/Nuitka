@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,7 +26,7 @@ from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import ShapeTypeBool
+from .shapes.BuiltinTypeShapes import tshape_bool
 
 
 class ExpressionComparisonBase(ExpressionChildrenHavingBase):
@@ -87,7 +87,7 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
         return self, None, None
 
     def computeExpressionOperationNot(self, not_node, trace_collection):
-        if self.getTypeShape() is ShapeTypeBool:
+        if self.getTypeShape() is tshape_bool:
             result = makeComparisonExpression(
                 left=self.subnode_left,
                 right=self.subnode_right,
@@ -98,8 +98,7 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
             return (
                 result,
                 "new_expression",
-                """\
-Replaced negated comparison '%s' with inverse comparison '%s'."""
+                """Replaced negated comparison '%s' with inverse comparison '%s'."""
                 % (self.comparator, result.comparator),
             )
 
@@ -158,6 +157,9 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
             or self.subnode_left.mayRaiseException(exception_type)
             or self.subnode_right.mayRaiseException(exception_type)
         )
+
+    def mayRaiseExceptionBool(self, exception_type):
+        return self.type_shape.hasShapeSlotBool() is not True
 
     def mayRaiseExceptionComparison(self):
         return (
@@ -252,7 +254,7 @@ class ExpressionComparisonNeq(ExpressionComparisonRichBase):
 
     @staticmethod
     def getComparisonShape(left_shape, right_shape):
-        return left_shape.getComparisonLteShape(right_shape)
+        return left_shape.getComparisonNeqShape(right_shape)
 
 
 class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
@@ -270,7 +272,7 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
         return {}
 
     def getTypeShape(self):
-        return ShapeTypeBool
+        return tshape_bool
 
     def mayRaiseException(self, exception_type):
         return self.getLeft().mayRaiseException(
@@ -368,11 +370,7 @@ class ExpressionComparisonIsNot(ExpressionComparisonIsIsNotBase):
         )
 
 
-class ExpressionComparisonExceptionMatch(ExpressionComparisonBase):
-    kind = "EXPRESSION_COMPARISON_EXCEPTION_MATCH"
-
-    comparator = "exception_match"
-
+class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
     def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self, left=left, right=right, source_ref=source_ref
@@ -381,10 +379,26 @@ class ExpressionComparisonExceptionMatch(ExpressionComparisonBase):
     def getDetails(self):
         return {}
 
+    def getTypeShape(self):
+        return tshape_bool
+
     def getSimulator(self):
+        # TODO: Doesn't happen yet, but will once we trace exceptions.
         assert False
 
         return PythonOperators.all_comparison_functions[self.comparator]
+
+
+class ExpressionComparisonExceptionMatch(ExpressionComparisonExceptionMatchBase):
+    kind = "EXPRESSION_COMPARISON_EXCEPTION_MATCH"
+
+    comparator = "exception_match"
+
+
+class ExpressionComparisonExceptionMismatch(ExpressionComparisonExceptionMatchBase):
+    kind = "EXPRESSION_COMPARISON_EXCEPTION_MISMATCH"
+
+    comparator = "exception_mismatch"
 
 
 class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
@@ -399,7 +413,7 @@ class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
         return {}
 
     def getTypeShape(self):
-        return ShapeTypeBool
+        return tshape_bool
 
     def mayRaiseException(self, exception_type):
         left = self.getLeft()
@@ -445,32 +459,23 @@ class ExpressionComparisonNotIn(ExpressionComparisonInNotInBase):
         )
 
 
-def makeComparisonExpression(left, right, comparator, source_ref):
-    if comparator == "Is":
-        result = ExpressionComparisonIs(left=left, right=right, source_ref=source_ref)
-    elif comparator == "IsNot":
-        result = ExpressionComparisonIsNot(
-            left=left, right=right, source_ref=source_ref
-        )
-    elif comparator == "In":
-        result = ExpressionComparisonIn(left=left, right=right, source_ref=source_ref)
-    elif comparator == "NotIn":
-        result = ExpressionComparisonNotIn(
-            left=left, right=right, source_ref=source_ref
-        )
-    elif comparator == "Lt":
-        result = ExpressionComparisonLt(left=left, right=right, source_ref=source_ref)
-    elif comparator == "LtE":
-        result = ExpressionComparisonLte(left=left, right=right, source_ref=source_ref)
-    elif comparator == "Gt":
-        result = ExpressionComparisonGt(left=left, right=right, source_ref=source_ref)
-    elif comparator == "GtE":
-        result = ExpressionComparisonGte(left=left, right=right, source_ref=source_ref)
-    elif comparator == "Eq":
-        result = ExpressionComparisonEq(left=left, right=right, source_ref=source_ref)
-    elif comparator == "NotEq":
-        result = ExpressionComparisonNeq(left=left, right=right, source_ref=source_ref)
-    else:
-        assert False, comparator
+_comparator_to_nodeclass = {
+    "Is": ExpressionComparisonIs,
+    "IsNot": ExpressionComparisonIsNot,
+    "In": ExpressionComparisonIn,
+    "NotIn": ExpressionComparisonNotIn,
+    "Lt": ExpressionComparisonLt,
+    "LtE": ExpressionComparisonLte,
+    "Gt": ExpressionComparisonGt,
+    "GtE": ExpressionComparisonGte,
+    "Eq": ExpressionComparisonEq,
+    "NotEq": ExpressionComparisonNeq,
+    "exception_match": ExpressionComparisonExceptionMatch,
+    "exception_mismatch": ExpressionComparisonExceptionMismatch,
+}
 
-    return result
+
+def makeComparisonExpression(left, right, comparator, source_ref):
+    return _comparator_to_nodeclass[comparator](
+        left=left, right=right, source_ref=source_ref
+    )

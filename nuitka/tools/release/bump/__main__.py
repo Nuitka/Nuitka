@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -98,7 +98,7 @@ The mode of update, prerelease, hotfix, release, auto (default auto determines f
     with open("nuitka/Version.py") as f:
         option_lines = f.readlines()
 
-    version_line, = [line for line in option_lines if line.startswith("Nuitka V")]
+    (version_line,) = [line for line in option_lines if line.startswith("Nuitka V")]
 
     old_version = version_line[8:].rstrip()
 

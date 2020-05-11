@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -27,9 +27,7 @@
 
 #if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
 
-#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
 unsigned char const *constant_bin = NULL;
-#endif
 
 void loadConstantsResource() {
 

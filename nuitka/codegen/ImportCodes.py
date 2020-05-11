@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -35,9 +35,13 @@ from .ModuleCodes import getModuleAccessCode
 
 def generateBuiltinImportCode(to_name, expression, emit, context):
     # We know that 5 expressions are created, pylint: disable=W0632
-    module_name, globals_name, locals_name, import_list_name, level_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
+    (
+        module_name,
+        globals_name,
+        locals_name,
+        import_list_name,
+        level_name,
+    ) = generateChildExpressionsCode(expression=expression, emit=emit, context=context)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
@@ -153,9 +157,9 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
             emit(
                 """\
 {
-    PyObject *module = PyImport_ImportModule("%(module_name)s");
-    if (likely(module != NULL)) {
-        %(to_name)s = PyObject_GetAttr(module, %(import_name)s);
+    PyObject *hard_module = PyImport_ImportModule("%(module_name)s");
+    if (likely(hard_module != NULL)) {
+        %(to_name)s = PyObject_GetAttr(hard_module, %(import_name)s);
     } else {
         %(to_name)s = NULL;
     }
@@ -232,13 +236,11 @@ def generateImportNameCode(to_name, expression, emit, context):
         context=context,
     )
 
-    level = expression.getImportLevel()
-
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
     ) as value_name:
 
-        if level and python_version >= 350:
+        if python_version >= 350:
             emit(
                 """\
 if (PyModule_Check(%(from_arg_name)s)) {

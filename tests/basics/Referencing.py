@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -32,12 +32,15 @@ sys.path.insert(
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
     ),
 )
-from nuitka.tools.testing.Common import executeReferenceChecked, checkDebugPython
+from nuitka.tools.testing.Common import executeReferenceChecked
 
 # isort:start
 
-checkDebugPython()
-
+# Tests do all bad things,
+# pylint: disable=misplaced-bare-raise,raising-bad-type,reimported,undefined-variable
+# pylint: disable=broad-except,eval-used,redefined-outer-name,unused-argument,unused-variable
+# pylint: disable=attribute-defined-outside-init,bare-except,lost-exception,pointless-statement
+# pylint: disable=exec-used,global-statement,invalid-name,not-callable,super-init-not-called
 
 x = 17
 
@@ -507,16 +510,18 @@ def simpleFunction55():
 
 
 def simpleFunction56():
-    def f():
-        f()
+    """ Throw into finished generator. """
+    g = (x for x in range(9))
+
+    list(g)
 
     try:
-        f()
-    except RuntimeError:
+        g.throw(ValueError(9))
+    except ValueError as _e:
         pass
 
 
-def simpleFunction57():
+def simpleFunction60():
     x = 1
     y = 2
 
@@ -528,7 +533,7 @@ def simpleFunction57():
     f(3, 4)
 
 
-def simpleFunction58():
+def simpleFunction61():
     a = 3
     b = 5
 
@@ -540,7 +545,7 @@ def simpleFunction58():
         a / b
 
 
-def simpleFunction59():
+def simpleFunction62():
     a = 3
     b = 5
 
@@ -711,13 +716,13 @@ def simpleFunction76():
             pass
 
 
-def simpleFunction77():
-    class weirdstr(str):
-        def __getitem__(self, index):
-            return weirdstr(str.__getitem__(self, index))
+class weirdstr(str):
+    def __getitem__(self, index):
+        return weirdstr(str.__getitem__(self, index))
 
-    (weirdstr("1234"))
-    # filter(lambda x: x>="33", weirdstr("1234"))
+
+def simpleFunction77():
+    return filter(lambda x: x >= "33", weirdstr("1234"))
 
 
 def simpleFunction78():
@@ -787,10 +792,15 @@ def simpleFunction87():
     x += 2000
 
 
+class C:
+    def f(self):
+        pass
+
+    def __iadd__(self, other):
+        return self
+
+
 def simpleFunction88():
-    class C:
-        def __iadd__(self, other):
-            return self
 
     x = C()
     x += C()
@@ -1159,6 +1169,17 @@ def simpleFunction129():
 def simpleFunction130():
     # Operation list+object with add slot.
     return ListWithSlots() + list(t)
+
+
+def simpleFunction131():
+    try:
+        C().f.__reduce__()
+    except Exception as e:
+        assert sys.version_info < (3, 4)
+
+
+def simpleFunction132():
+    C().f.__reduce_ex__(5)
 
 
 ####################################

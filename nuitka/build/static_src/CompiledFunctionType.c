@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -132,7 +132,7 @@ static int Nuitka_Function_set_name(struct Nuitka_FunctionObject *object, PyObje
     if (unlikely(value == NULL || PyUnicode_Check(value) == 0))
 #endif
     {
-        PyErr_Format(PyExc_TypeError, "__name__ must be set to a string object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__name__ must be set to a string object");
         return -1;
     }
 
@@ -153,7 +153,7 @@ static PyObject *Nuitka_Function_get_qualname(struct Nuitka_FunctionObject *obje
 
 static int Nuitka_Function_set_qualname(struct Nuitka_FunctionObject *object, PyObject *value) {
     if (unlikely(value == NULL || PyUnicode_Check(value) == 0)) {
-        PyErr_Format(PyExc_TypeError, "__qualname__ must be set to a string object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__qualname__ must be set to a string object");
         return -1;
     }
 
@@ -199,7 +199,7 @@ static PyObject *Nuitka_Function_get_dict(struct Nuitka_FunctionObject *object) 
 
 static int Nuitka_Function_set_dict(struct Nuitka_FunctionObject *object, PyObject *value) {
     if (unlikely(value == NULL)) {
-        PyErr_Format(PyExc_TypeError, "function's dictionary may not be deleted");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "function's dictionary may not be deleted");
         return -1;
     }
 
@@ -211,7 +211,7 @@ static int Nuitka_Function_set_dict(struct Nuitka_FunctionObject *object, PyObje
 
         return 0;
     } else {
-        PyErr_SetString(PyExc_TypeError, "setting function's dictionary to a non-dict");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "setting function's dictionary to a non-dict");
         return -1;
     }
 }
@@ -223,7 +223,7 @@ static PyObject *Nuitka_Function_get_code(struct Nuitka_FunctionObject *object) 
 }
 
 static int Nuitka_Function_set_code(struct Nuitka_FunctionObject *object, PyObject *value) {
-    PyErr_Format(PyExc_RuntimeError, "__code__ is not writable in Nuitka");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "__code__ is not writable in Nuitka");
     return -1;
 }
 
@@ -244,7 +244,7 @@ static PyObject *Nuitka_Function_get_closure(struct Nuitka_FunctionObject *objec
 }
 
 static int Nuitka_Function_set_closure(struct Nuitka_FunctionObject *object, PyObject *value) {
-    PyErr_Format(
+    SET_CURRENT_EXCEPTION_TYPE0_STR(
 #if PYTHON_VERSION < 300
         PyExc_TypeError,
 #else
@@ -275,7 +275,7 @@ static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *object, Py
     }
 
     if (unlikely(value != Py_None && PyTuple_Check(value) == false)) {
-        PyErr_Format(PyExc_TypeError, "__defaults__ must be set to a tuple object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__defaults__ must be set to a tuple object");
         return -1;
     }
 
@@ -283,13 +283,13 @@ static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *object, Py
 // parsing per function anymore.
 #ifndef _NUITKA_PLUGIN_DILL_ENABLED
     if (object->m_defaults == Py_None && value != Py_None) {
-        PyErr_Format(PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes");
         return -1;
     }
 
     if (object->m_defaults != Py_None &&
         (value == Py_None || PyTuple_Size(object->m_defaults) != PyTuple_Size(value))) {
-        PyErr_Format(PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes");
         return -1;
     }
 #endif
@@ -322,7 +322,7 @@ static int Nuitka_Function_set_kwdefaults(struct Nuitka_FunctionObject *object, 
     }
 
     if (unlikely(value != Py_None && PyDict_Check(value) == false)) {
-        PyErr_Format(PyExc_TypeError, "__kwdefaults__ must be set to a dict object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__kwdefaults__ must be set to a dict object");
         return -1;
     }
 
@@ -349,7 +349,7 @@ static PyObject *Nuitka_Function_get_annotations(struct Nuitka_FunctionObject *o
 
 static int Nuitka_Function_set_annotations(struct Nuitka_FunctionObject *object, PyObject *value) {
     if (unlikely(value != NULL && PyDict_Check(value) == false)) {
-        PyErr_Format(PyExc_TypeError, "__annotations__ must be set to a dict object");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__annotations__ must be set to a dict object");
         return -1;
     }
 
@@ -364,7 +364,7 @@ static int Nuitka_Function_set_annotations(struct Nuitka_FunctionObject *object,
 #endif
 
 static int Nuitka_Function_set_globals(struct Nuitka_FunctionObject *function, PyObject *value) {
-    PyErr_Format(PyExc_TypeError, "readonly attribute");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "readonly attribute");
     return -1;
 }
 
@@ -1038,8 +1038,8 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
         if (found == false) {
             PyObject **varnames = function->m_varnames;
 
-            for (Py_ssize_t i = 0; i < keywords_count; i++) {
-                if (RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
+            for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
+                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = value;
 
@@ -1056,9 +1056,29 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
         }
 
         if (unlikely(found == false)) {
-            PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'",
-                         Nuitka_String_AsString(function->m_name),
-                         Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+            bool pos_only_error = false;
+
+            for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
+                PyObject **varnames = function->m_varnames;
+
+                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                    pos_only_error = true;
+                    break;
+                }
+            }
+
+            if (pos_only_error == true) {
+                PyErr_Format(PyExc_TypeError,
+                             "%s() got some positional-only arguments passed as keyword arguments: '%s'",
+                             Nuitka_String_AsString(function->m_name),
+                             Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+
+            } else {
+
+                PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'",
+                             Nuitka_String_AsString(function->m_name),
+                             Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+            }
 
             Py_DECREF(key);
             Py_DECREF(value);
@@ -1692,8 +1712,9 @@ bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function, PyObj
 
     result = handleMethodArgumentsPlainOnly(function, python_pars, object, args, args_size);
 
-    if (result == false)
+    if (result == false) {
         goto error_exit;
+    }
 
 #if PYTHON_VERSION >= 300
 
@@ -1862,8 +1883,9 @@ PyObject *Nuitka_CallMethodFunctionNoArgs(struct Nuitka_FunctionObject const *fu
     bool kw_only_error;
 #endif
 
-    if (result == false)
+    if (result == false) {
         goto error_exit;
+    }
 
 #if PYTHON_VERSION >= 300
 
@@ -1920,11 +1942,11 @@ PyObject *Nuitka_CallMethodFunctionPosArgs(struct Nuitka_FunctionObject const *f
     bool kw_only_error;
 #endif
 
-    if (result == false)
+    if (result == false) {
         goto error_exit;
+    }
 
 #if PYTHON_VERSION >= 300
-
     kw_only_error = false;
 
     for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
@@ -2000,7 +2022,9 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
 
         NUITKA_MAY_BE_UNUSED bool found = false;
 
-        for (Py_ssize_t i = 0; i < keywords_count; i++) {
+        Py_ssize_t kw_arg_start = function->m_args_pos_only_count;
+
+        for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
             if (function->m_varnames[i] == key) {
                 assert(python_pars[i] == NULL);
                 python_pars[i] = kw_values[ppos];
@@ -2018,8 +2042,8 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
         if (found == false) {
             PyObject **varnames = function->m_varnames;
 
-            for (Py_ssize_t i = 0; i < keywords_count; i++) {
-                if (RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
+            for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
+                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = kw_values[ppos];
                     Py_INCREF(python_pars[i]);
@@ -2035,9 +2059,29 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
         }
 
         if (unlikely(found == false)) {
-            PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'",
-                         Nuitka_String_AsString(function->m_name),
-                         Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+            bool pos_only_error = false;
+
+            for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
+                PyObject **varnames = function->m_varnames;
+
+                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
+                    pos_only_error = true;
+                    break;
+                }
+            }
+
+            if (pos_only_error == true) {
+                PyErr_Format(PyExc_TypeError,
+                             "%s() got some positional-only arguments passed as keyword arguments: '%s'",
+                             Nuitka_String_AsString(function->m_name),
+                             Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+
+            } else {
+
+                PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'",
+                             Nuitka_String_AsString(function->m_name),
+                             Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+            }
 
             return -1;
         }
@@ -2153,8 +2197,9 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
         kw_found =
             handleVectorcallKeywordArgs(function, python_pars, &kw_only_found, kw_names, args + args_size, kw_size);
 
-        if (kw_found == -1)
+        if (kw_found == -1) {
             goto error_exit;
+        }
     }
 
     result = _handleArgumentsPlain(function, python_pars, args, args_size, kw_found, kw_only_found);
@@ -2196,8 +2241,8 @@ error_exit:
     return false;
 }
 
-PyObject *Nuitka_CallFunctionVectorcall(struct Nuitka_FunctionObject const *function, PyObject *const *args,
-                                        Py_ssize_t args_size, PyObject *const *kw_names, Py_ssize_t kw_size) {
+static PyObject *Nuitka_CallFunctionVectorcall(struct Nuitka_FunctionObject const *function, PyObject *const *args,
+                                               Py_ssize_t args_size, PyObject *const *kw_names, Py_ssize_t kw_size) {
 #ifdef _MSC_VER
     PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
 #else
@@ -2223,3 +2268,5 @@ static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *fun
                                          nkwargs);
 }
 #endif
+
+#include "CompiledMethodType.c"

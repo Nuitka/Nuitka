@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,6 @@ We use depends.exe to investigate needed DLLs of Python DLLs.
 
 import os
 import sys
-from logging import info
 
 from nuitka import Tracing
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
@@ -75,7 +74,7 @@ Proceed and download? [Yes]/No """
         if reply.lower() in ("no", "n"):
             sys.exit("Nuitka does not work in --standalone on Windows without.")
 
-        info("Downloading '%s'" % depends_url)
+        Tracing.general.info("Downloading '%s'" % depends_url)
 
         try:
             urlretrieve(depends_url, nuitka_depends_zip)
@@ -87,7 +86,7 @@ Contents should manually be extracted to '%s'."""
             )
 
     if not os.path.isfile(depends_exe):
-        info("Extracting to '%s'" % depends_exe)
+        Tracing.general.info("Extracting to '%s'" % depends_exe)
 
         import zipfile
 
@@ -95,7 +94,7 @@ Contents should manually be extracted to '%s'."""
             depends_zip = zipfile.ZipFile(nuitka_depends_zip)
             depends_zip.extractall(nuitka_depends_dir)
         except Exception:  # Catching anything zip throws, pylint: disable=broad-except
-            info("Problem with the downloaded zip file, deleting it.")
+            Tracing.general.info("Problem with the downloaded zip file, deleting it.")
 
             deleteFile(depends_exe, must_exist=False)
             deleteFile(nuitka_depends_zip, must_exist=True)

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,7 +32,7 @@ def formatOutput(e):
         if lineno is not None and lineno == 0:
             lineno = 1
     else:
-        reason, = e.args
+        (reason,) = e.args
 
         filename = None
         lineno = None

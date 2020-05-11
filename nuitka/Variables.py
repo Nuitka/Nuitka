@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,23 +23,25 @@ module variable references.
 
 """
 
-from nuitka.__past__ import iterItems
-from nuitka.nodes.shapes.StandardShapes import ShapeUnknown
+from abc import abstractmethod
+
+from nuitka.__past__ import getMetaClassBase, iterItems
+from nuitka.nodes.shapes.StandardShapes import tshape_unknown
 from nuitka.utils import InstanceCounters, Utils
 
 complete = False
 
 
-class Variable(object):
+class Variable(getMetaClassBase("Variable")):
 
     # We will need all of these attributes, since we track the global
-    # state and cache some decisions as attributes, pylint: disable=too-many-instance-attributes
+    # state and cache some decisions as attributes. TODO: But in some
+    # cases, part of the these might be moved to the outside.
     __slots__ = (
         "variable_name",
         "owner",
         "version_number",
         "shared_users",
-        "shared_scopes",
         "traces",
         "users",
         "writers",
@@ -56,7 +58,6 @@ class Variable(object):
         self.version_number = 0
 
         self.shared_users = False
-        self.shared_scopes = False
 
         self.traces = set()
 
@@ -71,6 +72,17 @@ class Variable(object):
         del self.writers
         del self.traces
         del self.owner
+
+    def __repr__(self):
+        return "<%s '%s' of '%s'>" % (
+            self.__class__.__name__,
+            self.variable_name,
+            self.owner.getName(),
+        )
+
+    @abstractmethod
+    def getVariableType(self):
+        pass
 
     def getDescription(self):
         return "variable '%s'" % self.variable_name
@@ -96,23 +108,29 @@ class Variable(object):
 
         return self.version_number
 
-    # pylint: disable=no-self-use
-    def isLocalVariable(self):
+    @staticmethod
+    def isLocalVariable():
         return False
 
-    def isParameterVariable(self):
+    @staticmethod
+    def isParameterVariable():
         return False
 
-    def isModuleVariable(self):
+    @staticmethod
+    def isModuleVariable():
         return False
 
-    def isTempVariable(self):
+    @staticmethod
+    def isTempVariable():
         return False
 
-    def isLocalsDictVariable(self):
+    @staticmethod
+    def isTempVariableBool():
         return False
 
-    # pylint: enable=R0201
+    @staticmethod
+    def isLocalsDictVariable():
+        return False
 
     def addVariableUser(self, user):
         # Update the shared scopes flag.
@@ -128,13 +146,7 @@ class Variable(object):
                 if self.owner is user.getParentVariableProvider():
                     return
 
-            self.shared_scopes = True
-
-    def isSharedAmongScopes(self):
-        # TODO: This is only used for Python2, and could be made
-        # and optional slot.
-
-        return self.shared_scopes
+            _variables_in_shared_scopes.add(self)
 
     def isSharedTechnically(self):
         if not self.shared_users:
@@ -181,7 +193,7 @@ class Variable(object):
 
             if trace.isAssignTrace():
                 writers.add(owner)
-            elif trace.isUninitTrace() and owner is not self.owner:
+            elif trace.isDeletedTrace() and owner is not self.owner:
                 writers.add(owner)
 
         self.writers = writers
@@ -218,19 +230,42 @@ class Variable(object):
 
         return None
 
+    def getMatchingDelTrace(self, del_node):
+        for trace in self.traces:
+            if trace.isDeletedTrace() and trace.getDelNode() is del_node:
+                return trace
+
+        return None
+
+    def hasSuccessorTraces(self, trace):
+        def consider(candidate):
+            if candidate.isMergeTrace():
+                for p in candidate.previous:
+                    if consider(p):
+                        return True
+            elif candidate.hasPreviousTrace(trace):
+                return True
+
+            return False
+
+        for candidate in self.traces:
+            if consider(candidate):
+                return True
+
+        return False
+
     def getTypeShapes(self):
         result = set()
 
         for trace in self.traces:
             if trace.isAssignTrace():
-                result.add(trace.getAssignNode().getAssignSource().getTypeShape())
+                result.add(trace.getAssignNode().getTypeShape())
             elif trace.isUnknownTrace():
-                result.add(ShapeUnknown)
-            elif trace.isUninitTrace():
-                if trace.hasDefiniteUsages() or trace.hasPotentialUsages():
-                    result.add(ShapeUnknown)
+                result.add(tshape_unknown)
             elif trace.isInitTrace():
-                result.add(ShapeUnknown)
+                result.add(tshape_unknown)
+            elif trace.isUnassignedTrace():
+                pass
             elif trace.isMergeTrace():
                 pass
             # TODO: Remove this and be not unknown.
@@ -248,15 +283,13 @@ class LocalVariable(Variable):
     def __init__(self, owner, variable_name):
         Variable.__init__(self, owner=owner, variable_name=variable_name)
 
-    def __repr__(self):
-        return "<%s '%s' of '%s'>" % (
-            self.__class__.__name__,
-            self.variable_name,
-            self.owner.getName(),
-        )
-
-    def isLocalVariable(self):
+    @staticmethod
+    def isLocalVariable():
         return True
+
+    @staticmethod
+    def getVariableType():
+        return "object"
 
 
 class ParameterVariable(LocalVariable):
@@ -268,7 +301,8 @@ class ParameterVariable(LocalVariable):
     def getDescription(self):
         return "parameter variable '%s'" % self.variable_name
 
-    def isParameterVariable(self):
+    @staticmethod
+    def isParameterVariable():
         return True
 
 
@@ -292,11 +326,16 @@ class ModuleVariable(Variable):
     def getDescription(self):
         return "global variable '%s'" % self.variable_name
 
-    def isModuleVariable(self):
+    @staticmethod
+    def isModuleVariable():
         return True
 
     def getModule(self):
         return self.module
+
+    @staticmethod
+    def getVariableType():
+        return "object"
 
 
 class TempVariable(Variable):
@@ -305,17 +344,31 @@ class TempVariable(Variable):
     def __init__(self, owner, variable_name):
         Variable.__init__(self, owner=owner, variable_name=variable_name)
 
-    def __repr__(self):
-        return "<TempVariable '%s' of '%s'>" % (
-            self.getName(),
-            self.getOwner().getName(),
-        )
-
     def getDescription(self):
         return "temp variable '%s'" % self.variable_name
 
-    def isTempVariable(self):
+    @staticmethod
+    def isTempVariable():
         return True
+
+    @staticmethod
+    def getVariableType():
+        return "object"
+
+
+class TempVariableBool(TempVariable):
+    __slots__ = ()
+
+    def getDescription(self):
+        return "temp bool variable '%s'" % self.variable_name
+
+    @staticmethod
+    def isTempVariableBool():
+        return True
+
+    @staticmethod
+    def getVariableType():
+        return "bool"
 
 
 class LocalsDictVariable(Variable):
@@ -324,20 +377,20 @@ class LocalsDictVariable(Variable):
     def __init__(self, owner, variable_name):
         Variable.__init__(self, owner=owner, variable_name=variable_name)
 
-    def __repr__(self):
-        return "<LocalsDictVariable '%s' of '%s'>" % (
-            self.getName(),
-            self.getOwner().getName(),
-        )
-
-    def isLocalsDictVariable(self):
+    @staticmethod
+    def isLocalsDictVariable():
         return True
 
+    @staticmethod
+    def getVariableType():
+        return "object"
 
-def updateVariablesFromCollection(old_collection, new_collection):
+
+def updateVariablesFromCollection(old_collection, new_collection, source_ref):
     # After removing/adding traces, we need to pre-compute the users state
     # information.
     touched_variables = set()
+    loop_trace_removal = set()
 
     if old_collection is not None:
         for (variable, _version), variable_trace in iterItems(
@@ -346,12 +399,19 @@ def updateVariablesFromCollection(old_collection, new_collection):
             variable.removeTrace(variable_trace)
             touched_variables.add(variable)
 
+            if variable_trace.isLoopTrace():
+                loop_trace_removal.add(variable)
+
     if new_collection is not None:
         for (variable, _version), variable_trace in iterItems(
             new_collection.getVariableTracesAll()
         ):
             variable.addTrace(variable_trace)
             touched_variables.add(variable)
+
+            if variable_trace.isLoopTrace():
+                if variable in loop_trace_removal:
+                    loop_trace_removal.remove(variable)
 
         # Release the memory, and prevent the "active" state from being ever
         # inspected, it's useless now.
@@ -360,3 +420,34 @@ def updateVariablesFromCollection(old_collection, new_collection):
 
     for variable in touched_variables:
         variable.updateUsageState()
+
+    if loop_trace_removal:
+        if new_collection is not None:
+            new_collection.signalChange(
+                "var_usage",
+                source_ref,
+                lambda: "Loop variable '%s' usage ceased."
+                % ",".join(variable.getName() for variable in loop_trace_removal),
+            )
+
+
+# To detect the Python2 shared variable deletion, that would be a syntax
+# error
+_variables_in_shared_scopes = set()
+
+
+def isSharedAmongScopes(variable):
+    return variable in _variables_in_shared_scopes
+
+
+def releaseSharedScopeInformation(tree):
+    # Singleton, pylint: disable=global-statement
+
+    assert tree.isCompiledPythonModule()
+
+    global _variables_in_shared_scopes
+    _variables_in_shared_scopes = set(
+        variable
+        for variable in _variables_in_shared_scopes
+        if variable.getOwner().getParentModule() is not tree
+    )

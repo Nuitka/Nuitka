@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -184,11 +184,13 @@ def areReadOnlyTraces(variable_traces):
             return False
         elif variable_trace.isInitTrace():
             pass
-        elif variable_trace.isUninitTrace():
+        elif variable_trace.isDeletedTrace():
             # A "del" statement can do this, and needs to prevent variable
             # from being not released.
 
             return False
+        elif variable_trace.isUninitTrace():
+            pass
         elif variable_trace.isUnknownTrace():
             return False
         elif variable_trace.isMergeTrace():
@@ -213,13 +215,13 @@ def areEmptyTraces(variable_traces):
             return False
         elif variable_trace.isInitTrace():
             return False
-        elif variable_trace.isUninitTrace():
-            if variable_trace.getPrevious():
-                # A "del" statement can do this, and needs to prevent variable
-                # from being removed.
+        elif variable_trace.isDeletedTrace():
+            # A "del" statement can do this, and needs to prevent variable
+            # from being removed.
 
-                return False
-            elif variable_trace.hasDefiniteUsages():
+            return False
+        elif variable_trace.isUninitTrace():
+            if variable_trace.hasDefiniteUsages():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
                 return False
@@ -329,19 +331,18 @@ def optimizeLocalsDictsHandles():
                     # variables and dictionary building allows for unset values
                     # remove this
                     if (
-                        variable_trace.getAssignNode()
-                        .getAssignSource()
-                        .mayHaveSideEffects()
+                        variable_trace.getAssignNode().subnode_source.mayHaveSideEffects()
                     ):
                         propagate = False
                         break
-                elif variable_trace.isUninitTrace():
-                    if variable_trace.previous is not None:
-                        propagate = False
-                        break
+                elif variable_trace.isDeletedTrace():
+                    propagate = False
+                    break
                 elif variable_trace.isMergeTrace():
                     propagate = False
                     break
+                elif variable_trace.isUninitTrace():
+                    pass
                 elif variable_trace.isUnknownTrace():
                     propagate = False
                     break
@@ -538,7 +539,9 @@ def makeOptimizationPass(initial_pass):
         if current_module.isCompiledPythonModule():
             for function in current_module.getUnusedFunctions():
                 Variables.updateVariablesFromCollection(
-                    old_collection=function.trace_collection, new_collection=None
+                    old_collection=function.trace_collection,
+                    new_collection=None,
+                    source_ref=function.getSourceReference(),
                 )
 
                 function.trace_collection = None

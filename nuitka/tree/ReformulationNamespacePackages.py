@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,7 +27,10 @@ from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeList, ExpressionMakeTuple
+from nuitka.nodes.ContainerMakingNodes import (
+    ExpressionMakeList,
+    ExpressionMakeTuple,
+)
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModuleNameHard,
@@ -38,14 +41,17 @@ from nuitka.nodes.ModuleNodes import CompiledPythonPackage
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 
-from .TreeHelpers import makeAbsoluteImportNode, makeStatementsSequenceFromStatement
+from .TreeHelpers import (
+    makeAbsoluteImportNode,
+    makeStatementsSequenceFromStatement,
+)
 from .VariableClosure import completeVariableClosures
 
 
 def _makeCall(module_name, import_name, attribute_name, source_ref, *args):
     return ExpressionCallNoKeywords(
         called=ExpressionAttributeLookup(
-            source=ExpressionImportModuleNameHard(
+            expression=ExpressionImportModuleNameHard(
                 module_name=module_name, import_name=import_name, source_ref=source_ref
             ),
             attribute_name=attribute_name,
@@ -67,7 +73,7 @@ def createPathAssignment(package, source_ref):
         elements = [
             ExpressionCallNoKeywords(
                 called=ExpressionAttributeLookup(
-                    source=ExpressionImportModuleNameHard(
+                    expression=ExpressionImportModuleNameHard(
                         module_name="os", import_name="path", source_ref=source_ref
                     ),
                     attribute_name="dirname",

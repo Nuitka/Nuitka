@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -36,7 +36,7 @@ void loadConstantsResource();
 #ifdef __cplusplus
 extern "C" const unsigned char constant_bin[];
 #else
-const unsigned char constant_bin[0];
+extern const unsigned char constant_bin[0];
 #endif
 #endif
 

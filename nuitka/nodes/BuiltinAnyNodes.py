@@ -1,4 +1,4 @@
-#     Copyright 2019, Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in>
+#     Copyright 2020, Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,7 +27,7 @@ from .NodeMakingHelpers import (
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithNodeSideEffects,
 )
-from .shapes.BuiltinTypeShapes import ShapeTypeBool
+from .shapes.BuiltinTypeShapes import tshape_bool
 
 
 class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
@@ -111,7 +111,7 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
         """ returns type shape of the 'any' node
 
         """
-        return ShapeTypeBool
+        return tshape_bool
 
     def mayRaiseException(self, exception_type):
         """ returns boolean True if try/except/finally is needed else False

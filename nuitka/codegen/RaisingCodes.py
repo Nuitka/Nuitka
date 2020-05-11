@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,7 +30,10 @@ from .CodeHelpers import (
 )
 from .ErrorCodes import getFrameVariableTypeDescriptionCode
 from .LabelCodes import getGotoCode
-from .LineNumberCodes import emitErrorLineNumberUpdateCode, getErrorLineNumberUpdateCode
+from .LineNumberCodes import (
+    emitErrorLineNumberUpdateCode,
+    getErrorLineNumberUpdateCode,
+)
 from .PythonAPICodes import getReferenceExportCode
 
 
@@ -216,9 +219,12 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
 
 
 def getReRaiseExceptionCode(emit, context):
-    exception_type, exception_value, exception_tb, exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     keeper_variables = context.getExceptionKeeperVariables()
 
@@ -254,9 +260,12 @@ if (%(exception_tb)s && %(exception_tb)s->tb_frame == &%(frame_identifier)s->m_f
 
             emit(getFrameVariableTypeDescriptionCode(context))
     else:
-        keeper_type, keeper_value, keeper_tb, keeper_lineno = (
-            context.getExceptionKeeperVariables()
-        )
+        (
+            keeper_type,
+            keeper_value,
+            keeper_tb,
+            keeper_lineno,
+        ) = context.getExceptionKeeperVariables()
 
         emit(
             """\
@@ -282,9 +291,12 @@ if (%(exception_tb)s && %(exception_tb)s->tb_frame == &%(frame_identifier)s->m_f
 
 
 def _getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit, context):
-    exception_type, exception_value, exception_tb, _exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     emit("%s = %s;" % (exception_type, raise_type_name))
     getReferenceExportCode(raise_type_name, emit, context)
@@ -310,9 +322,12 @@ def _getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit, con
 
 
 def _getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
-    exception_type, exception_value, exception_tb, _exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     emit("%s = %s;" % (exception_type, raise_type_name))
     getReferenceExportCode(raise_type_name, emit, context)
@@ -334,9 +349,12 @@ def _getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
 def _getRaiseExceptionWithValueCode(
     raise_type_name, raise_value_name, implicit, emit, context
 ):
-    exception_type, exception_value, exception_tb, _exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     emit("%s = %s;" % (exception_type, raise_type_name))
     getReferenceExportCode(raise_type_name, emit, context)
@@ -367,9 +385,12 @@ def _getRaiseExceptionWithValueCode(
 def _getRaiseExceptionWithTracebackCode(
     raise_type_name, raise_value_name, raise_tb_name, emit, context
 ):
-    exception_type, exception_value, exception_tb, _exception_lineno = (
-        context.variable_storage.getExceptionVariableDescriptions()
-    )
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
     emit("%s = %s;" % (exception_type, raise_type_name))
     getReferenceExportCode(raise_type_name, emit, context)

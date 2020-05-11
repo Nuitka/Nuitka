@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -97,9 +97,13 @@ def main():
         if python_version < "3":
             expected_errors.append("package_missing_init")
 
-        # Allowed with Python3 only:
+        # Allowed with Python3.5 only:
         if python_version < "3.5":
             expected_errors.append("package_init_issue")
+
+        # Allowed with Python3, name imports can be module imports
+        if python_version < "3":
+            expected_errors.append("named_imports")
 
         if filename not in expected_errors:
             extra_flags = ["expect_success"]
@@ -161,7 +165,7 @@ def main():
             extra_flags.append("ignore_warnings")
         elif filename == "multiprocessing_using":
             if os.name == "nt":
-                extra_flags += ["plugin_enable:multiprocessing", "ignore_infos"]
+                extra_flags += ("plugin_enable:multiprocessing", "ignore_infos")
 
             elif sys.platform == "darwin" and python_version >= "3.8":
                 reportSkip("Hangs for unknown reasons", ".", filename)
@@ -193,8 +197,6 @@ def main():
 
             if search_mode.abortIfExecuted():
                 break
-        else:
-            my_print("Skipping", filename)
 
     search_mode.finish()
 

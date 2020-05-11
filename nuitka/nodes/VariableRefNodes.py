@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -41,7 +41,7 @@ from .ModuleAttributeNodes import (
     ExpressionModuleAttributeSpecRef,
 )
 from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
-from .shapes.StandardShapes import ShapeUnknown
+from .shapes.StandardShapes import tshape_unknown
 
 
 class ExpressionVariableNameRef(ExpressionBase):
@@ -127,7 +127,7 @@ class ExpressionVariableRefBase(ExpressionBase):
 
     def getTypeShape(self):
         if self.variable_trace is None:
-            return ShapeUnknown
+            return tshape_unknown
         else:
             return self.variable_trace.getTypeShape()
 
@@ -242,6 +242,24 @@ Subscript look-up to dictionary lowered to dictionary look-up."""
 
         return lookup_node, tags, message
 
+    def _applyReplacement(self, trace_collection, replacement):
+        trace_collection.signalChange(
+            "new_expression",
+            self.source_ref,
+            "Value propagated for '%s' from '%s'."
+            % (self.variable.getName(), replacement.getSourceReference().getAsString()),
+        )
+
+        # Special case for in-place assignments.
+        if self.parent.isExpressionOperationInplace():
+            statement = self.parent.parent
+
+            if statement.isStatementAssignmentVariable():
+                statement.unmarkAsInplaceSuspect()
+
+        # Need to compute the replacement still.
+        return replacement.computeExpressionRaw(trace_collection)
+
 
 _hard_names = ("dir", "eval", "exec", "execfile", "locals", "vars", "super")
 
@@ -299,17 +317,8 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         )
 
         replacement = self.variable_trace.getReplacementNode(self)
-
         if replacement is not None:
-            trace_collection.signalChange(
-                "new_expression",
-                self.source_ref,
-                "Value propagated for '%s' from '%s'."
-                % (variable.getName(), replacement.getSourceReference().getAsString()),
-            )
-
-            # Need to compute the replacement still.
-            return replacement.computeExpressionRaw(trace_collection)
+            return self._applyReplacement(trace_collection, replacement)
 
         if not self.variable_trace.mustHaveValue():
             # TODO: This could be way more specific surely.
@@ -413,8 +422,7 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
             result = makeRaiseExceptionReplacementExpression(
                 expression=self,
                 exception_type="UnboundLocalError",
-                exception_value="""\
-local variable '%s' referenced before assignment"""
+                exception_value="""local variable '%s' referenced before assignment"""
                 % variable_name,
             )
 
@@ -504,13 +512,8 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
         )
 
         replacement = self.variable_trace.getReplacementNode(self)
-
         if replacement is not None:
-            return (
-                replacement,
-                "new_expression",
-                "Value propagated for temp '%s'." % self.variable.getName(),
-            )
+            return self._applyReplacement(trace_collection, replacement)
 
         self.variable_trace.addUsage()
 
@@ -519,7 +522,7 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
 
     def computeExpressionNext1(self, next_node, trace_collection):
         if self.variable_trace.isAssignTrace():
-            value = self.variable_trace.getAssignNode().getAssignSource()
+            value = self.variable_trace.getAssignNode().subnode_source
 
             # TODO: Add iteration handles to trace collections instead.
             current_index = trace_collection.getIteratorNextCount(value)
@@ -571,10 +574,8 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
 
     def mayRaiseExceptionImportName(self, exception_type, import_name):
         if self.variable_trace is not None and self.variable_trace.isAssignTrace():
-            return (
-                self.variable_trace.getAssignNode()
-                .getAssignSource()
-                .mayRaiseExceptionImportName(exception_type, import_name)
+            return self.variable_trace.getAssignNode().subnode_source.mayRaiseExceptionImportName(
+                exception_type, import_name
             )
 
         else:

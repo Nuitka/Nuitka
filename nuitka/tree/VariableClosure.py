@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,7 +24,11 @@ Only after this is executed, variable reference nodes can be considered
 complete.
 """
 
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable, StatementDelVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable,
+    StatementReleaseVariable,
+)
 from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.nodes.LocalsDictNodes import (
     ExpressionLocalsVariableRef,
@@ -32,12 +36,24 @@ from nuitka.nodes.LocalsDictNodes import (
     StatementLocalsDictOperationDel,
     StatementLocalsDictOperationSet,
 )
-from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
-from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
-from nuitka.PythonVersions import getErrorMessageExecWithNestedFunction, python_version
+from nuitka.nodes.NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    mergeStatements,
+)
+from nuitka.nodes.OperatorNodes import makeExpressionOperationBinaryInplace
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTempVariableRef,
+    ExpressionVariableRef,
+)
+from nuitka.PythonVersions import (
+    getErrorMessageExecWithNestedFunction,
+    python_version,
+)
+from nuitka.Variables import isSharedAmongScopes, releaseSharedScopeInformation
 
 from .Operations import VisitorNoopMixin, visitTree
 from .ReformulationFunctionStatements import addFunctionVariableReleases
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
 
 # Note: We do the variable scope assignment, as an extra step from tree
@@ -98,7 +114,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     )
 
                     if class_variable.isModuleVariable():
-                        qualname_node = qualname_assign.subnode_value
+                        qualname_node = qualname_assign.subnode_source
 
                         new_node = makeConstantReplacementNode(
                             constant=class_variable.getName(), node=qualname_node
@@ -140,12 +156,65 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             # Classes always assign to locals dictionary except for closure
             # variables taken.
             if self._shouldUseLocalsDict(provider, variable_name):
-                new_node = StatementLocalsDictOperationSet(
-                    locals_scope=provider.getFunctionLocalsScope(),
-                    variable_name=variable_name,
-                    value=node.subnode_source,
-                    source_ref=node.source_ref,
-                )
+                if node.subnode_source.isExpressionOperationInplace():
+                    temp_scope = provider.allocateTempScope("class_inplace")
+
+                    tmp_variable = provider.allocateTempVariable(
+                        temp_scope=temp_scope, name="value"
+                    )
+
+                    statements = mergeStatements(
+                        statements=(
+                            StatementAssignmentVariable(
+                                variable=tmp_variable,
+                                source=node.subnode_source.getLeft(),
+                                source_ref=node.source_ref,
+                            ),
+                            makeTryFinallyStatement(
+                                provider=provider,
+                                tried=(
+                                    StatementAssignmentVariable(
+                                        variable=tmp_variable,
+                                        source=makeExpressionOperationBinaryInplace(
+                                            left=ExpressionTempVariableRef(
+                                                variable=tmp_variable,
+                                                source_ref=node.source_ref,
+                                            ),
+                                            right=node.subnode_source.getRight(),
+                                            operator=node.subnode_source.getOperator(),
+                                            source_ref=node.source_ref,
+                                        ),
+                                        source_ref=node.source_ref,
+                                    ),
+                                    StatementLocalsDictOperationSet(
+                                        locals_scope=provider.getFunctionLocalsScope(),
+                                        variable_name=variable_name,
+                                        value=ExpressionTempVariableRef(
+                                            variable=tmp_variable,
+                                            source_ref=node.source_ref,
+                                        ),
+                                        source_ref=node.source_ref,
+                                    ),
+                                ),
+                                final=StatementReleaseVariable(
+                                    variable=tmp_variable, source_ref=node.source_ref
+                                ),
+                                source_ref=node.source_ref,
+                            ),
+                        )
+                    )
+
+                    node.parent.replaceStatement(node, statements)
+
+                else:
+                    new_node = StatementLocalsDictOperationSet(
+                        locals_scope=provider.getFunctionLocalsScope(),
+                        variable_name=variable_name,
+                        value=node.subnode_source,
+                        source_ref=node.source_ref,
+                    )
+
+                    node.parent.replaceChild(node, new_node)
             else:
                 variable = provider.getVariableForAssignment(
                     variable_name=variable_name
@@ -159,7 +228,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                 variable.addVariableUser(provider)
 
-            node.parent.replaceChild(node, new_node)
+                node.parent.replaceChild(node, new_node)
 
             del node.parent
             del node.provider
@@ -404,7 +473,7 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
         if python_version < 300 and node.isStatementDelVariable():
             variable = node.getVariable()
 
-            if not variable.isModuleVariable() and variable.isSharedAmongScopes():
+            if not variable.isModuleVariable() and isSharedAmongScopes(variable):
                 raiseSyntaxError(
                     """\
 can not delete variable '%s' referenced in nested scope"""
@@ -438,3 +507,6 @@ def completeVariableClosures(tree):
 
     for visitor in visitors:
         visitTree(tree, visitor)
+
+    # Only used to detect syntax errors.
+    releaseSharedScopeInformation(tree)

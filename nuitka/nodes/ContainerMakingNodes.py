@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,7 +31,7 @@ from .NodeMakingHelpers import (
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import ShapeTypeList, ShapeTypeSet, ShapeTypeTuple
+from .shapes.BuiltinTypeShapes import tshape_list, tshape_set, tshape_tuple
 
 
 class ExpressionMakeSequenceBase(
@@ -146,7 +146,7 @@ class ExpressionMakeTuple(ExpressionMakeSequenceBase):
         )
 
     def getTypeShape(self):
-        return ShapeTypeTuple
+        return tshape_tuple
 
     def getSimulator(self):
         return tuple
@@ -164,7 +164,7 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
         )
 
     def getTypeShape(self):
-        return ShapeTypeList
+        return tshape_list
 
     def getSimulator(self):
         return list
@@ -197,7 +197,7 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
         )
 
     def getTypeShape(self):
-        return ShapeTypeSet
+        return tshape_set
 
     def getSimulator(self):
         return set

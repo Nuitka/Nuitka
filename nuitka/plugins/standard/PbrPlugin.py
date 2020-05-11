@@ -1,4 +1,4 @@
-#     Copyright 2019, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2020, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,8 +32,8 @@ class NuitkaPluginPbrWorkarounds(NuitkaPluginBase):
 
     plugin_name = "pbr-compat"
 
-    @staticmethod
-    def isRelevant():
+    @classmethod
+    def isRelevant(cls):
         return Options.isStandaloneMode()
 
     @staticmethod

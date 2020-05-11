@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -54,7 +54,10 @@ import sys
 from logging import info, warning
 
 from nuitka import Options, OutputDirectories, SourceCodeReferences
-from nuitka.__past__ import long, unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    long,
+    unicode,
+)
 from nuitka.freezer.Standalone import detectEarlyImports
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
@@ -95,7 +98,10 @@ from nuitka.nodes.ModuleNodes import (
     PythonMainModule,
     PythonShlibModule,
 )
-from nuitka.nodes.OperatorNodes import ExpressionOperationUnary, makeBinaryOperationNode
+from nuitka.nodes.OperatorNodes import (
+    ExpressionOperationUnary,
+    makeBinaryOperationNode,
+)
 from nuitka.nodes.ReturnNodes import (
     StatementReturn,
     StatementReturnNone,
@@ -133,8 +139,14 @@ from .ReformulationContractionExpressions import (
 )
 from .ReformulationDictionaryCreation import buildDictionaryNode
 from .ReformulationExecStatements import buildExecNode
-from .ReformulationForLoopStatements import buildAsyncForLoopNode, buildForLoopNode
-from .ReformulationFunctionStatements import buildAsyncFunctionNode, buildFunctionNode
+from .ReformulationForLoopStatements import (
+    buildAsyncForLoopNode,
+    buildForLoopNode,
+)
+from .ReformulationFunctionStatements import (
+    buildAsyncFunctionNode,
+    buildFunctionNode,
+)
 from .ReformulationImportStatements import (
     buildImportFromNode,
     buildImportModulesNode,
@@ -144,7 +156,10 @@ from .ReformulationImportStatements import (
     pushFutureSpec,
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
-from .ReformulationNamespacePackages import createNamespacePackage, createPathAssignment
+from .ReformulationNamespacePackages import (
+    createNamespacePackage,
+    createPathAssignment,
+)
 from .ReformulationPrintStatements import buildPrintNode
 from .ReformulationSequenceCreation import buildSequenceCreationNode
 from .ReformulationSubscriptExpressions import buildSubscriptNode
@@ -153,7 +168,10 @@ from .ReformulationTryFinallyStatements import buildTryFinallyNode
 from .ReformulationWhileLoopStatements import buildWhileLoopNode
 from .ReformulationWithStatements import buildAsyncWithNode, buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
-from .SourceReading import checkPythonVersionFromCode, readSourceCodeFromFilename
+from .SourceReading import (
+    checkPythonVersionFromCode,
+    readSourceCodeFromFilename,
+)
 from .TreeHelpers import (
     buildNode,
     buildNodeList,
@@ -451,7 +469,7 @@ def buildStatementLoopBreak(provider, node, source_ref):
 
 def buildAttributeNode(provider, node, source_ref):
     return ExpressionAttributeLookup(
-        source=buildNode(provider, node.value, source_ref),
+        expression=buildNode(provider, node.value, source_ref),
         attribute_name=node.attr,
         source_ref=source_ref,
     )
@@ -527,8 +545,7 @@ def buildBinaryOpNode(provider, node, source_ref):
     operator = getKind(node.op)
 
     if operator == "Div":
-        if getFutureSpec().isFutureDivision():
-            operator = "TrueDiv"
+        operator = "TrueDiv" if getFutureSpec().isFutureDivision() else "OldDiv"
 
     left = buildNode(provider, node.left, source_ref)
     right = buildNode(provider, node.right, source_ref)
@@ -751,7 +768,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             statements.append(createPathAssignment(provider, internal_source_ref))
 
         if python_version >= 340 and not is_main:
-            statements += [
+            statements += (
                 StatementAssignmentAttribute(
                     source=ExpressionModuleAttributeFileRef(
                         variable=provider.getVariableForReference("__file__"),
@@ -773,7 +790,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                     ),
                     source_ref=internal_source_ref,
                 ),
-            ]
+            )
 
     if python_version >= 300:
         statements.append(

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -37,7 +37,10 @@ from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinRef
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
-from nuitka.nodes.ClassNodes import ExpressionClassBody, ExpressionSelectMetaclass
+from nuitka.nodes.ClassNodes import (
+    ExpressionClassBody,
+    ExpressionSelectMetaclass,
+)
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import (
@@ -77,7 +80,10 @@ from nuitka.nodes.NodeMakingHelpers import (
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
-from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance, ExpressionBuiltinType1
+from nuitka.nodes.TypeNodes import (
+    ExpressionBuiltinIsinstance,
+    ExpressionBuiltinType1,
+)
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
@@ -279,7 +285,7 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    statements += [
+    statements += (
         StatementAssignmentVariable(
             variable=class_variable,
             source=makeExpressionCall(
@@ -309,7 +315,7 @@ def buildClassNode3(provider, node, source_ref):
             source_ref=source_ref,
         ),
         StatementReturn(expression=class_variable_ref, source_ref=source_ref),
-    ]
+    )
 
     body = makeStatementsSequenceFromStatement(
         statement=makeTryFinallyStatement(
@@ -416,7 +422,7 @@ def buildClassNode3(provider, node, source_ref):
     if node.bases:
         unspecified_metaclass_expression = ExpressionBuiltinType1(
             value=ExpressionSubscriptLookup(
-                subscribed=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_bases, source_ref=source_ref
                 ),
                 subscript=makeConstantRefNode(
@@ -449,7 +455,7 @@ def buildClassNode3(provider, node, source_ref):
         variable=tmp_prepared,
         source=makeExpressionCall(
             called=ExpressionAttributeLookup(
-                source=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_metaclass, source_ref=source_ref
                 ),
                 attribute_name="__prepare__",
@@ -501,7 +507,7 @@ def buildClassNode3(provider, node, source_ref):
                             source_ref=source_ref,
                         ),
                         ExpressionAttributeLookup(
-                            source=ExpressionBuiltinType1(
+                            expression=ExpressionBuiltinType1(
                                 value=ExpressionTempVariableRef(
                                     variable=tmp_prepared, source_ref=source_ref
                                 ),
@@ -517,7 +523,7 @@ def buildClassNode3(provider, node, source_ref):
             ),
         )
 
-    statements += [
+    statements += (
         StatementAssignmentVariable(
             variable=tmp_metaclass,
             source=ExpressionSelectMetaclass(
@@ -598,7 +604,7 @@ def buildClassNode3(provider, node, source_ref):
             source=decorated_body,
             source_ref=source_ref,
         ),
-    ]
+    )
 
     if python_version >= 340:
         class_creation_function.qualname_setup = node.name, qualname_assign
@@ -662,7 +668,7 @@ def getClassBasesMroConversionHelper():
                 ),
                 value=makeExpressionCall(
                     called=ExpressionAttributeLookup(
-                        source=ExpressionTempVariableRef(
+                        expression=ExpressionTempVariableRef(
                             variable=tmp_item_variable, source_ref=internal_source_ref
                         ),
                         attribute_name="__mro_entries__",

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -81,20 +81,21 @@ class StatementsSequence(StatementChildHavingBase):
 
         statements = list(self.getStatements())
         statements.remove(statement)
-
         self.setChild("statements", statements)
 
-    def mergeStatementsSequence(self, statement_sequence):
-        assert statement_sequence.parent is self
+        if statements:
+            return self
+        else:
+            return None
 
+    def replaceStatement(self, statement, statements):
         old_statements = list(self.getStatements())
-        assert statement_sequence in old_statements, (statement_sequence, self)
 
-        merge_index = old_statements.index(statement_sequence)
+        merge_index = old_statements.index(statement)
 
         new_statements = (
             tuple(old_statements[:merge_index])
-            + statement_sequence.getStatements()
+            + tuple(statements)
             + tuple(old_statements[merge_index + 1 :])
         )
 
@@ -221,8 +222,7 @@ class StatementExpressionOnly(StatementChildHavingBase):
         return self.getExpression().mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(expression=self.getExpression())
-        expression = self.getExpression()
+        expression = trace_collection.onExpression(expression=self.getExpression())
 
         if expression.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)

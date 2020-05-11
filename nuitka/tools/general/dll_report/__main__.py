@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -83,7 +83,7 @@ Use pefile dependencies. Default is %default.""",
             ):
                 from nuitka import Options
 
-                Options.enableExperimental("use_pefile")
+                Options.options.dependency_tool = "pefile"
 
                 r = detectBinaryPathDLLsWindowsPE(
                     is_main_executable=False,
@@ -94,7 +94,7 @@ Use pefile dependencies. Default is %default.""",
                     use_cache=False,
                     update_cache=True,
                 )
-                Options.disableExperimental("use_pefile")
+                Options.options.dependency_tool = "depends.exe"
 
                 for dll_filename in sorted(r):
                     print("  ", dll_filename)

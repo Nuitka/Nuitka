@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,14 +28,17 @@ import math
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
-from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase,
+)
 from .IterationHandles import (
     ConstantIterationHandleRange1,
     ConstantIterationHandleRange2,
     ConstantIterationHandleRange3,
 )
 from .NodeMakingHelpers import makeConstantReplacementNode
-from .shapes.BuiltinTypeShapes import ShapeTypeList, ShapeTypeXrange
+from .shapes.BuiltinTypeShapes import tshape_list, tshape_xrange
 
 
 class ExpressionBuiltinRangeMixin(object):
@@ -45,7 +48,7 @@ class ExpressionBuiltinRangeMixin(object):
 
     @staticmethod
     def getTypeShape():
-        return ShapeTypeList
+        return tshape_list
 
     def getTruthValue(self):
         length = self.getIterationLength()
@@ -406,7 +409,7 @@ class ExpressionBuiltinXrangeMixin(object):
 
     @staticmethod
     def getTypeShape():
-        return ShapeTypeXrange
+        return tshape_xrange
 
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None

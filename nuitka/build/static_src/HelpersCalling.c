@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -393,7 +393,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
                 // Other buggy C functions do this, return NULL, but with
                 // no error set, not allowed.
                 if (unlikely(!ERROR_OCCURRED())) {
-                    PyErr_Format(PyExc_SystemError, "NULL result without error in PyObject_Call");
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "NULL result without error in PyObject_Call");
                 }
 
                 return NULL;
@@ -432,7 +432,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
                 // Other buggy C functions do this, return NULL, but with
                 // no error set, not allowed.
                 if (unlikely(!ERROR_OCCURRED())) {
-                    PyErr_Format(PyExc_SystemError, "NULL result without error in PyObject_Call");
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "NULL result without error in PyObject_Call");
                 }
 
                 return NULL;
@@ -496,7 +496,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
                 // Other buggy C functions do this, return NULL, but with
                 // no error set, not allowed.
                 if (unlikely(!ERROR_OCCURRED())) {
-                    PyErr_Format(PyExc_SystemError, "NULL result without error in PyObject_Call");
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "NULL result without error in PyObject_Call");
                 }
 
                 Py_DECREF(pos_args);

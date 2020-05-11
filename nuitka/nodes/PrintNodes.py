@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -49,8 +49,9 @@ class StatementPrintValue(StatementChildrenHavingBase):
         assert value is not None
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(expression=self.getDestination(), allow_none=True)
-        dest = self.getDestination()
+        dest = trace_collection.onExpression(
+            expression=self.getDestination(), allow_none=True
+        )
 
         if dest is not None and dest.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -67,8 +68,7 @@ class StatementPrintValue(StatementChildrenHavingBase):
 Exception raise in 'print' statement destination converted to explicit raise.""",
             )
 
-        trace_collection.onExpression(expression=self.getValue())
-        value = self.getValue()
+        value = trace_collection.onExpression(expression=self.getValue())
 
         if value.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -141,9 +141,9 @@ class StatementPrintNewline(StatementChildHavingBase):
         StatementChildHavingBase.__init__(self, value=dest, source_ref=source_ref)
 
     def computeStatement(self, trace_collection):
-        # TODO: Reactivate below optimizations for prints.
-        trace_collection.onExpression(expression=self.getDestination(), allow_none=True)
-        dest = self.getDestination()
+        dest = trace_collection.onExpression(
+            expression=self.getDestination(), allow_none=True
+        )
 
         if dest is not None and dest.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)

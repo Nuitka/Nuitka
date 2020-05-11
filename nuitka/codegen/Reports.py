@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -55,5 +55,7 @@ def onMissingHelper(helper_name, source_ref):
         _missing_helpers[helper_name].append(source_ref)
 
 
-def onMissingOperation(*args):
-    _missing_operations.add(args)
+def onMissingOperation(operation, left, right):
+    # Avoid the circular dependency on tshape_uninit from StandardShapes.
+    if right.__class__.__name__ != "ShapeTypeUninit":
+        _missing_operations.add((operation, left, right))

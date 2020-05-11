@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -33,6 +33,7 @@ from optparse import OptionParser
 from nuitka.tools.Basics import goHome
 from nuitka.tools.testing.Common import withDirectoryChange
 from nuitka.utils.Execution import (
+    check_call,
     check_output,
     getExecutablePath,
     getPythonExePathWindows,
@@ -83,6 +84,16 @@ import recursions, etc. fine. Default is %default.""",
         help="""\
 The packages tests, execute these to check if Nuitka handles packages, e.g.
 import recursions, etc. fine. Default is %default.""",
+    )
+
+    parser.add_option(
+        "--skip-plugins-tests",
+        action="store_false",
+        dest="plugin_tests",
+        default=True,
+        help="""\
+The plugins tests, execute these to check if Nuitka handles its own plugin
+interfaces, e.g. user plugins, etc. fine. Default is %default.""",
     )
 
     parser.add_option(
@@ -383,7 +394,7 @@ def publishCoverageData():
         if coverage_dir is None:
             return
 
-        subprocess.check_call(("scp", source, os.path.join(coverage_dir, target)))
+        check_call(("scp", source, os.path.join(coverage_dir, target)))
 
     if os.name == "nt":
         suffix = "win"
@@ -518,7 +529,11 @@ def main():
         return False
 
     def setExtraFlags(where, name, flags):
-        if os.name == "nt" and name == "standalone" and options.assume_yes_for_downloads:
+        if (
+            os.name == "nt"
+            and name == "standalone"
+            and options.assume_yes_for_downloads
+        ):
             if flags:
                 flags += " "
             flags += "--assume-yes-for-downloads"
@@ -615,6 +630,14 @@ def main():
             )
             setExtraFlags(where, "packages", flags)
             executeSubTest("./tests/packages/run_all.py search")
+
+        if options.plugin_tests:
+            print(
+                "Running the plugin tests with options '%s' with %s:"
+                % (flags, use_python)
+            )
+            setExtraFlags(where, "plugins", flags)
+            executeSubTest("./tests/plugins/run_all.py search")
 
         # At least one Debian Jessie, these versions won't have lxml installed, so
         # don't run them there. Also these won't be very version dependent in their

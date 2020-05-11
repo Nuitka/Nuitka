@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -265,7 +265,9 @@ class TempMixin(object):
 
     def addCleanupTempName(self, tmp_name):
         assert tmp_name not in self.cleanup_names[-1], tmp_name
-        assert tmp_name.c_type != "void"
+        assert (
+            tmp_name.c_type != "nuitka_void" or tmp_name.code_name == "tmp_unused"
+        ), tmp_name
 
         self.cleanup_names[-1].append(tmp_name)
 
@@ -647,6 +649,12 @@ def _getConstantDefaultPopulation():
         "rb",
     ]
 
+    # Pickling of instance methods.
+    if python_version < 340:
+        result += ("__newobj__",)
+    else:
+        result += ("getattr",)
+
     if python_version >= 300:
         # For Python3 modules
         result += ("__cached__", "__loader__")
@@ -698,21 +706,21 @@ def _getConstantDefaultPopulation():
 
     # Built-in original values
     if not Options.shallMakeModule():
-        result += ["type", "len", "range", "repr", "int", "iter"]
+        result += ("type", "len", "range", "repr", "int", "iter")
 
         if python_version < 300:
             result.append("long")
 
     if python_version >= 340:
         # Setting the __spec__ module attribute.
-        result += ["__spec__", "_initializing", "submodule_search_locations"]
+        result += ("__spec__", "_initializing", "submodule_search_locations")
 
     if python_version >= 350:
         # Patching the types module.
         result.append("types")
 
     if not Options.shallMakeModule():
-        result += [sys.executable, sys.prefix]
+        result += (sys.executable, sys.prefix)
 
     if python_version >= 370:
         result.append("__class_getitem__")
@@ -1304,9 +1312,8 @@ class PythonFunctionOutlineContext(
         return self.parent.isForDirectCall()
 
     def mayRecurse(self):
-        # TODO: In modules, there could be loops with outlines, we could detect
-        # that.
-        return True
+        # The outline is only accessible via its parent.
+        return self.parent.mayRecurse()
 
     def addLocalsDictName(self, locals_dict_name):
         return self.parent.addLocalsDictName(locals_dict_name)

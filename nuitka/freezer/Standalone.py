@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -42,7 +42,10 @@ from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
     isStandardLibraryPath,
 )
-from nuitka.nodes.ModuleNodes import PythonShlibModule, makeUncompiledPythonModule
+from nuitka.nodes.ModuleNodes import (
+    PythonShlibModule,
+    makeUncompiledPythonModule,
+)
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
@@ -52,6 +55,7 @@ from nuitka.utils.Execution import withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     deleteFile,
+    getExternalUsePath,
     getFileContentByLine,
     getFileContents,
     getSubDirectories,
@@ -910,6 +914,16 @@ def getScanDirectories(package_name, original_dir):
         scan_dirs.append(original_dir)
         scan_dirs.extend(getSubDirectories(original_dir))
 
+    if (
+        Utils.isWin32Windows()
+        and package_name is not None
+        and package_name.isBelowNamespace("win32com")
+    ):
+        pywin32_dir = _getPyWin32Dir()
+
+        if pywin32_dir is not None:
+            scan_dirs.append(pywin32_dir)
+
     for path_dir in os.environ["PATH"].split(";"):
         if not os.path.isdir(path_dir):
             continue
@@ -922,16 +936,6 @@ def getScanDirectories(package_name, original_dir):
             continue
 
         scan_dirs.append(path_dir)
-
-    if (
-        Utils.isWin32Windows()
-        and package_name is not None
-        and package_name.isBelowNamespace("win32com")
-    ):
-        pywin32_dir = _getPyWin32Dir()
-
-        if pywin32_dir is not None:
-            scan_dirs.append(pywin32_dir)
 
     result = []
 
@@ -947,7 +951,7 @@ def getScanDirectories(package_name, original_dir):
         if not any(entry[1].lower().endswith(".dll") for entry in listDir(scan_dir)):
             continue
 
-        result.append(scan_dir)
+        result.append(os.path.realpath(scan_dir))
 
     _scan_dir_cache[cache_key] = result
     return result
@@ -1008,9 +1012,9 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
         with open(dwp_filename, "w") as dwp_file:
             dwp_file.write(
                 """\
-    %(scan_dirs)s
-    SxS
-    """
+%(scan_dirs)s
+SxS
+"""
                 % {
                     "scan_dirs": "\n".join(
                         "UserDir %s" % dirname for dirname in scan_dirs
@@ -1029,7 +1033,8 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
             "-pa1",
             "-ps1",
             binary_filename,
-        )
+        ),
+        cwd=getExternalUsePath(os.getcwd()),
     )
 
     # TODO: Exit code should be checked.
@@ -1204,7 +1209,10 @@ def detectBinaryDLLs(
         "otool" (macOS) the list of used DLLs is retrieved.
     """
 
-    if Utils.getOS() in ("Linux", "NetBSD", "FreeBSD") or Utils.isPosixWindows():
+    if (
+        Utils.getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD")
+        or Utils.isPosixWindows()
+    ):
         return _detectBinaryPathDLLsPosix(dll_filename=original_filename)
     elif Utils.isWin32Windows() and Options.getWindowsDependencyTool() == "pefile":
         with TimerReport(
@@ -1499,7 +1507,7 @@ different from
         dll_map.append((dll_filename, dll_name))
 
         if Options.isShowInclusion():
-            info(
+            Tracing.general.info(
                 "Included used shared library '%s' (used by %s)."
                 % (dll_filename, ", ".join(sources))
             )
@@ -1539,32 +1547,36 @@ different from
                 removeSxsFromDLL(os.path.join(dist_dir, dll_filename))
 
 
-def copyDataFiles(dist_dir, data_files):
+def copyDataFiles(dist_dir):
     """ Copy the data files needed for standalone distribution.
 
     Args:
         dist_dir: The distribution folder under creation
-        data_files:
-            Tuple of pairs describing (source, dest) or (func, dest) that
-            should be copied.
     Notes:
         This is for data files only, not DLLs or even extension modules,
         those must be registered as entry points, and would not go through
         necessary handling if provided like this.
     """
-    for source_desc, target_filename in data_files:
-        target_filename = os.path.join(dist_dir, target_filename)
-        assert isPathBelow(dist_dir, target_filename)
 
-        makePath(os.path.dirname(target_filename))
+    # Cyclic dependency
+    from nuitka import ModuleRegistry
 
-        if inspect.isfunction(source_desc):
-            content = source_desc(target_filename)
+    for module in ModuleRegistry.getDoneModules():
+        for _plugin_name, (source_desc, target_filename) in Plugins.considerDataFiles(
+            module
+        ):
+            target_filename = os.path.join(dist_dir, target_filename)
+            assert isPathBelow(dist_dir, target_filename)
 
-            if content is not None:  # support creation of empty directories
-                with open(
-                    target_filename, "wb" if type(content) is bytes else "w"
-                ) as output:
-                    output.write(content)
-        else:
-            shutil.copy2(source_desc, target_filename)
+            makePath(os.path.dirname(target_filename))
+
+            if inspect.isfunction(source_desc):
+                content = source_desc(target_filename)
+
+                if content is not None:  # support creation of empty directories
+                    with open(
+                        target_filename, "wb" if type(content) is bytes else "w"
+                    ) as output:
+                        output.write(content)
+            else:
+                shutil.copy2(source_desc, target_filename)

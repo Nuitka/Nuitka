@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,7 +31,10 @@ from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
     ExpressionAttributeLookupSpecial,
 )
-from nuitka.nodes.CallNodes import ExpressionCallEmpty, ExpressionCallNoKeywords
+from nuitka.nodes.CallNodes import (
+    ExpressionCallEmpty,
+    ExpressionCallNoKeywords,
+)
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -45,7 +48,10 @@ from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTypeRef,
     ExpressionCaughtExceptionValueRef,
 )
-from nuitka.nodes.StatementNodes import StatementExpressionOnly, StatementsSequence
+from nuitka.nodes.StatementNodes import (
+    StatementExpressionOnly,
+    StatementsSequence,
+)
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.PythonVersions import python_version
@@ -79,8 +85,10 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     tmp_enter_variable = provider.allocateTempVariable(
         temp_scope=temp_scope, name="enter"
     )
+
+    # Indicator variable, will end up with C bool type, and need not be released.
     tmp_indicator_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="indicator"
+        temp_scope=temp_scope, name="indicator", temp_type="bool"
     )
 
     statements = (
@@ -124,7 +132,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
 
     enter_value = ExpressionCallEmpty(
         called=attribute_lookup_class(
-            source=ExpressionTempVariableRef(
+            expression=ExpressionTempVariableRef(
                 variable=tmp_source_variable, source_ref=source_ref
             ),
             attribute_name="__enter__" if sync else "__aenter__",
@@ -190,7 +198,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         StatementAssignmentVariable(
             variable=tmp_exit_variable,
             source=attribute_lookup_class(
-                source=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_source_variable, source_ref=source_ref
                 ),
                 attribute_name="__exit__" if sync else "__aexit__",
@@ -216,7 +224,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         )
     )
 
-    statements += [
+    statements += (
         makeTryFinallyStatement(
             provider=provider,
             tried=makeTryExceptSingleHandlerNodeWithPublish(
@@ -263,8 +271,8 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
-        )
-    ]
+        ),
+    )
 
     return makeTryFinallyStatement(
         provider=provider,
@@ -278,9 +286,6 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
             ),
             StatementReleaseVariable(
                 variable=tmp_exit_variable, source_ref=with_exit_source_ref
-            ),
-            StatementReleaseVariable(
-                variable=tmp_indicator_variable, source_ref=with_exit_source_ref
             ),
         ),
         source_ref=source_ref,

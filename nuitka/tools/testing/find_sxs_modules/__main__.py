@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,7 +27,11 @@ import os
 import sys
 import tempfile
 
-from nuitka.tools.testing.Common import compileLibraryTest, createSearchMode, setup
+from nuitka.tools.testing.Common import (
+    compileLibraryTest,
+    createSearchMode,
+    setup,
+)
 from nuitka.Tracing import my_print
 from nuitka.utils.SharedLibraries import getSxsFromDLL
 

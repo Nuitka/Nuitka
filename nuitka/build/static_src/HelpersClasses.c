@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -21,6 +21,12 @@
  * added later, should be choose to have our own "__slots__" special metaclass.
  *
  **/
+
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
 
 #if PYTHON_VERSION >= 300
 PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases) {
@@ -45,8 +51,9 @@ PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases) {
                 winner = base_type;
                 continue;
             } else {
-                PyErr_Format(PyExc_TypeError, "metaclass conflict: the metaclass of a derived class must be a "
-                                              "(non-strict) subclass of the metaclasses of all its bases");
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
+                                                "metaclass conflict: the metaclass of a derived class must be a "
+                                                "(non-strict) subclass of the metaclasses of all its bases");
 
                 return NULL;
             }

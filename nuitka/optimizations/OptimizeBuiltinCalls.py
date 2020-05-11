@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,7 +25,10 @@ from logging import warning
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.Errors import NuitkaAssumptionError
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable, StatementDelVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable,
+)
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
     ExpressionBuiltinGetattr,
@@ -38,7 +41,10 @@ from nuitka.nodes.BuiltinComplexNodes import (
     ExpressionBuiltinComplex1,
     ExpressionBuiltinComplex2,
 )
-from nuitka.nodes.BuiltinDecodingNodes import ExpressionBuiltinChr, ExpressionBuiltinOrd
+from nuitka.nodes.BuiltinDecodingNodes import (
+    ExpressionBuiltinChr,
+    ExpressionBuiltinOrd,
+)
 from nuitka.nodes.BuiltinDecoratorNodes import (
     ExpressionBuiltinClassmethod,
     ExpressionBuiltinStaticmethod,
@@ -62,7 +68,10 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter2,
 )
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
-from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1, ExpressionBuiltinNext2
+from nuitka.nodes.BuiltinNextNodes import (
+    ExpressionBuiltinNext1,
+    ExpressionBuiltinNext2,
+)
 from nuitka.nodes.BuiltinOpenNodes import ExpressionBuiltinOpen
 from nuitka.nodes.BuiltinRangeNodes import (
     ExpressionBuiltinRange1,
@@ -76,7 +85,10 @@ from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
     makeExpressionBuiltinRef,
 )
-from nuitka.nodes.BuiltinSumNodes import ExpressionBuiltinSum1, ExpressionBuiltinSum2
+from nuitka.nodes.BuiltinSumNodes import (
+    ExpressionBuiltinSum1,
+    ExpressionBuiltinSum2,
+)
 from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinBool,
     ExpressionBuiltinBytearray1,
@@ -97,7 +109,10 @@ from nuitka.nodes.ConditionalNodes import (
     makeStatementConditional,
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinCompile, ExpressionBuiltinEval
+from nuitka.nodes.ExecEvalNodes import (
+    ExpressionBuiltinCompile,
+    ExpressionBuiltinEval,
+)
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinDir1,
     ExpressionBuiltinGlobals,
@@ -148,7 +163,7 @@ def dir_extractor(node):
 
         result = makeCallNode(
             ExpressionAttributeLookup(
-                source=source, attribute_name="keys", source_ref=source_ref
+                expression=source, attribute_name="keys", source_ref=source_ref
             ),
             source_ref,
         )
@@ -739,7 +754,7 @@ if python_version < 300:
                         expression=ExpressionBuiltinExecfile(
                             source_code=makeCallNode(
                                 ExpressionAttributeLookup(
-                                    source=ExpressionBuiltinOpen(
+                                    expression=ExpressionBuiltinOpen(
                                         filename=filename,
                                         mode=makeConstantRefNode(
                                             constant="rU", source_ref=source_ref
@@ -854,7 +869,7 @@ def eval_extractor(node):
             variable=source_variable,
             source=makeExpressionCall(
                 called=ExpressionAttributeLookup(
-                    source=ExpressionTempVariableRef(
+                    expression=ExpressionTempVariableRef(
                         variable=source_variable, source_ref=source_ref
                     ),
                     attribute_name="strip",

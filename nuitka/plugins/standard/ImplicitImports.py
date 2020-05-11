@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -599,7 +599,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         # pydantic imports ---------------------------------------------------
         elif full_name == "pydantic":
-            yield "pydantic.__init__", False
             yield "pydantic.typing", False
             yield "pydantic.fields", False
             yield "pydantic.utils", False
@@ -625,6 +624,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "uvicorn.loops", False
             yield "uvicorn.lifespan", False
             yield "uvicorn.protocols", False
+        elif full_name == "uvicorn.config":
+            yield "uvicorn.logging", False
         elif full_name == "uvicorn.lifespan":
             yield "uvicorn.lifespan.off", False
             yield "uvicorn.lifespan.on", False
@@ -1389,15 +1390,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         # Do nothing by default.
         return source_code
-
-    def suppressBuiltinImportWarning(self, module, source_ref):
-        if module.getFullName() in ("setuptools",):
-            return True
-
-        if module.getName() == "six":
-            return True
-
-        return False
 
     def considerExtraDlls(self, dist_dir, module):
         full_name = module.getFullName()

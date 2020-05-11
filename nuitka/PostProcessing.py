@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,7 +26,11 @@ import sys
 
 from nuitka import Options
 from nuitka.codegen import ConstantCodes
-from nuitka.PythonVersions import getPythonABI, getTargetPythonDLLPath, python_version
+from nuitka.PythonVersions import (
+    getPythonABI,
+    getTargetPythonDLLPath,
+    python_version,
+)
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     callInstallNameToolAddRPath,

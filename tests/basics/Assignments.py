@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -15,9 +15,16 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Assignment tests, cover most forms of them. """
+
 from __future__ import print_function
 
 import sys
+
+# Tests are dirty on purpose.
+#
+# pylint: disable=broad-except,global-variable-undefined,redeclared-assigned-name
+# pylint: disable=global-variable-not-assigned,invalid-name,self-assigning-variable
 
 
 def someFunction():
@@ -132,7 +139,7 @@ def anotherFunction():
     d = {}
 
     print("Assignment to dictionary with comma subscript:", end="")
-    # d[ "f" ] = 3
+    # d["f"] = 3
 
     d["a", "b"] = 6
     d["c", "b"] = 9

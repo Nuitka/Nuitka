@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -21,9 +21,16 @@
 #define _DEBUG_FRAME 0
 #define _DEBUG_REFRAME 0
 #define _DEBUG_EXCEPTIONS 0
+#define _DEBUG_GENERATOR 0
 #define _DEBUG_COROUTINE 0
 #define _DEBUG_ASYNCGEN 0
 #define _DEBUG_CLASSES 0
+
+#ifdef _NUITKA_EXPERIMENTAL_REPORT_REFCOUNTS
+#define _DEBUG_REFCOUNTS 1
+#else
+#define _DEBUG_REFCOUNTS 0
+#endif
 
 extern PyObject *const_tuple_empty;
 extern PyObject *const_str_plain___dict__;
@@ -45,7 +52,6 @@ typedef struct {
 } PyModuleObject;
 
 // Generated code helpers, used in static helper codes:
-extern PyObject *CALL_FUNCTION_WITH_ARGS1(PyObject *called, PyObject **args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject **args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject **args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject **args);
@@ -186,7 +192,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyObject *source) {
     PyObject *result = PyObject_GetAttr(source, const_str_plain___dict__);
 
     if (unlikely(result == NULL)) {
-        PyErr_Format(PyExc_TypeError, "vars() argument must have __dict__ attribute");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "vars() argument must have __dict__ attribute");
 
         return NULL;
     }
@@ -313,9 +319,6 @@ extern PyObject *BUILTIN_STATICMETHOD(PyObject *function);
 // For built-in classmethod() functionality.
 extern PyObject *BUILTIN_CLASSMETHOD(PyObject *function);
 
-// For built-in divmod() functionality.
-extern PyObject *BUILTIN_DIVMOD(PyObject *operand1, PyObject *operand2);
-
 // For built-in "int()" functionality with 2 arguments.
 extern PyObject *BUILTIN_INT2(PyObject *value, PyObject *base);
 
@@ -393,9 +396,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME(PyObject *module) {
 }
 
 // Get the binary directory was wide characters.
-extern wchar_t *getBinaryDirectoryWideChars();
+extern wchar_t const *getBinaryDirectoryWideChars();
 // Get the binary directory, translated to native path
-extern char *getBinaryDirectoryHostEncoded();
+extern char const *getBinaryDirectoryHostEncoded();
 
 #if _NUITKA_STANDALONE
 extern void setEarlyFrozenModulesFileAttribute(void);

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -19,7 +19,7 @@
 
 """
 
-# pylint: disable=broad-except
+# pylint: disable=broad-except,global-variable-not-assigned,redefined-outer-name
 
 from __future__ import print_function
 

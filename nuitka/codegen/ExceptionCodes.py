@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,10 @@
 
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import generateExpressionCode, withObjectCodeTemporaryAssignment
+from .CodeHelpers import (
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment,
+)
 from .templates.CodeTemplatesExceptions import template_publish_exception_to_handler
 
 
@@ -127,9 +130,12 @@ def generateExceptionPublishCode(statement, emit, context):
     # This statement has no attributes really, pylint: disable=unused-argument
 
     # Current variables cannot be used anymore now.
-    keeper_type, keeper_value, keeper_tb, keeper_lineno = context.setExceptionKeeperVariables(
-        (None, None, None, None)
-    )
+    (
+        keeper_type,
+        keeper_value,
+        keeper_tb,
+        keeper_lineno,
+    ) = context.setExceptionKeeperVariables((None, None, None, None))
 
     emit(
         template_publish_exception_to_handler

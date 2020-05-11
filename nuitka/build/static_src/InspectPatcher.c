@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -269,7 +269,7 @@ void patchBuiltinModule() {
         return;
     init_done = true;
 #endif
-    CHECK_OBJECT((PyObject *)builtin_module);
+    CHECK_OBJECT(builtin_module);
 
     // Patch "inspect.isinstance" unless it is already patched.
     original_isinstance = PyObject_GetAttrString((PyObject *)builtin_module, "isinstance");
@@ -331,6 +331,14 @@ static int free_list_tracebacks_count = 0;
 // Create a traceback for a given frame, using a freelist hacked into the
 // existing type.
 PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) {
+#if 0
+    PRINT_STRING("MAKE_TRACEBACK: Enter");
+    PRINT_ITEM((PyObject *)frame);
+    PRINT_NEW_LINE();
+
+    dumpFrameStack();
+#endif
+
     CHECK_OBJECT(frame);
     assert(lineno != 0);
 
@@ -351,17 +359,29 @@ PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) 
 }
 
 static void Nuitka_tb_dealloc(PyTracebackObject *tb) {
-    Nuitka_GC_UnTrack(tb);
+    // Need to use official method as it checks for recursion.
+    PyObject_GC_UnTrack(tb);
 
-    // TODO: This seems to clash with our free list implementation.
-    // Py_TRASHCAN_SAFE_BEGIN( tb )
+#if 0
+#if PYTHON_VERSION >= 380
+    Py_TRASHCAN_BEGIN(tb, Nuitka_tb_dealloc);
+#else
+    Py_TRASHCAN_SAFE_BEGIN(tb);
+#endif
+#endif
 
     Py_XDECREF(tb->tb_next);
     Py_XDECREF(tb->tb_frame);
 
     releaseToFreeList(free_list_tracebacks, tb, MAX_TRACEBACK_FREE_LIST_COUNT);
 
-    // Py_TRASHCAN_SAFE_END( tb )
+#if 0
+#if PYTHON_VERSION >= 380
+    Py_TRASHCAN_END;
+#else
+    Py_TRASHCAN_SAFE_END(tb);
+#endif
+#endif
 }
 
 void patchTracebackDealloc(void) { PyTraceBack_Type.tp_dealloc = (destructor)Nuitka_tb_dealloc; }

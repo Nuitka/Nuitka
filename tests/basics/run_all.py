@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -40,10 +40,9 @@ sys.path.insert(
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
-    decideFilenameVersionSkip,
     decideNeeds2to3,
     hasDebugPython,
-    my_print,
+    scanDirectoryForTestCases,
     setup,
 )
 
@@ -54,13 +53,7 @@ def main():
     search_mode = createSearchMode()
 
     # Now run all the tests in this directory.
-    for filename in sorted(os.listdir(".")):
-        if not filename.endswith(".py"):
-            continue
-
-        if not decideFilenameVersionSkip(filename):
-            continue
-
+    for filename in scanDirectoryForTestCases("."):
         extra_flags = [
             # No error exits normally, unless we break tests, and that we would
             # like to know.
@@ -81,9 +74,10 @@ def main():
         # This test should be run with the debug Python, and makes outputs to
         # standard error that might be ignored.
         if filename.startswith("Referencing"):
-            extra_flags.append("python_debug")
-
             extra_flags.append("recurse_not:nuitka")
+
+            if hasDebugPython():
+                extra_flags.append("python_debug")
 
         # This tests warns about __import__() used.
         if filename == "OrderChecks.py":
@@ -108,10 +102,6 @@ def main():
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
-            if filename.startswith("Referencing") and not hasDebugPython():
-                my_print("Skipped (no debug Python)")
-                continue
-
             compareWithCPython(
                 dirname=None,
                 filename=filename,
@@ -122,8 +112,6 @@ def main():
 
             if search_mode.abortIfExecuted():
                 break
-        else:
-            my_print("Skipping", filename)
 
     search_mode.finish()
 

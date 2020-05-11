@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Tommy Li, mailto:tommyli3318@gmail.com
+#     Copyright 2020, Tommy Li, mailto:tommyli3318@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -46,7 +46,12 @@ sys.path.insert(
 # isort:start
 
 import nuitka
-from nuitka.tools.testing.Common import createSearchMode, my_print, reportSkip, setup
+from nuitka.tools.testing.Common import (
+    createSearchMode,
+    my_print,
+    reportSkip,
+    setup,
+)
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.AppDirs import getCacheDir
@@ -163,15 +168,15 @@ def main():
                 ]
 
                 if details["requirements_file"]:
-                    cmds += [
+                    cmds.append(
                         "python -m pip install -r %s" % details["requirements_file"]
-                    ]
+                    )
 
                 if details.get("extra_commands"):
                     cmds += details["extra_commands"]
 
                 # build uncompiled .whl
-                cmds += ["python setup.py bdist_wheel"]
+                cmds.append("python setup.py bdist_wheel")
 
                 venv.runCommand(commands=cmds)
 
@@ -202,7 +207,7 @@ def main():
                     cmds += details["extra_commands"]
 
                 # build nuitka compiled .whl
-                cmds += ["python setup.py bdist_nuitka"]
+                cmds.append("python setup.py bdist_nuitka")
 
                 venv.runCommand(commands=cmds)
 

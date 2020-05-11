@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -121,6 +121,16 @@ class CTypeBase(object):
         """
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
+
+    @classmethod
+    def emitAssignmentCodeToNuitkaIntOrLong(
+        cls, to_name, value_name, needs_check, emit, context
+    ):
+        """ Get the assignment code to int or long type.
+
+        """
+        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        assert False, to_name
 
     @classmethod
     def getReleaseCode(cls, variable_code_name, needs_check, emit):

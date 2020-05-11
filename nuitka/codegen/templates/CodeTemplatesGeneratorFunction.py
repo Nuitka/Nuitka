@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,8 +28,8 @@ struct %(function_identifier)s_locals {
 %(function_local_types)s
 };
 
-static PyObject *%(function_identifier)s_context( struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value ) {
-    CHECK_OBJECT((PyObject *)generator);
+static PyObject *%(function_identifier)s_context(struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value) {
+    CHECK_OBJECT(generator);
     assert(Nuitka_Generator_Check( (PyObject *)generator ));
 
     // Heap access if used.
@@ -100,11 +100,8 @@ template_generator_noexception_exit = """\
     return NULL;
 """
 
-# TODO: Clarify if cannot get here function is to be used.
 template_generator_return_exit = """\
-    // The above won't return, but we need to make it clear to the compiler
-    // as well, or else it will complain and/or generate inferior code.
-    assert(false);
+    NUITKA_CANNOT_GET_HERE("Generator must have exited already.");
     return NULL;
 
     function_return_exit:

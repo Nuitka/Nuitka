@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -104,7 +104,7 @@ def checkSequence(filename, statements):
 
         # Printing is fine.
         if kind == "PrintValue":
-            print_arg, = getRole(statement, "value")
+            (print_arg,) = getRole(statement, "value")
 
             if not isConstantExpression(print_arg):
                 search_mode.onErrorDetected(
@@ -154,7 +154,7 @@ def checkSequence(filename, statements):
             if variable_name == "__spec__":
                 continue
 
-            assign_source, = getRole(statement, "source")
+            (assign_source,) = getRole(statement, "source")
 
             if getKind(assign_source) == "FunctionCreation":
                 continue
@@ -167,7 +167,7 @@ def checkSequence(filename, statements):
             continue
 
         if kind == "AssignmentAttribute":
-            assign_source, = getRole(statement, "expression")
+            (assign_source,) = getRole(statement, "expression")
 
             if getKind(assign_source) == "ModuleAttributeSpecRef":
                 continue
@@ -186,7 +186,7 @@ def checkSequence(filename, statements):
 
 
 def main():
-    # Complex stuff, pylint: disable=too-many-branches,too-many-statements
+    # Complex stuff, pylint: disable=too-many-branches
 
     for filename in sorted(os.listdir(".")):
         if not filename.endswith(".py") or filename.startswith("run_"):
@@ -262,7 +262,7 @@ def main():
                 checkSequence(filename, module_statements)
 
                 for function in root.xpath('role[@name="functions"]/node'):
-                    function_body, = function.xpath('role[@name="body"]')
+                    (function_body,) = function.xpath('role[@name="body"]')
                     function_statements_sequence = function_body[0]
                     assert len(function_statements_sequence) == 1
                     function_statements = next(iter(function_statements_sequence))
@@ -279,8 +279,6 @@ def main():
 
             if search_mode.abortIfExecuted():
                 break
-        else:
-            my_print("Skipping", filename)
 
     search_mode.finish()
 

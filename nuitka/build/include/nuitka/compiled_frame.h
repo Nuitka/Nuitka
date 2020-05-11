@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -53,18 +53,10 @@ struct Nuitka_FrameObject {
     char m_locals_storage[1];
 };
 
-#define MAKE_OR_REUSE_FRAME(cache_identifier, code_identifier, module_identifier, locals_size)                         \
-    if (isFrameUnusable(cache_identifier)) {                                                                           \
-        Py_XDECREF(cache_identifier);                                                                                  \
-        cache_identifier = MAKE_FUNCTION_FRAME(code_identifier, module_identifier, locals_size);                       \
-    }                                                                                                                  \
-    assert(((struct Nuitka_FrameObject *)cache_identifier)->m_type_description == NULL);
+inline static void assertCodeObject(PyCodeObject *code_object) { CHECK_OBJECT(code_object); }
 
-inline static void assertCodeObject(PyCodeObject *code_object) { CHECK_OBJECT((PyObject *)code_object); }
-
-NUITKA_MAY_BE_UNUSED static bool isFrameUnusable(struct Nuitka_FrameObject *frame_object) {
-    if (frame_object)
-        CHECK_OBJECT((PyObject *)frame_object);
+NUITKA_MAY_BE_UNUSED static inline bool isFrameUnusable(struct Nuitka_FrameObject *frame_object) {
+    CHECK_OBJECT_X(frame_object);
 
     bool result =
         // Never used.
@@ -79,12 +71,13 @@ NUITKA_MAY_BE_UNUSED static bool isFrameUnusable(struct Nuitka_FrameObject *fram
         frame_object->m_frame.f_back != NULL;
 
 #if _DEBUG_REFRAME
-    if (result && frame_object) {
+    if (result && frame_object != NULL) {
         PRINT_STRING("NOT REUSING FRAME:");
         PRINT_ITEM((PyObject *)frame_object);
         PRINT_REFCOUNT((PyObject *)frame_object);
-        if (frame_object->f_back)
+        if (frame_object->f_back) {
             PRINT_ITEM((PyObject *)frame_object->f_back);
+        }
         PRINT_NEW_LINE();
     }
 #endif
@@ -92,33 +85,17 @@ NUITKA_MAY_BE_UNUSED static bool isFrameUnusable(struct Nuitka_FrameObject *fram
     return result;
 }
 
-#if _DEBUG_REFRAME
-static inline void dumpFrameStack(void) {
-    PyFrameObject *current = PyThreadState_GET()->frame;
-    int total = 0;
-
-    while (current) {
-        total++;
-        current = current->f_back;
-    }
-
-    current = PyThreadState_GET()->frame;
-
-    puts(">--------->");
-
-    while (current) {
-        printf("Frame stack %d: %s %s\n", total--, PyString_AsString(PyObject_Str((PyObject *)current)),
-               PyString_AsString(PyObject_Str((PyObject *)current->f_code)));
-
-        current = current->f_back;
-    }
-
-    puts(">---------<");
-}
+#if _DEBUG_REFCOUNTS
+extern int count_active_frame_cache_instances;
+extern int count_allocated_frame_cache_instances;
+extern int count_released_frame_cache_instances;
+extern int count_hit_frame_cache_instances;
 #endif
 
+extern void dumpFrameStack(void);
+
 inline static void assertFrameObject(struct Nuitka_FrameObject *frame_object) {
-    CHECK_OBJECT((PyObject *)frame_object);
+    CHECK_OBJECT(frame_object);
     assertCodeObject(frame_object->m_frame.f_code);
 }
 
@@ -210,7 +187,6 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
 
 // Attach locals to a frame object.
 extern void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *type_description, ...);
-extern void Nuitka_Frame_ReleaseLocals(struct Nuitka_FrameObject *frame);
 
 // Codes used for type_description.
 #define NUITKA_TYPE_DESCRIPTION_NULL 'N'
@@ -218,5 +194,11 @@ extern void Nuitka_Frame_ReleaseLocals(struct Nuitka_FrameObject *frame);
 #define NUITKA_TYPE_DESCRIPTION_OBJECT 'o'
 #define NUITKA_TYPE_DESCRIPTION_OBJECT_PTR 'O'
 #define NUITKA_TYPE_DESCRIPTION_BOOL 'b'
+
+#if _DEBUG_REFCOUNTS
+extern int count_active_Nuitka_Frame_Type;
+extern int count_allocated_Nuitka_Frame_Type;
+extern int count_released_Nuitka_Frame_Type;
+#endif
 
 #endif

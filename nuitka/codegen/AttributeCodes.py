@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -33,9 +33,9 @@ from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
 
 def generateAssignmentAttributeCode(statement, emit, context):
-    lookup_source = statement.getLookupSource()
+    lookup_source = statement.subnode_expression
     attribute_name = statement.getAttributeName()
-    value = statement.getAssignSource()
+    value = statement.subnode_source
 
     value_name = context.allocateTempName("assattr_name")
     generateExpressionCode(
@@ -78,13 +78,13 @@ def generateDelAttributeCode(statement, emit, context):
 
     generateExpressionCode(
         to_name=target_name,
-        expression=statement.getLookupSource(),
+        expression=statement.subnode_expression,
         emit=emit,
         context=context,
     )
 
     old_source_ref = context.setCurrentSourceCodeReference(
-        statement.getLookupSource().getSourceReference()
+        statement.subnode_expression.getSourceReference()
         if Options.isFullCompat()
         else statement.getSourceReference()
     )
@@ -100,13 +100,13 @@ def generateDelAttributeCode(statement, emit, context):
 
 
 def generateAttributeLookupCode(to_name, expression, emit, context):
-    source_name, = generateChildExpressionsCode(
+    (source_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
     attribute_name = expression.getAttributeName()
 
-    needs_check = expression.getLookupSource().mayRaiseExceptionAttributeLookup(
+    needs_check = expression.subnode_expression.mayRaiseExceptionAttributeLookup(
         exception_type=BaseException, attribute_name=attribute_name
     )
 
@@ -194,7 +194,7 @@ def getAttributeDelCode(target_name, attribute_name, emit, context):
 
 
 def generateAttributeLookupSpecialCode(to_name, expression, emit, context):
-    source_name, = generateChildExpressionsCode(
+    (source_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -204,7 +204,7 @@ def generateAttributeLookupSpecialCode(to_name, expression, emit, context):
         to_name=to_name,
         source_name=source_name,
         attr_name=context.getConstantCode(constant=attribute_name),
-        needs_check=expression.getLookupSource().mayRaiseExceptionAttributeLookupSpecial(
+        needs_check=expression.subnode_expression.mayRaiseExceptionAttributeLookupSpecial(
             exception_type=BaseException, attribute_name=attribute_name
         ),
         emit=emit,
@@ -251,7 +251,7 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
 
 
 def generateAttributeCheckCode(to_name, expression, emit, context):
-    source_name, = generateChildExpressionsCode(
+    (source_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -278,7 +278,7 @@ def generateBuiltinGetattrCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_GETATTR",
         arg_desc=(
-            ("getattr_target", expression.getLookupSource()),
+            ("getattr_target", expression.subnode_expression),
             ("getattr_attr", expression.getAttribute()),
             ("getattr_default", expression.getDefault()),
         ),
@@ -296,7 +296,7 @@ def generateBuiltinSetattrCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_SETATTR",
         arg_desc=(
-            ("setattr_target", expression.getLookupSource()),
+            ("setattr_target", expression.subnode_expression),
             ("setattr_attr", expression.getAttribute()),
             ("setattr_value", expression.getValue()),
         ),

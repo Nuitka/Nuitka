@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,7 +32,10 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional,
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef, makeConstantRefNode
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantNoneRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.ExecEvalNodes import StatementExec, StatementLocalsDictSync
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
@@ -84,14 +87,14 @@ def wrapEvalGlobalsAndLocals(
             )
         )
 
-    post_statements += [
+    post_statements += (
         StatementReleaseVariable(
             variable=globals_keeper_variable, source_ref=source_ref
         ),
         StatementReleaseVariable(
             variable=locals_keeper_variable, source_ref=source_ref
         ),
-    ]
+    )
 
     # The locals default is dependent on exec_mode, globals or locals.
     locals_default = ExpressionConditional(

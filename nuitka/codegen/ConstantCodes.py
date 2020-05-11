@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,7 +32,6 @@ import marshal
 import re
 import struct
 import sys
-from logging import info, warning
 
 from nuitka import Options
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
@@ -42,8 +41,14 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     xrange,
 )
 from nuitka.Builtins import builtin_named_values, builtin_named_values_list
-from nuitka.Constants import NoneType, compareConstants, getConstantWeight, isMutable
+from nuitka.Constants import (
+    NoneType,
+    compareConstants,
+    getConstantWeight,
+    isMutable,
+)
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import codegen_missing, general
 from nuitka.Version import getNuitkaVersion
 
 from .BlobCodes import StreamData
@@ -241,8 +246,8 @@ def isMarshalConstant(constant_value):
     try:
         marshal_value = marshal.dumps(constant_value)
     except ValueError:
-        if Options.isDebug():
-            warning("Failed to marshal constant %r." % constant_value)
+        if Options.is_debug:
+            codegen_missing.warning("Failed to marshal constant %r." % constant_value)
 
         return False
 
@@ -286,7 +291,7 @@ def attemptToMarshal(constant_identifier, constant_value, emit):
     # TODO: The check in isMarshalConstant is currently preventing this from
     # happening.
     if not compareConstants(constant_value, restored):
-        warning("Problem with marshal of constant %r", constant_value)
+        general.warning("Problem with marshal of constant %r", constant_value)
 
         return False
 
@@ -900,8 +905,8 @@ def getConstantAccess(to_name, constant, emit, context):
     # Many cases, because for each type, we may copy or optimize by creating
     # empty.  pylint: disable=too-many-branches,too-many-statements
 
-    if to_name.c_type == "nuitka_bool" and Options.isDebug():
-        info("Missing optimization for constant to C bool.")
+    if to_name.c_type == "nuitka_bool" and Options.is_debug:
+        codegen_missing.info("Missing optimization for constant to C bool.")
 
     if type(constant) is dict:
         if constant:
@@ -1077,6 +1082,8 @@ def allocateNestedConstants(module_context):
                 considerForDeferral(constant_value.start)
                 considerForDeferral(constant_value.step)
                 considerForDeferral(constant_value.stop)
+        elif constant_type in (str, NoneType, int, long):
+            pass
         elif constant_value in builtin_named_values_list:
             considerForDeferral(builtin_named_values[constant_value])
 

@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -150,6 +150,9 @@ extern PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int l
 // Add a frame to an existing exception trace-back.
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK(PyTracebackObject *exception_tb,
                                                              struct Nuitka_FrameObject *frame, int lineno) {
+    CHECK_OBJECT(exception_tb);
+    CHECK_OBJECT(frame);
+
     PyTracebackObject *traceback_new = MAKE_TRACEBACK(frame, lineno);
     traceback_new->tb_next = exception_tb;
     return traceback_new;
@@ -229,6 +232,85 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyObject *exceptio
     if (exception_tb)
         assert(Py_REFCNT(exception_tb) >= 2);
 #endif
+}
+
+// Helper that sets the current thread exception, and has no reference passed.
+NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0(PyObject *exception_type) {
+    CHECK_OBJECT(exception_type);
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *old_exception_type = tstate->curexc_type;
+    PyObject *old_exception_value = tstate->curexc_value;
+    PyObject *old_exception_traceback = tstate->curexc_traceback;
+
+    tstate->curexc_type = exception_type;
+    Py_INCREF(exception_type);
+    tstate->curexc_value = NULL;
+    tstate->curexc_traceback = NULL;
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE0:\n");
+    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
+#endif
+
+    Py_XDECREF(old_exception_type);
+    Py_XDECREF(old_exception_value);
+    Py_XDECREF(old_exception_traceback);
+}
+
+NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyObject *exception_type,
+                                                                           PyObject *exception_value) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *old_exception_type = tstate->curexc_type;
+    PyObject *old_exception_value = tstate->curexc_value;
+    PyObject *old_exception_traceback = tstate->curexc_traceback;
+
+    tstate->curexc_type = exception_type;
+    Py_INCREF(exception_type);
+    tstate->curexc_value = exception_value;
+    Py_INCREF(exception_value);
+    tstate->curexc_traceback = NULL;
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE0_VALUE0:\n");
+    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
+#endif
+
+    Py_XDECREF(old_exception_type);
+    Py_XDECREF(old_exception_value);
+    Py_XDECREF(old_exception_traceback);
+}
+
+NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyObject *exception_type,
+                                                                           PyObject *exception_value) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *old_exception_type = tstate->curexc_type;
+    PyObject *old_exception_value = tstate->curexc_value;
+    PyObject *old_exception_traceback = tstate->curexc_traceback;
+
+    tstate->curexc_type = exception_type;
+    Py_INCREF(exception_type);
+    tstate->curexc_value = exception_value;
+    tstate->curexc_traceback = NULL;
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE0_VALUE1:\n");
+    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
+#endif
+
+    Py_XDECREF(old_exception_type);
+    Py_XDECREF(old_exception_value);
+    Py_XDECREF(old_exception_traceback);
+}
+
+// Helper that sets the current thread exception, and has no reference passed.
+NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_STR(PyObject *exception_type, char const *value) {
+    PyObject *exception_value = Nuitka_String_FromString(value);
+
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(exception_type, exception_value);
 }
 
 #if PYTHON_VERSION < 300
@@ -317,16 +399,22 @@ NUITKA_MAY_BE_UNUSED static inline void PUBLISH_EXCEPTION(PyObject **exception_t
 NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyObject **exception_type, PyObject **exception_value,
                                                             PyTracebackObject **exception_tb) {
 #if _DEBUG_EXCEPTIONS
-    PRINT_STRING("NORMALIZE_EXCEPTION:\n");
+    PRINT_STRING("NORMALIZE_EXCEPTION: Enter\n");
     PRINT_EXCEPTION(*exception_type, *exception_value, (PyObject *)*exception_tb);
 #endif
 
+    CHECK_OBJECT_X(*exception_type);
+    CHECK_OBJECT_X(*exception_value);
+    CHECK_OBJECT_X(*exception_tb);
+
+    // TODO: Often we already know this to be true.
     if (*exception_type != Py_None && *exception_type != NULL) {
+        // TODO: Inline for performance.
         PyErr_NormalizeException(exception_type, exception_value, (PyObject **)exception_tb);
     }
 
 #if _DEBUG_EXCEPTIONS
-    PRINT_STRING("normalized:\n");
+    PRINT_STRING("NORMALIZE_EXCEPTION: Leave\n");
     PRINT_EXCEPTION(*exception_type, *exception_value, (PyObject *)*exception_tb);
 #endif
 }
@@ -429,12 +517,14 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL(PyObject *exception_
             PyObject *element = PyTuple_GET_ITEM(exception_checked, i);
 
             if (unlikely(!PyExceptionClass_Check(element))) {
-                PyErr_Format(PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed");
+                SET_CURRENT_EXCEPTION_TYPE0_STR(
+                    PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed");
                 return -1;
             }
         }
     } else if (unlikely(!PyExceptionClass_Check(exception_checked))) {
-        PyErr_Format(PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
+                                        "catching classes that do not inherit from BaseException is not allowed");
         return -1;
     }
 #endif
@@ -459,7 +549,7 @@ NUITKA_MAY_BE_UNUSED static inline void ADD_EXCEPTION_CONTEXT(PyObject **excepti
 #endif
 
 /* Special helper that checks for StopIteration and if so clears it, only
- indicating if it was set.
+   indicating if it was set in the return value.
 
    Equivalent to if(PyErr_ExceptionMatches(PyExc_StopIteration) PyErr_Clear();
 
@@ -481,8 +571,12 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(void) {
     }
 }
 
-// Special helper that checks for KeyError and if so clears it, only
-// indicating if it was set.
+/* Special helper that checks for KeyError and if so clears it, only
+   indicating if it was set in the return value.
+
+   Equivalent to if(PyErr_ExceptionMatches(PyExc_KeyError) PyErr_Clear();
+
+*/
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(void) {
     PyObject *error = GET_ERROR_OCCURRED();
 
@@ -494,6 +588,24 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(void) {
     } else {
         return false;
     }
+}
+
+static inline void FORMAT_TYPE_ERROR1(PyObject **exception_type, PyObject **exception_value, char const *format,
+                                      char const *arg) {
+    *exception_type = PyExc_TypeError;
+    Py_INCREF(*exception_type);
+
+    *exception_value = Nuitka_String_FromFormat(format, arg);
+    CHECK_OBJECT(*exception_value);
+}
+
+static inline void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exception_value, char const *format,
+                                      char const *arg1, char const *arg2) {
+    *exception_type = PyExc_TypeError;
+    Py_INCREF(*exception_type);
+
+    *exception_value = Nuitka_String_FromFormat(format, arg1, arg2);
+    CHECK_OBJECT(*exception_value);
 }
 
 #endif

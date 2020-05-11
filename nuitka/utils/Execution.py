@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,9 +23,12 @@ binaries (needed for exec) and run them capturing outputs.
 
 
 import os
+import shutil
 import subprocess
 import sys
 from contextlib import contextmanager
+
+from nuitka.PythonVersions import python_version
 
 from .Utils import getArchitecture, getOS, isWin32Windows
 
@@ -64,25 +67,26 @@ def callExec(args):
 def getExecutablePath(filename):
     """ Find an execute in PATH environment. """
 
-    # Append ".exe" suffix  on Windows if not already present.
-    if getOS() == "Windows" and not filename.lower().endswith(".exe"):
-        filename += ".exe"
+    if python_version >= 300:
+        return shutil.which(filename)
+    else:
+        # Append ".exe" suffix  on Windows if not already present.
+        if getOS() == "Windows" and not filename.lower().endswith(".exe"):
+            filename += ".exe"
 
-    # Search in PATH environment.
-    search_path = os.environ.get("PATH", "")
+        # Search in PATH environment.
+        search_path = os.environ.get("PATH", "")
 
-    # Now check in each path element, much like the shell will.
-    path_elements = search_path.split(os.pathsep)
+        # Now check in each path element, much like the shell will.
+        path_elements = search_path.split(os.pathsep)
 
-    for path_element in path_elements:
-        path_element = path_element.strip('"')
+        for path_element in path_elements:
+            path_element = path_element.strip('"')
 
-        full = os.path.join(path_element, filename)
+            full = os.path.join(path_element, filename)
 
-        if os.path.exists(full):
-            return full
-
-    return None
+            if os.path.exists(full):
+                return full
 
 
 def getPythonExePathWindows(search, arch):
@@ -135,6 +139,9 @@ def check_output(*popenargs, **kwargs):
 
         This is for Python 2.6 compatibility, which doesn't have that in its
         standard library.
+
+        Note: We use same name as in Python stdlib, violating our rules to
+        make it more recognizable what this does.
     """
 
     if "stdout" in kwargs:
@@ -152,6 +159,21 @@ def check_output(*popenargs, **kwargs):
         raise subprocess.CalledProcessError(retcode, cmd, output=output)
 
     return output
+
+
+def check_call(*popenargs, **kwargs):
+    """ Call a process and check result code.
+
+        Note: This catches the error, and makes it nicer, and an error
+        exit. So this is for tooling only.
+
+        Note: We use same name as in Python stdlib, violating our rules to
+        make it more recognizable what this does.
+    """
+    try:
+        subprocess.check_call(*popenargs, **kwargs)
+    except OSError:
+        sys.exit("Error, failed to execute '%s'. Is it installed?" % popenargs[0])
 
 
 @contextmanager

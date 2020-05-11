@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -137,7 +137,7 @@ def buildClassNode2(provider, node, source_ref):
             )
         )
 
-    statements += [
+    statements += (
         body,
         StatementReturn(
             expression=ExpressionBuiltinLocalsRef(
@@ -145,7 +145,7 @@ def buildClassNode2(provider, node, source_ref):
             ),
             source_ref=source_ref,
         ),
-    ]
+    )
 
     body = makeStatementsSequenceFromStatement(
         statement=makeTryFinallyStatement(
@@ -181,7 +181,7 @@ def buildClassNode2(provider, node, source_ref):
             StatementAssignmentVariable(
                 variable=tmp_base,
                 source=ExpressionSubscriptLookup(
-                    subscribed=ExpressionTempVariableRef(
+                    expression=ExpressionTempVariableRef(
                         variable=tmp_bases, source_ref=source_ref
                     ),
                     subscript=makeConstantRefNode(
@@ -197,7 +197,7 @@ def buildClassNode2(provider, node, source_ref):
                     tried=makeStatementsSequenceFromStatement(
                         statement=StatementReturn(
                             expression=ExpressionAttributeLookup(
-                                source=ExpressionTempVariableRef(
+                                expression=ExpressionTempVariableRef(
                                     variable=tmp_base, source_ref=source_ref
                                 ),
                                 attribute_name="__class__",

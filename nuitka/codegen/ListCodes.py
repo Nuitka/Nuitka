@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -117,7 +117,7 @@ def generateListOperationExtendCode(to_name, expression, emit, context):
 
 
 def generateListOperationPopCode(to_name, expression, emit, context):
-    list_arg_name, = generateChildExpressionsCode(
+    (list_arg_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 

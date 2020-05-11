@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,8 +29,14 @@ from nuitka.PythonVersions import python_version
 
 from .AttributeNodes import ExpressionAttributeLookup
 from .BuiltinHashNodes import ExpressionBuiltinHash
-from .ExpressionBases import ExpressionChildHavingBase, ExpressionChildrenHavingBase
-from .NodeBases import SideEffectsFromChildrenMixin, StatementChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase,
+)
+from .NodeBases import (
+    SideEffectsFromChildrenMixin,
+    StatementChildrenHavingBase,
+)
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeRaiseExceptionExpressionFromTemplate,
@@ -133,7 +139,7 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildHavingBase
                     exception_type="TypeError",
                     template="unhashable type: '%s'",
                     template_args=ExpressionAttributeLookup(
-                        source=ExpressionBuiltinType1(
+                        expression=ExpressionBuiltinType1(
                             value=key.extractUnhashableNode(), source_ref=key.source_ref
                         ),
                         attribute_name="__name__",

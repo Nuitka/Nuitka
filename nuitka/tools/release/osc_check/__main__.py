@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,10 +28,10 @@ Buildbot on a timer basis.
 from __future__ import print_function
 
 import csv
-import subprocess
 import sys
 
 from nuitka.__past__ import StringIO
+from nuitka.utils.Execution import check_output
 
 
 def main():
@@ -39,23 +39,15 @@ def main():
 
     osc_cmd = ["osc", "pr", "-c", "home:kayhayen"]
 
-    process = subprocess.Popen(
-        args=osc_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    stdout_osc = check_output(args=osc_cmd)
 
-    stdout_osc, stderr_osc = process.communicate()
-    exit_osc = process.returncode
-
-    assert exit_osc == 0, stderr_osc
-
-    # print(stdout_osc)
-
+    # Response is really a CSV file, so use that for parsing.
     csvfile = StringIO(stdout_osc)
     osc_reader = csv.reader(csvfile, delimiter=";")
 
     osc_reader = iter(osc_reader)
 
-    bad = ("failed", "unresolvable", "broken", "blocked", "disabled")
+    bad = ("failed", "unresolvable", "broken", "blocked")
 
     titles = osc_reader.next()[1:]
 
@@ -66,24 +58,31 @@ def main():
 
     problems = []
 
-    for count, title in enumerate(titles):
-        status = row1[count + 1]
+    def decideConsideration(title):
+        # Ignore other arch builds, they might to not even boot at times.
+        if "ppc" in title or "aarch" in title or "arm" in title:
+            return False
 
-        # print(row1[0], title, ":", status)
-        # Ignore PowerPC builds for now, they seem to not even boot.
-        if "ppc" in title:
+        # This fails for other reasons often, and is not critical to Nuitka.
+        if "openSUSE_Tumbleweed" in title:
+            return False
+
+        return True
+
+    for count, title in enumerate(titles):
+        if not decideConsideration(title):
             continue
+
+        status = row1[count + 1]
 
         if status in bad:
             problems.append((row1[0], title, status))
 
     for count, title in enumerate(titles):
-        status = row2[count + 1]
-
-        # print(row2[0], title, ":", status)
-        # Ignore PowerPC builds for now, they seem to not even boot.
-        if "ppc" in title or "aarch" in title or "arm" in title:
+        if not decideConsideration(title):
             continue
+
+        status = row2[count + 1]
 
         if status in bad:
             problems.append((row2[0], title, status))

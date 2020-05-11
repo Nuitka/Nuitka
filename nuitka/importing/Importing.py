@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,10 +17,10 @@
 #
 """ Locating modules and package source on disk.
 
-The actual import of a module would already execute code that changes
-things. Imagine a module that does ``os.system()``, it would be done during
-compilation. People often connect to databases, and these kind of things,
-at import time.
+The actual import of a module would already execute code that changes things.
+Imagine a module that does ``os.system()``, it would be done during
+compilation. People often connect to databases, and these kind of things, at
+import time.
 
 Therefore CPython exhibits the interfaces in an ``imp`` module in standard
 library, which one can use those to know ahead of time, what file import would
@@ -30,8 +30,8 @@ exactly like CPython does, so we implement here a multi step search process
 that is compatible.
 
 This approach is much safer of course and there is no loss. To determine if
-it's from the standard library, one can abuse the attribute ``__file__`` of
-the ``os`` module like it's done in ``isStandardLibraryPath`` of this module.
+it's from the standard library, one can abuse the attribute ``__file__`` of the
+``os`` module like it's done in ``isStandardLibraryPath`` of this module.
 
 """
 

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,7 +36,7 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
     wrapExpressionWithSideEffects,
 )
-from .shapes.StandardShapes import ShapeIterator
+from .shapes.StandardShapes import tshape_iterator
 
 
 class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
@@ -177,8 +177,7 @@ class StatementSpecialUnpackCheck(StatementChildHavingBase):
         return self.count
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(self.getIterator())
-        iterator = self.getIterator()
+        iterator = trace_collection.onExpression(self.getIterator())
 
         if iterator.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -202,7 +201,7 @@ Explicit raise already raises implicitly building exception type.""",
             and iterator.variable_trace.isAssignTrace()
         ):
 
-            iterator = iterator.variable_trace.getAssignNode().getAssignSource()
+            iterator = iterator.variable_trace.getAssignNode().subnode_source
 
             current_index = trace_collection.getIteratorNextCount(iterator)
         else:
@@ -264,7 +263,7 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
 
     def getTypeShape(self):
         # TODO: This could be more specific.
-        return ShapeIterator
+        return tshape_iterator
 
     def computeExpression(self, trace_collection):
         # TODO: The "callable" should be investigated here, maybe it is not

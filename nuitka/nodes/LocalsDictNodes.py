@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -322,9 +322,7 @@ class ExpressionLocalsVariableCheck(ExpressionBase):
 class StatementLocalsDictOperationSet(StatementChildHavingBase):
     kind = "STATEMENT_LOCALS_DICT_OPERATION_SET"
 
-    named_child = "value"
-    # TODO: Child name inconsistent with accessor name.
-    getAssignSource = StatementChildHavingBase.childGetter("value")
+    named_child = "source"
 
     __slots__ = ("variable", "variable_version", "variable_trace", "locals_scope")
 
@@ -372,7 +370,9 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
             )
 
             result = StatementAssignmentVariable(
-                source=self.subnode_value, variable=variable, source_ref=self.source_ref
+                source=self.subnode_source,
+                variable=variable,
+                source_ref=self.source_ref,
             )
             result.parent = self.parent
 
@@ -405,7 +405,7 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        return self.may_raise_set or self.subnode_value.mayRaiseException(
+        return self.may_raise_set or self.subnode_source.mayRaiseException(
             exception_type
         )
 
@@ -497,7 +497,7 @@ class StatementLocalsDictOperationDel(StatementBase):
 
         # Record the deletion, needs to start a new version then.
         _variable_trace = trace_collection.onVariableDel(
-            variable=self.variable, version=self.variable_version
+            variable=self.variable, version=self.variable_version, del_node=self
         )
 
         trace_collection.onVariableContentEscapes(self.variable)
@@ -519,7 +519,6 @@ class StatementSetLocals(StatementChildHavingBase):
 
     named_child = "new_locals"
     getNewLocals = StatementChildHavingBase.childGetter("new_locals")
-    getAssignSource = getNewLocals
 
     __slots__ = ("locals_scope",)
 
@@ -546,8 +545,7 @@ class StatementSetLocals(StatementChildHavingBase):
         return self.getNewLocals().mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(self.getNewLocals())
-        new_locals = self.getNewLocals()
+        new_locals = trace_collection.onExpression(self.getNewLocals())
 
         if new_locals.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode

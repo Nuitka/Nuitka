@@ -1,0 +1,118 @@
+{#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Python test originally created or extracted from other peoples work. The #}
+{#     parts from me are licensed as below. It is at least Free Software where  #}
+{#     it's copied from other people. In these cases, that will normally be     #}
+{#     indicated.                                                               #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#         http://www.apache.org/licenses/LICENSE-2.0                           #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+
+# This test does check operations in optimizable and not optimizable forms
+# to check for proper errors, exceptions, etc.
+
+from __future__ import print_function
+
+# Condition value not seen through, TODO: Might want to variate it, so
+# we cover more cases.
+cond = 8
+
+# Function to hide type because it is not seen through
+def forgetType(value):
+    return value
+
+
+{% for op_name, ioperation in ioperations %}
+{% for l_type, left_1, left_2 in candidates %}
+{% for r_type, right_1, right_2 in candidates %}
+
+{% set operation_id = "I" + op_name + "_" + l_type + "_" + r_type %}
+
+def {{operation_id}}():
+    # First value, which we expect to be compile time computed.
+    left = {{left_1}}
+    right = {{right_1}}
+
+    try:
+        left {{ioperation}}= right
+    except Exception as e: # pylint: disable=broad-except
+        print("{{operation_id}} compile time occurred:", e)
+    else:
+        print("{{operation_id}} compile time result:", left)
+
+    # Second value, which we expect to be compile time computed as well.
+    left = {{left_2}}
+    right = {{right_2}}
+
+    try:
+        # We expect this to be compile time computed.
+        left {{ioperation}}= right
+    except Exception as e: # pylint: disable=broad-except
+        print("{{operation_id}} compile time occurred:", e)
+    else:
+        print("{{operation_id}} compile time result:", left)
+
+    # Now the branch may make things less clear for mixed types and
+    # also require the operation to be checked at run time.
+    left = {{left_1}} if cond else {{left_2}}
+    right = {{right_1}} if cond else {{right_2}}
+
+    try:
+        # We expect this to be compile time error checked still.
+        left {{ioperation}}= right
+    except Exception as e: # pylint: disable=broad-except
+        print("{{operation_id}} runtime occurred:", e)
+    else:
+        print("{{operation_id}} runtime result:", left)
+
+
+    # Now we forget one type, forcing run time error checking.
+    left = forgetType({{left_1}})
+    right = {{right_1}}
+
+    try:
+        left {{ioperation}}= right
+    except Exception as e: # pylint: disable=broad-except
+        print("{{operation_id}} runtime occurred:", e)
+    else:
+        print("{{operation_id}} runtime result:", left)
+
+    # And the other, forcing run time error checking.
+    left = {{left_1}}
+    right = forgetType({{right_1}})
+
+    try:
+        # We expect this to be run time error checked still.
+        left {{ioperation}}= right
+    except Exception as e: # pylint: disable=broad-except
+        print("{{operation_id}} runtime occurred:", e)
+    else:
+        print("{{operation_id}} runtime result:", left)
+
+    # And both, forcing generic run time error checking.
+    left = forgetType({{left_1}})
+    right = forgetType({{right_1}})
+
+    try:
+        # We expect this to be compile time error checked still.
+        left {{ioperation}}= right
+    except Exception as e: # pylint: disable=broad-except
+        print("{{operation_id}} runtime occurred:", e)
+    else:
+        print("{{operation_id}} runtime result:", left)
+
+{{operation_id}}()
+
+{% endfor %}
+{% endfor %}
+{% endfor %}

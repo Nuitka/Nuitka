@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -85,13 +85,16 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_
         NORMALIZE_EXCEPTION(exception_type, exception_value, exception_tb);
 #if PYTHON_VERSION >= 270
         if (unlikely(!PyExceptionInstance_Check(*exception_value))) {
-            PyErr_Format(PyExc_TypeError, "calling %s() should have returned an instance of BaseException, not '%s'",
-                         ((PyTypeObject *)*exception_type)->tp_name, Py_TYPE(*exception_value)->tp_name);
+            PyObject *old_exception_type = *exception_type;
+            PyObject *old_exception_value = *exception_value;
 
-            Py_DECREF(*exception_type);
-            Py_DECREF(*exception_value);
+            FORMAT_TYPE_ERROR2(exception_type, exception_value,
+                               "calling %s() should have returned an instance of BaseException, not '%s'",
+                               Py_TYPE(*exception_type)->tp_name, Py_TYPE(*exception_value)->tp_name);
 
-            FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+            Py_DECREF(old_exception_type);
+            Py_DECREF(old_exception_value);
+
             return;
         }
 #endif
@@ -115,10 +118,13 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_
 
         return;
     } else {
-        PyErr_Format(PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE(*exception_type)->tp_name);
-        Py_DECREF(*exception_type);
+        PyObject *old_exception_type = *exception_type;
 
-        FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+        FORMAT_TYPE_ERROR1(exception_type, exception_value, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE,
+                           Py_TYPE(*exception_type)->tp_name);
+
+        Py_DECREF(old_exception_type);
+
         return;
     }
 }
@@ -153,15 +159,19 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE(PyObject **exception
     if (unlikely(exception_cause != NULL && !PyExceptionInstance_Check(exception_cause))) {
         Py_DECREF(*exception_type);
         Py_XDECREF(*exception_tb);
-        Py_XDECREF(exception_cause);
+
+        PyObject *old_exception_cause = exception_cause;
 
 #ifdef _NUITKA_FULL_COMPAT
-        PyErr_Format(PyExc_TypeError, "exception causes must derive from BaseException");
-#else
-        PyErr_Format(PyExc_TypeError, "exception causes must derive from BaseException (%s does not)",
-                     Py_TYPE(exception_cause)->tp_name);
-#endif
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "exception causes must derive from BaseException");
         FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+#else
+        FORMAT_TYPE_ERROR1(exception_type, exception_value,
+                           "exception causes must derive from BaseException (%s does not)",
+                           Py_TYPE(exception_cause)->tp_name);
+#endif
+
+        Py_XDECREF(old_exception_cause);
         return;
     }
 
@@ -169,15 +179,19 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE(PyObject **exception
         NORMALIZE_EXCEPTION(exception_type, exception_value, exception_tb);
 
         if (unlikely(!PyExceptionInstance_Check(*exception_value))) {
-            Py_DECREF(*exception_type);
-            Py_XDECREF(*exception_value);
             Py_DECREF(*exception_tb);
             Py_XDECREF(exception_cause);
 
-            PyErr_Format(PyExc_TypeError, "calling %s() should have returned an instance of BaseException, not '%s'",
-                         ((PyTypeObject *)exception_type)->tp_name, Py_TYPE(*exception_value)->tp_name);
+            PyObject *old_exception_type = *exception_type;
+            PyObject *old_exception_value = *exception_value;
 
-            FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+            FORMAT_TYPE_ERROR2(exception_type, exception_value,
+                               "calling %s() should have returned an instance of BaseException, not '%s'",
+                               Py_TYPE(*exception_type)->tp_name, Py_TYPE(*exception_value)->tp_name);
+
+            Py_DECREF(old_exception_type);
+            Py_XDECREF(old_exception_value);
+
             return;
         }
 
@@ -195,12 +209,14 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE(PyObject **exception
         CHAIN_EXCEPTION(*exception_value);
         return;
     } else {
-        Py_DECREF(*exception_type);
         Py_XDECREF(exception_cause);
 
-        PyErr_Format(PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE(exception_type)->tp_name);
-        FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+        PyObject *old_exception_type = *exception_type;
 
+        FORMAT_TYPE_ERROR1(exception_type, exception_value, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE,
+                           Py_TYPE(*exception_type)->tp_name);
+
+        Py_DECREF(old_exception_type);
         return;
     }
 }
@@ -221,27 +237,27 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_VALUE(PyObject **exception
         NORMALIZE_EXCEPTION(exception_type, exception_value, exception_tb);
 #if PYTHON_VERSION >= 270
         if (unlikely(!PyExceptionInstance_Check(*exception_value))) {
-            PyErr_Format(PyExc_TypeError, "calling %s() should have returned an instance of BaseException, not '%s'",
-                         ((PyTypeObject *)*exception_type)->tp_name, Py_TYPE(*exception_value)->tp_name);
+            PyObject *old_exception_type = *exception_type;
+            PyObject *old_exception_value = *exception_type;
 
-            Py_DECREF(*exception_type);
-            Py_XDECREF(*exception_value);
-            Py_XDECREF(*exception_tb);
+            FORMAT_TYPE_ERROR2(exception_type, exception_value,
+                               "calling %s() should have returned an instance of BaseException, not '%s'",
+                               Py_TYPE(*exception_type)->tp_name, Py_TYPE(*exception_value)->tp_name);
 
-            FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+            Py_DECREF(old_exception_type);
+            Py_DECREF(old_exception_value);
         }
 #endif
 
         return;
     } else if (PyExceptionInstance_Check(*exception_type)) {
         if (unlikely(*exception_value != NULL && *exception_value != Py_None)) {
-            PyErr_Format(PyExc_TypeError, "instance exception may not have a separate value");
-
             Py_DECREF(*exception_type);
-            Py_XDECREF(*exception_value);
-            Py_XDECREF(*exception_tb);
+            Py_DECREF(*exception_value);
 
-            FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+            *exception_type = PyExc_TypeError;
+            Py_INCREF(PyExc_TypeError);
+            *exception_value = Nuitka_String_FromString("instance exception may not have a separate value");
 
             return;
         }
@@ -253,8 +269,13 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_VALUE(PyObject **exception
 
         return;
     } else {
-        PyErr_Format(PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE(exception_type)->tp_name);
-        FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+        PyObject *old_exception_type = *exception_type;
+
+        FORMAT_TYPE_ERROR1(exception_type, exception_value, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE,
+                           Py_TYPE(*exception_type)->tp_name);
+
+        Py_DECREF(old_exception_type);
+
         return;
     }
 }
@@ -289,8 +310,13 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_IMPLICIT(PyObject **exception_t
 
         return;
     } else {
-        PyErr_Format(PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE(exception_type)->tp_name);
-        FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+        PyObject *old_exception_type = *exception_type;
+        Py_DECREF(*exception_value);
+
+        FORMAT_TYPE_ERROR1(exception_type, exception_value, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE,
+                           Py_TYPE(*exception_type)->tp_name);
+
+        Py_DECREF(old_exception_type);
 
 #if PYTHON_VERSION >= 340
         CHAIN_EXCEPTION(*exception_value);
@@ -320,27 +346,28 @@ NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION_WITH_TRACEBACK(PyObject 
         NORMALIZE_EXCEPTION(exception_type, exception_value, exception_tb);
 #if PYTHON_VERSION >= 270
         if (unlikely(!PyExceptionInstance_Check(*exception_value))) {
-            PyErr_Format(PyExc_TypeError, "calling %s() should have returned an instance of BaseException, not '%s'",
-                         ((PyTypeObject *)*exception_type)->tp_name, Py_TYPE(*exception_value)->tp_name);
+            PyObject *old_exception_type = *exception_type;
+            PyObject *old_exception_value = *exception_value;
 
-            Py_DECREF(*exception_type);
-            Py_XDECREF(*exception_value);
-            Py_XDECREF(*exception_tb);
+            FORMAT_TYPE_ERROR2(exception_type, exception_value,
+                               "calling %s() should have returned an instance of BaseException, not '%s'",
+                               Py_TYPE(*exception_type)->tp_name, Py_TYPE(*exception_value)->tp_name);
 
-            FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+            Py_DECREF(old_exception_type);
+            Py_DECREF(old_exception_value);
         }
 #endif
 
         return;
     } else if (PyExceptionInstance_Check(*exception_type)) {
         if (unlikely(*exception_value != NULL && *exception_value != Py_None)) {
-            PyErr_Format(PyExc_TypeError, "instance exception may not have a separate value");
-
             Py_DECREF(*exception_type);
             Py_XDECREF(*exception_value);
             Py_XDECREF(*exception_tb);
 
-            FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+            *exception_type = PyExc_TypeError;
+            Py_INCREF(PyExc_TypeError);
+            *exception_value = Nuitka_String_FromString("instance exception may not have a separate value");
 
             return;
         }
@@ -352,8 +379,13 @@ NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION_WITH_TRACEBACK(PyObject 
 
         return;
     } else {
-        PyErr_Format(PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE(exception_type)->tp_name);
-        FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+        PyObject *old_exception_type = *exception_type;
+
+        FORMAT_TYPE_ERROR1(exception_type, exception_value, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE,
+                           Py_TYPE(*exception_type)->tp_name);
+
+        Py_DECREF(old_exception_type);
+
         return;
     }
 }
@@ -381,8 +413,12 @@ NUITKA_MAY_BE_UNUSED static bool RERAISE_EXCEPTION(PyObject **exception_type, Py
         *exception_value = PyUnicode_FromString("No active exception to reraise");
         *exception_tb = NULL;
 #else
-        PyErr_Format(PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE(*exception_type)->tp_name);
-        FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+        PyObject *old_exception_type = *exception_type;
+
+        FORMAT_TYPE_ERROR1(exception_type, exception_value, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE,
+                           Py_TYPE(*exception_type)->tp_name);
+
+        Py_DECREF(old_exception_type);
 #endif
 
         return false;

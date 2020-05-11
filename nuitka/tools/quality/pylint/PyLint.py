@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -289,6 +289,11 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
                 "ReformulationContractionExpressions.py",
                 "TreeHelpers.py",
             ):
+                return True
+
+        # Slot warning that is impossible to disable
+        if pylint_version < "2.0.0":
+            if os.path.basename(filename) in ("Variables.py",):
                 return True
 
         return False

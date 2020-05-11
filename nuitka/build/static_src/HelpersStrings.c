@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -15,23 +15,25 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-
 /* This helpers is used to quickly create a string object from C char.
 
    Currently this is used for string subscript code, but may also be used
    for the "char" C type in the future.
 */
+
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 PyObject *STRING_FROM_CHAR(unsigned char c) {
     // TODO: A switch statement might be faster, because no object needs to be
     // created at all, this here is how CPython does it.
     char s[1];
     s[0] = (char)c;
 
-#if PYTHON_VERSION < 300
-    return PyString_FromStringAndSize(s, 1);
-#else
-    return PyUnicode_FromStringAndSize(s, 1);
-#endif
+    return Nuitka_String_FromStringAndSize(s, 1);
 }
 
 /* The "chr" built-in.
@@ -45,7 +47,7 @@ PyObject *BUILTIN_CHR(PyObject *value) {
 
     if (unlikely(x == -1 && ERROR_OCCURRED())) {
 #if PYTHON_VERSION < 300 && defined(_NUITKA_FULL_COMPAT)
-        PyErr_Format(PyExc_TypeError, "an integer is required");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "an integer is required");
 #else
         PyErr_Format(PyExc_TypeError, "an integer is required (got type %s)", Py_TYPE(value)->tp_name);
 #endif
@@ -54,7 +56,7 @@ PyObject *BUILTIN_CHR(PyObject *value) {
 
 #if PYTHON_VERSION < 300
     if (unlikely(x < 0 || x >= 256)) {
-        PyErr_Format(PyExc_ValueError, "chr() arg not in range(256)");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "chr() arg not in range(256)");
         return NULL;
     }
 
@@ -484,7 +486,7 @@ PyObject *UNICODE_CONCAT(PyObject *left, PyObject *right) {
     Py_ssize_t left_len = PyUnicode_GET_LENGTH(left);
     Py_ssize_t right_len = PyUnicode_GET_LENGTH(right);
     if (left_len > PY_SSIZE_T_MAX - right_len) {
-        PyErr_Format(PyExc_OverflowError, "strings are too large to concat");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_OverflowError, "strings are too large to concat");
         return NULL;
     }
     Py_ssize_t new_len = left_len + right_len;
@@ -527,7 +529,7 @@ bool UNICODE_APPEND(PyObject **p_left, PyObject *right) {
     Py_ssize_t right_len = PyUnicode_GET_LENGTH(right);
 
     if (left_len > PY_SSIZE_T_MAX - right_len) {
-        PyErr_Format(PyExc_OverflowError, "strings are too large to concat");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_OverflowError, "strings are too large to concat");
         return false;
     }
     Py_ssize_t new_len = left_len + right_len;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -57,7 +57,7 @@ from nuitka.utils.FileOperations import removeDirectory
 
 
 def main():
-    # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # Complex stuff, pylint: disable=too-many-locals,too-many-statements
 
     python_version = setup(needs_io_encoding=True)
 
@@ -83,10 +83,10 @@ def main():
         if active:
             my_print("Consider distutils example:", filename)
 
-            if python_version < "3":
-                if filename == "example_3":
-                    reportSkip("Skipped, only relevant for Python3", ".", filename)
-                    continue
+            py3_only_examples = ("example_3", "nested_namespaces")
+            if python_version < "3" and filename in py3_only_examples:
+                reportSkip("Skipped, only relevant for Python3", ".", filename)
+                continue
 
             case_dir = os.path.join(os.getcwd(), filename)
 

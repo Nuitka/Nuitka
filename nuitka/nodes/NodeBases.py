@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,10 @@ expression only stuff.
 from abc import abstractmethod
 
 from nuitka import Options, Tracing, TreeXML, Variables
-from nuitka.__past__ import intern, iterItems  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    intern,
+    iterItems,
+)
 from nuitka.Errors import NuitkaNodeError
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
@@ -347,6 +350,10 @@ class NodeBase(NodeMetaClassBase):
 
     @staticmethod
     def isExpressionOperationBinary():
+        return False
+
+    @staticmethod
+    def isExpressionOperationInplace():
         return False
 
     def isExpressionSideEffects(self):
@@ -728,7 +735,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
         return "%s_%d" % (name, self.temp_scopes[name])
 
-    def allocateTempVariable(self, temp_scope, name):
+    def allocateTempVariable(self, temp_scope, name, temp_type=None):
         if temp_scope is not None:
             full_name = "%s__%s" % (temp_scope, name)
         else:
@@ -739,7 +746,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         # No duplicates please.
         assert full_name not in self.temp_variables, full_name
 
-        result = self.createTempVariable(temp_name=full_name)
+        result = self.createTempVariable(temp_name=full_name, temp_type=temp_type)
 
         # Late added temp variables should be treated with care for the
         # remaining trace.
@@ -748,11 +755,18 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
         return result
 
-    def createTempVariable(self, temp_name):
+    def createTempVariable(self, temp_name, temp_type):
         if temp_name in self.temp_variables:
             return self.temp_variables[temp_name]
 
-        result = Variables.TempVariable(owner=self, variable_name=temp_name)
+        if temp_type is None:
+            temp_class = Variables.TempVariable
+        elif temp_type == "bool":
+            temp_class = Variables.TempVariableBool
+        else:
+            assert False, temp_class
+
+        result = temp_class(owner=self, variable_name=temp_name)
 
         self.temp_variables[temp_name] = result
 
@@ -1055,8 +1069,11 @@ class StatementChildHavingBase(StatementBase):
     def finalize(self):
         del self.parent
 
-        for c in self.getVisitableNodes():
-            c.finalize()
+        attr_name = "subnode_" + self.named_child
+        child = getattr(self, attr_name)
+        if child is not None:
+            child.finalize()
+        delattr(self, attr_name)
 
 
 class SideEffectsFromChildrenMixin(object):

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,7 +30,6 @@ from __future__ import print_function
 import hashlib
 import os
 import shutil
-import subprocess
 import sys
 from optparse import OptionParser
 
@@ -43,6 +42,7 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.tools.testing.Constructs import generateConstructCases
 from nuitka.tools.testing.Valgrind import runValgrind
+from nuitka.utils.Execution import check_call
 
 
 def main():
@@ -153,7 +153,7 @@ def main():
         # then copy the resulting files afterwards.
         shutil.copyfile(test_case_1, os.path.basename(test_case))
 
-        subprocess.check_call(nuitka_call)
+        check_call(nuitka_call)
 
         if os.path.exists(os.path.basename(test_case).replace(".py", ".exe")):
             exe_suffix = ".exe"
@@ -171,7 +171,7 @@ def main():
 
         shutil.copyfile(test_case_2, os.path.basename(test_case))
 
-        subprocess.check_call(nuitka_call)
+        check_call(nuitka_call)
 
         os.rename(
             os.path.basename(test_case).replace(".py", ".build"),

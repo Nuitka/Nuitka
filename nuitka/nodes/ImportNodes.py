@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,9 +28,15 @@ deeper that what it normally could. The import expression node can recurse.
 import os
 from logging import warning
 
-from nuitka.__past__ import long, unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    long,
+    unicode,
+)
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
-from nuitka.importing.Importing import findModule, getModuleNameAndKindFromFilename
+from nuitka.importing.Importing import (
+    findModule,
+    getModuleNameAndKindFromFilename,
+)
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
 from nuitka.ModuleRegistry import getUncompiledModule
@@ -44,7 +50,7 @@ from .ExpressionBases import (
 )
 from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
-from .shapes.BuiltinTypeShapes import ShapeTypeBuiltinModule, ShapeTypeModule
+from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
 
 
 class ExpressionImportModuleHard(ExpressionBase):
@@ -173,7 +179,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
         self.finding = None
 
-        self.type_shape = ShapeTypeModule
+        self.type_shape = tshape_module
 
         self.builtin_module = None
 
@@ -406,7 +412,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                 self.recurse_attempted = True
 
                 if self.finding == "built-in":
-                    self.type_shape = ShapeTypeBuiltinModule
+                    self.type_shape = tshape_module_builtin
                     self.builtin_module = __import__(imported_module_name)
 
                 self._addUsedModules(trace_collection)
@@ -414,7 +420,11 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                 # TODO: This doesn't preserve side effects.
 
                 # Non-strings is going to raise an error.
-                new_node, change_tags, message = trace_collection.getCompileTimeComputationResult(
+                (
+                    new_node,
+                    change_tags,
+                    message,
+                ) = trace_collection.getCompileTimeComputationResult(
                     node=self,
                     computation=lambda: __import__(module_name.getConstant()),
                     description="Replaced '__import__' call with non-string module name argument.",

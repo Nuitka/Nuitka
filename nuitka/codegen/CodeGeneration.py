@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -77,7 +77,10 @@ from .ComparisonCodes import (
     generateBuiltinIsinstanceCode,
     generateComparisonExpressionCode,
 )
-from .ConditionalCodes import generateConditionalAndOrCode, generateConditionalCode
+from .ConditionalCodes import (
+    generateConditionalAndOrCode,
+    generateConditionalCode,
+)
 from .ConstantCodes import (
     generateConstantEllipsisReferenceCode,
     generateConstantFalseReferenceCode,
@@ -118,7 +121,10 @@ from .ExceptionCodes import (
     generateExceptionPublishCode,
     generateExceptionRefCode,
 )
-from .ExpressionCodes import generateExpressionOnlyCode, generateSideEffectsCode
+from .ExpressionCodes import (
+    generateExpressionOnlyCode,
+    generateSideEffectsCode,
+)
 from .FrameCodes import (
     generateFramePreserveExceptionCode,
     generateFrameRestoreExceptionCode,
@@ -186,7 +192,11 @@ from .LocalsDictCodes import (
     generateReleaseLocalsDictCode,
     generateSetLocalsDictCode,
 )
-from .LoopCodes import generateLoopBreakCode, generateLoopCode, generateLoopContinueCode
+from .LoopCodes import (
+    generateLoopBreakCode,
+    generateLoopCode,
+    generateLoopContinueCode,
+)
 from .ModuleCodes import (
     generateModuleAttributeCode,
     generateModuleAttributeFileCode,
@@ -599,6 +609,7 @@ setExpressionDispatchDict(
         "EXPRESSION_COMPARISON_IN": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_NOT_IN": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_EXCEPTION_MATCH": generateComparisonExpressionCode,
+        "EXPRESSION_COMPARISON_EXCEPTION_MISMATCH": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_LT": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_LTE": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_GT": generateComparisonExpressionCode,
@@ -643,7 +654,20 @@ setExpressionDispatchDict(
         "EXPRESSION_OPERATION_BINARY_BIT_AND": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_BIT_XOR": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_MAT_MULT": generateOperationBinaryCode,
-        "EXPRESSION_OPERATION_BINARY_INPLACE": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_ADD": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_SUB": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_MULT": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_FLOOR_DIV": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_OLD_DIV": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_TRUE_DIV": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_MOD": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_POW": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_LSHIFT": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_RSHIFT": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_BIT_OR": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_BIT_AND": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_BIT_XOR": generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_INPLACE_MAT_MULT": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_UNARY": generateOperationUnaryCode,
         "EXPRESSION_OPERATION_NOT": generateOperationNotCode,
         "EXPRESSION_OPERATION_ABS": generateBuiltinAbsCode,

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -174,7 +174,7 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
             exception_type="TypeError",
             template="object of type '%s' has no len()",
             template_args=ExpressionAttributeLookup(
-                source=ExpressionBuiltinType1(
+                expression=ExpressionBuiltinType1(
                     value=value_node.makeClone(), source_ref=source_ref
                 ),
                 attribute_name="__name__",

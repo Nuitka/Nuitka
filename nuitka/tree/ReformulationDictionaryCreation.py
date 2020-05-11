@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -159,7 +159,7 @@ def getDictUnpackingHelper():
                             right=ExpressionMakeTuple(
                                 elements=(
                                     ExpressionAttributeLookup(
-                                        source=ExpressionBuiltinType1(
+                                        expression=ExpressionBuiltinType1(
                                             value=ExpressionTempVariableRef(
                                                 variable=tmp_item_variable,
                                                 source_ref=internal_source_ref,

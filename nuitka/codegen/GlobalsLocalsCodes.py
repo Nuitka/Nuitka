@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,9 +20,12 @@
 This also includes writing back to locals for exec statements.
 """
 
-from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
+from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 
-from .CodeHelpers import decideConversionCheckNeeded, withObjectCodeTemporaryAssignment
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    withObjectCodeTemporaryAssignment,
+)
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitBoolCode
 from .Indentation import indented
@@ -33,7 +36,10 @@ from .templates.CodeTemplatesVariables import (
     template_update_locals_dict_value,
     template_update_locals_mapping_value,
 )
-from .VariableCodes import getLocalVariableDeclaration, getVariableReferenceCode
+from .VariableCodes import (
+    getLocalVariableDeclaration,
+    getVariableReferenceCode,
+)
 from .VariableDeclarations import VariableDeclaration
 
 
@@ -81,7 +87,7 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
             locals_scope = expression.getLocalsScope()
 
             locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
-            is_dict = locals_scope.getTypeShape() is ShapeTypeDict
+            is_dict = locals_scope.getTypeShape() is tshape_dict
             # For Python3 it may really not be a dictionary.
 
             # TODO: Creation is not needed for classes.

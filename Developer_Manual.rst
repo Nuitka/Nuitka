@@ -20,7 +20,7 @@ decisions we made. Therefore we are e.g. presenting here the type inference
 plans before implementing them. And we update them as we proceed.
 
 It grows out of discussions and presentations made at conferences as well as
-private conversations or discussions on the mailing list or bug tracker.
+private conversations or issue tracker.
 
 Milestones
 ==========
@@ -29,7 +29,7 @@ Milestones
    behave absolutely compatible.
 
    Feature parity has been reached for CPython 2.6 and 2.7. We do not target
-   any older CPython release. For CPython 3.3 up to 3.7 it also has been
+   any older CPython release. For CPython 3.3 up to 3.8 it also has been
    reached. We do not target the older and practically unused CPython 3.0 to
    3.2 releases.
 
@@ -82,7 +82,7 @@ numbers should express which of these, we consider done.
   interface change, ``0.5.x`` version numbers are being used.
 
   Due to reaching type inference in code generation, even if only starting,
-  the `0.6.x`` version numbers were started to be used. This stage should
+  the ``0.6.x`` version numbers were started to be used. This stage should
   allow quick progress in performance for individual releases.
 
 - Future:
@@ -92,7 +92,7 @@ numbers should express which of these, we consider done.
 - Final:
 
   We will then round it up and call it Nuitka ``1.0`` when this works as
-  expected for a bunch of people. The plan is to reach this goal during 2019.
+  expected for a bunch of people. The plan is to reach this goal during 2021.
   This is based on positive assumptions that may not hold up though.
 
 Of course, all of this may be subject to change.
@@ -112,25 +112,34 @@ Nuitka top level works like this:
 
 This design is intended to last.
 
-Regarding Types, the state is:
+Regarding types, the state is:
 
-- Types are always ``PyObject *``, implicitly.
+- Types are always ``PyObject *``, and only a few C types, e.g. ``nuitka_bool``
+  and ``nuitka_void`` and more are coming. Even for objects, often it's know
+  that things are e.g. really a ``PyTupleObject **``, but no C type is available
+  for that yet.
 
-- There are a few more specific use of types beyond "compile time constant",
+- There are a some specific use of types beyond "compile time constant",
   that are encoded in type and value shapes, which can be used to predict some
-  operations, conditions, etc.
+  operations, conditions, etc. if they raise, and result types they give.
 
-- Every code generation, every operation is expected to have ``PyObject *`` as
-  result, if it is not a constant, then we know nothing about it. For some
-  interfaces, e.g. iteration, there are initial attempts at abstracting it.
+- In code generation, the supported C types are used, and sometimes we have
+  specialized code generation, e.g. a binary operation that takes an ``int``
+  and a ``float`` and produces a ``float`` value. There will be fallbacks to
+  less specific types.
 
-The limitation to only do ``PyObject *`` will soon go away.
+The expansion with more C types is currently in progress, and there will also
+be alternative C types, where e.g. ``PyObject *`` and ``C long`` are in an enum
+that indicates which value is valid, and where special code will be available
+that can avoid creating the ``PyObject **`` unless the later overflows.
+
 
 Setting up the Development Environment for Nuitka
 =================================================
 
-Currently there are 3 kinds of files that we need support for. This is best
-addressed with an IDE. We cover here how to setup the common ones.
+Currently there are very different kinds of files that we need support for.
+This is best addressed with an IDE. We cover here how to setup the most common
+one.
 
 Visual Studio Code
 ------------------
@@ -143,82 +152,47 @@ your Nuitka checkout. If you are not familiar with Eclipse, this is Free
 Software IDE,designed to be universally extended, and it truly is. There are
 plugins available for nearly everything.
 
-The extensions to be installed are these (check their precise name in brackets
-in the plugin overview after putting it into "search" for in the extensions
-part
+The extensions to be installed are part of the Visual Code recommendations in
+``.vscode/extensions.json`` and you will be prompted about that and ought to
+install these.
 
-- Python (ms-python.python)
-- reStructuredText (lextudio.restructuredtext)
-- C/C++ (ms-vscode.cpptools)
+Another one we found useful to collaborate:
 
-Others we found useful:
+- Live Share (``ms-vsliveshare.vsliveshare``)
 
-- Reflow paragraph (troelsdamgaard.reflow-paragraph)
-- Live Share (ms-vsliveshare.vsliveshare)
+Eclipse / PyCharm
+-----------------
 
-Eclipse
--------
+Don't use these anymore, we consider Visual Studio Code to be far superior for
+delivering a nice out of the box environment.
 
-Download Eclipse from here: https://www.eclipse.org/downloads/packages/
-
-Pick "Eclipse IDE for C/C++ Developers" as that comes with everything useful
-for C development included. Install it.
-
-After launching, you see a welcome screen. But Eclipse will need more setup
-to become a useful IDE. Go to menu point ``Help``/``Eclipse Marketplace`` as
-that is the easiest way to install your plugins. Install these ones:
-
-- PyDev (Python IDE for Eclipse)
-
-  This is for the majority of code in Nuitka, the Python code, to easily
-  navigate and search it, as well as autocompletion.
-
-- AnyEdit Tools
-
-  Proper whitespace handling for Eclipse, this strips trailing whitespace,
-  which Eclipse doesn't handle outside of Java.
-
-- ReST Editor
-
-  This is good for editing the User Manual, Developer Manual, and generally all
-  documentation of Nuitka.
-
-PyCharm
--------
-
-TODO.
 
 Commit and Code Hygiene
 =======================
 
-In Nuitka we have tools to autoformat code, you can execute them
-manually, but it's probably best to execute them at commit time,
-to make sure when we share code, it's already well format, and
-to avoid noise doing cleanups.
+In Nuitka we have tools to autoformat code, you can execute them manually, but
+it's probably best to execute them at commit time, to make sure when we share
+code, it's already well format, and to avoid noise doing cleanups.
 
-The kinds of changes also often cause unnecessary merge
-conflicts, while the autoformat is designed to format code also
-in a way that it avoids merge conflicts in the normal case, e.g. by
-doing imports one item per line.
+The kinds of changes also often cause unnecessary merge conflicts, while the
+autoformat is designed to format code also in a way that it avoids merge
+conflicts in the normal case, e.g. by doing imports one item per line.
 
-In order to set up hooks, you need to execute these commands on
-Linux and alikes:
+In order to set up hooks, you need to execute these commands:
 
 .. code-block:: sh
 
-   ./misc/install-git-hooks.py
-
-For Windows do this:
-
-.. code-block:: sh
-
-   # Where python is the one which has the development requirements, can
-   # be a full PATH.
+   # Where python is the one you use with Nuitka, this then gets all
+   # development requirements, can be full PATH.
    python -m pip install requirements-devel.txt
-   python .\misc\install-git-hooks.py
+   python ./misc/install-git-hooks.py
 
-These commands will make sure that the `autoformat-nuitka-source` is run on
-every changed file at the time you do the commit.
+
+These commands will make sure that the ``autoformat-nuitka-source`` is run on
+every staged file content at the time you do the commit. For C files, it may
+complain unavailability of ``clang-format``, follow it's advice. You may call
+the above tool at all times, without arguments to format call Nuitka source
+code.
 
 Coding Rules Python
 ===================
@@ -235,16 +209,17 @@ formatting to code as much as possible. It uses ``black`` (internally) for
 consistent code formatting. The imports are sorted with ``isort`` for proper
 order.
 
-The tool (mostly black) encodes all formatting rules, and makes the decisions
-for us. The idea being that we can focus on actual code and do not have to
-care as much about other things.
+The tool (mostly ``black`` and ``isort``) encodes all formatting rules, and
+makes the decisions for us. The idea being that we can focus on actual code and
+do not have to care as much about other things. It also deals with Windows new
+lines, trailing space, etc. and even sorts pylint disable statements.
 
 Identifiers
 -----------
 
 Classes are camel case with leading upper case. Functions and methods are with
-leading verb in lower case, but also camel case. Variables and
-arguments are lower case with ``_`` as a separator.
+leading verb in lower case, but also camel case. Variables and arguments are
+lower case with ``_`` as a separator.
 
 .. code-block:: python
 
@@ -254,32 +229,30 @@ arguments are lower case with ``_`` as a separator.
          some_var = ("foo", "bar")
 
 Base classes that are abstract have their name end with ``Base``, so that a
-meta class can use that convention, and readers immediately know.
+meta class can use that convention, and readers immediately know, that it will
+not be instantiated like that.
 
 Function calls use keyword argument preferably. These are slower in CPython,
 but more readable:
 
 .. code-block:: python
 
-   return getSequenceCreationCode(
-        sequence_kind= sequence_kind,
+   getSequenceCreationCode(
+        sequence_kind=sequence_kind,
         element_identifiers=identifiers,
         context=context
    )
 
-When the names don't add much value, sequential calls can be done, but
-ideally with one value per line:
+When the names don't add much value, sequential calls can be done:
 
 .. code-block:: python
 
-   context.setLoopContinueTarget(
-       handler_start_target,
-       continue_name
-   )
+   context.setLoopContinueTarget(handler_start_target)
 
 Here, ``setLoopContinueTarget`` will be so well known that the reader is
 expected to know the argument names and their meaning, but it would be still
-better to add them.
+better to add them. But in this instance, the variable name already indicates
+that it is.
 
 
 Module/Package Names
@@ -296,7 +269,10 @@ them from the modules.
 Packages shall only be used to group things. In ``nuitka.codegen`` the code
 generation packages are located, while the main interface is
 ``nuitka.codegen.CodeGeneration`` and may then use most of the entries as local
-imports. There is no code in packages themselves.
+imports.
+
+There is no code in packages themselves. For programs, we use ``__main__``
+package to carry the actual code.
 
 Names of modules should be plurals if they contain classes. Example is that a
 ``Nodes`` module that contains a ``Node`` class.
@@ -362,11 +338,12 @@ Coding Rules C
 ==============
 
 For the static C parts, e.g. compiled types, helper codes, the ``clang-format``
-from LLVM project is used.
+from LLVM project is used, the tool ``autoformat-nuitka-source`` does this for
+us.
 
-.. code-block:: sh
+We always have blocks for conditional statements to avoid typical mistakes made
+by adding a statement to a branch, forgetting to make it a block.
 
-   find . -name \*.[ch] -exec clang-format-6.0 -i {} -style='{BasedOnStyle: llvm, IndentWidth: 4, ColumnLimit: 120}' \;
 
 The "git flow" model
 ====================
@@ -397,6 +374,12 @@ The "git flow" model
   regressions frequently, and commits become **rebased all the time**, so do
   not base your patches on it, please prefer the ``develop`` branch for that,
   unless of course, it's about factory code itself.
+
+* Personal branches (jorj, orsiris, others as well)
+
+  Same as factory, but not integrated as factory normally is, and not rebased
+  all the time. For some branches, they will be rebased as a service when we
+  update develop.
 
 * Feature Branches
 
@@ -430,8 +413,9 @@ Nuitka "git/github" Workflow
         git pull --rebase upstream
         git checkout -b feature_branch
 
-  If you are having merge conflicts while doing the previous step, then
-  check out (DON'T FORGET TO SAVE YOUR CHANGES FIRST IF ANY): <https://stackoverflow.com/questions/1125968/how-do-i-force-git-pull-to-overwrite-local-files>
+  If you are having merge conflicts while doing the previous step, then check
+  out (DON'T FORGET TO SAVE YOUR CHANGES FIRST IF ANY):
+  <https://stackoverflow.com/questions/1125968/how-do-i-force-git-pull-to-overwrite-local-files>
 
   * In case you have an existing branch rebase it to develop
 
@@ -472,11 +456,13 @@ observed when creating or updating Python source:
 
 Use of Standard Python ``"__doc__"`` Strings
 --------------------------------------------
+
 Every class and every method **must be documented** via the standard Python
 delimiters (``""" ... """``) in the usual way.
 
 Special ``doxygen`` Anatomy of ``"__doc__"``
 --------------------------------------------
+
 * Immediately after the leading ``"""``, and after 1 space on the same line,
   enter a brief description or title of the class or method. This must be 1
   line and be followed by at least 1 empty line.
@@ -557,12 +543,8 @@ So, we currently use ``PyLint`` with options defined in a script.
 
    ./bin/check-nuitka-with-pylint
 
-Ideally, the above command gives no warnings. This is currently the case.
-
-If you submit a patch, it would be good if you checked that it doesn't
-introduce new warnings, but that is not strictly required. it will happen
-before release, and that is considered enough. You probably are already aware
-of the beneficial effects.
+The above command is expected to give no warnings. It is also run on our CI and
+we will not merge branches that do not pass.
 
 Running the Tests
 =================
@@ -633,6 +615,10 @@ For fine grained control, it has the following options::
                         are not run. Default is True.
   --skip-cpython37-tests
                         The standard CPython3.7 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.x these
+                        are not run. Default is True.
+  --skip-cpython38-tests
+                        The standard CPython3.8 test suite. Execute this for
                         all corner cases to be covered. With Python 2.x these
                         are not run. Default is True.
   --no-python2.6        Do not use Python 2.6 even if available on the system.
@@ -711,6 +697,18 @@ can be run like this:
 .. code-block:: sh
 
    ./tests/programs/run_all.py search
+
+Generated Tests
+---------------
+
+There are tests, which are generated from Jinja2 templates. They aim at e.g.
+combining at types with operations, in-place or not, or large constants. These
+can be run like this:
+
+.. code-block:: sh
+
+   ./tests/generated/run_all.py search
+
 
 Compile Nuitka with Nuitka
 --------------------------
@@ -813,89 +811,24 @@ but are not executed each time, the commands are also replicated here:
 Choice of the Target Language
 -----------------------------
 
-* Choosing the target language, is an important decision
+* Choosing the target language was important decision. factors
+  were:
 
   * The portability of Nuitka is decided here
-
-* Other factors:
-
   * How difficult is it to generate the code?
   * Does the Python C-API have bindings?
   * Is that language known?
   * Does the language aid to find bugs?
 
-* These candidates were considered
+The *decision for C11* is ultimately one for portability, general knowledge of
+the language and for control over created code, e.g. being able to edit and try
+that quickly.
 
-  * C++03, C++11, C11, C89, Ada
-
-.. table:: Requirement to Language matrix:
-
-   =====================  =====  ======== ======  =========   =========
-   Requirement\\Language  C89    C11      C++03   C++11       Ada
-   =====================  =====  ======== ======  =========   =========
-   Portable               Yes    Yes [5]_ Yes     No [1]_     Yes
-   ---------------------  -----  -------- ------  ---------   ---------
-   Knowledge              Yes    Yes      Yes     No [2]_     Yes
-   ---------------------  -----  -------- ------  ---------   ---------
-   Python C-API           Yes    Yes      Yes     Yes         No [3]_
-   ---------------------  -----  -------- ------  ---------   ---------
-   Runtime checks         No     No       No      No          Yes [4]_
-   ---------------------  -----  -------- ------  ---------   ---------
-   Code Generation        Tough  Medium   Hard    Easy        Harder
-   =====================  =====  ======== ======  =========   =========
-
-
-_`1`:: C++11 is not fully supported by all compilers.
-
-_`2`:: Not a whole lot of people have C++11 knowledge. My *only* C++11 code was
-that in Nuitka.
-
-_`3`:: The Python C-API for Ada would have to be created by us, possible just
-big project by itself.
-
-_`4`:: Run time checks exist only for Ada in that quality. I miss automatic
-``CONSTRAINT_ERROR`` exceptions, for data structures with validity indicators,
-where in other languages, I need to check myself.
-
-_`5`:: One can use a C++03 compiler as a C11 compiler for the largest part,
-e.g. with MSVC.
-
-The *decision for C11* is ultimate:
-
-* for portability
-* for language knowledge
-* for control over created code.
-
-All of these are important advantages.
-
-For C++11 initially spoke easy code generation:
-
-* variadic templates
-* raw strings
-
-Yet, as it turns out, variadic templates do not help at all with evaluation
-order, so that code that used it, needed to be changed to generating instances
-of their code. And raw strings turned out to be not as perfect as one wants to
-be, and solving the problem with C++03 is feasible too, even if not pretty.
-
-For C++03 initially spoke less explicit code generation:
-
-* Destructors can ensure cleanups happen
-* Local objects could e.g. repair the stack frames
-
-For Ada would have spoken the time savings through run time checks, which would
-have shortened some debugging sessions quite some. But building the Python
-C-API bindings on our own, and potentially incorrectly, would have eaten that
-up.
-
-Later, it was found that using C++ for exceptions is tremendously inefficient,
-and must be avoided. In order to do this, a more C style code generation is
-needed, where even less things are done with C++, e.g. the cleanup of temporary
-variables inside a statement will be done manually instead.
-
-The current status is Pure C11. All code compiles as C11, and also in terms of
-workaround to missing compiler support as C++03. Naturally we are not using any
-C++ features, just the allowances of C++ features that made it into C11.
+The current status is to use pure C11. All code compiles as C11, and also in
+terms of workaround to missing compiler support as C++03. This is mostly
+needed, because MSVC does not support C. Naturally we are not using any C++
+features, just the allowances of C++ features that made it into C11, which is
+e.g. allowing late definitions of variables.
 
 
 Use of Scons internally
@@ -1040,17 +973,16 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 Locating Modules and Packages
 -----------------------------
 
-The search for modules used is driven by ``nuitka.importing.Importing``
-module.
+The search for modules used is driven by ``nuitka.importing.Importing`` module.
 
 * Quoting the ``nuitka.importing.Importing`` documentation:
 
   Locating modules and package source on disk.
 
-  The actual import of a module would already execute code that changes
-  things. Imagine a module that does ``os.system()``, it would be done during
-  compilation. People often connect to databases, and these kind of things,
-  at import time.
+  The actual import of a module would already execute code that changes things.
+  Imagine a module that does ``os.system()``, it would be done during
+  compilation. People often connect to databases, and these kind of things, at
+  import time.
 
   Therefore CPython exhibits the interfaces in an ``imp`` module in standard
   library, which one can use those to know ahead of time, what file import
@@ -1108,17 +1040,17 @@ changed.
 
      class X:
         def f1(self):
-           print( locals() )
+           print(locals())
 
         def f2(self):
-           print( locals() )
+           print(locals())
            super # Just using the name, not even calling it.
 
      x = X()
      x.f1()
      x.f2()
 
-  .. code-block:: python
+  Output is:
 
      {'self': <__main__.X object at 0x7f1773762390>}
      {'self': <__main__.X object at 0x7f1773762390>, '__class__': <class '__main__.X'>}
@@ -1200,7 +1132,7 @@ So we start out with code like this one:
 .. code-block:: python
 
    def f():
-       with frame_guard( "f" ):
+       with frame_guard("f"):
            if someNotRaisingCall():
                return somePotentiallyRaisingCall()
            else:
@@ -1212,7 +1144,7 @@ This is to be optimized into:
 
    def f():
        if someNotRaisingCall():
-           with frame_guard( "f" ):
+           with frame_guard("f"):
                return somePotentiallyRaisingCall()
        else:
            return None
@@ -1297,9 +1229,8 @@ collections builds up traces. These are facts about how this works:
      This can be a merge of branches. Trace collection does do that and
      provides nodes with the currently active trace for a variable.
 
-The data structures used for trace collection need to be relatively compact
-as the trace information can become easily much more data than the program
-itself.
+The data structures used for trace collection need to be relatively compact as
+the trace information can become easily much more data than the program itself.
 
 Every trace collection has these:
 
@@ -1329,14 +1260,16 @@ Every trace collection has these:
 When merging branches of conditional statements, the merge shall apply as
 follows:
 
-  * Branches have their own collection, with deviating sets of
-    "variable_actives". These are children of an outer collections
+  * Branches have their own collection
+
+    Thee have potentially deviating sets of ``variable_actives``. These are
+    children of an outer collections.
 
   * Case a) One branch only.
 
     For that branch a collection is performed. As usual new assignments
-    generate a new version making it "active", references then related to
-    these "active" versions.
+    generate a new version making it "active", references then related to these
+    "active" versions.
 
     Then, when the branch is merged, for all "active" variables, it is
     considered, if that is a change related to before the branch. If it's not
@@ -1378,10 +1311,32 @@ Trace structure, there are different kinds of traces.
    to it, and it's value cannot be trusted to be unchanged. These are then
    traced as unknown.
 
-All traces have a base class ``ValueTraceBase`` which provides the interface
-to query facts about the state of a variable in that trace. It's e.g. of some
+All traces have a base class ``ValueTraceBase`` which provides the interface to
+query facts about the state of a variable in that trace. It's e.g. of some
 interest, if a variable must have a value or must not. This allows to e.g. omit
 checks, know what exceptions might raise.
+
+Loop SSA
+--------
+
+For loops we have the addition difficulty that we need would need to look ahead
+what types a variable has at loop exit, but that is a recursive dependency.
+
+Our solution is to consider the variable types at loop entry. When these
+change, we drop all gained information from inside the loop. We may e.g. think
+that a variable is a ``int`` or ``float``, but later recognize that it can only
+be a float. Derivations from ``int`` must be discarded, and the loop analysis
+restarted.
+
+Then during the loop, we assign an incomplete loop trace shape to the variable,
+which e.g. says it was an ``int`` initially and additional type shapes, e.g.
+``int or long`` are then derived. If at the end of the loop, a type produced no
+new types, we know we are finished and mark the trace as a complete loop trace.
+
+If it is not, and next time, we have the same initial types, we add the ones
+derived from this to the starting values, and see if this gives more types.
+
+
 
 Python Slots in Optimization
 ----------------------------
@@ -1408,7 +1363,7 @@ go through a slot mechanism, which then can be overloaded.
          return 3.14
 
    something = SomeStrangeFloat()
-   ...
+   # ...
    1.0 + float(something) // 4.140000000000001
 
 Here it is the case, that this is used by user code, but more often
@@ -1879,7 +1834,7 @@ When one learns about decorators, you see that:
    # Is basically the same as:
    def function():
       pass
-   function = decorator( function )
+   function = decorator(function)
 
 The only difference is the assignment to function. In the ``@decorator`` case,
 if the decorator fails with an exception, the name ``function`` is not assigned
@@ -1910,11 +1865,11 @@ the unpacking and gives the errors that come from this:
 
 .. code-block:: python
 
-   def function(a,".1"):
+   def function(a, _1):
       def _tmp(a, b, c):
          return a, b, c
 
-      a, b = ".1"
+      a, b = _1
       return _tmp(a, b, c)
 
 The ``".1"`` is the variable name used by CPython internally, and actually
@@ -1940,7 +1895,7 @@ makes it explicit that the assign target may change its value.
 
 .. code-block:: python
 
-   _tmp = a.__iadd__( b )
+   _tmp = a.__iadd__(b)
 
    if a is not _tmp:
        a = _tmp
@@ -2038,7 +1993,7 @@ is fulfilled by ``try``/``except`` clause instead.
 .. code-block:: python
 
     with some_context as x:
-        something( x )
+        something(x)
 
 .. code-block:: python
 
@@ -2063,7 +2018,7 @@ is fulfilled by ``try``/``except`` clause instead.
         x = tmp_enter_result
 
         # Then the code of the "with" block.
-        something( x )
+        something(x)
     except Exception:
         # Note: This part of the code must not set line numbers, which we
         # indicate with special source code references, which we call "internal".
@@ -2074,7 +2029,7 @@ is fulfilled by ``try``/``except`` clause instead.
         if not tmp_exit(*sys.exc_info()):
             raise
     finally:
-        if not tmp_indicator
+         if not tmp_indicator:
             # Call the exit if no exception occurred with all arguments
             # as "None".
             tmp_exit(None, None, None)
@@ -2098,7 +2053,7 @@ implicit in the code explicitly.
 .. code-block:: python
 
     for x, y in iterable:
-        if something( x ):
+        if something(x):
             break
     else:
         otherwise()
@@ -2111,9 +2066,9 @@ This is roughly equivalent to the following code:
     _no_break_indicator = False
 
     while 1:
-        try:
+         try:
             _tmp_value = next(_iter)
-        except StopIteration:
+         except StopIteration:
             # Set the indicator that the else branch may be executed.
             _no_break_indicator = True
 
@@ -2292,14 +2247,14 @@ re-formulation:
    # in module "SomeModule"
    # ...
 
-   class SomeClass(SomeBase, AnotherBase)
+   class SomeClass(SomeBase, AnotherBase):
        """ This is the class documentation. """
 
        some_member = 3
 
 .. code-block:: python
 
-   def _makeSomeClass:
+   def _makeSomeClass():
        # The module name becomes a normal local variable too.
        __module__ = "SomeModule"
 
@@ -2339,12 +2294,12 @@ locals for it, which is hidden away in "prepare_class_dict" below.
 What's noteworthy, is that this dictionary, could e.g. be an ``OrderDict``. I
 am not sure, what ``__prepare__`` is allowed to return.
 
-.. code-block:: python
+.. code-block:: python3
 
    # in module "SomeModule"
    # ...
 
-   class SomeClass(SomeBase, AnotherBase, metaclass = SomeMetaClass)
+   class SomeClass(SomeBase, AnotherBase, metaclass = SomeMetaClass):
        """ This is the class documentation. """
 
        some_member = 3
@@ -2352,7 +2307,7 @@ am not sure, what ``__prepare__`` is allowed to return.
 .. code-block:: python
 
    # Non-keyword arguments, need to be evaluated first.
-   tmp_bases = ( SomeBase, AnotherBase )
+   tmp_bases = (SomeBase, AnotherBase)
 
    # Keyword arguments go next, __metaclass__ is just one of them. In principle
    # we need to forward the others as well, but this is ignored for the sake of
@@ -2363,10 +2318,10 @@ am not sure, what ``__prepare__`` is allowed to return.
 
    # The function that creates the class dictionary. Receives temporary variables
    # to work with.
-   def _makeSomeClass:
-       # This has effect, currently I don't know how to force that in Python3
-       # syntax, but we will use something that ensures it.
-       locals() = tmp_prepared
+   def _makeSomeClass():
+       # This has effect, currently I don't know how to express that in Python3
+       # syntax, but we will have a node that does that.
+       locals().replace(tmp_prepared)
 
        # The module name becomes a normal local variable too.
        __module__ = "SomeModule"
@@ -2459,7 +2414,7 @@ that they produce an actual helper function:
 
        return result
 
-    set_value = _setcontr_helper( range(8) )
+    set_value = _setcontr_helper(range(8))
 
 
 Dictionary Contractions
@@ -2483,7 +2438,7 @@ they produce an actual helper function:
 
        return result
 
-    set_value = _dictcontr_helper( range(8) )
+    set_value = _dictcontr_helper(range(8))
 
 
 Boolean expressions ``and`` and ``or``
@@ -2572,23 +2527,23 @@ difficult stuff. Our example becomes this:
    def _complex_call(called, pos, kw, star_list_arg, star_dict_arg):
        # Raises errors in case of duplicate arguments or tmp_star_dict not
        # being a mapping.
-       tmp_merged_dict = merge_star_dict_arguments( called, tmp_named, mapping_check( called, tmp_star_dict ) )
+       tmp_merged_dict = merge_star_dict_arguments(called, tmp_named, mapping_check(called, tmp_star_dict))
 
        # Raises an error if tmp_star_list is not a sequence.
-       tmp_pos_merged = merge_pos_arguments( called, tmp_pos, tmp_star_list )
+       tmp_pos_merged = merge_pos_arguments(called, tmp_pos, tmp_star_list)
 
        # On the C-API level, this is what it looks like.
-       return called( *tmp_pos_merged, **tmp_merged_dict )
+       return called(*tmp_pos_merged, **tmp_merged_dict)
 
    returned = _complex_call(
        called        = something,
        pos           = (pos1, pos2),
        named         = {
            "name1" : named1,
-           "name2" = named2
+           "name2" : named2
        },
        star_list_arg = star_list,
-       star_list_arg = star_dict
+       star_dict_arg = star_dict
    )
 
 
@@ -2607,6 +2562,9 @@ compile time optimized, this is made visible in the node tree.
 .. code-block:: python
 
     print arg1, "1", 1
+
+This is in Nuitka then like this, where the code for print doesn't do any
+conversions anymore and relies on the string nature of its input.
 
 .. code-block:: python
 
@@ -2652,18 +2610,18 @@ Builtin ``zip`` for Python2
 
 .. code-block:: python
 
-    def _zip(a, b, c, ... ):
+    def _zip(a, b, c): # Potentially more arguments.
        # First assign, to preserve order of execution,
        # the arguments might be complex expressions.
        tmp_arg1 = a
        tmp_arg2 = b
        tmp_arg3 = c
-       ...
+       # more arguments here ...
 
        tmp_iter_1 = iter(tmp_arg1)
        tmp_iter_2 = iter(tmp_arg2)
        tmp_iter_3 = iter(tmp_arg3)
-       ...
+       # more arguments here ...
 
        # could be more
        tmp_result = []
@@ -2674,11 +2632,11 @@ Builtin ``zip`` for Python2
                         next(tmp_iter_1),
                         next(tmp_iter_2),
                         next(tmp_iter_3),
-                        ...
+                        # more arguments here ...
                    )
                 )
-          except StopIteration:
-              pass
+       except StopIteration:
+           pass
 
        return tmp_result
 
@@ -2688,7 +2646,9 @@ Builtin ``map`` for Python2
 .. code-block:: python
 
     def _map():
-        ...
+        # TODO: Not done yet.
+        pass
+
 
 Builtin ``min``
 +++++++++++++++
@@ -2696,11 +2656,11 @@ Builtin ``min``
 .. code-block:: python
 
     # TODO: keyfunc (Python2/3), defaults (Python3)
-    def _min(a, b, c, ...):
+    def _min(a, b, c): # Potentially more arguments.
         tmp_arg1 = a
         tmp_arg2 = b
         tmp_arg3 = c
-        ...
+        # more arguments here ...
 
         result = tmp_arg1
         if keyfunc is None: # can be decided during re-formulation
@@ -2713,13 +2673,13 @@ Builtin ``min``
             if tmp_key_candidate < tmp_key_result:
                 result = tmp_arg3
                 tmp_key_result = tmp_key_candidate
-            ...
+            # more arguments here ...
         else:
             if tmp_arg2 < result:
                 result = tmp_arg2
             if tmp_arg3 < result:
                 result = tmp_arg3
-            ...
+            # more arguments here ...
 
         return result
 
@@ -2747,7 +2707,7 @@ calls to variable references to function references.
     def f(arg1, arg2):
         return some_op(arg1, arg2)
 
-    ... # other code
+    # ... other code
 
     x = f(a, b+c)
 
@@ -2756,9 +2716,9 @@ In the optimization it is turned into
 .. code-block:: python
 
 
-    ... # other code
+    # ... other code
 
-    x = lamdba arg1, arg2 : some_op(arg1, arg2)(a, b+c)
+    x = lambda arg1, arg2 : some_op(arg1, arg2)(a, b+c)
 
 .. note::
 
@@ -2781,7 +2741,7 @@ function call.
 
 .. code-block:: python
 
-    ... # other code
+    # ... other code
 
     def _f():
         tmp_arg1 = arg1
@@ -2806,7 +2766,7 @@ Lets consider an example with default values first.
     def f(arg1, arg2=some_default()):
         return some_op(arg1, arg2)
 
-    ... # other code
+    # ... other code
 
     x = f(a, b+c)
 
@@ -2818,7 +2778,7 @@ point and make them available.
 
     tmp_defaults = (some_default,) # that was f.__defaults__
 
-    ... # other code
+    # ... other code
 
     def _f():
         tmp_arg1 = arg1
@@ -2834,7 +2794,7 @@ Now, one where keyword arguments are ordered the other way.
     def f(arg1, arg2):
         return some_op(arg1, arg2)
 
-    ... # other code
+    # ... other code
 
     x = f(arg2=b+c, arg1=a) # "b+c" is evaluated before "a"
 
@@ -2843,7 +2803,7 @@ order by names and then assign parameters from it:
 
 .. code-block:: python
 
-    ... # other code
+    # ... other code
 
     def _f():
         tmp_given_value1 = b+c
@@ -2901,15 +2861,15 @@ leads to code that is internally like this:
 
 .. code-block:: python
 
-   f(a(), raise ZeroDivisionError)
+   f(a(), raise_ZeroDivisionError())
 
 which is then modeled as:
 
 .. code-block:: python
 
-   side_effect(a(), f, raise ZeroDivisionError)
+   side_effect(a(), f, raise_ZeroDivisionError())
 
-where we can consider "side_effect" to be a function that returns the last
+where we can consider ``side_effect`` to be a function that returns the last
 expression. Of course, if this is not part of another expression, but close to
 statement level, side effects, can be converted to multiple statements simply.
 
@@ -2919,7 +2879,10 @@ the language still requires things to happen, consider this:
 .. code-block:: python
 
    a = len(
-      ( f(), g() )
+      (
+         f(),
+         g()
+      )
    )
 
 We can tell that ``a`` will be 2, but the call to ``f`` and ``g`` must still be
@@ -3094,7 +3057,7 @@ Now lets look at a more complete use case:
 
 .. code-block:: python
 
-   for x in range( 10000000000000 ):
+   for x in range(10000000000000):
        doSomething()
 
 Looking at this example, one traditional way to look at it, would be to turn
@@ -3296,7 +3259,7 @@ Excursion to Loops
        if cond():
           break
 
-   print a
+   print(a)
 
 The handling of loops (both ``for`` and ``while`` are re-formulated to this
 kind of loops with ``break`` statements) has its own problem. The loop start
@@ -3392,10 +3355,10 @@ We may want to take advantage of it. Consider e.g.
 
 .. code-block:: python
 
-   if type( a ) is list:
-       a.append( x )
+   if type(a) is list:
+       a.append(x)
    else:
-       a += ( x, )
+       a += (x,)
 
 In this case, the knowledge that ``a`` is a list, could be used to generate
 better code and with the definite knowledge that ``a`` is of type list. With
@@ -3644,7 +3607,7 @@ on that level. Imagine e.g. the following calls:
 
 .. code-block:: python
 
-   c_call( other_c_call() )
+   c_call(other_c_call())
 
 Value returned by "other_c_call()" of say ``c_int`` type, should be possible to
 be fed directly into another call. That should be easy by having a ``asIntC()``
@@ -3677,10 +3640,11 @@ one:
 
 .. code-block:: python
 
+
    a = 3
    b = 7
    c = a / b
-   return c
+   print(c)
 
 to:
 
@@ -3689,7 +3653,7 @@ to:
    a = 3
    b = 7
    c = 3 / 7
-   return c
+   print(c)
 
 and then:
 
@@ -3698,7 +3662,7 @@ and then:
    a = 3
    b = 7
    c = 0
-   return c
+   print(c)
 
 and then:
 
@@ -3707,10 +3671,11 @@ and then:
    a = 3
    b = 7
    c = 0
-   return 0
+   print(0)
 
 This depends on SSA form to be able to tell us the values of ``a``, ``b``, and
-``c`` to be written to by constants, which can be forward propagated at no cost.
+``c`` to be written to by constants, which can be forward propagated at no
+cost.
 
 Goal 2 (Reached)
 ++++++++++++++++
@@ -3721,7 +3686,7 @@ assignment source has no effect, so they can be simply dropped.
 
 .. code-block:: python
 
-   return 0
+   print(0)
 
 In the SSA form, these are then assignments without references. These
 assignments, can be removed if the assignment source has no side effect. Or at
@@ -3737,17 +3702,17 @@ impact, and leave the value as a side effect, so we arrive at this first:
    3
    7
    0
-   return 0
+   print(0)
 
 When applying the removal of expression only statements without effect, this
 gives us:
 
 .. code-block:: python
 
-   return 0
+   print(0)
 
 which is the perfect result. Doing it in one step would only be an
-optimization.
+optimization at the cost of generalization.
 
 In order to be able to manipulate nodes related to a variable trace, we need to
 attach the nodes that did it. Consider this:
@@ -3760,9 +3725,9 @@ attach the nodes that did it. Consider this:
        x = 3
 
    # Not using "x".
-   return 0
+   print(0)
 
-In the above case, the merge of the value friends, should say that ``x`` may be
+In the above case, the merge of the value traces, should say that ``x`` may be
 undefined, or one of ``1`` or ``3``, but since ``x`` is not used, apply the
 "dead value" trick to each branch.
 
@@ -3780,10 +3745,10 @@ Then third goal is to understand all of this:
    def f():
       a = []
 
-      print a
+      print(a)
 
       for i in range(1000):
-          print a
+          print(a)
 
           a.append(i)
 
@@ -3809,10 +3774,10 @@ The code should therefore become equivalent to:
    def f():
       a = []
 
-      print []
+      print([])
 
       for i in range(1000):
-          print a
+          print(a)
 
           a.append(i)
 
@@ -3840,15 +3805,16 @@ The fourth goal is to understand the following:
        else:
            x = 2
 
-   return x < y
+       return x < y
 
 In this we have a branch, and we will be required to keep track of both the
 branches separately, and then to merge with the original knowledge. After the
 conditional statement we will know that "x" is an "int" with possible values in
-"(1,2)", which can be used to predict that the return value is always "True".
+``(1,2)``, which can be used to predict that the return value is always
+``True``.
 
 The forth goal will therefore be that the "ValueFriendConstantList" knows that
-append changes "a" value, but it remains a list, and that the size increases by
+append changes ``a`` value, but it remains a list, and that the size increases by
 one. It should provide an other value friend "ValueFriendList" for "a" due to
 that.
 
@@ -3858,31 +3824,31 @@ In order to do that, such code must be considered:
 
    a = []
 
-   a.append( 1 )
-   a.append( 2 )
+   a.append(1)
+   a.append(2)
 
-   print len( a )
+   print(len(a))
 
-It will be good, if ``len`` still knows that "a" is a list, but not the
-constant list anymore.
+It will be good, if ``len`` still knows that ``a`` is a list object, but not
+the constant list anymore.
 
 From here, work should be done to demonstrate the correctness of it with the
 basic tests applied to discover undetected issues.
 
 Fifth and optional goal: Extra bonus points for being able to track and predict
-"append" to update the constant list in a known way. Using "list.append" that
-should be done and lead to a constant result of "len" being used.
+``append`` to update the constant list in a known way. Using ``list.append``
+that should be done and lead to a constant result of ``len`` being used.
 
 The sixth and challenging goal will be to make the code generation be impacted
-by the value friends types. It should have a knowledge that "PyList_Append"
-does the job of append and use "PyList_Size" for "len". The "ValueFriends"
+by the value friends types. It should have a knowledge that ``PyList_Append``
+does the job of append and use ``PyList_Size`` for ``len``. The "ValueFriends"
 should aid the code generation too.
 
-Last and right now optional goal will be to make "range" have a value friend,
-that can interact with iteration of the for loop, and "append" of the "list"
-value friend, so it knows it's possible to iterate 5000 times, and that "a" has
-then after the "loop" this size, so "len( a )" could be predicted. For during
-the loop, about a the range of its length should be known to be less
+Last and right now optional goal will be to make ``range`` have a value friend,
+that can interact with iteration of the for loop, and ``append`` of the
+``list`` value friend, so it knows it's possible to iterate 5000 times, and
+that "a" has then after the "loop" this size, so ``len(a)`` could be predicted.
+For during the loop, about a the range of its length should be known to be less
 than 5000. That would make the code of goal 2 completely analyzed at compile
 time.
 
@@ -3894,7 +3860,7 @@ Limitations for now
 
   .. code-block:: python
 
-     print ctypes.c_int( 17 ) + ctypes.c_long( 19 )
+     print(ctypes.c_int(17) + ctypes.c_long(19))
 
   Later then call to "libc" or something else universally available,
   e.g. "strlen()" or "strcmp()" from full blown declarations of the callable.
@@ -3975,10 +3941,10 @@ e.g. code like this:
 
 .. code-block:: python
 
-   if Options.isExperimental("use_pefile"):
-      ... # experimental code for pe_file
+   if Options.isExperimental("use_feature"):
+      experimental_code()
    else:
-      ... # standard code
+      standard_code()
 
 When to use it
 --------------
@@ -4025,8 +3991,6 @@ The list of runtime dependencies is in ``requirements.txt`` and it is for
 those the case, that they are not really required to be installed by the
 user, consider this snippet:
 
-.. code-block:: python
-
    # Folders to use for cache files.
    appdirs == 1.4.3
 
@@ -4059,8 +4023,6 @@ big, say all of SciPy, we might want to justify it a bit better.
 
 The list of development dependencies is in ``requirements-devel.txt`` and it
 is for example like this:
-
-.. code-block:: python
 
    # API doc, doxygen helper for Python
    doxypypy == 0.8.8.6 ; python_version >= '2.7'
@@ -4102,38 +4064,38 @@ etc.
 
   .. code-block:: python
 
-     a = iter( ( 2, 3 ) )
-     b = next( a )
-     c = next( a )
+     a = iter((2, 3))
+     b = next(a)
+     c = next(a)
      del a
 
-  It would be sweet if we could recognize that:
+  It would be sweet if we could recognize that as:
 
   .. code-block:: python
 
-     a = iter( ( 2, 3 ) )
-     b = side_effect( next( a ), 2 )
-     c = side_effect( next( a ), 3 )
+     a = iter((2,3))
+     b = side_effect(next(a), 2)
+     c = side_effect(next(a), 3)
      del a
 
   That trivially becomes:
 
   .. code-block:: python
 
-     a = iter( ( 2, 3 ) )
-     next( a )
+     a = iter((2, 3))
+     next(a)
      b = 2
-     next( a )
+     next(a)
      c = 3
      del a
 
-  When the "del a" is examined at the end of scope, or due to another assignment
-  to the same variable, ending the trace, we would have to consider of the
-  "next" uses, and retrofit the information that they had no effect.
+  When the ``del a`` is examined at the end of scope, or due to another
+  assignment to the same variable, ending the trace, we would have to consider
+  of the ``next`` uses, and retrofit the information that they had no effect.
 
   .. code-block:: python
 
-     a = iter( ( 2, 3 ) )
+     a = iter((2, 3))
      b = 2
      b = 3
      del a
@@ -4145,20 +4107,20 @@ etc.
 
   .. code-block:: python
 
-     a = iter( range(9 ))
+     a = iter(range(9))
      b = a
      c = next(b)
      d = next(a)
 
-  If we fail to detect the aliasing nature, we will calculate "d" wrongly. We
+  If we fail to detect the aliasing nature, we will calculate ``d`` wrongly. We
   may incref and decref values to trace it.
 
-  Aliasing is automatically traced already in SSA form. The "b" is assigned to
-  version of "a". So, that should allow to replace it with this:
+  Aliasing is automatically traced already in SSA form. The ``b`` is assigned
+  to version of ``a``. So, that should allow to replace it with this:
 
   .. code-block:: python
 
-     a = iter( range(9 ))
+     a = iter(range(9))
      c = next(a)
      d = next(a)
 

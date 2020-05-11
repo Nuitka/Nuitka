@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -38,15 +38,13 @@ sys.path.insert(
 
 # isort:start
 
+import asyncio
 import types
 
-from nuitka.tools.testing.Common import (
-    checkDebugPython,
-    executeReferenceChecked,
-    run_async,
-)
+from nuitka.PythonVersions import python_version
+from nuitka.tools.testing.Common import executeReferenceChecked, run_async
 
-checkDebugPython()
+# Tests do bad stuff, pylint: disable=redefined-outer-name
 
 
 def raisy():
@@ -145,7 +143,7 @@ class BadAsyncIter:
 
 def simpleFunction7():
     async def someCoroutine():
-        async for i in BadAsyncIter():
+        async for _i in BadAsyncIter():
             print("never going to happen")
 
     try:
@@ -172,11 +170,39 @@ def simpleFunction9():
     return b
 
 
+async def rmtree(path):
+    return await asyncio.get_event_loop().run_in_executor(None, sync_rmtree, path)
+
+
+def sync_rmtree(path):
+    raise FileNotFoundError
+
+
+async def execute():
+    try:
+        await rmtree("/tmp/test1234.txt")
+    except FileNotFoundError:
+        pass
+
+    return 10 ** 10
+
+
+async def run():
+    await execute()
+
+
+def simpleFunction10():
+    asyncio.get_event_loop().run_until_complete(run())
+
+
 # These need stderr to be wrapped.
 tests_stderr = ()
 
 # Disabled tests
 tests_skipped = {}
+
+if python_version < 380:
+    tests_skipped[10] = "Incompatible refcount bugs of asyncio with python prior 3.8"
 
 result = executeReferenceChecked(
     prefix="simpleFunction",

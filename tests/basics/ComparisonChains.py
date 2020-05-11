@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -15,7 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Comparison chains are multiple comparisons in one expression.
+
+"""
+
 from __future__ import print_function
+
+# pylint: disable=redefined-outer-name
 
 
 def simple_comparisons(x, y):
@@ -110,7 +116,7 @@ print(list(genexpr_with_chain()))
 print("Check if class bodies can have expression chains:", end="")
 
 
-class class_with_chain:
+class ClassWithComparisonChainInBody:
     x = (1, 2, 3)
     print(x[0] < x[1] < x[2])
 
@@ -159,7 +165,7 @@ inOperatorChain()
 # Make sure the values are called and order is correct:
 
 
-class A(object):
+class TracingLessThan(object):
     def __init__(self, name, value):
         self.name = name
         self.value = value
@@ -185,15 +191,15 @@ class A(object):
             return 0
 
 
-a = A("a", 1)
-b = A("b", 2)
-c = A("c", 0)
+a = TracingLessThan("a", 1)
+b = TracingLessThan("b", 2)
+c = TracingLessThan("c", 0)
 
 print(a < b < c)
 print("*" * 80)
 
-a = A("a", 2)
-b = A("b", 1)
-c = A("c", 0)
+a = TracingLessThan("a", 2)
+b = TracingLessThan("b", 1)
+c = TracingLessThan("c", 0)
 
 print(a < b < c)

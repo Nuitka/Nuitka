@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -34,7 +34,11 @@ from nuitka.tools.quality.Git import (
     updateWorkingFile,
 )
 from nuitka.Tracing import my_print
-from nuitka.utils.Execution import getExecutablePath, withEnvironmentPathAdded
+from nuitka.utils.Execution import (
+    check_call,
+    getExecutablePath,
+    withEnvironmentPathAdded,
+)
 from nuitka.utils.FileOperations import (
     getFileContents,
     renameFile,
@@ -44,10 +48,11 @@ from nuitka.utils.Shebang import getShebangFromFile
 from nuitka.utils.Utils import getOS
 
 
-def _cleanupWindowsNewlines(filename):
+def cleanupWindowsNewlines(filename):
     """ Remove Windows new-lines from a file.
 
-        Simple enough to not depend on external binary.
+        Simple enough to not depend on external binary and used by
+        the doctest extractions of the CPython test suites.
     """
 
     with open(filename, "rb") as f:
@@ -135,19 +140,17 @@ def _updateCommentNode(comment_node):
 
 
 def _cleanupPyLintComments(filename, abort):
-    from baron.parser import (  # pylint: disable=I0021,import-error,no-name-in-module
-        ParsingError,
-    )
     from redbaron import (  # pylint: disable=I0021,import-error,no-name-in-module
         RedBaron,
     )
 
     old_code = getFileContents(filename)
 
+    # Baron does assertions too, and all kinds of strange errors, pylint: disable=broad-except
+
     try:
         red = RedBaron(old_code)
-        # red = RedBaron(old_code.rstrip()+'\n')
-    except (ParsingError, AssertionError, TypeError):  # Baron does assertions too.
+    except Exception:
         if abort:
             raise
 
@@ -238,7 +241,7 @@ def _cleanupImportSortOrder(filename):
             out_file.write(contents)
 
     with open(os.devnull, "w") as devnull:
-        subprocess.check_call(
+        check_call(
             isort_call
             + [
                 "-q",  # quiet, but stdout is still garbage
@@ -246,6 +249,8 @@ def _cleanupImportSortOrder(filename):
                 "-m3",  # "vert-hanging"
                 "-up",  # Prefer braces () over \ for line continuation.
                 "-tc",  # Trailing commas
+                "-p",  # make sure nuitka is first party package in import sorting.
+                "nuitka",
                 "-ns",  # Do not ignore those:
                 "__init__.py",
                 filename,
@@ -276,7 +281,9 @@ def _cleanupClangFormat(filename):
     # the form of a module, pylint: disable=global-statement
     global warned_clang_format
 
-    clang_format_path = getExecutablePath("clang-format-7")
+    clang_format_path = getExecutablePath("clang-format-8") or getExecutablePath(
+        "clang-format-7"
+    )
 
     # Extra ball on Windows, check default installation PATH too.
     if not clang_format_path and getOS() == "Windows":
@@ -312,6 +319,8 @@ def _shouldNotFormatCode(filename):
         return parts[-1] not in (
             "run_all.py",
             "compile_itself.py",
+            "update_doctest_generated.py",
+            "compile_itself.py",
             "compile_python_modules.py",
             "compile_extension_modules.py",
         )
@@ -336,7 +345,7 @@ def _isPythonFile(filename):
     return False
 
 
-def transferBOM(source_filename, target_filename):
+def _transferBOM(source_filename, target_filename):
     with open(source_filename, "rb") as f:
         source_code = f.read()
 
@@ -350,21 +359,41 @@ def transferBOM(source_filename, target_filename):
                 f.write(source_code)
 
 
-def autoformat(filename, git_stage, abort):
-    # This does a lot of distinctions, pylint: disable=too-many-branches
+def autoformat(filename, git_stage, abort, effective_filename=None):
+    """ Format source code with external tools
 
-    if os.path.isdir(filename):
+    Args:
+        filename: filename to work on
+        git_stage: indicate if this is to be done on staged content
+        abort: error exit in case a tool shows a problem
+        effective_filename: derive type of file from this name
+
+    Notes:
+        The effective filename can be used in case this is already a
+        temporary filename intended to replace another.
+
+    Returns:
+        None
+    """
+
+    # This does a lot of distinctions, pylint: disable=too-many-branches,too-many-statements
+
+    if effective_filename is None:
+        effective_filename = filename
+
+    if os.path.isdir(effective_filename):
         return
 
     filename = os.path.normpath(filename)
+    effective_filename = os.path.normpath(effective_filename)
 
     my_print("Consider", filename, end=": ")
 
-    is_python = _isPythonFile(filename)
+    is_python = _isPythonFile(effective_filename)
 
-    is_c = filename.endswith((".c", ".h"))
+    is_c = effective_filename.endswith((".c", ".h"))
 
-    is_txt = filename.endswith(
+    is_txt = effective_filename.endswith(
         (
             ".patch",
             ".txt",
@@ -390,7 +419,7 @@ def autoformat(filename, git_stage, abort):
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
     if not (is_python or is_c or is_txt):
-        my_print("Ignored file type")
+        my_print("Ignored file type.")
         return
 
     # Work on a temporary copy
@@ -406,27 +435,27 @@ def autoformat(filename, git_stage, abort):
 
     try:
         if is_python:
-            _cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename)
 
-            if not _shouldNotFormatCode(filename):
+            if not _shouldNotFormatCode(effective_filename):
                 _cleanupImportSortOrder(tmp_filename)
                 _cleanupPyLintComments(tmp_filename, abort)
 
                 black_call = _getPythonBinaryCall("black")
 
                 subprocess.call(black_call + ["-q", "--fast", tmp_filename])
-                _cleanupWindowsNewlines(tmp_filename)
+                cleanupWindowsNewlines(tmp_filename)
 
         elif is_c:
-            _cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename)
             _cleanupClangFormat(filename)
-            _cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename)
         elif is_txt:
-            _cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)
-            _cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename)
 
-        transferBOM(filename, tmp_filename)
+        _transferBOM(filename, tmp_filename)
 
         changed = False
         if old_code != getFileContents(tmp_filename, "rb"):

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -80,12 +80,14 @@ def getAsyncgenObjectCode(
     function_cleanup = finalizeFunctionLocalVariables(context)
 
     if needs_exception_exit:
-        exception_type, exception_value, exception_tb, _exception_lineno = (
-            context.variable_storage.getExceptionVariableDescriptions()
-        )
+        (
+            exception_type,
+            exception_value,
+            exception_tb,
+            _exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
 
         generator_exit = template_asyncgen_exception_exit % {
-            "function_identifier": function_identifier,
             "function_cleanup": indented(function_cleanup),
             "exception_type": exception_type,
             "exception_value": exception_value,
@@ -93,8 +95,7 @@ def getAsyncgenObjectCode(
         }
     else:
         generator_exit = template_asyncgen_noexception_exit % {
-            "function_identifier": function_identifier,
-            "function_cleanup": indented(function_cleanup),
+            "function_cleanup": indented(function_cleanup)
         }
 
     if needs_generator_return:

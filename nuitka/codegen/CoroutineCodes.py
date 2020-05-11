@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -86,12 +86,14 @@ def getCoroutineObjectCode(
     function_cleanup = finalizeFunctionLocalVariables(context)
 
     if needs_exception_exit:
-        exception_type, exception_value, exception_tb, _exception_lineno = (
-            context.variable_storage.getExceptionVariableDescriptions()
-        )
+        (
+            exception_type,
+            exception_value,
+            exception_tb,
+            _exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
 
         generator_exit = template_coroutine_exception_exit % {
-            "function_identifier": function_identifier,
             "function_cleanup": indented(function_cleanup),
             "exception_type": exception_type,
             "exception_value": exception_value,
@@ -99,8 +101,7 @@ def getCoroutineObjectCode(
         }
     else:
         generator_exit = template_coroutine_noexception_exit % {
-            "function_identifier": function_identifier,
-            "function_cleanup": indented(function_cleanup),
+            "function_cleanup": indented(function_cleanup)
         }
 
     if needs_generator_return:
@@ -171,7 +172,7 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
 def generateAsyncWaitCode(to_name, expression, emit, context):
     emitLineNumberUpdateCode(emit, context)
 
-    value_name, = generateChildExpressionsCode(
+    (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -192,7 +193,7 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
 
 
 def generateAsyncIterCode(to_name, expression, emit, context):
-    value_name, = generateChildExpressionsCode(
+    (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -210,7 +211,7 @@ def generateAsyncIterCode(to_name, expression, emit, context):
 
 
 def generateAsyncNextCode(to_name, expression, emit, context):
-    value_name, = generateChildExpressionsCode(
+    (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 

@@ -19,8 +19,8 @@ requirements, credits, etc.
 
 Nuitka is **the** Python compiler. It is written in Python. It is a seamless
 replacement or extension to the Python interpreter and compiles **every**
-construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, and 3.7 have, when itself
-run with that Python version.
+construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, and 3.8 have, when
+itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an extremely
 compatible manner.
@@ -65,7 +65,7 @@ Requirements
     MSVC installed.
 
 
-- Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7
+- Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8
 
   .. admonition:: Python3, but for 3.3, and 3.4 and *only* those versions,
      we need other Python versions as a *compile time* dependency
@@ -104,7 +104,8 @@ Requirements
 
   .. admonition:: It **has to** be CPython, AnaConda or MiniConda Python.
 
-     It is known that macOS "pyenv" does **not** work.
+     It is known that Windows app store Python definitely does not work, it's
+     checked against. And on macOS "pyenv" likely does **not** work.
 
 - Operating System: Linux, FreeBSD, NetBSD, macOS X, and Windows (32/64 bits).
 
@@ -487,7 +488,7 @@ following switch:
 
 .. code-block:: bash
 
-    python -m nuitka --standalone --experimental=use_pefile myprogram.py
+    python -m nuitka --standalone --windows-dependency-tool=pefile myprogram.py
 
 
 .. note::
@@ -499,7 +500,7 @@ following switch:
 
 .. code-block:: bash
 
-    python -m nuitka --standalone --experimental=use_pefile --experimental=use_pefile_recurse myprogram.py
+    python -m nuitka --standalone --windows-dependency-tool=pefile --experimental=use_pefile_recurse myprogram.py
 
 
 .. note::
@@ -510,12 +511,55 @@ following switch:
 
 .. code-block:: bash
 
-    python -m nuitka --standalone --experimental=use_pefile --experimental=use_pefile_recurse --experimental=use_pefile_fullrecurse myprogram.py
+    python -m nuitka --standalone --windows-dependency-tool=pefile --experimental=use_pefile_recurse --experimental=use_pefile_fullrecurse myprogram.py
 
 .. note::
 
     Be aware that using this switch will increase compilation time a lot.
 
+
+Windows standalone program redistribuation
+------------------------------------------
+
+Whether compiling with MingW or MSVC, the standalone programs have external
+dependencies to Visual C Runtime libraries. Nuitka tries to ship those
+dependent DLLs by copying them from your system.
+
+Beginning with Microsoft Windows 10, Microsoft ships `ucrt.dll` (Universal C
+Runtime libraries) which rehook calls to `api-ms-crt-*.dll`.
+
+With earlier Windows platforms (and wine/ReactOS), you should consider
+installing Visual C Runtime libraries before executing a Nuitka standalone
+compiled program.
+
+Depdending on the used C compiler, you'll need the following redist versions:
+
++------------------+-------------+-------------------------+
+| Visual C version | Redist Year | CPython                 |
++==================+=============+=========================+
+| 14.2             | 2019        | 3.5, 3.6, 3.7, 3.8      |
++------------------+-------------+-------------------------+
+| 14.1             | 2017        | 3.5, 3.6, 3.7, 3.8      |
++------------------+-------------+-------------------------+
+| 14.0             | 2015        | 3.5, 3.6, 3.7, 3.8      |
++------------------+-------------+-------------------------+
+| 10.0             | 2010        | 3.3, 3.4                |
++------------------+-------------+-------------------------+
+| 9.0              | 2008        | 2.6, 2.7, 3.0, 3.1, 3.2 |
++------------------+-------------+-------------------------+
+
+When using MingGW64, you'll need the following redist versions:
+
++------------------+-------------+-------------------------+
+| MingGW64 version | Redist Year | CPython                 |
++==================+=============+=========================+
+| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8      |
++------------------+-------------+-------------------------+
+
+
+Once the corresponding runtime libraries are installed on the target system,
+you may remove all `api-ms-crt-*.dll` files from your Nuitka compiled dist
+folder.
 
 Where to go next
 ================
@@ -523,14 +567,6 @@ Where to go next
 Remember, this project is not completed yet. Although the CPython test suite
 works near perfect, there is still more work needed, esp. to make it do more
 optimization. Try it out.
-
-Subscribe to its mailing lists
-------------------------------
-
-Please visit the `mailing list page
-<http://www.nuitka.net/pages/mailinglist.html>`__ in order to subscribe the
-relatively low volume mailing list. All Nuitka issues can be discussed there.
-Also, this is the place to stay informed of what's coming.
 
 Follow me on Twitter
 --------------------

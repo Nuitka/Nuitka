@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -39,7 +39,8 @@ static Py_ssize_t CONVERT_TO_INDEX(PyObject *value) {
     } else if (PyIndex_Check(value)) {
         return PyNumber_AsSsize_t(value, NULL);
     } else {
-        PyErr_Format(PyExc_TypeError, "slice indices must be integers or None or have an __index__ method");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
+                                        "slice indices must be integers or None or have an __index__ method");
         return -1;
     }
 }

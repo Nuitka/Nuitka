@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,6 +29,12 @@ template_constants_reading = """
 PyObject *_sentinel_value = NULL;
 
 PyObject *Nuitka_dunder_compiled_value = NULL;
+
+// We need to make sure this is local to the package, or else it will
+// be taken from any external linkage.
+#if defined(_NUITKA_MODULE) && !defined(_NUITKA_CONSTANTS_FROM_RESOURCE) && !defined(__cplusplus)
+const unsigned char constant_bin[0];
+#endif
 
 %(constant_declarations)s
 
@@ -109,11 +115,8 @@ static void _createGlobalConstants(void) {
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 1, PyInt_FromLong(%(nuitka_version_minor)s));
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 2, PyInt_FromLong(%(nuitka_version_micro)s));
 
-#if PYTHON_VERSION < 300
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, PyString_FromString("%(nuitka_version_level)s"));
-#else
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, PyUnicode_FromString("%(nuitka_version_level)s"));
-#endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, Nuitka_String_FromString("%(nuitka_version_level)s"));
+
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;
     Nuitka_VersionInfoType.tp_new = NULL;

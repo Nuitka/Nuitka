@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -25,7 +25,7 @@
 /* Include the CPython version numbers, and define our own take of what version
  * numbers should be.
  */
-#include "patchlevel.h"
+#include <patchlevel.h>
 
 // TODO: Switch to using hex format version of standard Python or change our
 // to use that too, to avoid overflows more generally. For now we to out at
@@ -111,9 +111,14 @@
 #endif
 
 /* This is used to indicate code control flows we know cannot happen. */
+#ifndef __NUITKA_NO_ASSERT__
 #define NUITKA_CANNOT_GET_HERE(NAME)                                                                                   \
-    assert(false && #NAME);                                                                                            \
+    PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
+    assert(false);                                                                                                     \
     abort();
+#else
+#define NUITKA_CANNOT_GET_HERE(NAME) abort();
+#endif
 
 #ifdef __GNUC__
 #define NUITKA_FORCE_INLINE __attribute__((always_inline))
@@ -125,7 +130,6 @@
  * of renaming PyObject_Unicode. Define this to be easily portable.
  */
 #if PYTHON_VERSION >= 300
-#define PyInt_FromString PyLong_FromString
 #define PyInt_FromLong PyLong_FromLong
 #define PyInt_AsLong PyLong_AsLong
 #define PyInt_FromSsize_t PyLong_FromSsize_t
@@ -146,6 +150,10 @@
 #define Nuitka_String_CheckExact PyString_CheckExact
 #define Nuitka_StringObject PyStringObject
 #define Nuitka_StringIntern PyString_InternInPlace
+#define Nuitka_String_FromString PyString_FromString
+#define Nuitka_String_FromStringAndSize PyString_FromStringAndSize
+#define Nuitka_String_FromFormat PyString_FromFormat
+#define PyUnicode_CHECK_INTERNED (0)
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
 
@@ -160,10 +168,13 @@
 #define Nuitka_String_CheckExact PyUnicode_CheckExact
 #define Nuitka_StringObject PyUnicodeObject
 #define Nuitka_StringIntern PyUnicode_InternInPlace
+#define Nuitka_String_FromString PyUnicode_FromString
+#define Nuitka_String_FromStringAndSize PyUnicode_FromStringAndSize
+#define Nuitka_String_FromFormat PyUnicode_FromFormat
 #endif
 
 #if PYTHON_VERSION < 300
-#define PyUnicode_GetLength(x) (PyUnicode_GetSize(x))
+#define PyUnicode_GET_LENGTH(x) (PyUnicode_GET_SIZE(x))
 #endif
 
 /* With the idea to reduce the amount of exported symbols in the DLLs, make it
@@ -217,13 +228,22 @@ typedef long Py_hash_t;
 #define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
 #endif
 
-#if _NUITKA_EXPERIMENTAL_FAST_THREAD_GET && PYTHON_VERSION >= 300
+#if _NUITKA_EXPERIMENTAL_FAST_THREAD_GET && PYTHON_VERSION >= 300 && PYTHON_VERSION < 370
 // We are careful, access without locking under the assumption that we hold
 // the GIL over uses of this or the same thread continues to execute code of
 // ours.
 #undef PyThreadState_GET
 extern PyThreadState *_PyThreadState_Current;
 #define PyThreadState_GET() (_PyThreadState_Current)
+#endif
+
+#ifndef _NUITKA_FULL_COMPAT
+// Remove useless recursion control guards, we have no need for them or we
+// are achieving deeper recursion anyway.
+#undef Py_EnterRecursiveCall
+#define Py_EnterRecursiveCall(arg) (0)
+#undef Py_LeaveRecursiveCall
+#define Py_LeaveRecursiveCall()
 #endif
 
 #include "nuitka/helpers.h"

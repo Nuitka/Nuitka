@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -146,18 +146,28 @@ def listDir(path):
         Typically the full name and the basename are both needed
         so this function simply does both, for ease of use on the
         calling side.
+
+        This should be used, because it makes sure to resolve the
+        symlinks to directories on Windows, that a naive "os.listdir"
+        won't do by default.
     """
 
     return sorted(
-        [(os.path.join(path, filename), filename) for filename in os.listdir(path)]
+        [
+            (os.path.join(path, filename), filename)
+            for filename in os.listdir(os.path.realpath(path))
+        ]
     )
 
 
-def getFileList(path):
+def getFileList(path, ignore_dirs=(), ignore_suffixes=()):
     """ Get all files below a given path.
 
     Args:
         path: directory to create a recurseive listing from
+        ignore_dirs: Don't descend into these directory, ignore them
+        ignore_suffixes: Don't return files with these suffixes
+
 
     Returns:
         Sorted list of all filenames below that directory,
@@ -173,7 +183,14 @@ def getFileList(path):
         dirnames.sort()
         filenames.sort()
 
+        for dirname in ignore_dirs:
+            if dirname in dirnames:
+                dirnames.remove(dirname)
+
         for filename in filenames:
+            if filename.endswith(ignore_suffixes):
+                continue
+
             result.append(os.path.normpath(os.path.join(root, filename)))
 
     return result

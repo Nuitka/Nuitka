@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,11 +28,11 @@ it being used.
 
 import os
 import sys
-from logging import info, warning
 
 from nuitka import Options, OutputDirectories
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.SourceCodeReferences import fromFilename
+from nuitka.Tracing import plugins_logger
 from nuitka.utils.FileOperations import relpath
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -45,7 +45,8 @@ warned_unused_plugins = set()
 class NuitkaPluginBase(object):
     """ Nuitka base class for all plug-ins.
 
-    Derive your plugin from "UserPlugin" please.
+    Derive your plugin from "NuitkaPluginBase" please.
+    For instructions, see https://github.com/Nuitka/Nuitka/blob/orsiris/UserPlugin-Creation.rst
 
     Plugins allow to adapt Nuitka's behaviour in a number of ways as explained
     below at the individual methods.
@@ -56,7 +57,7 @@ class NuitkaPluginBase(object):
     certain situations.
 
     A plugin in general must be enabled to be used by Nuitka. This happens by
-    specifying "--enable-plugin" (standard plugins) or by "--user-plugin" (user
+    specifying "--plugin-enable" (standard plugins) or by "--user-plugin" (user
     plugins) in the Nuitka command line. However, some plugins are always enabled
     and invisible to the user.
 
@@ -94,65 +95,45 @@ class NuitkaPluginBase(object):
         """
         return False
 
-    def getPluginOptionBool(self, option_name, default_value):
-        """ Check whether an option is switched on or off.
+    @classmethod
+    def isRelevant(cls):
+        """ Consider if the plugin is relevant.
 
         Notes:
-            Convenience method for checking single option items. If option_name is present
-            in the options list, return "True". If '"no" + option_name' is present,
-            return "False". Else return the default value.
-
-        Args:
-            option_name: option name
-            default_value: value if neither option_name nor its negation present.
-        Returns:
-            True or False or default_value
-        """
-        plugin_options = self.getPluginOptions()
-
-        if option_name in plugin_options and "no" + option_name in plugin_options:
-            sys.exit("Error, conflicting options values given.")
-
-        if option_name in plugin_options:
-            return True
-
-        if "no" + option_name in plugin_options:
-            return False
-
-        return default_value
-
-    def getPluginOptions(self):
-        """ Return all options for the plugin.
-
-        Notes:
-            This method will always return a list of strings.
-            To specify options, code '=' immediately after the plugin name / script name.
-            The following string (excluding next space) will be returned after applying split(",").
-            You are free to specify anything. Use quotes to include spaces. See below for examples.
+            A plugin may only be a needed on a certain OS, or with some options,
+            but this is only a class method, so you will not have much run time
+            information.
 
         Returns:
-            list of strings
-
-        Examples:
-            For a plugin called "name"
-
-            '...plugin=name' (no options string)
-                []
-
-            '...plugin=name=' (empty options string)
-                ['']
-
-            '...plugin=name=a,b,c' (normal options string)
-                ['a', 'b', 'c']
-
-            '...plugin=name=a=0,b=1,c=2' (normal options string)
-                ['a=0', 'b=1', 'c=2']
-
-            '...plugin=name="a=0, b=1, c=2"' (options string with spaces)
-                ["[a=0", " b=1", " c=2]"]
+            True or False
 
         """
-        return Options.getPluginOptions(self.plugin_name)
+        return True
+
+    @classmethod
+    def addPluginCommandLineOptions(cls, group):
+        # Call group.add_option() here.
+        pass
+
+    @classmethod
+    def getPluginDefaultOptionValues(cls):
+        """ This method is used to get a values to use as defaults.
+
+            Since the defaults are in the command line options, we call
+            that and extract them.
+        """
+
+        from optparse import OptionGroup, OptionParser
+
+        parser = OptionParser()
+        group = OptionGroup(parser, "Pseudo Target")
+        cls.addPluginCommandLineOptions(group)
+
+        result = {}
+        for option in group.option_list:
+            result[option.dest] = option.default
+
+        return result
 
     def considerImplicitImports(self, module, signal_change):
         """ Provide additional modules to import implicitly when encountering the module.
@@ -406,9 +387,11 @@ class NuitkaPluginBase(object):
             if full_name in pre_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)
 
-            info("Injecting plug-in based pre load code for module '%s':" % full_name)
+            plugins_logger.info(
+                "Injecting plug-in based pre load code for module '%s':" % full_name
+            )
             for line in reason.split("\n"):
-                info("    " + line)
+                plugins_logger.info("    " + line)
 
             pre_modules[full_name] = self._createTriggerLoadedModule(
                 module=module, trigger_name="-preLoad", code=pre_code
@@ -421,9 +404,11 @@ class NuitkaPluginBase(object):
             if full_name is post_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)
 
-            info("Injecting plug-in based post load code for module '%s':" % full_name)
+            plugins_logger.info(
+                "Injecting plug-in based post load code for module '%s':" % full_name
+            )
             for line in reason.split("\n"):
-                info("    " + line)
+                plugins_logger.info("    " + line)
 
             post_modules[full_name] = self._createTriggerLoadedModule(
                 module=module, trigger_name="-postLoad", code=post_code
@@ -560,18 +545,6 @@ class NuitkaPluginBase(object):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    def suppressBuiltinImportWarning(self, module, source_ref):
-        """ Suppress import warnings for builtin modules.
-
-        Args:
-            module: the module object
-            source_ref: ???
-        Returns:
-            True or False
-        """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-        return False
-
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
         """ Suppress import warnings for unknown modules.
 
@@ -657,7 +630,17 @@ class NuitkaPluginBase(object):
         if self.plugin_name not in warned_unused_plugins:
             warned_unused_plugins.add(self.plugin_name)
 
-            warning("Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message))
+            plugins_logger.warning(
+                "Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message)
+            )
+
+    @classmethod
+    def warning(cls, message):
+        plugins_logger.warning(cls.plugin_name + ": " + message)
+
+    @classmethod
+    def info(cls, message):
+        plugins_logger.info(cls.plugin_name + ": " + message)
 
 
 def isTriggerModule(module):

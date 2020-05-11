@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,74 +22,39 @@
 from __future__ import print_function
 
 import os
-import subprocess
 import sys
 
+from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import getFileList
 
 
-def makeLogoImages():
-    assert (
-        os.system(
-            "convert -background none doc/Logo/Nuitka-Logo-Vertical.svg doc/images/Nuitka-Logo-Vertical.png"
-        )
-        == 0
-    )
-    assert (
-        os.system(
-            "convert -background none doc/Logo/Nuitka-Logo-Symbol.svg doc/images/Nuitka-Logo-Symbol.png"
-        )
-        == 0
-    )
-    assert (
-        os.system(
-            "convert -background none doc/Logo/Nuitka-Logo-Horizontal.svg doc/images/Nuitka-Logo-Horizontal.png"
-        )
-        == 0
-    )
+def optimize_pngs(pngList):
+    for png in pngList:
+        check_call(["optipng", "-o2", "%s.png" % png])
 
-    assert os.system("optipng -o2 doc/images/Nuitka-Logo-Vertical.png") == 0
-    assert os.system("optipng -o2 doc/images/Nuitka-Logo-Symbol.png") == 0
-    assert os.system("optipng -o2 doc/images/Nuitka-Logo-Horizontal.png") == 0
+
+def makeLogoImages():
+    basePathLogo = "doc/Logo/Nuitka-Logo-%s"
+
+    for logo in ("Vertical", "Symbol", "Horizontal"):
+        cmd = "convert -background none %s.svg %s.png" % (basePathLogo, basePathLogo)
+        check_call((cmd % (logo, logo)).split())
+
+    optimize_pngs(
+        [basePathLogo % item for item in ("Vertical", "Symbol", "Horizontal")]
+    )
 
     if os.path.exists("../nikola-site"):
-        assert (
-            os.system(
-                "convert -resize 32x32 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.ico"
-            )
-            == 0
-        )
-        assert (
-            os.system(
-                "convert -resize 32x32 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.png"
-            )
-            == 0
-        )
-
-        assert (
-            os.system(
-                "convert -resize 72x72 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad.png"
-            )
-            == 0
-        )
-        assert (
-            os.system(
-                "convert -resize 144x144 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad3.png"
-            )
-            == 0
-        )
-        assert (
-            os.system(
-                "convert -resize 57x57 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone.png"
-            )
-            == 0
-        )
-        assert (
-            os.system(
-                "convert -resize 114x114 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone4.png"
-            )
-            == 0
-        )
+        cmd = "convert -resize %s doc/Logo/Nuitka-Logo-Symbol.svg %s"
+        for icon, size in {
+            "../nikola-site/files/favicon.ico": "32x32",
+            "../nikola-site/files/favicon.png": "32x32",
+            "../nikola-site/files/apple-touch-icon-ipad.png": "72x72",
+            "../nikola-site/files/apple-touch-icon-ipad3.png": "144x144",
+            "../nikola-site/files/apple-touch-icon-iphone.png": "57x57",
+            "../nikola-site/files/apple-touch-icon-iphone4.png": "114x114",
+        }:
+            check_call((cmd % (icon, size)).split())
 
 
 def checkRstLint(document):
@@ -118,28 +83,19 @@ def makeManpages():
         os.mkdir("man")
 
     def makeManpage(python, suffix):
-        assert (
-            subprocess.call(
-                """\
-help2man -n 'the Python compiler' --no-discard-stderr --no-info \
---include doc/nuitka-man-include.txt \
-'%s ./bin/nuitka' >doc/nuitka%s.1"""
-                % (python, suffix),
-                shell=True,
-            )
-            == 0
-        )
-        assert (
-            subprocess.call(
-                """\
-help2man -n 'the Python compiler' --no-discard-stderr --no-info \
---include doc/nuitka-man-include.txt \
-'%s ./bin/nuitka-run' >doc/nuitka%s-run.1"""
-                % (python, suffix),
-                shell=True,
-            )
-            == 0
-        )
+        cmd = [
+            "help2man",
+            "-n",
+            "the Python compiler",
+            "--no-discard-stderr",
+            "--no-info",
+            "--include",
+            "doc/nuitka-man-include.txt",
+            "%s ./bin/nuitka" % python,
+        ]
+        check_call(cmd, stdout=open("doc/nuitka%s.1" % suffix, "wb"))
+        cmd[-1] += "-run"
+        check_call(cmd, stdout=open("doc/nuitka%s-run.1" % suffix, "wb"))
 
         for manpage in ("doc/nuitka%s.1" % suffix, "doc/nuitka%s-run.1" % suffix):
             with open(manpage) as f:
@@ -168,22 +124,7 @@ help2man -n 'the Python compiler' --no-discard-stderr --no-info \
 
 
 def createRstPDF(document, args):
-    assert (
-        subprocess.call(
-            "%(rst2pdf)s %(args)s  %(document)s"
-            % {
-                "rst2pdf": (
-                    "rst2pdf"
-                    if os.name != "nt"
-                    else r"C:\Python27_32\Scripts\rst2pdf.exe"
-                ),
-                "args": " ".join(args),
-                "document": document,
-            },
-            shell=True,
-        )
-        == 0
-    ), document
+    check_call(["rst2pdf"] + args + [document])
 
 
 def createReleaseDocumentation():
@@ -193,7 +134,8 @@ def createReleaseDocumentation():
         args = []
 
         if document != "Changelog.rst":
-            args.append("-s doc/page-styles.txt")
+            args.append("-s")
+            args.append("doc/page-styles.txt")
 
             args.append('--header="###Title### - ###Section###"')
             args.append('--footer="###Title### - page ###Page### - ###Section###"')

@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,24 @@
 
 # Frame in a function
 template_frame_guard_full_block = """\
-MAKE_OR_REUSE_FRAME(%(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s);
+if (isFrameUnusable(%(frame_cache_identifier)s)) {
+    Py_XDECREF(%(frame_cache_identifier)s);
+
+#if _DEBUG_REFCOUNTS
+    if (%(frame_cache_identifier)s == NULL) {
+        count_active_frame_cache_instances += 1;
+    } else {
+        count_released_frame_cache_instances += 1;
+    }
+    count_allocated_frame_cache_instances += 1;
+#endif
+    %(frame_cache_identifier)s = MAKE_FUNCTION_FRAME(%(code_identifier)s, %(module_identifier)s, %(locals_size)s);
+#if _DEBUG_REFCOUNTS
+} else {
+    count_hit_frame_cache_instances += 1;
+#endif
+}
+assert(%(frame_cache_identifier)s->m_type_description == NULL);
 %(frame_identifier)s = %(frame_cache_identifier)s;
 
 // Push the new frame as the currently active one.
@@ -57,7 +74,7 @@ goto %(return_exit)s;
 
 template_frame_attach_locals = """\
 Nuitka_Frame_AttachLocals(
-    (struct Nuitka_FrameObject *)%(frame_identifier)s,
+    %(frame_identifier)s,
     %(type_description)s%(frame_variable_refs)s
 );
 """
@@ -71,8 +88,7 @@ RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 
 if (%(exception_tb)s == NULL) {
     %(exception_tb)s = %(tb_making)s;
-}
-else if (%(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame) {
+} else if (%(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame) {
     %(exception_tb)s = ADD_TRACEBACK(%(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s);
 }
 
@@ -81,6 +97,11 @@ else if (%(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame) {
 
 // Release cached frame.
 if (%(frame_identifier)s == %(frame_cache_identifier)s) {
+#if _DEBUG_REFCOUNTS
+    count_active_frame_cache_instances -= 1;
+    count_released_frame_cache_instances += 1;
+#endif
+
     Py_DECREF(%(frame_identifier)s);
 }
 %(frame_cache_identifier)s = NULL;
@@ -125,11 +146,9 @@ template_frame_guard_once_exception_handler = """\
 RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 #endif
 
-if ( %(exception_tb)s == NULL )
-{
+if (%(exception_tb)s == NULL) {
     %(exception_tb)s = %(tb_making)s;
-}
-else if (exception_tb->tb_frame != &%(frame_identifier)s->m_frame) {
+} else if (exception_tb->tb_frame != &%(frame_identifier)s->m_frame) {
     %(exception_tb)s = ADD_TRACEBACK(%(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s);
 }
 
@@ -142,7 +161,23 @@ goto %(parent_exception_exit)s;
 
 # Frame in a generator, coroutine or asyncgen.
 template_frame_guard_generator = """\
-MAKE_OR_REUSE_FRAME(%(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s);
+if (isFrameUnusable(%(frame_cache_identifier)s)) {
+    Py_XDECREF(%(frame_cache_identifier)s);
+
+#if _DEBUG_REFCOUNTS
+    if (%(frame_cache_identifier)s == NULL) {
+        count_active_frame_cache_instances += 1;
+    } else {
+        count_released_frame_cache_instances += 1;
+    }
+    count_allocated_frame_cache_instances += 1;
+#endif
+    %(frame_cache_identifier)s = MAKE_FUNCTION_FRAME(%(code_identifier)s, %(module_identifier)s, %(locals_size)s);
+#if _DEBUG_REFCOUNTS
+} else {
+    count_hit_frame_cache_instances += 1;
+#endif
+}
 %(context_identifier)s->m_frame = %(frame_cache_identifier)s;
 
 // Mark the frame object as in use, ref count 1 will be up for reuse.
@@ -153,6 +188,7 @@ assert(Py_REFCNT(%(context_identifier)s->m_frame) == 2); // Frame stack
 %(context_identifier)s->m_frame->m_frame.f_gen = (PyObject *)%(context_identifier)s;
 #endif
 
+assert(%(context_identifier)s->m_frame->m_frame.f_back == NULL);
 Py_CLEAR(%(context_identifier)s->m_frame->m_frame.f_back);
 
 %(context_identifier)s->m_frame->m_frame.f_back = PyThreadState_GET()->frame;
@@ -227,6 +263,11 @@ if (!EXCEPTION_MATCH_GENERATOR(%(exception_type)s)) {
 
     // Release cached frame.
     if (%(frame_identifier)s == %(frame_cache_identifier)s) {
+#if _DEBUG_REFCOUNTS
+        count_active_frame_cache_instances -= 1;
+        count_released_frame_cache_instances += 1;
+#endif
+
         Py_DECREF(%(frame_identifier)s);
     }
     %(frame_cache_identifier)s = NULL;

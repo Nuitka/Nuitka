@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -24,7 +24,7 @@ extern PyDictObject *dict_builtin;
 #include "nuitka/calling.h"
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN(PyObject *name) {
-    CHECK_OBJECT((PyObject *)dict_builtin);
+    CHECK_OBJECT(dict_builtin);
     CHECK_OBJECT(name);
     assert(Nuitka_String_CheckExact(name));
 

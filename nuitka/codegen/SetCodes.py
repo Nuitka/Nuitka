@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -168,7 +168,7 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
 
         # This conversion will not use it, and since it is borrowed, debug mode
         # would otherwise complain.
-        if to_name.c_type == "void":
+        if to_name.c_type == "nuitka_void":
             result_name.maybe_unused = True
 
 

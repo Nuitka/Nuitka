@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -380,7 +380,8 @@ def shallTreatUninstalledPython():
     """ *bool* = derived from Python installation and modes
 
     Notes:
-        Not done for standalone mode obviously.
+        Not done for standalone mode obviously. The Python DLL will
+        be a dependency of the executable and treated that way.
 
         Also not done for extension modules, they are loaded with
         a Python runtime available.
@@ -389,7 +390,10 @@ def shallTreatUninstalledPython():
         from AnaConda.
     """
 
-    return not isStandaloneMode() and not shallMakeModule() and isUninstalledPython()
+    if shallMakeModule() or isStandaloneMode():
+        return False
+
+    return isUninstalledPython()
 
 
 def isShowScons():
@@ -597,29 +601,6 @@ def getPluginsEnabled():
             result.add(plugin_enabled.split("=", 1)[0])
 
     return tuple(result)
-
-
-def getPluginOptions(plugin_name):
-    """ Return the options provided for the specified plugin.
-
-    Args:
-        plugin_name: plugin identifier
-    Returns:
-        list created by split(',') for the string following "=" after plugin_name.
-    """
-    result = []
-
-    if options:
-        for plugin_enabled in options.plugins_enabled + options.user_plugins:
-            if "=" not in plugin_enabled:
-                continue
-
-            name, args = plugin_enabled.split("=", 1)
-
-            if name == plugin_name:
-                result.extend(args.split(","))
-
-    return result
 
 
 def getPluginsDisabled():

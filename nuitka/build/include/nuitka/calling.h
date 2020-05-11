@@ -1,4 +1,4 @@
-//     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -48,7 +48,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyObject *function_object, P
 
     if (result == NULL) {
         if (unlikely(!ERROR_OCCURRED())) {
-            PyErr_Format(PyExc_SystemError, "NULL result without error in CALL_FUNCTION");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "NULL result without error in CALL_FUNCTION");
         }
 
         return NULL;

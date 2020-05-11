@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,8 +29,14 @@ from nuitka.nodes.AssignNodes import (
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNot
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
-from nuitka.nodes.FrameNodes import StatementsFrameFunction, StatementsFrameGenerator
-from nuitka.nodes.FunctionNodes import ExpressionFunctionCreation, ExpressionFunctionRef
+from nuitka.nodes.FrameNodes import (
+    StatementsFrameFunction,
+    StatementsFrameGenerator,
+)
+from nuitka.nodes.FunctionNodes import (
+    ExpressionFunctionCreation,
+    ExpressionFunctionRef,
+)
 from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
     ExpressionMakeGeneratorObject,

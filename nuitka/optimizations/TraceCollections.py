@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,11 +32,12 @@ from nuitka.importing.ImportCache import getImportedModuleByNameAndPath
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
-    ShapeTypeDict,
-    ShapeTypeInt,
-    ShapeTypeIntOrLong,
-    ShapeTypeLong,
+    tshape_dict,
+    tshape_int,
+    tshape_int_or_long,
+    tshape_long,
 )
+from nuitka.nodes.shapes.StandardShapes import tshape_uninit
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceLine
 from nuitka.utils.FileOperations import relpath
@@ -45,9 +46,11 @@ from nuitka.utils.ModuleNames import ModuleName
 
 from .ValueTraces import (
     ValueTraceAssign,
+    ValueTraceDeleted,
     ValueTraceInit,
     ValueTraceLoopComplete,
-    ValueTraceLoopInitial,
+    ValueTraceLoopFirstPass,
+    ValueTraceLoopIncomplete,
     ValueTraceMerge,
     ValueTraceUninit,
     ValueTraceUnknown,
@@ -109,31 +112,38 @@ class CollectionTracingMixin(object):
 
             self.markCurrentVariableTrace(variable, version)
 
-    def markActiveVariableAsLoopMerge(self, variable, shapes, initial):
+    def markActiveVariableAsLoopMerge(self, variable, shapes, incomplete, first_pass):
         current = self.getVariableCurrentTrace(variable=variable)
 
-        version = variable.allocateTargetNumber()
+        if not current.isUninitTrace():
+            current_shape = current.getTypeShape()
 
-        current_shape = current.getTypeShape()
-
-        if current_shape not in shapes:
-            shapes = set(shapes)
-            shapes.add(current_shape)
+            if current_shape not in shapes:
+                shapes = set(shapes)
+                shapes.add(current_shape)
 
         if python_version < 300:
-            if ShapeTypeIntOrLong in shapes:
-                if ShapeTypeInt in shapes:
-                    shapes.discard(ShapeTypeInt)
-                if ShapeTypeLong in shapes:
-                    shapes.discard(ShapeTypeLong)
+            if tshape_int_or_long in shapes:
+                if tshape_int in shapes:
+                    shapes.discard(tshape_int)
+                if tshape_long in shapes:
+                    shapes.discard(tshape_long)
 
-        # print(initial, shapes)
-
-        if initial:
-            result = ValueTraceLoopInitial(current, shapes)
+        if first_pass:
+            result = ValueTraceLoopFirstPass(current, shapes)
+        elif incomplete:
+            result = ValueTraceLoopIncomplete(current, shapes)
         else:
+            # TODO: Empty is a missing optimization somewhere, but it also happens that
+            # a variable is getting released in a loop.
+            # assert shapes, (variable, current)
+
+            if not shapes:
+                shapes.add(tshape_uninit)
+
             result = ValueTraceLoopComplete(current, shapes)
 
+        version = variable.allocateTargetNumber()
         self.addVariableTrace(variable=variable, version=version, trace=result)
 
         self.markCurrentVariableTrace(variable, version)
@@ -308,8 +318,8 @@ class CollectionStartpointMixin(object):
 
         return trace
 
-    def updateVariablesFromCollection(self, old_collection):
-        Variables.updateVariablesFromCollection(old_collection, self)
+    def updateVariablesFromCollection(self, old_collection, source_ref):
+        Variables.updateVariablesFromCollection(old_collection, self, source_ref)
 
     @contextlib.contextmanager
     def makeAbortStackContext(
@@ -349,7 +359,7 @@ class CollectionStartpointMixin(object):
         elif variable.isTempVariable():
             result = self._initVariableUninit(variable)
         elif variable.isLocalsDictVariable():
-            if variable.getOwner().getTypeShape() is ShapeTypeDict:
+            if variable.getOwner().getTypeShape() is tshape_dict:
                 result = self._initVariableUninit(variable)
             else:
                 result = self.initVariableUnknown(variable)
@@ -473,12 +483,14 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         return variable_trace
 
-    def onVariableDel(self, variable, version):
+    def onVariableDel(self, variable, version, del_node):
         # Add a new trace, allocating a new version for the variable, and
         # remember the delete of the current
         old_trace = self.getVariableCurrentTrace(variable)
 
-        variable_trace = ValueTraceUninit(owner=self.owner, previous=old_trace)
+        variable_trace = ValueTraceDeleted(
+            owner=self.owner, del_node=del_node, previous=old_trace
+        )
 
         # Assign to not initialized again.
         self.addVariableTrace(variable=variable, version=version, trace=variable_trace)
@@ -566,6 +578,18 @@ class TraceCollectionBase(CollectionTracingMixin):
             )
             raise
 
+    def computedStatementResult(self, statement, change_tags, change_desc):
+        # Need to compute the replacement still.
+        new_statement = statement.computeStatement(self)
+
+        if new_statement[0] is not statement:
+            # Signal intermediate result as well.
+            self.signalChange(change_tags, statement.getSourceReference(), change_desc)
+
+            return new_statement
+        else:
+            return statement, change_tags, change_desc
+
     def mergeBranches(self, collection_yes, collection_no):
         """ Merge two alternative branches into this trace.
 
@@ -617,7 +641,7 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         for variable, versions in iterItems(variable_versions):
             if len(versions) == 1:
-                version, = versions
+                (version,) = versions
             else:
                 version = self.addVariableMergeMultipleTrace(
                     variable=variable,

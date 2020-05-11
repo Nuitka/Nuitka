@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -43,12 +43,9 @@ import types
 
 from nuitka.tools.testing.Common import (
     async_iterate,
-    checkDebugPython,
     executeReferenceChecked,
     run_async,
 )
-
-checkDebugPython()
 
 
 class AwaitException(Exception):

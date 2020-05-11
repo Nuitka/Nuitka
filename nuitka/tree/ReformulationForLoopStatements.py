@@ -1,4 +1,4 @@
-#     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -81,8 +81,9 @@ def _buildForLoopNode(provider, node, sync, source_ref):
     )
 
     if else_block is not None:
+        # Indicator variable, will end up with C bool type, and need not be released.
         tmp_break_indicator = provider.allocateTempVariable(
-            temp_scope=temp_scope, name="break_indicator"
+            temp_scope=temp_scope, name="break_indicator", temp_type="bool"
         )
 
         statements = [
@@ -176,7 +177,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
             source_ref=source.getSourceReference(),
         )
 
-    statements += [
+    statements += (
         # First create the iterator and store it.
         StatementAssignmentVariable(
             variable=tmp_iter_variable, source=iter_source, source_ref=source_ref
@@ -189,10 +190,10 @@ def _buildForLoopNode(provider, node, sync, source_ref):
             ),
             source_ref=source_ref,
         ),
-    ]
+    )
 
     if else_block is not None:
-        statements += [
+        statements.append(
             makeStatementConditional(
                 condition=ExpressionComparisonIs(
                     left=ExpressionTempVariableRef(
@@ -205,17 +206,6 @@ def _buildForLoopNode(provider, node, sync, source_ref):
                 no_branch=None,
                 source_ref=source_ref,
             )
-        ]
-
-        statements = (
-            makeTryFinallyStatement(
-                provider=provider,
-                tried=statements,
-                final=StatementReleaseVariable(
-                    variable=tmp_break_indicator, source_ref=source_ref
-                ),
-                source_ref=source_ref,
-            ),
         )
 
     return makeStatementsSequenceFromStatements(*statements)
