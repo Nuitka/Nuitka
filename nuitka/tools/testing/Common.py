@@ -826,12 +826,24 @@ def snapObjRefCntMap(before):
 
         if type(x) is not str and isinstance(x, str):
             k = "str_overload_" + x.__class__.__name__ + str(x)
-        elif type(x) is dict and "__builtins__" in x:
-            k = "<module dict %s>" % x["__name__"]
+        elif type(x) is dict:
+            if "__builtins__" in x:
+                k = "<module dict %s>" % x["__name__"]
+            elif "__spec__" in x and "__name__" in x:
+                k = "<module dict %s>" % x["__name__"]
+            else:
+                k = str(x)
+        elif x.__class__.__name__ == "compiled_frame":
+            k = "<compiled_frame at xxx, line %d code %s" % (x.f_lineno, x.f_code)
         else:
             k = str(x)
 
-        m[k] = sys.getrefcount(x)
+        c = sys.getrefcount(x)
+
+        if k in m:
+            m[k] += c
+        else:
+            m[k] = c
 
 
 orig_print = None
