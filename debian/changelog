@@ -1,8 +1,11 @@
-nuitka (0.6.8~rc9+ds-1) unstable; urgency=medium
+nuitka (0.6.8+ds-1) unstable; urgency=medium
 
-  * New upstream pre-release.
+  * New upstream release.
 
- -- Kay Hayen <kay.hayen@gmail.com>  Mon, 11 May 2020 16:08:09 +0200
+  * Changed dependencies to prefer Debian 11 packages.
+    (Closes: #937166).
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 11 May 2020 16:41:34 +0200
 
 nuitka (0.6.7+ds-1) unstable; urgency=medium
 
