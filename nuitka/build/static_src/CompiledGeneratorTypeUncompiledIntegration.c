@@ -614,7 +614,6 @@ throw_here:
         // from the class.
         Py_XDECREF(exception_value);
         exception_value = exception_type;
-        Py_INCREF(exception_value);
 
         exception_type = PyExceptionInstance_Class(exception_type);
         Py_INCREF(exception_type);

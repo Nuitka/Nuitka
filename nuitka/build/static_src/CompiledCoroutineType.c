@@ -879,7 +879,6 @@ throw_here:
         // from the class.
         Py_XDECREF(exception_value);
         exception_value = exception_type;
-        Py_INCREF(exception_value);
 
         exception_type = PyExceptionInstance_Class(exception_type);
         Py_INCREF(exception_type);
@@ -901,9 +900,6 @@ throw_here:
             _Nuitka_Coroutine_send(coroutine, NULL, false, exception_type, exception_value, exception_tb);
         return result;
     } else if (coroutine->m_status == status_Finished) {
-        // Passing exception to publication.
-        /* This seems wasteful to do it like this, but it's a corner case. */
-        RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
 
         /* This check got added in Python 3.5.2 only. It's good to do it, but
          * not fully compatible, therefore guard it.
@@ -922,8 +918,16 @@ throw_here:
                          "cannot reuse already awaited coroutine"
 #endif
             );
+
+            Py_DECREF(exception_type);
+            Py_XDECREF(exception_value);
+            Py_XDECREF(exception_tb);
+
+            return NULL;
         }
 #endif
+        // Passing exception to publication.
+        RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
 
         return NULL;
     } else {

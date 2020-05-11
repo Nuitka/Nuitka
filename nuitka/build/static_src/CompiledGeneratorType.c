@@ -326,7 +326,7 @@ static PyObject *Nuitka_YieldFromGeneratorCore(struct Nuitka_GeneratorObject *ge
     return yielded;
 }
 
-static PyObject *Nuitka_YieldFromGeneratorInitial(struct Nuitka_GeneratorObject *generator) {
+static PyObject *Nuitka_YieldFromGeneratorNext(struct Nuitka_GeneratorObject *generator) {
     // Coroutines are already perfect for yielding from.
 #if PYTHON_VERSION >= 350
     if (PyCoro_CheckExact(generator->m_yieldfrom) || Nuitka_Coroutine_Check(generator->m_yieldfrom)) {
@@ -353,7 +353,7 @@ static PyObject *Nuitka_YieldFromGeneratorInitial(struct Nuitka_GeneratorObject 
     return Nuitka_YieldFromGeneratorCore(generator, Py_None);
 }
 
-static PyObject *Nuitka_YieldFromGeneratorNext(struct Nuitka_GeneratorObject *generator, PyObject *send_value) {
+static PyObject *Nuitka_YieldFromGeneratorInitial(struct Nuitka_GeneratorObject *generator, PyObject *send_value) {
     PyObject *result = Nuitka_YieldFromGeneratorCore(generator, send_value);
 
 #if 0
@@ -441,7 +441,7 @@ static PyObject *Nuitka_Generator_send2(struct Nuitka_GeneratorObject *generator
         if (generator->m_yieldfrom == NULL) {
             yielded = ((generator_code)generator->m_code)(generator, value);
         } else {
-            yielded = Nuitka_YieldFromGeneratorNext(generator, value);
+            yielded = Nuitka_YieldFromGeneratorInitial(generator, value);
         }
 #else
         PyObject *yielded = ((generator_code)generator->m_code)(generator, value);
@@ -451,7 +451,7 @@ static PyObject *Nuitka_Generator_send2(struct Nuitka_GeneratorObject *generator
         // If the generator returns with m_yieldfrom set, it wants us to yield
         // from that value from now on.
         while (yielded == NULL && generator->m_yieldfrom != NULL) {
-            yielded = Nuitka_YieldFromGeneratorInitial(generator);
+            yielded = Nuitka_YieldFromGeneratorNext(generator);
         }
 #endif
         if (generator->m_frame) {
@@ -822,9 +822,10 @@ static PyObject *Nuitka_Generator_throw(struct Nuitka_GeneratorObject *generator
         }
 
         exception_value = exception_type;
-        Py_INCREF(exception_value);
         exception_type = PyExceptionInstance_Class(exception_type);
+
         Py_INCREF(exception_type);
+        Py_INCREF(exception_value);
         Py_XINCREF(exception_tb);
     } else {
         PyErr_Format(PyExc_TypeError,

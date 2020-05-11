@@ -684,7 +684,6 @@ throw_here:
         // from the class.
         Py_XDECREF(exception_value);
         exception_value = exception_type;
-        Py_INCREF(exception_value);
 
         exception_type = PyExceptionInstance_Class(exception_type);
         Py_INCREF(exception_type);
@@ -1413,7 +1412,7 @@ static PyObject *Nuitka_AsyncgenAsend_send(struct Nuitka_AsyncgenAsendObject *as
 static PyObject *Nuitka_AsyncgenAsend_tp_iternext(struct Nuitka_AsyncgenAsendObject *asyncgen_asend) {
 #if _DEBUG_ASYNCGEN
     PRINT_ASYNCGENASEND_STATUS("Enter", asyncgen_asend);
-    PRINT_STRING("Defering to Nuitka_AsyncgenAsend_send(Py_None)\n");
+    PRINT_STRING("Deferring to Nuitka_AsyncgenAsend_send(Py_None)\n");
     PRINT_NEW_LINE();
 #endif
 
