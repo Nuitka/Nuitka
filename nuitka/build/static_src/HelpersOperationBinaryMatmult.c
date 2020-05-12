@@ -913,7 +913,48 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
 
 #if PYTHON_VERSION < 300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
-        return _BINARY_OPERATION_MATMULT_OBJECT_INT_INT(operand1, operand2);
+
+        PyObject *result;
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+#error Operator @ not implemented
+
+        {
+            PyObject *operand1_object = operand1;
+            PyObject *operand2_object = operand2;
+
+            PyObject *o = PyLong_Type.tp_as_number->nb_matrix_multiply(operand1_object, operand2_object);
+            assert(o != Py_NotImplemented);
+
+            result = o;
+            goto exit_result;
+        }
+
+    exit_result:
+
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+    exit_result_ok:
+
+        return result;
+
+    exit_result_exception:
+        return NULL;
     }
 #endif
 

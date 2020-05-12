@@ -2209,7 +2209,71 @@ static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_OBJECT(PyObject *operand
 
 #if PYTHON_VERSION < 300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
-        return _BINARY_OPERATION_RSHIFT_OBJECT_INT_INT(operand1, operand2);
+
+        PyObject *result;
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        if (unlikely(b < 0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            goto exit_result_exception;
+        }
+
+        /* Short cut for zero shift or shifting zero. */
+        if (a == 0 || b == 0) {
+            Py_INCREF(operand1);
+            result = operand1;
+            goto exit_result_ok;
+        } else if (b >= LONG_BIT) {
+            if (a < 0) {
+                Py_INCREF(const_int_neg_1);
+                result = const_int_neg_1;
+            } else {
+                Py_INCREF(const_int_0);
+                result = const_int_0;
+            }
+            goto exit_result_ok;
+        } else {
+            long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
+            result = PyInt_FromLong(r);
+            goto exit_result_ok;
+        }
+
+        {
+            PyObject *operand1_object = operand1;
+            PyObject *operand2_object = operand2;
+
+            PyObject *o = PyLong_Type.tp_as_number->nb_rshift(operand1_object, operand2_object);
+            assert(o != Py_NotImplemented);
+
+            result = o;
+            goto exit_result;
+        }
+
+    exit_result:
+
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+    exit_result_ok:
+
+        return result;
+
+    exit_result_exception:
+        return NULL;
     }
 #endif
 
@@ -2354,7 +2418,69 @@ static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operan
 
 #if PYTHON_VERSION < 300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
-        return _BINARY_OPERATION_RSHIFT_NBOOL_INT_INT(operand1, operand2);
+
+        nuitka_bool result;
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        if (unlikely(b < 0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            goto exit_result_exception;
+        }
+
+        /* Short cut for zero shift or shifting zero. */
+        if (a == 0 || b == 0) {
+            result = CHECK_IF_TRUE(operand1) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            goto exit_result_ok;
+        } else if (b >= LONG_BIT) {
+            if (a < 0) {
+                result = -1 != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            } else {
+                result = 0 != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            }
+            goto exit_result_ok;
+        } else {
+            long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
+            result = r != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            goto exit_result_ok;
+        }
+
+        {
+            PyObject *operand1_object = operand1;
+            PyObject *operand2_object = operand2;
+
+            PyObject *o = PyLong_Type.tp_as_number->nb_rshift(operand1_object, operand2_object);
+            assert(o != Py_NotImplemented);
+
+            result = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            Py_DECREF(o);
+            goto exit_result;
+        }
+
+    exit_result:
+
+        if (unlikely(result == NUITKA_BOOL_EXCEPTION)) {
+            return NUITKA_BOOL_EXCEPTION;
+        }
+
+    exit_result_ok:
+
+        return result;
+
+    exit_result_exception:
+        return NUITKA_BOOL_EXCEPTION;
     }
 #endif
 

@@ -646,6 +646,34 @@ return %(return_value)s;""" % {
             assert False, cls
 
     @classmethod
+    def getAssignFromBoolExpressionCode(cls, result, operand, give_ref):
+        if cls.type_name == "object":
+            # TODO: Python3?
+            code = "%s = BOOL_FROM(%s);" % (result, operand)
+            if give_ref:
+                code += "Py_INCREF(%s);" % result
+
+            return code
+        elif cls.type_name == "nbool":
+            return "%s = %s;" % (
+                result,
+                cls.getToValueFromBoolExpression("%s" % operand),
+            )
+        else:
+            assert False, cls
+
+    @classmethod
+    def getAssignTupleFromLongExpressionsCode(cls, result, *operands):
+        if cls.type_name == "object":
+            return '%s = Py_BuildValue("(%s)", %s);' % (
+                result,
+                "l" * len(operands),
+                ", ".join(operands),
+            )
+        else:
+            assert False, cls
+
+    @classmethod
     def getReturnTupleFromLongExpressionsCode(cls, *operands):
         if cls.type_name == "object":
             return 'return Py_BuildValue("(%s)", %s);' % (
@@ -1588,7 +1616,7 @@ def makeHelperOperations(
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable: 4102)
+#pragma warning(disable : 4102)
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wunused-label"
@@ -1969,21 +1997,6 @@ def writeline(output, *args):
 
 
 def main():
-    makeHelpersInplaceOperation("+", "ADD")
-    makeHelpersInplaceOperation("-", "SUB")
-    makeHelpersInplaceOperation("*", "MULT")
-    makeHelpersInplaceOperation("%", "MOD")
-    makeHelpersInplaceOperation("|", "BITOR")
-    makeHelpersInplaceOperation("&", "BITAND")
-    makeHelpersInplaceOperation("^", "BITXOR")
-    makeHelpersInplaceOperation("<<", "LSHIFT")
-    makeHelpersInplaceOperation(">>", "RSHIFT")
-    makeHelpersInplaceOperation("//", "FLOORDIV")
-    makeHelpersInplaceOperation("/", "TRUEDIV")
-    makeHelpersInplaceOperation("/", "OLDDIV")
-    makeHelpersInplaceOperation("**", "POW")
-    makeHelpersInplaceOperation("@", "MATMULT")
-
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MULT")
@@ -1999,6 +2012,21 @@ def main():
     makeHelpersBinaryOperation("divmod", "DIVMOD")
     makeHelpersBinaryOperation("**", "POW")
     makeHelpersBinaryOperation("@", "MATMULT")
+
+    makeHelpersInplaceOperation("+", "ADD")
+    makeHelpersInplaceOperation("-", "SUB")
+    makeHelpersInplaceOperation("*", "MULT")
+    makeHelpersInplaceOperation("%", "MOD")
+    makeHelpersInplaceOperation("|", "BITOR")
+    makeHelpersInplaceOperation("&", "BITAND")
+    makeHelpersInplaceOperation("^", "BITXOR")
+    makeHelpersInplaceOperation("<<", "LSHIFT")
+    makeHelpersInplaceOperation(">>", "RSHIFT")
+    makeHelpersInplaceOperation("//", "FLOORDIV")
+    makeHelpersInplaceOperation("/", "TRUEDIV")
+    makeHelpersInplaceOperation("/", "OLDDIV")
+    makeHelpersInplaceOperation("**", "POW")
+    makeHelpersInplaceOperation("@", "MATMULT")
 
     makeHelpersComparisonOperation("==", "EQ")
     makeHelpersComparisonOperation("!=", "NE")
