@@ -140,9 +140,6 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
                 repr(right),
             )
 
-    def extractSideEffectsPreOperation(self):
-        return self.subnode_left, self.subnode_right
-
     @staticmethod
     def _isTooLarge():
         return False
@@ -188,13 +185,13 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
                         expression=self, exception=self.createUnsupportedException()
                     ),
                     old_node=self,
-                    side_effects=self.extractSideEffectsPreOperation(),
+                    side_effects=(self.subnode_left, self.subnode_right),
                 )
 
                 return (
                     result,
                     "new_raise",
-                    """Replaced operator '%s%s%s' arguments that cannot work."""
+                    """Replaced operator '%s' with %s %s arguments that cannot work."""
                     % (
                         self.operator,
                         self.subnode_left.getTypeShape(),

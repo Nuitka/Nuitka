@@ -329,6 +329,17 @@ def _getComparisonLtShapeGeneric(self, right_shape):
     return operation_result_unknown
 
 
+def _getComparisonEqShapeGeneric(self, right_shape):
+    if type(right_shape) is ShapeLoopCompleteAlternative:
+        return right_shape.getComparisonEqLShape(self)
+
+    if type(right_shape) is ShapeLoopInitialAlternative:
+        return operation_result_unknown
+
+    onMissingOperation("Eq", self, right_shape)
+    return operation_result_unknown
+
+
 class ShapeTypeNoneType(ShapeBase):
     typical_value = None
 
@@ -412,14 +423,22 @@ class ShapeTypeNoneType(ShapeBase):
             if right_shape is tshape_unknown:
                 return operation_result_unknown
 
-            # TODO: Actually unorderable, but this requires making a
-            # difference with "=="
-            # if right_shape.getTypeName() is not None:
-            #     return operation_result_unorderable_comparison
-            if right_shape in (tshape_str, tshape_bytes):
-                return operation_result_unknown
+            if right_shape.getTypeName() is not None:
+                return operation_result_unorderable_comparison
 
             return _getComparisonLtShapeGeneric(self, right_shape)
+
+        def getComparisonEqShape(self, right_shape):
+            if right_shape is tshape_unknown:
+                return operation_result_unknown
+
+            if right_shape.getTypeName() is not None:
+                return operation_result_bool_noescape
+
+            return _getComparisonEqShapeGeneric(self, right_shape)
+
+        def getComparisonNeqShape(self, right_shape):
+            return self.getComparisonEqShape(right_shape)
 
 
 tshape_none = ShapeTypeNoneType()

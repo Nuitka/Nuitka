@@ -20,10 +20,12 @@
 """
 
 from nuitka import PythonOperators
+from nuitka.Errors import NuitkaAssumptionError
 
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
+    makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
 )
 from .shapes.BuiltinTypeShapes import tshape_bool
@@ -120,6 +122,30 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
     def getDetails(self):
         return {}
 
+    def canCreateUnsupportedException(self):
+        return hasattr(self.subnode_left.getTypeShape(), "typical_value") and hasattr(
+            self.subnode_right.getTypeShape(), "typical_value"
+        )
+
+    def createUnsupportedException(self):
+        left = self.subnode_left.getTypeShape().typical_value
+        right = self.subnode_right.getTypeShape().typical_value
+
+        try:
+            self.getSimulator()(left, right)
+        except TypeError as e:
+            return e
+        else:
+            raise NuitkaAssumptionError(
+                "Unexpected no-exception doing comparison simulation",
+                self.operator,
+                self.simulator,
+                self.subnode_left.getTypeShape(),
+                self.subnode_right.getTypeShape(),
+                repr(left),
+                repr(right),
+            )
+
     def computeExpression(self, trace_collection):
         left = self.subnode_left
         right = self.subnode_right
@@ -137,6 +163,29 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
         exception_raise_exit = self.escape_desc.getExceptionExit()
         if exception_raise_exit is not None:
             trace_collection.onExceptionRaiseExit(exception_raise_exit)
+
+            if (
+                self.escape_desc.isUnsupported()
+                and self.canCreateUnsupportedException()
+            ):
+                result = wrapExpressionWithSideEffects(
+                    new_node=makeRaiseExceptionReplacementExpressionFromInstance(
+                        expression=self, exception=self.createUnsupportedException()
+                    ),
+                    old_node=self,
+                    side_effects=(self.subnode_left, self.subnode_right),
+                )
+
+                return (
+                    result,
+                    "new_raise",
+                    """Replaced comparator '%s' with %s %s arguments that cannot work."""
+                    % (
+                        self.comparator,
+                        self.subnode_left.getTypeShape(),
+                        self.subnode_right.getTypeShape(),
+                    ),
+                )
 
         if self.escape_desc.isValueEscaping():
             # The value of these nodes escaped and could change its contents.
