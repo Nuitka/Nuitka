@@ -362,6 +362,7 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
     PRINT_COROUTINE_STRING("closing", closing ? "(closing) " : "(not closing) ");
     PRINT_COROUTINE_VALUE("value", value);
     PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_CURRENT_EXCEPTION();
     PRINT_NEW_LINE();
 #endif
 
@@ -433,7 +434,10 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
 
 #if _DEBUG_COROUTINE
         PRINT_COROUTINE_STATUS("Switching to coroutine", coroutine);
-        dumpFrameStack();
+        PRINT_COROUTINE_VALUE("value", value);
+        PRINT_CURRENT_EXCEPTION();
+        PRINT_NEW_LINE();
+        // dumpFrameStack();
 #endif
 
         if (coroutine->m_yieldfrom == NULL) {
@@ -471,7 +475,7 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
 
 #if _DEBUG_COROUTINE
         PRINT_COROUTINE_STATUS("Returned from coroutine", coroutine);
-        dumpFrameStack();
+        // dumpFrameStack();
 #endif
 
 #ifndef __NUITKA_NO_ASSERT__
@@ -483,9 +487,10 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
         if (yielded == NULL) {
 #if _DEBUG_COROUTINE
             PRINT_COROUTINE_STATUS("finishing from yield", coroutine);
-            PRINT_COROUTINE_VALUE("return_value", coroutine->m_returned);
             PRINT_COROUTINE_STRING("closing", closing ? "(closing) " : "(not closing) ");
             PRINT_STRING("-> finishing sets status_Finished\n");
+            PRINT_COROUTINE_VALUE("return_value", coroutine->m_returned);
+            PRINT_CURRENT_EXCEPTION();
             PRINT_NEW_LINE();
 #endif
             coroutine->m_status = status_Finished;
@@ -1003,10 +1008,9 @@ static void Nuitka_Coroutine_tp_del(struct Nuitka_CoroutineObject *coroutine) {
         return;
     }
 
-    PyObject *error_type, *error_value;
-    PyTracebackObject *error_traceback;
-
-    FETCH_ERROR_OCCURRED(&error_type, &error_value, &error_traceback);
+    PyObject *save_exception_type, *save_exception_value;
+    PyTracebackObject *save_exception_tb;
+    FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
 
     PyObject *close_result = Nuitka_Coroutine_close(coroutine);
 
@@ -1017,7 +1021,7 @@ static void Nuitka_Coroutine_tp_del(struct Nuitka_CoroutineObject *coroutine) {
     }
 
     /* Restore the saved exception if any. */
-    RESTORE_ERROR_OCCURRED(error_type, error_value, error_traceback);
+    RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
 }
 
 static PyObject *Nuitka_Coroutine_tp_repr(struct Nuitka_CoroutineObject *coroutine) {
@@ -1112,6 +1116,7 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
     // Allow for above code to resurrect the coroutine.
     Py_REFCNT(coroutine) -= 1;
     if (Py_REFCNT(coroutine) >= 1) {
+        RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
         return;
     }
 

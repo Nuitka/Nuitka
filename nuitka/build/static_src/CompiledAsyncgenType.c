@@ -270,6 +270,7 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
     PRINT_ASYNCGEN_STATUS("Enter", asyncgen);
     PRINT_COROUTINE_VALUE("value", value);
     PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_CURRENT_EXCEPTION();
     PRINT_NEW_LINE();
 #endif
 
@@ -341,7 +342,7 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
 
 #if _DEBUG_ASYNCGEN
         PRINT_ASYNCGEN_STATUS("Switching to asyncgen", asyncgen);
-        dumpFrameStack();
+        // dumpFrameStack();
 #endif
 
         if (asyncgen->m_yieldfrom == NULL) {
@@ -378,7 +379,7 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
 
 #if _DEBUG_ASYNCGEN
         PRINT_ASYNCGEN_STATUS("Returned from coroutine", asyncgen);
-        dumpFrameStack();
+        // dumpFrameStack();
 #endif
 
 #ifndef __NUITKA_NO_ASSERT__
@@ -627,7 +628,7 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
                 PRINT_CURRENT_EXCEPTION();
                 PRINT_NEW_LINE();
 #endif
-                ret = _Nuitka_Asyncgen_send(asyncgen, NULL, false, exception_type, exception_value, exception_tb);
+                ret = _Nuitka_Asyncgen_send(asyncgen, NULL, false, NULL, NULL, NULL);
             }
 
 #if _DEBUG_ASYNCGEN
@@ -1501,26 +1502,26 @@ static PyObject *_Nuitka_AsyncgenAsend_throw2(struct Nuitka_AsyncgenAsendObject 
     }
 
 #if _DEBUG_ASYNCGEN
-    PRINT_STRING("_Nuitka_AsyncgenAsend_throw2: Async throw result:");
-    PRINT_ITEM(result);
-    PRINT_NEW_LINE();
+    PRINT_ASYNCGENASEND_STATUS("Got result", asyncgen_asend);
+    PRINT_COROUTINE_VALUE("result", result);
     PRINT_CURRENT_EXCEPTION();
 #endif
 
     result = Nuitka_Asyncgen_unwrap_value(asyncgen_asend->m_gen, result);
+
+#if _DEBUG_ASYNCGEN
+    PRINT_COROUTINE_VALUE("unwraped", result);
+    PRINT_NEW_LINE();
+#endif
 
     if (result == NULL) {
         asyncgen_asend->m_state = AWAITABLE_STATE_CLOSED;
     }
 
 #if _DEBUG_ASYNCGEN
-    PRINT_STRING("_Nuitka_AsyncgenAsend_throw2: Leave with result: ");
-    PRINT_ITEM(result);
-    PRINT_NEW_LINE();
-    PRINT_STRING("_Nuitka_AsyncgenAsend_throw2: Leave with current exception: ");
+    PRINT_ASYNCGENASEND_STATUS("Leave", asyncgen_asend);
+    PRINT_COROUTINE_VALUE("result", result);
     PRINT_CURRENT_EXCEPTION();
-    PRINT_STRING("_Nuitka_AsyncgenAsend_throw2: Leave with published exception: ");
-    PRINT_PUBLISHED_EXCEPTION();
     PRINT_NEW_LINE();
 #endif
     return result;
