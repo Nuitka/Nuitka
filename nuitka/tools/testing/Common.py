@@ -808,6 +808,8 @@ def cleanObjRefCntMaps():
 
 
 def snapObjRefCntMap(before):
+    # Inherently complex, pylint: disable=too-many-branches
+
     if before:
         m = m1
     else:
