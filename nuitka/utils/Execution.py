@@ -177,9 +177,9 @@ def check_call(*popenargs, **kwargs):
 
 
 @contextmanager
-def withEnvironmentPathAdded(env_var_name, path):
-    if type(path) in (tuple, list):
-        path = os.pathsep.join(path)
+def withEnvironmentPathAdded(env_var_name, *paths):
+    paths = [path for path in paths if path]
+    path = os.pathsep.join(paths)
 
     if path:
         if str is not bytes and type(path) is bytes:

@@ -583,8 +583,11 @@ def _detectBinaryPathDLLsPosix(dll_filename):
         _detected_python_rpath = getSharedLibraryRPATH(sys.executable) or False
 
         if _detected_python_rpath:
+            if str is not bytes:
+                _detected_python_rpath = _detected_python_rpath.decode("utf-8")
+
             _detected_python_rpath = _detected_python_rpath.replace(
-                b"$ORIGIN", os.path.dirname(sys.executable).encode("utf-8")
+                "$ORIGIN", os.path.dirname(sys.executable)
             )
 
     with withEnvironmentPathAdded("LD_LIBRARY_PATH", _detected_python_rpath):

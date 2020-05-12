@@ -285,14 +285,14 @@ def _cleanupClangFormat(filename):
         "clang-format-7"
     )
 
-    # Extra ball on Windows, check default installation PATH too.
+    # Extra ball on Windows, check default installations paths in MSVC and LLVM too.
     if not clang_format_path and getOS() == "Windows":
         with withEnvironmentPathAdded(
             "PATH",
-            r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\Llvm\8.0.0\bin",
+            r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\Llvm\bin",
+            r"C:\Program Files\LLVM\bin",
         ):
-            with withEnvironmentPathAdded("PATH", r"C:\Program Files\LLVM\bin"):
-                clang_format_path = getExecutablePath("clang-format")
+            clang_format_path = getExecutablePath("clang-format")
 
     if clang_format_path:
         subprocess.call(
