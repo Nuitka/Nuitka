@@ -1051,6 +1051,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         # pendulum imports -- START -------------------------------------------
         elif full_name == "pendulum.locales":
+            # TODO: This is more something for pkgutil.iter_modules that does this.
             locales_dir = os.path.join(package_dir, "locales")
             idioms = os.listdir(locales_dir)
             for idiom in idioms:
@@ -1114,6 +1115,10 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pandas._libs.skiplist", False
         elif full_name == "zmq.backend":
             yield "zmq.backend.cython", True
+        elif full_name == "flask.app":
+            yield "jinja2.ext"
+            yield "jinja2.ext.autoescape"
+            yield "jinja2.ext.with_"
 
         # Support for both pycryotodome (module name Crypto) and pycyptodomex (module name Cryptodome)
         elif elements[0] in ("Crypto", "Cryptodome"):

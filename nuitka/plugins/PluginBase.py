@@ -151,21 +151,25 @@ class NuitkaPluginBase(object):
         """
         from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 
-        for full_name, required in self.getImplicitImports(module):
+        for item in self.getImplicitImports(module):
+            # TODO: Temporary, until all plugins are caught up, turn into an error later.
+            if type(item) in (tuple, list):
+                full_name, _required = item
+            else:
+                full_name = item
+
             full_name = ModuleName(full_name)
 
-            module_filename = self.locateModule(
-                importing=module, module_name=full_name, warn=required
-            )
+            module_filename = self.locateModule(importing=module, module_name=full_name)
 
             if module_filename is None:
-                if required:
-                    sys.exit(
-                        "Error, implicit module '%s' expected by '%s' not found."
+                if Options.isShowInclusion():
+                    self.info(
+                        "Implicit module '%s' suggested by '%s' not found."
                         % (full_name, module.getFullName())
                     )
-                else:
-                    continue
+
+                continue
 
             _module_name2, module_kind = getModuleNameAndKindFromFilename(
                 module_filename
@@ -428,7 +432,7 @@ class NuitkaPluginBase(object):
         return None
 
     @staticmethod
-    def locateModule(importing, module_name, warn):
+    def locateModule(importing, module_name):
         """ Provide a filename / -path for a to-be-imported module.
 
         Args:
@@ -445,7 +449,7 @@ class NuitkaPluginBase(object):
             module_name=ModuleName(module_name),
             parent_package=None,
             level=-1,
-            warn=warn,
+            warn=False,
         )
 
         return module_filename
