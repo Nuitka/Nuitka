@@ -153,7 +153,11 @@ def generateExceptionPublishCode(statement, emit, context):
 
     if python_version >= 300:
         emit(
-            "PyException_SetTraceback(%s, (PyObject *)%s);" % (keeper_value, keeper_tb)
+            """\
+if (%s != Py_None) {
+    PyException_SetTraceback(%s, (PyObject *)%s);
+}"""
+            % (keeper_value, keeper_value, keeper_tb)
         )
 
     emit("PUBLISH_EXCEPTION(&%s, &%s, &%s);" % (keeper_type, keeper_value, keeper_tb))
