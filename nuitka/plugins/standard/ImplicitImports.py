@@ -24,13 +24,14 @@ to add to this and submit patches to make it more complete.
 
 import os
 import shutil
+import sys
 
 from nuitka.containers.oset import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContentByLine
-from nuitka.utils.SharedLibraries import locateDLL
-from nuitka.utils.Utils import getOS
+from nuitka.utils.SharedLibraries import getPyWin32Dir, locateDLL
+from nuitka.utils.Utils import getOS, isWin32Windows
 
 
 def remove_suffix(mod_dir, mod_name):
@@ -1423,6 +1424,28 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             shutil.copy(gtk_dll_path, dist_dll_path)
 
             return ((gtk_dll_path, dist_dll_path, None),)
+        elif full_name == "pythoncom" and isWin32Windows():
+            result = []
+
+            pywin_dir = getPyWin32Dir()
+
+            if pywin_dir is not None:
+                for dll_name in "pythoncom", "pywintypes":
+
+                    pythoncom_filename = "%s%d%d.dll" % (
+                        dll_name,
+                        sys.version_info[0],
+                        sys.version_info[1],
+                    )
+                    pythoncom_dll_path = os.path.join(pywin_dir, pythoncom_filename)
+                    dist_dll_path = os.path.join(dist_dir, pythoncom_filename)
+
+                    if os.path.exists(pythoncom_dll_path):
+                        shutil.copy(pythoncom_dll_path, dist_dir)
+
+                        result.append((pythoncom_dll_path, dist_dll_path, None))
+
+            return result
 
         return ()
 

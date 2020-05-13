@@ -68,6 +68,7 @@ from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     getPEFileInformation,
+    getPyWin32Dir,
     getWindowsDLLVersion,
     removeSxsFromDLL,
 )
@@ -877,17 +878,6 @@ def _parseDependsExeOutput(filename, result):
     _parseDependsExeOutput2(getFileContentByLine(filename), result)
 
 
-def _getPyWin32Dir():
-    for path_element in sys.path:
-        if not path_element:
-            continue
-
-        candidate = os.path.join(path_element, "pywin32_system32")
-
-        if os.path.isdir(candidate):
-            return candidate
-
-
 _scan_dir_cache = {}
 
 
@@ -919,7 +909,7 @@ def getScanDirectories(package_name, original_dir):
         and package_name is not None
         and package_name.isBelowNamespace("win32com")
     ):
-        pywin32_dir = _getPyWin32Dir()
+        pywin32_dir = getPyWin32Dir()
 
         if pywin32_dir is not None:
             scan_dirs.append(pywin32_dir)
