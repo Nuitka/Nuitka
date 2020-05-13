@@ -1,36 +1,36 @@
 [submodule "tests/CPython26"]
     path = tests/CPython26
-    url = git@github.com:Nuitka/Nuitka-CPython-tests
+    url = https://github.com/Nuitka/Nuitka-CPython-tests.git
     branch = CPython26
 [submodule "tests/CPython27"]
     path = tests/CPython27
-    url = git@github.com:Nuitka/Nuitka-CPython-tests
+    url = https://github.com/Nuitka/Nuitka-CPython-tests.git
     branch = CPython27
 [submodule "tests/CPython32"]
     path = tests/CPython32
-    url = git@github.com:Nuitka/Nuitka-CPython-tests
+    url = https://github.com/Nuitka/Nuitka-CPython-tests.git
     branch = CPython32
 [submodule "tests/CPython33"]
     path = tests/CPython33
-    url = git@github.com:Nuitka/Nuitka-CPython-tests
+    url = https://github.com/Nuitka/Nuitka-CPython-tests.git
     branch = CPython33
 [submodule "tests/CPython34"]
     path = tests/CPython34
-    url = git@github.com:Nuitka/Nuitka-CPython-tests
+    url = https://github.com/Nuitka/Nuitka-CPython-tests.git
     branch = CPython34
 [submodule "tests/CPython35"]
     path = tests/CPython35
-    url = git@github.com:Nuitka/Nuitka-CPython-tests
+    url = https://github.com/Nuitka/Nuitka-CPython-tests.git
     branch = CPython35
 [submodule "tests/CPython36"]
     path = tests/CPython36
-    url = git@github.com:Nuitka/Nuitka-CPython-tests
+    url = https://github.com/Nuitka/Nuitka-CPython-tests.git
     branch = CPython36
 [submodule "tests/CPython37"]
     path = tests/CPython37
-    url = git@github.com:Nuitka/Nuitka-CPython-tests
+    url = https://github.com/Nuitka/Nuitka-CPython-tests.git
     branch = CPython37
 [submodule "tests/CPython38"]
     path = tests/CPython38
-    url = git@github.com:Nuitka/Nuitka-CPython-tests
+    url = https://github.com/Nuitka/Nuitka-CPython-tests.git
     branch = CPython38
