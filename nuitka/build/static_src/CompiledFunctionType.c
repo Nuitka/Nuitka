@@ -629,7 +629,10 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     // Macro to assign result memory from GC or free list.
     allocateFromFreeList(free_list_functions, struct Nuitka_FunctionObject, Nuitka_Function_Type, closure_given);
 
-    /* Closure is set externally after we return */
+    /* Note: The closure is set externally. TODO: Stop that, it's causing problems once we are tracked. */
+    for (Py_ssize_t i = 0; i < closure_given; i++) {
+        result->m_closure[i] = NULL;
+    }
     result->m_closure_given = closure_given;
 
     result->m_c_code = c_code != NULL ? c_code : Nuitka_FunctionEmptyCodeImpl;

@@ -1398,7 +1398,10 @@ PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyObject *
 
     result->m_yieldfrom = NULL;
 
-    // The m_closure is set from the outside.
+    /* Note: The closure is set externally. TODO: Stop that, it's causing problems once we are tracked. */
+    for (Py_ssize_t i = 0; i < closure_given; i++) {
+        result->m_closure[i] = NULL;
+    }
     result->m_closure_given = closure_given;
 
     result->m_weakrefs = NULL;
