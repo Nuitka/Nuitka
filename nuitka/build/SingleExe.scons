@@ -88,6 +88,9 @@ result_basepath = ARGUMENTS["result_name"]
 # The name of executable or extension module that we produce.
 result_exe = ARGUMENTS.get("result_exe", None)
 
+# The suffix for an extension module.
+module_suffix = ARGUMENTS.get("module_suffix", None)
+
 
 def getBoolOption(option_name, default=None):
     """ Small helper for boolean mode flags."""
@@ -1740,21 +1743,7 @@ source_files = discoverSourceFiles()
 if module_mode:
     # For Python modules, the standard shared library extension is not what
     # gets used.
-    def getSharedLibrarySuffix():
-        import imp
-
-        result = None
-
-        for suffix, _mode, module_type in imp.get_suffixes():
-            if module_type != imp.C_EXTENSION:
-                continue
-
-            if result is None or len(suffix) < len(result):
-                result = suffix
-
-        return result
-
-    env["SHLIBSUFFIX"] = getSharedLibrarySuffix()
+    env["SHLIBSUFFIX"] = module_suffix
 
     target = env.SharedLibrary(
         result_basepath, source_files + source_targets, no_import_lib=no_import_lib

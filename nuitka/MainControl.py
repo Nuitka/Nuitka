@@ -378,7 +378,7 @@ def makeSourceDirectory(main_module):
                 OutputDirectories.getStandaloneDirectoryPath(),
                 *module.getFullName().split(".")
             )
-            target_filename += Utils.getSharedLibrarySuffix()
+            target_filename += Utils.getSharedLibrarySuffix(preferred=False)
 
             target_dir = os.path.dirname(target_filename)
 
@@ -562,6 +562,9 @@ def runScons(main_module, quiet):
     link_libraries = Plugins.getExtraLinkLibraries()
     if link_libraries:
         options["link_libraries"] = ",".join(link_libraries)
+
+    if Options.shallMakeModule():
+        options["module_suffix"] = Utils.getSharedLibrarySuffix(True)
 
     return SconsInterface.runScons(options, quiet), options
 

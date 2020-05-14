@@ -45,6 +45,7 @@ import time
 from nuitka.tools.testing.Common import getTempDir, my_print, setup
 from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
+from nuitka.utils.Utils import getSharedLibrarySuffix
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 
@@ -101,7 +102,17 @@ def diffRecursive(dir1, dir2):
         # TODO: Temporary ignore ".bin", until we have something better than marshal which behaves
         # differently in compiled Nuitka:
         if filename.endswith(
-            (".o", ".os", ".obj", ".dblite", ".tmp", ".sconsign", ".txt", ".bin", ".exp")
+            (
+                ".o",
+                ".os",
+                ".obj",
+                ".dblite",
+                ".tmp",
+                ".sconsign",
+                ".txt",
+                ".bin",
+                ".exp",
+            )
         ):
             continue
 
@@ -307,10 +318,9 @@ def compileAndCompareWith(nuitka):
 
                 shutil.rmtree(target_dir)
 
-                if os.name == "nt":
-                    target_filename = filename.replace(".py", ".pyd")
-                else:
-                    target_filename = filename.replace(".py", ".so")
+                target_filename = filename.replace(
+                    ".py", getSharedLibrarySuffix(preferred=True)
+                )
 
                 os.unlink(os.path.join(tmp_dir, target_filename))
 

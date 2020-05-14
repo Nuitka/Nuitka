@@ -94,12 +94,6 @@ def isPackageDir(dirname):
     )
 
 
-def getExtensionModuleSuffixes():
-    for suffix, _mode, kind in imp.get_suffixes():
-        if kind == imp.C_EXTENSION:
-            yield suffix
-
-
 def getModuleNameAndKindFromFilename(module_filename):
     """ Given a filename, decide the module name and kind.
 

@@ -45,6 +45,7 @@ from nuitka.utils.Execution import (
     wrapCommandForDebuggerForSubprocess,
 )
 from nuitka.utils.Timing import StopWatch
+from nuitka.utils.Utils import getSharedLibrarySuffix
 
 
 def displayOutput(stdout, stderr):
@@ -720,10 +721,9 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
                 else:
                     os.unlink(nuitka_cmd2[0])
         else:
-            if os.name == "nt":
-                module_filename = os.path.basename(filename) + ".pyd"
-            else:
-                module_filename = os.path.basename(filename) + ".so"
+            module_filename = os.path.basename(filename) + getSharedLibrarySuffix(
+                preferred=True
+            )
 
             if os.path.exists(module_filename):
                 os.unlink(module_filename)

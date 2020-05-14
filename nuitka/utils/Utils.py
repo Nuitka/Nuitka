@@ -82,7 +82,7 @@ def getArchitecture():
         return os.uname()[4]
 
 
-def getSharedLibrarySuffix():
+def getSharedLibrarySuffix(preferred):
     if python_version < 300:
         import imp
 
@@ -99,13 +99,16 @@ def getSharedLibrarySuffix():
     else:
         import importlib.machinery  # pylint: disable=I0021,import-error,no-name-in-module
 
-        result = None
+        if preferred:
+            return importlib.machinery.EXTENSION_SUFFIXES[0]
+        else:
+            result = None
 
-        for suffix in importlib.machinery.EXTENSION_SUFFIXES:
-            if result is None or len(suffix) < len(result):
-                result = suffix
+            for suffix in importlib.machinery.EXTENSION_SUFFIXES:
+                if result is None or len(suffix) < len(result):
+                    result = suffix
 
-        return result
+            return result
 
 
 def getCoreCount():

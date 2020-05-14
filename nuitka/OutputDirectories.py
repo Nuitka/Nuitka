@@ -84,7 +84,7 @@ def getResultFullpath():
     result = getResultBasepath()
 
     if Options.shallMakeModule():
-        result += Utils.getSharedLibrarySuffix()
+        result += Utils.getSharedLibrarySuffix(preferred=True)
     else:
         if Options.getOutputFilename() is not None:
             result = Options.getOutputFilename()
