@@ -61,7 +61,7 @@ static void CHAIN_EXCEPTION(PyObject *exception_value) {
         PyException_SetContext(exception_value, old_exc_value);
 
         CHECK_OBJECT(EXC_TRACEBACK(thread_state));
-        PyException_SetTraceback(old_exc_value, EXC_TRACEBACK(thread_state));
+        ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(old_exc_value, (PyTracebackObject *)EXC_TRACEBACK(thread_state));
     }
 }
 #endif

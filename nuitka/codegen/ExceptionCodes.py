@@ -150,16 +150,7 @@ def generateExceptionPublishCode(statement, emit, context):
     )
 
     emit("NORMALIZE_EXCEPTION(&%s, &%s, &%s);" % (keeper_type, keeper_value, keeper_tb))
-
-    if python_version >= 300:
-        emit(
-            """\
-if (%s != Py_None) {
-    PyException_SetTraceback(%s, (PyObject *)%s);
-}"""
-            % (keeper_value, keeper_value, keeper_tb)
-        )
-
+    emit("ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(%s, %s);" % (keeper_value, keeper_tb))
     emit("PUBLISH_EXCEPTION(&%s, &%s, &%s);" % (keeper_type, keeper_value, keeper_tb))
 
 

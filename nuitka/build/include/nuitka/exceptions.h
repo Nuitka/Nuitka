@@ -590,8 +590,8 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(void) {
     }
 }
 
-static inline void FORMAT_TYPE_ERROR1(PyObject **exception_type, PyObject **exception_value, char const *format,
-                                      char const *arg) {
+NUITKA_MAY_BE_UNUSED static inline void FORMAT_TYPE_ERROR1(PyObject **exception_type, PyObject **exception_value,
+                                                           char const *format, char const *arg) {
     *exception_type = PyExc_TypeError;
     Py_INCREF(*exception_type);
 
@@ -599,13 +599,38 @@ static inline void FORMAT_TYPE_ERROR1(PyObject **exception_type, PyObject **exce
     CHECK_OBJECT(*exception_value);
 }
 
-static inline void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exception_value, char const *format,
-                                      char const *arg1, char const *arg2) {
+NUITKA_MAY_BE_UNUSED static inline void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exception_value,
+                                                           char const *format, char const *arg1, char const *arg2) {
     *exception_type = PyExc_TypeError;
     Py_INCREF(*exception_type);
 
     *exception_value = Nuitka_String_FromFormat(format, arg1, arg2);
     CHECK_OBJECT(*exception_value);
 }
+
+// Similar to PyException_SetTraceback, only done for Python3.
+#if PYTHON_VERSION < 300
+#define ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(exception_value, exception_tb) ;
+#else
+NUITKA_MAY_BE_UNUSED static inline void ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(PyObject *exception_value,
+                                                                            PyTracebackObject *exception_tb) {
+    CHECK_OBJECT(exception_value);
+    CHECK_OBJECT(exception_tb);
+
+    if (exception_tb == (PyTracebackObject *)Py_None || exception_tb == NULL) {
+        return;
+    }
+
+    assert(PyExceptionInstance_Check(exception_value));
+    assert(PyTraceBack_Check(exception_tb));
+
+    PyBaseExceptionObject *e = (PyBaseExceptionObject *)exception_value;
+
+    PyObject *old = e->traceback;
+    Py_INCREF(exception_tb);
+    e->traceback = (PyObject *)exception_tb;
+    Py_XDECREF(old);
+}
+#endif
 
 #endif
