@@ -339,3 +339,26 @@ def callInstallNameToolAddRPath(filename, rpath):
 
     if result != 0:
         sys.exit("Error, call to 'install_name_tool' to add rpath failed.")
+
+
+def getPyWin32Dir():
+    """ Find the pywin32 DLL directory
+
+    Args:
+        None
+
+    Returns:
+        path to the pywin32 DLL directory or None
+
+    Notes:
+        This is needed for standalone mode only.
+    """
+
+    for path_element in sys.path:
+        if not path_element:
+            continue
+
+        candidate = os.path.join(path_element, "pywin32_system32")
+
+        if os.path.isdir(candidate):
+            return candidate

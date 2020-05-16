@@ -12,6 +12,8 @@ export PYBUILD_INTERPRETERS = python{version}
 DEB_VENDOR=$(shell dpkg-vendor --query vendor)
 ifeq ($(DEB_VENDOR), Debian)
 BUILD_ONLY_PYTHON3 := $(shell [ `lsb_release -r -s | sed -e s/unstable/11/ -e s/testing/11/` -ge 11 ] && echo true)
+else ifeq ($(DEB_VENDOR), Ubuntu)
+BUILD_ONLY_PYTHON3 := $(shell [ `lsb_release -r -s | sed -e s/\.// ` -ge 2004 ] && echo true)
 else
 BUILD_ONLY_PYTHON3 := false
 endif
