@@ -117,6 +117,11 @@ static inline void SAVE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyncge
     PyObject *saved_exception_value = EXC_VALUE(thread_state);
     PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("SAVE_ASYNCGEN_EXCEPTION: Enter\n");
+    PRINT_EXCEPTION(saved_exception_type, saved_exception_value, saved_exception_traceback);
+#endif
+
     CHECK_OBJECT_X(saved_exception_type);
     CHECK_OBJECT_X(saved_exception_value);
     CHECK_OBJECT_X(saved_exception_traceback);
@@ -129,6 +134,11 @@ static inline void SAVE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyncge
     EXC_TYPE(thread_state) = asyncgen->m_exc_state.exc_type;
     EXC_VALUE(thread_state) = asyncgen->m_exc_state.exc_value;
     EXC_TRACEBACK(thread_state) = asyncgen->m_exc_state.exc_traceback;
+#endif
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("SAVE_ASYNCGEN_EXCEPTION: Leave\n");
+    PRINT_EXCEPTION(EXC_TYPE(thread_state), EXC_VALUE(thread_state), EXC_TRACEBACK(thread_state));
 #endif
 
     CHECK_OBJECT_X(EXC_TYPE(thread_state));
@@ -155,6 +165,11 @@ static inline void RESTORE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyn
     PyObject *saved_exception_value = EXC_VALUE(thread_state);
     PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("RESTORE_ASYNCGEN_EXCEPTION: Enter\n");
+    PRINT_EXCEPTION(saved_exception_type, saved_exception_value, saved_exception_traceback);
+#endif
+
     CHECK_OBJECT_X(saved_exception_type);
     CHECK_OBJECT_X(saved_exception_value);
     CHECK_OBJECT_X(saved_exception_traceback);
@@ -175,6 +190,11 @@ static inline void RESTORE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyn
     asyncgen->m_exc_state.exc_type = saved_exception_type;
     asyncgen->m_exc_state.exc_value = saved_exception_value;
     asyncgen->m_exc_state.exc_traceback = saved_exception_traceback;
+#endif
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("RESTORE_ASYNCGEN_EXCEPTION: Leave\n");
+    PRINT_EXCEPTION(EXC_TYPE(thread_state), EXC_VALUE(thread_state), EXC_TRACEBACK(thread_state));
 #endif
 
     CHECK_OBJECT_X(EXC_TYPE(thread_state));

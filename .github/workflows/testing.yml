@@ -10,6 +10,8 @@ on:
       - develop
       - jorj
       - factory
+      - release/.*
+      - hotfix/.*
     tags:
       - release_.*
 

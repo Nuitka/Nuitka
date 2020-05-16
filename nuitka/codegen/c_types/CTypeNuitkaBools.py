@@ -116,7 +116,7 @@ class CTypeNuitkaBoolEnum(CTypeBase):
         elif tolerant:
             emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
         else:
-            emit("%s = %s == NUITKA_BOOL_UNASSIGNED;" % (to_name, value_name))
+            emit("%s = %s != NUITKA_BOOL_UNASSIGNED;" % (to_name, value_name))
             emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
 
     @classmethod

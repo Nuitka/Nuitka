@@ -208,6 +208,9 @@ struct Nuitka_CellObject *Nuitka_Cell_New(void) {
 
     allocateFromFreeListFixed(free_list_cells, struct Nuitka_CellObject, Nuitka_Cell_Type);
 
+    // TODO: Pass value from the outside to avoid this.
+    result->ob_ref = NULL;
+
     Nuitka_GC_Track(result);
 
     return result;

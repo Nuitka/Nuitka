@@ -117,8 +117,7 @@ template_del_shared_tolerant = """\
 
 template_del_local_intolerant = """\
 %(result)s = %(identifier)s != NULL;
-if ( %(result)s == true )
-{
+if (likely(%(result)s)) {
     Py_DECREF(%(identifier)s);
     %(identifier)s = NULL;
 }
@@ -213,12 +212,12 @@ template_read_locals_mapping_without_fallback = """\
 template_del_global_unclear = """\
 %(res_name)s = PyDict_DelItem((PyObject *)moduledict_%(module_identifier)s, %(var_name)s);
 %(result)s = %(res_name)s != -1;
-if ( %(result)s == false ) CLEAR_ERROR_OCCURRED();
+if (%(result)s == false) CLEAR_ERROR_OCCURRED();
 """
 
 template_del_global_known = """\
 %(res_name)s = PyDict_DelItem((PyObject *)moduledict_%(module_identifier)s, %(var_name)s);
-if ( %(res_name)s == -1 ) CLEAR_ERROR_OCCURRED();
+if (%(res_name)s == -1) CLEAR_ERROR_OCCURRED();
 """
 
 
@@ -231,8 +230,7 @@ if (%(test_code)s) {
 } else {
     int res = PyDict_DelItem(%(dict_name)s, %(var_name)s);
 
-    if (res != 0)
-    {
+    if (res != 0) {
         CLEAR_ERROR_OCCURRED();
     }
 }
@@ -271,8 +269,7 @@ if (%(test_code)s) {
         %(var_name)s
     );
 
-    if (test_value)
-    {
+    if (test_value) {
         Py_DECREF(test_value);
 
         int res = PyObject_DelItem(
@@ -289,8 +286,7 @@ if (%(test_code)s) {
 """
 
 template_set_locals_mapping_value = """\
-if (%(test_code)s)
-{
+if (%(test_code)s) {
     PyObject *value;
 %(access_code)s
 
@@ -302,16 +298,6 @@ if (%(test_code)s)
 } else {
     %(tmp_name)s = true;
 }
-"""
-
-
-# TODO: Unused now.
-template_assign_from_frame_locals = """\
-if (%(frame_identifier)s->f_locals == NULL)
-{
-    %(frame_identifier)s->f_locals = PyDict_New();
-}
-%(to_name)s = %(frame_identifier)s->f_locals;
 """
 
 from . import TemplateDebugWrapper  # isort:skip
