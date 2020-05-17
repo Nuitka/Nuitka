@@ -1366,7 +1366,8 @@ static PyObject *computeCoroutineOrigin(int origin_depth) {
 #endif
 
 PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyObject *name, PyObject *qualname,
-                               PyCodeObject *code_object, Py_ssize_t closure_given, Py_ssize_t heap_storage_size) {
+                               PyCodeObject *code_object, struct Nuitka_CellObject **closure, Py_ssize_t closure_given,
+                               Py_ssize_t heap_storage_size) {
 #if _DEBUG_REFCOUNTS
     count_active_Nuitka_Coroutine_Type += 1;
     count_allocated_Nuitka_Coroutine_Type += 1;
@@ -1403,10 +1404,7 @@ PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyObject *
 
     result->m_yieldfrom = NULL;
 
-    /* Note: The closure is set externally. TODO: Stop that, it's causing problems once we are tracked. */
-    for (Py_ssize_t i = 0; i < closure_given; i++) {
-        result->m_closure[i] = NULL;
-    }
+    memcpy(&result->m_closure[0], closure, closure_given * sizeof(struct Nuitka_CellObject *));
     result->m_closure_given = closure_given;
 
     result->m_weakrefs = NULL;

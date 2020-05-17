@@ -168,7 +168,7 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
 
     @classmethod
     def getCellObjectAssignmentCode(cls, target_cell_code, variable_code_name, emit):
-        emit("%s = PyCell_NEW0(%s);" % (target_cell_code, variable_code_name))
+        emit("%s = Nuitka_Cell_New0(%s);" % (target_cell_code, variable_code_name))
 
     @classmethod
     def getDeleteObjectCode(
@@ -263,9 +263,9 @@ class CTypeCellObject(CTypeBase):
         # TODO: Single out "init_from" only user, so it becomes sure that we
         # get a reference transferred here in these cases.
         if init_from is not None:
-            return "PyCell_NEW1(%s)" % init_from
+            return "Nuitka_Cell_New1(%s)" % init_from
         else:
-            return "PyCell_EMPTY()"
+            return "Nuitka_Cell_Empty()"
 
     @classmethod
     def getCellObjectAssignmentCode(cls, target_cell_code, variable_code_name, emit):

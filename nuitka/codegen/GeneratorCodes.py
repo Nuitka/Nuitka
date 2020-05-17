@@ -26,6 +26,7 @@ from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
     getClosureCopyCode,
+    getFunctionCreationArgs,
     getFunctionQualnameObj,
     setupFunctionLocalVariables,
 )
@@ -37,15 +38,27 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_generator_return_exit,
     template_genfunc_yielder_body_template,
     template_genfunc_yielder_maker_decl,
-    template_make_empty_generator_template,
-    template_make_generator_template,
+    template_make_empty_generator,
+    template_make_generator,
 )
 from .YieldCodes import getYieldReturnDispatchCode
 
 
-def getGeneratorObjectDeclCode(function_identifier):
+def _getGeneratorMakerIdentifier(function_identifier):
+    return "MAKE_GENERATOR_" + function_identifier
+
+
+def getGeneratorObjectDeclCode(function_identifier, closure_variables):
+    generator_creation_args = getFunctionCreationArgs(
+        defaults_name=None,
+        kw_defaults_name=None,
+        annotations_name=None,
+        closure_variables=closure_variables,
+    )
+
     return template_genfunc_yielder_maker_decl % {
-        "function_identifier": function_identifier
+        "generator_maker_identifier": _getGeneratorMakerIdentifier(function_identifier),
+        "generator_creation_args": ", ".join(generator_creation_args),
     }
 
 
@@ -122,6 +135,13 @@ struct %(function_identifier)s_locals *generator_heap = \
     else:
         heap_declaration = ""
 
+    generator_creation_args = getFunctionCreationArgs(
+        defaults_name=None,
+        kw_defaults_name=None,
+        annotations_name=None,
+        closure_variables=closure_variables,
+    )
+
     return template_genfunc_yielder_body_template % {
         "function_identifier": function_identifier,
         "function_body": indented(function_codes.codes),
@@ -129,6 +149,8 @@ struct %(function_identifier)s_locals *generator_heap = \
         "function_local_types": indented(local_type_decl),
         "function_var_inits": indented(function_locals),
         "function_dispatch": indented(getYieldReturnDispatchCode(context)),
+        "generator_maker_identifier": _getGeneratorMakerIdentifier(function_identifier),
+        "generator_creation_args": ", ".join(generator_creation_args),
         "generator_exit": generator_exit,
         "generator_module": getModuleAccessCode(context),
         "generator_name_obj": context.getConstantCode(
@@ -140,6 +162,7 @@ struct %(function_identifier)s_locals *generator_heap = \
         "code_identifier": context.getCodeObjectHandle(
             code_object=generator_object_body.getCodeObject()
         ),
+        "closure_name": "closure" if closure_variables else "NULL",
         "closure_count": len(closure_variables),
     }
 
@@ -149,17 +172,18 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
 
     closure_variables = expression.getClosureVariableVersions()
 
-    closure_copy = getClosureCopyCode(
-        to_name=to_name,
-        closure_type="struct Nuitka_GeneratorObject *",
-        closure_variables=closure_variables,
-        context=context,
+    closure_name, closure_copy = getClosureCopyCode(
+        closure_variables=closure_variables, context=context,
     )
+
+    args = []
+    if closure_name:
+        args.append(closure_name)
 
     # Special case empty generators.
     if generator_object_body.getBody() is None:
         emit(
-            template_make_empty_generator_template
+            template_make_empty_generator
             % {
                 "closure_copy": indented(closure_copy, 0, True),
                 "to_name": to_name,
@@ -173,16 +197,20 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
                 "code_identifier": context.getCodeObjectHandle(
                     code_object=generator_object_body.getCodeObject()
                 ),
+                "closure_name": closure_name if closure_name is not None else "NULL",
                 "closure_count": len(closure_variables),
             }
         )
     else:
         emit(
-            template_make_generator_template
+            template_make_generator
             % {
-                "closure_copy": indented(closure_copy, 0, True),
+                "generator_maker_identifier": _getGeneratorMakerIdentifier(
+                    generator_object_body.getCodeName()
+                ),
                 "to_name": to_name,
-                "generator_identifier": generator_object_body.getCodeName(),
+                "args": ", ".join(str(arg) for arg in args),
+                "closure_copy": indented(closure_copy, 0, True),
             }
         )
 

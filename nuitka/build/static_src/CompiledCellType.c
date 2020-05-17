@@ -203,12 +203,11 @@ PyTypeObject Nuitka_Cell_Type = {
 
 void _initCompiledCellType(void) { PyType_Ready(&Nuitka_Cell_Type); }
 
-struct Nuitka_CellObject *Nuitka_Cell_New(void) {
+struct Nuitka_CellObject *Nuitka_Cell_Empty(void) {
     struct Nuitka_CellObject *result;
 
     allocateFromFreeListFixed(free_list_cells, struct Nuitka_CellObject, Nuitka_Cell_Type);
 
-    // TODO: Pass value from the outside to avoid this.
     result->ob_ref = NULL;
 
     Nuitka_GC_Track(result);
@@ -216,12 +215,27 @@ struct Nuitka_CellObject *Nuitka_Cell_New(void) {
     return result;
 }
 
-void Nuitka_Cells_New(struct Nuitka_CellObject **closure, int count) {
-    assert(count > 0);
+struct Nuitka_CellObject *Nuitka_Cell_New0(PyObject *value) {
+    struct Nuitka_CellObject *result;
 
-    while (count > 0) {
-        *closure = Nuitka_Cell_New();
-        closure += 1;
-        count -= 1;
-    }
+    allocateFromFreeListFixed(free_list_cells, struct Nuitka_CellObject, Nuitka_Cell_Type);
+
+    result->ob_ref = value;
+    Py_INCREF(value);
+
+    Nuitka_GC_Track(result);
+
+    return result;
+}
+
+struct Nuitka_CellObject *Nuitka_Cell_New1(PyObject *value) {
+    struct Nuitka_CellObject *result;
+
+    allocateFromFreeListFixed(free_list_cells, struct Nuitka_CellObject, Nuitka_Cell_Type);
+
+    result->ob_ref = value;
+
+    Nuitka_GC_Track(result);
+
+    return result;
 }

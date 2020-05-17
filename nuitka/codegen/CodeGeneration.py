@@ -269,12 +269,13 @@ _generated_functions = {}
 
 
 def generateFunctionBodyCode(function_body, context):
+    # TODO: Generate both codes, and base direct/etc. decisions on context.
+    # pylint: disable=too-many-branches
+
     function_identifier = function_body.getCodeName()
 
     if function_identifier in _generated_functions:
         return _generated_functions[function_identifier]
-
-    # TODO: Generate both codes, and base direct/etc. decisions on context.
 
     if function_body.isExpressionGeneratorObjectBody():
         function_context = Contexts.PythonGeneratorObjectContext(
@@ -314,6 +315,11 @@ def generateFunctionBodyCode(function_body, context):
             needs_exception_exit=needs_exception_exit,
             needs_generator_return=function_body.needsGeneratorReturnExit(),
         )
+
+        function_decl = getGeneratorObjectDeclCode(
+            function_identifier=function_identifier,
+            closure_variables=function_body.getClosureVariables(),
+        )
     elif function_body.isExpressionCoroutineObjectBody():
         function_code = getCoroutineObjectCode(
             context=function_context,
@@ -325,6 +331,12 @@ def generateFunctionBodyCode(function_body, context):
             needs_exception_exit=needs_exception_exit,
             needs_generator_return=function_body.needsGeneratorReturnExit(),
         )
+
+        function_decl = getCoroutineObjectDeclCode(
+            function_identifier=function_body.getCodeName(),
+            closure_variables=function_body.getClosureVariables(),
+        )
+
     elif function_body.isExpressionAsyncgenObjectBody():
         function_code = getAsyncgenObjectCode(
             context=function_context,
@@ -336,6 +348,12 @@ def generateFunctionBodyCode(function_body, context):
             needs_exception_exit=needs_exception_exit,
             needs_generator_return=function_body.needsGeneratorReturnExit(),
         )
+
+        function_decl = getAsyncgenObjectDeclCode(
+            function_identifier=function_body.getCodeName(),
+            closure_variables=function_body.getClosureVariables(),
+        )
+
     elif function_body.isExpressionClassBody():
         function_code = getFunctionCode(
             context=function_context,
@@ -349,6 +367,14 @@ def generateFunctionBodyCode(function_body, context):
             needs_exception_exit=needs_exception_exit,
             file_scope=getExportScopeCode(cross_module=False),
         )
+
+        function_decl = getFunctionDirectDecl(
+            function_identifier=function_identifier,
+            closure_variables=function_body.getClosureVariables(),
+            file_scope=getExportScopeCode(cross_module=False),
+            context=function_context,
+        )
+
     else:
         parameters = function_body.getParameters()
 
@@ -367,40 +393,19 @@ def generateFunctionBodyCode(function_body, context):
             ),
         )
 
-    return function_code, function_context
+        if function_body.needsDirectCall():
+            function_decl = getFunctionDirectDecl(
+                function_identifier=function_identifier,
+                closure_variables=function_body.getClosureVariables(),
+                file_scope=getExportScopeCode(
+                    cross_module=function_body.isCrossModuleUsed()
+                ),
+                context=function_context,
+            )
+        else:
+            function_decl = None
 
-
-def _generateFunctionDeclCode(function_body, context):
-    if function_body.isExpressionGeneratorObjectBody():
-        return getGeneratorObjectDeclCode(
-            function_identifier=function_body.getCodeName()
-        )
-    elif function_body.isExpressionCoroutineObjectBody():
-        return getCoroutineObjectDeclCode(
-            function_identifier=function_body.getCodeName()
-        )
-    elif function_body.isExpressionAsyncgenObjectBody():
-        return getAsyncgenObjectDeclCode(
-            function_identifier=function_body.getCodeName()
-        )
-    elif function_body.isExpressionClassBody():
-        return getFunctionDirectDecl(
-            function_identifier=function_body.getCodeName(),
-            closure_variables=function_body.getClosureVariables(),
-            file_scope=getExportScopeCode(cross_module=False),
-            context=context,
-        )
-    elif function_body.needsDirectCall():
-        return getFunctionDirectDecl(
-            function_identifier=function_body.getCodeName(),
-            closure_variables=function_body.getClosureVariables(),
-            file_scope=getExportScopeCode(
-                cross_module=function_body.isCrossModuleUsed()
-            ),
-            context=context,
-        )
-    else:
-        return None
+    return function_code, function_decl
 
 
 def prepareModuleCode(global_context, module, module_name):
@@ -427,17 +432,11 @@ def prepareModuleCode(global_context, module, module_name):
         if function_body.getBody() is None:
             continue
 
-        function_code, function_context = generateFunctionBodyCode(
+        function_code, function_decl = generateFunctionBodyCode(
             function_body=function_body, context=context
         )
 
-        assert type(function_code) is str, type(function_code)
-
         function_body_codes.append(function_code)
-
-        function_decl = _generateFunctionDeclCode(
-            function_body=function_body, context=function_context
-        )
 
         if function_decl is not None:
             function_decl_codes.append(function_decl)

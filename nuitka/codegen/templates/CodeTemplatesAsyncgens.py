@@ -20,10 +20,10 @@
 """
 
 template_asyncgen_object_maker_template = """\
-static PyObject *%(function_identifier)s_maker(void);
+static PyObject *%(asyncgen_maker_identifier)s(%(asyncgen_creation_args)s);
 """
 
-template_asyncgen_object_body_template = """
+template_asyncgen_object_body = """
 struct %(function_identifier)s_locals {
 %(function_local_types)s
 };
@@ -47,13 +47,14 @@ static PyObject *%(function_identifier)s_context(struct Nuitka_AsyncgenObject *a
 %(asyncgen_exit)s
 }
 
-static PyObject *%(function_identifier)s_maker(void) {
+static PyObject *%(asyncgen_maker_identifier)s(%(asyncgen_creation_args)s) {
     return Nuitka_Asyncgen_New(
         %(function_identifier)s_context,
         %(asyncgen_module)s,
         %(asyncgen_name_obj)s,
         %(asyncgen_qualname_obj)s,
         %(code_identifier)s,
+        %(closure_name)s,
         %(closure_count)d,
         sizeof(struct %(function_identifier)s_locals)
     );
@@ -61,8 +62,8 @@ static PyObject *%(function_identifier)s_maker(void) {
 """
 
 template_make_asyncgen = """\
-%(to_name)s = %(asyncgen_identifier)s_maker();
 %(closure_copy)s
+%(to_name)s = %(asyncgen_maker_identifier)s(%(args)s);
 """
 
 # TODO: For functions NUITKA_CANNOT_GET_HERE is injected by composing code.

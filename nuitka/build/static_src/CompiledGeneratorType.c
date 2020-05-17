@@ -1131,7 +1131,8 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
 #if PYTHON_VERSION >= 350
                                PyObject *qualname,
 #endif
-                               PyCodeObject *code_object, Py_ssize_t closure_given, Py_ssize_t heap_storage_size) {
+                               PyCodeObject *code_object, struct Nuitka_CellObject **closure, Py_ssize_t closure_given,
+                               Py_ssize_t heap_storage_size) {
     struct Nuitka_GeneratorObject *result;
 
     // TODO: Change the var part of the type to 1 maybe
@@ -1172,10 +1173,7 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
     result->m_yieldfrom = NULL;
 #endif
 
-    /* Note: The closure is set externally. TODO: Stop that, it's causing problems once we are tracked. */
-    for (Py_ssize_t i = 0; i < closure_given; i++) {
-        result->m_closure[i] = NULL;
-    }
+    memcpy(&result->m_closure[0], closure, closure_given * sizeof(struct Nuitka_CellObject *));
     result->m_closure_given = closure_given;
 
     result->m_weakrefs = NULL;
@@ -1210,12 +1208,13 @@ PyObject *Nuitka_Generator_NewEmpty(PyObject *module, PyObject *name,
 #if PYTHON_VERSION >= 350
                                     PyObject *qualname,
 #endif
-                                    PyCodeObject *code_object, Py_ssize_t closure_given) {
+                                    PyCodeObject *code_object, struct Nuitka_CellObject **closure,
+                                    Py_ssize_t closure_given) {
     return Nuitka_Generator_New(_EMPTY_GENERATOR_CONTEXT, module, name,
 #if PYTHON_VERSION >= 350
                                 qualname,
 #endif
-                                code_object, closure_given, 0);
+                                code_object, closure, closure_given, 0);
 }
 
 // Chain coroutine code to generator code, as it uses same functions, and then we can
