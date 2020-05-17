@@ -19,6 +19,8 @@
 
 """
 
+import __future__
+
 import ast
 from logging import warning
 
@@ -375,13 +377,24 @@ def buildAnnotationNode(provider, node, source_ref):
 
         _host_node.body[0].annotation = node
 
-        r = compile(_host_node, "<annotations>", "exec", 1048576, dont_inherit=True)
+        r = compile(
+            _host_node,
+            "<annotations>",
+            "exec",
+            __future__.CO_FUTURE_ANNOTATIONS,
+            dont_inherit=True,
+        )
 
         # Using exec here, to compile the ast node tree back to string,
         # there is no accessible "ast.unparse", and this works as a hack
         # to convert our node to a string annotation, pylint: disable=exec-used
         m = {}
         exec(r, m)
+
+        # TODO: In Python3.9, we should get https://bugs.python.org/issue35143
+        # to be used.
+        if Options.is_debug:
+            assert python_version <= 390
 
         return makeConstantRefNode(
             constant=m["__annotations__"]["x"], source_ref=source_ref
