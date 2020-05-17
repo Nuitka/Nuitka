@@ -397,8 +397,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME(PyObject *module) {
 
 // Get the binary directory was wide characters.
 extern wchar_t const *getBinaryDirectoryWideChars();
+
+#if !defined(_WIN32) || PYTHON_VERSION < 300
 // Get the binary directory, translated to native path
 extern char const *getBinaryDirectoryHostEncoded();
+#endif
 
 #if _NUITKA_STANDALONE
 extern void setEarlyFrozenModulesFileAttribute(void);

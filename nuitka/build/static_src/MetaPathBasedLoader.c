@@ -630,7 +630,7 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name, struct Nuit
 #ifdef _WIN32
         wchar_t filename[MAXPATHLEN + 1] = {0};
 
-        wcscat_cstr(filename, getBinaryDirectoryHostEncoded());
+        wcscpy(filename, getBinaryDirectoryWideChars());
         wcscat_char(filename, SEP);
         concatModulenameAsPathW(filename, entry->name);
         wcscat_cstr(filename, ".pyd");
