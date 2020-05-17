@@ -71,6 +71,19 @@ class ModuleName(str):
 
         return self.splitModuleBasename()[0]
 
+    def getTopLevelPackageName(self):
+        """ Get the top level package name.
+
+            Returns:
+                ModuleName of the top level name.
+        """
+        package_name = self.getPackageName()
+
+        if package_name is None:
+            return self
+        else:
+            return package_name.getTopLevelPackageName()
+
     def getBasename(self):
         """ Get leaf name of the module without package part.
 

@@ -591,8 +591,12 @@ def shallNotStoreDependsExeCachedResults():
 
 
 def getPluginsEnabled():
-    """ *tuple*, enabled plugins (including user plugins)
+    """ *tuple*, user enabled (standard) plugins (not including user plugins)
 
+    Note:
+        Do not use this outside of main binary, as other plugins, e.g.
+        hinted compilation will activate plugins themselves and this
+        will not be visible here.
     """
     result = set()
 
@@ -604,7 +608,12 @@ def getPluginsEnabled():
 
 
 def getPluginsDisabled():
-    """ Return the names of disabled (standard) plugins.
+    """ *tuple*, user disabled (standard) plugins.
+
+    Note:
+        Do not use this outside of main binary, as other plugins, e.g.
+        hinted compilation will activate plugins themselves and this
+        will not be visible here.
     """
     if not options:
         return ()
@@ -613,7 +622,7 @@ def getPluginsDisabled():
 
 
 def getUserPlugins():
-    """ *tuple*, items of "--user-plugin="
+    """ *tuple*, items user provided of "--user-plugin="
     """
     if not options:
         return ()

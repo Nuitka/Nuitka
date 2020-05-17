@@ -24,7 +24,7 @@ import sys
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.plugins.Plugins import getActivePlugins
+from nuitka.plugins.Plugins import hasActivePlugin
 from nuitka.utils import Execution
 from nuitka.utils.FileOperations import getFileList, makePath
 from nuitka.utils.Utils import isWin32Windows
@@ -219,10 +219,7 @@ class NumpyPlugin(NuitkaPluginBase):
         self.mpl_data_copied = True  # indicator: matplotlib data copied
         if self.matplotlib:
             self.mpl_data_copied = False
-            for p in getActivePlugins():
-                if p.plugin_name.endswith("hinted-mods.py"):
-                    break
-            else:
+            if not hasActivePlugin("hinted-mods"):
                 self.warning(
                     "matplotlib may need hinted compilation for non-standard backends"
                 )
@@ -364,11 +361,8 @@ Should matplotlib be included with numpy, Default is %default.""",
         # some special handling for matplotlib:
         # depending on whether 'tk-inter' resp. 'qt-plugins' are enabled,
         # matplotlib backends are included.
-        if self.enabled_plugins is None:
-            self.enabled_plugins = Options.getPluginsEnabled()
-
         if self.matplotlib:
-            if "tk-inter" in self.enabled_plugins:
+            if hasActivePlugin("tk-inter"):
                 if module_name in (
                     "matplotlib.backends.backend_tk",
                     "matplotlib.backends.backend_tkagg",
@@ -376,7 +370,7 @@ Should matplotlib be included with numpy, Default is %default.""",
                 ):
                     return True, "Needed for tkinter backend"
 
-            if "qt-plugins" in self.enabled_plugins:
+            if hasActivePlugin("qt-plugins"):
                 if module_name.startswith("matplotlib.backends.backend_qt"):
                     return True, "Needed for Qt backend"
 
@@ -412,7 +406,11 @@ class NumpyPluginDetector(NuitkaPluginBase):
         Returns:
             None
         """
-        if module.getFullName().hasOneOfNamespaces(
+        module_name = module.getFullName()
+        if module_name.hasOneOfNamespaces(
             "numpy", "scipy", "skimage", "pandas", "matplotlib", "sklearn",
         ):
-            self.warnUnusedPlugin("Numpy support.")
+            self.warnUnusedPlugin(
+                "Numpy support for at least '%s'."
+                % module_name.getTopLevelPackageName()
+            )

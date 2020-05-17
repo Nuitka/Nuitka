@@ -84,6 +84,27 @@ def getActivePlugins():
     return active_plugins.values()
 
 
+def hasActivePlugin(plugin_name):
+    """ Decide if a plugin is active.
+
+    Args:
+        plugin_name - name of the plugin
+
+    Notes:
+        Detectors do not count as an active plugin and ignored.
+
+    Returns:
+        bool - plugin is loaded
+
+    """
+    if plugin_name not in active_plugins:
+        return False
+
+    # Detectors do not count.
+    plugin_instance = active_plugins.get[plugin_name]
+    return not hasattr(plugin_instance, "detector_for")
+
+
 def getPluginClass(plugin_name):
     # First, load plugin classes, to know what we are talking about.
     loadPlugins()
