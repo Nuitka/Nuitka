@@ -10,10 +10,8 @@ on:
       - develop
       - jorj
       - factory
-      - release/.*
-      - hotfix/.*
-    tags:
-      - release_.*
+      - release/**
+      - hotfix/**
 
 jobs:
   linux:
