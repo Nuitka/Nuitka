@@ -269,7 +269,7 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
 #if _DEBUG_ASYNCGEN
     PRINT_ASYNCGEN_STATUS("Enter", asyncgen);
     PRINT_COROUTINE_VALUE("value", value);
-    PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
     PRINT_CURRENT_EXCEPTION();
     PRINT_NEW_LINE();
 #endif
@@ -513,7 +513,7 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
 #if _DEBUG_ASYNCGEN
     PRINT_ASYNCGEN_STATUS("Enter", asyncgen);
     PRINT_COROUTINE_VALUE("yieldfrom", asyncgen->m_yieldfrom);
-    PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
     PRINT_NEW_LINE();
 #endif
 
@@ -746,7 +746,7 @@ static PyObject *Nuitka_Asyncgen_throw(struct Nuitka_AsyncgenObject *asyncgen, P
 
 #if _DEBUG_ASYNCGEN
     PRINT_ASYNCGEN_STATUS("Enter", asyncgen);
-    PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
     PRINT_NEW_LINE();
 #endif
 
@@ -1479,7 +1479,7 @@ static PyObject *_Nuitka_AsyncgenAsend_throw2(struct Nuitka_AsyncgenAsendObject 
                                               PyTracebackObject *exception_tb) {
 #if _DEBUG_ASYNCGEN
     PRINT_ASYNCGENASEND_STATUS("Enter", asyncgen_asend);
-    PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
     PRINT_CURRENT_EXCEPTION();
     PRINT_NEW_LINE();
 #endif

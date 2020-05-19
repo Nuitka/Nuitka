@@ -482,7 +482,7 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyGenObject *gen, int close_on
 #if _DEBUG_GENERATOR
     PRINT_STRING("Nuitka_UncompiledGenerator_throw: Enter ");
     PRINT_ITEM((PyObject *)gen);
-    PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
     PRINT_NEW_LINE();
 #endif
 

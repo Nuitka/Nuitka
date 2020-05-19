@@ -361,7 +361,7 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
     PRINT_COROUTINE_STATUS("Enter", coroutine);
     PRINT_COROUTINE_STRING("closing", closing ? "(closing) " : "(not closing) ");
     PRINT_COROUTINE_VALUE("value", value);
-    PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
     PRINT_CURRENT_EXCEPTION();
     PRINT_NEW_LINE();
 #endif
@@ -703,7 +703,7 @@ static PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *corouti
     PRINT_COROUTINE_STATUS("Enter", coroutine);
     PRINT_COROUTINE_STRING("closing", closing ? "(closing) " : "(not closing) ");
     PRINT_COROUTINE_VALUE("yieldfrom", coroutine->m_yieldfrom);
-    PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
     PRINT_NEW_LINE();
 #endif
 
@@ -976,7 +976,7 @@ static PyObject *Nuitka_Coroutine_throw(struct Nuitka_CoroutineObject *coroutine
 
 #if _DEBUG_COROUTINE
     PRINT_COROUTINE_STATUS("Enter", coroutine);
-    PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
     PRINT_NEW_LINE();
 #endif
 
@@ -995,7 +995,7 @@ static PyObject *Nuitka_Coroutine_throw(struct Nuitka_CoroutineObject *coroutine
 
 #if _DEBUG_COROUTINE
     PRINT_COROUTINE_STATUS("Leave", coroutine);
-    PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
     PRINT_COROUTINE_VALUE("return value", result);
     PRINT_CURRENT_EXCEPTION();
 #endif

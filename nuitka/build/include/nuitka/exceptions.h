@@ -209,7 +209,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyObject *exceptio
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("SET_CURRENT_EXCEPTION:\n");
-    PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
 #endif
 
     Py_XDECREF(old_type);
@@ -400,7 +400,7 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyObject **exception
                                                             PyTracebackObject **exception_tb) {
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("NORMALIZE_EXCEPTION: Enter\n");
-    PRINT_EXCEPTION(*exception_type, *exception_value, (PyObject *)*exception_tb);
+    PRINT_EXCEPTION(*exception_type, *exception_value, *exception_tb);
 #endif
 
     CHECK_OBJECT_X(*exception_type);
@@ -415,7 +415,7 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyObject **exception
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("NORMALIZE_EXCEPTION: Leave\n");
-    PRINT_EXCEPTION(*exception_type, *exception_value, (PyObject *)*exception_tb);
+    PRINT_EXCEPTION(*exception_type, *exception_value, *exception_tb);
 #endif
 }
 

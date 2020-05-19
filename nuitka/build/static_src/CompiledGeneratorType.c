@@ -744,7 +744,7 @@ static PyObject *_Nuitka_Generator_throw2(struct Nuitka_GeneratorObject *generat
 #if _DEBUG_GENERATOR
     PRINT_GENERATOR_STATUS("Enter", generator);
     PRINT_COROUTINE_VALUE("yieldfrom", generator->m_yieldfrom);
-    PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb);
+    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
     PRINT_NEW_LINE();
 #endif
 
