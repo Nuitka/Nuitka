@@ -47,7 +47,7 @@ template_module_body_template = r"""
 
 #include "__helpers.h"
 
-/* The "_module_%(module_identifier)s" is a Python object pointer of module type.
+/* The "module_%(module_identifier)s" is a Python object pointer of module type.
  *
  * Note: For full compatibility with CPython, every module variable access
  * needs to go through it except for cases where the module cannot possibly
@@ -356,8 +356,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module) {
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
     {
         PyObject *function_tables = PyObject_GetAttrString((PyObject *)builtin_module, "compiled_function_tables");
-        if (function_tables == NULL)
-        {
+        if (function_tables == NULL) {
             DROP_ERROR_OCCURRED();
             function_tables = PyDict_New();
         }
@@ -400,8 +399,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module) {
 
         char const *last_dot = strrchr(module_name_cstr, '.');
 
-        if (last_dot != NULL)
-        {
+        if (last_dot != NULL) {
             UPDATE_STRING_DICT1(
                 moduledict_%(module_identifier)s,
                 (Nuitka_StringObject *)const_str_plain___package__,
@@ -412,8 +410,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module) {
         PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
         Py_ssize_t dot_index = PyUnicode_Find(module_name, const_str_dot, 0, PyUnicode_GetLength(module_name), -1);
 
-        if (dot_index != -1)
-        {
+        if (dot_index != -1) {
             UPDATE_STRING_DICT1(
                 moduledict_%(module_identifier)s,
                 (Nuitka_StringObject *)const_str_plain___package__,
@@ -430,8 +427,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module) {
     // it ourselves in the same way than CPython does. Note: This must be done
     // before the frame object is allocated, or else it may fail.
 
-    if (GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__) == NULL)
-    {
+    if (GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__) == NULL) {
         PyObject *value = (PyObject *)builtin_module;
 
         // Check if main module, not a dict then but the module itself.

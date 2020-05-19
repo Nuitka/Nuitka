@@ -172,14 +172,12 @@ Optimization
 Organisational
 --------------
 
-- Mailing list was deleted, remove references, we now prefer Gitter chat.
-
 - Updated developer manual with changes that happened, remvoing the obsolete
   language choice section.
 
 - Added 3.8 support mentions is even more places.
 
-- The mailing list has been closed. We now prefer Gitter chat and Github issues
+- The mailing list has been deleted. We now prefer Gitter chat and Github issues
   for discussions.
 
 - Visual Code recommended extensions are now defined as such in the project
