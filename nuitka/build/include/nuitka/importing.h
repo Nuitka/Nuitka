@@ -51,4 +51,8 @@ extern PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name);
 extern PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *import_name, PyObject *level);
 #endif
 
+#if PYTHON_VERSION >= 300
+extern PyObject *getImportLibBootstrapModule();
+#endif
+
 #endif

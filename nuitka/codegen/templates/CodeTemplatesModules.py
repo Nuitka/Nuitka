@@ -451,21 +451,11 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module) {
 #else
     // Other modules get a "ModuleSpec" from the standard mechanism.
     {
-        PyObject *bootstrap_module = PyImport_ImportModule("importlib._bootstrap");
-        CHECK_OBJECT(bootstrap_module);
-        PyObject *module_spec_class = PyObject_GetAttrString(bootstrap_module, "ModuleSpec");
-        Py_DECREF(bootstrap_module);
+        PyObject *bootstrap_module = getImportLibBootstrapModule();
+        PyObject *_spec_from_module = PyObject_GetAttrString(bootstrap_module, "_spec_from_module");
 
-        PyObject *args[] = {
-            GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__),
-            (PyObject *)&Nuitka_Loader_Type
-        };
-
-        PyObject *spec_value = CALL_FUNCTION_WITH_ARGS2(
-            module_spec_class,
-            args
-        );
-        Py_DECREF(module_spec_class);
+        PyObject *spec_value = CALL_FUNCTION_WITH_SINGLE_ARG(_spec_from_module, module_%(module_identifier)s);
+        Py_DECREF(_spec_from_module);
 
         // We can assume this to never fail, or else we are in trouble anyway.
         CHECK_OBJECT(spec_value);

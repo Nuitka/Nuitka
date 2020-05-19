@@ -910,7 +910,8 @@ static PyObject *_path_unfreezer_iter_modules(struct Nuitka_LoaderObject *self, 
 }
 
 #if PYTHON_VERSION >= 300
-NUITKA_MAY_BE_UNUSED static PyObject *getImportLibBootstrapModule() {
+// Used in module template too.
+PyObject *getImportLibBootstrapModule() {
     static PyObject *importlib = NULL;
     if (importlib == NULL) {
         importlib = PyImport_ImportModule("importlib._bootstrap");
