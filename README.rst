@@ -55,7 +55,7 @@ Requirements
     6 or higher. The Anaconda compilers [#]_ are suitable too, even if you
     use CPython, they are the easiest installation method.
 
-  * Visual Studio 2017 or higher on Windows [#]_, older versions may work
+  * Visual Studio 2019 or higher on Windows [#]_, older versions may work
     but are not officially supported. Configure to use the English language
     pack for best results (Nuitka filters away garbage outputs, but only
     for that language).
@@ -133,7 +133,7 @@ Requirements
        Use both MinGW64 and 64 bits Python if you have the choice of which
        Python to use. Install it to ``C:\MinGW64`` or ``\MinGW64`` (same disk
        root as Nuitka running) to find it automatically. Also, when prompted,
-       use ``posix`` for threads and ```dwarf`` for exception model, although
+       use ``posix`` for threads and ``dwarf`` for exception model, although
        these currently do not matter at all.
 
 .. [#] Installation of matching MinGW64 is easiest if you have an Anaconda or
@@ -410,8 +410,8 @@ Tips
 Python command line flags
 -------------------------
 
-For passing things like ``-O`` or `-S`` to your program, there is a command
-line option name `--python-flag=` which makes Nuitka emulate these options.
+For passing things like ``-O`` or ``-S`` to your program, there is a command
+line option name ``--python-flag=`` which makes Nuitka emulate these options.
 
 The most important ones are supported, more can certainly be added.
 
@@ -475,9 +475,8 @@ with the compiled executables to the distribution folder.
 Using the external dependency walker is quite a time consuming, and may copy
 some unnecessary libraries along the way (better have too much than missing).
 
-Since Nuitka 0.6.2, there's an experimental alternative internal dependency
-walker that relies on pefile which analyses PE imports of
-executables/libraries.
+There's also an experimental alternative internal dependency walker that relies
+on pefile which analyses PE imports of executables and libraries.
 
 This implementation shall create smaller Standalone distributions since it
 won't include Windows' equivalent of the standard library, and will speed-up
@@ -560,6 +559,13 @@ When using MingGW64, you'll need the following redist versions:
 Once the corresponding runtime libraries are installed on the target system,
 you may remove all `api-ms-crt-*.dll` files from your Nuitka compiled dist
 folder.
+
+Detecting Nuitka at run time
+----------------------------
+
+It doesn't set ``sys.frozen`` unlike other tools. For Nuitka, we have the
+module attribute ``__compiled__`` to test if a specific module was compiled.
+
 
 Where to go next
 ================
@@ -820,6 +826,7 @@ or
 
    if False:
       # Your deactivated code might be here
+      use_something_not_use_by_program()
 
 
 It will also benefit from constant propagations, or enable them because once
@@ -848,17 +855,17 @@ Consider the following code:
 
 .. code-block:: python
 
-   print side_effect_having() + (1 / 0)
-   print something_else()
+   print(side_effect_having() + (1 / 0))
+   print(something_else())
 
 The ``(1 / 0)`` can be predicted to raise a ``ZeroDivisionError`` exception,
 which will be propagated through the ``+`` operation. That part is just
 Constant Propagation as normal.
 
-The call `side_effect_having()`` will have to be retained though, but the
-``print`` statement does not and can be turned into an explicit raise. The
-statement sequence can then be aborted and as such the ``something_else`` call
-needs no code generation or consideration anymore.
+The call ``side_effect_having()`` will have to be retained though, but the
+``print`` does not and can be turned into an explicit raise. The statement
+sequence can then be aborted and as such the ``something_else`` call needs no
+code generation or consideration anymore.
 
 To that end, Nuitka works with a special node that raises an exception and is
 wrapped with a so-called "side_effects" expression, but yet can be used in the
@@ -880,10 +887,10 @@ Consider the following code:
 
     try:
         b = 8
-        print range(3, b, 0)
-        print "Will not be executed"
-    except ValueError, e:
-        print e
+        print(range(3, b, 0))
+        print("Will not be executed")
+    except ValueError as e:
+        print(e)
 
 The ``try`` block is bigger than it needs to be. The statement ``b = 8`` cannot
 cause a ``ValueError`` to be raised. As such it can be moved to outside the try
@@ -893,10 +900,10 @@ without any risk.
 
     b = 8
     try:
-        print range(3, b, 0)
-        print "Will not be executed"
+        print(range(3, b, 0))
+        print("Will not be executed")
     except ValueError as e:
-        print e
+        print(e)
 
 .. admonition:: Status
 
@@ -915,17 +922,17 @@ code:
 
     try:
         b = 8
-        print range(3, b, 0)
-        print "Will not be executed"
-    except ValueError, e:
-        print e
+        print(range(3, b, 0))
+        print("Will not be executed!")
+    except ValueError as e:
+        print(e)
 
 .. code-block:: python
 
     try:
         raise ValueError, "range() step argument must not be zero"
     except ValueError, e:
-        print e
+        print(e)
 
 Which then can be lowered in complexity by avoiding the raise and catch
 of the exception, making it:
@@ -933,7 +940,7 @@ of the exception, making it:
 .. code-block:: python
 
    e = ValueError("range() step argument must not be zero")
-   print e
+   print(e)
 
 .. admonition:: Status
 
