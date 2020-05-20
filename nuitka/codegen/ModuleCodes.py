@@ -186,7 +186,7 @@ def generateModuleAttributeFileCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "module_fileattr_value", expression, emit, context
     ) as result_name:
-        emit("%s = module_filename_obj;" % (result_name,))
+        emit("%s = module_filename_obj;" % result_name)
 
 
 def generateModuleAttributeCode(to_name, expression, emit, context):
@@ -199,3 +199,10 @@ def generateModuleAttributeCode(to_name, expression, emit, context):
         emit=emit,
         context=context,
     )
+
+
+def generateNuitkaLoaderCreationCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "nuitka_loader_value", expression, emit, context
+    ) as result_name:
+        emit("%s = Nuitka_Loader_New(module_entry);" % result_name)

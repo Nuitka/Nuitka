@@ -45,6 +45,8 @@ template_global_copyright = """\
 template_module_body_template = r"""
 #include "nuitka/prelude.h"
 
+#include "nuitka/unfreezing.h"
+
 #include "__helpers.h"
 
 /* The "module_%(module_identifier)s" is a Python object pointer of module type.
@@ -274,7 +276,7 @@ static PyMethodDef _method_def_create_compiled_function = {
 #endif
 
 // Internal entry point for module code.
-PyObject *modulecode_%(module_identifier)s(PyObject *module) {
+PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *module_entry) {
     module_%(module_identifier)s = module;
 
 #if defined(_NUITKA_EXE) || PYTHON_VERSION >= 300
@@ -562,9 +564,9 @@ MOD_INIT_DECL(%(module_identifier)s) {
 #endif
 
 #if PYTHON_VERSION < 300
-    modulecode_%(module_identifier)s(module);
+    modulecode_%(module_identifier)s(module, NULL);
 #else
-    PyObject *result = modulecode_%(module_identifier)s(module);
+    PyObject *result = modulecode_%(module_identifier)s(module, NULL);
     return result;
 #endif
 }

@@ -200,6 +200,7 @@ from .LoopCodes import (
 from .ModuleCodes import (
     generateModuleAttributeCode,
     generateModuleAttributeFileCode,
+    generateNuitkaLoaderCreationCode,
     getModuleCode,
     getModuleValues,
 )
@@ -698,6 +699,7 @@ setExpressionDispatchDict(
         "EXPRESSION_LOCALS_VARIABLE_REF_OR_FALLBACK": generateLocalsDictVariableRefOrFallbackCode,
         "EXPRESSION_LOCALS_VARIABLE_REF": generateLocalsDictVariableRefCode,
         "EXPRESSION_RAISE_EXCEPTION": generateRaiseExpressionCode,
+        "EXPRESSION_NUITKA_LOADER_CREATION": generateNuitkaLoaderCreationCode,
     }
 )
 

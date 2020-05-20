@@ -83,7 +83,8 @@ def getMetapathLoaderBodyCode(other_modules):
 
         if other_module.isCompiledPythonModule():
             metapath_module_decls.append(
-                "extern PyObject *modulecode_%(module_identifier)s(PyObject *);"
+                """\
+extern PyObject *modulecode_%(module_identifier)s(PyObject *, struct Nuitka_MetaPathBasedLoaderEntry const *);"""
                 % {"module_identifier": other_module.getCodeName()}
             )
 

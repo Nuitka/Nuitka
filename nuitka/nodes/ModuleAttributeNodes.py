@@ -17,14 +17,14 @@
 #
 """ Module/Package attribute nodes
 
-The represent special values of the modules. The __name__,
-__package__, __file__, and __spec__ values can all be highly
-dynamic and version dependent.
+The represent special values of the modules. The "__name__", "__package__",
+"__file__", and "__spec__" values can all be highly dynamic and version
+dependent
 
-These nodes are intended to allow for as much compile time
-optimization as possible, despite this difficulty. In some
-modes these node become constants quickly, in others they
-will present boundaries for optimization.
+These nodes are intended to allow for as much compile time optimization as
+possible, despite this difficulty. In some modes these node become constants
+quickly, in others they will present boundaries for optimization.
+
 """
 
 import os
@@ -191,3 +191,30 @@ class ExpressionModuleAttributeSpecRef(ExpressionModuleAttributeBase):
             )
 
         return self, None, None
+
+
+class ExpressionNuitkaLoaderCreation(ExpressionBase):
+    __slots__ = ("provider",)
+
+    kind = "EXPRESSION_NUITKA_LOADER_CREATION"
+
+    def __init__(self, provider, source_ref):
+        ExpressionBase.__init__(self, source_ref=source_ref)
+
+        self.provider = provider
+
+    def finalize(self):
+        del self.parent
+        del self.provider
+
+    def computeExpressionRaw(self, trace_collection):
+        # Nothing can be done here.
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        # Never raises an exception.
+        return False
+
+    def mayHaveSideEffects(self):
+        # No effect really by itself.
+        return False
