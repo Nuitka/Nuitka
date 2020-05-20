@@ -644,36 +644,6 @@ PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine) {
     return Py_None;
 }
 
-extern PyObject *const_str_plain_close;
-
-/* Note: This is also used for asyncgen if Python3.6 or higher. */
-static bool Nuitka_gen_close_iter(PyObject *yieldfrom) {
-    CHECK_OBJECT(yieldfrom);
-    PyObject *meth = PyObject_GetAttr(yieldfrom, const_str_plain_close);
-
-    if (unlikely(meth == NULL)) {
-        if (unlikely(!PyErr_ExceptionMatches(PyExc_AttributeError))) {
-            PyErr_WriteUnraisable(yieldfrom);
-        }
-
-        CLEAR_ERROR_OCCURRED();
-
-        return true;
-    }
-
-    PyObject *retval = CALL_FUNCTION_NO_ARGS(meth);
-    Py_DECREF(meth);
-
-    if (unlikely(retval == NULL)) {
-        return false;
-    }
-
-    CHECK_OBJECT(retval);
-    Py_DECREF(retval);
-
-    return true;
-}
-
 extern PyObject *const_str_plain_throw;
 
 #if PYTHON_VERSION >= 360
@@ -683,6 +653,9 @@ static PyObject *_Nuitka_AsyncgenAsend_throw2(struct Nuitka_AsyncgenAsendObject 
                                               PyObject *exception_type, PyObject *exception_value,
                                               PyTracebackObject *exception_tb);
 #endif
+
+static bool _Nuitka_Generator_check_throw2(PyObject **exception_type, PyObject **exception_value,
+                                           PyTracebackObject **exception_tb);
 
 // This function is called when yielding to a coroutine through "_Nuitka_YieldFromPassExceptionTo"
 // and potentially wrapper objects used by generators, or by the throw method itself.
@@ -850,52 +823,9 @@ static PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *corouti
 
 throw_here:
     // We continue to have exception ownership here.
-    CHECK_OBJECT(exception_type);
-    CHECK_OBJECT_X(exception_value);
-    CHECK_OBJECT_X(exception_tb);
 
-    if (exception_tb == (PyTracebackObject *)Py_None) {
-        Py_DECREF(exception_tb);
-        exception_tb = NULL;
-    } else if (exception_tb != NULL && !PyTraceBack_Check(exception_tb)) {
-        // Release exception, we are done with it now.
-        Py_DECREF(exception_type);
-        Py_XDECREF(exception_value);
-        Py_XDECREF(exception_tb);
-
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "throw() third argument must be a traceback object");
-        return NULL;
-    }
-
-    if (PyExceptionClass_Check(exception_type)) {
-        NORMALIZE_EXCEPTION(&exception_type, &exception_value, &exception_tb);
-    } else if (PyExceptionInstance_Check(exception_type)) {
-        if (exception_value != NULL && exception_value != Py_None) {
-            // Release exception, we are done with it now.
-            Py_DECREF(exception_type);
-            Py_XDECREF(exception_value);
-            Py_XDECREF(exception_tb);
-
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "instance exception may not have a separate value");
-            return NULL;
-        }
-
-        // Release old None value and replace it with the object, then set the exception type
-        // from the class.
-        Py_XDECREF(exception_value);
-        exception_value = exception_type;
-
-        exception_type = PyExceptionInstance_Class(exception_type);
-        Py_INCREF(exception_type);
-    } else {
-        // Release exception, we are done with it now.
-        Py_DECREF(exception_type);
-        Py_XDECREF(exception_value);
-        Py_XDECREF(exception_tb);
-
-        PyErr_Format(PyExc_TypeError, "exceptions must be classes or instances deriving from BaseException, not %s",
-                     Py_TYPE(exception_type)->tp_name);
-
+    if (unlikely(_Nuitka_Generator_check_throw2(&exception_type, &exception_value, &exception_tb) == false)) {
+        // Exception was released by _Nuitka_Generator_check_throw2 already.
         return NULL;
     }
 

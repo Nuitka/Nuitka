@@ -493,6 +493,9 @@ PyObject *Nuitka_Asyncgen_close(struct Nuitka_AsyncgenObject *asyncgen) {
     return Py_None;
 }
 
+static bool _Nuitka_Generator_check_throw2(PyObject **exception_type, PyObject **exception_value,
+                                           PyTracebackObject **exception_tb);
+
 extern PyObject *const_str_plain_throw;
 
 // This function is called when yielding to a asyncgen through "_Nuitka_YieldFromPassExceptionTo"
@@ -651,52 +654,9 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
 
 throw_here:
     // We continue to have exception ownership here.
-    CHECK_OBJECT(exception_type);
-    CHECK_OBJECT_X(exception_value);
-    CHECK_OBJECT_X(exception_tb);
 
-    if (exception_tb == (PyTracebackObject *)Py_None) {
-        Py_DECREF(exception_tb);
-        exception_tb = NULL;
-    } else if (exception_tb != NULL && !PyTraceBack_Check(exception_tb)) {
-        // Release exception, we are done with it now.
-        Py_DECREF(exception_type);
-        Py_XDECREF(exception_value);
-        Py_XDECREF(exception_tb);
-
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "throw() third argument must be a traceback object");
-        return NULL;
-    }
-
-    if (PyExceptionClass_Check(exception_type)) {
-        NORMALIZE_EXCEPTION(&exception_type, &exception_value, &exception_tb);
-    } else if (PyExceptionInstance_Check(exception_type)) {
-        if (exception_value != NULL && exception_value != Py_None) {
-            // Release exception, we are done with it now.
-            Py_DECREF(exception_type);
-            Py_XDECREF(exception_value);
-            Py_XDECREF(exception_tb);
-
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "instance exception may not have a separate value");
-            return NULL;
-        }
-
-        // Release old None value and replace it with the object, then set the exception type
-        // from the class.
-        Py_XDECREF(exception_value);
-        exception_value = exception_type;
-
-        exception_type = PyExceptionInstance_Class(exception_type);
-        Py_INCREF(exception_type);
-    } else {
-        // Release exception, we are done with it now.
-        Py_DECREF(exception_type);
-        Py_XDECREF(exception_value);
-        Py_XDECREF(exception_tb);
-
-        PyErr_Format(PyExc_TypeError, "exceptions must be classes or instances deriving from BaseException, not %s",
-                     Py_TYPE(exception_type)->tp_name);
-
+    if (unlikely(_Nuitka_Generator_check_throw2(&exception_type, &exception_value, &exception_tb) == false)) {
+        // Exception was released by _Nuitka_Generator_check_throw2 already.
         return NULL;
     }
 

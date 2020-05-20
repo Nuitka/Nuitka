@@ -327,8 +327,6 @@ def simpleFunction21():
 
     try:
         gen.throw(GeneratorExit)
-    except GeneratorExit:
-        pass
     except TypeError:
         pass
 
@@ -377,8 +375,8 @@ class ClassIteratorRejectingThrow:
         return next(self.my_iter)
 
     def throw(self, *args):
-        # Some Python3.4 versions do normalize exceptions.
-        assert len(args) == 1 or sys.version_info < (3, 5)
+        # This should not be subject normalize exceptions.
+        assert len(args) == 1, args
 
     __next__ = next
 
