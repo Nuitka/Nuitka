@@ -302,6 +302,9 @@ def getFileContentByLine(filename, mode="r"):
 
 def getFileContents(filename, mode="r"):
     with withFileLock("reading file %s" % filename):
+        if "u" in mode.lower() or "b" in mode.lower():
+            with open(filename, mode) as f:
+                return f.read()
         with open(filename, mode, encoding="ISO-8859-1") as f:
             return f.read()
 
