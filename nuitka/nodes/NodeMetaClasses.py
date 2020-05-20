@@ -43,7 +43,7 @@ def _checkBases(name, bases):
 
         if is_mixin and last_mixin is False:
             raise NuitkaNodeDesignError(
-                "Mixins must come first in base classes.", bases
+                name, "Mixins must come first in base classes.", bases
             )
 
         last_mixin = is_mixin
@@ -68,7 +68,7 @@ class NodeCheckMetaClass(ABCMeta):
         if "named_children" in dictionary and not name.endswith("Base"):
             if len(dictionary["named_children"]) <= 1:
                 raise NuitkaNodeDesignError(
-                    "Use ExpressionChildHaving for one child node classes", name
+                    name, "Use ExpressionChildHaving for one child node classes"
                 )
 
         # Not a method:
@@ -81,7 +81,9 @@ class NodeCheckMetaClass(ABCMeta):
     def __init__(cls, name, bases, dictionary):  # @NoSelf
 
         if not name.endswith("Base"):
-            assert "kind" in dictionary, name
+            if "kind" not in dictionary:
+                raise NuitkaNodeDesignError(name, "Must provide class variable 'kind'")
+
             kind = dictionary["kind"]
 
             assert type(kind) is str, name

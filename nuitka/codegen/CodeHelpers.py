@@ -24,6 +24,7 @@ typical support functions to building parts.
 
 from contextlib import contextmanager
 
+from nuitka.nodes.NodeMetaClasses import NuitkaNodeDesignError
 from nuitka.Options import isExperimental, shallTraceExecution
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import my_print, printError
@@ -89,9 +90,16 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none=False
         expression.dump()
         assert False, expression
 
-    expression_dispatch_dict[expression.kind](
-        to_name=to_name, expression=expression, emit=emit, context=context
-    )
+    try:
+        code_generator = expression_dispatch_dict[expression.kind]
+    except KeyError:
+        raise NuitkaNodeDesignError(
+            expression.__class__.__name__,
+            "Need to provide code generation as well",
+            expression.kind,
+        )
+
+    code_generator(to_name=to_name, expression=expression, emit=emit, context=context)
 
     context.setCurrentSourceCodeReference(old_source_ref)
 
