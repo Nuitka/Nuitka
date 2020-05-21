@@ -27,9 +27,11 @@ compatible manner.
 
 You can use all Python library modules and all extension modules freely.
 
-It translates the Python into a C level program that then uses ``libpython``
-and a few C files of its own to execute in the same way as CPython does. All
-optimization is aimed at avoiding overhead, where it's unnecessary. None is
+Nuitka translates the Python modules into a C level program that then uses
+``libpython`` and static C files of its own to execute in the same way as
+CPython does.
+
+All optimization is aimed at avoiding overhead, where it's unnecessary. None is
 aimed at removing compatibility, although slight improvements will occasionally
 be done, where not every bug of standard Python is emulated, e.g. more complete
 error messages are given, but there is a full compatibility mode to disable
@@ -67,8 +69,8 @@ Requirements
 
 - Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8
 
-  .. admonition:: Python3, but for 3.3, and 3.4 and *only* those versions,
-     we need other Python versions as a *compile time* dependency
+  .. admonition:: For 3.3, and 3.4 and *only* those versions, we need other
+     Python versions as a *compile time* dependency
 
      Nuitka itself is fully compatible with all mentioned versions, Scons as
      an internally used tool is not.
@@ -230,38 +232,35 @@ Install the C compiler
  - Download and install mingw64 from
    `https://sourceforge.net/projects/mingw-w64/ <https://sourceforge.net/projects/mingw-w64/>`_
 
-- in Architecture: choose "i686" if you want use 32bit or "x86_64" if you want
-  64 bit version Python
+   - For Architecture: choose "i686" if you want use 32bit or "x86_64" if you want
+     64 bit version Python, otherwise you will get errors later
 
- - Select destination folder to **c:\\MinGW64**
+ - Select destination folder to ``c:\\MinGW64``.
 
- - verify using command  **gcc.exe --version**
+ - Verify using command  ``gcc.exe --version``.
 
- - Set a environment variable pointing to **gcc.exe**
+ - Set a environment variable pointing to ``gcc.exe``.
 
-   **CC=C:\\MinGW64\\mingw64\\bin\\gcc.exe** if 64 bit version
+   ``CC=C:\\MinGW64\\mingw64\\bin\\gcc.exe`` if 64 bit version
 
-   **CC=C:\\MinGW64\\mingw32\\bin\\gcc.exe** if 32 bit version
+   ``CC=C:\\MinGW64\\mingw32\\bin\\gcc.exe`` if 32 bit version
 
-Install Python 3.7 (64 Bits)
-++++++++++++++++++++++++++++
+Install Python (64 Bits)
+++++++++++++++++++++++++
 
  - Download and install from
    `https://www.python.org/downloads/windows <https://www.python.org/downloads/windows>`_
 
- - Select Windows x86-64 web-based installer **or**
+ - Select one of ``Windows x86-64 web-based installer`` or ``x86-64 executable`` installer
 
- - Select Windows x86-64 executable installer
-
- - Verify using command **python --version**
+ - Verify using command ``python --version``.
 
 Install Nuitka
 ++++++++++++++
 
- - **pip install nuitka**
- - if you use anaconda:
- - **conda install -c conda-forge nuitka**
- - verify using command **nuitka --version**
+ - ``pip install nuitka``
+ - or if you use anaconda: ``conda install -c conda-forge nuitka``
+ - Verify using command ``nuitka --version``
 
 Write some code and test
 ------------------------
