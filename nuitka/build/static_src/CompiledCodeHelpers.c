@@ -1827,7 +1827,7 @@ wchar_t const *getBinaryDirectoryWideChars() {
     return (wchar_t const *)binary_directory;
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) && PYTHON_VERSION < 300
 char const *getBinaryDirectoryHostEncoded() {
     static char *binary_directory = NULL;
 
@@ -1865,7 +1865,12 @@ static PyObject *getBinaryDirectoryObject() {
 // On Python3, this must be a unicode object, it cannot be on Python2,
 // there e.g. code objects expect Python2 strings.
 #if PYTHON_VERSION >= 300
+#ifdef _WIN32
+    wchar_t const *bin_directory = getBinaryDirectoryWideChars();
+    binary_directory = PyUnicode_FromWideChar(bin_directory, wcslen(bin_directory));
+#else
     binary_directory = PyUnicode_DecodeFSDefault(getBinaryDirectoryHostEncoded());
+#endif
 #else
     binary_directory = PyString_FromString(getBinaryDirectoryHostEncoded());
 #endif
