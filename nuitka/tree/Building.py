@@ -194,8 +194,8 @@ from .VariableClosure import completeVariableClosures
 
 def buildVariableReferenceNode(provider, node, source_ref):
     return ExpressionVariableNameRef(
-        variable_name=mangleName(node.id, provider),
         provider=provider,
+        variable_name=mangleName(node.id, provider),
         source_ref=source_ref,
     )
 
@@ -795,6 +795,23 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                     source_ref=internal_source_ref,
                 ),
             )
+
+            if provider.isCompiledPythonPackage():
+                statements.append(
+                    StatementAssignmentAttribute(
+                        expression=ExpressionModuleAttributeSpecRef(
+                            variable=provider.getVariableForReference("__spec__"),
+                            source_ref=internal_source_ref,
+                        ),
+                        attribute_name="submodule_search_locations",
+                        source=ExpressionVariableNameRef(
+                            provider=provider,
+                            variable_name="__path__",
+                            source_ref=internal_source_ref,
+                        ),
+                        source_ref=internal_source_ref,
+                    )
+                )
 
     if python_version >= 300:
         statements.append(

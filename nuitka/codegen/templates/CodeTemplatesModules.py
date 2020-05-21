@@ -462,12 +462,6 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         // We can assume this to never fail, or else we are in trouble anyway.
         CHECK_OBJECT(spec_value);
 
-// For packages set the submodule search locations as well, even if to empty
-// list, so investigating code will consider it a package.
-#if %(is_package)s
-        SET_ATTRIBUTE(spec_value, const_str_plain_submodule_search_locations, PyList_New(0));
-#endif
-
 // Mark the execution in the "__spec__" value.
         SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_True);
 
