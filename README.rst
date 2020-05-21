@@ -71,7 +71,7 @@ Requirements
      we need other Python versions as a *compile time* dependency
 
      Nuitka itself is fully compatible with all mentioned versions, Scons as
-     as an internally used tool is not.
+     an internally used tool is not.
 
      For these versions, you *need* a Python2 or Python 3.5 or higher installed
      as well, but only during the compile time only. That is for use with Scons
