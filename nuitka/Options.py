@@ -649,3 +649,10 @@ def shallCompileWithoutBuildDirectory():
         options.
     """
     return not shallRunInDebugger()
+
+
+def shallPreferSourcecodeOverExtensionModules():
+    """ *bool* prefer source code over extension modules if both are there
+
+    """
+    return options is not None and options.prefer_source_code

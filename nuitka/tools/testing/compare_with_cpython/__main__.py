@@ -215,6 +215,7 @@ def main():
     full_compat = not hasArg("improved")
     cpython_cached = hasArg("cpython_cache")
     syntax_errors = hasArg("syntax_errors")
+    noprefer_source = hasArg("noprefer_source")
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -392,6 +393,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if full_compat:
         extra_options.append("--full-compat")
+
+    if noprefer_source:
+        extra_options.append("--no-prefer-source")
 
     if coverage_mode:
         # Coverage modules hates Nuitka to re-execute, and so we must avoid

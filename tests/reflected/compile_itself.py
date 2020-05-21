@@ -203,6 +203,7 @@ def executePASS1():
                     nuitka_main_path,
                     "--module",
                     "--debug",
+                    "--nofollow-imports",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % target_dir,
                     "--no-pyi-file",

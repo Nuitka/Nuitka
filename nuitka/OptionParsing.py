@@ -203,6 +203,27 @@ Include into files matching the PATTERN. Overrides all recursion other options.
 Can be given multiple times. Default empty.""",
 )
 
+include_group.add_option(
+    "--prefer-source-code",
+    action="store_true",
+    dest="prefer_source_code",
+    default=None,
+    help="""\
+For already compiled extension modules, where there is both a source file and an
+extension module, normally the extension module is used, but it should be better
+to compile the module from available source code for best performance. If not
+desired, there is --no-prefer-source-code to disable warnings about it. Default
+off.""",
+)
+include_group.add_option(
+    "--no-prefer-source-code",
+    action="store_false",
+    dest="prefer_source_code",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+
 parser.add_option_group(include_group)
 
 recurse_group = OptionGroup(parser, "Control the recursion into imported modules")

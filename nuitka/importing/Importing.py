@@ -42,13 +42,13 @@ import imp
 import os
 import sys
 import zipfile
-from logging import warning
 
 from nuitka import Options
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import recursion_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir
 from nuitka.utils.ModuleNames import ModuleName
@@ -170,20 +170,24 @@ def warnAbout(importing, module_name, parent_package, level, tried_names):
 
             if _debug_module_finding:
                 if parent_package is not None:
-                    warning(
-                        "%s: Cannot find '%s' in package '%s' %s (tried %s).",
-                        importing.getSourceReference().getAsString(),
-                        module_name,
-                        parent_package,
-                        level_desc,
-                        ",".join(tried_names),
+                    recursion_logger.warning(
+                        "%s: Cannot find '%s' in package '%s' %s (tried %s)."
+                        % (
+                            importing.getSourceReference().getAsString(),
+                            module_name,
+                            parent_package,
+                            level_desc,
+                            ",".join(tried_names),
+                        )
                     )
                 else:
-                    warning(
-                        "%s: Cannot find '%s' %s.",
-                        importing.getSourceReference().getAsString(),
-                        module_name,
-                        level_desc,
+                    recursion_logger.warning(
+                        "%s: Cannot find '%s' %s."
+                        % (
+                            importing.getSourceReference().getAsString(),
+                            module_name,
+                            level_desc,
+                        )
                     )
 
 
@@ -305,6 +309,24 @@ def findModule(importing, module_name, parent_package, level, warn):
 case_sensitive = not sys.platform.startswith(("win", "cygwin", "darwin"))
 
 
+def _reportCandidates(module_name, candidate, candidates):
+    if (
+        candidate[1] == 1
+        and Options.shallPreferSourcecodeOverExtensionModules() is None
+    ):
+        for c in candidates:
+            if c is candidate:
+                continue
+
+            if c[3] == candidate[3]:
+                recursion_logger.info(
+                    """\
+Should decide '--prefer-source-code' vs. '--no-prefer-source-code', using \
+existing '%s' extension module by default."""
+                    % module_name
+                )
+
+
 def _findModuleInPath2(module_name, search_path):
     """ This is out own module finding low level implementation.
 
@@ -321,7 +343,14 @@ def _findModuleInPath2(module_name, search_path):
 
     considered = set()
 
-    for entry in search_path:
+    # Higher values are lower priority.
+    priority_map = {
+        imp.PY_COMPILED: 3,
+        imp.PY_SOURCE: 0 if Options.shallPreferSourcecodeOverExtensionModules() else 2,
+        imp.C_EXTENSION: 1,
+    }
+
+    for count, entry in enumerate(search_path):
         # Don't try again, just with an entry of different casing or complete
         # duplicate.
         if os.path.normcase(entry) in considered:
@@ -333,6 +362,7 @@ def _findModuleInPath2(module_name, search_path):
         # First, check for a package with an init file, that would be the
         # first choice.
         if os.path.isdir(package_directory):
+            found = False
             for suffix, _mode, mtype in imp.get_suffixes():
                 if mtype == imp.C_EXTENSION:
                     continue
@@ -342,35 +372,43 @@ def _findModuleInPath2(module_name, search_path):
                 file_path = os.path.join(package_directory, package_file_name)
 
                 if os.path.isfile(file_path):
-                    candidates.add((entry, 1, package_directory))
-                    break
-            else:
-                if python_version >= 300:
-                    candidates.add((entry, 2, package_directory))
+                    candidates.add(
+                        (entry, priority_map[mtype], package_directory, count)
+                    )
+                    found = True
 
-        # Then, check out suffixes of all kinds.
-        for suffix, _mode, _type in imp.get_suffixes():
+            if not found and python_version >= 300:
+                candidates.add((entry, 10, package_directory, count + len(search_path)))
+
+        # Then, check out suffixes of all kinds, but only for one directory.
+        last_mtype = 0
+        for suffix, _mode, mtype in imp.get_suffixes():
+            # Use first match per kind only.
+            if mtype == last_mtype:
+                continue
+
             file_path = os.path.join(entry, module_name + suffix)
+
             if os.path.isfile(file_path):
-                candidates.add((entry, 1, file_path))
-                break
+                candidates.add((entry, priority_map[mtype], file_path, count))
+                last_mtype = mtype
 
     if _debug_module_finding:
         print("Candidates", candidates)
 
     if candidates:
-        # Ignore lower priority matches from package directories without
-        # "__init__.py" file.
-        min_prio = min(candidate[1] for candidate in candidates)
-        candidates = [candidate for candidate in candidates if candidate[1] == min_prio]
+        # Sort by priority, with entries from same path element coming first, then desired type.
+        candidates = sorted(candidates, key=lambda c: (c[3], c[1]))
 
         # On case sensitive systems, no resolution needed.
         if case_sensitive:
+            _reportCandidates(module_name, candidates[0], candidates)
             return candidates[0][2]
         else:
             for candidate in candidates:
                 for fullname, _filename in listDir(candidate[0]):
                     if fullname == candidate[2]:
+                        _reportCandidates(module_name, candidate, candidates)
                         return candidate[2]
 
             # Only exact case matches matter, all candidates were ignored,
@@ -481,7 +519,7 @@ def _findModuleInPath(module_name):
         )
     except SyntaxError:
         # Warn user, as this is kind of unusual.
-        warning(
+        recursion_logger.warning(
             "%s: Module cannot be imported due to syntax errors.",
             module_name if package_name is None else package_name + "." + module_name,
         )
