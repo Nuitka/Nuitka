@@ -534,8 +534,13 @@ def createEnvironment(tools):
 
 
 if mingw_mode:
-    # Force usage of MinGW.
+    # Force usage of MinGW, disable MSVC tools.
     compiler_tools = ["mingw"]
+
+    import SCons.Tool.MSCommon.vc  # pylint: disable=import-error
+
+    SCons.Tool.MSCommon.vc.msvc_setup_env = lambda *args: None
+
 else:
     # Everything else should use default.
     compiler_tools = ["default"]
