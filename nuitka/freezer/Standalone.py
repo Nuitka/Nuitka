@@ -28,6 +28,7 @@ import hashlib
 import inspect
 import marshal
 import os
+import pkgutil
 import shutil
 import subprocess
 import sys
@@ -454,23 +455,19 @@ def scanStandardLibraryPath(stdlib_dir):
 
 def _detectEarlyImports():
     encoding_names = [
-        filename[:-3]
-        for _path, filename in listDir(
-            os.path.dirname(sys.modules["encodings"].__file__)
-        )
-        if filename.endswith(".py")
-        if "__init__" not in filename
+        m[1] for m in pkgutil.iter_modules(sys.modules["encodings"].__path__)
     ]
 
     if os.name != "nt":
-        # On posix systems, and posix Python veriants on Windows, this won't
-        # work.
+        # On posix systems, and posix Python veriants on Windows, these won't
+        # work and fail to import.
         for encoding_name in ("mbcs", "cp65001", "oem"):
             if encoding_name in encoding_names:
                 encoding_names.remove(encoding_name)
 
     import_code = ";".join(
-        "import encodings.%s" % encoding_name for encoding_name in encoding_names
+        "import encodings.%s" % encoding_name
+        for encoding_name in sorted(encoding_names)
     )
 
     import_code += ";import locale;"
