@@ -37,6 +37,7 @@ it's from the standard library, one can abuse the attribute ``__file__`` of the
 
 from __future__ import print_function
 
+import collections
 import hashlib
 import imp
 import os
@@ -308,22 +309,27 @@ def findModule(importing, module_name, parent_package, level, warn):
 # Some platforms are case insensitive.
 case_sensitive = not sys.platform.startswith(("win", "cygwin", "darwin"))
 
+ImportScanFinding = collections.namedtuple(
+    "ImportScanFinding", ("found_in", "priority", "full_path", "search_order")
+)
+
 
 def _reportCandidates(module_name, candidate, candidates):
     if (
-        candidate[1] == 1
+        candidate.priority == 1
         and Options.shallPreferSourcecodeOverExtensionModules() is None
     ):
         for c in candidates:
-            if c is candidate:
+            # Don't compare to itself and don't consider unused bytecode a problem.
+            if c is candidate or c.priority == 3:
                 continue
 
-            if c[3] == candidate[3]:
+            if c.search_order == candidate.search_order:
                 recursion_logger.info(
                     """\
 Should decide '--prefer-source-code' vs. '--no-prefer-source-code', using \
-existing '%s' extension module by default."""
-                    % module_name
+existing '%s' extension module by default. Candidates were: %s <-> %s."""
+                    % (module_name, candidate, c)
                 )
 
 
@@ -373,12 +379,24 @@ def _findModuleInPath2(module_name, search_path):
 
                 if os.path.isfile(file_path):
                     candidates.add(
-                        (entry, priority_map[mtype], package_directory, count)
+                        ImportScanFinding(
+                            found_in=entry,
+                            priority=priority_map[mtype],
+                            full_path=package_directory,
+                            search_order=count,
+                        )
                     )
                     found = True
 
             if not found and python_version >= 300:
-                candidates.add((entry, 10, package_directory, count + len(search_path)))
+                candidates.add(
+                    ImportScanFinding(
+                        found_in=entry,
+                        priority=10,
+                        full_path=package_directory,
+                        search_order=count + len(search_path),
+                    )
+                )
 
         # Then, check out suffixes of all kinds, but only for one directory.
         last_mtype = 0
@@ -387,10 +405,17 @@ def _findModuleInPath2(module_name, search_path):
             if mtype == last_mtype:
                 continue
 
-            file_path = os.path.join(entry, module_name + suffix)
+            full_path = os.path.join(entry, module_name + suffix)
 
-            if os.path.isfile(file_path):
-                candidates.add((entry, priority_map[mtype], file_path, count))
+            if os.path.isfile(full_path):
+                candidates.add(
+                    ImportScanFinding(
+                        found_in=entry,
+                        priority=priority_map[mtype],
+                        full_path=full_path,
+                        search_order=count,
+                    )
+                )
                 last_mtype = mtype
 
     if _debug_module_finding:
@@ -398,18 +423,18 @@ def _findModuleInPath2(module_name, search_path):
 
     if candidates:
         # Sort by priority, with entries from same path element coming first, then desired type.
-        candidates = sorted(candidates, key=lambda c: (c[3], c[1]))
+        candidates = sorted(candidates, key=lambda c: (c.search_order, c.priority))
 
         # On case sensitive systems, no resolution needed.
         if case_sensitive:
             _reportCandidates(module_name, candidates[0], candidates)
-            return candidates[0][2]
+            return candidates[0].full_path
         else:
             for candidate in candidates:
                 for fullname, _filename in listDir(candidate[0]):
-                    if fullname == candidate[2]:
+                    if fullname == candidate.full_path:
                         _reportCandidates(module_name, candidate, candidates)
-                        return candidate[2]
+                        return candidate.full_path
 
             # Only exact case matches matter, all candidates were ignored,
             # lets just fall through to raising the import error.
