@@ -750,13 +750,6 @@ def _considerPluginOptions():
     )
 
     for arg in sys.argv[1:]:
-        if arg[0] != "-":
-            break
-
-        # Treat "--" as a terminator.
-        if arg == "--":
-            break
-
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
             plugin_name = arg[16:]
             if "=" in plugin_name:
