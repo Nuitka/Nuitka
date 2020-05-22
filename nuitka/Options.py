@@ -421,15 +421,15 @@ def isClang():
 
 
 def isMingw64():
-    """ *bool* = "--mingw64"
+    """ *bool* = "--mingw64", available only on Windows, otherwise false
     """
-    return options.mingw64
+    return getattr(options, "mingw64", False)
 
 
 def getMsvcVersion():
-    """ *str*, value of "--msvc"
+    """ *str*, value of "--msvc", available only on Windows, otherwise None
     """
-    return options.msvc
+    return getattr(options, "msvc", None)
 
 
 def shallDisableConsoleWindow():
