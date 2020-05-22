@@ -21,8 +21,9 @@ Mostly for measurements of Nuitka of itself, e.g. how long did it take to
 call an external tool.
 """
 
-from logging import info
 from timeit import default_timer as timer
+
+from nuitka.Tracing import general
 
 
 class StopWatch(object):
@@ -53,14 +54,18 @@ class TimerReport(object):
         Mostly intended as a wrapper for external process calls.
     """
 
-    __slots__ = ("message", "decider", "timer")
+    __slots__ = ("message", "decider", "logger", "timer")
 
-    def __init__(self, message, decider=True):
+    def __init__(self, message, logger=None, decider=True):
         self.message = message
 
         if decider is True:
             decider = lambda: True
+        if logger is None:
+            logger = general
+
         self.decider = decider
+        self.logger = logger
 
         self.timer = None
 
@@ -72,4 +77,4 @@ class TimerReport(object):
         self.timer.end()
 
         if exception_type is None and self.decider():
-            info(self.message % self.timer.delta())
+            self.logger.info(self.message % self.timer.delta())

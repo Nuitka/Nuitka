@@ -36,6 +36,7 @@ from nuitka.utils.Execution import (
     getExecutablePath,
     getPythonExePathWindows,
 )
+from nuitka.utils.Timing import TimerReport
 
 
 def parseOptions():
@@ -555,6 +556,12 @@ def main():
         os.environ["NUITKA_EXTRA_OPTIONS"] = flags
 
     def executeSubTest(command, hide_output=False):
+        with TimerReport(
+            message="Overall execution of %r took %%.2f seconds" % command,
+        ):
+            _executeSubTest(command, hide_output)
+
+    def _executeSubTest(command, hide_output):
         if options.coverage and "search" in command:
             command = command.replace("search", "coverage")
 
@@ -580,7 +587,7 @@ def main():
         # Many cases, pylint: disable=too-many-branches,too-many-statements
 
         my_print(
-            "Executing test case called %s with CPython %s and extra flags '%s'."
+            "Executing test case called '%s' with CPython '%s' and extra flags '%s'."
             % (where, use_python, flags)
         )
 
@@ -597,7 +604,7 @@ def main():
 
         if options.basic_tests:
             my_print(
-                "Running the basic tests with options '%s' with %s:"
+                "Running the basic tests with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(where, "basics", flags)
@@ -605,7 +612,7 @@ def main():
 
         if options.syntax_tests:
             my_print(
-                "Running the syntax tests with options '%s' with %s:"
+                "Running the syntax tests with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(where, "syntax", flags)
@@ -613,7 +620,7 @@ def main():
 
         if options.program_tests:
             my_print(
-                "Running the program tests with options '%s' with %s:"
+                "Running the program tests with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(where, "programs", flags)
@@ -621,7 +628,7 @@ def main():
 
         if options.package_tests:
             my_print(
-                "Running the package tests with options '%s' with %s:"
+                "Running the package tests with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(where, "packages", flags)
@@ -629,7 +636,7 @@ def main():
 
         if options.plugin_tests:
             my_print(
-                "Running the plugin tests with options '%s' with %s:"
+                "Running the plugin tests with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(where, "plugins", flags)
@@ -641,7 +648,7 @@ def main():
         if use_python != "python2.6":
             if options.optimization_tests:
                 my_print(
-                    "Running the optimizations tests with options '%s' with %s:"
+                    "Running the optimizations tests with options '%s' with '%s':"
                     % (flags, use_python)
                 )
                 setExtraFlags(where, "optimizations", flags)
@@ -649,7 +656,7 @@ def main():
 
         if options.standalone_tests and not options.coverage:
             my_print(
-                "Running the standalone tests with options '%s' with %s:"
+                "Running the standalone tests with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(None, "standalone", flags)
@@ -657,7 +664,7 @@ def main():
 
         if options.reflection_test and not options.coverage:
             my_print(
-                "Running the reflection test with options '%s' with %s:"
+                "Running the reflection test with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(None, "reflected", flags)
@@ -667,7 +674,7 @@ def main():
             if os.path.exists("./tests/CPython26/run_all.py"):
                 if options.cpython26:
                     my_print(
-                        "Running the CPython 2.6 tests with options '%s' with %s:"
+                        "Running the CPython 2.6 tests with options '%s' with '%s':"
                         % (flags, use_python)
                     )
 
@@ -682,7 +689,7 @@ def main():
                 if os.path.exists("./tests/CPython27/run_all.py"):
                     if options.cpython27:
                         my_print(
-                            "Running the CPython 2.7 tests with options '%s' with %s:"
+                            "Running the CPython 2.7 tests with options '%s' with '%s':"
                             % (flags, use_python)
                         )
                         setExtraFlags(where, "27tests", flags)
