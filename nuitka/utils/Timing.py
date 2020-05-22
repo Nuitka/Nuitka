@@ -24,8 +24,6 @@ call an external tool.
 from logging import info
 from timeit import default_timer as timer
 
-from nuitka.Options import isShowProgress
-
 
 class StopWatch(object):
     __slots__ = ("start_time", "end_time")
@@ -55,10 +53,15 @@ class TimerReport(object):
         Mostly intended as a wrapper for external process calls.
     """
 
-    __slots__ = ("message", "timer")
+    __slots__ = ("message", "decider", "timer")
 
-    def __init__(self, message):
+    def __init__(self, message, decider=True):
         self.message = message
+
+        if decider is True:
+            decider = lambda: True
+        self.decider = decider
+
         self.timer = None
 
     def __enter__(self):
@@ -68,5 +71,5 @@ class TimerReport(object):
     def __exit__(self, exception_type, exception_value, exception_tb):
         self.timer.end()
 
-        if exception_type is None and isShowProgress():
+        if exception_type is None and self.decider():
             info(self.message % self.timer.delta())

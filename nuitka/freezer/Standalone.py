@@ -1206,7 +1206,8 @@ def detectBinaryDLLs(
         return _detectBinaryPathDLLsPosix(dll_filename=original_filename)
     elif Utils.isWin32Windows() and Options.getWindowsDependencyTool() == "pefile":
         with TimerReport(
-            "Finding dependencies for %s took %%.2f seconds" % binary_filename
+            message="Finding dependencies for %s took %%.2f seconds" % binary_filename,
+            decider=Options.isShowProgress,
         ):
             return detectBinaryPathDLLsWindowsPE(
                 is_main_executable=is_main_executable,
@@ -1219,7 +1220,8 @@ def detectBinaryDLLs(
             )
     elif Utils.isWin32Windows():
         with TimerReport(
-            "Running depends.exe for %s took %%.2f seconds" % binary_filename
+            message="Running depends.exe for %s took %%.2f seconds" % binary_filename,
+            decider=Options.isShowProgress,
         ):
             return detectBinaryPathDLLsWindowsDependencyWalker(
                 is_main_executable=is_main_executable,
