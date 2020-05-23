@@ -131,7 +131,7 @@ numpy
   and most other scientific packages.
 
 * Options: "scipy", "matplotlib" if used. E.g.
-  ``--plugin-enable=numpy=scipy,matplotlib``.
+  ``--plugin-enable=numpy --include-scipy --include-matplotlib``.
 
 pmw-freezer
 ~~~~~~~~~~~~

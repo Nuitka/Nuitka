@@ -750,18 +750,25 @@ def _considerPluginOptions():
     )
 
     for arg in sys.argv[1:]:
-        if arg[0] != "-":
-            break
-
-        # Treat "--" as a terminator.
-        if arg == "--":
-            break
-
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
-            addPluginCommandLineOptions(parser=parser, plugin_name=arg[16:])
+            plugin_name = arg[16:]
+            if "=" in plugin_name:
+                sys.exit(
+                    "Error, plugin options format changed. Use '--plugin-enable=%s --help' to know new options."
+                    % plugin_name
+                )
+
+            addPluginCommandLineOptions(parser=parser, plugin_name=plugin_name)
 
         if arg.startswith("--user-plugin="):
-            addUserPluginCommandLineOptions(parser=parser, filename=arg[14:])
+            plugin_name = arg[14:]
+            if "=" in plugin_name:
+                sys.exit(
+                    "Error, plugin options format changed. Use '--user-plugin=%s --help' to know new options."
+                    % plugin_name
+                )
+
+            addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
 
 
 def parseOptions():

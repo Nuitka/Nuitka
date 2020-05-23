@@ -235,7 +235,9 @@ def get_output(vcbat, args = None, env = None):
     if stderr:
         # TODO: find something better to do with stderr;
         # this at least prevents errors from getting swallowed.
-        sys.stderr.write(stderr)
+
+        # Nuitka: this is writing bytes to stderr which wants unicode
+        sys.stderr.write(stderr.decode("mbcs"))
     if popen.wait() != 0:
         raise IOError(stderr.decode("mbcs"))
 
