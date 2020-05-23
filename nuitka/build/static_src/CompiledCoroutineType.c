@@ -688,13 +688,17 @@ static PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *corouti
             bool res = Nuitka_gen_close_iter(coroutine->m_yieldfrom);
             coroutine->m_running = 0;
 
-            if (res == true) {
-                // Transferred exception ownership to "_Nuitka_Coroutine_send".
-                return _Nuitka_Coroutine_send(coroutine, NULL, false, exception_type, exception_value, exception_tb);
+            if (res == false) {
+                // Release exception, we are done with it now and pick up the new one.
+                Py_DECREF(exception_type);
+                Py_XDECREF(exception_value);
+                Py_XDECREF(exception_tb);
+
+                FETCH_ERROR_OCCURRED(&exception_type, &exception_value, &exception_tb);
             }
 
-            // Passing exception ownership to that code.
-            goto throw_here;
+            // Transferred exception ownership to "_Nuitka_Coroutine_send".
+            return _Nuitka_Coroutine_send(coroutine, NULL, false, exception_type, exception_value, exception_tb);
         }
 
         PyObject *ret;

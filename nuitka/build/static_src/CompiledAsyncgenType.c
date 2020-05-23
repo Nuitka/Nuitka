@@ -530,12 +530,16 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
                 bool res = Nuitka_gen_close_iter(asyncgen->m_yieldfrom);
                 asyncgen->m_running = 0;
 
-                if (res == true) {
-                    return _Nuitka_Asyncgen_send(asyncgen, NULL, false, exception_type, exception_value, exception_tb);
+                if (res == false) {
+                    // Release exception, we are done with it now and pick up the new one.
+                    Py_DECREF(exception_type);
+                    Py_XDECREF(exception_value);
+                    Py_XDECREF(exception_tb);
+
+                    FETCH_ERROR_OCCURRED(&exception_type, &exception_value, &exception_tb);
                 }
 
-                // Passing exception ownership to that code.
-                goto throw_here;
+                return _Nuitka_Asyncgen_send(asyncgen, NULL, false, exception_type, exception_value, exception_tb);
             }
         }
 

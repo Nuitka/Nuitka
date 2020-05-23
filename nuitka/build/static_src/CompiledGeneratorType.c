@@ -860,7 +860,6 @@ static PyObject *_Nuitka_Generator_throw2(struct Nuitka_GeneratorObject *generat
             bool res = Nuitka_gen_close_iter(generator->m_yieldfrom);
             generator->m_running = 0;
 
-            // TODO: Coroutines and asyncgen probably need to do this as well.
             if (res == false) {
                 // Release exception, we are done with it now and pick up the new one.
                 Py_DECREF(exception_type);
