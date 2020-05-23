@@ -32,9 +32,8 @@ import pkgutil
 import shutil
 import subprocess
 import sys
-from logging import debug, info, warning
 
-from nuitka import Options, SourceCodeReferences, Tracing
+from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import iterItems
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
@@ -49,6 +48,7 @@ from nuitka.nodes.ModuleNodes import (
 )
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import general, printError
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 from nuitka.utils.AppDirs import getCacheDir
@@ -104,7 +104,8 @@ def _detectedPrecompiledFile(filename, module_name, result, user_provided, techn
     if module_name in module_names:
         return
 
-    debug("Freezing module '%s' (from '%s').", module_name, filename)
+    if Options.isShowInclusion():
+        general.info("Freezing module '%s' (from '%s')." % (module_name, filename))
 
     uncompiled_module = makeUncompiledPythonModule(
         module_name=module_name,
@@ -157,7 +158,8 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
             "def main():", "def main():return\n\nif 0:\n def _unused():"
         )
 
-    debug("Freezing module '%s' (from '%s').", module_name, filename)
+    if Options.isShowInclusion():
+        general.info("Freezing module '%s' (from '%s')." % (module_name, filename))
 
     is_package = os.path.basename(filename) == "__init__.py"
     source_code = Plugins.onFrozenModuleSourceCode(
@@ -255,14 +257,12 @@ def _detectImports(command, user_provided, technical):
 
     # Don't let errors here go unnoticed.
     if process.returncode != 0:
-        warning("There is a problem with detecting imports, CPython said:")
+        general.warning("There is a problem with detecting imports, CPython said:")
         for line in stderr.split(b"\n"):
-            Tracing.printError(line)
+            printError(line)
         sys.exit("Error, please report the issue with above output.")
 
     result = []
-
-    debug("Detecting imports:")
 
     detections = []
 
@@ -542,8 +542,6 @@ for imp in imports:
             )
             if module.getFullName() not in early_names
         ]
-
-    debug("Finished detecting early imports.")
 
     return result
 
@@ -983,7 +981,7 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
             return result
 
     if Options.isShowProgress():
-        info("Analysing dependencies of '%s'." % binary_filename)
+        general.info("Analysing dependencies of '%s'." % binary_filename)
 
     scan_dirs = getScanDirectories(package_name, original_dir)
 
@@ -1084,7 +1082,7 @@ def _parsePEFileOutput(
         extracted = eval(getFileContents(cache_filename))
     else:
         if Options.isShowProgress():
-            info("Analysing dependencies of '%s'." % binary_filename)
+            general.info("Analysing dependencies of '%s'." % binary_filename)
 
         extracted = getPEFileInformation(binary_filename)
 
@@ -1261,10 +1259,8 @@ def detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache)
         for dll_filename in sorted(tuple(used_dlls)):
             if not os.path.isfile(dll_filename):
                 if _unfound_dlls:
-                    warning(
-                        """\
-Dependency '%s' could not be found, you might need to copy it
-manually."""
+                    general.warning(
+                        "Dependency '%s' could not be found, you might need to copy it manually."
                         % dll_filename
                     )
 
@@ -1359,7 +1355,7 @@ def removeSharedLibraryRPATH(filename):
 
     if rpath is not None:
         if Options.isShowInclusion():
-            info("Removing 'RPATH' setting from '%s'.", filename)
+            general.info("Removing 'RPATH' setting from '%s'.", filename)
 
         if not Utils.isExecutableCommand("chrpath"):
             sys.exit(
@@ -1426,7 +1422,7 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
             dll_name = os.path.basename(dll_filename1)
 
             if Options.isShowInclusion():
-                info(
+                general.info(
                     """Colliding DLL names for %s, checking identity of \
 '%s' <-> '%s'."""
                     % (dll_name, dll_filename1, dll_filename2)
@@ -1461,15 +1457,16 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
                     solved = False
 
                 if solved:
-                    warning(
+                    general.warning(
                         "Ignoring conflicting DLLs for '%s' and using newest file version."
                         % dll_name
                     )
                     continue
 
             # So we have conflicting DLLs, in which case we do not proceed.
-            warning(
-                """Ignoring non-identical DLLs for '%s'.
+            general.warning(
+                """\
+Ignoring non-identical DLLs for '%s'.
 %s used by:
    %s
 different from
@@ -1499,7 +1496,7 @@ different from
         dll_map.append((dll_filename, dll_name))
 
         if Options.isShowInclusion():
-            Tracing.general.info(
+            general.info(
                 "Included used shared library '%s' (used by %s)."
                 % (dll_filename, ", ".join(sources))
             )
