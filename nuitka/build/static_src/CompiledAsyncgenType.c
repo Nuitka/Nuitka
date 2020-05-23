@@ -288,12 +288,12 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
     }
 
     if (asyncgen->m_status != status_Finished) {
-        PyThreadState *thread_state = PyThreadState_GET();
-
         if (asyncgen->m_running) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "async generator already executing");
             return NULL;
         }
+
+        PyThreadState *thread_state = PyThreadState_GET();
 
         // Put the asyncgen back on the frame stack.
 

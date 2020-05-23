@@ -30,7 +30,8 @@ struct %(function_identifier)s_locals {
 
 static PyObject *%(function_identifier)s_context(struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value) {
     CHECK_OBJECT(generator);
-    assert(Nuitka_Generator_Check( (PyObject *)generator ));
+    assert(Nuitka_Generator_Check((PyObject *)generator));
+    CHECK_OBJECT_X(yield_return_value);
 
     // Heap access if used.
 %(heap_declaration)s

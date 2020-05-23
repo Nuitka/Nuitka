@@ -380,12 +380,12 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
     }
 
     if (coroutine->m_status != status_Finished) {
-        PyThreadState *thread_state = PyThreadState_GET();
-
         if (coroutine->m_running) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "coroutine already executing");
             return NULL;
         }
+
+        PyThreadState *thread_state = PyThreadState_GET();
 
         // Put the coroutine back on the frame stack.
 
