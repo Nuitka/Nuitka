@@ -875,7 +875,7 @@ def _parseDependsExeOutput2(lines, result):
 
 
 def _parseDependsExeOutput(filename, result):
-    _parseDependsExeOutput2(getFileContentByLine(filename), result)
+    _parseDependsExeOutput2(getFileContentByLine(filename, encoding="latin1"), result)
 
 
 _scan_dir_cache = {}

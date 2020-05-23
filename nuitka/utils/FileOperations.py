@@ -294,16 +294,22 @@ def withTemporaryFile(suffix="", mode="w", delete=True):
         yield temp_file
 
 
-def getFileContentByLine(filename, mode="r"):
+def getFileContentByLine(filename, mode="r", encoding=None):
     # We read the whole, to keep lock times minimal. We only deal with small
     # files like this normally.
-    return getFileContents(filename, mode).splitlines()
+    return getFileContents(filename, mode, encoding=encoding).splitlines()
 
 
-def getFileContents(filename, mode="r"):
+def getFileContents(filename, mode="r", encoding=None):
     with withFileLock("reading file %s" % filename):
-        with open(filename, mode) as f:
-            return f.read()
+        if encoding is not None:
+            import codecs
+
+            with codecs.open(filename, mode, encoding=encoding) as f:
+                return f.read()
+        else:
+            with open(filename, mode) as f:
+                return f.read()
 
 
 @contextmanager
