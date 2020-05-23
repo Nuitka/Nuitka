@@ -17,6 +17,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Lxml standalone basic test.
+
+"""
+
+from __future__ import print_function
+
 import lxml.etree
 
 # nuitka-skip-unless-imports: lxml.etree
@@ -24,3 +30,5 @@ import lxml.etree
 tree = lxml.etree.fromstring("<root>value</root>")
 assert tree.tag == "root"
 assert tree.text == "value"
+
+print("OK")
