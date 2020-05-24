@@ -391,7 +391,6 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
 
         // First take of running frame from the stack, owning a reference.
         PyFrameObject *return_frame = thread_state->frame;
-
 #ifndef __NUITKA_NO_ASSERT__
         if (return_frame) {
             assertFrameObject((struct Nuitka_FrameObject *)return_frame);
@@ -430,8 +429,6 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
             Nuitka_Frame_MarkAsExecuting(coroutine->m_frame);
         }
 
-        PyObject *yielded;
-
 #if _DEBUG_COROUTINE
         PRINT_COROUTINE_STATUS("Switching to coroutine", coroutine);
         PRINT_COROUTINE_VALUE("value", value);
@@ -439,6 +436,8 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
         PRINT_NEW_LINE();
         // dumpFrameStack();
 #endif
+
+        PyObject *yielded;
 
         if (coroutine->m_yieldfrom == NULL) {
             yielded = ((coroutine_code)coroutine->m_code)(coroutine, value);
@@ -462,6 +461,7 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
 
         // Remove the back frame from coroutine if it's there.
         if (coroutine->m_frame) {
+            assert(thread_state->frame == &coroutine->m_frame->m_frame);
             assertFrameObject(coroutine->m_frame);
 
             Py_CLEAR(coroutine->m_frame->m_frame.f_back);
@@ -713,28 +713,38 @@ static PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *corouti
             PyGenObject *gen = (PyGenObject *)coroutine->m_yieldfrom;
 
             // Transferred exception ownership to "Nuitka_UncompiledGenerator_throw".
+            coroutine->m_running = 1;
             ret = Nuitka_UncompiledGenerator_throw(gen, 1, exception_type, exception_value, exception_tb);
+            coroutine->m_running = 0;
         } else if (Nuitka_Generator_Check(coroutine->m_yieldfrom)) {
             struct Nuitka_GeneratorObject *gen = ((struct Nuitka_GeneratorObject *)coroutine->m_yieldfrom);
             // Transferred exception ownership to "_Nuitka_Generator_throw2".
+            coroutine->m_running = 1;
             ret = _Nuitka_Generator_throw2(gen, exception_type, exception_value, exception_tb);
+            coroutine->m_running = 0;
         } else if (Nuitka_Coroutine_Check(coroutine->m_yieldfrom)) {
             struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineObject *)coroutine->m_yieldfrom);
             // Transferred exception ownership to "_Nuitka_Coroutine_throw2".
+            coroutine->m_running = 1;
             ret = _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
+            coroutine->m_running = 0;
         } else if (Nuitka_CoroutineWrapper_Check(coroutine->m_yieldfrom)) {
             struct Nuitka_CoroutineObject *coro =
                 ((struct Nuitka_CoroutineWrapperObject *)coroutine->m_yieldfrom)->m_coroutine;
 
             // Transferred exception ownership to "_Nuitka_Coroutine_throw2".
+            coroutine->m_running = 1;
             ret = _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
+            coroutine->m_running = 0;
 #if PYTHON_VERSION >= 360
         } else if (Nuitka_AsyncgenAsend_Check(coroutine->m_yieldfrom)) {
             struct Nuitka_AsyncgenAsendObject *asyncgen_asend =
                 ((struct Nuitka_AsyncgenAsendObject *)coroutine->m_yieldfrom);
 
             // Transferred exception ownership to "_Nuitka_AsyncgenAsend_throw2".
+            coroutine->m_running = 1;
             ret = _Nuitka_AsyncgenAsend_throw2(asyncgen_asend, exception_type, exception_value, exception_tb);
+            coroutine->m_running = 0;
 #endif
         } else {
             PyObject *meth = PyObject_GetAttr(coroutine->m_yieldfrom, const_str_plain_throw);
@@ -937,27 +947,6 @@ static PyObject *Nuitka_Coroutine_throw(struct Nuitka_CoroutineObject *coroutine
     return result;
 }
 
-static void Nuitka_Coroutine_tp_del(struct Nuitka_CoroutineObject *coroutine) {
-    if (coroutine->m_status != status_Running) {
-        return;
-    }
-
-    PyObject *save_exception_type, *save_exception_value;
-    PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
-
-    PyObject *close_result = Nuitka_Coroutine_close(coroutine);
-
-    if (unlikely(close_result == NULL)) {
-        PyErr_WriteUnraisable((PyObject *)coroutine);
-    } else {
-        Py_DECREF(close_result);
-    }
-
-    /* Restore the saved exception if any. */
-    RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
-}
-
 static PyObject *Nuitka_Coroutine_tp_repr(struct Nuitka_CoroutineObject *coroutine) {
     CHECK_OBJECT(coroutine);
     CHECK_OBJECT(coroutine->m_qualname);
@@ -1011,6 +1000,27 @@ static PyObject *Nuitka_Coroutine_await(struct Nuitka_CoroutineObject *coroutine
     Nuitka_GC_Track(result);
 
     return (PyObject *)result;
+}
+
+static void Nuitka_Coroutine_tp_finalize(struct Nuitka_CoroutineObject *coroutine) {
+    if (coroutine->m_status != status_Running) {
+        return;
+    }
+
+    PyObject *save_exception_type, *save_exception_value;
+    PyTracebackObject *save_exception_tb;
+    FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
+
+    PyObject *close_result = Nuitka_Coroutine_close(coroutine);
+
+    if (unlikely(close_result == NULL)) {
+        PyErr_WriteUnraisable((PyObject *)coroutine);
+    } else {
+        Py_DECREF(close_result);
+    }
+
+    /* Restore the saved exception if any. */
+    RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
 }
 
 #define MAX_COROUTINE_FREE_LIST_COUNT 100
@@ -1156,7 +1166,7 @@ PyTypeObject Nuitka_Coroutine_Type = {
     0,                                                                  /* tp_weaklist */
     0,                                                                  /* tp_del */
     0,                                                                  /* tp_version_tag */
-    (destructor)Nuitka_Coroutine_tp_del,                                /* tp_finalize */
+    (destructor)Nuitka_Coroutine_tp_finalize,                           /* tp_finalize */
 };
 
 static void Nuitka_CoroutineWrapper_tp_dealloc(struct Nuitka_CoroutineWrapperObject *cw) {
