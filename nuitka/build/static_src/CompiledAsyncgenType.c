@@ -338,12 +338,15 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
             Nuitka_Frame_MarkAsExecuting(asyncgen->m_frame);
         }
 
-        PyObject *yielded;
-
 #if _DEBUG_ASYNCGEN
         PRINT_ASYNCGEN_STATUS("Switching to asyncgen", asyncgen);
+        PRINT_COROUTINE_VALUE("value", value);
+        PRINT_CURRENT_EXCEPTION();
+        PRINT_NEW_LINE();
         // dumpFrameStack();
 #endif
+
+        PyObject *yielded;
 
         if (asyncgen->m_yieldfrom == NULL) {
             yielded = ((asyncgen_code)asyncgen->m_code)(asyncgen, value);
@@ -367,6 +370,7 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
 
         // Remove the back frame from asyncgen if it's there.
         if (asyncgen->m_frame) {
+            assert(thread_state->frame == &asyncgen->m_frame->m_frame);
             assertFrameObject(asyncgen->m_frame);
 
             Py_CLEAR(asyncgen->m_frame->m_frame.f_back);
@@ -555,15 +559,37 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
             PyGenObject *gen = (PyGenObject *)asyncgen->m_yieldfrom;
 
             // Transferred exception ownership to "Nuitka_UncompiledGenerator_throw".
+            asyncgen->m_running = 1;
             ret = Nuitka_UncompiledGenerator_throw(gen, 1, exception_type, exception_value, exception_tb);
+            asyncgen->m_running = 0;
         } else if (Nuitka_Generator_Check(asyncgen->m_yieldfrom)) {
             struct Nuitka_GeneratorObject *gen = ((struct Nuitka_GeneratorObject *)asyncgen->m_yieldfrom);
             // Transferred exception ownership to "_Nuitka_Generator_throw2".
+            asyncgen->m_running = 1;
             ret = _Nuitka_Generator_throw2(gen, exception_type, exception_value, exception_tb);
+            asyncgen->m_running = 0;
         } else if (Nuitka_Coroutine_Check(asyncgen->m_yieldfrom)) {
             struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineObject *)asyncgen->m_yieldfrom);
             // Transferred exception ownership to "_Nuitka_Coroutine_throw2".
+            asyncgen->m_running = 1;
             ret = _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
+            asyncgen->m_running = 0;
+        } else if (Nuitka_CoroutineWrapper_Check(asyncgen->m_yieldfrom)) {
+            struct Nuitka_CoroutineObject *coro =
+                ((struct Nuitka_CoroutineWrapperObject *)asyncgen->m_yieldfrom)->m_coroutine;
+
+            // Transferred exception ownership to "_Nuitka_Coroutine_throw2".
+            asyncgen->m_running = 1;
+            ret = _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
+            asyncgen->m_running = 0;
+        } else if (Nuitka_AsyncgenAsend_Check(asyncgen->m_yieldfrom)) {
+            struct Nuitka_AsyncgenAsendObject *asyncgen_asend =
+                ((struct Nuitka_AsyncgenAsendObject *)asyncgen->m_yieldfrom);
+
+            // Transferred exception ownership to "_Nuitka_AsyncgenAsend_throw2".
+            asyncgen->m_running = 1;
+            ret = _Nuitka_AsyncgenAsend_throw2(asyncgen_asend, exception_type, exception_value, exception_tb);
+            asyncgen->m_running = 0;
         } else {
             PyObject *meth = PyObject_GetAttr(asyncgen->m_yieldfrom, const_str_plain_throw);
             if (unlikely(meth == NULL)) {
@@ -829,6 +855,27 @@ static PyObject *Nuitka_Asyncgen_athrow(struct Nuitka_AsyncgenObject *asyncgen, 
     }
 
     return Nuitka_AsyncgenAthrow_New(asyncgen, args);
+}
+
+static void Nuitka_Asyncgen_tp_finalize(struct Nuitka_AsyncgenObject *asyncgen) {
+    if (asyncgen->m_status != status_Running) {
+        return;
+    }
+
+    PyObject *save_exception_type, *save_exception_value;
+    PyTracebackObject *save_exception_tb;
+    FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
+
+    PyObject *close_result = Nuitka_Asyncgen_close(asyncgen);
+
+    if (unlikely(close_result == NULL)) {
+        PyErr_WriteUnraisable((PyObject *)asyncgen);
+    } else {
+        Py_DECREF(close_result);
+    }
+
+    /* Restore the saved exception if any. */
+    RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
 }
 
 #define MAX_ASYNCGEN_FREE_LIST_COUNT 100
@@ -1919,6 +1966,16 @@ static PyTypeObject Nuitka_AsyncgenAthrow_Type = {
     0,                                                                /* tp_init */
     0,                                                                /* tp_alloc */
     0,                                                                /* tp_new */
+    0,                                                                /* tp_free */
+    0,                                                                /* tp_is_gc */
+    0,                                                                /* tp_bases */
+    0,                                                                /* tp_mro */
+    0,                                                                /* tp_cache */
+    0,                                                                /* tp_subclasses */
+    0,                                                                /* tp_weaklist */
+    0,                                                                /* tp_del */
+    0,                                                                /* tp_version_tag */
+    (destructor)Nuitka_Asyncgen_tp_finalize,                          /* tp_finalize */
 };
 
 static PyObject *Nuitka_AsyncgenAthrow_New(struct Nuitka_AsyncgenObject *asyncgen, PyObject *args) {
