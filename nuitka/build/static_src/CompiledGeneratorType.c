@@ -753,6 +753,7 @@ PyObject *Nuitka_Generator_qiter(struct Nuitka_GeneratorObject *generator, bool 
     return result;
 }
 
+// Note: Used by compiled frames.
 static bool _Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator) {
 #if _DEBUG_GENERATOR
     PRINT_GENERATOR_STATUS("Enter", generator);
@@ -768,7 +769,7 @@ static bool _Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator) {
             Py_DECREF(result);
 
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "generator ignored GeneratorExit");
-            return NULL;
+            return false;
         } else {
             PyObject *error = GET_ERROR_OCCURRED();
 
@@ -791,18 +792,11 @@ static bool _Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator) {
     return true;
 }
 
-// Note: Used by compiled frames since 3.4, TODO: Switch them to bool interface.
-#if PYTHON_VERSION < 340
-static
-#endif
-    PyObject *
-    Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator) {
-
+static PyObject *Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator) {
     bool r = _Nuitka_Generator_close(generator);
 
     if (unlikely(r == false)) {
         return NULL;
-
     } else {
         Py_INCREF(Py_None);
         return Py_None;
@@ -866,6 +860,12 @@ failed_throw:
 #if PYTHON_VERSION >= 300
 
 static bool _Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator);
+#if PYTHON_VERSION >= 350
+static bool _Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine);
+#if PYTHON_VERSION >= 360
+static bool _Nuitka_Asyncgen_close(struct Nuitka_AsyncgenObject *asyncgen);
+#endif
+#endif
 
 // Note: This is also used for coroutines and asyncgen
 static bool Nuitka_gen_close_iter(PyObject *yieldfrom) {
@@ -880,10 +880,28 @@ static bool Nuitka_gen_close_iter(PyObject *yieldfrom) {
     // generators.
     if (Nuitka_Generator_Check(yieldfrom)) {
 #if _DEBUG_GENERATOR
-        PRINT_STRING("Nuitka_gen_close_iter: Defer to _Nuitka_Generator_Close\n");
+        PRINT_STRING("Nuitka_gen_close_iter: Defer to _Nuitka_Generator_close\n");
 #endif
         return _Nuitka_Generator_close((struct Nuitka_GeneratorObject *)yieldfrom);
     }
+
+#if PYTHON_VERSION >= 350
+    if (Nuitka_Coroutine_Check(yieldfrom)) {
+#if _DEBUG_GENERATOR
+        PRINT_STRING("Nuitka_gen_close_iter: Defer to _Nuitka_Coroutine_close\n");
+#endif
+        return _Nuitka_Coroutine_close((struct Nuitka_CoroutineObject *)yieldfrom);
+    }
+#endif
+
+#if PYTHON_VERSION >= 360
+    if (Nuitka_Asyncgen_Check(yieldfrom)) {
+#if _DEBUG_GENERATOR
+        PRINT_STRING("Nuitka_gen_close_iter: Defer to _Nuitka_Asyncgen_close\n");
+#endif
+        return _Nuitka_Asyncgen_close((struct Nuitka_AsyncgenObject *)yieldfrom);
+    }
+#endif
 
     PyObject *meth = PyObject_GetAttr(yieldfrom, const_str_plain_close);
 
@@ -1185,12 +1203,10 @@ static void Nuitka_Generator_tp_finalizer(struct Nuitka_GeneratorObject *generat
     PyTracebackObject *save_exception_tb;
     FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
 
-    PyObject *close_result = Nuitka_Generator_close(generator);
+    bool close_result = _Nuitka_Generator_close(generator);
 
-    if (unlikely(close_result == NULL)) {
+    if (unlikely(close_result == false)) {
         PyErr_WriteUnraisable((PyObject *)generator);
-    } else {
-        Py_DECREF(close_result);
     }
 
     /* Restore the saved exception if any. */
@@ -1213,13 +1229,11 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
     FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
 
     if (generator->m_status == status_Running) {
-        PyObject *close_result = Nuitka_Generator_close(generator);
+        bool close_result = _Nuitka_Generator_close(generator);
         CHECK_OBJECT(generator);
 
-        if (unlikely(close_result == NULL)) {
+        if (unlikely(close_result == false)) {
             PyErr_WriteUnraisable((PyObject *)generator);
-        } else {
-            Py_DECREF(close_result);
         }
     }
 
@@ -1544,7 +1558,12 @@ PyObject *Nuitka_Generator_NewEmpty(PyObject *module, PyObject *name,
 }
 
 // Chain coroutine code to generator code, as it uses same functions, and then we can
-// have some things static if both are in the same compilation unit.
+// have some things static if both are in the same compilation unit. This also loads
+// the asyncgen for 3.6 and higher.
 #if PYTHON_VERSION >= 350
 #include "CompiledCoroutineType.c"
 #endif
+
+// Chain frames to generator and asyncgen code, as they need to close them with access
+// to best functions.
+#include "CompiledFrameType.c"

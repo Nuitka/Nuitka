@@ -1697,7 +1697,6 @@ def discoverSourceFiles():
     result.append(provideStatic("CompiledCellType.c"))
     result.append(provideStatic("CompiledFunctionType.c"))
     result.append(provideStatic("CompiledGeneratorType.c"))
-    result.append(provideStatic("CompiledFrameType.c"))
 
     # Helper codes.
     result.append(provideStatic("CompiledCodeHelpers.c"))

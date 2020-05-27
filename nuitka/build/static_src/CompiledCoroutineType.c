@@ -612,7 +612,10 @@ static PyObject *Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine,
 }
 
 // Note: Used by compiled frames.
-PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine) {
+static bool _Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine) {
+#if _DEBUG_COROUTINE
+    PRINT_COROUTINE_STATUS("Enter", coroutine);
+#endif
     CHECK_OBJECT(coroutine);
 
     if (coroutine->m_status == status_Running) {
@@ -624,7 +627,7 @@ PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine) {
             Py_DECREF(result);
 
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "coroutine ignored GeneratorExit");
-            return NULL;
+            return false;
         } else {
             PyObject *error = GET_ERROR_OCCURRED();
             assert(error != NULL);
@@ -632,16 +635,25 @@ PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine) {
             if (EXCEPTION_MATCH_GENERATOR(error)) {
                 CLEAR_ERROR_OCCURRED();
 
-                Py_INCREF(Py_None);
-                return Py_None;
+                return true;
             }
 
-            return NULL;
+            return false;
         }
     }
 
-    Py_INCREF(Py_None);
-    return Py_None;
+    return true;
+}
+
+static PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine) {
+    bool r = _Nuitka_Coroutine_close(coroutine);
+
+    if (unlikely(r == false)) {
+        return NULL;
+    } else {
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
 }
 
 extern PyObject *const_str_plain_throw;
@@ -1011,12 +1023,10 @@ static void Nuitka_Coroutine_tp_finalize(struct Nuitka_CoroutineObject *coroutin
     PyTracebackObject *save_exception_tb;
     FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
 
-    PyObject *close_result = Nuitka_Coroutine_close(coroutine);
+    bool close_result = _Nuitka_Coroutine_close(coroutine);
 
-    if (unlikely(close_result == NULL)) {
+    if (unlikely(close_result == false)) {
         PyErr_WriteUnraisable((PyObject *)coroutine);
-    } else {
-        Py_DECREF(close_result);
     }
 
     /* Restore the saved exception if any. */
@@ -1047,12 +1057,10 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *close_result = Nuitka_Coroutine_close(coroutine);
+    bool close_result = _Nuitka_Coroutine_close(coroutine);
 
-    if (unlikely(close_result == NULL)) {
+    if (unlikely(close_result == false)) {
         PyErr_WriteUnraisable((PyObject *)coroutine);
-    } else {
-        Py_DECREF(close_result);
     }
 
     Nuitka_Coroutine_release_closure(coroutine);

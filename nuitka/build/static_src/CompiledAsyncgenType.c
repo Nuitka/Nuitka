@@ -465,7 +465,10 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
 }
 
 // Note: Used by compiled frames.
-PyObject *Nuitka_Asyncgen_close(struct Nuitka_AsyncgenObject *asyncgen) {
+static bool _Nuitka_Asyncgen_close(struct Nuitka_AsyncgenObject *asyncgen) {
+#if _DEBUG_ASYNCGEN
+    PRINT_ASYNCGEN_STATUS("Enter", asyncgen);
+#endif
     CHECK_OBJECT(asyncgen);
 
     if (asyncgen->m_status == status_Running) {
@@ -477,7 +480,7 @@ PyObject *Nuitka_Asyncgen_close(struct Nuitka_AsyncgenObject *asyncgen) {
             Py_DECREF(result);
 
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "async generator ignored GeneratorExit");
-            return NULL;
+            return false;
         } else {
             PyObject *error = GET_ERROR_OCCURRED();
             assert(error != NULL);
@@ -485,16 +488,14 @@ PyObject *Nuitka_Asyncgen_close(struct Nuitka_AsyncgenObject *asyncgen) {
             if (EXCEPTION_MATCH_GENERATOR(error)) {
                 CLEAR_ERROR_OCCURRED();
 
-                Py_INCREF(Py_None);
-                return Py_None;
+                return true;
             }
 
-            return NULL;
+            return false;
         }
     }
 
-    Py_INCREF(Py_None);
-    return Py_None;
+    return true;
 }
 
 static bool _Nuitka_Generator_check_throw2(PyObject **exception_type, PyObject **exception_value,
@@ -866,12 +867,10 @@ static void Nuitka_Asyncgen_tp_finalize(struct Nuitka_AsyncgenObject *asyncgen) 
     PyTracebackObject *save_exception_tb;
     FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
 
-    PyObject *close_result = Nuitka_Asyncgen_close(asyncgen);
+    bool close_result = _Nuitka_Asyncgen_close(asyncgen);
 
-    if (unlikely(close_result == NULL)) {
+    if (unlikely(close_result == false)) {
         PyErr_WriteUnraisable((PyObject *)asyncgen);
-    } else {
-        Py_DECREF(close_result);
     }
 
     /* Restore the saved exception if any. */
@@ -916,12 +915,10 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
 
     FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
 
-    PyObject *close_result = Nuitka_Asyncgen_close(asyncgen);
+    bool close_result = _Nuitka_Asyncgen_close(asyncgen);
 
-    if (unlikely(close_result == NULL)) {
+    if (unlikely(close_result == false)) {
         PyErr_WriteUnraisable((PyObject *)asyncgen);
-    } else {
-        Py_DECREF(close_result);
     }
 
     Nuitka_Asyncgen_release_closure(asyncgen);
