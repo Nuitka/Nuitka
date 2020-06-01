@@ -391,11 +391,9 @@ class NuitkaPluginBase(object):
             if full_name in pre_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)
 
-            plugins_logger.info(
-                "Injecting plug-in based pre load code for module '%s':" % full_name
-            )
+            self.info("Injecting pre-module load code for module '%s':" % full_name)
             for line in reason.split("\n"):
-                plugins_logger.info("    " + line)
+                self.info("    " + line)
 
             pre_modules[full_name] = self._createTriggerLoadedModule(
                 module=module, trigger_name="-preLoad", code=pre_code
@@ -408,11 +406,9 @@ class NuitkaPluginBase(object):
             if full_name is post_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)
 
-            plugins_logger.info(
-                "Injecting plug-in based post load code for module '%s':" % full_name
-            )
+            self.info("Injecting post-module load code for module '%s':" % full_name)
             for line in reason.split("\n"):
-                plugins_logger.info("    " + line)
+                self.info("    " + line)
 
             post_modules[full_name] = self._createTriggerLoadedModule(
                 module=module, trigger_name="-postLoad", code=post_code

@@ -69,6 +69,7 @@ PACKAGE_LIST = (
     "nuitka/finalizations",
     "nuitka/plugins",
     "nuitka/plugins/standard",
+    "nuitka/plugins/commercial",
     "nuitka/containers",
     "nuitka/utils",
 )

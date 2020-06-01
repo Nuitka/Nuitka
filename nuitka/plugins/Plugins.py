@@ -27,19 +27,19 @@ The base class in PluginBase will serve as documentation of available.
 
 """
 
-from __future__ import print_function
-
 import os
 import pkgutil
 import sys
 from optparse import OptionGroup
 
+import nuitka.plugins.commercial
 import nuitka.plugins.standard
 from nuitka import Options
 from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
 from nuitka.ModuleRegistry import addUsedModule
+from nuitka.Tracing import printLine
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -115,17 +115,8 @@ def getPluginClass(plugin_name):
     return plugin_name2plugin_classes[plugin_name][0]
 
 
-def loadStandardPluginClasses():
-    """ Load plugin files located in 'standard' folder.
-
-    Notes:
-        Scan through the 'standard' sub-folder of the folder where this script
-        resides. Import each valid Python script and process it as a plugin.
-    Returns:
-        None
-    """
-
-    for loader, name, is_pkg in pkgutil.iter_modules(nuitka.plugins.standard.__path__):
+def _loadPluginClassesFromPath(scan_path):
+    for loader, name, is_pkg in pkgutil.iter_modules(scan_path):
         if is_pkg:
             continue
 
@@ -171,6 +162,20 @@ def loadStandardPluginClasses():
 
         for plugin_class in plugin_classes:
             plugin_name2plugin_classes[plugin_class.plugin_name] = plugin_class, None
+
+
+def loadStandardPluginClasses():
+    """ Load plugin files located in 'standard' folder.
+
+    Notes:
+        Scan through the 'standard' and 'commercial' sub-folder of the folder
+        where this script resides. Import each valid Python module (but not
+        packages) and process it as a plugin.
+    Returns:
+        None
+    """
+    _loadPluginClassesFromPath(nuitka.plugins.standard.__path__)
+    _loadPluginClassesFromPath(nuitka.plugins.commercial.__path__)
 
 
 class Plugins(object):
@@ -439,8 +444,9 @@ def listPlugins():
 
     loadPlugins()
 
-    print("The following optional standard plugins are available in Nuitka".center(80))
-    print("-" * 80)
+    printLine("The following plugins are available in Nuitka".center(80))
+    printLine("-" * 80)
+
     plist = []
     name_len = 0
     for plugin_name in sorted(plugin_name2plugin_classes):
@@ -451,7 +457,7 @@ def listPlugins():
             plist.append((plugin_name, ""))
         name_len = max(len(plugin_name) + 1, name_len)
     for line in plist:
-        print(" " + line[0].ljust(name_len), line[1])
+        printLine(" " + line[0].ljust(name_len), line[1])
 
     sys.exit(0)
 

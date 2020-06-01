@@ -93,7 +93,10 @@ path = os.environ.get("PATH", "")
 if not path.startswith(__nuitka_binary_dir):
     os.environ["PATH"] = __nuitka_binary_dir + ";" + path
 """
-        return code, "Adding dist folder to 'PATH' environment variable."
+        return (
+            code,
+            "Adding binary folder to runtime 'PATH' environment variable for proper loading.",
+        )
 
     def getPyQtPluginDirs(self, qt_version):
         if qt_version in self.qt_dirs:
