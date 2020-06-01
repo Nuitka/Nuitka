@@ -370,7 +370,7 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
 
         // Remove the back frame from asyncgen if it's there.
         if (asyncgen->m_frame) {
-            assert(thread_state->frame == &asyncgen->m_frame->m_frame);
+            // assert(thread_state->frame == &asyncgen->m_frame->m_frame);
             assertFrameObject(asyncgen->m_frame);
 
             Py_CLEAR(asyncgen->m_frame->m_frame.f_back);

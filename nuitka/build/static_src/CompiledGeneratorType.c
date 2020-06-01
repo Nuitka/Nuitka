@@ -556,7 +556,7 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
 
         // Remove the generator from the frame stack.
         if (generator->m_frame) {
-            assert(thread_state->frame == &generator->m_frame->m_frame);
+            // assert(thread_state->frame == &generator->m_frame->m_frame);
             assertFrameObject(generator->m_frame);
 
             Py_CLEAR(generator->m_frame->m_frame.f_back);

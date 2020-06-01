@@ -461,7 +461,7 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
 
         // Remove the back frame from coroutine if it's there.
         if (coroutine->m_frame) {
-            assert(thread_state->frame == &coroutine->m_frame->m_frame);
+            // assert(thread_state->frame == &coroutine->m_frame->m_frame);
             assertFrameObject(coroutine->m_frame);
 
             Py_CLEAR(coroutine->m_frame->m_frame.f_back);
