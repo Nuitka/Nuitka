@@ -198,8 +198,8 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
                 return (
                     result,
                     "new_raise",
-                    """Replaced operator '%s' with %s %s arguments that cannot work."""
-                    % (self.operator, left_shape, right_shape),
+                    "Replaced operator '%s' with %s %s arguments that cannot work."
+                    % (self.operator, left_shape, right_shape,),
                 )
 
         if self.escape_desc.isValueEscaping():
