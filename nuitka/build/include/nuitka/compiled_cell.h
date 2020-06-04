@@ -39,4 +39,11 @@ extern struct Nuitka_CellObject *Nuitka_Cell_Empty(void);
 extern struct Nuitka_CellObject *Nuitka_Cell_New0(PyObject *value);
 extern struct Nuitka_CellObject *Nuitka_Cell_New1(PyObject *value);
 
+// Check stuff while accessing a compile cell in debug mode.
+#ifdef __NUITKA_NO_ASSERT__
+#define Nuitka_Cell_GET(cell) (((struct Nuitka_CellObject *)(cell))->ob_ref)
+#else
+#define Nuitka_Cell_GET(cell)                                                                                          \
+    (CHECK_OBJECT(cell), assert(Nuitka_Cell_Check((PyObject *)cell)), (((struct Nuitka_CellObject *)(cell))->ob_ref))
+#endif
 #endif

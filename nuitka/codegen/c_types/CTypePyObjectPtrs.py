@@ -304,7 +304,7 @@ class CTypeCellObject(CTypeBase):
 
         # Use the object pointed to.
         return VariableDeclaration(
-            "PyObject *", "PyCell_GET(%s)" % value_name, None, None
+            "PyObject *", "Nuitka_Cell_GET(%s)" % value_name, None, None
         )
 
     @classmethod

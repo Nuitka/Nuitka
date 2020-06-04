@@ -636,7 +636,7 @@ PyObject *BUILTIN_ANY(PyObject *value) {
 }
 
 PyObject *BUILTIN_ABS(PyObject *o) {
-    CHECK_OBJECT(o)
+    CHECK_OBJECT(o);
 
     PyNumberMethods *m = o->ob_type->tp_as_number;
     if (likely(m && m->nb_absolute)) {

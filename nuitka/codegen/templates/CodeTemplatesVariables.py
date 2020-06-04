@@ -75,7 +75,7 @@ template_write_local_clear_ref1 = """\
 
 template_write_shared_unclear_ref0 = """\
 {
-    PyObject *old = PyCell_GET(%(identifier)s);
+    PyObject *old = Nuitka_Cell_GET(%(identifier)s);
     PyCell_SET(%(identifier)s, %(tmp_name)s);
     Py_XDECREF(old);
 }
@@ -83,7 +83,7 @@ template_write_shared_unclear_ref0 = """\
 
 template_write_shared_unclear_ref1 = """\
 {
-    PyObject *old = PyCell_GET(%(identifier)s);
+    PyObject *old = Nuitka_Cell_GET(%(identifier)s);
     PyCell_SET(%(identifier)s, %(tmp_name)s);
     Py_INCREF(%(tmp_name)s);
     Py_XDECREF(old);
@@ -91,12 +91,12 @@ template_write_shared_unclear_ref1 = """\
 """
 
 template_write_shared_clear_ref0 = """\
-assert(PyCell_GET(%(identifier)s) == NULL);
+assert(Nuitka_Cell_GET(%(identifier)s) == NULL);
 PyCell_SET(%(identifier)s, %(tmp_name)s);
 """
 
 template_write_shared_clear_ref1 = """\
-assert(PyCell_GET(%(identifier)s) == NULL);
+assert(Nuitka_Cell_GET(%(identifier)s) == NULL);
 Py_INCREF(%(tmp_name)s);
 PyCell_SET(%(identifier)s, %(tmp_name)s);
 """
@@ -109,7 +109,7 @@ Py_XDECREF(%(identifier)s);
 
 template_del_shared_tolerant = """\
 {
-    PyObject *old = PyCell_GET(%(identifier)s);
+    PyObject *old = Nuitka_Cell_GET(%(identifier)s);
     PyCell_SET(%(identifier)s, NULL);
     Py_XDECREF(old);
 }
@@ -125,7 +125,7 @@ if (likely(%(result)s)) {
 
 template_del_shared_intolerant = """\
 {
-    PyObject *old = PyCell_GET(%(identifier)s);
+    PyObject *old = Nuitka_Cell_GET(%(identifier)s);
     PyCell_SET(%(identifier)s, NULL);
     Py_XDECREF(old);
 
@@ -141,7 +141,7 @@ Py_DECREF(%(identifier)s);
 
 template_del_shared_known = """\
 {
-    PyObject *old = PyCell_GET(%(identifier)s);
+    PyObject *old = Nuitka_Cell_GET(%(identifier)s);
     PyCell_SET(%(identifier)s, NULL);
 
     CHECK_OBJECT(old);
@@ -164,7 +164,7 @@ Py_DECREF(%(identifier)s);
 """
 
 template_read_shared_known = """\
-%(tmp_name)s = PyCell_GET(%(identifier)s);
+%(tmp_name)s = Nuitka_Cell_GET(%(identifier)s);
 """
 
 # For module variable values, need to lookup in module dictionary or in

@@ -216,6 +216,8 @@ struct Nuitka_CellObject *Nuitka_Cell_Empty(void) {
 }
 
 struct Nuitka_CellObject *Nuitka_Cell_New0(PyObject *value) {
+    CHECK_OBJECT(value);
+
     struct Nuitka_CellObject *result;
 
     allocateFromFreeListFixed(free_list_cells, struct Nuitka_CellObject, Nuitka_Cell_Type);
@@ -229,6 +231,8 @@ struct Nuitka_CellObject *Nuitka_Cell_New0(PyObject *value) {
 }
 
 struct Nuitka_CellObject *Nuitka_Cell_New1(PyObject *value) {
+    CHECK_OBJECT(value);
+
     struct Nuitka_CellObject *result;
 
     allocateFromFreeListFixed(free_list_cells, struct Nuitka_CellObject, Nuitka_Cell_Type);
