@@ -116,9 +116,6 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
             self, builtin_name=builtin_name, source_ref=source_ref
         )
 
-    def isCompileTimeConstant(self):
-        return True
-
     def getCompileTimeConstant(self):
         return __builtins__[self.builtin_name]
 
@@ -162,9 +159,6 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
             self, builtin_name=builtin_name, source_ref=source_ref
         )
 
-    def isCompileTimeConstant(self):
-        return True
-
     def getCompileTimeConstant(self):
         return builtin_anon_names[self.builtin_name]
 
@@ -192,14 +186,11 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
 
     getExceptionName = ExpressionBuiltinRefBase.getBuiltinName
 
-    def isCompileTimeConstant(self):
-        return True
+    def getCompileTimeConstant(self):
+        return builtin_exception_values[self.builtin_name]
 
     def mayRaiseException(self, exception_type):
         return False
-
-    def getCompileTimeConstant(self):
-        return builtin_exception_values[self.builtin_name]
 
     def computeExpressionRaw(self, trace_collection):
         # Not much that can be done here.

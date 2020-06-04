@@ -37,7 +37,7 @@ from nuitka.PythonVersions import python_version
 def makeConstantReplacementNode(constant, node):
     from .ConstantRefNodes import makeConstantRefNode
 
-    return makeConstantRefNode(constant=constant, source_ref=node.getSourceReference())
+    return makeConstantRefNode(constant=constant, source_ref=node.source_ref)
 
 
 def makeRaiseExceptionReplacementExpression(
@@ -46,7 +46,7 @@ def makeRaiseExceptionReplacementExpression(
     from .ExceptionNodes import ExpressionRaiseException
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
-    source_ref = expression.getSourceReference()
+    source_ref = expression.source_ref
 
     assert type(exception_type) is str
 

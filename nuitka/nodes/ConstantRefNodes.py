@@ -166,6 +166,9 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
     def getCompileTimeConstant(self):
         return self.constant
 
+    def isUserProvidedConstant(self):
+        return self.user_provided
+
     getConstant = getCompileTimeConstant
 
     def getIterationHandle(self):

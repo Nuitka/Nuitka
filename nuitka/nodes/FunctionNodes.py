@@ -636,7 +636,7 @@ class ExpressionFunctionBody(
 
     def isCompileTimeConstant(self):
         # TODO: It's actually pretty much compile time accessible maybe.
-        return None
+        return False
 
     def mayHaveSideEffects(self):
         # The function definition has no side effects, calculating the defaults
@@ -1049,3 +1049,6 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
             "Executed '__qualname__' resolution to '%s'."
             % self.function_body.getFunctionQualname(),
         )
+
+    def getCompileTimeConstant(self):
+        return self.function_body.getFunctionQualname()

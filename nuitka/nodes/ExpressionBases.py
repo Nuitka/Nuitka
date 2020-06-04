@@ -796,6 +796,22 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         """
         return True
 
+    @abstractmethod
+    def getCompileTimeConstant(self):
+        """ Return compile time constant.
+
+            Notes: Only available after passing "isCompileTimeConstant()".
+
+        """
+
+    def isUserProvidedConstant(self):
+        """ Return compile time constant.
+
+            Notes: Only useful after passing "isCompileTimeConstant()".
+        """
+        # Virtual method, pylint: disable=no-self-use
+        return False
+
     def isMutable(self):
         # Virtual method, pylint: disable=no-self-use
         return False
