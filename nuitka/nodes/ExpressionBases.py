@@ -778,8 +778,6 @@ class ExpressionBase(NodeBase):
 
 
 class CompileTimeConstantExpressionBase(ExpressionBase):
-    # Base classes can be abstract, pylint: disable=abstract-method
-
     # TODO: Do this for all computations, do this in the base class of all
     # nodes.
     __slots__ = ("computed_attribute",)

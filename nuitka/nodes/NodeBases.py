@@ -520,19 +520,15 @@ class ChildrenHavingMixin(object):
             if name in self.checkers:
                 value = self.checkers[name](value)
 
-            assert type(value) is not list, name
-
             if type(value) is tuple:
                 assert None not in value, name
 
                 for val in value:
                     val.parent = self
-            elif value is not None:
-                value.parent = self
             elif value is None:
                 pass
             else:
-                assert False, type(value)
+                value.parent = self
 
             attr_name = "subnode_" + name
             setattr(self, attr_name, value)

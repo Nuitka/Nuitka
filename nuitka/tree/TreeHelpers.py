@@ -645,7 +645,7 @@ def makeDictCreationOrConstant(keys, values, source_ref):
 
 def makeDictCreationOrConstant2(keys, values, source_ref):
     # Create dictionary node. Tries to avoid it for constant values that are not
-    # mutable. Keys are strings.
+    # mutable. Keys are Python strings here.
 
     assert len(keys) == len(values)
     for value in values:

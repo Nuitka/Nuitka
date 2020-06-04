@@ -28,9 +28,9 @@ making it more difficult to use.
 
 from logging import warning
 
+from nuitka import Options
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
-from nuitka.Options import isDebug, shallWarnImplicitRaises
 from nuitka.PythonVersions import python_version
 
 
@@ -50,7 +50,7 @@ def makeRaiseExceptionReplacementExpression(
 
     assert type(exception_type) is str
 
-    if shallWarnImplicitRaises():
+    if Options.shallWarnImplicitRaises():
         warning(
             '%s: Will always raise exception: "%s(%s)"',
             source_ref.getAsString(),
@@ -79,7 +79,7 @@ def makeRaiseExceptionReplacementStatement(statement, exception_type, exception_
 
     assert type(exception_type) is str
 
-    if shallWarnImplicitRaises():
+    if Options.shallWarnImplicitRaises():
         warning(
             '%s: Will always raise exception: "%s(%s)"',
             source_ref.getAsString(),
@@ -229,7 +229,7 @@ def getComputationResult(node, computation, description):
     else:
         new_node = makeCompileTimeConstantReplacementNode(value=result, node=node)
 
-        if isDebug():
+        if Options.is_debug:
             assert new_node is not node, (node, result)
 
         if new_node is not node:

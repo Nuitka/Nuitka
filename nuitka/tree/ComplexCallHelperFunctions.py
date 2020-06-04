@@ -275,6 +275,7 @@ def getCallableNameDescBody():
                     instance=ExpressionVariableRef(
                         variable=called_variable, source_ref=internal_source_ref
                     ),
+                    # TODO: This ought to be a constant value.
                     classes=ExpressionMakeTuple(
                         elements=tuple(
                             ExpressionBuiltinAnonymousRef(
