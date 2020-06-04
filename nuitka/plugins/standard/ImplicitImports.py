@@ -55,6 +55,9 @@ def remove_prefix(mod_dir, mod_name):
     return mod_dir[p:]
 
 
+_added_pywin32 = False
+
+
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
 
@@ -1437,12 +1440,16 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             shutil.copy(gtk_dll_path, dist_dll_path)
 
             return ((gtk_dll_path, dist_dll_path, None),)
-        elif full_name == "pythoncom" and isWin32Windows():
-            result = []
+        elif full_name in ("win32api", "pythoncom") and isWin32Windows():
+            # Singleton, pylint: disable=global-statement
+            global _added_pywin32
 
+            result = []
             pywin_dir = getPyWin32Dir()
 
-            if pywin_dir is not None:
+            if pywin_dir is not None and not _added_pywin32:
+                _added_pywin32 = True
+
                 for dll_name in "pythoncom", "pywintypes":
 
                     pythoncom_filename = "%s%d%d.dll" % (
