@@ -3,6 +3,72 @@ Nuitka Release 0.6.9 (Draft)
 
 This release is not done yet.
 
+Bug Fixes
+---------
+
+- Fix, closure taking object allowed a brief period where the garbage collector
+  was exposed to uninitialized objects. Fixed in 0.6.8.1 already.
+
+- Python3.6+: Fix corruption for exceptions thrown into asyncgen. Fixed in
+  0.6.8.1 already.
+
+- Fix, deleting variables detected as C type bool could raise an
+  ``UnboundLocalError`` that was wrong. Fixed in 0.6.8.1 already.
+
+- Python3.8.3+: Fix, future annotations parsing was using hard coded values that
+  were changed in CPython, leading to errors.
+
+- Windows: Avoid encoding issues for Python3 on more systems, by going from wide
+  characters to unicode strings more directly, avoiding an encoding as UTF8 in
+  the middle. Fixed in 0.6.8.2 already.
+
+- Windows: Do not crash when warning about uninstalled MSVC using Python3. This
+  is a Scons bug that we fixed. Fixed in 0.6.8.3 already.
+
+- Standalone: The output of dependency walker should be considered as "latin1"
+  rather than UTF8. Fixed in 0.6.8.3 already.
+
+- Standalone: Added missing hidden dependencies for ``flask``. Fixed in 0.6.8.1
+  already.
+
+- Standalone: Fixed ``win32com.client`` on Windows. Fixed in 0.6.8.1
+  already.
+
+- Standalone: Use ``pkgutil`` to scan encoding modules, properly ignoring the
+  same files as Python does in case of garbage files being there. Fixed in 0.6.8.2
+  already.
+
+- Plugins: Enabling a plugin after the filename to compile was given, didn't
+  allow for arguments to the passed, causing problems. Fixed in 0.6.8.3 already.
+
+Optimization
+------------
+
+- Windows: Prevent scons from scanning for MSVC when asked to use MinGW64. This
+  avoids a performance loss doing something that will then end up being unused.
+
+Organisational
+--------------
+
+- Old style plugin options are now detected and reported as a usage error
+  rather than unknown plugin.
+
+- Changed submodules to use git over https, so as to not require ssh which
+  requires a key registered and causes problems with firewalls too.
+
+- More correct Debian copyright file, made formatting of emails in source code
+  consistent.
+
+- Added repository for Ubuntu focal.
+
+Summary
+-------
+
+The main focus of this release has been bug fixes with only a little
+performance work due to the large amount of regressions and other findings from
+the last release. Behind the scenes, we are preparating a re-implementation of
+the constants loading for major scalability improvements, but it's not ready yet.
+
 
 Nuitka Release 0.6.8
 ====================
@@ -231,7 +297,6 @@ Cleanups
 
 - Removed accessors for lookup sources from nodes, allowing for faster usage and
   making sure, lookups are only done where needed.
-
 
 Summary
 -------
