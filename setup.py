@@ -290,7 +290,7 @@ setup(
     # metadata for upload to PyPI
     author="Kay Hayen",
     author_email="Kay.Hayen@gmail.com",
-    url="http://nuitka.net",
+    url="https://nuitka.net",
     description="""\
 Python compiler with full language support and CPython compatibility""",
     keywords="compiler,python,nuitka",

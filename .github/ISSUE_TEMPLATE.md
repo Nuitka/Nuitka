@@ -4,7 +4,7 @@ Before submitting an Issue, please review the [Issue Guidelines](https://github.
 
 * Please check out if the develop version of Nuitka works better for you.
 
-  Download source, packages [from here](http://nuitka.net/pages/download.html)
+  Download source, packages [from here](https://nuitka.net/pages/download.html)
   where you will also find instructions how to do it via PyPI.
 
 If you want to post a problem/bug, to help us understand and resolve your issue

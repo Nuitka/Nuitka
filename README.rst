@@ -633,21 +633,18 @@ project in all minor and major ways.
 
 The development of Nuitka occurs in git. We currently have these 3 branches:
 
-- `master
-  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/master>`__:
+- `master`
 
   This branch contains the stable release to which only hotfixes for bugs will
   be done. It is supposed to work at all times and is supported.
 
-- `develop
-  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/develop>`__:
+- `develop`
 
   This branch contains the ongoing development. It may at times contain little
   regressions, but also new features. On this branch, the integration work is
   done, whereas new features might be developed on feature branches.
 
-- `factory
-  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/factory>`__:
+- `factory`
 
   This branch contains unfinished and incomplete work. It is very frequently
   subject to ``git rebase`` and the public staging ground, where my work
@@ -656,14 +653,10 @@ The development of Nuitka occurs in git. We currently have these 3 branches:
   you very often will get merge conflicts. Simply resolve those by doing
   ``git reset --hard origin/factory`` and switch to the latest version.
 
-.. note::
-
-   I accept requests on the social code platforms, also patch files, if they
-   are good.
 
 .. note::
 
-   The `Developer Manual <http://nuitka.net/doc/developer-manual.html>`__
+   The `Developer Manual <https://nuitka.net/doc/developer-manual.html>`__
    explains the coding rules, branching model used, with feature branches and
    hotfix releases, the Nuitka design and much more. Consider reading it to
    become a contributor. This document is intended for Nuitka users.
@@ -673,7 +666,7 @@ Donations
 
 Should you feel that you cannot help Nuitka directly, but still want to
 support, please consider `making a donation
-<http://nuitka.net/pages/donations.html>`__ and help this way.
+<https://nuitka.net/pages/donations.html>`__ and help this way.
 
 Unsupported functionality
 =========================
@@ -1228,7 +1221,7 @@ This document is written in REST. That is an ASCII format which is readable as
 ASCII, but used to generate PDF or HTML documents.
 
 You will find the current source under:
-http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.rst
+https://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.rst
 
 And the current PDF under:
-http://nuitka.net/doc/README.pdf
+https://nuitka.net/doc/README.pdf

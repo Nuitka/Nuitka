@@ -449,7 +449,7 @@ API Documentation and Guidelines
 ================================
 
 There is API documentation generated with ``doxygen``, available at `this
-location <http://nuitka.net/apidoc>`__ .
+location <https://nuitka.net/apidoc>`__ .
 
 To ensure meaningful ``doxygen`` output, the following guidelines must be
 observed when creating or updating Python source:
@@ -730,10 +730,10 @@ Nuitka uses a lot of packages and imports between them.
 Internal/Plugin API
 ===================
 
-The documentation from the source code for both the Python and the
-C parts are published as `Nuitka API <http://nuitka.net/apidoc>`__
-and argumently in a relatively bad shape as we started generating
-those with Doxygen only relatively late.
+The documentation from the source code for both the Python and the C parts are
+published as `Nuitka API <https://nuitka.net/apidoc>`__ and argumently in a
+relatively bad shape as we started generating those with Doxygen only
+relatively late.
 
 .. code-block:: sh
 
@@ -4299,7 +4299,7 @@ This document is written in REST. That is an ASCII format which is readable as
 ASCII, but used to generate PDF or HTML documents.
 
 You will find the current source under:
-http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=Developer_Manual.rst
+https://github.com/Nuitka/Nuitka/blob/develop/Developer_Manual.rst
 
 And the current PDF under:
-http://nuitka.net/doc/Developer_Manual.pdf
+https://nuitka.net/doc/Developer_Manual.pdf
