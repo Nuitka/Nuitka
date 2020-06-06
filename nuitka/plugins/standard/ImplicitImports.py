@@ -44,17 +44,6 @@ def remove_suffix(mod_dir, mod_name):
     return mod_dir[:p]
 
 
-def remove_prefix(mod_dir, mod_name):
-    """Return the tail of a module's path.
-
-    Remove everything preceding the top level name.
-    """
-    if mod_name not in mod_dir:
-        return mod_dir
-    p = mod_dir.find(mod_name)
-    return mod_dir[p:]
-
-
 _added_pywin32 = False
 
 

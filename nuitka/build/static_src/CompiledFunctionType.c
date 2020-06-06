@@ -232,8 +232,7 @@ static PyObject *Nuitka_Function_get_closure(struct Nuitka_FunctionObject *objec
         PyObject *result = PyTuple_New(object->m_closure_given);
 
         for (Py_ssize_t i = 0; i < object->m_closure_given; i++) {
-            PyTuple_SET_ITEM(result, i, (PyObject *)object->m_closure[i]);
-            Py_INCREF((PyObject *)object->m_closure[i]);
+            PyTuple_SET_ITEM0(result, i, (PyObject *)object->m_closure[i]);
         }
 
         return result;

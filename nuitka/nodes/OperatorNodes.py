@@ -203,6 +203,7 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
                 )
 
         if self.escape_desc.isValueEscaping():
+            # The value of these nodes escaped and could change its contents.
             trace_collection.removeKnowledge(left)
             trace_collection.removeKnowledge(right)
 
