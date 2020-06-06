@@ -1190,7 +1190,22 @@ static PyObject *Nuitka_Generator_throw(struct Nuitka_GeneratorObject *generator
     Py_XINCREF(exception_value);
     Py_XINCREF(exception_tb);
 
-    return _Nuitka_Generator_throw2(generator, exception_type, exception_value, exception_tb);
+    PyObject *result = _Nuitka_Generator_throw2(generator, exception_type, exception_value, exception_tb);
+
+    if (result == NULL) {
+        if (GET_ERROR_OCCURRED() == NULL) {
+            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+        }
+    }
+
+#if _DEBUG_GENERATOR
+    PRINT_GENERATOR_STATUS("Leave", generator);
+    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
+    PRINT_COROUTINE_VALUE("return value", result);
+    PRINT_CURRENT_EXCEPTION();
+#endif
+
+    return result;
 }
 
 #if PYTHON_VERSION >= 340
