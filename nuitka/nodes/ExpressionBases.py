@@ -956,8 +956,7 @@ Compile time constant bytes value pre-computed.""",
                         computation=lambda: self.getCompileTimeConstant()[
                             lower.getCompileTimeConstant() : upper.getCompileTimeConstant()
                         ],
-                        description="""\
-Slicing of constant with constant indexes.""",
+                        description="Slicing of constant with constant indexes.",
                     )
             else:
                 if lower.isCompileTimeConstant():
@@ -966,8 +965,7 @@ Slicing of constant with constant indexes.""",
                         computation=lambda: self.getCompileTimeConstant()[
                             lower.getCompileTimeConstant() :
                         ],
-                        description="""\
-Slicing of constant with constant lower index only.""",
+                        description="Slicing of constant with constant lower index only.",
                     )
         else:
             if upper is not None:
@@ -977,8 +975,7 @@ Slicing of constant with constant lower index only.""",
                         computation=lambda: self.getCompileTimeConstant()[
                             : upper.getCompileTimeConstant()
                         ],
-                        description="""\
-Slicing of constant with constant upper index only.""",
+                        description="Slicing of constant with constant upper index only.",
                     )
             else:
                 return getComputationResult(
@@ -986,6 +983,10 @@ Slicing of constant with constant upper index only.""",
                     computation=lambda: self.getCompileTimeConstant()[:],
                     description="Slicing of constant with no indexes.",
                 )
+
+        # Any exception might be raised.
+        if lookup_node.mayRaiseException(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
 

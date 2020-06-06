@@ -55,6 +55,9 @@ def remove_prefix(mod_dir, mod_name):
     return mod_dir[p:]
 
 
+_added_pywin32 = False
+
+
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
 
@@ -700,16 +703,29 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "numpy.core._multiarray_tests", False
 
         elif full_name == "numpy.random":
+            # These are post-1.18 names. TODO: Once we detect versions of packages, be proper selective here.
+            yield "numpy.random._bit_generator", False
+            yield "numpy.random._bounded_integers", False
+            yield "numpy.random._common", False
+            yield "numpy.random._generator", False
+            yield "numpy.random._mt19937", False
+            yield "numpy.random._pcg64", False
+            yield "numpy.random._philox", False
+            yield "numpy.random._sfc64", False
+
+            # These are pre-1.18 names
             yield "numpy.random.bit_generator", False
             yield "numpy.random.bounded_integers", False
             yield "numpy.random.common", False
-            yield "numpy.random.entropy", False
             yield "numpy.random.generator", False
             yield "numpy.random.mt19937", False
-            yield "numpy.random.mtrand", False
             yield "numpy.random.pcg64", False
             yield "numpy.random.philox", False
             yield "numpy.random.sfc64", False
+
+            # TODO: Clarify if entropy is needed for 1.18 or at all.
+            yield "numpy.random.entropy", False
+            yield "numpy.random.mtrand", False
 
         # matplotlib imports --------------------------------------------------
         elif full_name == "matplotlib":
@@ -1424,12 +1440,16 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             shutil.copy(gtk_dll_path, dist_dll_path)
 
             return ((gtk_dll_path, dist_dll_path, None),)
-        elif full_name == "pythoncom" and isWin32Windows():
-            result = []
+        elif full_name in ("win32api", "pythoncom") and isWin32Windows():
+            # Singleton, pylint: disable=global-statement
+            global _added_pywin32
 
+            result = []
             pywin_dir = getPyWin32Dir()
 
-            if pywin_dir is not None:
+            if pywin_dir is not None and not _added_pywin32:
+                _added_pywin32 = True
+
                 for dll_name in "pythoncom", "pywintypes":
 
                     pythoncom_filename = "%s%d%d.dll" % (

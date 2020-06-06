@@ -37,6 +37,7 @@ from nuitka.specs.ParameterSpecs import (
     matchCall,
 )
 from nuitka.tree.Extractions import updateVariableUsage
+from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 
 from .Checkers import checkStatementsSequenceOrNone
 from .CodeObjectSpecs import CodeObjectSpec
@@ -795,8 +796,18 @@ class ExpressionFunctionCreation(
             if None in values:
                 return call_node, None, None
 
+            # TODO: This is probably something that the matchCall ought to do
+            # for us, but that will need cleanups. Also these functions and
+            # nodes ought to work with # ordered dictionaries maybe.
+            if call_spec.getStarDictArgumentName():
+                values[-1] = makeDictCreationOrConstant2(
+                    keys=[value[0] for value in values[-1]],
+                    values=[value[1] for value in values[-1]],
+                    source_ref=call_node.source_ref,
+                )
+
             result = ExpressionFunctionCall(
-                function=self, values=values, source_ref=call_node.getSourceReference()
+                function=self, values=values, source_ref=call_node.source_ref
             )
 
             return (

@@ -4,6 +4,16 @@ nuitka (0.6.9~rc4+ds-1) unstable; urgency=medium
 
  -- Kay Hayen <kay.hayen@gmail.com>  Wed, 27 May 2020 10:28:24 +0200
 
+nuitka (0.6.8.4+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+  * Source only upload. (Closes: #961896)
+
+  * Updated VCS URLs. (Closes: #961895)
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 06 Jun 2020 09:58:32 +0200
+
 nuitka (0.6.8.3+ds-1) unstable; urgency=medium
 
   * New upstream hotfix release.
