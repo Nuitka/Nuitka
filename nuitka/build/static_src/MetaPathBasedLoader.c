@@ -502,13 +502,13 @@ PyObject *callIntoShlibModule(const char *full_name, const char *filename) {
 
         assert(PyModule_Check(module));
 
+        PyDict_SetItemString(PyImport_GetModuleDict(), full_name, module);
+
         int res = PyModule_ExecDef(module, def);
 
         if (unlikely(res == -1)) {
             return NULL;
         }
-
-        PyDict_SetItemString(PyImport_GetModuleDict(), full_name, module);
 
         return module;
     } else {
