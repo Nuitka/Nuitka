@@ -515,6 +515,13 @@ following switch:
 
     Be aware that using this switch will increase compilation time a lot.
 
+Windows errors with resources
+-----------------------------
+
+On Windows, the Windows Defender tool and the Windows Indexing Service both
+scan the freshly created binaries, while Nuitka wants to work with it, e.g.
+adding more resources, and then preventing operations randomly due to holding
+locks. Make sure to exclude your compilation stage from these services.
 
 Windows standalone program redistribuation
 ------------------------------------------
