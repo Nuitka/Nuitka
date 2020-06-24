@@ -172,7 +172,6 @@ def getModuleCode(module_context, template_values):
 
     if is_top == 1 and Options.shallMakeModule():
         result += template_module_external_entry_point % {
-            "module_name": template_values["module_name"],
             "module_identifier": template_values["module_identifier"],
         }
 

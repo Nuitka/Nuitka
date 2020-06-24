@@ -275,6 +275,9 @@ static PyMethodDef _method_def_create_compiled_function = {
 
 #endif
 
+// Actual name might be different when loaded as a package.
+NUITKA_MAY_BE_UNUSED static char const *module_full_name = "%(module_name)s";
+
 // Internal entry point for module code.
 PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *module_entry) {
     module_%(module_identifier)s = module;
@@ -531,7 +534,6 @@ static struct PyModuleDef mdef_%(module_identifier)s = {
  * library export. This is hidden behind the MOD_INIT_DECL macro.
  */
 MOD_INIT_DECL(%(module_identifier)s) {
-    char const *module_full_name = "%(module_name)s";
     if (_Py_PackageContext != NULL) {
         module_full_name = _Py_PackageContext;
     }
