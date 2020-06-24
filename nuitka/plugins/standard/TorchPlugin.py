@@ -86,6 +86,15 @@ class TorchPlugin(NuitkaPluginBase):
         self.files_copied = False
         return None
 
+    @classmethod
+    def isRelevant(cls):
+        """ This method is called one time only to check, whether the plugin might make sense at all.
+
+        Returns:
+            True if this is a standalone compilation.
+        """
+        return Options.isStandaloneMode()
+
     def considerExtraDlls(self, dist_dir, module):
         """ Copy extra files from torch/lib.
 

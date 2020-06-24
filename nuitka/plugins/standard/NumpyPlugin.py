@@ -225,6 +225,15 @@ class NumpyPlugin(NuitkaPluginBase):
                 )
 
     @classmethod
+    def isRelevant(cls):
+        """ Check whether plugin might be required.
+
+        Returns:
+            True if this is a standalone compilation.
+        """
+        return Options.isStandaloneMode()
+
+    @classmethod
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
             "--include-scipy",

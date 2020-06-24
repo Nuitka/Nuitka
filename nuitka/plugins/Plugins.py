@@ -567,7 +567,12 @@ def activatePlugins():
         plugin_name2plugin_classes.items()
     ):
         if plugin_name in Options.getPluginsEnabled():
-            _addActivePlugin(plugin_class, args=True)
+            if plugin_class.isRelevant():
+                _addActivePlugin(plugin_class, args=True)
+            else:
+                plugin_class.warning(
+                    "Not relevant with this OS, or Nuitka arguments given, not activated."
+                )
         elif plugin_name in Options.getPluginsDisabled():
             pass
         elif plugin_class.isAlwaysEnabled() and plugin_class.isRelevant():

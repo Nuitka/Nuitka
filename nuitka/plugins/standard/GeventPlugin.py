@@ -30,6 +30,15 @@ class GeventPlugin(NuitkaPluginBase):
     plugin_name = "gevent"
     plugin_desc = "Required by the gevent package"
 
+    @classmethod
+    def isRelevant(cls):
+        """ One time only check: may this plugin be required?
+
+        Returns:
+            True if this is a standalone compilation.
+        """
+        return Options.isStandaloneMode()
+
     def onModuleEncounter(self, module_filename, module_name, module_kind):
 
         if module_name.hasNamespace("gevent"):

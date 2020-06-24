@@ -66,6 +66,15 @@ class TkinterPlugin(NuitkaPluginBase):
         self.files_copied = False  # ensure one-time action
         return None
 
+    @classmethod
+    def isRelevant(cls):
+        """ This method is called one time only to check, whether the plugin might make sense at all.
+
+        Returns:
+            True if this is a standalone compilation on Windows, else False.
+        """
+        return Options.isStandaloneMode()
+
     @staticmethod
     def createPreModuleLoadCode(module):
         """ This method is called with a module that will be imported.

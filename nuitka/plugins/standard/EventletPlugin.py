@@ -29,6 +29,15 @@ class EventletPlugin(NuitkaPluginBase):
     plugin_name = "eventlet"
     plugin_desc = "Required by the eventlet package"
 
+    @classmethod
+    def isRelevant(cls):
+        """ One time only check: may this plugin be required?
+
+        Returns:
+            True if this is a standalone compilation.
+        """
+        return Options.isStandaloneMode()
+
     def onModuleEncounter(self, module_filename, module_name, module_kind):
 
         elements = module_name.split(".")
@@ -38,7 +47,7 @@ class EventletPlugin(NuitkaPluginBase):
         return None
 
 
-class EventlettPluginDetector(NuitkaPluginBase):
+class EventletPluginDetector(NuitkaPluginBase):
     """ Only used if plugin is NOT activated.
 
     Notes:

@@ -49,6 +49,10 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     def __init__(self):
         self.multiprocessing_added = False
 
+    @classmethod
+    def isRelevant(cls):
+        return Utils.getOS() == "Windows" and not Options.shallMakeModule()
+
     @staticmethod
     def getPreprocessorSymbols():
         return {"_NUITKA_PLUGIN_MULTIPROCESSING_ENABLED": "1"}

@@ -44,8 +44,16 @@ class TensorflowPlugin(NuitkaPluginBase):
         self.files_copied = False
         return None
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    @classmethod
+    def isRelevant(cls):
+        """ This method is called one time only to check, whether the plugin might make sense at all.
 
+        Returns:
+            True if this is a standalone compilation.
+        """
+        return Options.isStandaloneMode()
+
+    def onModuleEncounter(self, module_filename, module_name, module_kind):
         for candidate in ("tensor", "google"):
             if module_name.hasNamespace(candidate):
                 return True, "Accept everything from %s" % candidate

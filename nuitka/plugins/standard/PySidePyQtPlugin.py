@@ -56,6 +56,10 @@ class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
         self.webengine_done = False
 
     @classmethod
+    def isRelevant(cls):
+        return Options.isStandaloneMode()
+
+    @classmethod
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
             "--include-qt-plugins",
