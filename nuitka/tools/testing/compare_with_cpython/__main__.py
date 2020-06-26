@@ -109,7 +109,7 @@ def _getCPythonResults(cpython_cmd):
         my_print("Retrying CPython due to permission problems after delay.")
         time.sleep(2)
 
-    cpython_time = stop_watch.delta()
+    cpython_time = stop_watch.getDelta()
 
     return cpython_time, stdout_cpython, stderr_cpython, exit_cpython
 
@@ -191,7 +191,6 @@ def main():
     silent_mode = hasArg("silent")
     ignore_stderr = hasArg("ignore_stderr")
     ignore_warnings = hasArg("ignore_warnings")
-    ignore_infos = hasArg("ignore_infos")
     expect_success = hasArg("expect_success")
     expect_failure = hasArg("expect_failure")
     python_debug = hasArg("python_debug")
@@ -623,7 +622,7 @@ Stderr was:
             time.sleep(2)
 
     stop_watch.stop()
-    nuitka_time = stop_watch.delta()
+    nuitka_time = stop_watch.getDelta()
 
     if not silent_mode:
         displayOutput(stdout_nuitka, stderr_nuitka)
@@ -634,24 +633,14 @@ Stderr was:
 
     if comparison_mode:
         exit_code_stdout = compareOutput(
-            "stdout",
-            stdout_cpython,
-            stdout_nuitka,
-            ignore_warnings,
-            ignore_infos,
-            syntax_errors,
+            "stdout", stdout_cpython, stdout_nuitka, ignore_warnings, syntax_errors,
         )
 
         if ignore_stderr:
             exit_code_stderr = 0
         else:
             exit_code_stderr = compareOutput(
-                "stderr",
-                stderr_cpython,
-                stderr_nuitka,
-                ignore_warnings,
-                ignore_infos,
-                syntax_errors,
+                "stderr", stderr_cpython, stderr_nuitka, ignore_warnings, syntax_errors,
             )
 
         exit_code_return = exit_cpython != exit_nuitka

@@ -204,6 +204,10 @@ def _setupSconsEnvironment():
         else:
             old_pythonhome = None
 
+    import nuitka
+
+    os.environ["NUITKA_PACKAGE_DIR"] = os.path.abspath(nuitka.__path__[0])
+
     yield
 
     if python_version >= 300:
@@ -217,6 +221,8 @@ def _setupSconsEnvironment():
         del os.environ["NUITKA_PYTHON_DLL_PATH"]
 
     del os.environ["NUITKA_PYTHON_EXE_PATH"]
+
+    del os.environ["NUITKA_PACKAGE_DIR"]
 
 
 def _buildSconsCommand(quiet, options):

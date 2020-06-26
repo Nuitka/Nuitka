@@ -137,8 +137,6 @@ def main():
             "expect_success",
             "standalone",
             "remove_output",
-            # For enum plugin info
-            "ignore_infos",
         ]
 
         # skip each test if their respective requirements are not met

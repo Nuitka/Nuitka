@@ -31,6 +31,9 @@ from __future__ import print_function
 import logging
 import os
 import sys
+from contextlib import contextmanager
+
+from nuitka.utils.ThreadedExecutor import RLock
 
 
 def printIndented(level, *what):
@@ -95,6 +98,24 @@ def getDisableStyleCode():
     return "\033[0m"
 
 
+# Locking seems necessary to avoid colored output split up.
+trace_lock = None
+
+
+@contextmanager
+def withTraceLock():
+    # This is a singleton, pylint: disable=global-statement
+    global trace_lock
+
+    if trace_lock is None:
+        trace_lock = RLock()
+
+    trace_lock.acquire()
+    yield
+    if trace_lock is not None:
+        trace_lock.release()
+
+
 def my_print(*args, **kwargs):
     """ Make sure we flush after every print.
 
@@ -102,31 +123,31 @@ def my_print(*args, **kwargs):
 
     Use kwarg style=[option] to print in a style listed below
     """
+    with withTraceLock():
+        if "style" in kwargs:
+            style = kwargs["style"]
+            del kwargs["style"]
 
-    if "style" in kwargs:
-        style = kwargs["style"]
-        del kwargs["style"]
+            if style is not None and sys.stdout.isatty():
+                enable_style = getEnableStyleCode(style)
 
-        if style is not None and sys.stdout.isatty():
-            enable_style = getEnableStyleCode(style)
+                if enable_style is None:
+                    raise ValueError(
+                        "%r is an invalid value for keyword argument style" % style
+                    )
 
-            if enable_style is None:
-                raise ValueError(
-                    "%r is an invalid value for keyword argument style" % style
-                )
+                _enableAnsi()
 
-            _enableAnsi()
+                print(enable_style, end="")
 
-            print(enable_style, end="")
+            print(*args, **kwargs)
 
-        print(*args, **kwargs)
+            if style is not None and sys.stdout.isatty():
+                print(getDisableStyleCode(), end="")
+        else:
+            print(*args, **kwargs)
 
-        if style is not None and sys.stdout.isatty():
-            print(getDisableStyleCode(), end="")
-    else:
-        print(*args, **kwargs)
-
-    flushStdout()
+        flushStdout()
 
 
 # TODO: Stop using logging at all, and only OurLogger.
@@ -142,7 +163,7 @@ class OurLogger(object):
         message = "%s:WARNING: %s" % (self.name, message)
 
         style = style or self.base_style
-        my_print(message, style=style)
+        my_print(message, style=style, file=sys.stderr)
 
     def info(self, message, style=None):
         message = "%s:INFO: %s" % (self.name, message)
@@ -156,3 +177,5 @@ codegen_missing = OurLogger("Nuitka-codegen-missing")
 plugins_logger = OurLogger("Nuitka-Plugins")
 recursion_logger = OurLogger("Nuitka-Recursion")
 dependencies_logger = OurLogger("Nuitka-Dependencies")
+
+scons_logger = OurLogger("Nuitka-Scons")
