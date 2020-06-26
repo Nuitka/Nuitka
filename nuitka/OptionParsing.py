@@ -776,7 +776,7 @@ def _considerPluginOptions():
             if "=" in plugin_name:
                 sys.exit(
                     "Error, plugin options format changed. Use '--plugin-enable=%s --help' to know new options."
-                    % plugin_name
+                    % plugin_name.split('=', 1)[0]
                 )
 
             addPluginCommandLineOptions(parser=parser, plugin_name=plugin_name)
