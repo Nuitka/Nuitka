@@ -100,14 +100,16 @@ def checkRequirements(filename):
 def displayError(dirname, filename):
     assert dirname is None
 
-    my_print("Listing of dist folder:")
+    filename = filename[:-3] + ".dist"
+
+    my_print("Listing of dist folder '%s':" % filename)
 
     if os.name == "nt":
-        command = "dir /b /s /a:-D %s"
+        command = "dir /b /s /a:-D %s" % filename
     else:
-        command = "ls -Rla %s"
+        command = "ls -Rla %s" % filename
 
-    os.system(command % filename)
+    os.system(command)
 
 
 def main():
