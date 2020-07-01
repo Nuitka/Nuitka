@@ -1409,6 +1409,9 @@ def _getBinaryArch(binary):
         if show_scons_mode:
             print("Scons: Detecting arch with :", command)
 
+        _env = os.environ.copy()
+        _env["LANG"] = "C"
+
         try:
             proc = subprocess.Popen(
                 command,
@@ -1416,6 +1419,7 @@ def _getBinaryArch(binary):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 shell=False,
+                env=_env,
             )
         except OSError:
             return None
