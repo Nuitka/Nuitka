@@ -82,17 +82,17 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
 
 _debug_value = "no_asserts" not in getPythonFlags()
 
+quick_names = {
+    "None": None,
+    "True": True,
+    "False": False,
+    "__debug__": _debug_value,
+    "Ellipsis": Ellipsis,
+}
+
 
 def makeExpressionBuiltinRef(builtin_name, source_ref):
     assert builtin_name in builtin_names, builtin_name
-
-    quick_names = {
-        "None": None,
-        "True": True,
-        "False": False,
-        "__debug__": _debug_value,
-        "Ellipsis": Ellipsis,
-    }
 
     if builtin_name in quick_names:
         return makeConstantRefNode(

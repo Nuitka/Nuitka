@@ -71,6 +71,7 @@ from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
     ExpressionBuiltinFormat,
 )
+from nuitka.nodes.BuiltinRefNodes import quick_names
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
@@ -191,13 +192,30 @@ from .TreeHelpers import (
 )
 from .VariableClosure import completeVariableClosures
 
+if str is not bytes:
 
-def buildVariableReferenceNode(provider, node, source_ref):
-    return ExpressionVariableNameRef(
-        provider=provider,
-        variable_name=mangleName(node.id, provider),
-        source_ref=source_ref,
-    )
+    def buildVariableReferenceNode(provider, node, source_ref):
+        # Shortcut for Python3, which gives syntax errors for assigning these.
+        if node.id in quick_names:
+            return makeConstantRefNode(
+                constant=quick_names[node.id], source_ref=source_ref
+            )
+
+        return ExpressionVariableNameRef(
+            provider=provider,
+            variable_name=mangleName(node.id, provider),
+            source_ref=source_ref,
+        )
+
+
+else:
+
+    def buildVariableReferenceNode(provider, node, source_ref):
+        return ExpressionVariableNameRef(
+            provider=provider,
+            variable_name=mangleName(node.id, provider),
+            source_ref=source_ref,
+        )
 
 
 # Python3.4 or higher, True and False, are not given as variables anymore.
