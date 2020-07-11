@@ -101,7 +101,7 @@ def hasActivePlugin(plugin_name):
         return False
 
     # Detectors do not count.
-    plugin_instance = active_plugins.get[plugin_name]
+    plugin_instance = active_plugins.get(plugin_name)
     return not hasattr(plugin_instance, "detector_for")
 
 

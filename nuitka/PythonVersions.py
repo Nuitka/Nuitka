@@ -253,3 +253,16 @@ def getPythonABI():
         abiflags = ""
 
     return abiflags
+
+
+def getSystemPrefixPath():
+    """ Return real sys.prefix as an absolute path.
+
+        Note: This breaks out of virtualenvs as necessary.
+
+        Returns: path to system prefix
+    """
+
+    sys_prefix = getattr(sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix))
+    sys_prefix = os.path.abspath(sys_prefix)
+    return sys_prefix

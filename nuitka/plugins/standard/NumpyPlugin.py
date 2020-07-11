@@ -25,6 +25,7 @@ import sys
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import hasActivePlugin
+from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.utils import Execution
 from nuitka.utils.FileOperations import getFileList, makePath
 from nuitka.utils.Utils import isWin32Windows
@@ -33,14 +34,6 @@ from nuitka.utils.Utils import isWin32Windows
 # The following code is largely inspired by PyInstaller hook_numpy.core.py
 # START
 # ------------------------------------------------------------------------------
-
-
-def get_sys_prefix():
-    """ Return sys.prefix as guaranteed abspath format.
-    """
-    sys_prefix = getattr(sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix))
-    sys_prefix = os.path.abspath(sys_prefix)
-    return sys_prefix
 
 
 def getScipyCoreBinaries(module):
@@ -74,7 +67,7 @@ def getNumpyCoreBinaries(module):
     """
     numpy_dir = module.getCompileTimeDirectory()
     numpy_core_dir = os.path.join(numpy_dir, "core")
-    base_prefix = get_sys_prefix()
+    base_prefix = getSystemPrefixPath()
 
     binaries = []
 
@@ -206,9 +199,9 @@ class NumpyPlugin(NuitkaPluginBase):
     plugin_name = "numpy"  # Nuitka knows us by this name
     plugin_desc = "Required for numpy, scipy, pandas, matplotlib, etc."
 
-    def __init__(self, matplotlib, scipy):
-        self.matplotlib = matplotlib
-        self.scipy = scipy
+    def __init__(self, noinclude_matplotlib, noinclude_scipy):
+        self.matplotlib = noinclude_matplotlib
+        self.scipy = noinclude_scipy
 
         self.enabled_plugins = None  # list of active standard plugins
         self.numpy_copied = False  # indicator: numpy files copied
@@ -219,9 +212,10 @@ class NumpyPlugin(NuitkaPluginBase):
         self.mpl_data_copied = True  # indicator: matplotlib data copied
         if self.matplotlib:
             self.mpl_data_copied = False
+
             if not hasActivePlugin("hinted-mods"):
-                self.warning(
-                    "matplotlib may need hinted compilation for non-standard backends"
+                self.info(
+                    "In case of matplotlib problems, consider using hinted compilation for non-standard backends"
                 )
 
     @classmethod
@@ -236,21 +230,21 @@ class NumpyPlugin(NuitkaPluginBase):
     @classmethod
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
-            "--include-scipy",
-            action="store_true",
-            dest="scipy",
-            default=False,
+            "--noinclude-scipy",
+            action="store_false",
+            dest="noinclude_scipy",
+            default=True,
             help="""\
-Should scipy be included with numpy, Default is %default.""",
+Should scipy, sklearn or skimage when used be not included with numpy, Default is %default.""",
         )
 
         group.add_option(
-            "--include-matplotlib",
-            action="store_true",
-            dest="matplotlib",
-            default=False,
+            "--noinclude-matplotlib",
+            action="store_false",
+            dest="noinclude_matplotlib",
+            default=True,
             help="""\
-Should matplotlib be included with numpy, Default is %default.""",
+Should matplotlib not be be included with numpy, Default is %default.""",
         )
 
     def considerExtraDlls(self, dist_dir, module):
