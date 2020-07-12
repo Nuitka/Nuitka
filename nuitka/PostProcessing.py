@@ -24,13 +24,14 @@ import shutil
 import stat
 import sys
 
-from nuitka import Options
-from nuitka.codegen import ConstantCodes
+from nuitka import Options, OutputDirectories
+from nuitka.build.DataComposerInterface import getConstantBlobFilename
 from nuitka.PythonVersions import (
     getPythonABI,
     getTargetPythonDLLPath,
     python_version,
 )
+from nuitka.utils.FileOperations import getFileContents
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     callInstallNameToolAddRPath,
@@ -63,10 +64,12 @@ def executePostProcessing(result_filename):
 
         assert os.path.exists(result_filename)
 
+        source_dir = OutputDirectories.getSourceDirectoryPath()
+
         # Attach the binary blob as a Windows resource.
         addResourceToFile(
             target_filename=result_filename,
-            data=ConstantCodes.stream_data.getBytes(),
+            data=getFileContents(getConstantBlobFilename(source_dir), "rb"),
             resource_kind=RT_RCDATA,
             res_name=3,
             lang_id=0,

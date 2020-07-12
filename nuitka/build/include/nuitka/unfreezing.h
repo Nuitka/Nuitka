@@ -37,7 +37,7 @@ struct Nuitka_MetaPathBasedLoaderEntry {
     module_initfunc python_initfunc;
 
     /* For bytecode modules, start and size inside the constants blob. */
-    int bytecode_start;
+    int bytecode_index;
     int bytecode_size;
 
     /* Flags: Indicators if this is compiled, bytecode or shared library. */
@@ -47,7 +47,8 @@ struct Nuitka_MetaPathBasedLoaderEntry {
 /* For embedded modules, register the meta path based loader. Used by main
  * program/package only.
  */
-extern void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *loader_entries);
+extern void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *loader_entries,
+                                           unsigned char **bytecode_data);
 
 /* Create a loader object responsible for a package. */
 extern PyObject *Nuitka_Loader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry);

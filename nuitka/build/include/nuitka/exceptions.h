@@ -158,10 +158,6 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK(PyTracebackObject *
     return traceback_new;
 }
 
-#if PYTHON_VERSION < 300
-extern PyObject *const_str_plain_exc_type, *const_str_plain_exc_value, *const_str_plain_exc_traceback;
-#endif
-
 // Need some wrapper functions for accessing exception type, value, and traceback
 // due to changes in Python 3.7
 

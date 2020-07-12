@@ -32,7 +32,6 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
-from .ConstantCodes import allocateNestedConstants, getConstantInitCodes
 from .Indentation import indented
 from .templates.CodeTemplatesModules import (
     template_global_copyright,
@@ -48,19 +47,8 @@ def getModuleAccessCode(context):
     return "module_%s" % context.getModuleCodeName()
 
 
-def getModuleValues(
-    context,
-    module_name,
-    module_identifier,
-    function_decl_codes,
-    function_body_codes,
-    outline_variables,
-    temp_variables,
-    is_main_module,
-    is_internal_module,
-    is_package,
-    is_top,
-):
+def getModuleCode(module, function_decl_codes, function_body_codes, context):
+
     # For the module code, lots of arguments and attributes come together.
     # pylint: disable=too-many-locals
 
@@ -75,8 +63,8 @@ def getModuleValues(
         context=context,
         parameters=None,
         closure_variables=(),
-        user_variables=outline_variables,
-        temp_variables=temp_variables,
+        user_variables=module.getOutlineLocalVariables(),
+        temp_variables=module.getTempVariables(),
     )
 
     module_codes = Emission.SourceCodeCollector()
@@ -116,15 +104,31 @@ def getModuleValues(
     for func_impl_identifier in context.getFunctionCreationInfos():
         function_table_entries_decl.append("%s," % func_impl_identifier)
 
-    module_body_template_values = {
+    module_name = module.getFullName()
+
+    is_package = module.isCompiledPythonPackage()
+    is_top = module.isTopModule()
+
+    module_identifier = module.getCodeName()
+
+    template = template_global_copyright + template_module_body_template
+
+    if is_top == 1 and Options.shallMakeModule():
+        template += template_module_external_entry_point
+
+    module_code_objects_decl = getCodeObjectsDeclCode(context)
+    module_code_objects_init = getCodeObjectsInitCode(context)
+
+    return template % {
         "module_name": module_name,
-        "is_main_module": 1 if is_main_module else 0,
+        "version": getNuitkaVersion(),
+        "year": getNuitkaVersionYear(),
+        "is_main_module": 1 if module.isMainModule() else 0,
         "is_dunder_main": 1
         if module_name == "__main__"
         and os.path.basename(module.getCompileTimeFilename()) == "__main__.py"
         else 0,
         "is_package": 1 if is_package else 0,
-        "is_top": 1 if is_top else 0,
         "module_identifier": module_identifier,
         "module_functions_decl": function_decl_codes,
         "module_functions_code": function_body_codes,
@@ -132,56 +136,14 @@ def getModuleValues(
         "temps_decl": indented(local_var_inits),
         "module_code": indented(module_codes.codes),
         "module_exit": module_exit,
-        "module_code_objects_decl": indented(getCodeObjectsDeclCode(context), 0),
-        "module_code_objects_init": indented(getCodeObjectsInitCode(context), 1),
+        "module_code_objects_decl": indented(module_code_objects_decl, 0),
+        "module_code_objects_init": indented(module_code_objects_init, 1),
+        "constants_count": context.getConstantsCount(),
     }
-
-    allocateNestedConstants(context)
-
-    # Force internal module to not need constants init, by making all its
-    # constants be shared.
-    if is_internal_module:
-        for constant in context.getConstants():
-            context.global_context.countConstantUse(constant)
-
-    return module_body_template_values
-
-
-def getModuleCode(module_context, template_values):
-    header = template_global_copyright % {
-        "name": module_context.getName(),
-        "version": getNuitkaVersion(),
-        "year": getNuitkaVersionYear(),
-    }
-
-    decls, inits, checks = getConstantInitCodes(module_context)
-
-    if module_context.needsModuleFilenameObject():
-        decls.append("static PyObject *module_filename_obj;")
-
-    template_values["constant_decl_codes"] = indented(decls, 0)
-
-    template_values["constant_init_codes"] = indented(inits, 1)
-
-    template_values["constant_check_codes"] = indented(checks, 1)
-
-    is_top = template_values["is_top"]
-    del template_values["is_top"]
-
-    result = header + template_module_body_template % template_values
-
-    if is_top == 1 and Options.shallMakeModule():
-        result += template_module_external_entry_point % {
-            "module_identifier": template_values["module_identifier"],
-        }
-
-    return result
 
 
 def generateModuleAttributeFileCode(to_name, expression, emit, context):
     # TODO: Special treatment justified?
-    context.markAsNeedsModuleFilenameObject()
-
     with withObjectCodeTemporaryAssignment(
         to_name, "module_fileattr_value", expression, emit, context
     ) as result_name:

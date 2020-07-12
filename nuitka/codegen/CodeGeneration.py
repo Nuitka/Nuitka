@@ -87,6 +87,7 @@ from .ConstantCodes import (
     generateConstantNoneReferenceCode,
     generateConstantReferenceCode,
     generateConstantTrueReferenceCode,
+    getConstantsDefinitionCode,
 )
 from .CoroutineCodes import (
     generateAsyncIterCode,
@@ -182,7 +183,6 @@ from .ListCodes import (
     generateListOperationExtendCode,
     generateListOperationPopCode,
 )
-from .LoaderCodes import getMetapathLoaderBodyCode
 from .LocalsDictCodes import (
     generateLocalsDictDelCode,
     generateLocalsDictSetCode,
@@ -202,7 +202,6 @@ from .ModuleCodes import (
     generateModuleAttributeFileCode,
     generateNuitkaLoaderCreationCode,
     getModuleCode,
-    getModuleValues,
 )
 from .OperationCodes import (
     generateOperationBinaryCode,
@@ -409,7 +408,7 @@ def generateFunctionBodyCode(function_body, context):
     return function_code, function_decl
 
 
-def prepareModuleCode(global_context, module, module_name):
+def generateModuleCode(module, data_filename):
     # As this not only creates all modules, but also functions, it deals
     # also with its functions.
 
@@ -417,10 +416,8 @@ def prepareModuleCode(global_context, module, module_name):
 
     context = Contexts.PythonModuleContext(
         module=module,
-        module_name=module_name,
-        code_name=module.getCodeName(),
-        filename=module.getFilename(),
-        global_context=global_context,
+        # TODO: Have output filename already before generating code.
+        data_filename=data_filename,
     )
 
     context.setExceptionEscape("module_exception_exit")
@@ -460,38 +457,22 @@ def prepareModuleCode(global_context, module, module_name):
 
         function_decl_codes.append(function_decl)
 
-    template_values = getModuleValues(
-        module_name=module_name,
-        module_identifier=module.getCodeName(),
-        function_decl_codes=function_decl_codes,
-        function_body_codes=function_body_codes,
-        temp_variables=module.getTempVariables(),
-        outline_variables=module.getOutlineLocalVariables(),
-        is_main_module=module.isMainModule(),
-        is_internal_module=module.isInternalModule(),
-        is_package=module.isCompiledPythonPackage(),
-        is_top=module.isTopModule(),
-        context=context,
-    )
-
-    return template_values, context
+    return getModuleCode(module, function_decl_codes, function_body_codes, context)
 
 
-def generateModuleCode(module_context, template_values):
-    return getModuleCode(module_context=module_context, template_values=template_values)
-
-
-def generateHelpersCode(other_modules):
+def generateHelpersCode():
     calls_decl_code = getCallsDecls()
 
-    loader_code = getMetapathLoaderBodyCode(other_modules)
     calls_body_code = getCallsCode()
 
-    return calls_decl_code, calls_body_code + loader_code
+    constants_header_code, constants_body_code = getConstantsDefinitionCode()
 
-
-def makeGlobalContext():
-    return Contexts.PythonGlobalContext()
+    return (
+        calls_decl_code,
+        calls_body_code,
+        constants_header_code,
+        constants_body_code,
+    )
 
 
 setExpressionDispatchDict(

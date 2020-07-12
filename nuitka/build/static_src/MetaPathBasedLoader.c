@@ -123,12 +123,6 @@ static void concatModulenameAsPathW(wchar_t *buffer, char const *module_name) {
 }
 #endif
 
-extern PyObject *const_str_plain_name;
-extern PyObject *const_str_plain___package__;
-extern PyObject *const_str_plain___path__;
-extern PyObject *const_str_plain___file__;
-extern PyObject *const_str_plain___loader__;
-
 // TODO: This updates the wrong absolute path. We ought to change it to
 // the "module_path_name" at the time of writing it, then we save a few
 // bytes in the blob, and don't have to create that string here.
@@ -311,8 +305,6 @@ static PyObject *_path_unfreezer_find_module(PyObject *self, PyObject *args, PyO
 }
 
 static char *_kwlist_get_data[] = {(char *)"filename", NULL};
-
-extern PyObject *const_str_plain_read, *const_str_plain_rb;
 
 static PyObject *_path_unfreezer_get_data(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *filename;
@@ -609,9 +601,6 @@ static bool loadTriggeredModule(char const *name, char const *trigger_name) {
 }
 
 #if PYTHON_VERSION >= 340
-extern PyObject *const_str_plain___spec__;
-extern PyObject *const_str_plain__initializing;
-
 static void _fixupSpecAttribute(PyObject *module) {
     PyObject *spec_value = LOOKUP_ATTRIBUTE(module, const_str_plain___spec__);
 
@@ -622,6 +611,9 @@ static void _fixupSpecAttribute(PyObject *module) {
     }
 }
 #endif
+
+// Pointers to bytecode data.
+static char **_bytecode_data = NULL;
 
 static PyObject *loadModule(PyObject *module, PyObject *module_name,
                             struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
@@ -653,8 +645,11 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name,
     } else
 #endif
         if ((entry->flags & NUITKA_BYTECODE_FLAG) != 0) {
-        PyCodeObject *code_object = (PyCodeObject *)PyMarshal_ReadObjectFromString(
-            (char *)&constant_bin[entry->bytecode_start], entry->bytecode_size);
+        // TODO: Do node use marshal, but our own stuff, once we
+        // can do code objects too.
+
+        PyCodeObject *code_object =
+            (PyCodeObject *)PyMarshal_ReadObjectFromString(_bytecode_data[entry->bytecode_index], entry->bytecode_size);
 
         // TODO: Probably a bit harsh reaction.
         if (unlikely(code_object == NULL)) {
@@ -1133,13 +1128,16 @@ PyObject *Nuitka_Loader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry)
     return (PyObject *)result;
 }
 
-void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loader_entries) {
+void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loader_entries,
+                                    unsigned char **bytecode_data) {
     // Do it only once.
     if (loader_entries) {
         assert(_loader_entries == loader_entries);
 
         return;
     }
+
+    _bytecode_data = (char **)bytecode_data;
 
     if (isVerbose()) {
         PySys_WriteStderr("Setup nuitka compiled module/bytecode/shlib importer.\n");
@@ -1192,9 +1190,6 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 }
 
 #if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
-
-extern PyObject *const_str_plain___file__;
-
 // This is called for the technical module imported early on during interpreter
 // into, to still get compatible "__file__" attributes.
 void setEarlyFrozenModulesFileAttribute(void) {

@@ -663,10 +663,6 @@ PyObject *BUILTIN_FORMAT(PyObject *value, PyObject *format_spec) {
 // behaviour.
 
 #if PYTHON_VERSION >= 300
-extern PyObject *const_str_plain_end;
-extern PyObject *const_str_plain_file;
-extern PyObject *const_str_empty;
-
 NUITKA_DEFINE_BUILTIN(print);
 #endif
 
@@ -674,6 +670,11 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
 #if PYTHON_VERSION < 300
     if (file == NULL || file == Py_None) {
         file = GET_STDOUT();
+
+        if (unlikely(file == NULL)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "lost sys.stdout");
+            return false;
+        }
     }
 
     // need to hold a reference to the file or else __getattr__ may release
@@ -725,6 +726,11 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 #if PYTHON_VERSION < 300
     if (file == NULL || file == Py_None) {
         file = GET_STDOUT();
+
+        if (unlikely(file == NULL)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "lost sys.stdout");
+            return false;
+        }
     }
 
     CHECK_OBJECT(file);
@@ -956,138 +962,14 @@ PyObject *GET_STDERR() {
     return result;
 }
 
-bool PRINT_NEW_LINE(void) {
-    PyObject *target = GET_STDOUT();
-
-    return target != NULL && PRINT_NEW_LINE_TO(target);
-}
+bool PRINT_NEW_LINE(void) { return PRINT_NEW_LINE_TO(NULL); }
 
 bool PRINT_ITEM(PyObject *object) {
     if (object == NULL) {
         return PRINT_NULL();
     } else {
-        PyObject *target = GET_STDOUT();
-
-        return target != NULL && PRINT_ITEM_TO(target, object);
+        return PRINT_ITEM_TO(NULL, object);
     }
-}
-
-#if PYTHON_VERSION < 300
-PyObject *UNSTREAM_UNICODE(unsigned char const *buffer, Py_ssize_t size) {
-    PyObject *result = PyUnicode_FromStringAndSize((char const *)buffer, size);
-
-    assert(!ERROR_OCCURRED());
-    CHECK_OBJECT(result);
-
-    return result;
-}
-#endif
-
-PyObject *UNSTREAM_STRING(unsigned char const *buffer, Py_ssize_t size, bool intern) {
-    PyObject *result = Nuitka_String_FromStringAndSize((char const *)buffer, size);
-
-    assert(!ERROR_OCCURRED());
-    CHECK_OBJECT(result);
-    assert(Nuitka_String_Check(result));
-
-#if PYTHON_VERSION < 300
-    assert(PyString_Size(result) == size);
-#endif
-
-    if (intern) {
-        Nuitka_StringIntern(&result);
-
-        CHECK_OBJECT(result);
-        assert(Nuitka_String_Check(result));
-
-#if PYTHON_VERSION < 300
-        assert(PyString_Size(result) == size);
-#else
-        assert(PyUnicode_GET_SIZE(result) == size);
-#endif
-    }
-
-    return result;
-}
-
-#if PYTHON_VERSION >= 300
-PyObject *UNSTREAM_STRING_ASCII(unsigned char const *buffer, Py_ssize_t size, bool intern) {
-    PyObject *result = PyUnicode_FromKindAndData(PyUnicode_1BYTE_KIND, (char const *)buffer, size);
-
-    assert(!ERROR_OCCURRED());
-    CHECK_OBJECT(result);
-    assert(Nuitka_String_Check(result));
-
-    if (intern) {
-        Nuitka_StringIntern(&result);
-
-        CHECK_OBJECT(result);
-        assert(Nuitka_String_Check(result));
-
-        assert(PyUnicode_GET_SIZE(result) == size);
-    }
-
-    return result;
-}
-#endif
-
-PyObject *UNSTREAM_CHAR(unsigned char value, bool intern) {
-    PyObject *result = Nuitka_String_FromStringAndSize((char const *)&value, 1);
-
-    assert(!ERROR_OCCURRED());
-    CHECK_OBJECT(result);
-    assert(Nuitka_String_Check(result));
-
-#if PYTHON_VERSION < 300
-    assert(PyString_Size(result) == 1);
-#else
-    assert(PyUnicode_GET_SIZE(result) == 1);
-#endif
-
-    if (intern) {
-        Nuitka_StringIntern(&result);
-
-        CHECK_OBJECT(result);
-        assert(Nuitka_String_Check(result));
-
-#if PYTHON_VERSION < 300
-        assert(PyString_Size(result) == 1);
-#else
-        assert(PyUnicode_GET_SIZE(result) == 1);
-#endif
-    }
-
-    return result;
-}
-
-PyObject *UNSTREAM_FLOAT(unsigned char const *buffer) {
-    double x = _PyFloat_Unpack8(buffer, 1);
-    assert(x != -1.0 || !PyErr_Occurred());
-
-    PyObject *result = PyFloat_FromDouble(x);
-    assert(result != NULL);
-
-    return result;
-}
-
-#if PYTHON_VERSION >= 300
-PyObject *UNSTREAM_BYTES(unsigned char const *buffer, Py_ssize_t size) {
-    PyObject *result = PyBytes_FromStringAndSize((char const *)buffer, size);
-    assert(!ERROR_OCCURRED());
-    CHECK_OBJECT(result);
-
-    assert(PyBytes_GET_SIZE(result) == size);
-    return result;
-}
-#endif
-
-PyObject *UNSTREAM_BYTEARRAY(unsigned char const *buffer, Py_ssize_t size) {
-    PyObject *result = PyByteArray_FromStringAndSize((char const *)buffer, size);
-    assert(!ERROR_OCCURRED());
-    CHECK_OBJECT(result);
-
-    assert(PyByteArray_GET_SIZE(result) == size);
-    return result;
 }
 
 #if PYTHON_VERSION < 300
@@ -1098,10 +980,6 @@ static void set_slot(PyObject **slot, PyObject *value) {
     *slot = value;
     Py_XDECREF(temp);
 }
-
-extern PyObject *const_str_plain___getattr__;
-extern PyObject *const_str_plain___setattr__;
-extern PyObject *const_str_plain___delattr__;
 
 static void set_attr_slots(PyClassObject *klass) {
     set_slot(&klass->cl_getattr, FIND_ATTRIBUTE_IN_CLASS(klass, const_str_plain___getattr__));
@@ -1660,8 +1538,6 @@ static PyTypeObject Nuitka_BuiltinModule_Type = {
     sizeof(PyModuleObject),                           // tp_size
 };
 
-extern PyObject *const_str_plain_open;
-
 int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObject *value) {
     CHECK_OBJECT(module);
     CHECK_OBJECT(name);
@@ -2050,8 +1926,6 @@ volatile int _Py_Ticker = _Py_CheckInterval;
 
 #if PYTHON_VERSION >= 270
 iternextfunc default_iternext;
-
-extern PyObject *const_str_plain___iter__;
 
 void _initSlotIternext() {
     PyObject *pos_args = PyTuple_New(1);

@@ -551,8 +551,6 @@ void _initCompiledFrameType(void) {
     assert(offsetof(struct Nuitka_FrameObject, m_frame.f_localsplus) == offsetof(PyFrameObject, f_localsplus));
 }
 
-extern PyObject *const_str_plain___module__;
-
 static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *module, bool is_module,
                                              Py_ssize_t locals_size) {
     assertCodeObject(code);
@@ -637,9 +635,6 @@ struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObject *mod
     return MAKE_FRAME(code, module, false, locals_size);
 }
 
-extern PyObject *const_str_empty;
-extern PyObject *const_bytes_empty;
-
 PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name, PyObject *argnames,
                              int arg_count
 #if PYTHON_VERSION >= 300
@@ -654,7 +649,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     CHECK_OBJECT(filename);
     assert(Nuitka_String_CheckExact(filename));
     CHECK_OBJECT(function_name);
-    assert(Nuitka_String_Check(function_name));
+    assert(Nuitka_String_CheckExact(function_name));
     CHECK_OBJECT(argnames);
     assert(PyTuple_Check(argnames));
 

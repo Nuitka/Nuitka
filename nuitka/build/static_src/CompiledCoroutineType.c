@@ -161,8 +161,6 @@ static void Nuitka_Coroutine_release_closure(struct Nuitka_CoroutineObject *coro
     coroutine->m_closure_given = 0;
 }
 
-extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
-
 // Note: Shared with asyncgen.
 static PyObject *_Nuitka_YieldFromCore(PyObject *yieldfrom, PyObject *send_value, PyObject **returned_value,
                                        bool mode) {
@@ -655,8 +653,6 @@ static PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine
         return Py_None;
     }
 }
-
-extern PyObject *const_str_plain_throw;
 
 #if PYTHON_VERSION >= 360
 static bool Nuitka_AsyncgenAsend_Check(PyObject *object);
@@ -1394,8 +1390,6 @@ PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyObject *
     Nuitka_GC_Track(result);
     return (PyObject *)result;
 }
-
-extern PyObject *const_str_plain_send;
 
 static int gen_is_coroutine(PyObject *object) {
     if (PyGen_CheckExact(object)) {

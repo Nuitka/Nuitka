@@ -76,8 +76,10 @@ else:
 
 if str is bytes:
     from cStringIO import StringIO  # pylint: disable=I0021,import-error
+    from cStringIO import StringIO as BytesIO  # pylint: disable=I0021,import-error
 else:
     from io import StringIO  # pylint: disable=I0021,import-error
+    from io import BytesIO  # pylint: disable=I0021,import-error
 
 try:
     from functools import total_ordering
@@ -109,6 +111,14 @@ if str is bytes:
 else:
     intern = sys.intern
 
+if str is bytes:
+    to_byte = chr
+else:
+
+    def to_byte(value):
+        assert type(value) is int and 0 <= value < 256
+        return bytes((value,))
+
 
 def getMetaClassBase(meta_class_prefix):
     """ For Python2/3 compatible source, we create a base class that has the metaclass
@@ -128,6 +138,7 @@ assert long
 assert unicode
 assert urlretrieve
 assert StringIO
+assert BytesIO
 assert type(xrange) is type, xrange
 assert total_ordering
 assert intern

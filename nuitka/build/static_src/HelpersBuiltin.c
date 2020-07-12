@@ -142,7 +142,6 @@ PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mod
 
 #if PYTHON_VERSION < 300
 
-extern PyObject *const_str_plain_read;
 bool EXEC_FILE_ARG_HANDLING(PyObject **prog, PyObject **name) {
     CHECK_OBJECT(*prog);
     CHECK_OBJECT(*name);
@@ -506,8 +505,6 @@ PyObject *BUILTIN_TYPE1(PyObject *arg) {
     return result;
 }
 
-extern PyObject *const_str_plain___module__;
-
 PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict) {
     PyObject *pos_args = PyTuple_New(3);
     PyTuple_SET_ITEM(pos_args, 0, name);
@@ -567,8 +564,6 @@ typedef struct {
     PyObject *obj;
     PyTypeObject *obj_type;
 } superobject;
-
-extern PyObject *const_str_plain___class__;
 
 PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object) {
     CHECK_OBJECT(type);

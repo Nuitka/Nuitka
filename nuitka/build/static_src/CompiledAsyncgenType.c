@@ -501,8 +501,6 @@ static bool _Nuitka_Asyncgen_close(struct Nuitka_AsyncgenObject *asyncgen) {
 static bool _Nuitka_Generator_check_throw2(PyObject **exception_type, PyObject **exception_value,
                                            PyTracebackObject **exception_tb);
 
-extern PyObject *const_str_plain_throw;
-
 // This function is called when yielding to a asyncgen through "_Nuitka_YieldFromPassExceptionTo"
 // and potentially wrapper objects used by generators, or by the throw method itself.
 // Note:

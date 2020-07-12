@@ -172,8 +172,6 @@ static PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *corouti
                                           PyTracebackObject *exception_tb);
 #endif
 
-extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
-
 static PyObject *_Nuitka_YieldFromPassExceptionTo(PyObject *value, PyObject *exception_type, PyObject *exception_value,
                                                   PyTracebackObject *exception_tb) {
     // The yielding generator is being closed, but we also are tasked to

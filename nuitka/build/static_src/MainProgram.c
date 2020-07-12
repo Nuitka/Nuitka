@@ -34,7 +34,6 @@
 #endif
 
 extern PyCodeObject *codeobj_main;
-extern PyObject *const_str_plain___main__;
 
 /* For later use in "Py_GetArgcArgv" */
 static char **orig_argv;

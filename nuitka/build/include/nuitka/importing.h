@@ -41,8 +41,6 @@ extern PyObject *IMPORT_EMBEDDED_MODULE(char const *name);
 // Execute a module, the module object is prepared empty, but with __name__.
 extern PyObject *EXECUTE_EMBEDDED_MODULE(PyObject *module);
 
-extern PyObject *const_str_plain___name__;
-
 // Import a name from a module.
 extern PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name);
 

@@ -31,12 +31,6 @@
 
 NUITKA_DEFINE_BUILTIN(__import__);
 
-extern PyObject *const_str_plain_name;
-extern PyObject *const_str_plain_globals;
-extern PyObject *const_str_plain_locals;
-extern PyObject *const_str_plain_fromlist;
-extern PyObject *const_str_plain_level;
-
 PyObject *IMPORT_MODULE_KW(PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items,
                            PyObject *level) {
     if (module_name)
@@ -148,8 +142,6 @@ PyObject *IMPORT_MODULE5(PyObject *module_name, PyObject *globals, PyObject *loc
 
     return import_result;
 }
-
-extern PyObject *const_str_plain___all__;
 
 bool IMPORT_MODULE_STAR(PyObject *target, bool is_module, PyObject *module) {
     // Check parameters.
@@ -263,8 +255,6 @@ PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name) {
 }
 
 #if PYTHON_VERSION >= 350
-extern PyObject *const_str_empty;
-
 PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *import_name, PyObject *level) {
     CHECK_OBJECT(module);
     CHECK_OBJECT(import_name);

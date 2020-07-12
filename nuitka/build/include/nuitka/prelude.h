@@ -149,7 +149,6 @@
 #define Nuitka_String_Check PyString_Check
 #define Nuitka_String_CheckExact PyString_CheckExact
 #define Nuitka_StringObject PyStringObject
-#define Nuitka_StringIntern PyString_InternInPlace
 #define Nuitka_String_FromString PyString_FromString
 #define Nuitka_String_FromStringAndSize PyString_FromStringAndSize
 #define Nuitka_String_FromFormat PyString_FromFormat
@@ -167,7 +166,6 @@
 #define Nuitka_String_Check PyUnicode_Check
 #define Nuitka_String_CheckExact PyUnicode_CheckExact
 #define Nuitka_StringObject PyUnicodeObject
-#define Nuitka_StringIntern PyUnicode_InternInPlace
 #define Nuitka_String_FromString PyUnicode_FromString
 #define Nuitka_String_FromStringAndSize PyUnicode_FromStringAndSize
 #define Nuitka_String_FromFormat PyUnicode_FromFormat
@@ -244,6 +242,138 @@ extern PyThreadState *_PyThreadState_Current;
 #define Py_EnterRecursiveCall(arg) (0)
 #undef Py_LeaveRecursiveCall
 #define Py_LeaveRecursiveCall()
+#endif
+
+// Generated.
+// TODO: Move generated ones to separate file.
+#ifdef __IDE_ONLY__
+extern PyObject **global_constants;
+// ()
+#define const_tuple_empty global_constants[1]
+// {}
+#define const_dict_empty global_constants[2]
+// 0
+#define const_int_0 global_constants[3]
+// 1
+#define const_int_pos_1 global_constants[4]
+// -1
+#define const_int_neg_1 global_constants[5]
+// 0.0
+#define const_float_0_0 global_constants[6]
+// -0.0
+#define const_float_minus_0_0 global_constants[7]
+// 1.0
+#define const_float_1_0 global_constants[8]
+// -1.0
+#define const_float_minus_1_0 global_constants[9]
+// ''
+#define const_str_empty global_constants[10]
+// '__module__'
+#define const_str_plain___module__ global_constants[11]
+// '__class__'
+#define const_str_plain___class__ global_constants[12]
+// '__name__'
+#define const_str_plain___name__ global_constants[13]
+// '__package__'
+#define const_str_plain___package__ global_constants[14]
+// '__metaclass__'
+#define const_str_plain___metaclass__ global_constants[15]
+// '__dict__'
+#define const_str_plain___dict__ global_constants[16]
+// '__doc__'
+#define const_str_plain___doc__ global_constants[17]
+// '__file__'
+#define const_str_plain___file__ global_constants[18]
+// '__path__'
+#define const_str_plain___path__ global_constants[19]
+// '__enter__'
+#define const_str_plain___enter__ global_constants[20]
+// '__exit__'
+#define const_str_plain___exit__ global_constants[21]
+// '__builtins__'
+#define const_str_plain___builtins__ global_constants[22]
+// '__all__'
+#define const_str_plain___all__ global_constants[23]
+// '__cmp__'
+#define const_str_plain___cmp__ global_constants[24]
+// '__iter__'
+#define const_str_plain___iter__ global_constants[25]
+// '__compiled__'
+#define const_str_plain___compiled__ global_constants[26]
+// 'inspect'
+#define const_str_plain_inspect global_constants[27]
+// 'compile'
+#define const_str_plain_compile global_constants[28]
+// 'range'
+#define const_str_plain_range global_constants[29]
+// 'open'
+#define const_str_plain_open global_constants[30]
+// 'sum'
+#define const_str_plain_sum global_constants[31]
+// 'format'
+#define const_str_plain_format global_constants[32]
+// '__import__'
+#define const_str_plain___import__ global_constants[33]
+// 'bytearray'
+#define const_str_plain_bytearray global_constants[34]
+// 'staticmethod'
+#define const_str_plain_staticmethod global_constants[35]
+// 'classmethod'
+#define const_str_plain_classmethod global_constants[36]
+// 'name'
+#define const_str_plain_name global_constants[37]
+// 'globals'
+#define const_str_plain_globals global_constants[38]
+// 'locals'
+#define const_str_plain_locals global_constants[39]
+// 'fromlist'
+#define const_str_plain_fromlist global_constants[40]
+// 'level'
+#define const_str_plain_level global_constants[41]
+// 'read'
+#define const_str_plain_read global_constants[42]
+// 'rb'
+#define const_str_plain_rb global_constants[43]
+// '__newobj__'
+#define const_str_plain___newobj__ global_constants[44]
+// '.'
+#define const_str_dot global_constants[45]
+// '__getattr__'
+#define const_str_plain___getattr__ global_constants[46]
+// '__setattr__'
+#define const_str_plain___setattr__ global_constants[47]
+// '__delattr__'
+#define const_str_plain___delattr__ global_constants[48]
+// 'exc_type'
+#define const_str_plain_exc_type global_constants[49]
+// 'exc_value'
+#define const_str_plain_exc_value global_constants[50]
+// 'exc_traceback'
+#define const_str_plain_exc_traceback global_constants[51]
+// 'xrange'
+#define const_str_plain_xrange global_constants[52]
+// 'site'
+#define const_str_plain_site global_constants[53]
+// 'type'
+#define const_str_plain_type global_constants[54]
+// 'len'
+#define const_str_plain_len global_constants[55]
+// 'range'
+#define const_str_plain_range global_constants[29]
+// 'repr'
+#define const_str_plain_repr global_constants[56]
+// 'int'
+#define const_str_plain_int global_constants[57]
+// 'iter'
+#define const_str_plain_iter global_constants[58]
+// 'long'
+#define const_str_plain_long global_constants[59]
+// 'C:\\Python27\\python.exe'
+#define const_str_digest_31eae35daa2ffa3077a1b67558489e1b global_constants[60]
+// 'C:\\Python27'
+#define const_str_digest_7ed9dddfa3e9faf1cadc8ca7ffcfd48c global_constants[61]
+#else
+#include "__constants.h"
 #endif
 
 #include "nuitka/helpers.h"

@@ -194,8 +194,6 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
 // Not done for earlier versions yet, indicate usability for compiled generators.
 #define NUITKA_UNCOMPILED_THROW_INTEGRATION 1
 
-extern PyObject *const_str_plain_throw, *const_str_plain_close;
-
 static PyObject *Nuitka_PyGen_gen_close(PyGenObject *gen, PyObject *args);
 
 static PyObject *Nuitka_PyGen_yf(PyGenObject *gen) {

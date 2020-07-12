@@ -33,14 +33,14 @@ from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
-from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
+from nuitka.SourceCodeReferences import fromFilename
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import getFileContentByLine, relpath
 from nuitka.utils.ModuleNames import ModuleName
 
 from .Checkers import checkStatementsSequenceOrNone
-from .FutureSpecs import FutureSpec, fromFlags
+from .FutureSpecs import fromFlags
 from .IndicatorMixins import EntryPointMixin, MarkNeedsAnnotationsMixin
 from .LocalsScopes import getLocalsDictHandle, setLocalsDictType
 from .NodeBases import (
@@ -76,10 +76,6 @@ class PythonModuleBase(NodeBase):
 
     @staticmethod
     def isTopModule():
-        return False
-
-    @staticmethod
-    def isInternalModule():
         return False
 
     def attemptRecursion(self):
@@ -772,39 +768,6 @@ class PythonMainModule(CompiledPythonModule):
             return os.path.dirname(self.getFilename())
         else:
             return CompiledPythonModule.getOutputFilename(self)
-
-
-class PythonInternalModule(CompiledPythonModule):
-    """ The internal module is the parent for Python helpers.
-
-        For some operations, e.g. merging star arguments with
-        normal keyword arguments for a function call, there are
-        Python helpers.
-
-        This module is the home for these functions to live in,
-        but has no own module code.
-    """
-
-    kind = "PYTHON_INTERNAL_MODULE"
-
-    def __init__(self):
-        CompiledPythonModule.__init__(
-            self,
-            module_name=ModuleName("__internal__"),
-            is_top=False,
-            mode="compiled",
-            source_ref=SourceCodeReference.fromFilenameAndLine(
-                filename="internal", line=0
-            ),
-            future_spec=FutureSpec(),
-        )
-
-    @staticmethod
-    def isInternalModule():
-        return True
-
-    def getOutputFilename(self):
-        return "__internal"
 
 
 class PythonShlibModule(PythonModuleBase):
