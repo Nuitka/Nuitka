@@ -566,6 +566,9 @@ def runScons(main_module, quiet):
     if Options.shallMakeModule():
         options["module_suffix"] = Utils.getSharedLibrarySuffix(True)
 
+    if Options.shallRunInDebugger():
+        options["full_names"] = "true"
+
     return SconsInterface.runScons(options, quiet), options
 
 
