@@ -170,12 +170,11 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
     ) = context.variable_storage.getExceptionVariableDescriptions()
 
     if len(args) == 1 and type(args[0]) is str:
-        from .ConstantCodes import getModuleConstantCode
-
         set_exception = [
             "%s = %s;" % (exception_type, exception),
             "Py_INCREF(%s);" % exception_type,
-            "%s = %s;" % (exception_value, getModuleConstantCode(constant=args[0])),
+            "%s = %s;" % (exception_value, context.getConstantCode(constant=args[0])),
+            "Py_INCREF(%s);" % exception_value,
             "%s = NULL;" % exception_tb,
         ]
     else:

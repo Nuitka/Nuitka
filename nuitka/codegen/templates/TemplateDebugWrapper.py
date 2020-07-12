@@ -42,6 +42,11 @@ def enableDebug(globals_dict):
         def __str__(self):
             return self.value
 
+        def __add__(self, other):
+            return self.__class__(
+                self.name + "+" + other.name, self.value + other.value
+            )
+
         def __mod__(self, other):
             assert type(other) is dict, self.name
 

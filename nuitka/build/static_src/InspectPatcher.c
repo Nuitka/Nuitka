@@ -23,14 +23,9 @@
 #include "nuitka/prelude.h"
 
 #if PYTHON_VERSION >= 300
-extern PyObject *const_str_plain_inspect;
-extern PyObject *const_str_plain_site;
-extern PyObject *const_int_0;
-
 static PyObject *module_inspect;
 #if PYTHON_VERSION >= 350
 static PyObject *module_types;
-extern PyObject *const_str_plain_types;
 #endif
 
 static char *kwlist[] = {(char *)"object", NULL};

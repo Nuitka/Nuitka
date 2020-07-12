@@ -70,6 +70,7 @@ PACKAGE_LIST = (
     "nuitka/plugins",
     "nuitka/plugins/standard",
     "nuitka/plugins/commercial",
+    "nuitka/constants",
     "nuitka/containers",
     "nuitka/utils",
 )
@@ -112,6 +113,7 @@ def diffRecursive(dir1, dir2):
                 ".sconsign",
                 ".txt",
                 ".bin",
+                ".const",
                 ".exp",
             )
         ):
@@ -258,6 +260,11 @@ def executePASS1():
     copyTree(
         os.path.join(base_dir, "nuitka", "build", "include"),
         os.path.join("nuitka", "build", "include"),
+    )
+
+    # The data composer tool, use it by source.
+    copyTree(
+        os.path.join(base_dir, "nuitka", "tools"), os.path.join("nuitka", "tools"),
     )
 
 

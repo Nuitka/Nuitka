@@ -232,7 +232,7 @@ def _digest(value):
         # Python2 is simple
         return hashlib.md5(value).hexdigest()
     else:
-        # Python3 needs to encode the string is it is one.
+        # Python3 needs to encode the string if it is one.
         if type(value) is bytes:
             return hashlib.md5(value).hexdigest()
         else:

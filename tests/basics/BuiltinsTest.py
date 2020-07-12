@@ -148,7 +148,7 @@ print(
 )
 print("Border cases", range(0), range(-1), range(-1, 1))
 
-print("Corner case large negative value", range(-2 ** 100))
+print("Corner case large negative value", range(-(2 ** 100)))
 print(
     "Corner case with large start/end values in small range",
     range(2 ** 100, 2 ** 100 + 2),
@@ -407,8 +407,8 @@ print([dict(type=int)])
 
 print("nan and -nan sign checks:")
 
-print(copysign(1.0, float("nan")))
-print(copysign(1.0, float("-nan")))
+print("nan:", float("nan"), copysign(1.0, float("nan")))
+print("-nan:", float("-nan"), copysign(1.0, float("-nan")))
 
 print("Using != to detect nan floats:")
 a = float("nan")
@@ -416,6 +416,11 @@ if a != a:
     print("is nan")
 else:
     print("isn't nan")
+
+print("inf and -inf sign checks:")
+
+print("inf:", float("inf"), copysign(1.0, float("inf")))
+print("-inf:", float("-inf"), copysign(1.0, float("-inf")))
 
 
 class CustomStr(str):
@@ -652,7 +657,7 @@ print("any() with sets:")
 print(any(set([0, 1, 2, 3, 3])))
 print(any({1: "One", 2: "Two"}))
 print("Tests for abs():")
-print(abs(-1000000 ** 10))
+print(abs(-(1000000 ** 10)))
 print(abs(len([1, 2, 3])))
 print(abs(-100))
 print(abs(float("nan")))

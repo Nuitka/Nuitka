@@ -23,7 +23,7 @@ stuff related to importing, and of course the generated code license.
 """
 
 template_global_copyright = """\
-/* Generated code for Python module '%(name)s'
+/* Generated code for Python module '%(module_name)s'
  * created by Nuitka version %(version)s
  *
  * This code is in part copyright %(year)s Kay Hayen.
@@ -60,14 +60,16 @@ PyObject *module_%(module_identifier)s;
 PyDictObject *moduledict_%(module_identifier)s;
 
 /* The declarations of module constants used, if any. */
-%(constant_decl_codes)s
+static PyObject *mod_consts[%(constants_count)d];
+
+static PyObject *module_filename_obj = NULL;
 
 /* Indicator if this modules private constants were created yet. */
 static bool constants_created = false;
 
 /* Function to create module private constants. */
 static void createModuleConstants(void) {
-%(constant_init_codes)s
+    loadConstantsBlob(&mod_consts[0], "%(module_name)s", %(constants_count)d);
 
     constants_created = true;
 }
@@ -78,7 +80,7 @@ void checkModuleConstants_%(module_identifier)s(void) {
     // The module may not have been used at all, then ignore this.
     if (constants_created == false) return;
 
-%(constant_check_codes)s
+    checkConstantsBlob(&mod_consts[0], "%(module_name)s", %(constants_count)d);
 }
 #endif
 
@@ -94,22 +96,6 @@ static void createModuleCodeObjects(void) {
 
 // The module function definitions.
 %(module_functions_code)s
-
-extern PyObject *const_str_plain___compiled__;
-
-extern PyObject *const_str_plain___package__;
-extern PyObject *const_str_empty;
-
-#if PYTHON_VERSION >= 300
-extern PyObject *const_str_dot;
-extern PyObject *const_str_plain___loader__;
-#endif
-
-#if PYTHON_VERSION >= 340
-extern PyObject *const_str_plain___spec__;
-extern PyObject *const_str_plain__initializing;
-extern PyObject *const_str_plain_submodule_search_locations;
-#endif
 
 extern void _initCompiledCellType();
 extern void _initCompiledGeneratorType();

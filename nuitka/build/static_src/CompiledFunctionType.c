@@ -373,8 +373,6 @@ static PyObject *Nuitka_Function_get_globals(struct Nuitka_FunctionObject *funct
     return result;
 }
 
-extern PyObject *const_str_plain___module__;
-
 static int Nuitka_Function_set_module(struct Nuitka_FunctionObject *object, PyObject *value) {
     if (object->m_dict == NULL) {
         object->m_dict = PyDict_New();

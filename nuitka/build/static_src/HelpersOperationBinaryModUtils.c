@@ -27,8 +27,6 @@
 #include "nuitka/prelude.h"
 #endif
 
-extern PyObject *const_int_neg_1;
-
 #if PYTHON_VERSION < 300
 static PyObject *SLOT_nb_remainder_OBJECT_STR_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);

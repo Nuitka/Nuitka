@@ -30,7 +30,6 @@
 
 #if PYTHON_VERSION < 300
 
-extern PyObject *const_str_plain___cmp__;
 static cmpfunc default_tp_compare;
 
 void _initSlotCompare() {

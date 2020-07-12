@@ -20,11 +20,14 @@
 This is a container for helper functions that are shared across modules. It
 may not exist, and is treated specially in code generation. This avoids to
 own these functions to a random module.
+
+TODO: Clarify by renaming that the top module is now used, and these are
+merely helpers to do it.
 """
 
 
+from nuitka.ModuleRegistry import getRootTopModule
 from nuitka.nodes.FunctionNodes import ExpressionFunctionBody
-from nuitka.nodes.ModuleNodes import PythonInternalModule
 from nuitka.SourceCodeReferences import fromFilename
 
 internal_source_ref = fromFilename("internal").atInternal()
@@ -57,7 +60,7 @@ def getInternalModule():
 
     """
 
-    return PythonInternalModule()
+    return getRootTopModule()
 
 
 def makeInternalHelperFunctionBody(name, parameters):

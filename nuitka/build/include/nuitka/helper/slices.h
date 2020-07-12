@@ -18,6 +18,15 @@
 #ifndef __NUITKA_HELPER_SLICES_H__
 #define __NUITKA_HELPER_SLICES_H__
 
+// Note: Cannot fail
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ3(PyObject *start, PyObject *stop, PyObject *step) {
+    CHECK_OBJECT(start);
+    CHECK_OBJECT(stop);
+    CHECK_OBJECT(step);
+
+    return PySlice_New(start, stop, step);
+}
+
 #if PYTHON_VERSION < 300
 // Note: It appears that Python3 has no index slicing operations anymore, but
 // uses slice objects all the time. That's fine and make sure we adhere to it by
@@ -276,14 +285,5 @@ NUITKA_MAY_BE_UNUSED static bool DEL_INDEX_SLICE(PyObject *target, Py_ssize_t lo
 }
 
 #endif
-
-// Note: Cannot fail
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ3(PyObject *start, PyObject *stop, PyObject *step) {
-    CHECK_OBJECT(start);
-    CHECK_OBJECT(stop);
-    CHECK_OBJECT(step);
-
-    return PySlice_New(start, stop, step);
-}
 
 #endif

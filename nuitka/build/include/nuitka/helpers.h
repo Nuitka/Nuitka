@@ -44,15 +44,6 @@
 #define _DEBUG_REFCOUNTS 0
 #endif
 
-extern PyObject *const_tuple_empty;
-extern PyObject *const_str_plain___dict__;
-extern PyObject *const_str_plain___class__;
-extern PyObject *const_str_plain___enter__;
-extern PyObject *const_str_plain___exit__;
-
-extern PyObject *const_int_0;
-extern PyObject *const_int_pos_1;
-
 // From CPython, to allow us quick access to the dictionary of an module, the
 // structure is normally private, but we need it for quick access to the module
 // dictionary.
@@ -317,8 +308,6 @@ extern PyObject *BUILTIN_BYTES1(PyObject *value);
 extern PyObject *BUILTIN_BYTES3(PyObject *value, PyObject *encoding, PyObject *errors);
 #endif
 
-extern PyObject *const_str_plain___builtins__;
-
 // For built-in eval() functionality, works on byte compiled code already.
 extern PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals);
 
@@ -354,18 +343,6 @@ extern void checkGlobalConstants(void);
 // Unstreaming constants from a blob.
 #include "nuitka/constants_blob.h"
 
-extern void UNSTREAM_INIT(void);
-extern PyObject *UNSTREAM_STRING(unsigned char const *buffer, Py_ssize_t size, bool intern);
-extern PyObject *UNSTREAM_CHAR(unsigned char value, bool intern);
-#if PYTHON_VERSION < 300
-extern PyObject *UNSTREAM_UNICODE(unsigned char const *buffer, Py_ssize_t size);
-#else
-extern PyObject *UNSTREAM_BYTES(unsigned char const *buffer, Py_ssize_t size);
-extern PyObject *UNSTREAM_STRING_ASCII(unsigned char const *buffer, Py_ssize_t size, bool intern);
-#endif
-extern PyObject *UNSTREAM_FLOAT(unsigned char const *buffer);
-extern PyObject *UNSTREAM_BYTEARRAY(unsigned char const *buffer, Py_ssize_t size);
-
 // Performance enhancements to Python types.
 extern void enhancePythonTypes(void);
 
@@ -397,8 +374,6 @@ extern void _initSlotCompare(void);
 // Select the metaclass from specified one and given bases.
 extern PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases);
 #endif
-
-extern PyObject *const_str_plain___name__;
 
 NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME(PyObject *module) {
     assert(PyModule_Check(module));

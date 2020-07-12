@@ -53,7 +53,12 @@ import os
 import sys
 from logging import info, warning
 
-from nuitka import Options, OutputDirectories, SourceCodeReferences
+from nuitka import (
+    ModuleRegistry,
+    Options,
+    OutputDirectories,
+    SourceCodeReferences,
+)
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     long,
     unicode,
@@ -1072,6 +1077,8 @@ def buildModuleTree(filename, package, is_top, is_main):
     )
 
     if is_top:
+        ModuleRegistry.addRootModule(module)
+
         OutputDirectories.setMainModule(module)
 
         # Detect to be frozen modules if any, so we can consider to not recurse
