@@ -448,7 +448,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None):
 
         elif is_c:
             cleanupWindowsNewlines(tmp_filename)
-            _cleanupClangFormat(filename)
+            _cleanupClangFormat(tmp_filename)
             cleanupWindowsNewlines(tmp_filename)
         elif is_txt:
             cleanupWindowsNewlines(tmp_filename)
