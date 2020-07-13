@@ -590,7 +590,7 @@ class ShapeIterator(ShapeBase):
 
     @staticmethod
     def getShapeIter():
-        return ShapeIterator
+        return tshape_iterator
 
     @staticmethod
     def hasShapeSlotContains():
