@@ -18,7 +18,7 @@
 """ Utils for file and directory operations.
 
 This provides enhanced and more error resilient forms of standard
-stuff. It will also frequently add sorting.
+stuff. It will also frequently add sorting for determism.
 
 """
 
@@ -43,6 +43,15 @@ _lock_tracing = False
 
 @contextmanager
 def withFileLock(reason="unknown"):
+    """ Acquire file handling lock.
+
+        Args:
+            reason: What is being done.
+
+        Notes: This is most relevant for Windows, but prevents concurrent access
+        from threads generally, which could lead to observing half ready things.
+    """
+
     # This is a singleton, pylint: disable=global-statement
     global file_lock
 
