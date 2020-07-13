@@ -67,6 +67,18 @@ if (%(condition)s) {
 }
 """
 
+template_error_format_name_error_exception = """\
+if (unlikely(%(condition)s)) {
+%(release_temps)s
+%(set_exception)s
+
+%(line_number_code)s
+%(var_description_code)s
+    goto %(exception_exit)s;
+}
+"""
+
+
 from . import TemplateDebugWrapper  # isort:skip
 
 TemplateDebugWrapper.checkDebug(globals())
