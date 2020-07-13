@@ -604,6 +604,14 @@ NUITKA_MAY_BE_UNUSED static inline void FORMAT_TYPE_ERROR2(PyObject **exception_
     CHECK_OBJECT(*exception_value);
 }
 
+// Format a NameError exception for a variable name.
+extern void FORMAT_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name);
+
+#if PYTHON_VERSION < 340
+// Same as FORMAT_NAME_ERROR with different wording, sometimes used for older Python version.
+extern void FORMAT_GLOBAL_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name);
+#endif
+
 // Similar to PyException_SetTraceback, only done for Python3.
 #if PYTHON_VERSION < 300
 #define ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(exception_value, exception_tb) ;

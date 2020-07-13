@@ -36,6 +36,7 @@ from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .templates.CodeTemplatesExceptions import (
     template_error_catch_exception,
     template_error_catch_quick_exception,
+    template_error_format_name_error_exception,
     template_error_format_string_exception,
 )
 
@@ -298,22 +299,38 @@ local variable '%s' referenced before assignment""",
 
 
 def getNameReferenceErrorCode(variable_name, condition, emit, context):
+    helper_code = "FORMAT_NAME_ERROR"
+
     if python_version < 340:
         owner = context.getOwner()
 
         if not owner.isCompiledPythonModule() and not owner.isExpressionClassBody():
-            error_message = "global name '%s' is not defined"
-        else:
-            error_message = "name '%s' is not defined"
-    else:
-        error_message = "name '%s' is not defined"
+            helper_code = "FORMAT_GLOBAL_NAME_ERROR"
 
-    error_message = error_message % variable_name
+    (
+        exception_type,
+        exception_value,
+        _exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
-    getErrorFormatExitBoolCode(
-        condition=condition,
-        exception="PyExc_NameError",
-        args=(error_message,),
-        emit=emit,
-        context=context,
+    set_exception = "%s(&%s, &%s, %s);" % (
+        helper_code,
+        exception_type,
+        exception_value,
+        context.getConstantCode(variable_name),
+    )
+
+    emit(
+        template_error_format_name_error_exception
+        % {
+            "condition": condition,
+            "exception_exit": context.getExceptionEscape(),
+            "set_exception": indented(set_exception),
+            "release_temps": indented(getErrorExitReleaseCode(context)),
+            "var_description_code": indented(
+                getFrameVariableTypeDescriptionCode(context)
+            ),
+            "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
+        }
     )
