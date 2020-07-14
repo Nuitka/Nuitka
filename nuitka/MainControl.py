@@ -748,7 +748,7 @@ def main():
 
             sys.exit(0)
 
-        executePostProcessing(OutputDirectories.getResultFullpath())
+        executePostProcessing()
 
         if Options.isStandaloneMode():
             binary_filename = options["result_exe"]

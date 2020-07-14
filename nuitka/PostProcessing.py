@@ -45,7 +45,9 @@ from nuitka.utils.WindowsResources import (
 )
 
 
-def executePostProcessing(result_filename):
+def executePostProcessing():
+    result_filename = OutputDirectories.getResultFullpath()
+
     if not os.path.exists(result_filename):
         sys.exit(
             "Error, scons failed to create the expected file '%s'. " % result_filename
