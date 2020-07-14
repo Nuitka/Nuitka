@@ -45,7 +45,7 @@ class SubprocessThread(threading.Thread):
         self.exit_code = None
 
         self.timer_report = TimerReport(
-            message="Running %r took %%.2f seconds" % self.cmdline,
+            message="Running %s took %%.2f seconds" % repr(self.cmdline).replace('%', '%%'),
             min_report_time=60,
             logger=scons_logger,
         )
@@ -178,7 +178,7 @@ class SpawnThread(threading.Thread):
         self.args = args
 
         self.timer_report = TimerReport(
-            message="Running %r took %%.2f seconds" % (self.args,),
+            message="Running %s took %%.2f seconds" % (repr(self.args).replace('%', '%%'),),
             min_report_time=60,
             logger=scons_logger,
         )
