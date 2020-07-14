@@ -290,6 +290,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "_cffi_backend", True
         elif full_name == "nacl._sodium":
             yield "_cffi_backend", True
+        elif full_name == "brotli._brotli":
+            yield "_cffi_backend"
         elif full_name == "_dbus_glib_bindings":
             yield "_dbus_bindings", True
         elif full_name == "_mysql":
