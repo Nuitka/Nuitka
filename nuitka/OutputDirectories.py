@@ -27,7 +27,9 @@ this.
 import os
 
 from nuitka import Options
-from nuitka.utils import FileOperations, Utils
+from nuitka.utils.FileOperations import makePath
+from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.Utils import getOS
 
 _main_module = None
 
@@ -53,7 +55,7 @@ def getSourceDirectoryPath():
         path=os.path.basename(getTreeFilenameWithSuffix(_main_module, ".build"))
     )
 
-    FileOperations.makePath(result)
+    makePath(result)
 
     return result
 
@@ -84,11 +86,11 @@ def getResultFullpath():
     result = getResultBasepath()
 
     if Options.shallMakeModule():
-        result += Utils.getSharedLibrarySuffix(preferred=True)
+        result += getSharedLibrarySuffix(preferred=True)
     else:
         if Options.getOutputFilename() is not None:
             result = Options.getOutputFilename()
-        elif Utils.getOS() == "Windows":
+        elif getOS() == "Windows":
             result += ".exe"
         elif not Options.isStandaloneMode():
             result += ".bin"

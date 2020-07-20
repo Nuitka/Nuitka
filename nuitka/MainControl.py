@@ -53,6 +53,7 @@ from nuitka.utils.FileOperations import (
     makePath,
     removeDirectory,
 )
+from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML
@@ -350,7 +351,7 @@ def makeSourceDirectory(main_module):
                 OutputDirectories.getStandaloneDirectoryPath(),
                 *module.getFullName().split(".")
             )
-            target_filename += Utils.getSharedLibrarySuffix(preferred=False)
+            target_filename += getSharedLibrarySuffix(preferred=False)
 
             target_dir = os.path.dirname(target_filename)
 
@@ -544,7 +545,7 @@ def runScons(main_module, quiet):
         options["link_libraries"] = ",".join(link_libraries)
 
     if Options.shallMakeModule():
-        options["module_suffix"] = Utils.getSharedLibrarySuffix(preferred=True)
+        options["module_suffix"] = getSharedLibrarySuffix(preferred=True)
 
     if Options.shallRunInDebugger():
         options["full_names"] = "true"

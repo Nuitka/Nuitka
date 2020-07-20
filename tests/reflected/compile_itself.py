@@ -45,7 +45,7 @@ import time
 from nuitka.tools.testing.Common import getTempDir, my_print, setup
 from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
-from nuitka.utils.Utils import getSharedLibrarySuffix
+from nuitka.utils.Importing import getSharedLibrarySuffix
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 

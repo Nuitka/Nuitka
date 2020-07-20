@@ -76,3 +76,43 @@ def importFileAsModule(filename):
         return _importFilePy3OldWay(filename)
     else:
         return _importFilePy3NewWay(filename)
+
+
+_shared_library_suffixes = None
+
+
+def getSharedLibrarySuffixes():
+    # Using global here, as this is for caching only
+    # pylint: disable=global-statement
+    global _shared_library_suffixes
+
+    if _shared_library_suffixes is None:
+        if python_version < 300:
+            import imp
+
+            _shared_library_suffixes = []
+
+            for suffix, _mode, module_type in imp.get_suffixes():
+                if module_type == imp.C_EXTENSION:
+                    _shared_library_suffixes.append(suffix)
+        else:
+            import importlib.machinery  # pylint: disable=I0021,import-error,no-name-in-module
+
+            _shared_library_suffixes = importlib.machinery.EXTENSION_SUFFIXES
+
+        _shared_library_suffixes = tuple(_shared_library_suffixes)
+
+    return _shared_library_suffixes
+
+
+def getSharedLibrarySuffix(preferred):
+    if preferred and python_version >= 300:
+        return getSharedLibrarySuffixes()[0]
+
+    result = None
+
+    for suffix in getSharedLibrarySuffixes():
+        if result is None or len(suffix) < len(result):
+            result = suffix
+
+    return result

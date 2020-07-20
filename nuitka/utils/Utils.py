@@ -82,35 +82,6 @@ def getArchitecture():
         return os.uname()[4]
 
 
-def getSharedLibrarySuffix(preferred):
-    if python_version < 300:
-        import imp
-
-        result = None
-
-        for suffix, _mode, module_type in imp.get_suffixes():
-            if module_type != imp.C_EXTENSION:
-                continue
-
-            if result is None or len(suffix) < len(result):
-                result = suffix
-
-        return result
-    else:
-        import importlib.machinery  # pylint: disable=I0021,import-error,no-name-in-module
-
-        if preferred:
-            return importlib.machinery.EXTENSION_SUFFIXES[0]
-        else:
-            result = None
-
-            for suffix in importlib.machinery.EXTENSION_SUFFIXES:
-                if result is None or len(suffix) < len(result):
-                    result = suffix
-
-            return result
-
-
 def getCoreCount():
     cpu_count = 0
 

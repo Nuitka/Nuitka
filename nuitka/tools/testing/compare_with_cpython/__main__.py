@@ -44,8 +44,8 @@ from nuitka.utils.Execution import (
     check_output,
     wrapCommandForDebuggerForSubprocess,
 )
+from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.Timing import StopWatch
-from nuitka.utils.Utils import getSharedLibrarySuffix
 
 
 def displayOutput(stdout, stderr):

@@ -52,6 +52,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir
+from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
@@ -117,10 +118,7 @@ def getModuleNameAndKindFromFilename(module_filename):
         module_name = os.path.basename(module_filename)[:-3]
         module_kind = "py"
     else:
-        for suffix, _mode, kind in imp.get_suffixes():
-            if kind != imp.C_EXTENSION:
-                continue
-
+        for suffix in getSharedLibrarySuffixes():
             if module_filename.endswith(suffix):
                 module_name = os.path.basename(module_filename)[: -len(suffix)]
                 module_kind = "shlib"
@@ -369,6 +367,7 @@ def _findModuleInPath2(module_name, search_path):
         # first choice.
         if os.path.isdir(package_directory):
             found = False
+
             for suffix, _mode, mtype in imp.get_suffixes():
                 if mtype == imp.C_EXTENSION:
                     continue
@@ -419,7 +418,7 @@ def _findModuleInPath2(module_name, search_path):
                 last_mtype = mtype
 
     if _debug_module_finding:
-        print("Candidates", candidates)
+        print("Candidates:", candidates)
 
     if candidates:
         # Sort by priority, with entries from same path element coming first, then desired type.
