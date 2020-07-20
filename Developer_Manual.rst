@@ -2563,15 +2563,16 @@ compile time optimized, this is made visible in the node tree.
 
     print arg1, "1", 1
 
-This is in Nuitka then like this, where the code for print doesn't do any
-conversions anymore and relies on the string nature of its input.
+This is in Nuitka converted so that the code generation for ``print`` doesn't
+do any conversions itself anymore and relies on the string nature of its input.
 
 .. code-block:: python
 
     print str(arg1), "1", str(1)
 
 Only string objects are spared from the ``str`` built-in wrapper, because that
-would only cause noise in optimization stage.
+would only cause noise in optimization stage. Later optization can then find it
+unnecessary for certain arguments.
 
 Additionally, each ``print`` may have a target, and multiple arguments, which
 we break down as well for dumber code generation. The target is evaluated first
