@@ -140,7 +140,7 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
             and self.subnode_fallback.getVariable().isModuleVariable()
         ):
             # Just inform the collection that all escaped.
-            trace_collection.onLocalsUsage(self.getParentVariableProvider())
+            trace_collection.onLocalsUsage(self.getLocalsDictScope())
 
         if (
             self.subnode_fallback.isExpressionBuiltinRef()
@@ -361,6 +361,9 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
     def getLocalsDictScope(self):
         return self.locals_scope
 
+    def getTypeShape(self):
+        return self.locals_scope.getMappingValueShape(self.variable)
+
     def computeStatement(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
             variable_name = self.getVariableName()
@@ -462,6 +465,7 @@ class StatementLocalsDictOperationDel(StatementBase):
         return self.locals_scope
 
     def computeStatement(self, trace_collection):
+        # Conversion from dictionary to normal nodes is done here.
         if self.locals_scope.isMarkedForPropagation():
             variable_name = self.getVariableName()
 
@@ -487,11 +491,12 @@ class StatementLocalsDictOperationDel(StatementBase):
 
         self.previous_trace = trace_collection.getVariableCurrentTrace(self.variable)
 
-        # The "del" is a potential use of a value. TODO: This could be made more
-        # beautiful indication, as it's not any kind of usage.
-        self.previous_trace.addPotentialUsage()
+        # Deleting is usage of the value, and may call code on it. This is to inhibit
+        # just removing it.
+        self.previous_trace.addUsage()
 
         # We may not exception exit now during the __del__ unless there is no value.
+        # TODO: In which case, there is doing to be a NameError or UnboundLocalError.
         if not self.previous_trace.mustHaveValue():
             trace_collection.onExceptionRaiseExit(BaseException)
 

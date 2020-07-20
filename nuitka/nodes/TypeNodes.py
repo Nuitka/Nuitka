@@ -74,7 +74,9 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
 
             if type_name in builtin_names:
                 new_node = makeExpressionBuiltinRef(
-                    builtin_name=type_name, source_ref=self.getSourceReference()
+                    builtin_name=type_name,
+                    locals_scope=None,
+                    source_ref=self.getSourceReference(),
                 )
             else:
                 new_node = ExpressionBuiltinAnonymousRef(

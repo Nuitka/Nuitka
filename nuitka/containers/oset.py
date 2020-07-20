@@ -55,6 +55,10 @@ class OrderedSet(MutableSet):
             curr = end[1]
             curr[2] = end[1] = self.map[key] = [key, curr, end]
 
+    def update(self, keys):
+        for key in keys:
+            self.add(key)
+
     def discard(self, key):
         if key in self.map:
             key, prev, next = self.map.pop(key)

@@ -43,7 +43,7 @@ from nuitka.nodes.NodeMakingHelpers import (
 from nuitka.nodes.OperatorNodes import makeExpressionOperationBinaryInplace
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
-    ExpressionVariableRef,
+    makeExpressionVariableRef,
 )
 from nuitka.PythonVersions import (
     getErrorMessageExecWithNestedFunction,
@@ -90,7 +90,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                 variable = node.takeVariableForClosure(variable_name=non_local_name)
 
-                node.registerProvidedVariable(variable)
+                node.getLocalsScope().registerClosureVariable(variable)
 
                 if variable.isModuleVariable() and user_provided:
                     raiseSyntaxError(
@@ -187,7 +187,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                                         source_ref=node.source_ref,
                                     ),
                                     StatementLocalsDictOperationSet(
-                                        locals_scope=provider.getFunctionLocalsScope(),
+                                        locals_scope=provider.getLocalsScope(),
                                         variable_name=variable_name,
                                         value=ExpressionTempVariableRef(
                                             variable=tmp_variable,
@@ -208,7 +208,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                 else:
                     new_node = StatementLocalsDictOperationSet(
-                        locals_scope=provider.getFunctionLocalsScope(),
+                        locals_scope=provider.getLocalsScope(),
                         variable_name=variable_name,
                         value=node.subnode_source,
                         source_ref=node.source_ref,
@@ -241,7 +241,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 # Classes always assign to locals dictionary except for closure
                 # variables taken.
                 new_node = StatementLocalsDictOperationDel(
-                    locals_scope=provider.getFunctionLocalsScope(),
+                    locals_scope=provider.getLocalsScope(),
                     variable_name=variable_name,
                     tolerant=node.tolerant,
                     source_ref=node.source_ref,
@@ -279,10 +279,12 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     )
 
                     new_node = ExpressionLocalsVariableRefOrFallback(
-                        locals_scope=provider.getFunctionLocalsScope(),
+                        locals_scope=provider.getLocalsScope(),
                         variable_name=node.getVariableName(),
-                        fallback=ExpressionVariableRef(
-                            variable=variable, source_ref=node.source_ref
+                        fallback=makeExpressionVariableRef(
+                            variable=variable,
+                            locals_scope=provider.getLocalsScope(),
+                            source_ref=node.source_ref,
                         ),
                         source_ref=node.source_ref,
                     )
@@ -290,7 +292,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     variable.addVariableUser(provider)
                 else:
                     new_node = ExpressionLocalsVariableRef(
-                        locals_scope=provider.getFunctionLocalsScope(),
+                        locals_scope=provider.getLocalsScope(),
                         variable_name=node.getVariableName(),
                         source_ref=node.source_ref,
                     )
@@ -435,19 +437,22 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
                 variable_name = node.getVariableName()
 
                 new_node = ExpressionLocalsVariableRefOrFallback(
-                    locals_scope=provider.getFunctionLocalsScope(),
+                    locals_scope=provider.getLocalsScope(),
                     variable_name=variable_name,
-                    fallback=ExpressionVariableRef(
+                    fallback=makeExpressionVariableRef(
                         variable=node.getParentModule().getVariableForReference(
                             variable_name
                         ),
+                        locals_scope=provider.getLocalsScope(),
                         source_ref=node.source_ref,
                     ),
                     source_ref=node.source_ref,
                 )
             else:
-                new_node = ExpressionVariableRef(
-                    variable=variable, source_ref=node.source_ref
+                new_node = makeExpressionVariableRef(
+                    variable=variable,
+                    locals_scope=provider.getLocalsScope(),
+                    source_ref=node.source_ref,
                 )
 
                 variable.addVariableUser(provider)
@@ -492,10 +497,10 @@ can not delete variable '%s' referenced in nested scope"""
                     class_var = node.takeVariableForClosure("__class__")
                     class_var.addVariableUser(node)
 
-                    node.registerProvidedVariable(class_var)
+                    node.getLocalsScope().registerClosureVariable(class_var)
                     while node != class_var.getOwner():
                         node = node.getParentVariableProvider()
-                        node.registerProvidedVariable(class_var)
+                        node.getLocalsScope().registerClosureVariable(class_var)
 
 
 def completeVariableClosures(tree):

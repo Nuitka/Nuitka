@@ -405,7 +405,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         ):
             SyntaxErrors.raiseSyntaxError("cannot make __class__ global", source_ref)
 
-        provider.registerProvidedVariable(variable=closure_variable)
+        provider.getLocalsScope().registerClosureVariable(variable=closure_variable)
 
     # Drop this, not really part of our tree.
     return None

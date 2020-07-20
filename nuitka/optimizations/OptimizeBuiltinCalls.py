@@ -83,7 +83,7 @@ from nuitka.nodes.BuiltinRangeNodes import (
 )
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
-    makeExpressionBuiltinRef,
+    makeExpressionBuiltinTypeRef,
 )
 from nuitka.nodes.BuiltinSumNodes import (
     ExpressionBuiltinSum1,
@@ -156,9 +156,11 @@ from nuitka.tree.TreeHelpers import (
 
 
 def dir_extractor(node):
+    locals_scope = node.subnode_called.getLocalsScope()
+
     def buildDirEmptyCase(source_ref):
         source = makeExpressionBuiltinLocals(
-            provider=node.getParentVariableProvider(), source_ref=source_ref
+            locals_scope=locals_scope, source_ref=source_ref
         )
 
         result = makeCallNode(
@@ -177,6 +179,7 @@ def dir_extractor(node):
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
+        # TODO: Needs locals_scope attached.
         builtin_class=ExpressionBuiltinDir1,
         builtin_spec=BuiltinParameterSpecs.builtin_dir_spec,
         empty_special_class=buildDirEmptyCase,
@@ -184,13 +187,16 @@ def dir_extractor(node):
 
 
 def vars_extractor(node):
+    locals_scope = node.subnode_called.getLocalsScope()
+
     def selectVarsEmptyClass(source_ref):
         return makeExpressionBuiltinLocals(
-            provider=node.getParentVariableProvider(), source_ref=source_ref
+            locals_scope=locals_scope, source_ref=source_ref
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
+        # TODO: Needs locals_cope attached
         builtin_class=ExpressionBuiltinVars,
         builtin_spec=BuiltinParameterSpecs.builtin_vars_spec,
         empty_special_class=selectVarsEmptyClass,
@@ -705,24 +711,19 @@ def globals_extractor(node):
 
 
 def locals_extractor(node):
-    # Note: Locals on the module level is really globals.
-    provider = node.getParentVariableProvider()
+    locals_scope = node.subnode_called.getLocalsScope()
 
     def makeLocalsNode(source_ref):
-        return makeExpressionBuiltinLocals(provider=provider, source_ref=source_ref)
+        return makeExpressionBuiltinLocals(
+            locals_scope=locals_scope, source_ref=source_ref
+        )
 
-    if provider.isCompiledPythonModule():
-        return BuiltinParameterSpecs.extractBuiltinArgs(
-            node=node,
-            builtin_class=ExpressionBuiltinGlobals,
-            builtin_spec=BuiltinParameterSpecs.builtin_globals_spec,
-        )
-    else:
-        return BuiltinParameterSpecs.extractBuiltinArgs(
-            node=node,
-            builtin_class=makeLocalsNode,
-            builtin_spec=BuiltinParameterSpecs.builtin_locals_spec,
-        )
+    # Note: Locals on the module level is really globals.
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=makeLocalsNode,
+        builtin_spec=BuiltinParameterSpecs.builtin_locals_spec,
+    )
 
 
 if python_version < 300:
@@ -851,7 +852,7 @@ def eval_extractor(node):
                         ),
                         source_ref=source_ref,
                     ),
-                    right=makeExpressionBuiltinRef(
+                    right=makeExpressionBuiltinTypeRef(
                         builtin_name="bytes", source_ref=source_ref
                     ),
                     source_ref=source_ref,
@@ -888,7 +889,7 @@ def eval_extractor(node):
 
         if python_version >= 270:
             acceptable_builtin_types.append(
-                makeExpressionBuiltinRef(
+                makeExpressionBuiltinTypeRef(
                     builtin_name="memoryview", source_ref=source_ref
                 )
             )

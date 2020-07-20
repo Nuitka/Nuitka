@@ -360,8 +360,8 @@ def generateFunctionBodyCode(function_body, context):
             function_identifier=function_identifier,
             parameters=None,
             closure_variables=function_body.getClosureVariables(),
-            user_variables=function_body.getUserLocalVariables(),
-            outline_variables=function_body.getOutlineLocalVariables(),
+            user_variables=function_body.getUserLocalVariables()
+            + function_body.getOutlineLocalVariables(),
             temp_variables=function_body.getTempVariables(),
             function_doc=function_body.getDoc(),
             needs_exception_exit=needs_exception_exit,
@@ -376,15 +376,13 @@ def generateFunctionBodyCode(function_body, context):
         )
 
     else:
-        parameters = function_body.getParameters()
-
         function_code = getFunctionCode(
             context=function_context,
             function_identifier=function_identifier,
-            parameters=parameters,
+            parameters=function_body.getParameters(),
             closure_variables=function_body.getClosureVariables(),
-            user_variables=function_body.getUserLocalVariables(),
-            outline_variables=function_body.getOutlineLocalVariables(),
+            user_variables=function_body.getUserLocalVariables()
+            + function_body.getOutlineLocalVariables(),
             temp_variables=function_body.getTempVariables(),
             function_doc=function_body.getDoc(),
             needs_exception_exit=needs_exception_exit,
@@ -547,6 +545,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_REF": generateBuiltinRefCode,
+        "EXPRESSION_BUILTIN_WITH_CONTEXT_REF": generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_EXCEPTION_REF": generateExceptionRefCode,
         "EXPRESSION_BUILTIN_ANONYMOUS_REF": generateBuiltinAnonymousRefCode,
         "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF": generateExceptionCaughtTypeCode,
@@ -664,6 +663,7 @@ setExpressionDispatchDict(
         "EXPRESSION_SPECIAL_UNPACK": generateSpecialUnpackCode,
         "EXPRESSION_TEMP_VARIABLE_REF": generateVariableReferenceCode,
         "EXPRESSION_VARIABLE_REF": generateVariableReferenceCode,
+        "EXPRESSION_VARIABLE_OR_BUILTIN_REF": generateVariableReferenceCode,
         "EXPRESSION_YIELD": generateYieldCode,
         "EXPRESSION_YIELD_FROM": generateYieldFromCode,
         "EXPRESSION_YIELD_FROM_WAITABLE": generateYieldFromWaitableCode,

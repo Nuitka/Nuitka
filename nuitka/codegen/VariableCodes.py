@@ -21,14 +21,8 @@
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
-    tshape_int,
     tshape_int_or_long,
-    tshape_long,
-    tshape_str,
-    tshape_str_or_unicode,
-    tshape_unicode,
 )
-from nuitka.PythonVersions import python_version
 
 from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
 from .c_types.CTypePyObjectPtrs import (
@@ -185,8 +179,6 @@ def _getVariableCodeName(in_context, variable):
 def getPickedCType(variable, context):
     """ Return type to use for specific context. """
 
-    # Necessarily complex, pylint: disable=too-many-branches
-
     user = context.getEntryPoint()
     owner = variable.getEntryPoint()
 
@@ -200,20 +192,6 @@ def getPickedCType(variable, context):
             shapes = variable.getTypeShapes()
 
             if len(shapes) > 1:
-                # There are a few shapes that are included in one another.
-                if python_version < 300:
-                    if tshape_int_or_long in shapes:
-                        if tshape_int in shapes:
-                            shapes.discard(tshape_int)
-                        if tshape_long in shapes:
-                            shapes.discard(tshape_long)
-
-                    if tshape_str_or_unicode in shapes:
-                        if tshape_str in shapes:
-                            shapes.discard(tshape_str)
-                        if tshape_unicode in shapes:
-                            shapes.discard(tshape_unicode)
-
                 # Avoiding this for now, but we will have to use our enum
                 # based code variants, either generated or hard coded in
                 # the future.
@@ -246,7 +224,7 @@ def decideLocalVariableCodeType(context, variable):
 
     prefix = ""
 
-    if owner.isExpressionOutlineFunction() or owner.isExpressionClassBody():
+    if owner.isExpressionOutlineFunctionBase():
         entry_point = owner.getEntryPoint()
 
         prefix = "outline_%d_" % entry_point.getTraceCollection().getOutlineFunctions().index(
@@ -311,7 +289,7 @@ def getLocalVariableDeclaration(context, variable, variable_trace):
 
     prefix = ""
 
-    if owner.isExpressionOutlineFunction() or owner.isExpressionClassBody():
+    if owner.isExpressionOutlineFunctionBase():
         entry_point = owner.getEntryPoint()
 
         prefix = "outline_%d_" % entry_point.getTraceCollection().getOutlineFunctions().index(

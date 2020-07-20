@@ -56,36 +56,23 @@ def generateBuiltinLocalsRefCode(to_name, expression, emit, context):
 
 
 def generateBuiltinLocalsCode(to_name, expression, emit, context):
-    provider = expression.getParentVariableProvider()
-
     variable_traces = expression.getVariableTraces()
     updated = expression.isExpressionBuiltinLocalsUpdated()
+    locals_scope = expression.getLocalsScope()
 
     # Locals is sorted of course.
     def _sorted(variables):
-        locals_owner = context.getOwner()
-
-        if locals_owner.isExpressionOutlineBody():
-            locals_owner = locals_owner.getParentVariableProvider()
-
-        variable_order = locals_owner.getProvidedVariableOrder()
+        variable_order = tuple(locals_scope.getProvidedVariables())
 
         return sorted(
-            variables,
-            key=lambda variable_desc: variable_order.index(variable_desc[0].getName()),
+            variables, key=lambda variable_desc: variable_order.index(variable_desc[0]),
         )
-
-    # Optimization will have made this "globals", and it wouldn't be
-    # about local variables at all.
-    assert not provider.isCompiledPythonModule(), provider
 
     with withObjectCodeTemporaryAssignment(
         to_name, "locals_ref_value", expression, emit, context
     ) as value_name:
 
         if updated:
-            locals_scope = expression.getLocalsScope()
-
             locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
             is_dict = locals_scope.getTypeShape() is tshape_dict
             # For Python3 it may really not be a dictionary.
@@ -141,7 +128,7 @@ def _getLocalVariableList(provider):
 
     return [
         variable
-        for variable in provider.getVariables()
+        for variable in provider.getProvidedVariables()
         if not variable.isModuleVariable()
         if (include_closure or variable.getOwner() is provider)
     ]
