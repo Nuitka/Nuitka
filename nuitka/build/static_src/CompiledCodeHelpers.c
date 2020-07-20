@@ -50,9 +50,63 @@ void copyStringSafeN(char *buffer, char const *source, size_t n, size_t buffer_s
 }
 
 void appendStringSafe(char *buffer, char const *source, size_t buffer_size) {
-    if (strlen(source) + strlen(buffer) >= buffer_size)
+    if (strlen(source) + strlen(buffer) >= buffer_size) {
         abort();
+    }
     strcat(buffer, source);
+}
+
+void appendCharSafe(char *buffer, char c, size_t buffer_size) {
+    char source[2] = {c, 0};
+
+    appendStringSafe(buffer, source, buffer_size);
+}
+
+void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_size) {
+    while (*target != 0) {
+        target++;
+        buffer_size -= 1;
+    }
+
+    while (*source != 0) {
+        if (buffer_size < 1) {
+            abort();
+        }
+
+        *target++ = *source++;
+        buffer_size -= 1;
+    }
+
+    *target = 0;
+}
+
+void appendCharSafeW(wchar_t *target, char c, size_t buffer_size) {
+    while (*target != 0) {
+        target++;
+        buffer_size -= 1;
+    }
+
+    if (buffer_size < 1) {
+        abort();
+    }
+
+    target += wcslen(target);
+    char buffer_c[2] = {c, 0};
+    size_t res = mbstowcs(target, buffer_c, 2);
+    assert(res == 1);
+}
+
+void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) {
+    while (*target != 0) {
+        target++;
+        buffer_size -= 1;
+    }
+
+    while (*source != 0) {
+        appendCharSafeW(target, *source, buffer_size);
+        source++;
+        buffer_size -= 1;
+    }
 }
 
 #if PYTHON_VERSION < 300
@@ -922,12 +976,12 @@ void PRINT_TRACEBACK(PyTracebackObject *traceback) {
     if (traceback == NULL)
         PRINT_STRING("<NULL traceback?!>\n");
 
-    while (traceback) {
+    while (traceback != NULL) {
         printf(" line %d (frame object chain):\n", traceback->tb_lineno);
 
         PyFrameObject *frame = traceback->tb_frame;
 
-        while (frame) {
+        while (frame != NULL) {
             printf("  Frame at %s\n", PyString_AsString(PyObject_Str((PyObject *)frame->f_code)));
 
             frame = frame->f_back;
@@ -1620,7 +1674,7 @@ char const *getBinaryDirectoryHostEncoded() {
     }
 
 #if defined(__APPLE__)
-    uint32_t bufsize = MAXPATHLEN;
+    uint32_t bufsize = sizeof(binary_directory);
     int res = _NSGetExecutablePath(binary_directory, &bufsize);
 
     if (unlikely(res != 0)) {
@@ -1629,7 +1683,7 @@ char const *getBinaryDirectoryHostEncoded() {
 
     // On macOS, the "dirname" call creates a separate internal string, we can
     // safely copy back.
-    copyStringSafe(binary_directory, dirname(binary_directory), MAXPATHLEN);
+    copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
 
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)
     /* Not all of FreeBSD has /proc file system, so use the appropriate
@@ -1654,8 +1708,8 @@ char const *getBinaryDirectoryHostEncoded() {
 
     /* The "readlink" call does not terminate result, so fill zeros there, then
      * it is a proper C string right away. */
-    memset(binary_directory, 0, MAXPATHLEN + 1);
-    ssize_t res = readlink("/proc/self/exe", binary_directory, MAXPATHLEN);
+    memset(binary_directory, 0, sizeof(binary_directory));
+    ssize_t res = readlink("/proc/self/exe", binary_directory, sizeof(binary_directory) - 1);
 
     if (unlikely(res == -1)) {
         abort();
@@ -1669,13 +1723,14 @@ char const *getBinaryDirectoryHostEncoded() {
 #endif
 
 wchar_t const *getBinaryDirectoryWideChars() {
-    static wchar_t binary_directory[2 * MAXPATHLEN + 1];
+    static wchar_t binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
 
     if (init_done == false) {
-#ifdef _WIN32
         binary_directory[0] = 0;
-        DWORD res = GetModuleFileNameW(NULL, binary_directory, MAXPATHLEN);
+
+#ifdef _WIN32
+        DWORD res = GetModuleFileNameW(NULL, binary_directory, sizeof(binary_directory));
         assert(res != 0);
 
         PathRemoveFileSpecW(binary_directory);
@@ -1692,11 +1747,12 @@ wchar_t const *getBinaryDirectoryWideChars() {
             abort();
         }
 
-        wcscpy(binary_directory, short_binary_directory);
+        binary_directory[0] = 0;
+        appendWStringSafeW(binary_directory, short_binary_directory, sizeof(binary_directory));
+
         free(short_binary_directory);
 #else
-        // TODO: Error checking.
-        mbstowcs(binary_directory, getBinaryDirectoryHostEncoded(), MAXPATHLEN);
+        appendStringSafeW(binary_directory, getBinaryDirectoryHostEncoded(), sizeof(binary_directory));
 #endif
 
         init_done = true;
