@@ -544,7 +544,7 @@ def runScons(main_module, quiet):
         options["link_libraries"] = ",".join(link_libraries)
 
     if Options.shallMakeModule():
-        options["module_suffix"] = Utils.getSharedLibrarySuffix(True)
+        options["module_suffix"] = Utils.getSharedLibrarySuffix(preferred=True)
 
     if Options.shallRunInDebugger():
         options["full_names"] = "true"

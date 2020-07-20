@@ -259,6 +259,8 @@ def splitPath(path):
 
 
 def hasFilenameExtension(path, extensions):
+    """ Has a filename one of the given extensions. """
+
     extension = os.path.splitext(os.path.normcase(path))[1]
 
     return extension in extensions

@@ -368,10 +368,17 @@ extern PyObject **global_constants;
 #define const_str_plain_iter global_constants[58]
 // 'long'
 #define const_str_plain_long global_constants[59]
-// 'C:\\Python27\\python.exe'
-#define const_str_digest_31eae35daa2ffa3077a1b67558489e1b global_constants[60]
-// 'C:\\Python27'
-#define const_str_digest_7ed9dddfa3e9faf1cadc8ca7ffcfd48c global_constants[61]
+// 'end'
+#define const_str_plain_end global_constants[48]
+// 'file'
+#define const_str_plain_file global_constants[48]
+// 'print'
+#define const_str_plain_print global_constants[48]
+// '__spec__'
+#define const_str_plain___spec__ global_constants[48]
+// '_initializing'
+#define const_str_plain__initializing global_constants[48]
+
 #else
 #include "__constants.h"
 #endif
