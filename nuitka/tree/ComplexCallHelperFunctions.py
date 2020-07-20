@@ -32,7 +32,7 @@ from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
-    makeExpressionBuiltinRef,
+    makeExpressionBuiltinTypeRef,
 )
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
@@ -417,7 +417,7 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
                 ),
                 source_ref=internal_source_ref,
             ),
-            right=makeExpressionBuiltinRef(
+            right=makeExpressionBuiltinTypeRef(
                 builtin_name="tuple", source_ref=internal_source_ref
             ),
             source_ref=internal_source_ref,
@@ -620,7 +620,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
                 ),
                 source_ref=internal_source_ref,
             ),
-            right=makeExpressionBuiltinRef(
+            right=makeExpressionBuiltinTypeRef(
                 builtin_name="dict", source_ref=internal_source_ref
             ),
             source_ref=internal_source_ref,
@@ -974,7 +974,7 @@ def _makeStarDictArgumentMergeToKwStatement(
                 ),
                 source_ref=internal_source_ref,
             ),
-            right=makeExpressionBuiltinRef(
+            right=makeExpressionBuiltinTypeRef(
                 builtin_name="dict", source_ref=internal_source_ref
             ),
             source_ref=internal_source_ref,
@@ -2003,7 +2003,7 @@ def getFunctionCallHelperDictionaryUnpacking():
                     ),
                     source_ref=internal_source_ref,
                 ),
-                right=makeExpressionBuiltinRef(
+                right=makeExpressionBuiltinTypeRef(
                     builtin_name="str", source_ref=internal_source_ref
                 ),
                 source_ref=internal_source_ref,

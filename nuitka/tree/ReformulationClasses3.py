@@ -34,7 +34,7 @@ from nuitka.nodes.AttributeNodes import (
 )
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
-from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinRef
+from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
@@ -136,7 +136,13 @@ def buildClassNode3(provider, node, source_ref):
         provider=provider, name=node.name, doc=class_doc, source_ref=source_ref
     )
 
-    class_variable = class_creation_function.getVariableForAssignment("__class__")
+    class_locals_scope = class_creation_function.getLocalsScope()
+
+    # Only local variable, for provision to methods.
+    class_variable = class_locals_scope.getLocalVariable(
+        owner=class_creation_function, variable_name="__class__"
+    )
+    class_locals_scope.registerProvidedVariable(class_variable)
 
     class_variable_ref = ExpressionVariableRef(
         variable=class_variable, source_ref=source_ref
@@ -171,7 +177,7 @@ def buildClassNode3(provider, node, source_ref):
         # The frame guard has nothing to tell its line number to.
         body.source_ref = source_ref
 
-    locals_scope = class_creation_function.getFunctionLocalsScope()
+    locals_scope = class_creation_function.getLocalsScope()
 
     statements = [
         StatementSetLocals(
@@ -440,13 +446,13 @@ def buildClassNode3(provider, node, source_ref):
                     variable=tmp_bases, source_ref=source_ref
                 ),
                 expression_yes=unspecified_metaclass_expression,
-                expression_no=makeExpressionBuiltinRef(
+                expression_no=makeExpressionBuiltinTypeRef(
                     builtin_name="type", source_ref=source_ref
                 ),
                 source_ref=source_ref,
             )
     else:
-        unspecified_metaclass_expression = makeExpressionBuiltinRef(
+        unspecified_metaclass_expression = makeExpressionBuiltinTypeRef(
             builtin_name="type", source_ref=source_ref
         )
 
@@ -642,6 +648,7 @@ def getClassBasesMroConversionHelper():
             ps_default_count=0,
             ps_kw_only_args=(),
         ),
+        inline_const_args=False,  # TODO: Allow this.
     )
 
     temp_scope = None

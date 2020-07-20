@@ -36,7 +36,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     StatementSpecialUnpackCheck,
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
-from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinRef
+from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
@@ -95,7 +95,7 @@ def _insertFinalReturnStatement(function_statements_body, return_statement):
 
 def _insertInitialSetLocalsDictStatement(function_body, function_statements_body):
     locals_statement = StatementSetLocalsDictionary(
-        locals_scope=function_body.getFunctionLocalsScope(),
+        locals_scope=function_body.getLocalsScope(),
         source_ref=function_body.source_ref,
     )
 
@@ -123,7 +123,7 @@ def _injectDecorator(decorators, inject, acceptable, source_ref):
             break
     else:
         decorators.append(
-            makeExpressionBuiltinRef(builtin_name=inject, source_ref=source_ref)
+            makeExpressionBuiltinTypeRef(builtin_name=inject, source_ref=source_ref)
         )
 
 
@@ -172,7 +172,7 @@ def buildFunctionNode(provider, node, source_ref):
 
         code_body.qualname_provider = provider
 
-        for variable in function_body.getVariables():
+        for variable in function_body.getProvidedVariables():
             code_body.getVariableForReference(variable.getName())
 
         function_body.setBody(
@@ -328,7 +328,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     function_body.qualname_provider = provider
 
-    for variable in creator_function_body.getVariables():
+    for variable in creator_function_body.getProvidedVariables():
         function_body.getVariableForReference(variable.getName())
 
     decorators = buildNodeList(
@@ -554,7 +554,7 @@ def _wrapFunctionWithSpecialNestedArgs(
         for element_index, arg_name in enumerate(arg_names):
             if getKind(arg_name) == "Name":
                 arg_var = outer_body.createProvidedVariable(arg_name.id)
-                outer_body.registerProvidedVariable(arg_var)
+                outer_body.getLocalsScope().registerProvidedVariable(arg_var)
 
                 statements.append(
                     StatementAssignmentVariable(

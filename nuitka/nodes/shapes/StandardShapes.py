@@ -939,6 +939,8 @@ class ShapeLoopCompleteAlternative(ShapeBase):
                     escape_description = ControlFlowDescriptionFullEscape
                 else:
                     assert False
+            else:
+                (escape_description,) = escape_description # pylint: disable=self-assigning-variable
 
             return ShapeLoopCompleteAlternative(result), escape_description
 

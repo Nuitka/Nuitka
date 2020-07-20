@@ -725,6 +725,11 @@ if python_version < 300:
                 return CTypeNuitkaIntOrLongStruct
 
         @staticmethod
+        def emitAlternatives(emit):
+            emit(tshape_int)
+            emit(tshape_long)
+
+        @staticmethod
         def hasShapeSlotBool():
             return True
 
@@ -1677,6 +1682,11 @@ else:
 if python_version < 300:
 
     class ShapeTypeStrOrUnicode(ShapeBase):
+        @staticmethod
+        def emitAlternatives(emit):
+            emit(tshape_str)
+            emit(tshape_unicode)
+
         @staticmethod
         def hasShapeSlotBool():
             return True

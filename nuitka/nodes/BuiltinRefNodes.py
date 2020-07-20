@@ -80,18 +80,22 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
         )
 
 
-_debug_value = "no_asserts" not in getPythonFlags()
+def makeExpressionBuiltinTypeRef(builtin_name, source_ref):
+    return makeConstantRefNode(
+        constant=__builtins__[builtin_name], source_ref=source_ref
+    )
+
 
 quick_names = {
     "None": None,
     "True": True,
     "False": False,
-    "__debug__": _debug_value,
+    "__debug__": "no_asserts" not in getPythonFlags(),
     "Ellipsis": Ellipsis,
 }
 
 
-def makeExpressionBuiltinRef(builtin_name, source_ref):
+def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref):
     assert builtin_name in builtin_names, builtin_name
 
     if builtin_name in quick_names:
@@ -99,8 +103,12 @@ def makeExpressionBuiltinRef(builtin_name, source_ref):
             constant=quick_names[builtin_name], source_ref=source_ref
         )
     elif builtin_name in builtin_type_names:
-        return makeConstantRefNode(
-            constant=__builtins__[builtin_name], source_ref=source_ref
+        return makeExpressionBuiltinTypeRef(
+            builtin_name=builtin_name, source_ref=source_ref,
+        )
+    elif builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
+        return ExpressionBuiltinWithContextRef(
+            builtin_name=builtin_name, locals_scope=locals_scope, source_ref=source_ref,
         )
     else:
         return ExpressionBuiltinRef(builtin_name=builtin_name, source_ref=source_ref)
@@ -110,6 +118,13 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_REF"
 
     __slots__ = ()
+
+    # For overload
+    locals_scope = None
+
+    @staticmethod
+    def isExpressionBuiltinRef():
+        return True
 
     def __init__(self, builtin_name, source_ref):
         ExpressionBuiltinRefBase.__init__(
@@ -135,7 +150,7 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
 
         if self.builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
             # Just inform the collection that all has escaped.
-            trace_collection.onLocalsUsage(self.getParentVariableProvider())
+            trace_collection.onLocalsUsage(locals_scope=self.getLocalsScope())
 
         return new_node, tags, message
 
@@ -145,6 +160,28 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     def isKnownToBeIterable(self, count):
         # TODO: Why yes, some may be, could be told here.
         return None
+
+
+class ExpressionBuiltinWithContextRef(ExpressionBuiltinRef):
+    """ Same as ExpressionBuiltinRef, but with a context it refers to.
+    """
+
+    kind = "EXPRESSION_BUILTIN_WITH_CONTEXT_REF"
+
+    __slots__ = ("locals_scope",)
+
+    def __init__(self, builtin_name, locals_scope, source_ref):
+        ExpressionBuiltinRef.__init__(
+            self, builtin_name=builtin_name, source_ref=source_ref
+        )
+
+        self.locals_scope = locals_scope
+
+    def getDetails(self):
+        return {"builtin_name": self.builtin_name, "locals_scope": self.locals_scope}
+
+    def getLocalsScope(self):
+        return self.locals_scope
 
 
 class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):

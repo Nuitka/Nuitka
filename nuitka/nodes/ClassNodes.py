@@ -25,20 +25,19 @@ from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .IndicatorMixins import MarkNeedsAnnotationsMixin
-from .LocalsScopes import getLocalsDictHandle, setLocalsDictType
-from .OutlineNodes import ExpressionOutlineFunction
+from .LocalsScopes import getLocalsDictHandle
+from .OutlineNodes import ExpressionOutlineFunctionBase
 
 
-class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunction):
-
+class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBase):
     kind = "EXPRESSION_CLASS_BODY"
 
     def __init__(self, provider, name, doc, source_ref):
-        ExpressionOutlineFunction.__init__(
+        ExpressionOutlineFunctionBase.__init__(
             self,
             provider=provider,
             name=name,
-            # TODO: Not used, right?
+            body=None,
             code_prefix="class",
             source_ref=source_ref,
         )
@@ -47,16 +46,17 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunction):
 
         self.doc = doc
 
-        self.locals_dict_name = "locals_%s_%d" % (
-            self.getCodeName(),
-            source_ref.getLineNumber(),
-        )
-
         # Force creation with proper type.
         if python_version >= 300:
-            setLocalsDictType(self.locals_dict_name, "python3_class")
+            locals_kind = "python3_class"
         else:
-            setLocalsDictType(self.locals_dict_name, "python2_class")
+            locals_kind = "python2_class"
+
+        self.locals_scope = getLocalsDictHandle(
+            "locals_%s_%d" % (self.getCodeName(), source_ref.getLineNumber(),),
+            locals_kind,
+            self,
+        )
 
     def getDetails(self):
         return {
@@ -99,7 +99,7 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunction):
             if python_version < 300:
                 return self.provider.getVariableForClosure("__class__")
             else:
-                return ExpressionOutlineFunction.getVariableForClosure(
+                return ExpressionOutlineFunctionBase.getVariableForClosure(
                     self, variable_name="__class__"
                 )
         else:
@@ -121,9 +121,6 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunction):
     def isUnoptimized(self):
         # Classes all are that.
         return True
-
-    def getFunctionLocalsScope(self):
-        return getLocalsDictHandle(self.locals_dict_name)
 
 
 class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):

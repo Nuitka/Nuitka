@@ -574,7 +574,6 @@ def getFunctionCode(
     parameters,
     closure_variables,
     user_variables,
-    outline_variables,
     temp_variables,
     function_doc,
     file_scope,
@@ -587,7 +586,6 @@ def getFunctionCode(
             parameters=parameters,
             closure_variables=closure_variables,
             user_variables=user_variables,
-            outline_variables=outline_variables,
             temp_variables=temp_variables,
             function_doc=function_doc,
             file_scope=file_scope,
@@ -604,7 +602,6 @@ def _getFunctionCode(
     parameters,
     closure_variables,
     user_variables,
-    outline_variables,
     temp_variables,
     function_doc,
     file_scope,
@@ -618,7 +615,7 @@ def _getFunctionCode(
         context=context,
         parameters=parameters,
         closure_variables=closure_variables,
-        user_variables=user_variables + outline_variables,
+        user_variables=user_variables,
         temp_variables=temp_variables,
     )
 
@@ -757,11 +754,10 @@ def generateFunctionCallCode(to_name, expression, emit, context):
 def generateFunctionOutlineCode(to_name, expression, emit, context):
     assert (
         expression.isExpressionOutlineBody()
-        or expression.isExpressionOutlineFunction()
-        or expression.isExpressionClassBody()
+        or expression.isExpressionOutlineFunctionBase()
     )
 
-    if expression.isExpressionOutlineFunctionBodyBase():
+    if expression.isExpressionOutlineFunctionBase():
         context = PythonFunctionOutlineContext(parent=context, outline=expression)
 
     # Need to set return target, to assign to_name from.
@@ -772,7 +768,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 
     # TODO: Put the return value name as that to_name.c_type too.
 
-    if expression.isExpressionOutlineFunctionBodyBase() and expression.getBody().mayRaiseException(
+    if expression.isExpressionOutlineFunctionBase() and expression.getBody().mayRaiseException(
         BaseException
     ):
         exception_target = context.allocateLabel("outline_exception")

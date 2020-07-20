@@ -379,7 +379,7 @@ class NodeBase(NodeMetaClassBase):
         # Virtual method, pylint: disable=no-self-use
         return False
 
-    def isExpressionOutlineFunctionBodyBase(self):
+    def isExpressionOutlineFunctionBase(self):
         # Virtual method, pylint: disable=no-self-use
         return False
 
@@ -689,9 +689,6 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
     def __init__(self, name, code_prefix):
         CodeNodeMixin.__init__(self, name=name, code_prefix=code_prefix)
 
-        self.providing = {}
-        self.variable_order = []
-
         self.temp_variables = {}
 
         self.temp_scopes = {}
@@ -699,32 +696,20 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         self.preserver_id = 0
 
     def hasProvidedVariable(self, variable_name):
-        return variable_name in self.providing
+        return self.locals_scope.hasProvidedVariable(variable_name)
 
     def getProvidedVariable(self, variable_name):
-        if variable_name not in self.providing:
-            self.providing[variable_name] = self.createProvidedVariable(
-                variable_name=variable_name
-            )
-            self.variable_order.append(variable_name)
+        if not self.locals_scope.hasProvidedVariable(variable_name):
+            variable = self.createProvidedVariable(variable_name=variable_name)
+            self.locals_scope.registerProvidedVariable(variable)
 
-        return self.providing[variable_name]
+        return self.locals_scope.getProvidedVariable(variable_name)
 
+    @abstractmethod
     def createProvidedVariable(self, variable_name):
-        # Virtual method, pylint: disable=no-self-use
-        assert type(variable_name) is str
+        """ Create a variable provided by this function.
 
-        return None
-
-    def registerProvidedVariable(self, variable):
-        assert variable is not None
-
-        variable_name = variable.getName()
-        self.providing[variable_name] = variable
-        self.variable_order.append(variable_name)
-
-    def getProvidedVariableOrder(self):
-        return self.variable_order
+        """
 
     def allocateTempScope(self, name):
         self.temp_scopes[name] = self.temp_scopes.get(name, 0) + 1

@@ -73,6 +73,9 @@ class ExpressionBuiltinLocalsBase(ExpressionBase):
     def getVariableTraces(self):
         return self.variable_traces
 
+    def getLocalsScope(self):
+        return self.locals_scope
+
 
 class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
     kind = "EXPRESSION_BUILTIN_LOCALS_UPDATED"
@@ -84,14 +87,9 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
 
         assert locals_scope is not None
 
-    def getLocalsScope(self):
-        return self.locals_scope
-
     def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped.
-        self.variable_traces = trace_collection.onLocalsUsage(
-            self.getParentVariableProvider()
-        )
+        self.variable_traces = trace_collection.onLocalsUsage(self.locals_scope)
 
         trace_collection.onLocalsDictEscaped(self.locals_scope)
 
@@ -137,7 +135,7 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
 
         # Just inform the collection that all escaped unless it is abortative.
         if not self.getParent().isStatementReturn():
-            trace_collection.onLocalsUsage(self.getParentVariableProvider())
+            trace_collection.onLocalsUsage(locals_scope=self.locals_scope)
 
         return self, None, None
 
@@ -149,7 +147,7 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
         # Just inform the collection that all escaped.
 
         self.variable_traces = trace_collection.onLocalsUsage(
-            self.getParentVariableProvider()
+            locals_scope=self.locals_scope
         )
 
         for variable, variable_trace in self.variable_traces:

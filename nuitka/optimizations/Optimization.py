@@ -222,17 +222,17 @@ def areEmptyTraces(variable_traces):
 
             return False
         elif variable_trace.isUninitTrace():
-            if variable_trace.hasDefiniteUsages():
+            if variable_trace.getUsageCount():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
                 return False
         elif variable_trace.isUnknownTrace():
-            if variable_trace.hasDefiniteUsages():
+            if variable_trace.getUsageCount():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
                 return False
         elif variable_trace.isMergeTrace():
-            if variable_trace.hasDefiniteUsages():
+            if variable_trace.getUsageCount():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
                 return False

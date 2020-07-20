@@ -15,7 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Tests to cover default parameter behaviours.
+
+"""
+
 from __future__ import print_function
+
+# pylint: disable=dangerous-default-value,unused-argument
 
 module_level = 1
 

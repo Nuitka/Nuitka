@@ -26,54 +26,64 @@ from nuitka.nodes.AssignNodes import (
     StatementReleaseVariable,
 )
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
-from nuitka.tree.Extractions import updateVariableUsage
+from nuitka.tree.Operations import VisitorNoopMixin, visitTree
 from nuitka.tree.ReformulationTryFinallyStatements import makeTryFinallyStatement
 from nuitka.tree.TreeHelpers import makeStatementsSequence
 
 
-def convertFunctionCallToOutline(provider, function_ref, values):
-    # This has got to have pretty man details, pylint: disable=too-many-locals
-    function_body = function_ref.getFunctionBody()
+class VariableScopeUpdater(VisitorNoopMixin):
+    def __init__(self, locals_scope, variable_translation):
+        self.locals_scope = locals_scope
+        self.variable_translation = variable_translation
 
-    call_source_ref = function_ref.getSourceReference()
+    def onEnterNode(self, node):
+        if hasattr(node, "variable"):
+            if node.variable in self.variable_translation:
+                node.variable = self.variable_translation[node.variable]
+
+        if hasattr(node, "locals_scope"):
+            node.locals_scope = self.locals_scope
+
+
+def updateLocalsScope(provider, locals_scope, variable_translation):
+    visitor = VariableScopeUpdater(
+        locals_scope=locals_scope, variable_translation=variable_translation
+    )
+
+    visitTree(provider, visitor)
+
+
+def convertFunctionCallToOutline(provider, function_body, values, call_source_ref):
+    # This has got to have pretty man details, pylint: disable=too-many-locals
     function_source_ref = function_body.getSourceReference()
 
     outline_body = ExpressionOutlineBody(
         provider=provider, name="inline", source_ref=function_source_ref
     )
 
+    # Make a clone first, so we do not harm other references.
     clone = function_body.getBody().makeClone()
 
-    temp_scope = outline_body.getOutlineTempScope()
+    locals_scope_clone, variable_translation = function_body.locals_scope.makeClone(
+        clone
+    )
 
-    translation = {}
+    # TODO: Lets update all at once maybe, it would take less visits.
+    updateLocalsScope(
+        clone,
+        locals_scope=locals_scope_clone,
+        variable_translation=variable_translation,
+    )
 
-    for variable in function_body.getLocalVariables():
-        # TODO: Later we should be able to do that too.
-        assert variable.isSharedTechnically() is False
-
-        new_variable = outline_body.allocateTempVariable(
-            temp_scope=temp_scope, name=variable.getName()
-        )
-
-        # TODO: Lets update all at once maybe, it would take less visits.
-        updateVariableUsage(clone, old_variable=variable, new_variable=new_variable)
-
-        translation[variable.getName()] = new_variable
+    argument_names = function_body.getParameters().getParameterNames()
+    assert len(argument_names) == len(values), (argument_names, values)
 
     statements = []
-
-    if function_body.isExpressionClassBody():
-        argument_names = ()
-    else:
-        argument_names = function_body.getParameters().getParameterNames()
-
-    assert len(argument_names) == len(values), (argument_names, values)
 
     for argument_name, value in zip(argument_names, values):
         statements.append(
             StatementAssignmentVariable(
-                variable=translation[argument_name],
+                variable=variable_translation[argument_name],
                 source=value,
                 source_ref=call_source_ref,
             )
@@ -85,6 +95,7 @@ def convertFunctionCallToOutline(provider, function_ref, values):
 
     auto_releases = function_body.getFunctionVariablesWithAutoReleases()
 
+    # TODO: Not possible to auto release with outline bodies too?
     if auto_releases:
         releases = [
             StatementReleaseVariable(variable=variable, source_ref=function_source_ref)

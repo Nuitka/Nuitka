@@ -150,7 +150,7 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
 --min-public-methods=0
 --max-public-methods=100
 --max-args=11
---max-parents=12
+--max-parents=13
 --max-statements=50
 --max-nested-blocks=10
 --max-bool-expr=10\

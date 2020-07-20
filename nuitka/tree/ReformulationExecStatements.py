@@ -61,6 +61,8 @@ def wrapEvalGlobalsAndLocals(
         already exists.
     """
 
+    locals_scope = provider.getLocalsScope()
+
     globals_keeper_variable = provider.allocateTempVariable(
         temp_scope=temp_scope, name="globals"
     )
@@ -80,6 +82,7 @@ def wrapEvalGlobalsAndLocals(
     if provider.isExpressionClassBody():
         post_statements.append(
             StatementLocalsDictSync(
+                locals_scope=locals_scope,
                 locals_arg=ExpressionTempVariableRef(
                     variable=locals_keeper_variable, source_ref=source_ref
                 ),
@@ -109,7 +112,7 @@ def wrapEvalGlobalsAndLocals(
             variable=globals_keeper_variable, source_ref=source_ref
         ),
         expression_yes=makeExpressionBuiltinLocals(
-            provider=provider, source_ref=source_ref
+            locals_scope=locals_scope, source_ref=source_ref
         ),
         source_ref=source_ref,
     )
@@ -289,7 +292,8 @@ exec: arg 1 must be a string, file, or code object""",
                         StatementAssignmentVariable(
                             variable=locals_keeper_variable,
                             source=makeExpressionBuiltinLocals(
-                                provider=provider, source_ref=source_ref
+                                locals_scope=provider.getLocalsScope(),
+                                source_ref=source_ref,
                             ),
                             source_ref=source_ref,
                         ),
@@ -352,6 +356,7 @@ exec: arg 1 must be a string, file, or code object""",
                     source_ref=source_ref,
                 ),
                 yes_branch=StatementLocalsDictSync(
+                    locals_scope=provider.getLocalsScope(),
                     locals_arg=ExpressionTempVariableRef(
                         variable=locals_keeper_variable, source_ref=source_ref
                     ),
