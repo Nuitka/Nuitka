@@ -81,6 +81,14 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
+      - name: Verbose installation output for Python
+        run: |
+          set -x
+          which python
+          otool -L $(which python)
+          otool -l $(which python)
+          ls -lR $(dirname $(dirname $(which python)))
+
       - name: Install dependencies
         run: |
           pip install -r requirements-devel.txt
