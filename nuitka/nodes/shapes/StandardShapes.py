@@ -1296,4 +1296,6 @@ class ShapeLoopCompleteAlternative(ShapeBase):
         return self._delegatedCheck(lambda x: x.hasShapeModule())
 
 
+tshape_unknown_loop = ShapeLoopCompleteAlternative(shapes=(tshape_unknown,))
+
 operation_result_unknown = tshape_unknown, ControlFlowDescriptionFullEscape

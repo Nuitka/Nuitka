@@ -27,6 +27,7 @@ from nuitka.tree.Extractions import getVariablesWritten
 
 from .Checkers import checkStatementsSequenceOrNone
 from .NodeBases import StatementBase, StatementChildHavingBase
+from .shapes.StandardShapes import tshape_unknown_loop
 
 
 class StatementLoop(StatementChildHavingBase):
@@ -38,7 +39,13 @@ class StatementLoop(StatementChildHavingBase):
 
     checker = checkStatementsSequenceOrNone
 
-    __slots__ = ("loop_variables", "loop_start", "loop_end", "loop_previous_end")
+    __slots__ = (
+        "loop_variables",
+        "loop_start",
+        "loop_end",
+        "loop_previous_end",
+        "incomplete_count",
+    )
 
     def __init__(self, body, source_ref):
         StatementChildHavingBase.__init__(self, value=body, source_ref=source_ref)
@@ -49,6 +56,9 @@ class StatementLoop(StatementChildHavingBase):
         self.loop_start = {}
         self.loop_end = {}
         self.loop_previous_end = {}
+
+        # To allow an upper limit in case it doesn't terminate.
+        self.incomplete_count = 0
 
     def mayReturn(self):
         loop_body = self.getLoopBody()
@@ -83,7 +93,7 @@ class StatementLoop(StatementChildHavingBase):
         #         self.getLoopBody().mayRaiseException(exception_type)
 
     def _computeLoopBody(self, trace_collection):
-        # Rather complex stuff, pylint: disable=too-many-branches,too-many-locals
+        # Rather complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
         loop_body = self.getLoopBody()
         if loop_body is None:
@@ -189,11 +199,19 @@ class StatementLoop(StatementChildHavingBase):
             self.loop_variables = set()
 
             for loop_variable, loop_entry_trace in loop_entry_traces:
-                loop_end_traces = set()
+
+                # Giving up
+                if self.incomplete_count >= 20:
+                    self.loop_previous_end[loop_variable] = self.loop_end[
+                        loop_variable
+                    ] = set((tshape_unknown_loop,))
+                    continue
 
                 if not first_pass:
                     self.loop_previous_end[loop_variable] = self.loop_end[loop_variable]
                     self.loop_end[loop_variable] = set()
+
+                loop_end_traces = set()
 
                 for continue_collection in continue_collections:
                     loop_end_trace = continue_collection.getVariableCurrentTrace(
@@ -217,8 +235,13 @@ class StatementLoop(StatementChildHavingBase):
             break_collections = trace_collection.getLoopBreakCollections()
 
         if has_incomplete:
+            self.incomplete_count += 1
+
             trace_collection.signalChange(
-                "new_expression", self.source_ref, "Loop has incomplete variable types."
+                "new_expression",
+                self.source_ref,
+                lambda: "Loop has incomplete variable types after %d attempts."
+                % self.incomplete_count,
             )
 
         return loop_body, break_collections, continue_collections
