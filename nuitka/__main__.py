@@ -71,7 +71,8 @@ def main():
     # not match, we restart ourselves with matching configuration.
     needs_reexec = False
 
-    current_version = "%d.%d" % (sys.version_info[0], sys.version_info[1])
+    # Inform the user about potential issues with the running version. e.g. unsupported.
+    from nuitka.PythonVersions import getSupportedPythonVersions, python_version_str
 
     if sys.flags.no_site == 0:
         needs_reexec = True
@@ -95,7 +96,7 @@ def main():
         # libraries.
         args = [sys.executable, sys.executable]
 
-        if current_version >= "3.7" and sys.flags.utf8_mode:
+        if python_version_str >= "3.7" and sys.flags.utf8_mode:
             args += ["-X", "utf8"]
 
         args += ["-S", our_filename]
@@ -132,16 +133,13 @@ def main():
 
         Execution.callExec(args)
 
-    # Inform the user about potential issues.
-    from nuitka.PythonVersions import getSupportedPythonVersions
-
-    if current_version not in getSupportedPythonVersions():
+    if python_version_str not in getSupportedPythonVersions():
         # Do not disturb run of automatic tests, detected from the presence of
         # that environment variable.
         if "PYTHON" not in os.environ:
             Tracing.general.warning(
                 "The version '%s' is not currently supported. Expect problems.",
-                current_version,
+                python_version_str,
             )
 
     if os.name == "nt":
