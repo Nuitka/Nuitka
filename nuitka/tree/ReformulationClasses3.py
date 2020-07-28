@@ -204,30 +204,29 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    # The "__qualname__" attribute is new in Python 3.3.
-    if python_version >= 300:
-        qualname = class_creation_function.getFunctionQualname()
+    # The "__qualname__" attribute is new in Python3.
+    qualname = class_creation_function.getFunctionQualname()
 
-        if python_version < 340:
-            qualname_ref = makeConstantRefNode(
-                constant=qualname, source_ref=source_ref, user_provided=True
-            )
-        else:
-            qualname_ref = ExpressionFunctionQualnameRef(
-                function_body=class_creation_function, source_ref=source_ref
-            )
-
-        statements.append(
-            StatementLocalsDictOperationSet(
-                locals_scope=locals_scope,
-                variable_name="__qualname__",
-                value=qualname_ref,
-                source_ref=source_ref,
-            )
+    if python_version < 340:
+        qualname_ref = makeConstantRefNode(
+            constant=qualname, source_ref=source_ref, user_provided=True
+        )
+    else:
+        qualname_ref = ExpressionFunctionQualnameRef(
+            function_body=class_creation_function, source_ref=source_ref
         )
 
-        if python_version >= 340:
-            qualname_assign = statements[-1]
+    statements.append(
+        StatementLocalsDictOperationSet(
+            locals_scope=locals_scope,
+            variable_name="__qualname__",
+            value=qualname_ref,
+            source_ref=source_ref,
+        )
+    )
+
+    if python_version >= 340:
+        qualname_assign = statements[-1]
 
     if python_version >= 360 and class_creation_function.needsAnnotationsDictionary():
         statements.append(
@@ -643,6 +642,7 @@ def getClassBasesMroConversionHelper():
             ps_default_count=0,
             ps_kw_only_args=(),
         ),
+        inline_const_args=False,  # TODO: Allow this.
     )
 
     temp_scope = None
