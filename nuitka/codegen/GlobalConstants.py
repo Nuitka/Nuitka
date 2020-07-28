@@ -154,7 +154,7 @@ def getConstantDefaultPopulation():
 
     if python_version >= 340:
         # Work with the __spec__ module attribute.
-        result += ("__spec__", "_initializing")
+        result += ("__spec__", "_initializing", "parent")
 
     if python_version >= 350:
         # Patching the types module.
