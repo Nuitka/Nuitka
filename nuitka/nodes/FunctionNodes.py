@@ -29,7 +29,7 @@ Coroutines and generators live in their dedicated module and share base
 classes.
 """
 
-from nuitka import Options, Variables
+from nuitka import Variables
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import (
     ParameterSpec,
@@ -357,6 +357,15 @@ class ExpressionFunctionBodyBase(
         else:
             return self.getBody().mayRaiseException(exception_type)
 
+    def getFunctionInlineCost(self, values):
+        """ Cost of inlining this function with given arguments
+
+            Returns: None or integer values, None means don't do it.
+        """
+
+        # For overload, pylint: disable=no-self-use,unused-argument
+        return None
+
 
 class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBase):
     def __init__(
@@ -600,6 +609,10 @@ class ExpressionFunctionBody(
             **other_args
         )
 
+    @staticmethod
+    def isExpressionFunctionBody():
+        return True
+
     def getParent(self):
         assert False
 
@@ -653,6 +666,13 @@ class ExpressionFunctionBody(
 
     def needsExceptionReturnValue(self):
         return self.return_exception
+
+
+class ExpressionFunctionPureBody(ExpressionFunctionBody):
+    kind = "EXPRESSION_FUNCTION_PURE_BODY"
+
+    def getFunctionInlineCost(self, values):
+        return 0
 
 
 def convertNoneConstantOrEmptyDictToNone(node):
@@ -836,41 +856,6 @@ error"""
                 % self.getName(),
             )
 
-    def getCallCost(self, values):
-        # TODO: Ought to use values. If they are all constant, how about we
-        # assume no cost, pylint: disable=unused-argument
-
-        function_body = self.getFunctionRef().getFunctionBody()
-
-        if function_body.isExpressionClassBody():
-            if function_body.getBody().getStatements()[0].isStatementReturn():
-                return 0
-
-            return None
-
-        if True or not Options.isExperimental("function_inlining"):
-            return None
-
-        if function_body.isExpressionGeneratorObjectBody():
-            # TODO: That's not even allowed, is it?
-            assert False
-
-            return None
-
-        # TODO: Lying for the demo, this is too limiting, but needs frames to
-        # be allowed twice in a context.
-        if function_body.mayRaiseException(BaseException):
-            return 60
-
-        return 20
-
-    def createOutlineFromCall(self, provider, values):
-        from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
-
-        return convertFunctionCallToOutline(
-            provider=provider, function_ref=self.getFunctionRef(), values=values
-        )
-
     def getClosureVariableVersions(self):
         return self.variable_closure_traces
 
@@ -968,27 +953,33 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
         self.variable_closure_traces = None
 
     def computeExpression(self, trace_collection):
-        function = self.getFunction()
-
-        values = self.getArgumentValues()
-
-        # TODO: This needs some design.
-        cost = function.getCallCost(values)
-
+        function = self.subnode_function
         function_body = function.getFunctionRef().getFunctionBody()
 
         if function_body.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
+        values = self.subnode_values
+
+        # Ask for function for its cost.
+        cost = function_body.getFunctionInlineCost(values)
+
         if cost is not None and cost < 50:
-            result = function.createOutlineFromCall(
-                provider=self.getParentVariableProvider(), values=values
+            from nuitka.optimizations.FunctionInlining import (
+                convertFunctionCallToOutline,
+            )
+
+            result = convertFunctionCallToOutline(
+                provider=self.getParentVariableProvider(),
+                function_body=function_body,
+                values=values,
+                call_source_ref=self.source_ref,
             )
 
             return (
                 result,
                 "new_statements",
-                "Function call to '%s' in-lined." % function_body.getCodeName(),
+                lambda: "Function call to '%s' in-lined." % function_body.getCodeName(),
             )
 
         self.variable_closure_traces = []

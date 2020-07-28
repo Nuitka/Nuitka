@@ -77,6 +77,42 @@ class LocalsDictHandle(object):
     def getName(self):
         return self.locals_name
 
+    def makeClone(self, new_owner):
+        count = 1
+
+        # Make it unique.
+        while 1:
+            locals_name = self.locals_name + "_inline_%d" % count
+
+            if locals_name not in locals_dict_handles:
+                break
+
+            count += 1
+
+        result = self.__class__(locals_name=locals_name, owner=new_owner)
+
+        variable_translation = {}
+
+        # Clone variables as well.
+        for variable_name, variable in self.variables.items():
+            new_variable = variable.makeClone(new_owner=new_owner)
+
+            variable_translation[variable] = new_variable
+            result.variables[variable_name] = new_variable
+
+        result.providing = OrderedDict()
+
+        for variable_name, variable in self.providing.items():
+            if variable in variable_translation:
+                new_variable = variable_translation[variable]
+            else:
+                new_variable = variable.makeClone(new_owner=new_owner)
+                variable_translation[variable] = new_variable
+
+            result.providing[variable_name] = new_variable
+
+        return result, variable_translation
+
     @staticmethod
     def getTypeShape():
         return tshape_dict
