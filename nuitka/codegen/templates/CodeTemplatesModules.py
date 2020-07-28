@@ -540,9 +540,8 @@ MOD_INIT_DECL(%(module_identifier)s) {
     PyObject *module = PyModule_Create(&mdef_%(module_identifier)s);
     CHECK_OBJECT(module);
 
-    PyObject *module_name = PyUnicode_FromString(module_full_name);
-    int res = PyDict_SetItem(PyImport_GetModuleDict(), module_name, module);
-    assert(res != -1);
+    bool res = Nuitka_SetModuleString(module_full_name, module);
+    assert(res != false);
 #endif
 
 #if PYTHON_VERSION < 300

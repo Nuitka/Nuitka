@@ -171,11 +171,10 @@ static PyObject *loadModuleFromCodeObject(PyObject *module, PyCodeObject *code_o
                                           bool is_package) {
     assert(code_object != NULL);
 
-    PyObject *modules = PyImport_GetModuleDict();
     // TODO: This should not actually trigger, but it does.
     // assert(PyDict_GetItemString(modules, name) == NULL);
-    int res = PyDict_SetItemString(modules, name, module);
-    assert(res == 0);
+    bool b_res = Nuitka_SetModuleString(name, module);
+    assert(b_res != false);
 
     char buffer[MAXPATHLEN + 1] = {0};
 
@@ -206,7 +205,7 @@ static PyObject *loadModuleFromCodeObject(PyObject *module, PyCodeObject *code_o
         if (unlikely(path_list == NULL))
             return NULL;
 
-        res = PyList_SetItem(path_list, 0, module_path_entry);
+        int res = PyList_SetItem(path_list, 0, module_path_entry);
         if (unlikely(res != 0)) {
             return NULL;
         }
@@ -468,7 +467,7 @@ static PyObject *callIntoShlibModule(struct Nuitka_MetaPathBasedLoaderEntry cons
     _Py_PackageContext = old_context;
 
 #if PYTHON_VERSION < 300
-    PyObject *module = PyDict_GetItemString(PyImport_GetModuleDict(), full_name);
+    PyObject *module = Nuitka_GetModuleString(full_name);
 #endif
 
     if (unlikely(module == NULL)) {
@@ -496,9 +495,7 @@ static PyObject *callIntoShlibModule(struct Nuitka_MetaPathBasedLoaderEntry cons
             return NULL;
         }
 
-        assert(PyModule_Check(module));
-
-        PyDict_SetItemString(PyImport_GetModuleDict(), full_name, module);
+        Nuitka_SetModuleString(full_name, module);
 
         int res = PyModule_ExecDef(module, def);
 
@@ -662,8 +659,8 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name,
         assert((entry->flags & NUITKA_SHLIB_FLAG) == 0);
         assert(entry->python_initfunc);
 
-        int res = PyDict_SetItem(PyImport_GetModuleDict(), module_name, module);
-        assert(res == 0);
+        bool res = Nuitka_SetModule(module_name, module);
+        assert(res != false);
 
         // Run the compiled module code, we get the module returned.
         PyObject *result = entry->python_initfunc(module, entry);
@@ -684,7 +681,7 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name,
         PySys_WriteStderr("Loaded %s\n", entry->name);
     }
 
-    return LOOKUP_SUBSCRIPT(PyImport_GetModuleDict(), module_name);
+    return Nuitka_GetModule(module_name);
 }
 
 static PyObject *_EXECUTE_EMBEDDED_MODULE(PyObject *module, PyObject *module_name, char const *name) {
@@ -722,7 +719,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyObject *module, PyObject *module_nam
         }
 
         if (res == 1) {
-            result = LOOKUP_SUBSCRIPT(PyImport_GetModuleDict(), module_name);
+            result = Nuitka_GetModule(module_name);
         }
     }
 

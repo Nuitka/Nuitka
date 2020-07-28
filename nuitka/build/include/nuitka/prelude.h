@@ -378,6 +378,10 @@ extern PyObject **global_constants;
 #define const_str_plain___spec__ global_constants[48]
 // '_initializing'
 #define const_str_plain__initializing global_constants[48]
+// parent
+#define const_str_plain_parent global_constants[48]
+// types
+#define const_str_plain_types global_constants[48]
 
 #else
 #include "__constants.h"

@@ -241,6 +241,7 @@ PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name) {
 
             Py_DECREF(filename);
             Py_DECREF(name);
+
 #elif PYTHON_VERSION >= 340 || !defined(_NUITKA_FULL_COMPAT)
             PyErr_Format(PyExc_ImportError, "cannot import name '%s'", Nuitka_String_AsString(import_name));
 #else
@@ -255,6 +256,156 @@ PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name) {
 }
 
 #if PYTHON_VERSION >= 350
+
+static PyObject *resolveParentModuleName(PyObject *module, PyObject *name, int level) {
+    PyObject *globals = PyModule_GetDict(module);
+
+    CHECK_OBJECT(globals);
+
+    if (unlikely(!PyDict_Check(globals))) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "globals must be a dict");
+        return NULL;
+    }
+
+    PyObject *package = PyDict_GetItem(globals, const_str_plain___package__);
+
+    if (unlikely(package == NULL && ERROR_OCCURRED())) {
+        return NULL;
+    }
+
+    if (package == Py_None) {
+        package = NULL;
+    }
+
+    PyObject *spec = PyDict_GetItem(globals, const_str_plain___spec__);
+
+    if (unlikely(spec == NULL && ERROR_OCCURRED())) {
+        return NULL;
+    }
+
+    if (package != NULL) {
+        if (!PyUnicode_Check(package)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "package must be a string");
+            return NULL;
+        }
+
+        // Compare with spec.
+        if (spec != NULL && spec != Py_None) {
+            PyObject *parent = PyObject_GetAttr(spec, const_str_plain_parent);
+
+            if (unlikely(parent == NULL)) {
+                return NULL;
+            }
+
+            int equal = PyObject_RichCompareBool(package, parent, Py_EQ);
+
+            Py_DECREF(parent);
+
+            if (unlikely(equal < 0)) {
+                return NULL;
+            }
+            if (unlikely(equal == 0)) {
+                if (PyErr_WarnEx(PyExc_ImportWarning, "__package__ != __spec__.parent", 1) < 0) {
+                    return NULL;
+                }
+            }
+        }
+
+        Py_INCREF(package);
+    } else if (spec != NULL && spec != Py_None) {
+        package = PyObject_GetAttr(spec, const_str_plain_parent);
+
+        if (unlikely(package == NULL)) {
+            return NULL;
+        }
+
+        if (unlikely(!PyUnicode_Check(package))) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__spec__.parent must be a string");
+            return NULL;
+        }
+    } else {
+        if (PyErr_WarnEx(PyExc_ImportWarning,
+                         "can't resolve package from __spec__ or __package__, "
+                         "falling back on __name__ and __path__",
+                         1) < 0) {
+            return NULL;
+        }
+
+        package = PyDict_GetItem(globals, const_str_plain___name__);
+
+        if (unlikely(package == NULL && !ERROR_OCCURRED())) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_KeyError, "'__name__' not in globals");
+            return NULL;
+        }
+
+        if (!PyUnicode_Check(package)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__name__ must be a string");
+            return NULL;
+        }
+
+        // Detect package from __path__ presence.
+        if (PyDict_GetItem(globals, const_str_plain___path__) == NULL) {
+            if (unlikely(ERROR_OCCURRED())) {
+                return NULL;
+            }
+
+            Py_ssize_t dot = PyUnicode_FindChar(package, '.', 0, PyUnicode_GET_LENGTH(package), -1);
+
+            if (unlikely(dot == -2)) {
+                return NULL;
+            }
+
+            if (unlikely(dot == -1)) {
+                // NULL without error means it just didn't work.
+                return NULL;
+            }
+
+            PyObject *substr = PyUnicode_Substring(package, 0, dot);
+            if (unlikely(substr == NULL)) {
+                return NULL;
+            }
+
+            package = substr;
+        } else {
+            Py_INCREF(package);
+        }
+    }
+
+    Py_ssize_t last_dot = PyUnicode_GET_LENGTH(package);
+
+    if (unlikely(last_dot == 0)) {
+        Py_DECREF(package);
+
+        // NULL without error means it just didn't work.
+        return NULL;
+    }
+
+    for (int level_up = 1; level_up < level; level_up += 1) {
+        last_dot = PyUnicode_FindChar(package, '.', 0, last_dot, -1);
+        if (last_dot == -2) {
+            Py_DECREF(package);
+            return NULL;
+        } else if (last_dot == -1) {
+            Py_DECREF(package);
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "attempted relative import beyond top-level package");
+            return NULL;
+        }
+    }
+
+    PyObject *base = PyUnicode_Substring(package, 0, last_dot);
+
+    Py_DECREF(package);
+
+    if (unlikely(base == NULL || PyUnicode_GET_LENGTH(name) == 0)) {
+        return base;
+    }
+
+    PyObject *abs_name = PyUnicode_FromFormat("%U.%U", base, name);
+    Py_DECREF(base);
+
+    return abs_name;
+}
+
 PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *import_name, PyObject *level) {
     CHECK_OBJECT(module);
     CHECK_OBJECT(import_name);
@@ -265,29 +416,54 @@ PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *i
         if (EXCEPTION_MATCH_BOOL_SINGLE(GET_ERROR_OCCURRED(), PyExc_AttributeError)) {
             CLEAR_ERROR_OCCURRED();
 
-            if (PyLong_AsLong(level) != 0) {
+            long level_int = PyLong_AsLong(level);
+
+            if (unlikely(level_int == -1 && ERROR_OCCURRED())) {
+                return NULL;
+            }
+
+            if (unlikely(level_int < 0)) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "level must be >= 0");
+                return NULL;
+            }
+
+            if (level_int > 0) {
                 PyObject *fromlist = PyTuple_New(1);
                 PyTuple_SET_ITEM0(fromlist, 0, import_name);
 
                 result = IMPORT_MODULE5(const_str_empty, globals, globals, fromlist, level);
 
                 Py_DECREF(fromlist);
-            } else {
-                PyObject *name = PyUnicode_FromFormat("%s.%S", PyModule_GetName(module), import_name);
 
-                result = IMPORT_MODULE5(name, globals, globals, const_tuple_empty, level);
-
-                Py_DECREF(name);
-            }
-
-            if (result != NULL) {
                 // Look up in "sys.modules", because we will have returned the
                 // package of it from IMPORT_MODULE5.
                 PyObject *name = PyUnicode_FromFormat("%s.%S", PyModule_GetName(result), import_name);
-                Py_DECREF(result);
 
-                result = PyDict_GetItem(PyImport_GetModuleDict(), name);
+                if (result != NULL) {
+                    Py_DECREF(result);
+
+                    result = Nuitka_GetModule(name);
+                }
+
                 Py_DECREF(name);
+            } else {
+                PyObject *name = resolveParentModuleName(module, import_name, level_int);
+
+                if (name == NULL) {
+                    if (unlikely(ERROR_OCCURRED())) {
+                        return NULL;
+                    }
+                } else {
+                    result = IMPORT_MODULE5(name, globals, globals, const_tuple_empty, level);
+
+                    if (result != NULL) {
+                        Py_DECREF(result);
+
+                        // Look up in "sys.modules", because we will have returned the
+                        result = Nuitka_GetModule(name);
+                        Py_DECREF(name);
+                    }
+                }
             }
 
             if (result == NULL) {
