@@ -359,13 +359,15 @@ class ExpressionAttributeCheck(ExpressionChildHavingBase):
 
     __slots__ = ("attribute_name",)
 
-    @calledWithBuiltinArgumentNamesDecorator
-    def __init__(self, object_arg, attribute_name, source_ref):
+    def __init__(self, expression, attribute_name, source_ref):
         ExpressionChildHavingBase.__init__(
-            self, value=object_arg, source_ref=source_ref
+            self, value=expression, source_ref=source_ref
         )
 
         self.attribute_name = attribute_name
+
+    def getDetails(self):
+        return {"attribute_name": self.attribute_name}
 
     def computeExpression(self, trace_collection):
         # We do at least for compile time constants optimization here, but more

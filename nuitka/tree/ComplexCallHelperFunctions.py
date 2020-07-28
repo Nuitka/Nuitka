@@ -360,14 +360,14 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
         non_tuple_code = makeStatementConditional(
             condition=ExpressionConditionalOr(
                 left=ExpressionAttributeCheck(
-                    object_arg=ExpressionVariableRef(
+                    expression=ExpressionVariableRef(
                         variable=star_list_variable, source_ref=internal_source_ref
                     ),
                     attribute_name="__iter__",
                     source_ref=internal_source_ref,
                 ),
                 right=ExpressionAttributeCheck(
-                    object_arg=ExpressionVariableRef(
+                    expression=ExpressionVariableRef(
                         variable=star_list_variable, source_ref=internal_source_ref
                     ),
                     attribute_name="__getitem__",

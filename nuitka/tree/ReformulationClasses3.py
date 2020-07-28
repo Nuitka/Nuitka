@@ -483,7 +483,7 @@ def buildClassNode3(provider, node, source_ref):
             call_prepare,
             makeStatementConditional(
                 condition=ExpressionAttributeCheck(
-                    object_arg=ExpressionTempVariableRef(
+                    expression=ExpressionTempVariableRef(
                         variable=tmp_prepared, source_ref=source_ref
                     ),
                     attribute_name="__getitem__",
@@ -582,7 +582,7 @@ def buildClassNode3(provider, node, source_ref):
         ),
         makeStatementConditional(
             condition=ExpressionAttributeCheck(
-                object_arg=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_metaclass, source_ref=source_ref
                 ),
                 attribute_name="__prepare__",
@@ -655,7 +655,7 @@ def getClassBasesMroConversionHelper():
 
     non_type_case = makeStatementConditional(
         condition=ExpressionAttributeCheck(
-            object_arg=ExpressionTempVariableRef(
+            expression=ExpressionTempVariableRef(
                 variable=tmp_item_variable, source_ref=internal_source_ref
             ),
             attribute_name="__mro_entries__",
