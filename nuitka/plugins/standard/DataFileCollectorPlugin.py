@@ -27,42 +27,6 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import getFileList, listDir
 
-known_data_files = {
-    # Key is the package name to trigger it
-    # Value is a tuple of 2 element tuples, thus trailing commas, where
-    # the target path can be specified (None is just default, i.e. the
-    # package directory) and the filename relative to the source package
-    # directory
-    "botocore": ((None, "cacert.pem"),),
-    "site": ((None, "orig-prefix.txt"),),
-    "nose.core": ((None, "usage.txt"),),
-    "scrapy": ((None, "VERSION"),),
-    "dask": (("", "dask.yaml"),),
-    "cairocffi": ((None, "VERSION"),),
-    "cairosvg": ((None, "VERSION"),),
-    "weasyprint": ((None, "VERSION"),),
-    "tinycss2": ((None, "VERSION"),),
-    "requests": (("certifi", "../certifi/cacert.pem"),),
-    "urllib3": (("certifi", "../certifi/cacert.pem"),),
-    "importlib_resources": ((None, "version.txt"),),
-    "moto": (
-        (None, "./ec2/resources/instance_types.json"),
-        (None, "./ec2/resources/amis.json"),
-    ),
-    "skimage": (
-        (None, "./io/_plugins/fits_plugin.ini"),
-        (None, "./io/_plugins/gdal_plugin.ini"),
-        (None, "./io/_plugins/gtk_plugin.ini"),
-        (None, "./io/_plugins/imageio_plugin.ini"),
-        (None, "./io/_plugins/imread_plugin.ini"),
-        (None, "./io/_plugins/matplotlib_plugin.ini"),
-        (None, "./io/_plugins/pil_plugin.ini"),
-        (None, "./io/_plugins/qt_plugin.ini"),
-        (None, "./io/_plugins/simpleitk_plugin.ini"),
-        (None, "./io/_plugins/tifffile_plugin.ini"),
-    ),
-}
-
 
 def _createEmptyDirText(filename):
     # We create the same content all the time, pylint: disable=unused-argument
@@ -110,16 +74,8 @@ def get_package_paths(package):
     return pkg_base, pkg_dir
 
 
-generated_data_files = {
-    "Cryptodome.Util._raw_api": (
-        ("Cryptodome/Util", ".keep_dir.txt", _createEmptyDirText),
-    ),
-    "Crypto.Util._raw_api": (("Crypto/Util", ".keep_dir.txt", _createEmptyDirText),),
-}
-
-
-def getPackageFiles(module, packages, folders_only):
-    """Yield all (!) filenames in given package(s).
+def _getPackageFiles(module, packages, folders_only):
+    """ Yield all (!) filenames in given package(s).
 
     Notes:
         This should be required in rare occasions only. The one example I know
@@ -176,8 +132,8 @@ def getPackageFiles(module, packages, folders_only):
         yield f
 
 
-def getSubDirectoryFiles(module, subdirs, folders_only):
-    """Yield filenames in given subdirs of the module.
+def _getSubDirectoryFiles(module, subdirs, folders_only):
+    """ Yield filenames in given subdirs of the module.
 
     Notes:
         All filenames in folders below one of the subdirs are recursively
@@ -235,28 +191,72 @@ def getSubDirectoryFiles(module, subdirs, folders_only):
         yield f
 
 
-# data files to be copied are contained in subfolders named as the second item
-# the 3rd item indicates whether to recreate toe folder structure only (True),
-# or indeed also copy the files.
-known_data_folders = {
-    "botocore": (getSubDirectoryFiles, "data", False),
-    "boto3": (getSubDirectoryFiles, "data", False),
-    "sklearn.datasets": (getSubDirectoryFiles, ("data", "descr"), False),
-    "osgeo": (getSubDirectoryFiles, "data", False),
-    "pyphen": (getSubDirectoryFiles, "dictionaries", False),
-    "pendulum": (getSubDirectoryFiles, "locales", True),  # folder structure only
-    "pytz": (getSubDirectoryFiles, "zoneinfo", False),
-    "pytzdata": (getSubDirectoryFiles, "zoneinfo", False),
-    "pywt": (getSubDirectoryFiles, "data", False),
-    "skimage": (getSubDirectoryFiles, "data", False),
-    "weasyprint": (getSubDirectoryFiles, "css", False),
-    "xarray": (getSubDirectoryFiles, "static", False),
-    "eventlet": (getPackageFiles, ("dns",), False),  # copy other package source
-}
-
-
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     plugin_name = "data-files"
+
+    known_data_files = {
+        # Key is the package name to trigger it
+        # Value is a tuple of 2 element tuples, thus trailing commas, where
+        # the target path can be specified (None is just default, i.e. the
+        # package directory) and the filename relative to the source package
+        # directory
+        "botocore": ((None, "cacert.pem"),),
+        "site": ((None, "orig-prefix.txt"),),
+        "nose.core": ((None, "usage.txt"),),
+        "scrapy": ((None, "VERSION"),),
+        "dask": (("", "dask.yaml"),),
+        "cairocffi": ((None, "VERSION"),),
+        "cairosvg": ((None, "VERSION"),),
+        "weasyprint": ((None, "VERSION"),),
+        "tinycss2": ((None, "VERSION"),),
+        "requests": (("certifi", "../certifi/cacert.pem"),),
+        "urllib3": (("certifi", "../certifi/cacert.pem"),),
+        "importlib_resources": ((None, "version.txt"),),
+        "moto": (
+            (None, "./ec2/resources/instance_types.json"),
+            (None, "./ec2/resources/amis.json"),
+        ),
+        "skimage": (
+            (None, "./io/_plugins/fits_plugin.ini"),
+            (None, "./io/_plugins/gdal_plugin.ini"),
+            (None, "./io/_plugins/gtk_plugin.ini"),
+            (None, "./io/_plugins/imageio_plugin.ini"),
+            (None, "./io/_plugins/imread_plugin.ini"),
+            (None, "./io/_plugins/matplotlib_plugin.ini"),
+            (None, "./io/_plugins/pil_plugin.ini"),
+            (None, "./io/_plugins/qt_plugin.ini"),
+            (None, "./io/_plugins/simpleitk_plugin.ini"),
+            (None, "./io/_plugins/tifffile_plugin.ini"),
+        ),
+    }
+
+    # data files to be copied are contained in subfolders named as the second item
+    # the 3rd item indicates whether to recreate toe folder structure only (True),
+    # or indeed also copy the files.
+    known_data_folders = {
+        "botocore": (_getSubDirectoryFiles, "data", False),
+        "boto3": (_getSubDirectoryFiles, "data", False),
+        "sklearn.datasets": (_getSubDirectoryFiles, ("data", "descr"), False),
+        "osgeo": (_getSubDirectoryFiles, "data", False),
+        "pyphen": (_getSubDirectoryFiles, "dictionaries", False),
+        "pendulum": (_getSubDirectoryFiles, "locales", True),  # folder structure only
+        "pytz": (_getSubDirectoryFiles, "zoneinfo", False),
+        "pytzdata": (_getSubDirectoryFiles, "zoneinfo", False),
+        "pywt": (_getSubDirectoryFiles, "data", False),
+        "skimage": (_getSubDirectoryFiles, "data", False),
+        "weasyprint": (_getSubDirectoryFiles, "css", False),
+        "xarray": (_getSubDirectoryFiles, "static", False),
+        "eventlet": (_getPackageFiles, ("dns",), False),  # copy other package source
+    }
+
+    generated_data_files = {
+        "Cryptodome.Util._raw_api": (
+            ("Cryptodome/Util", ".keep_dir.txt", _createEmptyDirText),
+        ),
+        "Crypto.Util._raw_api": (
+            ("Crypto/Util", ".keep_dir.txt", _createEmptyDirText),
+        ),
+    }
 
     @classmethod
     def isRelevant(cls):
@@ -270,8 +270,8 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         module_name = module.getFullName()
         module_folder = module.getCompileTimeDirectory()
 
-        if module_name in known_data_files:
-            for target_dir, filename in known_data_files[module_name]:
+        if module_name in self.known_data_files:
+            for target_dir, filename in self.known_data_files[module_name]:
                 source_path = os.path.join(module_folder, filename)
 
                 if os.path.isfile(source_path):
@@ -283,13 +283,13 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                         os.path.normpath(os.path.join(target_dir, filename)),
                     )
 
-        if module_name in known_data_folders:
-            func, subdir, folders_only = known_data_folders[module_name]
+        if module_name in self.known_data_folders:
+            func, subdir, folders_only = self.known_data_folders[module_name]
             for item in func(module, subdir, folders_only):
                 yield item
 
-        if module_name in generated_data_files:
-            for target_dir, filename, func in generated_data_files[module_name]:
+        if module_name in self.generated_data_files:
+            for target_dir, filename, func in self.generated_data_files[module_name]:
                 if target_dir is None:
                     target_dir = module_name.replace(".", os.path.sep)
 
