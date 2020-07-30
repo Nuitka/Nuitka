@@ -33,36 +33,26 @@ NUITKA_DEFINE_BUILTIN(__import__);
 
 PyObject *IMPORT_MODULE_KW(PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items,
                            PyObject *level) {
-    if (module_name)
-        CHECK_OBJECT(module_name);
-    if (globals)
-        CHECK_OBJECT(globals);
-    if (locals)
-        CHECK_OBJECT(locals);
-    if (import_items)
-        CHECK_OBJECT(import_items);
-    if (level)
-        CHECK_OBJECT(level);
+    CHECK_OBJECT_X(module_name);
+    CHECK_OBJECT_X(globals);
+    CHECK_OBJECT_X(locals);
+    CHECK_OBJECT_X(import_items);
+    CHECK_OBJECT_X(level);
 
     PyObject *kw_args = PyDict_New();
     if (module_name) {
-        CHECK_OBJECT(module_name);
         PyDict_SetItem(kw_args, const_str_plain_name, module_name);
     }
     if (globals) {
-        CHECK_OBJECT(globals);
         PyDict_SetItem(kw_args, const_str_plain_globals, globals);
     }
     if (locals) {
-        CHECK_OBJECT(locals);
         PyDict_SetItem(kw_args, const_str_plain_locals, locals);
     }
     if (import_items) {
-        CHECK_OBJECT(import_items);
         PyDict_SetItem(kw_args, const_str_plain_fromlist, import_items);
     }
     if (level) {
-        CHECK_OBJECT(level);
         PyDict_SetItem(kw_args, const_str_plain_level, level);
     }
     NUITKA_ASSIGN_BUILTIN(__import__);
