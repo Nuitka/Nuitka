@@ -133,10 +133,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT(PyObject *value) {
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *encoding, PyObject *errors) {
     CHECK_OBJECT(value);
-    if (encoding)
-        CHECK_OBJECT(encoding);
-    if (errors)
-        CHECK_OBJECT(errors);
+    CHECK_OBJECT_X(encoding);
+    CHECK_OBJECT_X(errors);
 
     char const *encoding_str;
 
