@@ -30,6 +30,7 @@ import subprocess
 import sys
 import tempfile
 from contextlib import contextmanager
+from optparse import OptionGroup, OptionParser
 
 from nuitka.Tracing import my_print
 from nuitka.utils.AppDirs import getAppDir, getCacheDir
@@ -44,9 +45,9 @@ from nuitka.utils.FileOperations import (
 
 from .SearchModes import (
     SearchModeAll,
-    SearchModeBase,
     SearchModeByPattern,
     SearchModeCoverage,
+    SearchModeImmediate,
     SearchModeOnly,
     SearchModeResume,
 )
@@ -980,34 +981,73 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
 
 
 def createSearchMode():
-    all_mode = len(sys.argv) > 1 and sys.argv[1] == "all"
-    search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
-    resume_mode = len(sys.argv) > 1 and sys.argv[1] == "resume"
-    only_mode = len(sys.argv) > 1 and sys.argv[1] == "only"
-    start_at = sys.argv[2] if len(sys.argv) > 2 else None
-    coverage_mode = len(sys.argv) > 1 and sys.argv[1] == "coverage"
+    parser = OptionParser()
 
-    if coverage_mode:
-        return SearchModeCoverage()
-    elif all_mode:
-        return SearchModeAll()
-    elif resume_mode:
+    select_group = OptionGroup(parser, "Select Tests")
+
+    select_group.add_option(
+        "--pattern",
+        action="store",
+        dest="pattern",
+        default="",
+        help="""\
+Execute only tests matching the pattern. Defaults to all tests.""",
+    )
+    select_group.add_option(
+        "--all",
+        action="store_true",
+        dest="all",
+        default=False,
+        help="""\
+Execute all tests, continue execution even after failure of one.""",
+    )
+
+    parser.add_option_group(select_group)
+
+    debug_group = OptionGroup(parser, "Test features")
+
+    debug_group.add_option(
+        "--debug",
+        action="store_true",
+        dest="debug",
+        default=False,
+        help="""\
+Executing all self checks possible to find errors in Nuitka, good for test coverage.
+Defaults to off.""",
+    )
+
+    parser.add_option_group(debug_group)
+
+    options, positional_args = parser.parse_args()
+
+    # Default to searching.
+    mode = positional_args[0] if positional_args else "search"
+
+    # Avoid having to use options style.
+    if mode in ("search", "only"):
+        if len(positional_args) >= 2 and not options.pattern:
+            options.pattern = positional_args[1]
+
+    if mode == "search":
+        if options.all:
+            return SearchModeAll()
+        elif options.pattern:
+            pattern = options.pattern.replace("/", os.path.sep)
+            return SearchModeByPattern(pattern)
+        else:
+            return SearchModeImmediate()
+    elif mode == "resume":
         return SearchModeResume(sys.modules["__main__"].__file__)
-    elif search_mode and start_at:
-        start_at = start_at.replace("/", os.path.sep)
-        return SearchModeByPattern(start_at)
-    elif only_mode and start_at:
-        only_at = start_at.replace("/", os.path.sep)
-        return SearchModeOnly(only_at)
+    elif mode == "only":
+        if options.pattern:
+            pattern = options.pattern.replace("/", os.path.sep)
+            return SearchModeOnly(pattern)
+        else:
+            assert False
+    elif mode == "coverage":
+        return SearchModeCoverage()
     else:
-
-        class SearchModeImmediate(SearchModeBase):
-            def abortOnFinding(self, dirname, filename):
-                return search_mode and SearchModeBase.abortOnFinding(
-                    self, dirname, filename
-                )
-
-        return SearchModeImmediate()
+        assert False
 
 
 def reportSkip(reason, dirname, filename):

@@ -94,6 +94,10 @@ class SearchModeBase(object):
         self.exit(message)
 
 
+class SearchModeImmediate(SearchModeBase):
+    pass
+
+
 class SearchModeByPattern(SearchModeBase):
     def __init__(self, start_at):
         SearchModeBase.__init__(self)
