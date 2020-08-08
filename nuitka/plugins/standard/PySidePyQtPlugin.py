@@ -202,6 +202,7 @@ if os.path.exists(guess_path):
                             "mediaservice",
                             "printsupport",
                             "platforms",
+                            "sqldrivers",
                         )
                         if self.hasPluginFamily(plugin_dirs, family)
                     )
