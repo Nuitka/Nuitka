@@ -369,19 +369,21 @@ extern PyObject **global_constants;
 // 'long'
 #define const_str_plain_long global_constants[59]
 // 'end'
-#define const_str_plain_end global_constants[48]
+#define const_str_plain_end global_constants[60]
 // 'file'
-#define const_str_plain_file global_constants[48]
+#define const_str_plain_file global_constants[61]
 // 'print'
-#define const_str_plain_print global_constants[48]
+#define const_str_plain_print global_constants[62]
 // '__spec__'
-#define const_str_plain___spec__ global_constants[48]
+#define const_str_plain___spec__ global_constants[63]
 // '_initializing'
-#define const_str_plain__initializing global_constants[48]
+#define const_str_plain__initializing global_constants[64]
 // parent
-#define const_str_plain_parent global_constants[48]
+#define const_str_plain_parent global_constants[65]
 // types
-#define const_str_plain_types global_constants[48]
+#define const_str_plain_types global_constants[66]
+// '__loader__'
+#define const_str_plain___loader__ global_constants[67]
 
 #else
 #include "__constants.h"

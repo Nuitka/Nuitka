@@ -113,7 +113,7 @@ def getConstantDefaultPopulation():
     result.append(".")
 
     if python_version >= 300:
-        # Modules have that attribute starting with 3.3
+        # Modules have that attribute starting with Python3
         result.append("__loader__")
 
     if python_version >= 340:
