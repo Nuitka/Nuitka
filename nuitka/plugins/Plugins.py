@@ -609,19 +609,21 @@ def _addPluginCommandLineOptions(parser, plugin_class):
         plugin_options[plugin_class.plugin_name] = option_group.option_list
 
 
-def addPluginCommandLineOptions(parser, plugin_name):
+def addPluginCommandLineOptions(parser, plugin_names):
     """ Add option group for the plugin to the parser.
 
     Notes:
         This is exclusively for use in the commandline parsing. Not all
         plugins have to have options. But this will add them to the
-        parser in a first pass.
+        parser in a first pass, so they can be recognized in a second
+        pass wih them included.
 
     Returns:
         None
     """
-    plugin_class = getPluginClass(plugin_name)
-    _addPluginCommandLineOptions(parser, plugin_class)
+    for plugin_name in plugin_names:
+        plugin_class = getPluginClass(plugin_name)
+        _addPluginCommandLineOptions(parser, plugin_class)
 
 
 def addUserPluginCommandLineOptions(parser, filename):

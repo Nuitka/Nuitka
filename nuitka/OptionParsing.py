@@ -781,14 +781,16 @@ def _considerPluginOptions():
 
     for arg in sys.argv[1:]:
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
-            plugin_name = arg[16:]
-            if "=" in plugin_name:
+            plugin_names = arg[16:]
+            if "=" in plugin_names:
                 sys.exit(
                     "Error, plugin options format changed. Use '--plugin-enable=%s --help' to know new options."
-                    % plugin_name.split("=", 1)[0]
+                    % plugin_names.split("=", 1)[0]
                 )
 
-            addPluginCommandLineOptions(parser=parser, plugin_name=plugin_name)
+            addPluginCommandLineOptions(
+                parser=parser, plugin_names=plugin_names.split(",")
+            )
 
         if arg.startswith("--user-plugin="):
             plugin_name = arg[14:]
