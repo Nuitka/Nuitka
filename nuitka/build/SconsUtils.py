@@ -87,3 +87,46 @@ def changeKeyboardInteruptToErrorExit():
         sys.exit(2)
 
     signal.signal(signal.SIGINT, signalHandler)
+
+
+def setEnvironmentVariable(env, key, value):
+    os.environ[key] = value
+
+    if env is not None:
+        env._dict["ENV"][key] = value  # pylint: disable=protected-access
+
+
+def addToPATH(env, dirname, prefix):
+    path_value = os.environ["PATH"].split(os.pathsep)
+
+    if prefix:
+        path_value.insert(0, dirname)
+    else:
+        path_value.append(dirname)
+
+    setEnvironmentVariable(env, "PATH", os.pathsep.join(path_value))
+
+
+scons_report = None
+
+
+def readSconsReport(source_dir):
+    # singleton, pylint: disable=global-statement
+    global scons_report
+
+    if scons_report is None:
+        scons_report = {}
+
+        for line in open(os.path.join(source_dir, "scons-report.txt")):
+            if "=" not in line:
+                continue
+
+            key, value = line.strip().split("=", 1)
+
+            scons_report[key] = value
+
+    return scons_report
+
+
+def getSconsReportValue(source_dir, key):
+    return readSconsReport(source_dir).get(key)

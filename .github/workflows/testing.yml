@@ -33,9 +33,9 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Install dependencies
+      - name: Install Nuitka dependencies
         run: |
-          sudo apt-get install chrpath gdb
+          sudo apt-get install chrpath gdb ccache
           pip install -r requirements-devel.txt
 
       - name: Install Nuitka
@@ -89,8 +89,9 @@ jobs:
           otool -l $(which python)
           ls -lR $(dirname $(dirname $(which python)))
 
-      - name: Install dependencies
+      - name: Install Nuitka dependencies
         run: |
+          brew install ccache
           pip install -r requirements-devel.txt
 
       - name: Install Nuitka
@@ -130,9 +131,9 @@ jobs:
       - name: Install MinGW using Conda
         shell: bash
         run: |
-          $CONDA/Scripts/conda install m2w64-gcc libpython
+          $CONDA/Scripts/conda install m2w64-gcc libpython ccache
 
-      - name: Install dependencies
+      - name: Install Nuitka dependencies
         run: |
           pip install -r requirements-devel.txt
 
@@ -143,12 +144,16 @@ jobs:
       - name: Verbose scons output in compilation
         shell: bash
         run: |
-          CC=$CONDA/Library/mingw-w64/bin/gcc.exe python -m nuitka --module --show-scons --run tests/basics/Empty.py
-          CC=$CONDA/Library/mingw-w64/bin/gcc.exe python -m nuitka --show-scons --run tests/basics/Empty.py
+          export CC=$CONDA/Library/mingw-w64/bin/gcc.exe
+
+          python -m nuitka --module --show-scons --run tests/basics/Empty.py
+          python -m nuitka --show-scons --run tests/basics/Empty.py
 
       - name: Run Nuitka test suite
         shell: bash
         run: |
+          export CC=$CONDA/Library/mingw-w64/bin/gcc.exe
+
           python -m nuitka --version
           env | sort
-          CC=$CONDA/Library/mingw-w64/bin/gcc.exe python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
+          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads

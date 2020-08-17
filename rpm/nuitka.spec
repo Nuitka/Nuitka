@@ -42,6 +42,7 @@ BuildRequires:  python3-setuptools
 BuildRequires:  gcc-c++
 BuildRequires:  strace
 BuildRequires:  chrpath
+BuildRequires:  ccache
 %if 0%{?fedora} < 28 && 0%{?rhel} < 8
 Requires:       python-devel
 %endif
@@ -54,6 +55,7 @@ Requires:       python36-devel
 Requires:       gcc-c++
 Requires:       strace
 Requires:       chrpath
+Requires:       ccache
 BuildArchitectures: noarch
 
 %description
