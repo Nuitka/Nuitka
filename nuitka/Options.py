@@ -23,6 +23,7 @@ import sys
 
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import isUninstalledPython
+from nuitka.Tracing import optimization_logger
 from nuitka.utils import Utils
 
 options = None
@@ -40,10 +41,19 @@ def parseArgs():
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions()
 
+    # TODO: The logging impact should go away.
     if options.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
     else:
         logging.getLogger().setLevel(logging.INFO)
+
+    if options.verbose_output:
+        optimization_logger.setFileHandle(
+            # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
+            open(options.verbose_output, "w"),
+        )
+
+        options.verbose = True
 
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the

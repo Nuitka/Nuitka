@@ -24,7 +24,7 @@ import glob
 import marshal
 import os
 import sys
-from logging import debug, warning
+from logging import warning
 
 from nuitka import ModuleRegistry, Options
 from nuitka.importing import ImportCache, Importing, StandardLibrary
@@ -255,7 +255,11 @@ def isSameModulePath(path1, path2):
 def checkPluginSinglePath(plugin_filename, module_package):
     # Many branches, for the decision is very complex, pylint: disable=too-many-branches
 
-    debug("Checking detail plug-in path '%s' '%s':", plugin_filename, module_package)
+    if Options.isShowInclusion():
+        recursion_logger.info(
+            "Checking detail plug-in path '%s' '%s':"
+            % (plugin_filename, module_package)
+        )
 
     module_name, module_kind = Importing.getModuleNameAndKindFromFilename(
         plugin_filename
@@ -300,12 +304,15 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
                         return
 
-                debug(
-                    "Recursed to %s %s %s",
-                    module.getName(),
-                    module.getFullName().getPackageName(),
-                    module,
-                )
+                if Options.isShowInclusion():
+                    recursion_logger.info(
+                        "Recursed to %s %s %s"
+                        % (
+                            module.getName(),
+                            module.getFullName().getPackageName(),
+                            module,
+                        )
+                    )
 
                 ImportCache.addImportedModule(module)
 
@@ -326,7 +333,8 @@ def checkPluginSinglePath(plugin_filename, module_package):
                         # Real packages will always be included.
                         ModuleRegistry.addRootModule(module)
 
-                    debug("Package directory %s", package_dir)
+                    if Options.isShowInclusion():
+                        recursion_logger.info("Package directory %s", package_dir)
 
                     for sub_path, sub_filename in listDir(package_dir):
                         if sub_filename in ("__init__.py", "__pycache__"):
@@ -347,7 +355,10 @@ def checkPluginSinglePath(plugin_filename, module_package):
 def checkPluginPath(plugin_filename, module_package):
     plugin_filename = os.path.normpath(plugin_filename)
 
-    debug("Checking top level plug-in path %s %s", plugin_filename, module_package)
+    if Options.isShowInclusion():
+        recursion_logger.info(
+            "Checking top level plug-in path %s %s" % (plugin_filename, module_package)
+        )
 
     plugin_info = considerFilename(module_filename=plugin_filename)
 
@@ -368,7 +379,8 @@ def checkPluginPath(plugin_filename, module_package):
 
 
 def checkPluginFilenamePattern(pattern):
-    debug("Checking plug-in pattern '%s':", pattern)
+    if Options.isShowInclusion():
+        recursion_logger.info("Checking plug-in pattern '%s':" % pattern)
 
     if os.path.isdir(pattern):
         sys.exit("Error, pattern cannot be a directory name.")

@@ -24,13 +24,13 @@ make others possible.
 
 
 import inspect
-from logging import debug, info
+from logging import info
 
 from nuitka import ModuleRegistry, Options, Variables
 from nuitka.importing import ImportCache
 from nuitka.nodes.LocalsScopes import LocalsDictHandle, getLocalsDictHandles
 from nuitka.plugins.Plugins import Plugins
-from nuitka.Tracing import printLine
+from nuitka.Tracing import optimization_logger, printLine, recursion_logger
 from nuitka.utils import MemoryUsage
 
 from . import Graphs, TraceCollections
@@ -44,14 +44,15 @@ _is_verbose = Options.isVerbose()
 def _attemptRecursion(module):
     new_modules = module.attemptRecursion()
 
-    for new_module in new_modules:
-        debug(
-            "{source_ref} : {tags} : {message}".format(
-                source_ref=new_module.getSourceReference().getAsString(),
-                tags="new_code",
-                message="Recursed to module package.",
+    if Options.isShowInclusion():
+        for new_module in new_modules:
+            recursion_logger.info(
+                "{source_ref} : {tags} : {message}".format(
+                    source_ref=new_module.getSourceReference().getAsString(),
+                    tags="new_code",
+                    message="Recursed to module package.",
+                )
             )
-        )
 
 
 tag_set = None
@@ -65,7 +66,7 @@ def signalChange(tags, source_ref, message):
         # Try hard to not call a delayed evaluation of node descriptions.
 
         if _is_verbose:
-            debug(
+            optimization_logger.info(
                 "{source_ref} : {tags} : {message}".format(
                     source_ref=source_ref.getAsString(),
                     tags=tags,

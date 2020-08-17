@@ -215,6 +215,7 @@ def main():
     cpython_cached = hasArg("cpython_cache")
     syntax_errors = hasArg("syntax_errors")
     noprefer_source = hasArg("noprefer_source")
+    noverbose_log = hasArg("noverbose_log")
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -439,6 +440,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     for user_plugin in user_plugins:
         extra_options.append("--user-plugin=" + user_plugin)
+
+    if not noverbose_log:
+        extra_options.append("--verbose-output=%s.optimization.log" % filename)
 
     # Now build the command to run Nuitka.
     if not two_step_execution:

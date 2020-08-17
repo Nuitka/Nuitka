@@ -52,8 +52,9 @@ def printError(message):
     print(message, file=sys.stderr)
 
 
-def flushStdout():
+def flushStandardOutputs():
     sys.stdout.flush()
+    sys.stderr.flush()
 
 
 def getEnableStyleCode(style):
@@ -128,6 +129,12 @@ def my_print(*args, **kwargs):
             style = kwargs["style"]
             del kwargs["style"]
 
+            if "end" in kwargs:
+                end = kwargs["end"]
+                del kwargs["end"]
+            else:
+                end = "\n"
+
             if style is not None and sys.stdout.isatty():
                 enable_style = getEnableStyleCode(style)
 
@@ -138,16 +145,17 @@ def my_print(*args, **kwargs):
 
                 _enableAnsi()
 
-                print(enable_style, end="")
+                print(enable_style, end="", **kwargs)
 
-            print(*args, **kwargs)
+            print(*args, end=end, **kwargs)
 
             if style is not None and sys.stdout.isatty():
-                print(getDisableStyleCode(), end="")
+                print(getDisableStyleCode(), end="", **kwargs)
         else:
             print(*args, **kwargs)
 
-        flushStdout()
+        # Flush the output.
+        kwargs.get("file", sys.stdout).flush()
 
 
 # TODO: Stop using logging at all, and only OurLogger.
@@ -159,17 +167,37 @@ class OurLogger(object):
         self.name = name
         self.base_style = base_style
 
+    def my_print(self, message, **kwargs):
+        # For overload, pylint: disable=no-self-use
+        my_print(message, **kwargs)
+
     def warning(self, message, style="red"):
         message = "%s:WARNING: %s" % (self.name, message)
 
         style = style or self.base_style
-        my_print(message, style=style, file=sys.stderr)
+        self.my_print(message, style=style, file=sys.stderr)
 
     def info(self, message, style=None):
         message = "%s:INFO: %s" % (self.name, message)
 
         style = style or self.base_style
-        my_print(message, style=style)
+        self.my_print(message, style=style)
+
+
+class FileLogger(OurLogger):
+    def __init__(self, name, base_style=None, file_handle=sys.stdout):
+        OurLogger.__init__(self, name=name, base_style=base_style)
+
+        self.file_handle = file_handle
+
+    def my_print(self, message, **kwargs):
+        message = message + "\n"
+
+        self.file_handle.write(message)
+        self.file_handle.flush()
+
+    def setFileHandle(self, file_handle):
+        self.file_handle = file_handle
 
 
 general = OurLogger("Nuitka")
@@ -177,5 +205,5 @@ codegen_missing = OurLogger("Nuitka-codegen-missing")
 plugins_logger = OurLogger("Nuitka-Plugins")
 recursion_logger = OurLogger("Nuitka-Recursion")
 dependencies_logger = OurLogger("Nuitka-Dependencies")
-
+optimization_logger = FileLogger("Nuitka-Optimization")
 scons_logger = OurLogger("Nuitka-Scons")
