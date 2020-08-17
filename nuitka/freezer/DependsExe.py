@@ -67,7 +67,7 @@ No installer needed, cached, one time question.
 Proceed and download? [Yes]/No """
                 % (nuitka_app_dir)
             )
-            Tracing.flushStdout()
+            Tracing.flushStandardOutputs()
 
             reply = raw_input()
 

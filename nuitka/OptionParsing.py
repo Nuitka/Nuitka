@@ -672,6 +672,15 @@ Output details of actions taken, esp. in optimizations. Can become a lot.
 Defaults to off.""",
 )
 
+tracing_group.add_option(
+    "--verbose-output",
+    action="store",
+    dest="verbose_output",
+    default=None,
+    help="""\
+Where to output --verbose, should be a filename. Default is standaout output.""",
+)
+
 parser.add_option_group(tracing_group)
 
 windows_group = OptionGroup(parser, "Windows specific controls")
