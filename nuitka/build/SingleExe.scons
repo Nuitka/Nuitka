@@ -48,13 +48,16 @@ import subprocess
 
 import SCons  # pylint: disable=import-error
 import SCons.Tool.gcc  # pylint: disable=import-error
-from nuitka.Tracing import my_print
+from nuitka.Tracing import my_print, scons_logger
 
+from .SconsCaching import enableCcache
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
 from .SconsUtils import (
+    addToPATH,
     changeKeyboardInteruptToErrorExit,
     decodeData,
     getExecutablePath,
+    setEnvironmentVariable,
 )
 
 
@@ -258,6 +261,9 @@ link_libraries = getListOption("link_libraries", "")
 # only.
 compiler_version_mode = getBoolOption("compiler_version", False)
 
+# Avoid localized outputs.
+os.environ["LANG"] = "C"
+
 
 def printCompilerVersionOutput(*args):
     if compiler_version_mode or show_scons_mode:
@@ -287,9 +293,7 @@ if "CC" in os.environ:
         mingw_mode = True
 
     if os.path.isdir(cc_dirname):
-        os.environ["PATH"] = os.pathsep.join(
-            [cc_dirname] + os.environ["PATH"].split(os.pathsep)
-        )
+        addToPATH(None, cc_dirname, prefix=True)
 
     printCompilerVersionOutput("CC=%r" % os.environ["CC"])
 
@@ -568,10 +572,7 @@ elif clangcl_mode:
         "bin",
     )
 
-    env._dict["ENV"]["PATH"] = os.pathsep.join(  # pylint: disable=protected-access
-        env._dict["ENV"]["PATH"].split(os.pathsep)  # pylint: disable=protected-access
-        + [clang_dir]
-    )
+    addToPATH(env, clang_dir, prefix=True)
 
     env["CC"] = "clang-cl"
     env["LINK"] = "lld-link"
@@ -1290,9 +1291,6 @@ def _getBinaryArch(binary):
         if show_scons_mode:
             my_print("Scons: Detecting arch with :", command)
 
-        _env = os.environ.copy()
-        _env["LANG"] = "C"
-
         try:
             proc = subprocess.Popen(
                 command,
@@ -1300,7 +1298,6 @@ def _getBinaryArch(binary):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 shell=False,
-                env=_env,
             )
         except OSError:
             return None
@@ -1675,29 +1672,6 @@ if os.path.exists(target[0].abspath):
 if show_scons_mode:
     my_print("Scons: Told to run compilation on %d CPUs." % job_count)
 
-# Inject ccache if it happens to be installed.
-if win_target and gcc_mode:
-    if "NUITKA_CCACHE_BINARY" in os.environ:
-
-        def handleCcacheVariable():
-            candidate = os.environ["NUITKA_CCACHE_BINARY"]
-
-            if os.path.exists(candidate):
-                env["CC"] = "%s %s" % (candidate, env["CC"])
-
-                # Do not consider scons cache anymore.
-                if show_scons_mode:
-                    my_print(
-                        "Scons: Found ccache '%s' to cache object files." % candidate
-                    )
-
-                global cache_mode  # pylint: disable=global-statement
-                cache_mode = False
-
-    else:
-        if show_scons_mode:
-            my_print("Scons: Unable to find ccache.exe, consider user manual.")
-
 # Inject clcache if it happens to be provided via environment.
 if win_target and msvc_mode:
     if "NUITKA_CLCACHE_BINARY" in os.environ:
@@ -1707,19 +1681,15 @@ if win_target and msvc_mode:
 
             if os.path.exists(candidate):
                 env["CC"] = candidate
-                env._dict["ENV"][  # pylint: disable=protected-access
-                    "CLCACHE_CL"
-                ] = getExecutablePath(the_compiler, env=env)
+
+                setEnvironmentVariable(
+                    env, "CLCACHE_CL", getExecutablePath(the_compiler, env=env)
+                )
 
                 if show_scons_mode:
                     my_print(
                         "Scons: Found clcache '%s' to cache object files for '%s'."
-                        % (
-                            candidate,
-                            env._dict["ENV"][  # pylint: disable=protected-access
-                                "CLCACHE_CL"
-                            ],
-                        )
+                        % (candidate, os.environ["CLCACHE_CL"])
                     )
 
                 global cache_mode  # pylint: disable=global-statement
@@ -1729,19 +1699,6 @@ if win_target and msvc_mode:
     else:
         if show_scons_mode:
             my_print("Scons: Unable to find clcache.exe, consider reading user manual.")
-
-
-# Cached, when done, by the fastest possible algorithm and right inside the
-# build directory. Makes no sense of course, if that is removed later on by
-# Nuitka.
-if cache_mode:
-    if show_scons_mode:
-        my_print("Scons: Using scons cache inside build directory.")
-
-    CacheDir(  # pylint: disable=undefined-variable
-        os.path.join(source_dir, "cache-" + target_arch + "-" + python_abi_version)
-    )
-    Decider("MD5-timestamp")  # pylint: disable=undefined-variable
 
 build_definitions = {}
 
@@ -1815,7 +1772,28 @@ else:
 # scons traceback is not going to be very interesting to us.
 changeKeyboardInteruptToErrorExit()
 
-Default(target)  # pylint: disable=undefined-variable
+# Check if ccache is installed, and complain if it is not.
+if gcc_mode:
+    if enableCcache(
+        env=env,
+        source_dir=source_dir,
+        python_prefix=python_prefix,
+        show_scons_mode=show_scons_mode,
+    ):
+        cache_mode = False
+
+# Caching bv scons if necessary, i.e. no ccache availble, when done, by the fastest
+# possible algorithm and right inside the build directory. Makes no sense of course,
+# if that is removed later on by Nuitka, so in that case, this is passed as false,
+# to begin with.
+if cache_mode:
+    if show_scons_mode:
+        my_print("Scons: Using scons cache inside build directory.")
+
+    CacheDir(  # pylint: disable=undefined-variable
+        os.path.join(source_dir, "cache-" + target_arch + "-" + python_abi_version)
+    )
+    Decider("MD5-timestamp")  # pylint: disable=undefined-variable
 
 
 def _writeSconsReport():
@@ -1833,5 +1811,11 @@ def _writeSconsReport():
 
             my_print(key + "=" + value, file=report_file)
 
+        my_print("gcc_mode=%s" % gcc_mode, file=report_file)
+        my_print("clang_mode=%s" % clang_mode, file=report_file)
+        my_print("msvc_mode=%s" % msvc_mode, file=report_file)
+
 
 _writeSconsReport()
+
+Default(target)  # pylint: disable=undefined-variable

@@ -38,6 +38,8 @@ from nuitka.utils.FileOperations import (
     getWindowsShortPathName,
 )
 
+from .SconsCaching import checkCachingSuccess
+
 
 def getSconsDataPath():
     """ Return path to where data for scons lives, e.g. static C source files.
@@ -301,5 +303,10 @@ def runScons(options, quiet):
         if Options.isShowScons():
             Tracing.printLine("Scons command:", " ".join(scons_command))
 
-        Tracing.flushStdout()
-        return subprocess.call(scons_command, shell=False, cwd=source_dir) == 0
+        Tracing.flushStandardOutputs()
+        result = subprocess.call(scons_command, shell=False, cwd=source_dir)
+
+        if result == 0:
+            checkCachingSuccess(source_dir or options["source_dir"])
+
+        return result == 0
