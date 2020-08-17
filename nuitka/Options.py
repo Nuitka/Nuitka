@@ -21,6 +21,7 @@ import logging
 import os
 import sys
 
+from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import isUninstalledPython
 from nuitka.Tracing import optimization_logger
@@ -608,11 +609,11 @@ def getPluginsEnabled():
         hinted compilation will activate plugins themselves and this
         will not be visible here.
     """
-    result = set()
+    result = OrderedSet()
 
     if options:
         for plugin_enabled in options.plugins_enabled:
-            result.add(plugin_enabled.split("=", 1)[0])
+            result.update(plugin_enabled.split(","))
 
     return tuple(result)
 
