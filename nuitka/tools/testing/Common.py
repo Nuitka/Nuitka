@@ -688,7 +688,7 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
         if ok:
             continue
 
-        if loaded_filename.startswith("/etc/"):
+        if loaded_filename.startswith(("/etc/", "/usr/etc")):
             continue
 
         if loaded_filename.startswith("/proc/") or loaded_filename == "/proc":
