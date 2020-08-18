@@ -209,8 +209,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         "cairosvg": ((None, "VERSION"),),
         "weasyprint": ((None, "VERSION"),),
         "tinycss2": ((None, "VERSION"),),
-        "requests": (("certifi", "../certifi/cacert.pem"),),
-        "urllib3": (("certifi", "../certifi/cacert.pem"),),
+        "certifi": ((None, "cacert.pem"),),
         "importlib_resources": ((None, "version.txt"),),
         "moto": (
             (None, "./ec2/resources/instance_types.json"),
