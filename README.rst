@@ -229,15 +229,16 @@ Setup
 Install the C compiler
 ++++++++++++++++++++++
 
- - Download and install mingw64 from
-   `https://sourceforge.net/projects/mingw-w64/ <https://sourceforge.net/projects/mingw-w64/>`_
+ - Download and install mingw64 with online installer from
+   `Sourceforce MinGW64 <https://sourceforge.net/projects/mingw-w64/files/mingw-w64/>`_
 
-   - For Architecture: choose "i686" if you want use 32bit or "x86_64" if you want
-     64 bit version Python, otherwise you will get errors later
+   - For Architecture: choose ``x86_64`` (64 bits Python, recommended) or ``i686``
+     matching your Python installation, otherwise you will get errors about mismatch
+     at compile time.
 
- - Select destination folder to ``c:\\MinGW64``.
+ - Select destination folder to ``C:\\MinGW64``.
 
- - Verify using command  ``gcc.exe --version``.
+ - Verify using command  ``C:\\MinGW64\\mingw64\\bin\\gcc.exe --version``.
 
  - Set a environment variable pointing to ``gcc.exe``.
 
@@ -251,16 +252,17 @@ Install Python (64 Bits)
  - Download and install from
    `https://www.python.org/downloads/windows <https://www.python.org/downloads/windows>`_
 
- - Select one of ``Windows x86-64 web-based installer`` or ``x86-64 executable`` installer
+ - Select one of ``Windows x86-64 web-based installer`` (64 bits Python, recommended) or
+   ``x86-64 executable`` (32 bits Python) installer
 
  - Verify using command ``python --version``.
 
 Install Nuitka
 ++++++++++++++
 
- - ``pip install nuitka``
+ - ``python -m pip install nuitka``
  - or if you use anaconda: ``conda install -c conda-forge nuitka``
- - Verify using command ``nuitka --version``
+ - Verify using command ``python -m nuitka --version``
 
 Write some code and test
 ------------------------
@@ -282,25 +284,38 @@ Create a folder for the Python code
       if __name__ == "__main__":
           main()
 
-Test it using **python hello.py**
-+++++++++++++++++++++++++++++++++
+Test your program
++++++++++++++++++
+
+Do as you normally would. Running Nuitka on code that works incorrectly is not
+easier to debug.
+
+.. code-block:: bash
+
+   python hello.py
+
+++++++++++++++++++++++++++
 
 Build it using
 ++++++++++++++
 
-  **python -m nuitka --standalone --mingw64 hello.py**
+.. code-block:: bash
 
-If you like to have full output add **--show-progress** **--show-scons**
+   python -m nuitka --mingw64 hello.py
+
+If you like to have full output add ``--show-progress`` and  ``--show-scons``.
 
 Run it
 ++++++
 
-Execute the **hello.exe** in the folder **hello.dist**
+Execute the ``hello.exe`` created near ``hello.py``.
 
 Distribute
 ++++++++++
 
-To distribute copy the **hello.dist** folder
+To distribute, build with ``--standalone`` option, which will not output a
+single executable, but a whole folder. Copy the resulting ``hello.dist`` folder
+to the other machine and run it.
 
 
 Use Cases
@@ -414,28 +429,40 @@ line option name ``--python-flag=`` which makes Nuitka emulate these options.
 
 The most important ones are supported, more can certainly be added.
 
-Caching
--------
+Caching compilation results
+---------------------------
 
 The C compiler, when invoked with the same input files, will take a long time
-and much CPU to compile. Make sure you are having ``ccache`` installed and
-configured on non-Windows. It will make repeated compilations much faster,
-even if things are not yet not perfect, i.e. changes to the program can
-cause many C files to change, requiring a new compilation instead of using
-the cached result.
+and much CPU to compile over and over. Make sure you are having ``ccache``
+installed and configured when using gcc (even on Windows). It will make
+repeated compilations much faster, even if things are not yet not perfect, i.e.
+changes to the program can cause many C files to change, requiring a new
+compilation instead of using the cached result.
 
-On Windows, Nuitka supports using ``ccache.exe`` which is not easy to come
-by though for the non-MSVC compilers, and ``clcache.exe`` which is just one
-``pip install clcache`` command away. To make Nuitka use those, set either
-``NUITKA_CCACHE_BINARY`` to the full path of ``ccache.exe`` or
-``NUITKA_CLCACHE_BINARY`` to the full path of ``clcache.exe``, which will be
-in the scripts folder of the Python, you installed it into.
+On Windows, with gcc Nuitka supports using ``ccache.exe`` which can e.g. be
+obtained from Anaconda, using ``conda install ccache`` which installs a binary,
+that you can reference even if you are using CPython otherwise. This is the
+easiest way to install ccache.
+
+Nuitka will pick up ``ccache`` if it's in found in system ``PATH``, and it will
+be possible to provide if by setting ``NUITKA_CCACHE_BINARY`` to the full path
+of the binary, e.g. from ``$CONDA/bin/ccache.exe``. When using Anaconda, it
+will be picked up automatically.
+
+For the Visual Studio compilers, you are just one ``pip install clcache``
+command away. To make Nuitka use those, set ``NUITKA_CLCACHE_BINARY`` to the
+full path of ``clcache.exe``, which will be in the scripts folder of the
+Python, you installed it into.
 
 Runners
 -------
 
 Avoid running the ``nuitka`` binary, doing ``python -m nuitka`` will make a
-100% sure you are using what you think you are.
+100% sure you are using what you think you are. Using the wrong Python will
+make it give you ``SyntaxError`` for good code or ``ImportError`` for installed
+modules. That is happening, when you run Nuitka with Python2 on Python3 code
+and vice versa. By explicitly calling the same Python interpreter binary, you
+avoid that issue entirely.
 
 Fastest C Compilers
 -------------------
@@ -1218,8 +1245,8 @@ Projects used by Nuitka
 
 * The `black project <https://github.com/ambv/black>`__
 
-  Thanks for making a fast and reliable way for automatically formatting
-  the Nuitka source code.
+  Thanks for making a fast and reliable way for automatically formatting the
+  Nuitka source code.
 
 Updates for this Manual
 =======================
