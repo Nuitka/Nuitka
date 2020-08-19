@@ -204,11 +204,9 @@ def _cleanupPylintOutput(output):
     # Normalize from Windows newlines potentially
     output = output.replace("\r\n", "\n")
 
-    lines = output.split("\n")
-
     lines = [
         line
-        for line in lines
+        for line in output.split("\n")
         if line
         if "Using config file" not in line
         if "Unable to import 'resource'" not in line
@@ -258,10 +256,9 @@ def _executePylint(filenames, pylint_options, extra_options):
             my_print(line)
 
     if stdout:
-        # If we filtered everything away, remove the leading file name report.
-        if len(stdout) == 1:
-            assert stdout[0].startswith("*****")
-            stdout = []
+        # If we filtered everything away, remove the leading file name reports.
+        while stdout and stdout[-1].startswith("******"):
+            del stdout[-1]
 
         for line in stdout:
             my_print(line)
