@@ -35,7 +35,7 @@ from .Utils import getOS
 
 # Locking seems to be only required for Windows mostly, but we can keep
 # it for all.
-file_lock = None
+file_lock = RLock()
 
 # Use this in case of dead locks or even to see file operations being done.
 _lock_tracing = False
@@ -52,12 +52,6 @@ def withFileLock(reason="unknown"):
         from threads generally, which could lead to observing half ready things.
     """
 
-    # This is a singleton, pylint: disable=global-statement
-    global file_lock
-
-    if file_lock is None:
-        file_lock = RLock()
-
     if _lock_tracing:
         my_print(getThreadIdent(), "Want file lock for %s" % reason)
     file_lock.acquire()
@@ -66,8 +60,7 @@ def withFileLock(reason="unknown"):
     yield
     if _lock_tracing:
         my_print(getThreadIdent(), "Released file lock for %s" % reason)
-    if file_lock is not None:
-        file_lock.release()
+    file_lock.release()
 
 
 def areSamePaths(path1, path2):

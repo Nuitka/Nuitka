@@ -50,7 +50,7 @@ import SCons  # pylint: disable=import-error
 import SCons.Tool.gcc  # pylint: disable=import-error
 from nuitka.Tracing import my_print, scons_logger
 
-from .SconsCaching import enableCcache
+from .SconsCaching import enableCcache, enableClcache
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
 from .SconsUtils import (
     addToPATH,
@@ -1672,34 +1672,6 @@ if os.path.exists(target[0].abspath):
 if show_scons_mode:
     my_print("Scons: Told to run compilation on %d CPUs." % job_count)
 
-# Inject clcache if it happens to be provided via environment.
-if win_target and msvc_mode:
-    if "NUITKA_CLCACHE_BINARY" in os.environ:
-
-        def handleClacheVariable():
-            candidate = os.environ["NUITKA_CLCACHE_BINARY"]
-
-            if os.path.exists(candidate):
-                env["CC"] = candidate
-
-                setEnvironmentVariable(
-                    env, "CLCACHE_CL", getExecutablePath(the_compiler, env=env)
-                )
-
-                if show_scons_mode:
-                    my_print(
-                        "Scons: Found clcache '%s' to cache object files for '%s'."
-                        % (candidate, os.environ["CLCACHE_CL"])
-                    )
-
-                global cache_mode  # pylint: disable=global-statement
-                cache_mode = False
-
-        handleClacheVariable()
-    else:
-        if show_scons_mode:
-            my_print("Scons: Unable to find clcache.exe, consider reading user manual.")
-
 build_definitions = {}
 
 if uninstalled_python:
@@ -1775,6 +1747,17 @@ changeKeyboardInteruptToErrorExit()
 # Check if ccache is installed, and complain if it is not.
 if gcc_mode:
     if enableCcache(
+        the_compiler=the_compiler,
+        env=env,
+        source_dir=source_dir,
+        python_prefix=python_prefix,
+        show_scons_mode=show_scons_mode,
+    ):
+        cache_mode = False
+
+if msvc_mode:
+    if enableClcache(
+        the_compiler=the_compiler,
         env=env,
         source_dir=source_dir,
         python_prefix=python_prefix,

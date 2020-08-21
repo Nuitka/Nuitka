@@ -100,21 +100,16 @@ def getDisableStyleCode():
 
 
 # Locking seems necessary to avoid colored output split up.
-trace_lock = None
+trace_lock = RLock()
 
 
 @contextmanager
 def withTraceLock():
-    # This is a singleton, pylint: disable=global-statement
-    global trace_lock
-
-    if trace_lock is None:
-        trace_lock = RLock()
+    """ Hold a lock, so traces cannot be output at the same time mixing them up. """
 
     trace_lock.acquire()
     yield
-    if trace_lock is not None:
-        trace_lock.release()
+    trace_lock.release()
 
 
 def my_print(*args, **kwargs):
