@@ -968,7 +968,6 @@ void loadConstantsBlob(PyObject **output, char const *name, int count) {
     initCaches();
 
     unsigned char const *w = constant_bin;
-    assert(constant_bin);
 
     for (;;) {
         int match = strcmp(name, (char const *)w);
