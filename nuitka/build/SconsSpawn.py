@@ -29,6 +29,7 @@ import threading
 from nuitka.Tracing import my_print, scons_logger
 from nuitka.utils.Timing import TimerReport
 
+from .SconsCaching import extractClcacheLogFromOutput
 from .SconsUtils import decodeData
 
 
@@ -131,15 +132,20 @@ def getWindowsSpawnFunction(module_mode, source_files):
                 for line in data.split(b"\n")
                 if b"identifier truncated to" not in line
             )
-        elif cmd == "link" and module_mode:
-            data = b"\r\n".join(
-                line
-                for line in data.split(b"\r\n")
-                if b"   Creating library" not in line
-                # On localized compilers, the message to ignore is not as clear.
-                if not (module_mode and b".exp" in line)
-            )
+        elif cmd == "link":
+            if module_mode:
+                data = b"\r\n".join(
+                    line
+                    for line in data.split(b"\r\n")
+                    if b"   Creating library" not in line
+                    # On localized compilers, the message to ignore is not as clear.
+                    if not (module_mode and b".exp" in line)
+                )
         elif cmd == "cl" or os.path.basename(cmd).lower() == "clcache.exe":
+            # Remove clcache debug output if present:
+            data = extractClcacheLogFromOutput(data)
+
+            # Skip forced output from cl.exe
             data = data[data.find(b"\r\n") + 2 :]
 
             source_basenames = [
