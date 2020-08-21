@@ -963,7 +963,7 @@ class Entry(Base):
 
     def disambiguate(self, must_exist=None):
         """
-        """ 
+        """
         if self.isfile():
             self.__class__ = File
             self._morph()
@@ -1603,6 +1603,10 @@ class Dir(Base):
             self.get_executor().set_action_list(l)
 
     def diskcheck_match(self):
+        # Nuitka: This check breaks with symlinks on Windows and Python2
+        if os.name == "nt" and str is bytes:
+            return
+
         diskcheck_match(self, self.isfile,
                         "File %s found where directory expected.")
 
