@@ -1023,8 +1023,15 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
         return self.variable_closure_traces
 
 
-# Needed for Python3.3 and higher
 class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
+    """ Node for value __qualname__ of class.
+
+        Notes:
+            This is for Python 3.4 and higher only, where classes calculate the __qualname__
+            value at runtime, then it's determined dynamically, while 3.3 set it more
+            statically, and Python2 didn't have this feature at all.
+    """
+
     kind = "EXPRESSION_FUNCTION_QUALNAME_REF"
 
     __slots__ = ("function_body",)
