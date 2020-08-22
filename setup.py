@@ -119,7 +119,7 @@ if "bdist_msi" in sys.argv:
 else:
     project_name = "Nuitka"
 
-# Lets hack the byte_compile function so it doesn't byte compile Scons built-in
+# Lets hack the byte_compile function so it doesn't byte compile old Scons built-in
 # copy with Python3.
 if sys.version_info >= (3,):
     from distutils import util
@@ -127,7 +127,7 @@ if sys.version_info >= (3,):
     real_byte_compile = util.byte_compile
 
     def byte_compile(py_files, *args, **kw):
-        py_files = [py_file for py_file in py_files if "inline_copy" not in py_file]
+        py_files = [py_file for py_file in py_files if "scons-2.3.2" not in py_file]
 
         real_byte_compile(py_files, *args, **kw)
 

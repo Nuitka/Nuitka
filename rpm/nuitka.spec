@@ -79,10 +79,17 @@ python3=`which python3 2>/dev/null || true`
 
 if [ "$python2_version" != "2.6" ]
 then
-    # Remove files not needed only for Python 2.6, only cause errors during
-    # compilation.
+    # Remove files needed only for Python 2.6, they only cause errors during
+    # compilation with Python3.
     rm -rf nuitka/build/inline_copy/lib/scons-2.3.2
+else
+    # Remove files mot needed for Python 2.6, they only cause errors during
+    # compilation with Python 2.6.
+    rm -rf nuitka/build/inline_copy/lib/scons-3*
 fi
+
+# This is Windows only
+rm -rf nuitka/build/inline_copy/pefile
 
 if [ "$python2" != "" ]
 then
@@ -102,8 +109,18 @@ python2=`which python2 || true`
 
 if [ "$python2" != "" ]
 then
+    echo "Basic compilation test of empty module:"
+    $python2 -m nuitka.__main__ --module --show-scons --run tests/basics/Empty.py
+    echo "Basic compilation test of empty program:"
+    $python2 -m nuitka.__main__ --show-scons --run tests/basics/Empty.py
+
     $python2 ./tests/run-tests --skip-reflection-test
 else
+    echo "Basic compilation test of empty module:"
+    python3 -m nuitka --module --show-scons --run tests/basics/Empty.py
+    echo "Basic compilation test of empty program:"
+    python3 -m nuitka --show-scons --run tests/basics/Empty.py
+
     python3 ./tests/run-tests --skip-reflection-test
 fi
 
