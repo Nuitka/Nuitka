@@ -660,6 +660,17 @@ elif gcc_mode and found_gcc:
 else:
     c11_mode = False
 
+if not c11_mode and gcc_mode:
+    # Switch to g++ from gcc then if possible, when C11 mode is false.
+    the_gpp_compiler = os.path.join(
+        os.path.dirname(the_compiler),
+        os.path.basename(the_compiler).replace("gcc", "g++"),
+    )
+
+    if getExecutablePath(the_gpp_compiler, env=env):
+        the_compiler = the_gpp_compiler
+        the_cc_name = the_cc_name.replace("gcc", "g++")
+
 if show_scons_mode:
     my_print("Scons: Using C11 mode:", c11_mode)
 
