@@ -29,6 +29,7 @@ from nuitka.utils.FileOperations import getLinkTarget, withFileLock
 from nuitka.utils.Utils import getOS, isWin32Windows
 
 from .SconsUtils import (
+    addToPATH,
     getExecutablePath,
     getSconsReportValue,
     setEnvironmentVariable,
@@ -108,13 +109,20 @@ def _injectCcache(the_compiler, cc_path, env, python_prefix, show_scons_mode):
             )
 
     if ccache_binary is not None and os.path.exists(ccache_binary):
+        # In case we are on Windows, make sure the Anaconda form runs outside of Anaconda
+        # environment, by adding DLL folder to PATH.
+        if os.name == "nt":
+            conda_dll_dir = os.path.normpath(
+                os.path.join(ccache_binary, "..", "..", "Library", "mingw-w64", "bin")
+            )
+
+            if os.path.exists(conda_dll_dir):
+                addToPATH(env, conda_dll_dir, prefix=False)
+
         assert getExecutablePath(os.path.basename(the_compiler), env=env) == cc_path
 
         # Since we use absolute paths for CC, pass it like this, as ccache does not like absolute.
-        env["CXX"] = env["CC"] = "%s %s" % (
-            ccache_binary,
-            os.path.basename(the_compiler),
-        )
+        env["CXX"] = env["CC"] = "%s %s" % (ccache_binary, os.path.basename(cc_path),)
 
         # Spare ccache the detection of the compiler, seems it will also misbehave when it's
         # prefixed with "ccache" on old gcc versions in terms of detecting need for C++ linkage.
