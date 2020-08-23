@@ -16,6 +16,7 @@
 *.bin
 *.build
 *.dist
+*.py.optimization.log
 .mypy_cache
 *.egg-info
 tests/reflected/nuitka/
