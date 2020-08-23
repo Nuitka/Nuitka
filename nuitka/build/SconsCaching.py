@@ -25,7 +25,7 @@ import sys
 from collections import defaultdict
 
 from nuitka.Tracing import scons_logger
-from nuitka.utils.FileOperations import withFileLock
+from nuitka.utils.FileOperations import getLinkTarget, withFileLock
 from nuitka.utils.Utils import getOS, isWin32Windows
 
 from .SconsUtils import (
@@ -75,14 +75,8 @@ def _getClcacheGuessedPaths(python_prefix):
             yield os.path.join(python_dir, "bin", "clcache.exe")
 
 
-def enableCcache(the_compiler, env, source_dir, python_prefix, show_scons_mode):
-    # The ccache needs absolute path, otherwise it will not work.
-    ccache_logfile = os.path.abspath(
-        os.path.join(source_dir, "ccache-%d.txt" % os.getpid())
-    )
-
-    setEnvironmentVariable(env, "CCACHE_LOGFILE", ccache_logfile)
-    env["CCACHE_LOGFILE"] = ccache_logfile
+def _injectCcache(the_compiler, cc_path, env, python_prefix, show_scons_mode):
+    # We deal with a lot of cases here, pylint: disable=too-many-branches
 
     ccache_binary = os.environ.get("NUITKA_CCACHE_BINARY")
 
@@ -114,7 +108,6 @@ def enableCcache(the_compiler, env, source_dir, python_prefix, show_scons_mode):
             )
 
     if ccache_binary is not None and os.path.exists(ccache_binary):
-        cc_path = getExecutablePath(the_compiler, env=env)
         assert getExecutablePath(os.path.basename(the_compiler), env=env) == cc_path
 
         # Since we use absolute paths for CC, pass it like this, as ccache does not like absolute.
@@ -146,6 +139,37 @@ def enableCcache(the_compiler, env, source_dir, python_prefix, show_scons_mode):
         result = False
 
     return result
+
+
+def enableCcache(the_compiler, env, source_dir, python_prefix, show_scons_mode):
+    # The ccache needs absolute path, otherwise it will not work.
+    ccache_logfile = os.path.abspath(
+        os.path.join(source_dir, "ccache-%d.txt" % os.getpid())
+    )
+
+    setEnvironmentVariable(env, "CCACHE_LOGFILE", ccache_logfile)
+    env["CCACHE_LOGFILE"] = ccache_logfile
+
+    # First check if it's not already supposed to be a ccache, then do nothing.
+    cc_path = getExecutablePath(the_compiler, env=env)
+
+    cc_is_link, cc_link_path = getLinkTarget(cc_path)
+    if cc_is_link and os.path.basename(cc_link_path) == "ccache":
+        if show_scons_mode:
+            scons_logger.info(
+                "Chosen compiler %s is pointing to ccache %s already."
+                % (cc_path, cc_link_path)
+            )
+
+        return True
+
+    return _injectCcache(
+        the_compiler=the_compiler,
+        cc_path=cc_path,
+        env=env,
+        python_prefix=python_prefix,
+        show_scons_mode=show_scons_mode,
+    )
 
 
 def enableClcache(the_compiler, env, source_dir, python_prefix, show_scons_mode):
@@ -328,6 +352,6 @@ def extractClcacheLogFromOutput(data):
             _writeClcacheLog(match.group(1), "cache miss")
             return data
 
-        assert False, clcache_output
+        assert False, (clcache_output, data)
 
     return data

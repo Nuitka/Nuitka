@@ -430,3 +430,25 @@ def getExternalUsePath(filename, only_dirname=False):
             filename = getWindowsShortPathName(filename)
 
     return filename
+
+
+def getLinkTarget(filename):
+    """ Return the path a link is pointing too, if any.
+
+        Args:
+            filename - check this path, need not be a filename
+
+        Returns:
+            (bool, link_target) - first value indicates if it is a link, second the link target
+
+        Notes:
+            This follows symlinks to the very end.
+    """
+    is_link = False
+    while os.path.exists(filename) and os.path.islink(filename):
+        link_target = os.readlink(filename)
+
+        filename = os.path.join(os.path.dirname(filename), link_target)
+        is_link = True
+
+    return is_link, filename
