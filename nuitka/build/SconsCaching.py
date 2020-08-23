@@ -251,6 +251,7 @@ def _getCcacheStatistics(ccache_logfile):
     if os.path.exists(ccache_logfile):
         re_command = re.compile(r"\[.*? (\d+) *\] Command line: (.*)$")
         re_result = re.compile(r"\[.*? (\d+) *\] Result: (.*)$")
+        re_anything = re.compile(r"\[.*? (\d+) *\] (.*)$")
 
         # Remember command from the pid, so later decision logged against pid
         # can be matched against it.
@@ -266,15 +267,42 @@ def _getCcacheStatistics(ccache_logfile):
             match = re_result.match(line)
             if match:
                 pid, result = match.groups()
+                result = result.strip()
+
+                try:
+                    command = data[commands[pid]]
+                except KeyError:
+                    # It seems writing to the file can be lossy, so we can have results for
+                    # unknown commands, but we don't use the command yet anyway, so just
+                    # be unique.
+                    command = "unknown command leading to " + line
+
+                # Older ccache on e.g. RHEL6 wasn't explicit about linking.
+                if result == "unsupported compiler option":
+                    if " -o " in command or "unknown command" in command:
+                        result = "called for link"
+
+                # But still try to catch this with log output if it happens.
+                if result == "unsupported compiler option":
+                    scons_logger.warning(
+                        "Encounted unsupported compiler option for ccache in '%s'."
+                        % command
+                    )
+
+                    all_text = []
+
+                    for line2 in open(ccache_logfile):
+                        match = re_anything.match(line2)
+
+                        if match:
+                            pid2, result = match.groups()
+                            if pid == pid2:
+                                all_text.append(result)
+
+                    scons_logger.warning("Full scons output: %s" % all_text)
 
                 if result != "called for link":
-                    try:
-                        data[commands[pid]] = result
-                    except KeyError:
-                        # It seems writing to the file can be lossy, so we can have results for
-                        # unknown commands, but we don't use the command yet anyway, so just
-                        # be unique.
-                        data[line] = result
+                    data[command] = result
 
     return data
 

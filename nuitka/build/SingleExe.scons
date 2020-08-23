@@ -1716,7 +1716,7 @@ if show_scons_mode:
 if gcc_mode:
 
     def _makeGccUseLinkerFile():
-        tmp_linker_filename = os.path.join(source_dir, "@sources.tmp")
+        tmp_linker_filename = os.path.join(source_dir, "@link_input.txt")
 
         env["LINKCOM"] = env["LINKCOM"].replace(
             "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
