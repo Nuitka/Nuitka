@@ -6,6 +6,10 @@ This release is not done yet.
 Bug Fixes
 ---------
 
+- Fix, loop optimization could not determinate, effectively making Nuitka run
+  forever, with no indication why. This has been fixed and a mechanism to give
+  up after too many attempts has been added.
+
 - Fix, closure taking object allowed a brief period where the garbage collector
   was exposed to uninitialized objects. Fixed in 0.6.8.1 already.
 
@@ -41,14 +45,45 @@ Bug Fixes
 - Plugins: Enabling a plugin after the filename to compile was given, didn't
   allow for arguments to the passed, causing problems. Fixed in 0.6.8.3 already.
 
+- Standalone: The ``certifi`` data file is now supported for all modules using it
+  and not only some.
+
+New Features
+------------
+
+- Windows: Added support for using Python 2.7 through a symlink too. This was
+  already working for Python3, but a scons problem prevented this from working.
+
+- Caching of compiled C files is now checked with ccache and clcache, and added
+  automatically where possible, plus a report of the success is made. This can
+  accelerate the re-compile very much, even if you have to go through Nuitka
+  compilation itself, which is not (yet) cached.
+
 Optimization
 ------------
+
+- The value tracing has become more correct with loops and in general less often
+  inhibits optimization. Escaping of value traces is now a separate trace state
+  allowing for more appropriate handling of actual unknowns.
+
+- Memory used for value tracing has been lowered by removing unnecessary states
+  for traces, that we don't use anymore.
 
 - Windows: Prevent scons from scanning for MSVC when asked to use MinGW64. This
   avoids a performance loss doing something that will then end up being unused.
 
+Cleanups
+--------
+
+- The scons file now uses Nuitka utils functions and is itself split up into
+  several modules for enhanced readability.
+
 Organisational
 --------------
+
+- The use of the logging module was replaced with more of our custom tracing
+  and we now have the ability to write the optimization log to a separate
+  file.
 
 - Old style plugin options are now detected and reported as a usage error
   rather than unknown plugin.
