@@ -23,6 +23,8 @@ import os
 import signal
 import sys
 
+from nuitka.Tracing import scons_logger
+
 
 def decodeData(data):
     """ Our own decode tries to workaround MSVC misbehavior.
@@ -130,3 +132,27 @@ def readSconsReport(source_dir):
 
 def getSconsReportValue(source_dir, key):
     return readSconsReport(source_dir).get(key)
+
+
+def addClangClPathFromMSVC(env, target_arch, show_scons_mode):
+    cl_exe = getExecutablePath("cl", env=env)
+
+    if cl_exe is None:
+        scons_logger.warning("Visual Studio required for for Clang on Windows.")
+        return
+
+    clang_dir = cl_exe = os.path.join(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm",)
+
+    if target_arch == "x86_64":
+        clang_dir = os.path.join(clang_dir, "x64", "bin")
+    else:
+        clang_dir = os.path.join(clang_dir, "bin")
+
+    if os.path.exists(clang_dir):
+        if show_scons_mode:
+            scons_logger.info("Adding MSVC directory %r for Clang to PATH." % clang_dir)
+
+        addToPATH(env, clang_dir, prefix=True)
+    else:
+        if show_scons_mode:
+            scons_logger.info("No Clang component for MSVC found." % clang_dir)
