@@ -1178,6 +1178,25 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pycparser.lextab", True
         elif full_name == "passlib.hash":
             yield "passlib.handlers.sha2_crypt", True
+        elif full_name == "pyglet":
+            yield "pyglet.app"
+            yield "pyglet.canvas"
+            yield "pyglet.clock"
+            yield "pyglet.com"
+            yield "pyglet.event"
+            yield "pyglet.font"
+            yield "pyglet.gl"
+            yield "pyglet.graphics"
+            yield "pyglet.input"
+            yield "pyglet.image"
+            yield "pyglet.lib"
+            yield "pyglet.media"
+            yield "pyglet.model"
+            yield "pyglet.resource"
+            yield "pyglet.sprite"
+            yield "pyglet.shapes"
+            yield "pyglet.text"
+            yield "pyglet.window"
 
     def getImportsByFullname(self, full_name, package_dir):
         """ Recursively create a set of imports for a fullname.
