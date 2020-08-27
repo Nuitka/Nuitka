@@ -281,8 +281,11 @@ def _cleanupClangFormat(filename):
     # the form of a module, pylint: disable=global-statement
     global warned_clang_format
 
-    clang_format_path = getExecutablePath("clang-format-8") or getExecutablePath(
-        "clang-format-7"
+    clang_format_path = (
+        getExecutablePath("clang-format-10")
+        or getExecutablePath("clang-format-9")
+        or getExecutablePath("clang-format-8")
+        or getExecutablePath("clang-format-7")
     )
 
     # Extra ball on Windows, check default installations paths in MSVC and LLVM too.
