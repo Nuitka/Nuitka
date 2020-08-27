@@ -53,6 +53,7 @@ from nuitka.Tracing import my_print, scons_logger
 from .SconsCaching import enableCcache, enableClcache
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
 from .SconsUtils import (
+    addClangClPathFromMSVC,
     addToPATH,
     changeKeyboardInteruptToErrorExit,
     decodeData,
@@ -563,16 +564,10 @@ if "CC" in os.environ:
     env["CCVERSION"] = None
     found_gcc = True
 elif clangcl_mode:
-    clang_exe = getExecutablePath(env["CC"], env=env)
-
-    clang_dir = clang_exe = os.path.join(
-        clang_exe[: clang_exe.lower().rfind("msvc")],
-        "LLVM",
-        "8.0.0",  # TODO: Observe this and/or use latest
-        "bin",
+    # If possible, add Clang directory from MSVC if available.
+    addClangClPathFromMSVC(
+        env=env, target_arch=target_arch, show_scons_mode=show_scons_mode
     )
-
-    addToPATH(env, clang_dir, prefix=True)
 
     env["CC"] = "clang-cl"
     env["LINK"] = "lld-link"
@@ -1379,14 +1374,16 @@ def getCompilerArch():
         )
 
         # The cl.exe without further args will give error output indicating
-        # arch.
-        data, err = proc.communicate()
+        # arch, while clang outputs in stdout.
+        stdout, stderr = proc.communicate()
         _rv = proc.wait()
 
-        if b"x86" in err or b"i686" in data:
+        if b"x86" in stderr or b"i686" in stdout:
             _compiler_arch = "pei-i386"
-        elif b"x64" in err:
+        elif b"x64" in stderr or b"x86_64" in stdout:
             _compiler_arch = "pei-x86-64"
+        else:
+            assert False, (stdout, stderr)
 
         _compiler_arch_determined = True
     else:
