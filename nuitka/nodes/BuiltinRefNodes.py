@@ -90,7 +90,6 @@ quick_names = {
     "None": None,
     "True": True,
     "False": False,
-    "__debug__": "no_asserts" not in getPythonFlags(),
     "Ellipsis": Ellipsis,
 }
 
@@ -101,6 +100,10 @@ def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref):
     if builtin_name in quick_names:
         return makeConstantRefNode(
             constant=quick_names[builtin_name], source_ref=source_ref
+        )
+    elif builtin_name == "__debug__":
+        return makeConstantRefNode(
+            constant="no_asserts" not in getPythonFlags(), source_ref=source_ref
         )
     elif builtin_name in builtin_type_names:
         return makeExpressionBuiltinTypeRef(
