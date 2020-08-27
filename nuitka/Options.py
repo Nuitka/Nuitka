@@ -140,7 +140,7 @@ Error, icon path "%s" does not exist."""
 def isVerbose():
     """ *bool* = "--verbose"
     """
-    return options.verbose
+    return options is not None and options.verbose
 
 
 def shallTraceExecution():
