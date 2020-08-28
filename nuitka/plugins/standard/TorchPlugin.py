@@ -25,7 +25,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
 def get_torch_core_binaries(module):
-    """ Return required files from the torch folders.
+    """Return required files from the torch folders.
 
     Notes:
         So far only tested for Windows. Requirements for other platforms
@@ -66,7 +66,7 @@ def get_torch_core_binaries(module):
 
 
 class TorchPlugin(NuitkaPluginBase):
-    """ This class represents the main logic of the plugin.
+    """This class represents the main logic of the plugin.
 
     This is a plugin to ensure torch scripts compile and work well in
     standalone mode.
@@ -81,14 +81,13 @@ class TorchPlugin(NuitkaPluginBase):
     plugin_desc = "Required by the torch / torchvision packages"
 
     def __init__(self):
-        """ Maintain switch to ensure once-only copy of torch/lib files.
-        """
+        """Maintain switch to ensure once-only copy of torch/lib files."""
         self.files_copied = False
         return None
 
     @classmethod
     def isRelevant(cls):
-        """ This method is called one time only to check, whether the plugin might make sense at all.
+        """This method is called one time only to check, whether the plugin might make sense at all.
 
         Returns:
             True if this is a standalone compilation.
@@ -96,7 +95,7 @@ class TorchPlugin(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def considerExtraDlls(self, dist_dir, module):
-        """ Copy extra files from torch/lib.
+        """Copy extra files from torch/lib.
 
         Args:
             dist_dir: the name of the script's dist folder
@@ -133,7 +132,7 @@ class TorchPlugin(NuitkaPluginBase):
 
 
 class TorchPluginDetector(NuitkaPluginBase):
-    """ Only used if plugin is NOT activated.
+    """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
@@ -143,7 +142,7 @@ class TorchPluginDetector(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        """ This method is called one time only to check, whether the plugin might make sense at all.
+        """This method is called one time only to check, whether the plugin might make sense at all.
 
         Returns:
             True if this is a standalone compilation.
@@ -151,7 +150,7 @@ class TorchPluginDetector(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):
-        """ This method checks whether a torch module is imported.
+        """This method checks whether a torch module is imported.
 
         Notes:
             For this we check whether its full name contains the string "torch".

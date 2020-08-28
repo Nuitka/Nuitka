@@ -23,7 +23,7 @@ import re
 
 
 def getShebangFromSource(source_code):
-    """ Given source code, extract the shebang (#!) part.
+    """Given source code, extract the shebang (#!) part.
 
     Notes:
         This function is less relevant on Windows, because it will not use
@@ -50,7 +50,7 @@ def getShebangFromSource(source_code):
 
 
 def getShebangFromFile(filename):
-    """ Given a filename, extract the shebang (#!) part from it.
+    """Given a filename, extract the shebang (#!) part from it.
 
     Notes:
         This function is less relevant on Windows, because it will not use
@@ -79,7 +79,7 @@ def getShebangFromFile(filename):
 
 
 def parseShebang(shebang):
-    """ Given a concrete shebang value, it will extract the binary used.
+    """Given a concrete shebang value, it will extract the binary used.
 
     Notes:
         This function is less relevant on Windows, because it will not use

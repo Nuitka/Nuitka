@@ -269,9 +269,7 @@ class LocalsDictHandle(LocalsDictHandleBase):
 
 
 class LocalsMappingHandle(LocalsDictHandle):
-    """ Locals dict of a Python3 class with a mapping.
-
-    """
+    """Locals dict of a Python3 class with a mapping."""
 
     __slots__ = ()
 
@@ -286,9 +284,7 @@ class LocalsMappingHandle(LocalsDictHandle):
 
 
 class LocalsDictExecHandle(LocalsDictHandleBase):
-    """ Locals dict of a Python2 function with an exec.
-
-    """
+    """Locals dict of a Python2 function with an exec."""
 
     __slots__ = ("closure_variables",)
 
@@ -335,9 +331,7 @@ class LocalsDictExecHandle(LocalsDictHandleBase):
 
 
 class LocalsDictFunctionHandle(LocalsDictHandleBase):
-    """ Locals dict of a Python3 function or Python2 function without an exec.
-
-    """
+    """Locals dict of a Python3 function or Python2 function without an exec."""
 
     __slots__ = ()
 

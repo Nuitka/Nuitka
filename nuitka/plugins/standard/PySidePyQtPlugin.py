@@ -40,10 +40,10 @@ from nuitka.utils.Utils import isWin32Windows
 
 
 class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
-    """ This is for plugins of PyQt4/PyQt5 and PySide once it is supported.
+    """This is for plugins of PyQt4/PyQt5 and PySide once it is supported.
 
-        When loads an image, it may use a plug-in, which in turn used DLLs,
-        which for standalone mode, can cause issues of not having it.
+    When loads an image, it may use a plug-in, which in turn used DLLs,
+    which for standalone mode, can cause issues of not having it.
     """
 
     plugin_name = "qt-plugins"
@@ -75,7 +75,7 @@ not exist, a list of all available will be given.""",
 
     @staticmethod
     def createPreModuleLoadCode(module):
-        """ Method called when a module is being imported.
+        """Method called when a module is being imported.
 
         Notes:
             If full name equals "PyQt?" we insert code to include the dist
@@ -416,11 +416,11 @@ if os.path.exists(guess_path):
 
     @staticmethod
     def createPostModuleLoadCode(module):
-        """ Create code to load after a module was successfully imported.
+        """Create code to load after a module was successfully imported.
 
-            For Qt we need to set the library path to the distribution folder
-            we are running from. The code is immediately run after the code
-            and therefore makes sure it's updated properly.
+        For Qt we need to set the library path to the distribution folder
+        we are running from. The code is immediately run after the code
+        and therefore makes sure it's updated properly.
         """
 
         full_name = module.getFullName()

@@ -143,14 +143,14 @@ class ValueTraceBase(object):
         return False
 
     def mustHaveValue(self):
-        """ Will this definitely have a value.
+        """Will this definitely have a value.
 
         Every trace has this overloaded.
         """
         assert False, self
 
     def mustNotHaveValue(self):
-        """ Will this definitely have a value.
+        """Will this definitely have a value.
 
         Every trace has this overloaded.
         """
@@ -202,9 +202,7 @@ class ValueTraceUninit(ValueTraceUnassignedBase):
 
 
 class ValueTraceDeleted(ValueTraceUnassignedBase):
-    """ Trace caused by a deletion.
-
-    """
+    """Trace caused by a deletion."""
 
     __slots__ = ("del_node",)
 
@@ -358,9 +356,7 @@ class ValueTraceAssign(ValueTraceBase):
 
 
 class ValueTraceMergeBase(ValueTraceBase):
-    """ Merge of two or more traces or start of loops.
-
-    """
+    """Merge of two or more traces or start of loops."""
 
     __slots__ = ()
 
@@ -374,11 +370,11 @@ class ValueTraceMergeBase(ValueTraceBase):
 
 
 class ValueTraceMerge(ValueTraceMergeBase):
-    """ Merge of two or more traces.
+    """Merge of two or more traces.
 
-        Happens at the end of conditional blocks. This is "phi" in
-        SSA theory. Also used for merging multiple "return", "break" or
-        "continue" exits.
+    Happens at the end of conditional blocks. This is "phi" in
+    SSA theory. Also used for merging multiple "return", "break" or
+    "continue" exits.
     """
 
     __slots__ = ()

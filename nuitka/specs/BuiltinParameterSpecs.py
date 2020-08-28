@@ -217,7 +217,7 @@ class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
 
 
 def makeBuiltinExceptionParameterSpec(exception_name):
-    """ Factory function to create parameter spec for an exception from its name.
+    """Factory function to create parameter spec for an exception from its name.
 
     Args:
         exception_name - (str) name of the built-in exception

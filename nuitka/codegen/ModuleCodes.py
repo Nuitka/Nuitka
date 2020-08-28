@@ -55,8 +55,8 @@ def getModuleCode(module, function_decl_codes, function_body_codes, context):
     # Temporary variable initializations
     # TODO: Move that to a place outside of functions.
     from .FunctionCodes import (
-        setupFunctionLocalVariables,
         finalizeFunctionLocalVariables,
+        setupFunctionLocalVariables,
     )
 
     setupFunctionLocalVariables(

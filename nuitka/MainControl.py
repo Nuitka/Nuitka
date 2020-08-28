@@ -71,7 +71,7 @@ from .tree import Building
 
 
 def createNodeTree(filename):
-    """ Create a node tree.
+    """Create a node tree.
 
     Turn that source code into a node tree structure. If recursion into
     imported modules is available, more trees will be available during
@@ -202,23 +202,23 @@ def cleanSourceDirectory(source_dir):
 
 
 def pickSourceFilenames(source_dir, modules):
-    """ Pick the names for the C files of each module.
+    """Pick the names for the C files of each module.
 
-        Args:
-            source_dir - the directory to put the module sources will be put into
-            modules    - all the modules to build.
+    Args:
+        source_dir - the directory to put the module sources will be put into
+        modules    - all the modules to build.
 
-        Returns:
-            Dictionary mapping modules to filenames in source_dir.
+    Returns:
+        Dictionary mapping modules to filenames in source_dir.
 
-        Notes:
-            These filenames can collide, due to e.g. mixed case usage, or there
-            being duplicate copies, e.g. a package named the same as the main
-            binary.
+    Notes:
+        These filenames can collide, due to e.g. mixed case usage, or there
+        being duplicate copies, e.g. a package named the same as the main
+        binary.
 
-            Conflicts are resolved by appending @<number> with a count in the
-            list of sorted modules. We try to be reproducible here, so we get
-            still good caching for external tools.
+        Conflicts are resolved by appending @<number> with a count in the
+        list of sorted modules. We try to be reproducible here, so we get
+        still good caching for external tools.
     """
 
     collision_filenames = set()
@@ -277,9 +277,7 @@ standalone_entry_points = []
 
 
 def makeSourceDirectory(main_module):
-    """ Get the full list of modules imported, create code for all of them.
-
-    """
+    """Get the full list of modules imported, create code for all of them."""
     # We deal with a lot of details here, but rather one by one, and split makes
     # no sense, pylint: disable=too-many-branches
 
@@ -694,14 +692,14 @@ of the precise Python interpreter binary and '-m nuitka', e.g. use this
 
 
 def main():
-    """ Main program flow of Nuitka
+    """Main program flow of Nuitka
 
-        At this point, options will be parsed already, Nuitka will be executing
-        in the desired version of Python with desired flags, and we just get
-        to execute the task assigned.
+    At this point, options will be parsed already, Nuitka will be executing
+    in the desired version of Python with desired flags, and we just get
+    to execute the task assigned.
 
-        We might be asked to only re-compile generated C, dump only an XML
-        representation of the internal node tree after optimization, etc.
+    We might be asked to only re-compile generated C, dump only an XML
+    representation of the internal node tree after optimization, etc.
     """
 
     # Main has to fulfill many options, leading to many branches and statements

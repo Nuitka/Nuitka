@@ -104,13 +104,13 @@ def _getFunctionMakerIdentifier(function_identifier):
 
 
 def getFunctionQualnameObj(owner, context):
-    """ Get code to pass to function alike object creation for qualname.
+    """Get code to pass to function alike object creation for qualname.
 
-        Qualname for functions existed for Python3, generators only after
-        3.5 and coroutines and asyncgen for as long as they existed.
+    Qualname for functions existed for Python3, generators only after
+    3.5 and coroutines and asyncgen for as long as they existed.
 
-        If identical to the name, we do not pass it as a value, but
-        NULL instead.
+    If identical to the name, we do not pass it as a value, but
+    NULL instead.
     """
 
     if owner.isExpressionFunctionBody():
@@ -298,7 +298,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
 
 
 def getClosureCopyCode(closure_variables, context):
-    """ Get code to copy closure variables storage.
+    """Get code to copy closure variables storage.
 
     This gets used by generator/coroutine/asyncgen with varying "closure_type".
     """
@@ -352,7 +352,7 @@ def getFunctionCreationCode(
         args.append(annotations_name)
 
     closure_name, closure_copy = getClosureCopyCode(
-        closure_variables=closure_variables, context=context,
+        closure_variables=closure_variables, context=context
     )
 
     if closure_name:
@@ -768,8 +768,9 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 
     # TODO: Put the return value name as that to_name.c_type too.
 
-    if expression.isExpressionOutlineFunctionBase() and expression.getBody().mayRaiseException(
-        BaseException
+    if (
+        expression.isExpressionOutlineFunctionBase()
+        and expression.getBody().mayRaiseException(BaseException)
     ):
         exception_target = context.allocateLabel("outline_exception")
         old_exception_target = context.setExceptionEscape(exception_target)

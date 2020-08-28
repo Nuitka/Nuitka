@@ -37,8 +37,7 @@ from nuitka.utils.Utils import isWin32Windows
 
 
 def getScipyCoreBinaries(module):
-    """ Return binaries from the extra-dlls folder (Windows only).
-    """
+    """Return binaries from the extra-dlls folder (Windows only)."""
     binaries = []
     scipy_dir = module.getCompileTimeDirectory()
 
@@ -58,7 +57,7 @@ def getScipyCoreBinaries(module):
 
 
 def getNumpyCoreBinaries(module):
-    """ Return any binaries in numpy/core and/or numpy/.libs.
+    """Return any binaries in numpy/core and/or numpy/.libs.
 
     Notes:
         This covers the special cases like MKL binaries.
@@ -184,7 +183,7 @@ def copyMplDataFiles(module, dist_dir):
 
 
 class NumpyPlugin(NuitkaPluginBase):
-    """ This class represents the main logic of the plugin.
+    """This class represents the main logic of the plugin.
 
     This is a plugin to ensure scripts using numpy, scipy, matplotlib, pandas,
     scikit-learn, etc. work well in standalone mode.
@@ -216,7 +215,7 @@ class NumpyPlugin(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        """ Check whether plugin might be required.
+        """Check whether plugin might be required.
 
         Returns:
             True if this is a standalone compilation.
@@ -244,7 +243,7 @@ Should matplotlib not be be included with numpy, Default is %default.""",
         )
 
     def considerExtraDlls(self, dist_dir, module):
-        """ Copy extra shared libraries or data for this installation.
+        """Copy extra shared libraries or data for this installation.
 
         Args:
             dist_dir: the name of the program's dist folder
@@ -379,7 +378,7 @@ Should matplotlib not be be included with numpy, Default is %default.""",
 
 
 class NumpyPluginDetector(NuitkaPluginBase):
-    """ Only used if plugin is NOT activated.
+    """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
@@ -389,7 +388,7 @@ class NumpyPluginDetector(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        """ Check whether plugin might be required.
+        """Check whether plugin might be required.
 
         Returns:
             True if this is a standalone compilation.
@@ -397,7 +396,7 @@ class NumpyPluginDetector(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):
-        """ This method checks whether numpy is required.
+        """This method checks whether numpy is required.
 
         Notes:
             For this we check whether its first name part is numpy relevant.

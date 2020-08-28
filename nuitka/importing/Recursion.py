@@ -37,7 +37,7 @@ from nuitka.utils.ModuleNames import ModuleName
 
 
 def matchesModuleNameToPatterns(module_name, patterns):
-    """ Match a module name to a list of patterns
+    """Match a module name to a list of patterns
 
     Args:
         module_name:
@@ -66,8 +66,8 @@ def matchesModuleNameToPatterns(module_name, patterns):
 
 
 def _recurseTo(module_package, module_filename, module_relpath, module_kind, reason):
-    from nuitka.tree import Building
     from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
+    from nuitka.tree import Building
 
     module, source_ref, source_filename = Building.decideModuleTree(
         filename=module_filename,

@@ -29,9 +29,9 @@ def enableDebug(globals_dict):
     templates = dict(globals_dict)
 
     class TemplateWrapper(object):
-        """ Wrapper around templates.
+        """Wrapper around templates.
 
-            To better trace and control template usage.
+        To better trace and control template usage.
 
         """
 

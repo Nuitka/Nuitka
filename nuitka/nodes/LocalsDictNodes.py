@@ -553,7 +553,9 @@ class StatementSetLocals(StatementChildHavingBase):
         new_locals = trace_collection.onExpression(self.getNewLocals())
 
         if new_locals.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import (
+                makeStatementExpressionOnlyReplacementNode,
+            )
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=new_locals, node=self

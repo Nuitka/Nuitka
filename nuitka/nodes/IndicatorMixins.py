@@ -25,10 +25,10 @@ used like this.
 
 
 class MarkUnoptimizedFunctionIndicatorMixin(object):
-    """ Mixin for indication that a function contains an exec or star import.
+    """Mixin for indication that a function contains an exec or star import.
 
-        These do not access global variables directly, but check a locals dictionary
-        first, because they do.
+    These do not access global variables directly, but check a locals dictionary
+    first, because they do.
     """
 
     def __init__(self, flags):

@@ -52,9 +52,9 @@ class StopWatch(object):
 
 
 class TimerReport(object):
-    """ Timer that reports how long things took.
+    """Timer that reports how long things took.
 
-        Mostly intended as a wrapper for external process calls.
+    Mostly intended as a wrapper for external process calls.
     """
 
     __slots__ = ("message", "decider", "logger", "timer", "min_report_time")

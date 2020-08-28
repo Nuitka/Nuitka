@@ -145,12 +145,15 @@ class build(distutils.command.build.build):
 
         # Nuitka wants the main package by filename, probably we should stop
         # needing that.
-        from nuitka.importing.Importing import findModule, setMainScriptDirectory
-        from nuitka.utils.ModuleNames import ModuleName
         from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
             Iterable,
             unicode,
         )
+        from nuitka.importing.Importing import (
+            findModule,
+            setMainScriptDirectory,
+        )
+        from nuitka.utils.ModuleNames import ModuleName
 
         old_dir = os.getcwd()
         os.chdir(build_lib)

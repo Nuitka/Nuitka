@@ -35,9 +35,7 @@ _main_module = None
 
 
 def setMainModule(main_module):
-    """ Call this before using other methods of this module.
-
-    """
+    """Call this before using other methods of this module."""
     # Technically required.
     assert main_module.isCompiledPythonModule()
 
@@ -47,9 +45,7 @@ def setMainModule(main_module):
 
 
 def getSourceDirectoryPath():
-    """ Return path inside the build directory.
-
-    """
+    """Return path inside the build directory."""
 
     result = Options.getOutputPath(
         path=os.path.basename(getTreeFilenameWithSuffix(_main_module, ".build"))
@@ -79,9 +75,7 @@ def getResultBasepath():
 
 
 def getResultFullpath():
-    """ Get the final output binary result full path.
-
-    """
+    """Get the final output binary result full path."""
 
     result = getResultBasepath()
 

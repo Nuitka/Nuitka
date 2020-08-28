@@ -23,9 +23,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
 class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
-    """ This is to make dill module work with compiled methods.
-
-    """
+    """This is to make dill module work with compiled methods."""
 
     plugin_name = "dill-compat"
 

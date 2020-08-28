@@ -53,7 +53,7 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBa
             locals_kind = "python2_class"
 
         self.locals_scope = getLocalsDictHandle(
-            "locals_%s_%d" % (self.getCodeName(), source_ref.getLineNumber(),),
+            "locals_%s_%d" % (self.getCodeName(), source_ref.getLineNumber()),
             locals_kind,
             self,
         )

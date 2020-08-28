@@ -94,7 +94,9 @@ class StatementRaiseException(
         if exception_type is not None and exception_type.willRaiseException(
             BaseException
         ):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import (
+                makeStatementExpressionOnlyReplacementNode,
+            )
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=exception_type, node=self
@@ -198,7 +200,7 @@ class StatementReraiseException(StatementRaiseExceptionMixin, StatementBase):
 
 
 class ExpressionRaiseException(ExpressionChildrenHavingBase):
-    """ This node type is only produced via optimization.
+    """This node type is only produced via optimization.
 
     CPython only knows exception raising as a statement, but often the raising
     of exceptions can be predicted to occur as part of an expression, which it

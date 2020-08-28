@@ -30,14 +30,14 @@ from .LocalsScopes import getLocalsDictHandle
 
 
 class ExpressionOutlineBody(ExpressionChildHavingBase):
-    """ Outlined expression code.
+    """Outlined expression code.
 
-        This is for a call to a piece of code to be executed in a specific
-        context. It contains an exclusively owned function body, that has
-        no other references, and can be considered part of the calling
-        context.
+    This is for a call to a piece of code to be executed in a specific
+    context. It contains an exclusively owned function body, that has
+    no other references, and can be considered part of the calling
+    context.
 
-        It must return a value, to use as expression value.
+    It must return a value, to use as expression value.
     """
 
     kind = "EXPRESSION_OUTLINE_BODY"
@@ -157,10 +157,10 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
         return self.getBody().willRaiseException(exception_type)
 
     def getEntryPoint(self):
-        """ Entry point for code.
+        """Entry point for code.
 
-            Normally ourselves. Only outlines will refer to their parent which
-            technically owns them.
+        Normally ourselves. Only outlines will refer to their parent which
+        technically owns them.
 
         """
 
@@ -171,17 +171,17 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
 
 
 class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
-    """ Outlined function code.
+    """Outlined function code.
 
-        This is for a call to a function to be called in-line to be executed
-        in a specific context. It contains an exclusively owned function body,
-        that has no other references, and can be considered part of the calling
-        context.
+    This is for a call to a function to be called in-line to be executed
+    in a specific context. It contains an exclusively owned function body,
+    that has no other references, and can be considered part of the calling
+    context.
 
-        As normal function it must return a value, to use as expression value,
-        but we know we only exist once.
+    As normal function it must return a value, to use as expression value,
+    but we know we only exist once.
 
-        Once this has no frame, it can be changed to a mere outline expression.
+    Once this has no frame, it can be changed to a mere outline expression.
     """
 
     def __init__(self, provider, name, body, code_prefix, source_ref):
@@ -292,10 +292,10 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
         return self.provider.allocateTempScope(name=self.name + "$" + name)
 
     def getEntryPoint(self):
-        """ Entry point for code.
+        """Entry point for code.
 
-            Normally ourselves. Only outlines will refer to their parent which
-            technically owns them.
+        Normally ourselves. Only outlines will refer to their parent which
+        technically owns them.
 
         """
 

@@ -26,7 +26,7 @@ allow to easily make checks on them.
 class ModuleName(str):
     @staticmethod
     def makeModuleNameInPackage(module_name, package_name):
-        """ Create a module name in a package.
+        """Create a module name in a package.
 
         Args:
             - module_name (str or ModuleName) module name to put below the package
@@ -51,31 +51,31 @@ class ModuleName(str):
         return "<ModuleName %s>" % str(self)
 
     def asString(self):
-        """ Get a simply str value.
+        """Get a simply str value.
 
-            Notes:
-                This should only be used to create constant values for code
-                generation, there is no other reason to lower the type of
-                these values otherwise.
+        Notes:
+            This should only be used to create constant values for code
+            generation, there is no other reason to lower the type of
+            these values otherwise.
         """
 
         return str(self)
 
     def getPackageName(self):
-        """ Get the package name if any.
+        """Get the package name if any.
 
-            Returns:
-                ModuleName of the containing package or None if already
-                top level.
+        Returns:
+            ModuleName of the containing package or None if already
+            top level.
         """
 
         return self.splitModuleBasename()[0]
 
     def getTopLevelPackageName(self):
-        """ Get the top level package name.
+        """Get the top level package name.
 
-            Returns:
-                ModuleName of the top level name.
+        Returns:
+            ModuleName of the top level name.
         """
         package_name = self.getPackageName()
 
@@ -85,10 +85,10 @@ class ModuleName(str):
             return package_name.getTopLevelPackageName()
 
     def getBasename(self):
-        """ Get leaf name of the module without package part.
+        """Get leaf name of the module without package part.
 
-            Returns:
-                ModuleName without package.
+        Returns:
+            ModuleName without package.
         """
         return self.splitModuleBasename()[1]
 

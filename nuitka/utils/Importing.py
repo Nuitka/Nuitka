@@ -26,8 +26,7 @@ from nuitka.PythonVersions import python_version
 
 
 def _importFilePy3NewWay(filename):
-    """ Import a file for Python versions 3.5+.
-    """
+    """Import a file for Python versions 3.5+."""
     import importlib.util  # pylint: disable=I0021,import-error,no-name-in-module
 
     spec = importlib.util.spec_from_file_location(
@@ -39,8 +38,7 @@ def _importFilePy3NewWay(filename):
 
 
 def _importFilePy3OldWay(filename):
-    """ Import a file for Python versions before 3.5.
-    """
+    """Import a file for Python versions before 3.5."""
     from importlib.machinery import (  # pylint: disable=I0021,import-error,no-name-in-module
         SourceFileLoader,
     )
@@ -50,8 +48,7 @@ def _importFilePy3OldWay(filename):
 
 
 def importFilePy2(filename):
-    """ Import a file for Python version 2.
-    """
+    """Import a file for Python version 2."""
     import imp
 
     basename = os.path.splitext(os.path.basename(filename))[0]
@@ -59,7 +56,7 @@ def importFilePy2(filename):
 
 
 def importFileAsModule(filename):
-    """ Import Python module given as a file name.
+    """Import Python module given as a file name.
 
     Notes:
         Provides a Python version independent way to import any script files.

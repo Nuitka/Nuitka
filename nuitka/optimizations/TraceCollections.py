@@ -104,7 +104,7 @@ class CollectionStartpointMixin(object):
             )
 
     def onExceptionRaiseExit(self, raisable_exceptions, collection=None):
-        """ Indicate to the trace collection what exceptions may have occurred.
+        """Indicate to the trace collection what exceptions may have occurred.
 
         Args:
             raisable_exception: Currently ignored, one or more exceptions that
@@ -269,9 +269,9 @@ class CollectionStartpointMixin(object):
 
 
 class TraceCollectionBase(object):
-    """ This contains for logic for maintaining active traces.
+    """This contains for logic for maintaining active traces.
 
-        They are kept for "variable" and versions.
+    They are kept for "variable" and versions.
     """
 
     __del__ = counted_del()
@@ -295,10 +295,10 @@ class TraceCollectionBase(object):
         return self.owner
 
     def getVariableCurrentTrace(self, variable):
-        """ Get the current value trace associated to this variable
+        """Get the current value trace associated to this variable
 
-            It is also created on the fly if necessary. We create them
-            lazy so to keep the tracing branches minimal where possible.
+        It is also created on the fly if necessary. We create them
+        lazy so to keep the tracing branches minimal where possible.
         """
 
         return self.getVariableTrace(
@@ -539,11 +539,11 @@ class TraceCollectionBase(object):
             return statement, change_tags, change_desc
 
     def mergeBranches(self, collection_yes, collection_no):
-        """ Merge two alternative branches into this trace.
+        """Merge two alternative branches into this trace.
 
-            This is mostly for merging conditional branches, or other ways
-            of having alternative control flow. This deals with up to two
-            alternative branches to both change this collection.
+        This is mostly for merging conditional branches, or other ways
+        of having alternative control flow. This deals with up to two
+        alternative branches to both change this collection.
         """
 
         # Refuse to do stupid work

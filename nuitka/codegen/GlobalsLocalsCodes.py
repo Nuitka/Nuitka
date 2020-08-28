@@ -65,7 +65,7 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
         variable_order = tuple(locals_scope.getProvidedVariables())
 
         return sorted(
-            variables, key=lambda variable_desc: variable_order.index(variable_desc[0]),
+            variables, key=lambda variable_desc: variable_order.index(variable_desc[0])
         )
 
     with withObjectCodeTemporaryAssignment(

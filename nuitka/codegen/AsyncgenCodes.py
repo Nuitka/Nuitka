@@ -164,7 +164,7 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
     closure_variables = expression.getClosureVariableVersions()
 
     closure_name, closure_copy = getClosureCopyCode(
-        closure_variables=closure_variables, context=context,
+        closure_variables=closure_variables, context=context
     )
 
     args = []

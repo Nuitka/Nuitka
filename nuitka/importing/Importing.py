@@ -67,9 +67,9 @@ main_path = None
 
 
 def setMainScriptDirectory(main_dir):
-    """ Initialize the main script directory.
+    """Initialize the main script directory.
 
-        We use this as part of the search path for modules.
+    We use this as part of the search path for modules.
     """
     # We need to set this from the outside, pylint: disable=global-statement
 
@@ -78,11 +78,11 @@ def setMainScriptDirectory(main_dir):
 
 
 def isPackageDir(dirname):
-    """ Decide if a directory is a package.
+    """Decide if a directory is a package.
 
-        Before Python3.3 it's required to have a "__init__.py" file, but then
-        it became impossible to decide, and for extra fun, there is also the
-        extra packages provided via "*.pth" file tricks by "site.py" loading.
+    Before Python3.3 it's required to have a "__init__.py" file, but then
+    it became impossible to decide, and for extra fun, there is also the
+    extra packages provided via "*.pth" file tricks by "site.py" loading.
     """
 
     return (
@@ -97,7 +97,7 @@ def isPackageDir(dirname):
 
 
 def getModuleNameAndKindFromFilename(module_filename):
-    """ Given a filename, decide the module name and kind.
+    """Given a filename, decide the module name and kind.
 
     Args:
         module_name - file path of the module
@@ -201,15 +201,15 @@ def normalizePackageName(module_name):
 
 
 def findModule(importing, module_name, parent_package, level, warn):
-    """ Find a module with given package name as parent.
+    """Find a module with given package name as parent.
 
-        The package name can be None of course. Level is the same
-        as with "__import__" built-in. Warnings are optional.
+    The package name can be None of course. Level is the same
+    as with "__import__" built-in. Warnings are optional.
 
-        Returns:
-            Returns a triple of package name the module is in, filename of
-            it, which can be a directory for packages, and the location
-            method used.
+    Returns:
+        Returns a triple of package name the module is in, filename of
+        it, which can be a directory for packages, and the location
+        method used.
     """
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=too-many-branches
@@ -332,11 +332,11 @@ existing '%s' extension module by default. Candidates were: %s <-> %s."""
 
 
 def _findModuleInPath2(module_name, search_path):
-    """ This is out own module finding low level implementation.
+    """This is out own module finding low level implementation.
 
-        Just the full module name and search path are given. This is then
-        tasked to raise "ImportError" or return a path if it finds it, or
-        None, if it is a built-in.
+    Just the full module name and search path are given. This is then
+    tasked to raise "ImportError" or return a path if it finds it, or
+    None, if it is a built-in.
     """
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=too-many-branches,too-many-locals

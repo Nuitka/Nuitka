@@ -75,7 +75,7 @@ def _addActivePlugin(plugin_class, args, force=False):
 
 
 def getActivePlugins():
-    """ Return list of active plugins.
+    """Return list of active plugins.
 
     Returns:
         list of plugins
@@ -86,7 +86,7 @@ def getActivePlugins():
 
 
 def hasActivePlugin(plugin_name):
-    """ Decide if a plugin is active.
+    """Decide if a plugin is active.
 
     Args:
         plugin_name - name of the plugin
@@ -166,7 +166,7 @@ def _loadPluginClassesFromPath(scan_path):
 
 
 def loadStandardPluginClasses():
-    """ Load plugin files located in 'standard' folder.
+    """Load plugin files located in 'standard' folder.
 
     Notes:
         Scan through the 'standard' and 'commercial' sub-folder of the folder
@@ -202,8 +202,7 @@ class Plugins(object):
 
     @staticmethod
     def onStandaloneDistributionFinished(dist_dir):
-        """ Let plugins postprocess the distribution folder if standalone
-        """
+        """Let plugins postprocess the distribution folder if standalone"""
         for plugin in getActivePlugins():
             plugin.onStandaloneDistributionFinished(dist_dir)
 
@@ -242,7 +241,7 @@ class Plugins(object):
 
     @staticmethod
     def removeDllDependencies(dll_filename, dll_filenames):
-        """ Create list of removable shared libraries by scanning through the plugins.
+        """Create list of removable shared libraries by scanning through the plugins.
 
         Args:
             dll_filename: shared library filename
@@ -264,7 +263,7 @@ class Plugins(object):
 
     @staticmethod
     def considerDataFiles(module):
-        """ For a given module, ask plugins for any needed data files it may require.
+        """For a given module, ask plugins for any needed data files it may require.
 
         Args:
             module: module object
@@ -342,7 +341,7 @@ class Plugins(object):
 
     @staticmethod
     def suppressUnknownImportWarning(importing, module_name):
-        """ Let plugins decide whether to suppress import warnings for an unknown module.
+        """Let plugins decide whether to suppress import warnings for an unknown module.
 
         Notes:
             If all plugins return False or None, the return will be False, else True.
@@ -369,7 +368,7 @@ class Plugins(object):
 
     @staticmethod
     def decideCompilation(module_name, source_ref):
-        """ Let plugins decide whether to compile a module.
+        """Let plugins decide whether to compile a module.
 
         Notes:
             The decision is made by the first plugin not returning None.
@@ -388,7 +387,7 @@ class Plugins(object):
 
     @staticmethod
     def getPreprocessorSymbols():
-        """ Let plugins provide C defines to be used in compilation.
+        """Let plugins provide C defines to be used in compilation.
 
         Notes:
             The plugins can each contribute, but are hopefully using
@@ -449,8 +448,7 @@ class Plugins(object):
 
 
 def listPlugins():
-    """ Print available standard plugins.
-    """
+    """Print available standard plugins."""
 
     loadPlugins()
 
@@ -473,8 +471,7 @@ def listPlugins():
 
 
 def isObjectAUserPluginBaseClass(obj):
-    """ Verify that a user plugin inherits from UserPluginBase.
-    """
+    """Verify that a user plugin inherits from UserPluginBase."""
     try:
         return obj is not NuitkaPluginBase and issubclass(obj, NuitkaPluginBase)
     except TypeError:
@@ -482,7 +479,7 @@ def isObjectAUserPluginBaseClass(obj):
 
 
 def loadUserPlugin(plugin_filename):
-    """ Load of a user plugins and store them in list of active plugins.
+    """Load of a user plugins and store them in list of active plugins.
 
     Notes:
         A plugin is accepted only if it has a non-empty variable plugin_name, which
@@ -520,7 +517,7 @@ _loaded_plugins = False
 
 
 def loadPlugins():
-    """ Initialize plugin class
+    """Initialize plugin class
 
     Notes:
         Load user plugins provided as Python script file names, and standard
@@ -545,7 +542,7 @@ def loadPlugins():
 
 
 def activatePlugins():
-    """ Activate selected plugin classes
+    """Activate selected plugin classes
 
     Args:
         None
@@ -599,9 +596,7 @@ def activatePlugins():
 
 
 def lateActivatePlugin(plugin_name, option_values):
-    """ Activate plugin after the command line parsing, expects options to be set.
-
-    """
+    """Activate plugin after the command line parsing, expects options to be set."""
 
     values = getPluginClass(plugin_name).getPluginDefaultOptionValues()
     values.update(option_values)
@@ -620,7 +615,7 @@ def _addPluginCommandLineOptions(parser, plugin_class):
 
 
 def addPluginCommandLineOptions(parser, plugin_names):
-    """ Add option group for the plugin to the parser.
+    """Add option group for the plugin to the parser.
 
     Notes:
         This is exclusively for use in the commandline parsing. Not all
@@ -644,7 +639,7 @@ def addUserPluginCommandLineOptions(parser, filename):
 
 
 def setPluginOptions(plugin_name, values):
-    """ Set the option values for the specified plugin.
+    """Set the option values for the specified plugin.
 
     Args:
         plugin_name: plugin identifier
@@ -662,7 +657,7 @@ def setPluginOptions(plugin_name, values):
 
 
 def getPluginOptions(plugin_name):
-    """ Return the options values for the specified plugin.
+    """Return the options values for the specified plugin.
 
     Args:
         plugin_name: plugin identifier

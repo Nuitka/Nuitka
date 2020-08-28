@@ -68,14 +68,14 @@ class ExpressionYieldBase(ExpressionChildHavingBase):
 
 
 class ExpressionYield(ExpressionYieldBase):
-    """ Yielding an expression.
+    """Yielding an expression.
 
-        Typical code: yield expression
+    Typical code: yield expression
 
-        Can only happen in a generator. Kind of explicitly suspends and
-        resumes the execution. The user may inject any kind of exception
-        or give any return value. The value of "None" is the most common
-        though, esp. if it's not used.
+    Can only happen in a generator. Kind of explicitly suspends and
+    resumes the execution. The user may inject any kind of exception
+    or give any return value. The value of "None" is the most common
+    though, esp. if it's not used.
 
     """
 
@@ -89,16 +89,16 @@ class ExpressionYield(ExpressionYieldBase):
 
 
 class ExpressionYieldFrom(ExpressionYieldBase):
-    """ Yielding from an expression.
+    """Yielding from an expression.
 
-        Typical code: yield from expression (Python3)
+    Typical code: yield from expression (Python3)
 
-        Can only happen in a generator and only in Python3. Similar to yield,
-        but implies a loop and exception propagation to the yield from generator
-        if such. Kind of explicitly suspends and resumes the execution. The
-        user may inject any kind of exception or give any return value. Having
-        a return value is what makes Python3 generators special, and with yield
-        from, that value is the expression result.
+    Can only happen in a generator and only in Python3. Similar to yield,
+    but implies a loop and exception propagation to the yield from generator
+    if such. Kind of explicitly suspends and resumes the execution. The
+    user may inject any kind of exception or give any return value. Having
+    a return value is what makes Python3 generators special, and with yield
+    from, that value is the expression result.
     """
 
     kind = "EXPRESSION_YIELD_FROM"
@@ -111,15 +111,15 @@ class ExpressionYieldFrom(ExpressionYieldBase):
 
 
 class ExpressionYieldFromWaitable(ExpressionYieldBase):
-    """ Yielding from an expression.
+    """Yielding from an expression.
 
-        Typical code: await x, async for ..., async with (Python3.5)
+    Typical code: await x, async for ..., async with (Python3.5)
 
-        Can only happen in a coroutine or asyncgen and only in Python3.5
-        or higher.
+    Can only happen in a coroutine or asyncgen and only in Python3.5
+    or higher.
 
-        Similar to yield from. The actual lookups of awaitable go through
-        slots and have dedicated nodes.
+    Similar to yield from. The actual lookups of awaitable go through
+    slots and have dedicated nodes.
     """
 
     kind = "EXPRESSION_YIELD_FROM_WAITABLE"

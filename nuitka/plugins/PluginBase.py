@@ -44,7 +44,7 @@ warned_unused_plugins = set()
 
 
 class NuitkaPluginBase(object):
-    """ Nuitka base class for all plug-ins.
+    """Nuitka base class for all plug-ins.
 
     Derive your plugin from "NuitkaPluginBase" please.
     For instructions, see https://github.com/Nuitka/Nuitka/blob/orsiris/UserPlugin-Creation.rst
@@ -82,7 +82,7 @@ class NuitkaPluginBase(object):
 
     @staticmethod
     def isAlwaysEnabled():
-        """ Request to be always enabled.
+        """Request to be always enabled.
 
         Notes:
             Setting this to true is only applicable to standard plugins. In
@@ -98,7 +98,7 @@ class NuitkaPluginBase(object):
 
     @classmethod
     def isRelevant(cls):
-        """ Consider if the plugin is relevant.
+        """Consider if the plugin is relevant.
 
         Notes:
             A plugin may only be a needed on a certain OS, or with some options,
@@ -118,10 +118,10 @@ class NuitkaPluginBase(object):
 
     @classmethod
     def getPluginDefaultOptionValues(cls):
-        """ This method is used to get a values to use as defaults.
+        """This method is used to get a values to use as defaults.
 
-            Since the defaults are in the command line options, we call
-            that and extract them.
+        Since the defaults are in the command line options, we call
+        that and extract them.
         """
 
         from optparse import OptionGroup, OptionParser
@@ -137,7 +137,7 @@ class NuitkaPluginBase(object):
         return result
 
     def considerImplicitImports(self, module, signal_change):
-        """ Provide additional modules to import implicitly when encountering the module.
+        """Provide additional modules to import implicitly when encountering the module.
 
         Notes:
             Better do not overload this method.
@@ -194,7 +194,7 @@ class NuitkaPluginBase(object):
                 )
 
     def isRequiredImplicitImport(self, module, full_name):
-        """ Indicate whether an implicitly imported module should be accepted.
+        """Indicate whether an implicitly imported module should be accepted.
 
         Notes:
             You may negate importing a module specified as "implicit import",
@@ -210,7 +210,7 @@ class NuitkaPluginBase(object):
         return True
 
     def getImplicitImports(self, module):
-        """ Return the implicit imports for a given module (iterator).
+        """Return the implicit imports for a given module (iterator).
 
         Args:
             module: the module object
@@ -224,7 +224,7 @@ class NuitkaPluginBase(object):
     module_aliases = {}
 
     def considerFailedImportReferrals(self, module_name):
-        """ Provide a dictionary of fallback imports for modules that failed to import.
+        """Provide a dictionary of fallback imports for modules that failed to import.
 
         Args:
             module_name: name of module
@@ -234,7 +234,7 @@ class NuitkaPluginBase(object):
         return self.module_aliases.get(module_name, None)
 
     def onModuleSourceCode(self, module_name, source_code):
-        """ Inspect or modify source code.
+        """Inspect or modify source code.
 
         Args:
             module_name: (str) name of module
@@ -251,7 +251,7 @@ class NuitkaPluginBase(object):
         return source_code
 
     def checkModuleSourceCode(self, module_name, source_code):
-        """ Inspect source code.
+        """Inspect source code.
 
         Args:
             module_name: (str) name of module
@@ -261,7 +261,7 @@ class NuitkaPluginBase(object):
         """
 
     def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
-        """ Inspect or modify frozen module source code.
+        """Inspect or modify frozen module source code.
 
         Args:
             module_name: (str) full name of module
@@ -274,7 +274,7 @@ class NuitkaPluginBase(object):
         return source_code
 
     def onFrozenModuleBytecode(self, module_name, is_package, bytecode):
-        """ Inspect or modify frozen module byte code.
+        """Inspect or modify frozen module byte code.
 
         Args:
             module_name: (str) name of module
@@ -288,7 +288,7 @@ class NuitkaPluginBase(object):
 
     @staticmethod
     def _createTriggerLoadedModule(module, trigger_name, code):
-        """ Create a "trigger" for a module to be imported.
+        """Create a "trigger" for a module to be imported.
 
         Notes:
             The trigger will incorpaorate the code to be prepended / appended.
@@ -302,8 +302,9 @@ class NuitkaPluginBase(object):
         Returns
             trigger_module
         """
-        from nuitka.tree.Building import createModuleTree
         from nuitka.nodes.ModuleNodes import CompiledPythonModule
+        from nuitka.tree.Building import createModuleTree
+
         from .Plugins import Plugins
 
         module_name = ModuleName(module.getFullName() + trigger_name)
@@ -341,7 +342,7 @@ class NuitkaPluginBase(object):
 
     @staticmethod
     def createPreModuleLoadCode(module):
-        """ Create code to prepend to a module.
+        """Create code to prepend to a module.
 
         Notes:
             Called by @onModuleDiscovered.
@@ -356,7 +357,7 @@ class NuitkaPluginBase(object):
 
     @staticmethod
     def createPostModuleLoadCode(module):
-        """ Create code to append to a module.
+        """Create code to append to a module.
 
         Notes:
             Called by @onModuleDiscovered.
@@ -370,7 +371,7 @@ class NuitkaPluginBase(object):
         return None, None
 
     def onModuleDiscovered(self, module):
-        """ Called with a module to be loaded.
+        """Called with a module to be loaded.
 
         Notes:
             We may specify code to be prepended and/or appended to this module.
@@ -416,7 +417,7 @@ class NuitkaPluginBase(object):
             )
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
-        """ Help decide whether to include a module.
+        """Help decide whether to include a module.
 
         Args:
             module_filename: filename
@@ -430,7 +431,7 @@ class NuitkaPluginBase(object):
 
     @staticmethod
     def locateModule(importing, module_name):
-        """ Provide a filename / -path for a to-be-imported module.
+        """Provide a filename / -path for a to-be-imported module.
 
         Args:
             importing: module object
@@ -453,7 +454,7 @@ class NuitkaPluginBase(object):
 
     @staticmethod
     def decideRecursion(module_filename, module_name, module_kind):
-        """ Decide whether Nuitka should recurse down to a given module.
+        """Decide whether Nuitka should recurse down to a given module.
 
         Args:
             module_filename: filename
@@ -492,7 +493,7 @@ class NuitkaPluginBase(object):
             )
 
     def considerExtraDlls(self, dist_dir, module):
-        """ Provide a tuple of names of binaries to be included.
+        """Provide a tuple of names of binaries to be included.
 
         Args:
             dist_dir: the distribution folder
@@ -508,7 +509,7 @@ class NuitkaPluginBase(object):
             yield included_entry_point
 
     def getExtraDlls(self, module):
-        """ Provide IncludedEntryPoint named tuples describing extra needs of the module.
+        """Provide IncludedEntryPoint named tuples describing extra needs of the module.
 
         Args:
             module: the module object needing the binaries
@@ -520,7 +521,7 @@ class NuitkaPluginBase(object):
         return ()
 
     def removeDllDependencies(self, dll_filename, dll_filenames):
-        """ Yield any DLLs / shared libraries not to be included in distribution.
+        """Yield any DLLs / shared libraries not to be included in distribution.
 
         Args:
             dll_filename: DLL name
@@ -532,7 +533,7 @@ class NuitkaPluginBase(object):
         return ()
 
     def considerDataFiles(self, module):
-        """ Yield data file names (source|func, target) for inclusion (iterator).
+        """Yield data file names (source|func, target) for inclusion (iterator).
 
         Args:
             module: module object that may need extra data files
@@ -545,7 +546,7 @@ class NuitkaPluginBase(object):
         return ()
 
     def onStandaloneDistributionFinished(self, dist_dir):
-        """ Called after successfully finishing a standalone compile.
+        """Called after successfully finishing a standalone compile.
 
         Note:
             It is up to the plugin to take subsequent action. Examples are:
@@ -563,7 +564,7 @@ class NuitkaPluginBase(object):
         return None
 
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
-        """ Suppress import warnings for unknown modules.
+        """Suppress import warnings for unknown modules.
 
         Args:
             importing: the module object
@@ -576,7 +577,7 @@ class NuitkaPluginBase(object):
         return False
 
     def decideCompilation(self, module_name, source_ref):
-        """ Decide whether to compile a module (or just use its bytecode).
+        """Decide whether to compile a module (or just use its bytecode).
 
         Notes:
             The first plugin not returning None makes the decision. Thereafter,
@@ -594,7 +595,7 @@ class NuitkaPluginBase(object):
         return None
 
     def getPreprocessorSymbols(self):
-        """ Decide which C defines to be used in compilation.
+        """Decide which C defines to be used in compilation.
 
         Notes:
             The plugins can each contribute, but are hopefully using
@@ -609,7 +610,7 @@ class NuitkaPluginBase(object):
         return None
 
     def getExtraCodeFiles(self):
-        """ Add extra code files to the compilation.
+        """Add extra code files to the compilation.
 
         Notes:
             This is generally a bad idea to use unless you absolutely
@@ -624,7 +625,7 @@ class NuitkaPluginBase(object):
         return None
 
     def getExtraLinkLibraries(self):
-        """ Decide which link library should be added.
+        """Decide which link library should be added.
 
         Notes:
             Names provided multiple times, e.g. by multiple plugins are
@@ -639,7 +640,7 @@ class NuitkaPluginBase(object):
         return None
 
     def warnUnusedPlugin(self, message):
-        """ An inactive plugin may issue a warning if it believes this may be wrong.
+        """An inactive plugin may issue a warning if it believes this may be wrong.
 
         Returns:
             None

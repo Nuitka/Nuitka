@@ -43,16 +43,12 @@ def getOS():
 
 
 def isWin32Windows():
-    """ The Win32 variants of Python does have win32 only, not posix.
-
-    """
+    """The Win32 variants of Python does have win32 only, not posix."""
     return os.name == "nt"
 
 
 def isPosixWindows():
-    """ The MSYS2 variant of Python does have posix only, not Win32.
-
-    """
+    """The MSYS2 variant of Python does have posix only, not Win32."""
     return os.name == "posix" and getOS() == "Windows"
 
 
@@ -102,10 +98,10 @@ def getCoreCount():
 
 
 def encodeNonAscii(var_name):
-    """ Encode variable name that is potentially not ASCII to ASCII only.
+    """Encode variable name that is potentially not ASCII to ASCII only.
 
-        For Python3, unicode identifiers can be used, but these are not
-        possible in C, so we need to replace them.
+    For Python3, unicode identifiers can be used, but these are not
+    possible in C, so we need to replace them.
     """
     if python_version < 300:
         return var_name

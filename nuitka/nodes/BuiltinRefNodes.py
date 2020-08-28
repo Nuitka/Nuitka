@@ -86,12 +86,7 @@ def makeExpressionBuiltinTypeRef(builtin_name, source_ref):
     )
 
 
-quick_names = {
-    "None": None,
-    "True": True,
-    "False": False,
-    "Ellipsis": Ellipsis,
-}
+quick_names = {"None": None, "True": True, "False": False, "Ellipsis": Ellipsis}
 
 
 def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref):
@@ -107,11 +102,11 @@ def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref):
         )
     elif builtin_name in builtin_type_names:
         return makeExpressionBuiltinTypeRef(
-            builtin_name=builtin_name, source_ref=source_ref,
+            builtin_name=builtin_name, source_ref=source_ref
         )
     elif builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
         return ExpressionBuiltinWithContextRef(
-            builtin_name=builtin_name, locals_scope=locals_scope, source_ref=source_ref,
+            builtin_name=builtin_name, locals_scope=locals_scope, source_ref=source_ref
         )
     else:
         return ExpressionBuiltinRef(builtin_name=builtin_name, source_ref=source_ref)
@@ -141,7 +136,9 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
+        from nuitka.optimizations.OptimizeBuiltinCalls import (
+            computeBuiltinCall,
+        )
 
         # Anything may happen. On next pass, if replaced, we might be better
         # but not now.
@@ -166,8 +163,7 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
 
 
 class ExpressionBuiltinWithContextRef(ExpressionBuiltinRef):
-    """ Same as ExpressionBuiltinRef, but with a context it refers to.
-    """
+    """Same as ExpressionBuiltinRef, but with a context it refers to."""
 
     kind = "EXPRESSION_BUILTIN_WITH_CONTEXT_REF"
 

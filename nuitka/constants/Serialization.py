@@ -41,9 +41,7 @@ from nuitka.PythonVersions import python_version
 
 
 class BuiltinAnonValue(object):
-    """ Used to pickle anonymous values.
-
-    """
+    """Used to pickle anonymous values."""
 
     # Python3 values has no index, turn into a tuple.
     anon_values = tuple(builtin_anon_values.values())
@@ -52,25 +50,19 @@ class BuiltinAnonValue(object):
         self.anon_name = anon_name
 
     def getStreamValueByte(self):
-        """ Return byte value, encoding the anon built-in value.
-
-        """
+        """Return byte value, encoding the anon built-in value."""
 
         return to_byte(self.anon_values.index(self.anon_name))
 
 
 class BuiltinSpecialValue(object):
-    """ Used to pickle special values.
-
-    """
+    """Used to pickle special values."""
 
     def __init__(self, value):
         self.value = value
 
     def getStreamValueByte(self):
-        """ Return byte value, encoding the special built-in value.
-
-        """
+        """Return byte value, encoding the special built-in value."""
 
         # Currently the only one.
         if self.value == "Ellipsis":
@@ -82,9 +74,7 @@ class BuiltinSpecialValue(object):
 
 
 class BlobData(object):
-    """ Used to pickle bytes to become raw pointers.
-
-    """
+    """Used to pickle bytes to become raw pointers."""
 
     def __init__(self, data):
         self.data = data
@@ -105,9 +95,7 @@ def _pickleAnonValues(pickler, value):
 
 
 class ConstantStreamWriter(object):
-    """ Write constants to a stream and return numbers for them.
-
-    """
+    """Write constants to a stream and return numbers for them."""
 
     def __init__(self, filename):
         self.count = 0

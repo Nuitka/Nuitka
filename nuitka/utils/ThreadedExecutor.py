@@ -57,12 +57,12 @@ ThreadPoolExecutor = NonThreadedPoolExecutor
 
 if _use_threaded_executor:
     try:
-        from concurrent.futures import (
-            ThreadPoolExecutor,
-            wait,
-            as_completed,
+        from concurrent.futures import (  # pylint: disable=I0021,import-error,no-name-in-module,unused-import
             FIRST_EXCEPTION,
-        )  # pylint: disable=I0021,import-error,no-name-in-module,unused-import
+            ThreadPoolExecutor,
+            as_completed,
+            wait,
+        )
 
         # We overwrite this if wanted, pylint: disable=function-redefined
         def waitWorkers(workers):

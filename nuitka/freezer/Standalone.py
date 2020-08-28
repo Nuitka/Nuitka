@@ -1191,10 +1191,10 @@ def detectBinaryDLLs(
     use_cache,
     update_cache,
 ):
-    """ Detect the DLLs used by a binary.
+    """Detect the DLLs used by a binary.
 
-        Using "ldd" (Linux), "pefile" or "depends.exe" (Windows), or
-        "otool" (macOS) the list of used DLLs is retrieved.
+    Using "ldd" (Linux), "pefile" or "depends.exe" (Windows), or
+    "otool" (macOS) the list of used DLLs is retrieved.
     """
 
     if (
@@ -1535,7 +1535,7 @@ different from
 
 
 def copyDataFiles(dist_dir):
-    """ Copy the data files needed for standalone distribution.
+    """Copy the data files needed for standalone distribution.
 
     Args:
         dist_dir: The distribution folder under creation

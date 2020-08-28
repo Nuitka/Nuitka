@@ -72,7 +72,10 @@ def main():
     needs_reexec = False
 
     # Inform the user about potential issues with the running version. e.g. unsupported.
-    from nuitka.PythonVersions import getSupportedPythonVersions, python_version_str
+    from nuitka.PythonVersions import (
+        getSupportedPythonVersions,
+        python_version_str,
+    )
 
     if sys.flags.no_site == 0:
         needs_reexec = True

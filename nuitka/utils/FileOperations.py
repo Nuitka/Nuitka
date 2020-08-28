@@ -43,13 +43,13 @@ _lock_tracing = False
 
 @contextmanager
 def withFileLock(reason="unknown"):
-    """ Acquire file handling lock.
+    """Acquire file handling lock.
 
-        Args:
-            reason: What is being done.
+    Args:
+        reason: What is being done.
 
-        Notes: This is most relevant for Windows, but prevents concurrent access
-        from threads generally, which could lead to observing half ready things.
+    Notes: This is most relevant for Windows, but prevents concurrent access
+    from threads generally, which could lead to observing half ready things.
     """
 
     if _lock_tracing:
@@ -64,7 +64,7 @@ def withFileLock(reason="unknown"):
 
 
 def areSamePaths(path1, path2):
-    """ Decide if two paths the same.
+    """Decide if two paths the same.
 
     Args:
         path1: First path
@@ -89,7 +89,7 @@ def areSamePaths(path1, path2):
 
 
 def relpath(path, start="."):
-    """ Make it a relative path, if possible.
+    """Make it a relative path, if possible.
 
     Args:
         path: path to work on
@@ -118,7 +118,7 @@ def relpath(path, start="."):
 
 
 def makePath(path):
-    """ Create a directory if it doesn't exist.
+    """Create a directory if it doesn't exist.
 
     Args:
         path: path to create as a directory
@@ -135,7 +135,7 @@ def makePath(path):
 
 
 def listDir(path):
-    """ Give a sorted listing of a path.
+    """Give a sorted listing of a path.
 
     Args:
         path: directory to create a listing from
@@ -163,7 +163,7 @@ def listDir(path):
 
 
 def getFileList(path, ignore_dirs=(), ignore_suffixes=()):
-    """ Get all files below a given path.
+    """Get all files below a given path.
 
     Args:
         path: directory to create a recurseive listing from
@@ -199,7 +199,7 @@ def getFileList(path, ignore_dirs=(), ignore_suffixes=()):
 
 
 def getSubDirectories(path):
-    """ Get all directories below a given path.
+    """Get all directories below a given path.
 
     Args:
         path: directory to create a recurseive listing from
@@ -226,7 +226,7 @@ def getSubDirectories(path):
 
 
 def deleteFile(path, must_exist):
-    """ Delete a file, potentially making sure it exists.
+    """Delete a file, potentially making sure it exists.
 
     Args:
         path: file to delete
@@ -260,14 +260,14 @@ def hasFilenameExtension(path, extensions):
 
 
 def removeDirectory(path, ignore_errors):
-    """ Remove a directory recursively.
+    """Remove a directory recursively.
 
-        On Windows, it happens that operations fail, and succeed when reried,
-        so added a retry and small delay, then another retry. Should make it
-        much more stable during tests.
+    On Windows, it happens that operations fail, and succeed when reried,
+    so added a retry and small delay, then another retry. Should make it
+    much more stable during tests.
 
-        All kinds of programs that scan files might cause this, but they do
-        it hopefully only briefly.
+    All kinds of programs that scan files might cause this, but they do
+    it hopefully only briefly.
     """
 
     def onError(func, path, exc_info):
@@ -345,7 +345,7 @@ def renameFile(source_filename, dest_filename):
 
 
 def copyTree(source_path, dest_path):
-    """ Copy whole directory tree, preserving attributes.
+    """Copy whole directory tree, preserving attributes.
 
     Args:
         source_path: where to copy from
@@ -370,7 +370,7 @@ def isPathBelow(path, filename):
 
 
 def getWindowsShortPathName(filename):
-    """ Gets the short path name of a given long path.
+    """Gets the short path name of a given long path.
 
     Args:
         filename - long Windows filename
@@ -408,7 +408,7 @@ def getWindowsShortPathName(filename):
 
 
 def getExternalUsePath(filename, only_dirname=False):
-    """ Gets the externally usable absolute path for a given relative path.
+    """Gets the externally usable absolute path for a given relative path.
 
     Args:
         filename - filename, potentially relative
@@ -433,16 +433,16 @@ def getExternalUsePath(filename, only_dirname=False):
 
 
 def getLinkTarget(filename):
-    """ Return the path a link is pointing too, if any.
+    """Return the path a link is pointing too, if any.
 
-        Args:
-            filename - check this path, need not be a filename
+    Args:
+        filename - check this path, need not be a filename
 
-        Returns:
-            (bool, link_target) - first value indicates if it is a link, second the link target
+    Returns:
+        (bool, link_target) - first value indicates if it is a link, second the link target
 
-        Notes:
-            This follows symlinks to the very end.
+    Notes:
+        This follows symlinks to the very end.
     """
     is_link = False
     while os.path.exists(filename) and os.path.islink(filename):

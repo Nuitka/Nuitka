@@ -210,10 +210,10 @@ builtin_anon_value_list = tuple(builtin_anon_values)
 
 
 def calledWithBuiltinArgumentNamesDecorator(f):
-    """ Allow a function to be called with an "_arg" if a built-in name.
+    """Allow a function to be called with an "_arg" if a built-in name.
 
-        This avoids using built-in names in Nuitka source, while enforcing
-        a policy how to make them pretty.
+    This avoids using built-in names in Nuitka source, while enforcing
+    a policy how to make them pretty.
     """
 
     @functools.wraps(f)
