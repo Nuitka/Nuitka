@@ -44,7 +44,7 @@ static void _createGlobalConstants(void) {
     loadConstantsBlob(&global_constants[0], "", %(global_constants_count)d);
 
 #if _NUITKA_EXE
-    /* Set the "sys.executable" path to the original CPython executable. */
+    /* Set the "sys.executable" path to the original CPython executable or None for standalone. */
     PySys_SetObject(
         (char *)"executable",
         %(sys_executable)s
