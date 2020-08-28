@@ -77,7 +77,7 @@ from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinFormat,
 )
 from nuitka.nodes.BuiltinRefNodes import quick_names
-from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
+from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStrP3
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional,
@@ -618,7 +618,10 @@ def buildFormattedValueNode(provider, node, source_ref):
     if conversion == 0:
         pass
     elif conversion == 3:
-        value = ExpressionBuiltinStr(
+        # TODO: We might start using this for Python2 too.
+        assert str is not bytes
+
+        value = ExpressionBuiltinStrP3(
             value=value, encoding=None, errors=None, source_ref=source_ref
         )
     elif conversion == 2:

@@ -97,8 +97,10 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinFrozenset,
     ExpressionBuiltinList,
     ExpressionBuiltinSet,
-    ExpressionBuiltinStr,
+    ExpressionBuiltinStrP2,
+    ExpressionBuiltinStrP3,
     ExpressionBuiltinTuple,
+    ExpressionBuiltinUnicodeP2,
 )
 from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
 from nuitka.nodes.CallNodes import makeExpressionCall
@@ -599,21 +601,22 @@ def complex_extractor(node):
 
 
 def str_extractor(node):
+    builtin_class = ExpressionBuiltinStrP2 if str is bytes else ExpressionBuiltinStrP3
+
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
-        builtin_class=ExpressionBuiltinStr,
-        builtin_spec=BuiltinParameterSpecs.builtin_str_spec,
+        builtin_class=builtin_class,
+        builtin_spec=builtin_class.builtin_spec,
     )
 
 
 if python_version < 300:
-    from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinUnicode
 
     def unicode_extractor(node):
         return BuiltinParameterSpecs.extractBuiltinArgs(
             node=node,
-            builtin_class=ExpressionBuiltinUnicode,
-            builtin_spec=BuiltinParameterSpecs.builtin_unicode_spec,
+            builtin_class=ExpressionBuiltinUnicodeP2,
+            builtin_spec=ExpressionBuiltinUnicodeP2.builtin_spec,
         )
 
 
@@ -643,7 +646,7 @@ else:
         return BuiltinParameterSpecs.extractBuiltinArgs(
             node=node,
             builtin_class=selectBytesBuiltin,
-            builtin_spec=BuiltinParameterSpecs.builtin_bytes_spec,
+            builtin_spec=BuiltinParameterSpecs.builtin_bytes_p3_spec,
             empty_special_class=makeBytes0,
         )
 

@@ -938,9 +938,7 @@ class ShapeLoopCompleteAlternative(ShapeBase):
                 else:
                     assert False
             else:
-                (
-                    escape_description,  # pylint: disable=self-assigning-variable
-                ) = escape_description
+                (escape_description,) = escape_description
 
             return ShapeLoopCompleteAlternative(result), escape_description
 
