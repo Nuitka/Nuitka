@@ -21,7 +21,6 @@ These are all very simple and have predictable properties, because we know their
 that should allow some important optimizations.
 """
 
-from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import (
@@ -208,83 +207,88 @@ class ExpressionBuiltinUnicodeBase(
         )
 
 
-if python_version < 300:
+class ExpressionBuiltinStrP2(ExpressionBuiltinTypeBase):
+    """ Python2 built-in str call. """
 
-    class ExpressionBuiltinStr(ExpressionBuiltinTypeBase):
-        kind = "EXPRESSION_BUILTIN_STR"
+    kind = "EXPRESSION_BUILTIN_STR_P2"
 
-        builtin_spec = BuiltinParameterSpecs.builtin_str_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_str_spec
 
-        def computeExpression(self, trace_collection):
-            (
-                new_node,
-                change_tags,
-                change_desc,
-            ) = ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
+    def computeExpression(self, trace_collection):
+        (
+            new_node,
+            change_tags,
+            change_desc,
+        ) = ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
 
-            if new_node is self:
-                str_value = self.getValue().getStrValue()
+        if new_node is self:
+            str_value = self.getValue().getStrValue()
 
-                if str_value is not None:
-                    new_node = wrapExpressionWithNodeSideEffects(
-                        new_node=str_value, old_node=self.getValue()
-                    )
+            if str_value is not None:
+                new_node = wrapExpressionWithNodeSideEffects(
+                    new_node=str_value, old_node=self.getValue()
+                )
 
-                    change_tags = "new_expression"
-                    change_desc = "Predicted 'str' built-in result"
+                change_tags = "new_expression"
+                change_desc = "Predicted 'str' built-in result"
 
-            return new_node, change_tags, change_desc
+        return new_node, change_tags, change_desc
 
-        def getTypeShape(self):
-            return tshape_str_derived
-
-    class ExpressionBuiltinUnicode(ExpressionBuiltinUnicodeBase):
-        kind = "EXPRESSION_BUILTIN_UNICODE"
-
-        builtin_spec = BuiltinParameterSpecs.builtin_unicode_spec
-
-        def getTypeShape(self):
-            return tshape_unicode_derived
+    def getTypeShape(self):
+        return tshape_str_derived
 
 
-else:
+class ExpressionBuiltinUnicodeP2(ExpressionBuiltinUnicodeBase):
+    """ Python2 built-in unicode call. """
 
-    class ExpressionBuiltinStr(ExpressionBuiltinUnicodeBase):
-        kind = "EXPRESSION_BUILTIN_STR"
+    kind = "EXPRESSION_BUILTIN_UNICODE_P2"
 
-        builtin_spec = BuiltinParameterSpecs.builtin_str_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_unicode_p2_spec
 
-        def getTypeShape(self):
-            return tshape_str_derived
+    def getTypeShape(self):
+        return tshape_unicode_derived
 
-    class ExpressionBuiltinBytes3(ExpressionBuiltinUnicodeBase):
-        kind = "EXPRESSION_BUILTIN_BYTES3"
 
-        builtin_spec = BuiltinParameterSpecs.builtin_bytes_spec
+class ExpressionBuiltinStrP3(ExpressionBuiltinUnicodeBase):
+    """ Python3 built-in str call. """
 
-        def getTypeShape(self):
-            return tshape_bytes
+    kind = "EXPRESSION_BUILTIN_STR_P3"
 
-    class ExpressionBuiltinBytes1(ExpressionChildHavingBase):
-        kind = "EXPRESSION_BUILTIN_BYTES1"
+    builtin_spec = BuiltinParameterSpecs.builtin_str_spec
 
-        named_child = "value"
-        getValue = ExpressionChildHavingBase.childGetter("value")
+    def getTypeShape(self):
+        return tshape_str_derived
 
-        def __init__(self, value, source_ref):
-            ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-        def getTypeShape(self):
-            # TODO: Depending on input type shape, we should improve this.
-            return tshape_bytes_derived
+class ExpressionBuiltinBytes3(ExpressionBuiltinUnicodeBase):
+    kind = "EXPRESSION_BUILTIN_BYTES3"
 
-        def computeExpression(self, trace_collection):
-            return self.subnode_value.computeExpressionBytes(
-                bytes_node=self, trace_collection=trace_collection
-            )
+    builtin_spec = BuiltinParameterSpecs.builtin_bytes_p3_spec
 
-        def mayRaiseException(self, exception_type):
-            return self.subnode_value.mayRaiseExceptionBytes(exception_type)
+    def getTypeShape(self):
+        return tshape_bytes
+
+
+class ExpressionBuiltinBytes1(ExpressionChildHavingBase):
+    kind = "EXPRESSION_BUILTIN_BYTES1"
+
+    named_child = "value"
+    getValue = ExpressionChildHavingBase.childGetter("value")
+
+    def __init__(self, value, source_ref):
+        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+
+    def getTypeShape(self):
+        # TODO: Depending on input type shape, we should improve this.
+        return tshape_bytes_derived
+
+    def computeExpression(self, trace_collection):
+        return self.subnode_value.computeExpressionBytes(
+            bytes_node=self, trace_collection=trace_collection
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseExceptionBytes(exception_type)
 
 
 class ExpressionBuiltinBytearray1(ExpressionBuiltinTypeBase):

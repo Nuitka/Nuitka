@@ -53,7 +53,7 @@ class BuiltinParameterSpec(ParameterSpec):
             ps_kw_only_args=kw_only_args,
         )
 
-        self.builtin = getattr(builtins, name)
+        self.builtin = getattr(builtins, name, None)
 
         assert default_count <= len(arg_names) + len(kw_only_args) + len(pos_only_args)
 
@@ -271,9 +271,10 @@ if python_version < 300:
     builtin_execfile_spec = BuiltinParameterSpecNoKeywords(
         "execfile", ("filename", "globals", "locals"), default_count=2
     )
-    builtin_unicode_spec = BuiltinParameterSpec(
-        "unicode", ("string", "encoding", "errors"), default_count=3
-    )
+
+builtin_unicode_p2_spec = BuiltinParameterSpec(
+    "unicode", ("string", "encoding", "errors"), default_count=3
+)
 
 builtin_xrange_spec = BuiltinParameterSpecNoKeywords(
     "xrange" if python_version < 300 else "range",
@@ -445,10 +446,9 @@ builtin_bytearray_spec = BuiltinBytearraySpec(
     "bytearray", ("string",), ("encoding", "errors"), default_count=2
 )
 
-if python_version >= 300:
-    builtin_bytes_spec = BuiltinBytearraySpec(
-        "bytes", ("string",), ("encoding", "errors"), default_count=3
-    )
+builtin_bytes_p3_spec = BuiltinBytearraySpec(
+    "bytes", ("string",), ("encoding", "errors"), default_count=3
+)
 
 
 # Beware: One argument version defines "stop", not "start".

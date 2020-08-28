@@ -243,12 +243,9 @@ def _cleanupImportSortOrder(filename):
                 "-q",  # quiet, but stdout is still garbage
                 "-ot",  # Order imports by type in addition to alphabetically
                 "-m3",  # "vert-hanging"
-                "-up",  # Prefer braces () over \ for line continuation.
                 "-tc",  # Trailing commas
                 "-p",  # make sure nuitka is first party package in import sorting.
                 "nuitka",
-                "-ns",  # Do not ignore those:
-                "__init__.py",
                 filename,
             ],
             stdout=devnull,
