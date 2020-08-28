@@ -205,7 +205,6 @@ def executePASS1():
                     os.environ["PYTHON"],
                     nuitka_main_path,
                     "--module",
-                    "--debug",
                     "--nofollow-imports",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % target_dir,
@@ -264,7 +263,8 @@ def executePASS1():
 
     # The data composer tool, use it by source.
     copyTree(
-        os.path.join(base_dir, "nuitka", "tools"), os.path.join("nuitka", "tools"),
+        os.path.join(base_dir, "nuitka", "tools"),
+        os.path.join("nuitka", "tools"),
     )
 
 
@@ -300,7 +300,6 @@ def compileAndCompareWith(nuitka):
                 command = [
                     nuitka,
                     "--module",
-                    "--debug",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % tmp_dir,
                     "--no-pyi-file",
