@@ -841,7 +841,14 @@ if gcc_mode and not noelf_mode and not macosx_target:
 
 if msvc_mode:
     # With Clang on Windows, there is also an linker to use.
-    env.Append(CCFLAGS=["/EHsc", "/J", "/Gd", "/bigobj"])
+    env.Append(
+        CCFLAGS=[
+            "/EHsc",  # No C++ exception handling code.
+            "/J",  # default char type is unsigned.
+            "/Gd",  # Use C calling convention by default.
+            "/bigobj",  # Product object files with larger internal limits.
+        ]
+    )
 
     # No incremental linking.
     env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
@@ -1260,7 +1267,12 @@ else:
         # if not debug_mode:
         #     env.append(CCFLAGS = ["-Winline"])
     elif msvc_mode:
-        env.Append(CCFLAGS=["/Ox"])
+        env.Append(
+            CCFLAGS=[
+                "/Ox",  # Enable most speed optimization
+                "/GF",  # Eliminate duplicate strings.
+            ]
+        )
 
     env.Append(CPPDEFINES=["__NUITKA_NO_ASSERT__"])
 
