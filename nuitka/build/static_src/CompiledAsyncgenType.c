@@ -1514,7 +1514,7 @@ static PyObject *_Nuitka_AsyncgenAsend_throw2(struct Nuitka_AsyncgenAsendObject 
     result = Nuitka_Asyncgen_unwrap_value(asyncgen_asend->m_gen, result);
 
 #if _DEBUG_ASYNCGEN
-    PRINT_COROUTINE_VALUE("unwraped", result);
+    PRINT_COROUTINE_VALUE("unwrapped", result);
     PRINT_NEW_LINE();
 #endif
 

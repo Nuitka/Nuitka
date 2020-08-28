@@ -120,7 +120,7 @@ def getListOption(option_name, default=None):
     return value.split(",")
 
 
-# Full names shall be used, no remapping for cachable filenames.
+# Full names shall be used, no remapping for cacheable filenames.
 full_names = getBoolOption("full_names", False)
 
 # The directory to use for cache directory.
@@ -1786,7 +1786,7 @@ if msvc_mode:
     ):
         cache_mode = False
 
-# Caching bv scons if necessary, i.e. no ccache availble, when done, by the fastest
+# Caching bv scons if necessary, i.e. no ccache available, when done, by the fastest
 # possible algorithm and right inside the build directory. Makes no sense of course,
 # if that is removed later on by Nuitka, so in that case, this is passed as false,
 # to begin with.

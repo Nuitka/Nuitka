@@ -287,7 +287,7 @@ def _getCcacheStatistics(ccache_logfile):
                 # But still try to catch this with log output if it happens.
                 if result == "unsupported compiler option":
                     scons_logger.warning(
-                        "Encounted unsupported compiler option for ccache in '%s'."
+                        "Encountered unsupported compiler option for ccache in '%s'."
                         % command
                     )
 
