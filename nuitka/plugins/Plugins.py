@@ -621,7 +621,7 @@ def addPluginCommandLineOptions(parser, plugin_names):
         This is exclusively for use in the commandline parsing. Not all
         plugins have to have options. But this will add them to the
         parser in a first pass, so they can be recognized in a second
-        pass wih them included.
+        pass with them included.
 
     Returns:
         None

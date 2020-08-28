@@ -1749,7 +1749,7 @@ def makeHelperComparisons(
     template, helpers_set, operator, op_code, emit_h, emit_c, emit
 ):
     emit(
-        '/* C helpers for type specialized "%s" (%s) comparions */'
+        '/* C helpers for type specialized "%s" (%s) comparisons */'
         % (operator, op_code)
     )
     emit()

@@ -390,7 +390,7 @@ def scanStandardLibraryPath(stdlib_dir):
             if "ensurepip" in dirs:
                 dirs.remove("ensurepip")
 
-            # Ignore "lib-dynload" and "lib-tk" and alikes.
+            # Ignore "lib-dynload" and "lib-tk" and alike.
             dirs[:] = [
                 dirname
                 for dirname in dirs

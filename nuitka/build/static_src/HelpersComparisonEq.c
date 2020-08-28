@@ -23,7 +23,7 @@
 #endif
 
 #include "HelpersComparisonEqUtils.c"
-/* C helpers for type specialized "==" (EQ) comparions */
+/* C helpers for type specialized "==" (EQ) comparisons */
 
 #if PYTHON_VERSION < 300
 static PyObject *COMPARE_EQ_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
