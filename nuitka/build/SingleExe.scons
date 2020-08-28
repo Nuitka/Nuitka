@@ -1271,6 +1271,7 @@ else:
             CCFLAGS=[
                 "/Ox",  # Enable most speed optimization
                 "/GF",  # Eliminate duplicate strings.
+                "/Gy",  # Function level object storage, to allow removing unused ones
             ]
         )
 
@@ -1492,12 +1493,12 @@ if module_mode:
     elif clang_mode:
         pass
     elif msvc_mode:
-        env.Append(CCFLAGS=["/LD"])
+        env.Append(CCFLAGS=["/LD"])  # Create a DLL.
     else:
         assert False, the_cc_name
 else:
     if msvc_mode:
-        env.Append(CCFLAGS=["/MT"])
+        env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
 
 if module_mode:
     env.Append(CPPDEFINES=["_NUITKA_MODULE"])
