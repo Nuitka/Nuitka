@@ -36,20 +36,28 @@ from .SconsUtils import (
 )
 
 
+def _getPythonDirCandidates(python_prefix):
+    result = [python_prefix]
+
+    for python_dir in (
+        sys.prefix,
+        os.environ.get("CONDA_PREFIX"),
+        os.environ.get("CONDA"),
+    ):
+        if python_dir and python_dir not in result:
+            result.append(python_dir)
+
+    return result
+
+
 def _getCcacheGuessedPaths(python_prefix):
     if isWin32Windows():
         # Search the compiling Python, the Scons Python (likely the same, but not necessarily)
         # and then Anaconda, if an environment variable present from activated, or installed in
         # CI like Github actions.
-        for python_dir in (
-            python_prefix,
-            sys.prefix,
-            os.environ.get("CONDA_PREFIX"),
-            os.environ.get("CONDA"),
-        ):
-            if python_dir:
-                yield os.path.join(python_dir, "bin", "ccache.exe")
-                yield os.path.join(python_dir, "scripts", "ccache.exe")
+        for python_dir in _getPythonDirCandidates(python_prefix):
+            yield os.path.join(python_dir, "bin", "ccache.exe")
+            yield os.path.join(python_dir, "scripts", "ccache.exe")
 
         # Maybe MSYS2 happens to be installed at the default location.
         yield r"C:\msys64\usr\bin\ccache.exe"
@@ -65,15 +73,9 @@ def _getClcacheGuessedPaths(python_prefix):
     # Search the compiling Python, the Scons Python (likely the same, but not necessarily)
     # and then Anaconda, if an environment variable present from activated, or installed in
     # CI like Github actions.
-    for python_dir in (
-        python_prefix,
-        sys.prefix,
-        os.environ.get("CONDA_PREFIX"),
-        os.environ.get("CONDA"),
-    ):
-        if python_dir:
-            yield os.path.join(python_dir, "scripts", "clcache.exe")
-            yield os.path.join(python_dir, "bin", "clcache.exe")
+    for python_dir in _getPythonDirCandidates(python_prefix):
+        yield os.path.join(python_dir, "scripts", "clcache.exe")
+        yield os.path.join(python_dir, "bin", "clcache.exe")
 
 
 def _injectCcache(the_compiler, cc_path, env, python_prefix, show_scons_mode):
@@ -122,7 +124,7 @@ def _injectCcache(the_compiler, cc_path, env, python_prefix, show_scons_mode):
         assert getExecutablePath(os.path.basename(the_compiler), env=env) == cc_path
 
         # Since we use absolute paths for CC, pass it like this, as ccache does not like absolute.
-        env["CXX"] = env["CC"] = "%s %s" % (ccache_binary, os.path.basename(cc_path),)
+        env["CXX"] = env["CC"] = "%s %s" % (ccache_binary, os.path.basename(cc_path))
 
         # Spare ccache the detection of the compiler, seems it will also misbehave when it's
         # prefixed with "ccache" on old gcc versions in terms of detecting need for C++ linkage.
