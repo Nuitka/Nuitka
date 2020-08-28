@@ -115,10 +115,10 @@ class ExpressionFunctionBodyBase(
         return True
 
     def getEntryPoint(self):
-        """ Entry point for code.
+        """Entry point for code.
 
-            Normally ourselves. Only outlines will refer to their parent which
-            technically owns them.
+        Normally ourselves. Only outlines will refer to their parent which
+        technically owns them.
 
         """
 
@@ -144,7 +144,7 @@ class ExpressionFunctionBodyBase(
 
     @staticmethod
     def isEarlyClosure():
-        """ Early closure taking means immediate binding of references.
+        """Early closure taking means immediate binding of references.
 
         Normally it's good to lookup name references immediately, but not for
         functions. In case of a function body it is not allowed to do that,
@@ -306,11 +306,11 @@ class ExpressionFunctionBodyBase(
         )
 
     def addNonlocalsDeclaration(self, names, user_provided, source_ref):
-        """ Add a nonlocal declared name.
+        """Add a nonlocal declared name.
 
-            This happens during tree building, and is a Python3 only
-            feature. We remember the names for later use through the
-            function @consumeNonlocalDeclarations
+        This happens during tree building, and is a Python3 only
+        feature. We remember the names for later use through the
+        function @consumeNonlocalDeclarations
         """
         if self.non_local_declarations is None:
             self.non_local_declarations = []
@@ -318,11 +318,11 @@ class ExpressionFunctionBodyBase(
         self.non_local_declarations.append((names, user_provided, source_ref))
 
     def consumeNonlocalDeclarations(self):
-        """ Return the nonlocal declared names for this function.
+        """Return the nonlocal declared names for this function.
 
-            There may not be any, which is why we assigned it to
-            None originally and now check and return empty tuple
-            in that case.
+        There may not be any, which is why we assigned it to
+        None originally and now check and return empty tuple
+        in that case.
         """
 
         result = self.non_local_declarations or ()
@@ -333,7 +333,7 @@ class ExpressionFunctionBodyBase(
         return self.name
 
     def getFunctionQualname(self):
-        """ Function __qualname__ new in CPython3.3
+        """Function __qualname__ new in CPython3.3
 
         Should contain some kind of full name descriptions for the closure to
         recognize and will be used for outputs.
@@ -368,9 +368,9 @@ class ExpressionFunctionBodyBase(
             return self.getBody().mayRaiseException(exception_type)
 
     def getFunctionInlineCost(self, values):
-        """ Cost of inlining this function with given arguments
+        """Cost of inlining this function with given arguments
 
-            Returns: None or integer values, None means don't do it.
+        Returns: None or integer values, None means don't do it.
         """
 
         # For overload, pylint: disable=no-self-use,unused-argument
@@ -420,7 +420,9 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         return self.code_object
 
     def computeFunctionRaw(self, trace_collection):
-        from nuitka.optimizations.TraceCollections import TraceCollectionFunction
+        from nuitka.optimizations.TraceCollections import (
+            TraceCollectionFunction,
+        )
 
         trace_collection = TraceCollectionFunction(
             parent=trace_collection, function_body=self
@@ -458,10 +460,10 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         self.auto_release.add(variable)
 
     def getParameterVariablesWithManualRelease(self):
-        """ Return the list of parameter variables that have release statements.
+        """Return the list of parameter variables that have release statements.
 
-            These are for consideration if these can be dropped, and if so, they
-            are releases automatically by function code.
+        These are for consideration if these can be dropped, and if so, they
+        are releases automatically by function code.
         """
         return tuple(
             variable
@@ -472,15 +474,11 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         )
 
     def isAutoReleaseVariable(self, variable):
-        """ Is this variable to be automatically released.
-
-        """
+        """Is this variable to be automatically released."""
         return self.auto_release is not None and variable in self.auto_release
 
     def getFunctionVariablesWithAutoReleases(self):
-        """ Return the list of function variables that should be released at exit.
-
-        """
+        """Return the list of function variables that should be released at exit."""
         if self.auto_release is None:
             return ()
 
@@ -929,11 +927,11 @@ class ExpressionFunctionRef(ExpressionBase):
 
 
 class ExpressionFunctionCall(ExpressionChildrenHavingBase):
-    """ Shared function call.
+    """Shared function call.
 
-        This is for calling created function bodies with multiple users. Not
-        clear if such a thing should exist. But what this will do is to have
-        respect for the fact that there are multiple such calls.
+    This is for calling created function bodies with multiple users. Not
+    clear if such a thing should exist. But what this will do is to have
+    respect for the fact that there are multiple such calls.
     """
 
     kind = "EXPRESSION_FUNCTION_CALL"
@@ -1016,12 +1014,12 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
 
 
 class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
-    """ Node for value __qualname__ of class.
+    """Node for value __qualname__ of class.
 
-        Notes:
-            This is for Python 3.4 and higher only, where classes calculate the __qualname__
-            value at runtime, then it's determined dynamically, while 3.3 set it more
-            statically, and Python2 didn't have this feature at all.
+    Notes:
+        This is for Python 3.4 and higher only, where classes calculate the __qualname__
+        value at runtime, then it's determined dynamically, while 3.3 set it more
+        statically, and Python2 didn't have this feature at all.
     """
 
     kind = "EXPRESSION_FUNCTION_QUALNAME_REF"

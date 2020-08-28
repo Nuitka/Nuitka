@@ -196,11 +196,11 @@ def createNamespacePackage(module_name, is_top, module_relpath):
 def createImporterCacheAssignment(package, source_ref):
     return StatementDictOperationSet(
         dict_arg=ExpressionImportModuleNameHard(
-            module_name="sys", import_name="path_importer_cache", source_ref=source_ref,
+            module_name="sys", import_name="path_importer_cache", source_ref=source_ref
         ),
         key=ExpressionSubscriptLookup(
             expression=ExpressionVariableNameRef(
-                provider=package, variable_name="__path__", source_ref=source_ref,
+                provider=package, variable_name="__path__", source_ref=source_ref
             ),
             subscript=makeConstantRefNode(constant=0, source_ref=source_ref),
             source_ref=source_ref,

@@ -153,10 +153,10 @@ class VariableStorage(object):
 
     @contextmanager
     def withLocalStorage(self):
-        """ Local storage for only just during context usage.
+        """Local storage for only just during context usage.
 
-            This is for automatic removal of that scope. These are supposed
-            to be nestable eventually.
+        This is for automatic removal of that scope. These are supposed
+        to be nestable eventually.
 
         """
 

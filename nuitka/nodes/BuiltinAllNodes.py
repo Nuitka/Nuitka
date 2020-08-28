@@ -36,7 +36,7 @@ from .shapes.BuiltinTypeShapes import (
 
 
 class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
-    """ Builtin All Node class.
+    """Builtin All Node class.
 
     Args:
         ExpressionBase: 'all - expression'
@@ -99,15 +99,11 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
         return self, None, None
 
     def getTypeShape(self):
-        """ returns type shape of the 'all' node
-
-        """
+        """returns type shape of the 'all' node"""
         return tshape_bool
 
     def mayRaiseException(self, exception_type):
-        """ returns boolean True if try/except/finally is needed else False
-
-        """
+        """returns boolean True if try/except/finally is needed else False"""
         value = self.getValue()
 
         if value.mayRaiseException(exception_type):

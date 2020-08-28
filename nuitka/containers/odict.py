@@ -52,8 +52,8 @@ except ImportError:
 
     assert python_version < 270
 
-    from itertools import izip, imap
     from copy import deepcopy
+    from itertools import imap, izip
 
     missing = object()
 

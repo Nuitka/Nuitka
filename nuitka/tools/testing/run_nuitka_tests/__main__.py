@@ -418,9 +418,7 @@ def publishCoverageData():
     copyToGlobalCoverageData("data.coverage", "meta.coverage." + suffix)
 
     def makeCoverageRelative(filename):
-        """ Normalize coverage data.
-
-        """
+        """Normalize coverage data."""
 
         with open(filename) as input_file:
             data = input_file.read()
@@ -557,7 +555,7 @@ def main():
 
     def executeSubTest(command, hide_output=False):
         with TimerReport(
-            message="Overall execution of %r took %%.2f seconds" % command,
+            message="Overall execution of %r took %%.2f seconds" % command
         ):
             _executeSubTest(command, hide_output)
 

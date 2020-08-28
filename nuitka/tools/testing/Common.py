@@ -235,7 +235,7 @@ def convertUsing2to3(path, force=False):
 
 
 def decideFilenameVersionSkip(filename):
-    """ Make decision whether to skip based on filename and Python version.
+    """Make decision whether to skip based on filename and Python version.
 
     This codifies certain rules that files can have as suffixes or prefixes
     to make them be part of the set of tests executed for a version or not.
@@ -338,7 +338,7 @@ def _removeCPythonTestSuiteDir():
 def compareWithCPython(
     dirname, filename, extra_flags, search_mode, needs_2to3, on_error=None
 ):
-    """ Call the comparison tool. For a given directory filename.
+    """Call the comparison tool. For a given directory filename.
 
     The search mode decides if the test case aborts on error or gets extra
     flags that are exceptions.
@@ -1175,16 +1175,12 @@ def withExtendedExtraOptions(*args):
 
 
 def indentedCode(codes, count):
-    """ Indent code, used for generating test codes.
-
-    """
+    """Indent code, used for generating test codes."""
     return "\n".join(" " * count + line if line else "" for line in codes)
 
 
 def convertToPython(doctests, line_filter=None):
-    """ Convert give doctest string to static Python code.
-
-    """
+    """Convert give doctest string to static Python code."""
     # This is convoluted, but it just needs to work, pylint: disable=too-many-branches
 
     import doctest

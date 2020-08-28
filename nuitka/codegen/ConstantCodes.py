@@ -113,11 +113,11 @@ done = set()
 
 
 def decideMarshal(constant_value):
-    """ Decide of a constant can be created using "marshal" module methods.
+    """Decide of a constant can be created using "marshal" module methods.
 
-        This is not the case for everything. A prominent exception is types,
-        they are constants, but the "marshal" module refuses to work with
-        them.
+    This is not the case for everything. A prominent exception is types,
+    they are constants, but the "marshal" module refuses to work with
+    them.
     """
 
     # Many cases to deal with, pylint: disable=too-many-return-statements
@@ -148,19 +148,19 @@ def decideMarshal(constant_value):
 
 
 def isMarshalConstant(constant_value):
-    """ Decide if we want to use marshal to create a constant.
+    """Decide if we want to use marshal to create a constant.
 
-        The reason we do this, is because creating dictionaries with 700
-        elements creates a lot of C code, while gaining usually no performance
-        at all. The MSVC compiler is especially notorious about hanging like
-        forever with this active, due to its optimizer not scaling.
+    The reason we do this, is because creating dictionaries with 700
+    elements creates a lot of C code, while gaining usually no performance
+    at all. The MSVC compiler is especially notorious about hanging like
+    forever with this active, due to its optimizer not scaling.
 
-        Therefore we use a constant "weight" (how expensive it is), and apply
-        that to decide.
+    Therefore we use a constant "weight" (how expensive it is), and apply
+    that to decide.
 
-        If marshal is not possible, or constant "weight" is too large, we
-        don't do it. Also, for some constants, marshal can fail, and return
-        other values. Check that too. In that case, we have to create it.
+    If marshal is not possible, or constant "weight" is too large, we
+    don't do it. Also, for some constants, marshal can fail, and return
+    other values. Check that too. In that case, we have to create it.
     """
 
     if not decideMarshal(constant_value):
@@ -286,14 +286,14 @@ def getConstantAccess(to_name, constant, emit, context):
 
 
 def getConstantsDefinitionCode():
-    """ Create the code code "__constants.c" and "__constants.h" files.
+    """Create the code code "__constants.c" and "__constants.h" files.
 
-        This needs to create code to make all global constants (used in more
-        than one module) and create them.
+    This needs to create code to make all global constants (used in more
+    than one module) and create them.
 
     """
     constant_accessor = ConstantAccessor(
-        data_filename="__constants.const", top_level_name="global_constants",
+        data_filename="__constants.const", top_level_name="global_constants"
     )
 
     lines = []

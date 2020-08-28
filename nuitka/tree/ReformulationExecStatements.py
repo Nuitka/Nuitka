@@ -55,10 +55,10 @@ from .TreeHelpers import (
 def wrapEvalGlobalsAndLocals(
     provider, globals_node, locals_node, temp_scope, source_ref
 ):
-    """ Wrap the locals and globals arguments for "eval".
+    """Wrap the locals and globals arguments for "eval".
 
-        This is called from the outside, and when the node tree
-        already exists.
+    This is called from the outside, and when the node tree
+    already exists.
     """
 
     locals_scope = provider.getLocalsScope()

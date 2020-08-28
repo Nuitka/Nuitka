@@ -96,7 +96,9 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
         return tshape_type
 
     def computeExpressionDrop(self, statement, trace_collection):
-        from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+        from .NodeMakingHelpers import (
+            makeStatementExpressionOnlyReplacementNode,
+        )
 
         result = makeStatementExpressionOnlyReplacementNode(
             expression=self.getValue(), node=statement

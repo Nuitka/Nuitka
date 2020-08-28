@@ -27,9 +27,7 @@ from nuitka.Tracing import scons_logger
 
 
 def decodeData(data):
-    """ Our own decode tries to workaround MSVC misbehavior.
-
-    """
+    """Our own decode tries to workaround MSVC misbehavior."""
     try:
         return data.decode(sys.stdout.encoding)
     except UnicodeDecodeError:
@@ -141,7 +139,7 @@ def addClangClPathFromMSVC(env, target_arch, show_scons_mode):
         scons_logger.warning("Visual Studio required for for Clang on Windows.")
         return
 
-    clang_dir = cl_exe = os.path.join(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm",)
+    clang_dir = cl_exe = os.path.join(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm")
 
     if target_arch == "x86_64":
         clang_dir = os.path.join(clang_dir, "x64", "bin")

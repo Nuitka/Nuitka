@@ -42,9 +42,7 @@ from .SconsCaching import checkCachingSuccess
 
 
 def getSconsDataPath():
-    """ Return path to where data for scons lives, e.g. static C source files.
-
-    """
+    """Return path to where data for scons lives, e.g. static C source files."""
 
     return os.path.dirname(__file__)
 
@@ -56,7 +54,7 @@ def _getSconsInlinePath():
 
 
 def _getSconsBinaryCall():
-    """ Return a way to execute Scons.
+    """Return a way to execute Scons.
 
     Using potentially in-line copy if no system Scons is available
     or if we are on Windows, there it is mandatory.
@@ -83,7 +81,7 @@ def _getSconsBinaryCall():
 
 
 def _getPythonSconsExePathWindows():
-    """ Find Python2 on Windows.
+    """Find Python2 on Windows.
 
     First try a few guesses, the look into registry for user or system wide
     installations of Python2. Both Python 2.6 and 2.7, and 3.5 or higher
@@ -125,7 +123,7 @@ def _getPythonSconsExePathWindows():
 
 
 def _getPythonForSconsExePath():
-    """ Find a way to call any Python2.
+    """Find a way to call any Python2.
 
     Scons needs it as it doesn't support Python3.
     """
@@ -168,7 +166,7 @@ AnaConda Python.
 
 @contextlib.contextmanager
 def _setupSconsEnvironment():
-    """ Setup the scons execution environment.
+    """Setup the scons execution environment.
 
     For the target Python we provide "NUITKA_PYTHON_DLL_PATH" to see where the
     Python DLL lives, in case it needs to be copied, and then also the
@@ -228,7 +226,7 @@ def _setupSconsEnvironment():
 
 
 def _buildSconsCommand(quiet, options):
-    """ Build the scons command to run.
+    """Build the scons command to run.
 
     The options are a dictionary to be passed to scons as a command line,
     and other scons stuff is set.

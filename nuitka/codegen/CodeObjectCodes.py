@@ -41,10 +41,10 @@ def getCodeObjectsDeclCode(context):
 
 
 def _getMakeCodeObjectArgs(code_object_handle, context):
-    """ Code objects have many flags for creation.
+    """Code objects have many flags for creation.
 
-        This is also version dependent, but we hide this behind macros
-        that ignore some arguments.
+    This is also version dependent, but we hide this behind macros
+    that ignore some arguments.
     """
 
     co_flags = []

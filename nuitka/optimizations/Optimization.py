@@ -59,9 +59,7 @@ tag_set = None
 
 
 def signalChange(tags, source_ref, message):
-    """ Indicate a change to the optimization framework.
-
-    """
+    """Indicate a change to the optimization framework."""
     if message is not None:
         # Try hard to not call a delayed evaluation of node descriptions.
 
@@ -175,9 +173,7 @@ def optimizeModule(module):
 
 
 def areReadOnlyTraces(variable_traces):
-    """ Do these traces contain any writes.
-
-    """
+    """Do these traces contain any writes."""
 
     # Many cases immediately return, that is how we do it here,
     for variable_trace in variable_traces:
@@ -205,9 +201,7 @@ def areReadOnlyTraces(variable_traces):
 
 
 def areEmptyTraces(variable_traces):
-    """ Do these traces contain any writes or accesses.
-
-    """
+    """Do these traces contain any writes or accesses."""
     # Many cases immediately return, that is how we do it here,
     # pylint: disable=too-many-return-statements
 
@@ -489,8 +483,8 @@ after that.""".format(
 
 
 def restoreFromXML(text):
-    from nuitka.TreeXML import fromString
     from nuitka.nodes.NodeBases import fromXML
+    from nuitka.TreeXML import fromString
 
     xml = fromString(text)
 
@@ -500,9 +494,7 @@ def restoreFromXML(text):
 
 
 def makeOptimizationPass(initial_pass):
-    """ Make a single pass for optimization, indication potential completion.
-
-    """
+    """Make a single pass for optimization, indication potential completion."""
     # Controls complex optimization, pylint: disable=too-many-branches
 
     finished = True

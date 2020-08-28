@@ -132,7 +132,9 @@ class StatementGeneratorReturn(StatementReturn):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         if expression.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import (
+                makeStatementExpressionOnlyReplacementNode,
+            )
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=expression, node=self

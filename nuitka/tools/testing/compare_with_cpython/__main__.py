@@ -637,14 +637,14 @@ Stderr was:
 
     if comparison_mode:
         exit_code_stdout = compareOutput(
-            "stdout", stdout_cpython, stdout_nuitka, ignore_warnings, syntax_errors,
+            "stdout", stdout_cpython, stdout_nuitka, ignore_warnings, syntax_errors
         )
 
         if ignore_stderr:
             exit_code_stderr = 0
         else:
             exit_code_stderr = compareOutput(
-                "stderr", stderr_cpython, stderr_nuitka, ignore_warnings, syntax_errors,
+                "stderr", stderr_cpython, stderr_nuitka, ignore_warnings, syntax_errors
             )
 
         exit_code_return = exit_cpython != exit_nuitka

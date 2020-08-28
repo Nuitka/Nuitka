@@ -97,16 +97,14 @@ class SourceCodeReference(object):
         return self.isInternal() is other.isInternal()
 
     def _clone(self, line):
-        """ Make a copy it itself.
-
-        """
+        """Make a copy it itself."""
         return self.fromFilenameAndLine(filename=self.filename, line=line)
 
     def atInternal(self):
-        """ Make a copy it itself but mark as internal code.
+        """Make a copy it itself but mark as internal code.
 
-            Avoids useless copies, by returning an internal object again if
-            it is already internal.
+        Avoids useless copies, by returning an internal object again if
+        it is already internal.
         """
         if not self.isInternal():
             result = self._clone(self.line)
@@ -116,10 +114,10 @@ class SourceCodeReference(object):
             return self
 
     def atLineNumber(self, line):
-        """ Make a reference to the same file, but different line.
+        """Make a reference to the same file, but different line.
 
-            Avoids useless copies, by returning same object if the line is
-            the same.
+        Avoids useless copies, by returning same object if the line is
+        the same.
         """
 
         assert type(line) is int, line

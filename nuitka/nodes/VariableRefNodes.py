@@ -45,9 +45,7 @@ from .shapes.StandardShapes import tshape_unknown
 
 
 class ExpressionVariableNameRef(ExpressionBase):
-    """ These are used before the actual variable object is known from VariableClosure.
-
-    """
+    """These are used before the actual variable object is known from VariableClosure."""
 
     kind = "EXPRESSION_VARIABLE_NAME_REF"
 
@@ -85,11 +83,11 @@ class ExpressionVariableNameRef(ExpressionBase):
 
 
 class ExpressionVariableLocalNameRef(ExpressionVariableNameRef):
-    """ These are used before the actual variable object is known from VariableClosure.
+    """These are used before the actual variable object is known from VariableClosure.
 
-        The special thing about this as opposed to ExpressionVariableNameRef is that
-        these must remain local names and cannot fallback to outside scopes. This is
-        used for "__annotations__".
+    The special thing about this as opposed to ExpressionVariableNameRef is that
+    these must remain local names and cannot fallback to outside scopes. This is
+    used for "__annotations__".
 
     """
 

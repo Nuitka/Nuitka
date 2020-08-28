@@ -24,15 +24,14 @@ from nuitka.utils.Utils import getOS
 
 
 class GeventPlugin(NuitkaPluginBase):
-    """ This class represents the main logic of the plugin.
-    """
+    """This class represents the main logic of the plugin."""
 
     plugin_name = "gevent"
     plugin_desc = "Required by the gevent package"
 
     @classmethod
     def isRelevant(cls):
-        """ One time only check: may this plugin be required?
+        """One time only check: may this plugin be required?
 
         Returns:
             True if this is a standalone compilation.
@@ -47,9 +46,7 @@ class GeventPlugin(NuitkaPluginBase):
         return None
 
     def onModuleSourceCode(self, module_name, source_code):
-        """ Append a statement to gevent/_config.py.
-
-        """
+        """Append a statement to gevent/_config.py."""
         if module_name != "gevent._config":
             return source_code
         source_lines = source_code.splitlines()
@@ -65,7 +62,7 @@ class GeventPlugin(NuitkaPluginBase):
 
 
 class GeventPluginDetector(NuitkaPluginBase):
-    """ Only used if plugin is NOT activated.
+    """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
@@ -75,7 +72,7 @@ class GeventPluginDetector(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        """ One time only check: may this plugin be required?
+        """One time only check: may this plugin be required?
 
         Returns:
             True if this is a standalone compilation.
@@ -83,7 +80,7 @@ class GeventPluginDetector(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):
-        """ This method checks whether gevent is imported.
+        """This method checks whether gevent is imported.
 
         Notes:
             Issue a warning if package gevent is encountered.

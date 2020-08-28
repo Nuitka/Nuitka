@@ -113,7 +113,7 @@ def withTraceLock():
 
 
 def my_print(*args, **kwargs):
-    """ Make sure we flush after every print.
+    """Make sure we flush after every print.
 
     Not even the "-u" option does more than that and this is easy enough.
 

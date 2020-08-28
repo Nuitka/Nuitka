@@ -30,9 +30,7 @@ from nuitka.containers.oset import OrderedSet
 
 
 def parseTypesFromHelper(helper_name):
-    """ Function to parse helper names.
-
-    """
+    """Function to parse helper names."""
 
     if "_INPLACE" not in helper_name:
         target_code = helper_name.split("_")[3]
@@ -47,11 +45,11 @@ def parseTypesFromHelper(helper_name):
 
 
 def deriveInplaceFromBinaryOperations(operations_set):
-    """ Derive the in-place operations from the binary ones.
+    """Derive the in-place operations from the binary ones.
 
-        These can largely be the same, or should be, and keeping them inline is easier when
-        generating them. Obviously the templates might both need changes to optimize equally
-        well for all variants.
+    These can largely be the same, or should be, and keeping them inline is easier when
+    generating them. Obviously the templates might both need changes to optimize equally
+    well for all variants.
     """
 
     if not operations_set:

@@ -49,10 +49,10 @@ from nuitka.utils.Utils import getOS
 
 
 def cleanupWindowsNewlines(filename):
-    """ Remove Windows new-lines from a file.
+    """Remove Windows new-lines from a file.
 
-        Simple enough to not depend on external binary and used by
-        the doctest extractions of the CPython test suites.
+    Simple enough to not depend on external binary and used by
+    the doctest extractions of the CPython test suites.
     """
 
     with open(filename, "rb") as f:
@@ -67,9 +67,7 @@ def cleanupWindowsNewlines(filename):
 
 
 def _cleanupTrailingWhitespace(filename):
-    """ Remove trailing white spaces from a file.
-
-    """
+    """Remove trailing white spaces from a file."""
     with open(filename, "r") as f:
         source_lines = list(f)
 
@@ -172,9 +170,7 @@ def _cleanupPyLintComments(filename, abort):
 
 
 def _cleanupImportRelative(filename):
-    """ Make imports of Nuitka package when possible.
-
-    """
+    """Make imports of Nuitka package when possible."""
 
     # Avoid doing it for "__main__" packages, because for those the Visual Code
     # IDE doesn't like it and it may not run
@@ -271,7 +267,7 @@ warned_clang_format = False
 
 
 def _cleanupClangFormat(filename):
-    """ Call clang-format on a given filename to format C code.
+    """Call clang-format on a given filename to format C code.
 
     Args:
         filename: What file to re-format.
@@ -363,7 +359,7 @@ def _transferBOM(source_filename, target_filename):
 
 
 def autoformat(filename, git_stage, abort, effective_filename=None):
-    """ Format source code with external tools
+    """Format source code with external tools
 
     Args:
         filename: filename to work on

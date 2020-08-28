@@ -46,9 +46,7 @@ from .shapes.StandardShapes import (
 
 
 class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
-    """ Base class for all binary operation expression.
-
-    """
+    """Base class for all binary operation expression."""
 
     named_children = ("left", "right")
     nice_children = tuple(child_name + " operand" for child_name in named_children)
@@ -199,7 +197,7 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
                     result,
                     "new_raise",
                     "Replaced operator '%s' with %s %s arguments that cannot work."
-                    % (self.operator, left_shape, right_shape,),
+                    % (self.operator, left_shape, right_shape),
                 )
 
         if self.escape_desc.isValueEscaping():
@@ -714,9 +712,7 @@ class ExpressionOperationAbs(ExpressionOperationUnaryBase):
 
 class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
     # Base classes can be abstract, pylint: disable=abstract-method
-    """ Base class for all inplace operations.
-
-    """
+    """Base class for all inplace operations."""
 
     inplace_suspect = True
 
@@ -769,7 +765,7 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
                     result,
                     "new_raise",
                     "Replaced inplace-operator '%s' with %s %s arguments that cannot work."
-                    % (self.operator, left_shape, right_shape,),
+                    % (self.operator, left_shape, right_shape),
                 )
 
         if self.escape_desc.isValueEscaping():

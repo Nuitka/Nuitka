@@ -26,9 +26,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
 class NuitkaPluginPbrWorkarounds(NuitkaPluginBase):
-    """ This is to make pbr module work when compiled with Nuitka.
-
-    """
+    """This is to make pbr module work when compiled with Nuitka."""
 
     plugin_name = "pbr-compat"
 

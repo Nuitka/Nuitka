@@ -39,9 +39,7 @@ def _createEmptyDirNone(filename):
 
 
 def remove_suffix(string, suffix):
-    """ Remove 'suffix' from 'string'.
-
-    """
+    """Remove 'suffix' from 'string'."""
     # Special case: if suffix is empty, string[:0] returns ''. So, test
     # for a non-empty suffix.
     if suffix and string.endswith(suffix):
@@ -51,7 +49,7 @@ def remove_suffix(string, suffix):
 
 
 def get_package_paths(package):
-    """ Return the path to the package.
+    """Return the path to the package.
 
     Args:
         package: (str) package name
@@ -75,7 +73,7 @@ def get_package_paths(package):
 
 
 def _getPackageFiles(module, packages, folders_only):
-    """ Yield all (!) filenames in given package(s).
+    """Yield all (!) filenames in given package(s).
 
     Notes:
         This should be required in rare occasions only. The one example I know
@@ -133,7 +131,7 @@ def _getPackageFiles(module, packages, folders_only):
 
 
 def _getSubDirectoryFiles(module, subdirs, folders_only):
-    """ Yield filenames in given subdirs of the module.
+    """Yield filenames in given subdirs of the module.
 
     Notes:
         All filenames in folders below one of the subdirs are recursively

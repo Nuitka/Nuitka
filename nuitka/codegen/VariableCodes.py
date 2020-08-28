@@ -227,8 +227,9 @@ def decideLocalVariableCodeType(context, variable):
     if owner.isExpressionOutlineFunctionBase():
         entry_point = owner.getEntryPoint()
 
-        prefix = "outline_%d_" % entry_point.getTraceCollection().getOutlineFunctions().index(
-            owner
+        prefix = (
+            "outline_%d_"
+            % entry_point.getTraceCollection().getOutlineFunctions().index(owner)
         )
         owner = entry_point
 
@@ -292,8 +293,9 @@ def getLocalVariableDeclaration(context, variable, variable_trace):
     if owner.isExpressionOutlineFunctionBase():
         entry_point = owner.getEntryPoint()
 
-        prefix = "outline_%d_" % entry_point.getTraceCollection().getOutlineFunctions().index(
-            owner
+        prefix = (
+            "outline_%d_"
+            % entry_point.getTraceCollection().getOutlineFunctions().index(owner)
         )
         owner = entry_point
 

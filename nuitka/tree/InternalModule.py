@@ -37,7 +37,7 @@ internal_source_ref = fromFilename("internal").atInternal()
 
 
 def once_decorator(func):
-    """ Cache result of a function call without arguments.
+    """Cache result of a function call without arguments.
 
     Used for all internal function accesses to become a singleton.
 
@@ -59,9 +59,7 @@ def once_decorator(func):
 
 @once_decorator
 def getInternalModule():
-    """ Get the singleton internal module.
-
-    """
+    """Get the singleton internal module."""
 
     return getRootTopModule()
 

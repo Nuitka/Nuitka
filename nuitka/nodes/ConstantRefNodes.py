@@ -812,7 +812,9 @@ class ExpressionConstantTypeRef(ExpressionConstantRefBase):
         return tshape_type
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
+        from nuitka.optimizations.OptimizeBuiltinCalls import (
+            computeBuiltinCall,
+        )
 
         # Anything may happen. On next pass, if replaced, we might be better
         # but not now.

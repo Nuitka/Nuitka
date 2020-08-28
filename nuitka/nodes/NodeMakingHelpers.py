@@ -43,8 +43,8 @@ def makeConstantReplacementNode(constant, node):
 def makeRaiseExceptionReplacementExpression(
     expression, exception_type, exception_value
 ):
-    from .ExceptionNodes import ExpressionRaiseException
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+    from .ExceptionNodes import ExpressionRaiseException
 
     source_ref = expression.source_ref
 
@@ -72,8 +72,8 @@ def makeRaiseExceptionReplacementExpression(
 
 
 def makeRaiseExceptionReplacementStatement(statement, exception_type, exception_value):
-    from .ExceptionNodes import StatementRaiseExceptionImplicit
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+    from .ExceptionNodes import StatementRaiseExceptionImplicit
 
     source_ref = statement.getSourceReference()
 
@@ -122,11 +122,11 @@ def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
 def makeRaiseExceptionExpressionFromTemplate(
     exception_type, template, template_args, source_ref
 ):
-    from .ExceptionNodes import ExpressionRaiseException
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
-    from .OperatorNodes import makeBinaryOperationNode
     from .ConstantRefNodes import makeConstantRefNode
     from .ContainerMakingNodes import ExpressionMakeTuple
+    from .ExceptionNodes import ExpressionRaiseException
+    from .OperatorNodes import makeBinaryOperationNode
 
     if type(template_args) is tuple:
         template_args = ExpressionMakeTuple(
@@ -215,8 +215,8 @@ def makeCompileTimeConstantReplacementNode(value, node):
 
 
 def getComputationResult(node, computation, description):
-    """ With a computation function, execute it and return constant result or
-        exception node.
+    """With a computation function, execute it and return constant result or
+    exception node.
 
     """
 

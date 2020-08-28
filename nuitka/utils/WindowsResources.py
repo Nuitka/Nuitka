@@ -40,7 +40,7 @@ RT_ICON = 3
 
 
 def getResourcesFromDLL(filename, resource_kind, with_data=False):
-    """ Get the resources of a specific kind from a Windows DLL.
+    """Get the resources of a specific kind from a Windows DLL.
 
     Returns:
         List of resource names in the DLL.
@@ -163,10 +163,7 @@ def _closeFileWindowsResources(update_handle):
     import ctypes
 
     EndUpdateResource = ctypes.windll.kernel32.EndUpdateResourceA
-    EndUpdateResource.argtypes = [
-        ctypes.wintypes.HANDLE,
-        ctypes.wintypes.BOOL,
-    ]
+    EndUpdateResource.argtypes = [ctypes.wintypes.HANDLE, ctypes.wintypes.BOOL]
     EndUpdateResource.restype = ctypes.wintypes.BOOL
 
     ret = EndUpdateResource(update_handle, False)
@@ -212,7 +209,7 @@ def deleteWindowsResources(filename, resource_kind, res_names):
 
 
 def copyResourcesFromFileToFile(source_filename, target_filename, resource_kind):
-    """ Copy resources from one file to another.
+    """Copy resources from one file to another.
 
     Args:
         source_filename - filename where the resources are taken from

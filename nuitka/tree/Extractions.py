@@ -28,9 +28,7 @@ from .Operations import VisitorNoopMixin, visitTree
 
 
 class VariableWriteExtractor(VisitorNoopMixin):
-    """ Extract variables written to.
-
-    """
+    """Extract variables written to."""
 
     def __init__(self):
         self.written_to = OrderedSet()

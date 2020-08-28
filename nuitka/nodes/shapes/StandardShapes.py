@@ -117,9 +117,7 @@ class ShapeBase(object):
     iadd_shapes = {}
 
     def getOperationInplaceAddShape(self, right_shape):
-        """ Inplace add operation shape, for overload.
-
-        """
+        """Inplace add operation shape, for overload."""
         if self.iadd_shapes:
             result = self.iadd_shapes.get(right_shape)
 
@@ -601,14 +599,14 @@ tshape_iterator = ShapeIterator()
 
 
 class ShapeLoopInitialAlternative(ShapeBase):
-    """ Merge of loop wrap around with loop start value.
+    """Merge of loop wrap around with loop start value.
 
-        Happens at the start of loop blocks. This is for loop closed SSA, to
-        make it clear, that the entered value, can be anything really, and
-        will only later be clarified.
+    Happens at the start of loop blocks. This is for loop closed SSA, to
+    make it clear, that the entered value, can be anything really, and
+    will only later be clarified.
 
-        They will start out with just one previous, and later be updated with
-        all of the variable versions at loop continue times.
+    They will start out with just one previous, and later be updated with
+    all of the variable versions at loop continue times.
     """
 
     __slots__ = ("type_shapes",)
@@ -874,14 +872,14 @@ class ShapeLoopInitialAlternative(ShapeBase):
 
 
 class ShapeLoopCompleteAlternative(ShapeBase):
-    """ Merge of loop wrap around with loop start value.
+    """Merge of loop wrap around with loop start value.
 
-        Happens at the start of loop blocks. This is for loop closed SSA, to
-        make it clear, that the entered value, can be one of multiple types,
-        but only those.
+    Happens at the start of loop blocks. This is for loop closed SSA, to
+    make it clear, that the entered value, can be one of multiple types,
+    but only those.
 
-        They will start out with just one previous, and later be updated with
-        all of the variable versions at loop continue times.
+    They will start out with just one previous, and later be updated with
+    all of the variable versions at loop continue times.
     """
 
     __slots__ = ("type_shapes",)

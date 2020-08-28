@@ -298,7 +298,7 @@ def matchCall(
     pairs,
     improved=False,
 ):
-    """ Match a call arguments to a signature.
+    """Match a call arguments to a signature.
 
     Args:
         func_name - Name of the function being matched, used to construct exception texts.

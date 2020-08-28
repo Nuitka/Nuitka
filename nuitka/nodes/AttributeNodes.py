@@ -45,14 +45,14 @@ from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
 
 class StatementAssignmentAttribute(StatementChildrenHavingBase):
-    """ Assignment to an attribute.
+    """Assignment to an attribute.
 
-        Typically from code like: source.attribute_name = expression
+    Typically from code like: source.attribute_name = expression
 
-        Both source and expression may be complex expressions, the source
-        is evaluated first. Assigning to an attribute has its on slot on
-        the source, which gets to decide if it knows it will work or not,
-        and what value it will be.
+    Both source and expression may be complex expressions, the source
+    is evaluated first. Assigning to an attribute has its on slot on
+    the source, which gets to decide if it knows it will work or not,
+    and what value it will be.
     """
 
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
@@ -97,13 +97,13 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
 
 
 class StatementDelAttribute(StatementChildHavingBase):
-    """ Deletion of an attribute.
+    """Deletion of an attribute.
 
-        Typically from code like: del source.attribute_name
+    Typically from code like: del source.attribute_name
 
-        The source may be complex expression. Deleting an attribute has its on
-        slot on the source, which gets to decide if it knows it will work or
-        not, and what value it will be.
+    The source may be complex expression. Deleting an attribute has its on
+    slot on the source, which gets to decide if it knows it will work or
+    not, and what value it will be.
     """
 
     kind = "STATEMENT_DEL_ATTRIBUTE"
@@ -145,9 +145,9 @@ class StatementDelAttribute(StatementChildHavingBase):
 
 
 class ExpressionAttributeLookup(ExpressionChildHavingBase):
-    """ Looking up an attribute of an object.
+    """Looking up an attribute of an object.
 
-        Typically code like: source.attribute_name
+    Typically code like: source.attribute_name
     """
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
@@ -190,12 +190,12 @@ class ExpressionAttributeLookup(ExpressionChildHavingBase):
 
 
 class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
-    """ Special lookup up an attribute of an object.
+    """Special lookup up an attribute of an object.
 
-        Typically from code like this: with source: pass
+    Typically from code like this: with source: pass
 
-        These directly go to slots, and are performed for with statements
-        of Python2.7 or higher.
+    These directly go to slots, and are performed for with statements
+    of Python2.7 or higher.
     """
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL"
@@ -209,11 +209,11 @@ class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
 
 
 class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
-    """ Built-in "getattr".
+    """Built-in "getattr".
 
-        Typical code like this: getattr(object_arg, name, default)
+    Typical code like this: getattr(object_arg, name, default)
 
-        The default is optional, but computed before the lookup is done.
+    The default is optional, but computed before the lookup is done.
     """
 
     kind = "EXPRESSION_BUILTIN_GETATTR"
@@ -272,9 +272,9 @@ attribute '%s' to mere attribute lookup"""
 
 
 class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
-    """ Built-in "setattr".
+    """Built-in "setattr".
 
-        Typical code like this: setattr(source, attribute, value)
+    Typical code like this: setattr(source, attribute, value)
     """
 
     kind = "EXPRESSION_BUILTIN_SETATTR"

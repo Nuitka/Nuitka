@@ -43,9 +43,7 @@ from .shapes.StandardShapes import tshape_unknown
 
 
 class StatementAssignmentVariableName(StatementChildHavingBase):
-    """ Precursor of StatementAssignmentVariable used during tree building phase
-
-    """
+    """Precursor of StatementAssignmentVariable used during tree building phase"""
 
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_NAME"
 
@@ -82,9 +80,7 @@ class StatementAssignmentVariableName(StatementChildHavingBase):
 
 
 class StatementDelVariableName(StatementBase):
-    """ Precursor of StatementDelVariable used during tree building phase
-
-    """
+    """Precursor of StatementDelVariable used during tree building phase"""
 
     kind = "STATEMENT_DEL_VARIABLE_NAME"
 
@@ -121,17 +117,17 @@ class StatementDelVariableName(StatementBase):
 
 
 class StatementAssignmentVariable(StatementChildHavingBase):
-    """ Assignment to a variable from an expression.
+    """Assignment to a variable from an expression.
 
-        All assignment forms that are not to attributes, slices, subscripts
-        use this.
+    All assignment forms that are not to attributes, slices, subscripts
+    use this.
 
-        The source might be a complex expression. The target can be any kind
-        of variable, temporary, local, global, etc.
+    The source might be a complex expression. The target can be any kind
+    of variable, temporary, local, global, etc.
 
-        Assigning a variable is something we trace in a new version, this is
-        hidden behind target variable reference, which has this version once
-        it can be determined.
+    Assigning a variable is something we trace in a new version, this is
+    hidden behind target variable reference, which has this version once
+    it can be determined.
     """
 
     # Using slots, they don't need that
@@ -428,19 +424,19 @@ Removed assignment of %s from itself which is known to be defined."""
 
 
 class StatementDelVariable(StatementBase):
-    """ Deleting a variable.
+    """Deleting a variable.
 
-        All del forms that are not to attributes, slices, subscripts
-        use this.
+    All del forms that are not to attributes, slices, subscripts
+    use this.
 
-        The target can be any kind of variable, temporary, local, global, etc.
+    The target can be any kind of variable, temporary, local, global, etc.
 
-        Deleting a variable is something we trace in a new version, this is
-        hidden behind target variable reference, which has this version once
-        it can be determined.
+    Deleting a variable is something we trace in a new version, this is
+    hidden behind target variable reference, which has this version once
+    it can be determined.
 
-        Tolerance means that the value might be unset. That can happen with
-        re-formulation of ours, and Python3 exception variables.
+    Tolerance means that the value might be unset. That can happen with
+    re-formulation of ours, and Python3 exception variables.
     """
 
     kind = "STATEMENT_DEL_VARIABLE"
@@ -657,12 +653,12 @@ class StatementDelVariable(StatementBase):
 
 
 class StatementReleaseVariable(StatementBase):
-    """ Releasing a variable.
+    """Releasing a variable.
 
-        Just release the value, which of course is not to be used afterwards.
+    Just release the value, which of course is not to be used afterwards.
 
-        Typical code: Function exit, try/finally release of temporary
-        variables.
+    Typical code: Function exit, try/finally release of temporary
+    variables.
     """
 
     kind = "STATEMENT_RELEASE_VARIABLE"

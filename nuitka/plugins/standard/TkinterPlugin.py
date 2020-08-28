@@ -32,7 +32,7 @@ def _isTkInterModule(module):
 
 
 class TkinterPlugin(NuitkaPluginBase):
-    """ This class represents the main logic of the plugin.
+    """This class represents the main logic of the plugin.
 
     This is a plug-in to make programs work well in standalone mode which are using tkinter.
     These programs require the presence of certain libraries written in the TCL language.
@@ -68,7 +68,7 @@ class TkinterPlugin(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        """ This method is called one time only to check, whether the plugin might make sense at all.
+        """This method is called one time only to check, whether the plugin might make sense at all.
 
         Returns:
             True if this is a standalone compilation on Windows, else False.
@@ -77,7 +77,7 @@ class TkinterPlugin(NuitkaPluginBase):
 
     @staticmethod
     def createPreModuleLoadCode(module):
-        """ This method is called with a module that will be imported.
+        """This method is called with a module that will be imported.
 
         Notes:
             If the word "tkinter" occurs in its full name, we know that the correct
@@ -123,7 +123,7 @@ The Tcl library dir. See comments for Tk library dir.""",
         )
 
     def considerExtraDlls(self, dist_dir, module):
-        """ Copy TCL libraries to the dist folder.
+        """Copy TCL libraries to the dist folder.
 
         Notes:
             We will copy the TCL/TK directories to the program's root directory.
@@ -204,7 +204,7 @@ The Tcl library dir. See comments for Tk library dir.""",
 
 
 class TkinterPluginDetector(NuitkaPluginBase):
-    """ Used only if plugin is not activated.
+    """Used only if plugin is not activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
@@ -214,7 +214,7 @@ class TkinterPluginDetector(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        """ This method is called one time only to check, whether the plugin might make sense at all.
+        """This method is called one time only to check, whether the plugin might make sense at all.
 
         Returns:
             True if this is a standalone compilation on Windows, else False.
@@ -222,7 +222,7 @@ class TkinterPluginDetector(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def checkModuleSourceCode(self, module_name, source_code):
-        """ This method checks the source code
+        """This method checks the source code
 
         Notes:
             We only use it to check whether this is the main module, and whether

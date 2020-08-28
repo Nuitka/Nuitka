@@ -25,7 +25,9 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .templates.CodeTemplatesExceptions import template_publish_exception_to_handler
+from .templates.CodeTemplatesExceptions import (
+    template_publish_exception_to_handler,
+)
 
 
 def getExceptionIdentifier(exception_type):

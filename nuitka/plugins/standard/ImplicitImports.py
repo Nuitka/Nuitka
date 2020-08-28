@@ -35,9 +35,7 @@ from nuitka.utils.Utils import getOS, isWin32Windows
 
 
 def remove_suffix(mod_dir, mod_name):
-    """Return the path of a module's first level name.
-
-    """
+    """Return the path of a module's first level name."""
     if mod_name not in mod_dir:
         return mod_dir
     p = mod_dir.find(mod_name) + len(mod_name)
@@ -62,7 +60,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
     @staticmethod
     def _getImportsByFullname(full_name, package_dir):
-        """ Provides names of modules to imported implicitly.
+        """Provides names of modules to imported implicitly.
 
         Notes:
             This methods works much like 'getImplicitImports', except that it
@@ -1199,7 +1197,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pyglet.window"
 
     def getImportsByFullname(self, full_name, package_dir):
-        """ Recursively create a set of imports for a fullname.
+        """Recursively create a set of imports for a fullname.
 
         Notes:
             If an imported item has imported kids, call me again with each kid,

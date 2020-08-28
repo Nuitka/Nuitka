@@ -146,7 +146,7 @@ class PythonModuleBase(NodeBase):
         return None
 
     def getCompileTimeFilename(self):
-        """ The compile time filename for the module.
+        """The compile time filename for the module.
 
         Returns:
             Full path to module file at compile time.
@@ -159,7 +159,7 @@ class PythonModuleBase(NodeBase):
         return os.path.abspath(self.getSourceReference().getFilename())
 
     def getCompileTimeDirectory(self):
-        """ The compile time directory for the module.
+        """The compile time directory for the module.
 
         Returns:
             Full path to module directory at compile time.
@@ -211,9 +211,7 @@ class CompiledPythonModule(
     EntryPointMixin,
     PythonModuleBase,
 ):
-    """ Compiled Python Module
-
-    """
+    """Compiled Python Module"""
 
     # This one has a few indicators, pylint: disable=too-many-instance-attributes
 
@@ -536,9 +534,7 @@ class CompiledPythonModule(
 
     @staticmethod
     def getFunctionVariablesWithAutoReleases():
-        """ Return the list of function variables that should be released at exit.
-
-        """
+        """Return the list of function variables that should be released at exit."""
         return ()
 
     def getOutlineLocalVariables(self):
@@ -624,9 +620,7 @@ def makeUncompiledPythonModule(
 
 
 class UncompiledPythonModule(PythonModuleBase):
-    """ Compiled Python Module
-
-    """
+    """Compiled Python Module"""
 
     kind = "UNCOMPILED_PYTHON_MODULE"
 

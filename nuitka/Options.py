@@ -51,7 +51,7 @@ def parseArgs():
     if options.verbose_output:
         optimization_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
-            open(options.verbose_output, "w"),
+            open(options.verbose_output, "w")
         )
 
         options.verbose = True
@@ -138,53 +138,46 @@ Error, icon path "%s" does not exist."""
 
 
 def isVerbose():
-    """ *bool* = "--verbose"
-    """
+    """*bool* = "--verbose" """
     return options is not None and options.verbose
 
 
 def shallTraceExecution():
-    """ *bool* = "--trace-execution"
-    """
+    """*bool* = "--trace-execution" """
     return options.trace_execution
 
 
 def shallExecuteImmediately():
-    """ *bool* = "--run"
-    """
+    """*bool* = "--run" """
     return options.immediate_execution
 
 
 def shallRunInDebugger():
-    """ *bool* = "--debug"
-    """
+    """*bool* = "--debug" """
     return options.debugger
 
 
 def shallDumpBuiltTreeXML():
-    """ *bool* = "--xml"
-    """
+    """*bool* = "--xml" """
     return options.dump_xml
 
 
 def shallOnlyExecCCompilerCall():
-    """ *bool* = "--recompile-c-only"
-    """
+    """*bool* = "--recompile-c-only" """
     return options.recompile_c_only
 
 
 def shallNotDoExecCCompilerCall():
-    """ *bool* = "--generate-c-only"
-    """
+    """*bool* = "--generate-c-only" """
     return options.generate_c_only
 
 
 def getFileReferenceMode():
-    """ *str*, one of "runtime", "original", "frozen", coming from "--file-reference-choice"
+    """*str*, one of "runtime", "original", "frozen", coming from "--file-reference-choice"
 
-        Notes:
-            Defaults to runtime for modules and packages, as well as standalone binaries,
-            otherwise original is kept.
+    Notes:
+        Defaults to runtime for modules and packages, as well as standalone binaries,
+        otherwise original is kept.
     """
     if options.file_reference_mode is None:
         value = "runtime" if shallMakeModule() or isStandaloneMode() else "original"
@@ -195,38 +188,32 @@ def getFileReferenceMode():
 
 
 def shallMakeModule():
-    """ *bool* = "--module"
-    """
+    """*bool* = "--module" """
     return not options.executable
 
 
 def shallCreatePyiFile():
-    """ *bool* = **not** "--no-pyi-file"
-    """
+    """*bool* = **not** "--no-pyi-file" """
     return options.pyi_file
 
 
 def isAllowedToReexecute():
-    """ *bool* = **not** "--must-not-re-execute"
-    """
+    """*bool* = **not** "--must-not-re-execute" """
     return options.allow_reexecute
 
 
 def shallFollowStandardLibrary():
-    """ *bool* = "--follow-stdlib" / "--recurse-stdlib"
-    """
+    """*bool* = "--follow-stdlib" / "--recurse-stdlib" """
     return options.recurse_stdlib
 
 
 def shallFollowNoImports():
-    """ *bool* = "--nofollow-imports" / "--recurse-none"
-    """
+    """*bool* = "--nofollow-imports" / "--recurse-none" """
     return options.recurse_none
 
 
 def shallFollowAllImports():
-    """ *bool* = "--follow-imports" / "--recurse-all"
-    """
+    """*bool* = "--follow-imports" / "--recurse-all" """
     return options.recurse_all
 
 
@@ -235,14 +222,12 @@ def _splitShellPattern(value):
 
 
 def getShallFollowInNoCase():
-    """ *list*, items of "--nofollow-import-to=" / "--recurse-not-to="
-    """
+    """*list*, items of "--nofollow-import-to=" / "--recurse-not-to=" """
     return sum([_splitShellPattern(x) for x in options.recurse_not_modules], [])
 
 
 def getShallFollowModules():
-    """ *list*, items of "--follow-import-to=" / "--recurse-to="
-    """
+    """*list*, items of "--follow-import-to=" / "--recurse-to=" """
     return sum(
         [
             _splitShellPattern(x)
@@ -255,86 +240,72 @@ def getShallFollowModules():
 
 
 def getShallFollowExtra():
-    """ *list*, items of "--include-plugin-directory="
-    """
+    """*list*, items of "--include-plugin-directory=" """
     return sum([_splitShellPattern(x) for x in options.recurse_extra], [])
 
 
 def getShallFollowExtraFilePatterns():
-    """ *list*, items of "--include-plugin-files="
-    """
+    """*list*, items of "--include-plugin-files=" """
     return sum([_splitShellPattern(x) for x in options.recurse_extra_files], [])
 
 
 def getMustIncludeModules():
-    """ *list*, items of "--include-module="
-    """
+    """*list*, items of "--include-module=" """
     return sum([_splitShellPattern(x) for x in options.include_modules], [])
 
 
 def getMustIncludePackages():
-    """ *list*, items of "--include-package="
-    """
+    """*list*, items of "--include-package=" """
     return sum([_splitShellPattern(x) for x in options.include_packages], [])
 
 
 def shallWarnImplicitRaises():
-    """ *bool* = "--warn-implicit-exceptions"
-    """
+    """*bool* = "--warn-implicit-exceptions" """
     return options.warn_implicit_exceptions
 
 
 def shallWarnUnusualCode():
-    """ *bool* = "--warn-unusual-code"
-    """
+    """*bool* = "--warn-unusual-code" """
     return options.warn_unusual_code
 
 
 def assumeYesForDownloads():
-    """ *bool* = "--assume-yes-for-downloads"
-    """
+    """*bool* = "--assume-yes-for-downloads" """
     return options.assume_yes_for_downloads
 
 
 def isDebug():
-    """ *bool* = "--debug" or "--debugger"
-    """
+    """*bool* = "--debug" or "--debugger" """
     return options is not None and (options.debug or options.debugger)
 
 
 def isPythonDebug():
-    """ *bool* = "--python-debug" or "sys.flags.debug"
-    """
+    """*bool* = "--python-debug" or "sys.flags.debug" """
     return options.python_debug or sys.flags.debug
 
 
 def isUnstripped():
-    """ *bool* = "--unstripped" or "--profile"
-    """
+    """*bool* = "--unstripped" or "--profile" """
     return options.unstripped or options.profile
 
 
 def isProfile():
-    """ *bool* = "--profile"
-    """
+    """*bool* = "--profile" """
     return options.profile
 
 
 def shallCreateGraph():
-    """ *bool* = "--graph"
-    """
+    """*bool* = "--graph" """
     return options.graph
 
 
 def getOutputFilename():
-    """ *str*, value of "-o"
-    """
+    """*str*, value of "-o" """
     return options.output_filename
 
 
 def getOutputPath(path):
-    """ Return output pathname of a given path (filename).
-    """
+    """Return output pathname of a given path (filename)."""
     if options.output_dir:
         return os.path.normpath(os.path.join(options.output_dir, path))
     else:
@@ -342,37 +313,32 @@ def getOutputPath(path):
 
 
 def getOutputDir():
-    """ *str*, value of "--output-dir" or "."
-    """
+    """*str*, value of "--output-dir" or "." """
     return options.output_dir if options.output_dir else "."
 
 
 def getPositionalArgs():
-    """ *tuple*, command line positional arguments
-    """
+    """*tuple*, command line positional arguments"""
     return tuple(positional_args)
 
 
 def getMainArgs():
-    """ *tuple*, arguments following the optional arguments
-    """
+    """*tuple*, arguments following the optional arguments"""
     return tuple(extra_args)
 
 
 def shallOptimizeStringExec():
-    """ Inactive yet
-    """
+    """Inactive yet"""
     return False
 
 
 def shallClearPythonPathEnvironment():
-    """ *bool* = **not** "--execute-with-pythonpath"
-    """
+    """*bool* = **not** "--execute-with-pythonpath" """
     return not options.keep_pythonpath
 
 
 def shallUseStaticLibPython():
-    """ *bool* = derived from `sys.prefix` and `os.name`
+    """*bool* = derived from `sys.prefix` and `os.name`
 
     Notes:
         Currently only AnaConda on non-Windows can do this.
@@ -388,7 +354,7 @@ def shallUseStaticLibPython():
 
 
 def shallTreatUninstalledPython():
-    """ *bool* = derived from Python installation and modes
+    """*bool* = derived from Python installation and modes
 
     Notes:
         Not done for standalone mode obviously. The Python DLL will
@@ -408,80 +374,67 @@ def shallTreatUninstalledPython():
 
 
 def isShowScons():
-    """ *bool* = "--show-scons"
-    """
+    """*bool* = "--show-scons" """
     return options.show_scons
 
 
 def getJobLimit():
-    """ *int*, value of "--jobs" / "-j" or number of CPU kernels
-    """
+    """*int*, value of "--jobs" / "-j" or number of CPU kernels"""
     return int(options.jobs)
 
 
 def isLto():
-    """ *bool* = "--lto"
-    """
+    """*bool* = "--lto" """
     return options.lto
 
 
 def isClang():
-    """ *bool* = "--clang"
-    """
+    """*bool* = "--clang" """
     return options.clang
 
 
 def isMingw64():
-    """ *bool* = "--mingw64", available only on Windows, otherwise false
-    """
+    """*bool* = "--mingw64", available only on Windows, otherwise false"""
     return getattr(options, "mingw64", False)
 
 
 def getMsvcVersion():
-    """ *str*, value of "--msvc", available only on Windows, otherwise None
-    """
+    """*str*, value of "--msvc", available only on Windows, otherwise None"""
     return getattr(options, "msvc", None)
 
 
 def shallDisableConsoleWindow():
-    """ *bool* = "--win-disable-console"
-    """
+    """*bool* = "--win-disable-console" """
     return options.win_disable_console
 
 
 def isFullCompat():
-    """ *bool* = "--full-compat"
-    """
+    """*bool* = "--full-compat" """
     return options is not None and not options.improved
 
 
 def isShowProgress():
-    """ *bool* = "--show-progress"
-    """
+    """*bool* = "--show-progress" """
     return options is not None and options.show_progress
 
 
 def isShowMemory():
-    """ *bool* = "--show-memory"
-    """
+    """*bool* = "--show-memory" """
     return options is not None and options.show_memory
 
 
 def isShowInclusion():
-    """ *bool* = "--show-modules"
-    """
+    """*bool* = "--show-modules" """
     return options.show_inclusion
 
 
 def isRemoveBuildDir():
-    """ *bool* = "--remove-output"
-    """
+    """*bool* = "--remove-output" """
     return options.remove_build and not options.generate_c_only
 
 
 def getIntendedPythonArch():
-    """ *str*, one of "x86", "x86_64" or None
-    """
+    """*str*, one of "x86", "x86_64" or None"""
     return options.python_arch
 
 
@@ -489,7 +442,7 @@ experimental = set()
 
 
 def isExperimental(indication):
-    """ Check whether a given experimental feature is enabled.
+    """Check whether a given experimental feature is enabled.
 
     Args:
         indication: (str) feature name
@@ -512,8 +465,7 @@ def disableExperimental(indication):
 
 
 def getExperimentalIndications():
-    """ *tuple*, items of "--experimental="
-    """
+    """*tuple*, items of "--experimental=" """
     if hasattr(options, "experimental"):
         return options.experimental
     else:
@@ -521,20 +473,17 @@ def getExperimentalIndications():
 
 
 def shallExplainImports():
-    """ *bool* = "--explain-imports"
-    """
+    """*bool* = "--explain-imports" """
     return options is not None and options.explain_imports
 
 
 def isStandaloneMode():
-    """ *bool* = "--standalone"
-    """
+    """*bool* = "--standalone" """
     return options.is_standalone
 
 
 def getIconPath():
-    """ *str*, value of "--windows-icon"
-    """
+    """*str*, value of "--windows-icon" """
     return options.icon_path
 
 
@@ -542,8 +491,7 @@ _python_flags = None
 
 
 def getPythonFlags():
-    """ *list*, value of "--python-flag"
-    """
+    """*list*, value of "--python-flag" """
     # singleton, pylint: disable=global-statement
     global _python_flags
 
@@ -576,33 +524,29 @@ def getPythonFlags():
 
 
 def shallFreezeAllStdlib():
-    """ *bool* = **not** shallFollowStandardLibrary
-    """
+    """*bool* = **not** shallFollowStandardLibrary"""
     return not shallFollowStandardLibrary()
 
 
 def getWindowsDependencyTool():
-    """ *str*, value of "--windows-dependency-tool="
-    """
+    """*str*, value of "--windows-dependency-tool=" """
     return options.dependency_tool
 
 
 def shallNotUseDependsExeCachedResults():
-    """ *bool* = "--disable-dll-dependency-cache" or "--force-dll-dependency-cache-update"
-    """
+    """*bool* = "--disable-dll-dependency-cache" or "--force-dll-dependency-cache-update" """
     return shallNotStoreDependsExeCachedResults() or getattr(
         options, "update_dependency_cache", False
     )
 
 
 def shallNotStoreDependsExeCachedResults():
-    """ *bool* = "--disable-dll-dependency-cache"
-    """
+    """*bool* = "--disable-dll-dependency-cache" """
     return getattr(options, "no_dependency_cache", False)
 
 
 def getPluginsEnabled():
-    """ *tuple*, user enabled (standard) plugins (not including user plugins)
+    """*tuple*, user enabled (standard) plugins (not including user plugins)
 
     Note:
         Do not use this outside of main binary, as other plugins, e.g.
@@ -619,7 +563,7 @@ def getPluginsEnabled():
 
 
 def getPluginsDisabled():
-    """ *tuple*, user disabled (standard) plugins.
+    """*tuple*, user disabled (standard) plugins.
 
     Note:
         Do not use this outside of main binary, as other plugins, e.g.
@@ -633,8 +577,7 @@ def getPluginsDisabled():
 
 
 def getUserPlugins():
-    """ *tuple*, items user provided of "--user-plugin="
-    """
+    """*tuple*, items user provided of "--user-plugin=" """
     if not options:
         return ()
 
@@ -642,28 +585,24 @@ def getUserPlugins():
 
 
 def shallDetectMissingPlugins():
-    """ *bool* = **not** "--plugin-no-detection"
-    """
+    """*bool* = **not** "--plugin-no-detection" """
     return options is not None and options.detect_missing_plugins
 
 
 def getPythonPathForScons():
-    """ *str*, value of "--python-for-scons"
-    """
+    """*str*, value of "--python-for-scons" """
     return options.python_scons
 
 
 def shallCompileWithoutBuildDirectory():
-    """ *bool* currently hard coded, not when using debugger.
+    """*bool* currently hard coded, not when using debugger.
 
-        TODO: Make this not hardcoded, but possible to disable via an
-        options.
+    TODO: Make this not hardcoded, but possible to disable via an
+    options.
     """
     return not shallRunInDebugger()
 
 
 def shallPreferSourcecodeOverExtensionModules():
-    """ *bool* prefer source code over extension modules if both are there
-
-    """
+    """*bool* prefer source code over extension modules if both are there"""
     return options is not None and options.prefer_source_code

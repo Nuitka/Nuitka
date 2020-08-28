@@ -29,17 +29,13 @@ import sys
 
 
 def getSupportedPythonVersions():
-    """ Officially supported Python versions for Nuitka.
-
-    """
+    """Officially supported Python versions for Nuitka."""
 
     return ("2.6", "2.7", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8")
 
 
 def getPartiallySupportedPythonVersions():
-    """ Partially supported Python versions for Nuitka.
-
-    """
+    """Partially supported Python versions for Nuitka."""
 
     return ()
 
@@ -79,8 +75,8 @@ def isAtLeastSubVersion(version):
 
 
 def getErrorMessageExecWithNestedFunction():
-    """ Error message of the concrete Python in case an exec occurs in a
-        function that takes a closure variable.
+    """Error message of the concrete Python in case an exec occurs in a
+    function that takes a closure variable.
     """
 
     assert python_version < 300
@@ -256,11 +252,11 @@ def getPythonABI():
 
 
 def getSystemPrefixPath():
-    """ Return real sys.prefix as an absolute path.
+    """Return real sys.prefix as an absolute path.
 
-        Note: This breaks out of virtualenvs as necessary.
+    Note: This breaks out of virtualenvs as necessary.
 
-        Returns: path to system prefix
+    Returns: path to system prefix
     """
 
     sys_prefix = getattr(sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix))

@@ -36,10 +36,10 @@ from nuitka.utils.FileOperations import deleteFile, makePath
 
 
 def getDependsExePath():
-    """ Return the path of depends.exe (for Windows).
+    """Return the path of depends.exe (for Windows).
 
-        Will prompt the user to download if not already cached in AppData
-        directory for Nuitka.
+    Will prompt the user to download if not already cached in AppData
+    directory for Nuitka.
     """
     if Utils.getArchitecture() == "x86":
         depends_url = "http://dependencywalker.com/depends22_x86.zip"

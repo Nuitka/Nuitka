@@ -109,10 +109,10 @@ class FutureSpec(object):
         return self.future_annotations
 
     def asFlags(self):
-        """ Create a list of C identifiers to represent the flag values.
+        """Create a list of C identifiers to represent the flag values.
 
-            This is for use in code generation and to restore from
-            saved modules.
+        This is for use in code generation and to restore from
+        saved modules.
         """
 
         result = []

@@ -24,10 +24,10 @@ from nuitka.PythonVersions import python_version
 
 
 def getConstantDefaultPopulation():
-    """ These are values for non-trivial constants.
+    """These are values for non-trivial constants.
 
-        Constants that have a direct name, e.g. Py_True are trivial, these are for things that must
-        be constructed through code.
+    Constants that have a direct name, e.g. Py_True are trivial, these are for things that must
+    be constructed through code.
     """
 
     # Lots of cases, pylint: disable=too-many-branches

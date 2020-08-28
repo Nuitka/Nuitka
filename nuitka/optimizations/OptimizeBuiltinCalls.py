@@ -146,7 +146,9 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
-from nuitka.tree.ReformulationTryFinallyStatements import makeTryFinallyStatement
+from nuitka.tree.ReformulationTryFinallyStatements import (
+    makeTryFinallyStatement,
+)
 from nuitka.tree.TreeHelpers import (
     makeCallNode,
     makeSequenceCreationOrConstant,
@@ -1386,9 +1388,7 @@ _builtin_white_list = (
 
 
 def _describeNewNode(builtin_name, inspect_node):
-    """ Describe the change for better understanding.
-
-    """
+    """Describe the change for better understanding."""
 
     if inspect_node.isExpressionSideEffects():
         inspect_node = inspect_node.getExpression()

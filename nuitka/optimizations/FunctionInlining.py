@@ -27,7 +27,9 @@ from nuitka.nodes.AssignNodes import (
 )
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.tree.Operations import VisitorNoopMixin, visitTree
-from nuitka.tree.ReformulationTryFinallyStatements import makeTryFinallyStatement
+from nuitka.tree.ReformulationTryFinallyStatements import (
+    makeTryFinallyStatement,
+)
 from nuitka.tree.TreeHelpers import makeStatementsSequence
 
 
