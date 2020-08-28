@@ -25,12 +25,17 @@ a distribution folder.
 """
 
 import os
-import shutil
 import sys
 
 from nuitka.build.DataComposerInterface import runDataComposer
 from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.finalizations.FinalizeMarkups import getImportedNames
+from nuitka.freezer.IncludedEntryPoints import (
+    addIncludedEntryPoints,
+    addShlibEntryPoint,
+    getStandardEntryPoints,
+    setMainEntryPoint,
+)
 from nuitka.freezer.Standalone import copyDataFiles
 from nuitka.importing import Importing, Recursion
 from nuitka.Options import getPythonFlags
@@ -347,26 +352,10 @@ def makeSourceDirectory(main_module):
             if Options.isShowInclusion():
                 general.info("Included compiled module '%s'." % module.getFullName())
         elif module.isPythonShlibModule():
-            target_filename = os.path.join(
-                OutputDirectories.getStandaloneDirectoryPath(),
-                *module.getFullName().split(".")
-            )
-            target_filename += getSharedLibrarySuffix(preferred=False)
+            addShlibEntryPoint(module)
 
-            target_dir = os.path.dirname(target_filename)
-
-            if not os.path.isdir(target_dir):
-                makePath(target_dir)
-
-            shutil.copyfile(module.getFilename(), target_filename)
-
-            standalone_entry_points.append(
-                (
-                    module.getFilename(),
-                    target_filename,
-                    module.getFullName().getPackageName(),
-                )
-            )
+            if Options.isShowInclusion():
+                general.info("Included extension module '%s'." % module.getFullName())
         elif module.isUncompiledPythonModule():
             if Options.isShowInclusion():
                 general.info("Included uncompiled module '%s'." % module.getFullName())
@@ -754,19 +743,17 @@ def main():
         if Options.isStandaloneMode():
             binary_filename = options["result_exe"]
 
-            standalone_entry_points.insert(0, (binary_filename, binary_filename, None))
+            setMainEntryPoint(binary_filename)
 
             dist_dir = OutputDirectories.getStandaloneDirectoryPath()
 
             for module in ModuleRegistry.getDoneModules():
-                standalone_entry_points.extend(
-                    Plugins.considerExtraDlls(dist_dir, module)
-                )
+                addIncludedEntryPoints(Plugins.considerExtraDlls(dist_dir, module))
 
             copyUsedDLLs(
                 source_dir=OutputDirectories.getSourceDirectoryPath(),
                 dist_dir=dist_dir,
-                standalone_entry_points=standalone_entry_points,
+                standalone_entry_points=getStandardEntryPoints(),
             )
 
             copyDataFiles(dist_dir=dist_dir)
