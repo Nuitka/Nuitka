@@ -41,17 +41,18 @@ def getScipyCoreBinaries(module):
     """
     binaries = []
     scipy_dir = module.getCompileTimeDirectory()
-    extra_dll = os.path.join(scipy_dir, "extra-dll")
-    if not os.path.isdir(extra_dll):
-        return binaries
 
-    netto_bins = os.listdir(extra_dll)
-    suffix_start = len(extra_dll) + 1  # this will put the files in dist root
+    for dll_dir_name in ("extra_dll", ".libs"):
+        dll_dir_path = os.path.join(scipy_dir, dll_dir_name)
 
-    for f in netto_bins:
-        if not f.endswith(".dll"):
-            continue
-        binaries.append((os.path.join(extra_dll, f), suffix_start))
+        if os.path.isdir(dll_dir_path):
+            netto_bins = os.listdir(dll_dir_path)
+            suffix_start = len(dll_dir_path) + 1  # this will put the files in dist root
+
+            for f in netto_bins:
+                if not f.endswith(".dll"):
+                    continue
+                binaries.append((os.path.join(dll_dir_path, f), suffix_start))
 
     return binaries
 
@@ -199,9 +200,9 @@ class NumpyPlugin(NuitkaPluginBase):
     plugin_name = "numpy"  # Nuitka knows us by this name
     plugin_desc = "Required for numpy, scipy, pandas, matplotlib, etc."
 
-    def __init__(self, noinclude_matplotlib, noinclude_scipy):
-        self.matplotlib = noinclude_matplotlib
-        self.scipy = noinclude_scipy
+    def __init__(self, include_matplotlib, include_scipy):
+        self.matplotlib = include_matplotlib
+        self.scipy = include_scipy
 
         self.enabled_plugins = None  # list of active standard plugins
         self.numpy_copied = False  # indicator: numpy files copied
@@ -212,11 +213,6 @@ class NumpyPlugin(NuitkaPluginBase):
         self.mpl_data_copied = True  # indicator: matplotlib data copied
         if self.matplotlib:
             self.mpl_data_copied = False
-
-            if not hasActivePlugin("hinted-mods"):
-                self.info(
-                    "In case of matplotlib problems, consider using hinted compilation for non-standard backends"
-                )
 
     @classmethod
     def isRelevant(cls):
@@ -232,7 +228,7 @@ class NumpyPlugin(NuitkaPluginBase):
         group.add_option(
             "--noinclude-scipy",
             action="store_false",
-            dest="noinclude_scipy",
+            dest="include_scipy",
             default=True,
             help="""\
 Should scipy, sklearn or skimage when used be not included with numpy, Default is %default.""",
@@ -241,7 +237,7 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
         group.add_option(
             "--noinclude-matplotlib",
             action="store_false",
-            dest="noinclude_matplotlib",
+            dest="include_matplotlib",
             default=True,
             help="""\
 Should matplotlib not be be included with numpy, Default is %default.""",
@@ -282,6 +278,7 @@ Should matplotlib not be be included with numpy, Default is %default.""",
 
         if not self.scipy_copied and full_name == "scipy":
             self.scipy_copied = True
+
             binaries = getScipyCoreBinaries(module)
 
             for f in binaries:
@@ -411,7 +408,7 @@ class NumpyPluginDetector(NuitkaPluginBase):
         """
         module_name = module.getFullName()
         if module_name.hasOneOfNamespaces(
-            "numpy", "scipy", "skimage", "pandas", "matplotlib", "sklearn",
+            "numpy", "scipy", "skimage", "pandas", "matplotlib", "sklearn"
         ):
             self.warnUnusedPlugin(
                 "Numpy support for at least '%s'."

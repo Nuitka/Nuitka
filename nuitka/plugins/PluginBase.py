@@ -27,6 +27,7 @@ it being used.
 """
 
 import os
+import shutil
 import sys
 
 from nuitka import Options, OutputDirectories
@@ -498,6 +499,22 @@ class NuitkaPluginBase(object):
             module: the module object needing the binaries
         Returns:
             tuple
+        """
+        for included_entry_point in self.getExtraDlls(module):
+            # Copy to the dist directory.
+            target_path = os.path.join(dist_dir, included_entry_point.dest_path)
+            shutil.copyfile(included_entry_point.source_path, target_path)
+
+            yield included_entry_point
+
+    def getExtraDlls(self, module):
+        """ Provide IncludedEntryPoint named tuples describing extra needs of the module.
+
+        Args:
+            module: the module object needing the binaries
+        Returns:
+            yields IncludedEntryPoint objects
+
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()

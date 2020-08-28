@@ -1275,17 +1275,15 @@ def detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache)
     with ThreadPoolExecutor(max_workers=Utils.getCoreCount() * 3) as worker_pool:
         workers = []
 
-        for count, (original_filename, binary_filename, package_name) in enumerate(
-            standalone_entry_points
-        ):
+        for count, standalone_entry_point in enumerate(standalone_entry_points):
             workers.append(
                 worker_pool.submit(
                     addDLLInfo,
                     count,
                     source_dir,
-                    original_filename,
-                    binary_filename,
-                    package_name,
+                    standalone_entry_point.source_path,
+                    standalone_entry_point.dest_path,
+                    standalone_entry_point.package_name,
                 )
             )
 
@@ -1506,9 +1504,9 @@ different from
         # the relative DLL location in the ".dist" folder.
         for standalone_entry_point in standalone_entry_points:
             fixupBinaryDLLPathsMacOS(
-                binary_filename=standalone_entry_point[1],
+                binary_filename=standalone_entry_point.dest_path,
                 dll_map=dll_map,
-                original_location=standalone_entry_point[0],
+                original_location=standalone_entry_point.source_path,
             )
 
         for original_path, dll_filename in dll_map:
@@ -1522,7 +1520,7 @@ different from
         # For Linux, the "rpath" of libraries may be an issue and must be
         # removed.
         for standalone_entry_point in standalone_entry_points[1:]:
-            removeSharedLibraryRPATH(standalone_entry_point[1])
+            removeSharedLibraryRPATH(standalone_entry_point.dest_path)
 
         for _original_path, dll_filename in dll_map:
             removeSharedLibraryRPATH(os.path.join(dist_dir, dll_filename))
@@ -1530,7 +1528,7 @@ different from
         if python_version < 300:
             # For Win32, we might have to remove SXS paths
             for standalone_entry_point in standalone_entry_points[1:]:
-                removeSxsFromDLL(standalone_entry_point[1])
+                removeSxsFromDLL(standalone_entry_point.dest_path)
 
             for _original_path, dll_filename in dll_map:
                 removeSxsFromDLL(os.path.join(dist_dir, dll_filename))

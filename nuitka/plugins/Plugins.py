@@ -38,6 +38,7 @@ from nuitka import Options
 from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
+from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import printLine
 from nuitka.utils.Importing import importFileAsModule
@@ -214,13 +215,22 @@ class Plugins(object):
 
         for plugin in getActivePlugins():
             for extra_dll in plugin.considerExtraDlls(dist_dir, module):
-                if not os.path.isfile(extra_dll[0]):
+                # Backward compatibility with plugins not yet migrated to getExtraDlls usage.
+                if len(extra_dll) == 3:
+                    extra_dll = IncludedEntryPoint(
+                        kind="dll",
+                        source_path=extra_dll[0],
+                        dest_path=extra_dll[1],
+                        package_name=extra_dll[2],
+                    )
+
+                if not os.path.isfile(extra_dll.source_path):
                     sys.exit(
                         "Error, attempting to copy plugin determined filename %r for module %r that is not a file."
                         % (extra_dll[0], module.getFullName())
                     )
 
-                if not os.path.isfile(extra_dll[1]):
+                if not os.path.isfile(extra_dll.dest_path):
                     sys.exit(
                         "Error, copied filename %r for module %r that is not a file."
                         % (extra_dll[1], module.getFullName())
