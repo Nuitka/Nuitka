@@ -607,8 +607,13 @@ def main():
                 my_print("Listing of dist folder:")
                 os.system("ls -Rla %s" % filename[:-3] + ".dist")
 
-                my_print("strace:")
-                os.system("strace -s4096 -e file %s" % binary_filename)
+                # Run with traces to help debugging, specifically in CI environment.
+                if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
+                    my_print("dtruss:")
+                    os.system("sudo dtruss %s" % binary_filename)
+                else:
+                    my_print("strace:")
+                    os.system("strace -s4096 -e file %s" % binary_filename)
 
             search_mode.onErrorDetected(1)
 

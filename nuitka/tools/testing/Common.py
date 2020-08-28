@@ -483,7 +483,7 @@ def isExecutableCommand(command):
     return False
 
 
-def getRuntimeTraceOfLoadedFiles(path, trace_error=True):
+def getRuntimeTraceOfLoadedFiles(path, trace_stderr=True):
     """ Returns the files loaded when executing a binary. """
 
     # This will make a crazy amount of work,
@@ -542,7 +542,7 @@ Error, needs 'strace' on your system to scan used libraries."""
                 f.write(stderr_strace)
 
             for line in stderr_strace.split(b"\n"):
-                if process.returncode != 0 and trace_error:
+                if process.returncode != 0 and trace_stderr:
                     my_print(line)
 
                 if not line:
