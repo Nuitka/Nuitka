@@ -309,14 +309,19 @@ def getConstantsDefinitionCode():
         )
 
     sys_executable = None
+
+    if not Options.shallMakeModule():
+        sys_executable = constant_accessor.getConstantCode(
+            None if Options.isStandaloneMode() else sys.executable
+        )
+
     sys_prefix = None
     sys_base_prefix = None
     sys_exec_prefix = None
     sys_base_exec_prefix = None
 
     # TODO: This part is needed for main program only, so do it there?
-    if not Options.shallMakeModule():
-        sys_executable = constant_accessor.getConstantCode(sys.executable)
+    if not Options.shallMakeModule() and not Options.isStandaloneMode():
         sys_prefix = constant_accessor.getConstantCode(sys.prefix)
         sys_exec_prefix = constant_accessor.getConstantCode(sys.exec_prefix)
 
