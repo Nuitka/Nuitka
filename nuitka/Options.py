@@ -24,7 +24,7 @@ import sys
 from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import isUninstalledPython
-from nuitka.Tracing import optimization_logger
+from nuitka.Tracing import inclusion_logger, optimization_logger
 from nuitka.utils import Utils
 
 options = None
@@ -55,6 +55,14 @@ def parseArgs():
         )
 
         options.verbose = True
+
+    if options.show_inclusion_output:
+        inclusion_logger.setFileHandle(
+            # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
+            open(options.show_inclusion_output, "w")
+        )
+
+        options.show_inclusion = True
 
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the

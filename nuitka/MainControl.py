@@ -47,7 +47,7 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
-from nuitka.Tracing import general
+from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
 from nuitka.utils.AppDirs import getCacheDir
@@ -348,15 +348,21 @@ def makeSourceDirectory(main_module):
             writeSourceCode(filename=c_filename, source_code=source_code)
 
             if Options.isShowInclusion():
-                general.info("Included compiled module '%s'." % module.getFullName())
+                inclusion_logger.info(
+                    "Included compiled module '%s'." % module.getFullName()
+                )
         elif module.isPythonShlibModule():
             addShlibEntryPoint(module)
 
             if Options.isShowInclusion():
-                general.info("Included extension module '%s'." % module.getFullName())
+                inclusion_logger.info(
+                    "Included extension module '%s'." % module.getFullName()
+                )
         elif module.isUncompiledPythonModule():
             if Options.isShowInclusion():
-                general.info("Included uncompiled module '%s'." % module.getFullName())
+                inclusion_logger.info(
+                    "Included uncompiled module '%s'." % module.getFullName()
+                )
         else:
             assert False, module
 

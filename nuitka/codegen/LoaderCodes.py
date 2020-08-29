@@ -37,7 +37,7 @@ from nuitka.ModuleRegistry import (
     getUncompiledModules,
     getUncompiledTechnicalModules,
 )
-from nuitka.Tracing import general
+from nuitka.Tracing import inclusion_logger
 
 from .Indentation import indented
 from .templates.CodeTemplatesLoader import (
@@ -135,7 +135,7 @@ extern PyObject *modulecode_%(module_identifier)s(PyObject *, struct Nuitka_Meta
         )
 
         if Options.isShowInclusion():
-            general.info("Embedded as frozen module '%s'." % module_name)
+            inclusion_logger.info("Embedded as frozen module '%s'." % module_name)
 
     return template_metapath_loader_body % {
         "metapath_module_decls": indented(metapath_module_decls, 0),
