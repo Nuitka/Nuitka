@@ -1362,7 +1362,7 @@ def removeSharedLibraryRPATH(filename):
 
     if rpath is not None:
         if Options.isShowInclusion():
-            inclusion_logger.info("Removing 'RPATH' setting from '%s'.", filename)
+            inclusion_logger.info("Removing 'RPATH' setting from '%s'." % filename)
 
         if not Utils.isExecutableCommand("chrpath"):
             sys.exit(
