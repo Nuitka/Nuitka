@@ -35,6 +35,9 @@ from contextlib import contextmanager
 
 from nuitka.utils.ThreadedExecutor import RLock
 
+# Written by Options module.
+is_quiet = False
+
 
 def printIndented(level, *what):
     print("    " * level, *what)
@@ -173,10 +176,11 @@ class OurLogger(object):
         self.my_print(message, style=style, file=sys.stderr)
 
     def info(self, message, style=None):
-        message = "%s:INFO: %s" % (self.name, message)
+        if not is_quiet:
+            message = "%s:INFO: %s" % (self.name, message)
 
-        style = style or self.base_style
-        self.my_print(message, style=style)
+            style = style or self.base_style
+            self.my_print(message, style=style)
 
 
 class FileLogger(OurLogger):
@@ -193,6 +197,13 @@ class FileLogger(OurLogger):
 
     def setFileHandle(self, file_handle):
         self.file_handle = file_handle
+
+    def info(self, message, style=None):
+        if not is_quiet or self.file_handle is not sys.stdout:
+            message = "%s:INFO: %s" % (self.name, message)
+
+            style = style or self.base_style
+            self.my_print(message, style=style)
 
 
 general = OurLogger("Nuitka")

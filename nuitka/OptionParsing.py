@@ -625,6 +625,16 @@ parser.add_option_group(c_compiler_group)
 tracing_group = OptionGroup(parser, "Tracing features")
 
 tracing_group.add_option(
+    "--quiet",
+    action="store_true",
+    dest="quiet",
+    default=False,
+    help="""\
+Disable all information outputs, but show warnings.
+Defaults to off.""",
+)
+
+tracing_group.add_option(
     "--show-scons",
     action="store_true",
     dest="show_scons",
