@@ -216,6 +216,7 @@ def main():
     syntax_errors = hasArg("syntax_errors")
     noprefer_source = hasArg("noprefer_source")
     noverbose_log = hasArg("noverbose_log")
+    noinclusion_log = hasArg("noinclusion_log")
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -443,6 +444,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if not noverbose_log:
         extra_options.append("--verbose-output=%s.optimization.log" % filename)
+
+    if not noinclusion_log:
+        extra_options.append("--show-modules-output=%s.inclusion.log" % filename)
 
     # Now build the command to run Nuitka.
     if not two_step_execution:
