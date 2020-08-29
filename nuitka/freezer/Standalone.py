@@ -48,7 +48,7 @@ from nuitka.nodes.ModuleNodes import (
 )
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import general, printError
+from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 from nuitka.utils.AppDirs import getCacheDir
@@ -105,7 +105,9 @@ def _detectedPrecompiledFile(filename, module_name, result, user_provided, techn
         return
 
     if Options.isShowInclusion():
-        general.info("Freezing module '%s' (from '%s')." % (module_name, filename))
+        inclusion_logger.info(
+            "Freezing module '%s' (from '%s')." % (module_name, filename)
+        )
 
     uncompiled_module = makeUncompiledPythonModule(
         module_name=module_name,
@@ -159,7 +161,9 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
         )
 
     if Options.isShowInclusion():
-        general.info("Freezing module '%s' (from '%s')." % (module_name, filename))
+        inclusion_logger.info(
+            "Freezing module '%s' (from '%s')." % (module_name, filename)
+        )
 
     is_package = os.path.basename(filename) == "__init__.py"
     source_code = Plugins.onFrozenModuleSourceCode(
@@ -1358,7 +1362,7 @@ def removeSharedLibraryRPATH(filename):
 
     if rpath is not None:
         if Options.isShowInclusion():
-            general.info("Removing 'RPATH' setting from '%s'.", filename)
+            inclusion_logger.info("Removing 'RPATH' setting from '%s'.", filename)
 
         if not Utils.isExecutableCommand("chrpath"):
             sys.exit(
@@ -1425,7 +1429,7 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
             dll_name = os.path.basename(dll_filename1)
 
             if Options.isShowInclusion():
-                general.info(
+                inclusion_logger.info(
                     """Colliding DLL names for %s, checking identity of \
 '%s' <-> '%s'."""
                     % (dll_name, dll_filename1, dll_filename2)
@@ -1499,7 +1503,7 @@ different from
         dll_map.append((dll_filename, dll_name))
 
         if Options.isShowInclusion():
-            general.info(
+            inclusion_logger.info(
                 "Included used shared library '%s' (used by %s)."
                 % (dll_filename, ", ".join(sources))
             )

@@ -658,8 +658,18 @@ tracing_group.add_option(
     action="store_true",
     dest="show_inclusion",
     default=False,
-    help="""Provide a final summary on included modules.
+    help="""\
+Provide information for included modules and DLLs
 Defaults to off.""",
+)
+
+tracing_group.add_option(
+    "--show-modules-output",
+    action="store",
+    dest="show_inclusion_output",
+    default=None,
+    help="""\
+Where to output --show-modules, should be a filename. Default is standard output.""",
 )
 
 tracing_group.add_option(
@@ -678,7 +688,7 @@ tracing_group.add_option(
     dest="verbose_output",
     default=None,
     help="""\
-Where to output --verbose, should be a filename. Default is standaout output.""",
+Where to output --verbose, should be a filename. Default is standard output.""",
 )
 
 parser.add_option_group(tracing_group)
