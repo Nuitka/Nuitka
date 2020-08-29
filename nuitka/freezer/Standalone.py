@@ -587,9 +587,6 @@ def _detectBinaryPathDLLsPosix(dll_filename):
         _detected_python_rpath = getSharedLibraryRPATH(sys.executable) or False
 
         if _detected_python_rpath:
-            if str is not bytes:
-                _detected_python_rpath = _detected_python_rpath.decode("utf-8")
-
             _detected_python_rpath = _detected_python_rpath.replace(
                 "$ORIGIN", os.path.dirname(sys.executable)
             )
@@ -1356,7 +1353,12 @@ def getSharedLibraryRPATH(filename):
 
     for line in stdout.split(b"\n"):
         if b"RPATH" in line or b"RUNPATH" in line:
-            return line[line.find(b"[") + 1 : line.rfind(b"]")]
+            result = line[line.find(b"[") + 1 : line.rfind(b"]")]
+
+            if str is not bytes:
+                result = result.decode("utf-8")
+
+            return result
 
     return None
 
@@ -1366,7 +1368,9 @@ def removeSharedLibraryRPATH(filename):
 
     if rpath is not None:
         if Options.isShowInclusion():
-            inclusion_logger.info("Removing 'RPATH' setting from '%s'." % filename)
+            inclusion_logger.info(
+                "Removing 'RPATH' setting '%s' from '%s'." % (rpath, filename)
+            )
 
         if not Utils.isExecutableCommand("chrpath"):
             sys.exit(
