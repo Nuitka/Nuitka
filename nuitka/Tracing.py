@@ -205,6 +205,13 @@ class FileLogger(OurLogger):
             style = style or self.base_style
             self.my_print(message, style=style)
 
+    def debug(self, message, style=None):
+        if self.file_handle is not sys.stdout:
+            message = "%s:DEBUG: %s" % (self.name, message)
+
+            style = style or self.base_style
+            self.my_print(message, style=style)
+
 
 general = OurLogger("Nuitka")
 codegen_missing = OurLogger("Nuitka-codegen-missing")
