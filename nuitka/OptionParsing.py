@@ -825,6 +825,8 @@ def _considerPluginOptions():
 
 def parseOptions():
     # First, isolate the first non-option arguments.
+    extra_args = []
+
     if is_nuitka_run:
         count = 0
 
@@ -843,8 +845,6 @@ def parseOptions():
         if count > 0:
             extra_args = sys.argv[count + 1 :]
             sys.argv = sys.argv[0 : count + 1]
-    else:
-        extra_args = []
 
     # Next, lets activate plugins early, so they can inject more options to the parser.
     _considerPluginOptions()
