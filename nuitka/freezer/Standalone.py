@@ -601,6 +601,10 @@ def _detectBinaryPathDLLsPosix(dll_filename):
 
         stdout, _stderr = process.communicate()
 
+        inclusion_logger.debug(
+            "ldd output for %s is %s and %s" % (dll_filename, stdout, _stderr)
+        )
+
         for line in stdout.split(b"\n"):
             if not line:
                 continue
