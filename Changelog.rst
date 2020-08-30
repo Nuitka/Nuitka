@@ -1,14 +1,19 @@
 Nuitka Release 0.6.9 (Draft)
 ============================
 
-This release is not done yet.
+This releases contains important bug fixes for regressions of the 0.6.8 series
+which had relatively many problems. Not all of these could be addressed as
+hotfixes.
+
+There are also many general improvements and performance work for tracing and
+loops, but the full potential of this will not be unlocked with this release yet.
 
 Bug Fixes
 ---------
 
-- Fix, loop optimization could not determinate, effectively making Nuitka run
-  forever, with no indication why. This has been fixed and a mechanism to give
-  up after too many attempts has been added.
+- Fix, loop optimization sometimes didn't determinate, effectively making
+  Nuitka run forever, with no indication why. This has been fixed and a
+  mechanism to give up after too many attempts has been added.
 
 - Fix, closure taking object allowed a brief period where the garbage collector
   was exposed to uninitialized objects. Fixed in 0.6.8.1 already.
@@ -48,6 +53,24 @@ Bug Fixes
 - Standalone: The ``certifi`` data file is now supported for all modules using it
   and not only some.
 
+- Standalone: The bytecode for the standard library had filenames pointing to
+  the original installation attached. While these were not used, but replaced
+  at runtime, they increased the size of the binary, and leaked information.
+
+- Standalone: The path of ``sys.executable`` was not None, but pointing to the
+  original executable, which could also point to some temporary virtualenv
+  directory and therefore not exist, also it was leaking information about the
+  original install.
+
+- Windows: With the MSVC compiler, elimination of duplicate strings was not
+  active, causing even unused strings to be present in the binary, some of which
+  contained file paths of the Nuitka installation.
+
+- Standalone: Added support for pyglet.
+
+- Plugins: The command line handling for Pmw plugin was using wrong defaults,
+  making it include more code than necessary, and to crash if it was not there.
+
 New Features
 ------------
 
@@ -58,6 +81,15 @@ New Features
   automatically where possible, plus a report of the success is made. This can
   accelerate the re-compile very much, even if you have to go through Nuitka
   compilation itself, which is not (yet) cached.
+
+- Added new ``--quiet`` option that will disable informational traces that are
+  going to become more.
+
+- The Clang from MSVC installation is now picked up for both 32 and 64 bits and
+  follows the new location in latest Visual Studio 2019.
+
+- Windows: The ``ccache`` from Anaconda is now supported as well as the one
+  from msys64.
 
 Optimization
 ------------
@@ -72,11 +104,17 @@ Optimization
 - Windows: Prevent scons from scanning for MSVC when asked to use MinGW64. This
   avoids a performance loss doing something that will then end up being unused.
 
+- Windows: Use function level linking with MSVC, this will allow for smaller
+  binaries to be created, that don't have to include unused helper functions.
+
 Cleanups
 --------
 
 - The scons file now uses Nuitka utils functions and is itself split up into
   several modules for enhanced readability.
+
+- Plugin interfaces for providing extra entry points have been cleaned up and
+  now named tuples are used. Backward compatibility is maintained though.
 
 Organisational
 --------------
@@ -101,8 +139,28 @@ Summary
 
 The main focus of this release has been bug fixes with only a little
 performance work due to the large amount of regressions and other findings from
-the last release. Behind the scenes, we are preparating a re-implementation of
-the constants loading for major scalability improvements, but it's not ready yet.
+the last release.
+
+The new constants loading for removes a major scalability problem. The checked
+and now consistently possible use of ``ccache`` and ``clcache`` allows for much
+quicker recompilation. Nuitka itself can still be slow in some cases, but
+should have seen some improvements too. Scalability will have to remain a focus
+for the next releases too.
+
+The other focus, was to make the binaries contain no original path location,
+which is interesting for standalone mode. Nuitka should be very good in this
+area now.
+
+For optimization, the new loop code is again better. But it was also very time
+consuming, to redo it, yet again. This has prevented other optimization to be
+added.
+
+And then for correctness, the locals scope work, while very invasive, was
+necessary, to handle the usage of locals inside of contractions, but also will
+be instrumental for function inlining to become generally available.
+
+So, ultimately, this release is a necessary intermediate step. Upcoming
+releases will be able to focus more clearly on run time performance again.
 
 
 Nuitka Release 0.6.8
@@ -6708,7 +6766,7 @@ Cleanups
 - The ``dir`` built-in with no arguments is now re-formulated to ``locals`` or
   ``globals`` with their ``.keys()`` attribute taken.
 
-- Dramatic amounts of cleanups to code generation specialties, that got done
+- Dramatic amounts of cleanups to code generation specialities, that got done
   right for the new C-ish code generation.
 
 New Tests
