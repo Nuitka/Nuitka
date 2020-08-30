@@ -114,7 +114,9 @@ def _getCPythonResults(cpython_cmd):
     return cpython_time, stdout_cpython, stderr_cpython, exit_cpython
 
 
-def getCPythonResults(cpython_cmd, cpython_cached):
+def getCPythonResults(cpython_cmd, cpython_cached, force_update):
+    # Many details, pylint: disable=too-many-locals
+
     cached = False
     if cpython_cached:
         # TODO: Hashing stuff and creating cache filename is duplicate code
@@ -147,7 +149,7 @@ def getCPythonResults(cpython_cmd, cpython_cached):
             getTestingCPythonOutputsCacheDir(), command_hash.hexdigest()
         )
 
-        if os.path.exists(cache_filename):
+        if os.path.exists(cache_filename) and not force_update:
             with open(cache_filename, "rb") as cache_file:
                 (
                     cpython_time,
@@ -511,11 +513,11 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if comparison_mode:
         cpython_time, stdout_cpython, stderr_cpython, exit_cpython = getCPythonResults(
-            cpython_cmd=cpython_cmd, cpython_cached=cpython_cached
+            cpython_cmd=cpython_cmd, cpython_cached=cpython_cached, force_update=False
         )
 
-    if comparison_mode and not silent_mode:
-        displayOutput(stdout_cpython, stderr_cpython)
+        if not silent_mode:
+            displayOutput(stdout_cpython, stderr_cpython)
 
     if comparison_mode and not silent_mode:
         my_print("*" * 80)
@@ -640,26 +642,61 @@ Stderr was:
             assert not stderr_nuitka
 
     if comparison_mode:
-        exit_code_stdout = compareOutput(
-            "stdout", stdout_cpython, stdout_nuitka, ignore_warnings, syntax_errors
-        )
 
-        if ignore_stderr:
-            exit_code_stderr = 0
-        else:
-            exit_code_stderr = compareOutput(
-                "stderr", stderr_cpython, stderr_nuitka, ignore_warnings, syntax_errors
+        def makeComparisons(trace_result):
+            exit_code_stdout = compareOutput(
+                "stdout", stdout_cpython, stdout_nuitka, ignore_warnings, syntax_errors
             )
 
-        exit_code_return = exit_cpython != exit_nuitka
-
-        if exit_code_return:
-            my_print(
-                """\
-Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
-                    exit_cpython=exit_cpython, exit_nuitka=exit_nuitka
+            if ignore_stderr:
+                exit_code_stderr = 0
+            else:
+                exit_code_stderr = compareOutput(
+                    "stderr",
+                    stderr_cpython,
+                    stderr_nuitka,
+                    ignore_warnings,
+                    syntax_errors,
                 )
+
+            exit_code_return = exit_cpython != exit_nuitka
+
+            if exit_code_return and trace_result:
+                my_print(
+                    """Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
+                        exit_cpython=exit_cpython, exit_nuitka=exit_nuitka
+                    )
+                )
+
+            return exit_code_stdout, exit_code_stderr, exit_code_return
+
+        if cpython_cached:
+            exit_code_stdout, exit_code_stderr, exit_code_return = makeComparisons(
+                trace_result=False
             )
+            if exit_code_stdout or exit_code_stderr or exit_code_return:
+                my_print(
+                    "Updating CPython cache by force due to non-matching comparison results.",
+                    style="yellow",
+                )
+
+                (
+                    cpython_time,
+                    stdout_cpython,
+                    stderr_cpython,
+                    exit_cpython,
+                ) = getCPythonResults(
+                    cpython_cmd=cpython_cmd,
+                    cpython_cached=cpython_cached,
+                    force_update=True,
+                )
+
+                if not silent_mode:
+                    displayOutput(stdout_cpython, stderr_cpython)
+
+        exit_code_stdout, exit_code_stderr, exit_code_return = makeComparisons(
+            trace_result=True
+        )
 
         # In case of segfault, also output the call stack by entering debugger
         # without stdin forwarded.
