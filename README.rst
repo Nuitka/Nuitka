@@ -956,8 +956,8 @@ code:
 .. code-block:: python
 
     try:
-        raise ValueError, "range() step argument must not be zero"
-    except ValueError, e:
+        raise ValueError("range() step argument must not be zero")
+    except ValueError as e:
         print(e)
 
 Which then can be lowered in complexity by avoiding the raise and catch
