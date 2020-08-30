@@ -219,7 +219,9 @@ exceeded while calling a Python object' in \
     return result
 
 
-def compareOutput(kind, out_cpython, out_nuitka, ignore_warnings, syntax_errors):
+def compareOutput(
+    kind, out_cpython, out_nuitka, ignore_warnings, syntax_errors, trace_result=True
+):
     fromdate = ""
     todate = ""
 
@@ -236,8 +238,9 @@ def compareOutput(kind, out_cpython, out_nuitka, ignore_warnings, syntax_errors)
     result = list(diff)
 
     if result:
-        for line in result:
-            my_print(line, end="\n" if not line.startswith("---") else "")
+        if trace_result:
+            for line in result:
+                my_print(line, end="\n" if not line.startswith("---") else "")
 
         return 1
     else:
