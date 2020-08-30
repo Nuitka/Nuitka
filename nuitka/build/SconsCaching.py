@@ -390,6 +390,15 @@ def extractClcacheLogFromOutput(data):
             _writeClcacheLog(match.group(1), "cache miss")
             return data
 
-        assert False, (clcache_output, data)
+        match = re.search(
+            b"Compiler source files: \\['().*?)'\\]", clcache_output, re.S
+        )
+        if match:
+            _writeClcacheLog(match.group(1), "cache miss")
+            return data
+
+        # Sometimes no message at all might be recognized.
+        scons_logger.warning("Caching with clcache could not be decoded.")
+        return data
 
     return data
