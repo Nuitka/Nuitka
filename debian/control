@@ -18,6 +18,7 @@ Build-Depends: debhelper (>= 9),
                rst2pdf,
                base-files (>= 11) | python-pil | python-imaging,
                python3-pil | base-files (<< 11),
+               ccache,
                strace,
                chrpath,
                gdb | lldb
