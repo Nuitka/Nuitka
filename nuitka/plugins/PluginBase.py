@@ -31,6 +31,7 @@ import shutil
 import sys
 
 from nuitka import Options, OutputDirectories
+from nuitka.Errors import NuitkaPluginError
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Tracing import plugins_logger
@@ -152,12 +153,12 @@ class NuitkaPluginBase(object):
         """
         from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 
-        for item in self.getImplicitImports(module):
-            # TODO: Temporary, until all plugins are caught up, turn into an error later.
-            if type(item) in (tuple, list):
-                full_name, _required = item
-            else:
-                full_name = item
+        for full_name in self.getImplicitImports(module):
+            if type(full_name) in (tuple, list):
+                raise NuitkaPluginError(
+                    "Plugin %s needs to be change to only return modules names, not %r"
+                    % (self, full_name)
+                )
 
             full_name = ModuleName(full_name)
 
