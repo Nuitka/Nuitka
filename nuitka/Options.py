@@ -48,7 +48,7 @@ def parseArgs():
     else:
         logging.getLogger().setLevel(logging.INFO)
 
-    Tracing.is_quiet = options.quiet
+    Tracing.is_quiet = options.quiet or int(os.environ.get("NUITKA_QUIET", "0"))
 
     if options.verbose_output:
         Tracing.optimization_logger.setFileHandle(
