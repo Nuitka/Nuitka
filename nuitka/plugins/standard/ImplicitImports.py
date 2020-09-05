@@ -1505,6 +1505,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "IPython",  # Mostly unused, and a lot of modules.
         "wx._core",  # Too large generated code
         "pyVmomi.ServerObjects",  # Too large generated code
+        "pyglet.gl",  # Too large generated code
     )
 
     def decideCompilation(self, module_name, source_ref):
