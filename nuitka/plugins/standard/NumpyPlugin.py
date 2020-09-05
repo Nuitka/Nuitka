@@ -23,37 +23,13 @@ import shutil
 import sys
 
 from nuitka import Options
+from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import hasActivePlugin
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.utils import Execution
-from nuitka.utils.FileOperations import getFileList, makePath
+from nuitka.utils.FileOperations import getFileList, listDir, makePath
 from nuitka.utils.Utils import isWin32Windows
-
-# ------------------------------------------------------------------------------
-# The following code is largely inspired by PyInstaller hook_numpy.core.py
-# START
-# ------------------------------------------------------------------------------
-
-
-def getScipyCoreBinaries(module):
-    """Return binaries from the extra-dlls folder (Windows only)."""
-    binaries = []
-    scipy_dir = module.getCompileTimeDirectory()
-
-    for dll_dir_name in ("extra_dll", ".libs"):
-        dll_dir_path = os.path.join(scipy_dir, dll_dir_name)
-
-        if os.path.isdir(dll_dir_path):
-            netto_bins = os.listdir(dll_dir_path)
-            suffix_start = len(dll_dir_path) + 1  # this will put the files in dist root
-
-            for f in netto_bins:
-                if not f.endswith(".dll"):
-                    continue
-                binaries.append((os.path.join(dll_dir_path, f), suffix_start))
-
-    return binaries
 
 
 def getNumpyCoreBinaries(module):
@@ -112,11 +88,6 @@ def getNumpyCoreBinaries(module):
         binaries.append([os.path.join(lib_dir, f), suffix_start])
 
     return binaries
-
-
-# ------------------------------------------------------------------------------
-# END PyInstaller inspired code
-# ------------------------------------------------------------------------------
 
 
 def getMatplotlibRc():
@@ -275,21 +246,18 @@ Should matplotlib not be be included with numpy, Default is %default.""",
                 )
                 self.info(msg)
 
-        if not self.scipy_copied and full_name == "scipy":
+        if os.name == "nt" and not self.scipy_copied and full_name == "scipy":
+            # TODO: We are not getting called twice, are we?
+            assert not self.scipy_copied
             self.scipy_copied = True
 
-            binaries = getScipyCoreBinaries(module)
+            bin_total = 0
+            for entry_point in self._getScipyCoreBinaries(
+                scipy_dir=module.getCompileTimeDirectory()
+            ):
+                yield entry_point
+                bin_total += 1
 
-            for f in binaries:
-                bin_file, idx = f  # (filename, pos. prefix + 1)
-                back_end = bin_file[idx:]
-                tar_file = os.path.join(dist_dir, back_end)
-                makePath(  # create any missing intermediate folders
-                    os.path.dirname(tar_file)
-                )
-                shutil.copyfile(bin_file, tar_file)
-
-            bin_total = len(binaries)
             if bin_total > 0:
                 msg = "Copied %i %s from 'scipy' installation." % (
                     bin_total,
@@ -302,7 +270,23 @@ Should matplotlib not be be included with numpy, Default is %default.""",
             copyMplDataFiles(module, dist_dir)
             self.info("Copied 'matplotlib/mpl-data'.")
 
-        return ()
+    @staticmethod
+    def _getScipyCoreBinaries(scipy_dir):
+        """Return binaries from the extra-dlls folder (Windows only)."""
+
+        for dll_dir_name in ("extra_dll", ".libs"):
+            dll_dir_path = os.path.join(scipy_dir, dll_dir_name)
+
+            if os.path.isdir(dll_dir_path):
+                for source_path, source_filename in listDir(dll_dir_path):
+                    if source_filename.lower().endswith(".dll"):
+                        yield makeDllEntryPoint(
+                            source_path=source_path,
+                            dest_path=os.path.join(
+                                "scipy", dll_dir_name, source_filename
+                            ),
+                            package_name="scipy",
+                        )
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         # pylint: disable=too-many-branches,too-many-return-statements
