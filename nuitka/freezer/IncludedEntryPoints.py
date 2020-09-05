@@ -30,10 +30,44 @@ import shutil
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
 from nuitka.utils.FileOperations import makePath
 from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.ModuleNames import ModuleName
 
 IncludedEntryPoint = collections.namedtuple(
     "IncludedEntryPoint", ("kind", "source_path", "dest_path", "package_name")
 )
+
+
+# Since inheritance is not a thing with namedtuple, have factory functions
+def makeIncludedEntryPoint(
+    kind,
+    source_path,
+    dest_path,
+    package_name,
+):
+    if package_name is not None:
+        package_name = ModuleName(package_name)
+
+    return IncludedEntryPoint(kind, source_path, dest_path, package_name)
+
+
+def makeExecutableEntryPoint(source_path, dest_path):
+    return makeIncludedEntryPoint("executable", source_path, dest_path, None)
+
+
+def makeDllEntryPoint(source_path, dest_path, package_name):
+    # TODO: Get rid of makeDllEntryPointOld by doing this uniformly here.
+    dest_path = os.path.join(getStandaloneDirectoryPath(), dest_path)
+
+    return makeIncludedEntryPoint("dll", source_path, dest_path, package_name)
+
+
+def makeDllEntryPointOld(source_path, dest_path, package_name):
+    return makeIncludedEntryPoint("dll", source_path, dest_path, package_name)
+
+
+def makeExtensionModuleEntryPoint(source_path, dest_path, package_name):
+    return makeIncludedEntryPoint("shlib", source_path, dest_path, package_name)
+
 
 standalone_entry_points = []
 
@@ -43,11 +77,8 @@ def addIncludedEntryPoints(arg):
 
 
 def setMainEntryPoint(binary_filename):
-    entry_point = IncludedEntryPoint(
-        kind="executable",
-        source_path=binary_filename,
-        dest_path=binary_filename,
-        package_name=None,
+    entry_point = makeExecutableEntryPoint(
+        source_path=binary_filename, dest_path=binary_filename
     )
 
     standalone_entry_points.insert(0, entry_point)
@@ -67,8 +98,7 @@ def addShlibEntryPoint(module):
     shutil.copyfile(module.getFilename(), target_filename)
 
     standalone_entry_points.append(
-        IncludedEntryPoint(
-            kind="shlib",
+        makeExtensionModuleEntryPoint(
             source_path=module.getFilename(),
             dest_path=target_filename,
             package_name=module.getFullName().getPackageName(),

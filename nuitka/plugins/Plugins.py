@@ -29,6 +29,7 @@ The base class in PluginBase will serve as documentation of available.
 
 import os
 import pkgutil
+import shutil
 import sys
 from optparse import OptionGroup
 
@@ -38,9 +39,10 @@ from nuitka import Options
 from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
-from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
+from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import printLine
+from nuitka.utils.FileOperations import makePath
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -216,24 +218,27 @@ class Plugins(object):
             for extra_dll in plugin.considerExtraDlls(dist_dir, module):
                 # Backward compatibility with plugins not yet migrated to getExtraDlls usage.
                 if len(extra_dll) == 3:
-                    extra_dll = IncludedEntryPoint(
-                        kind="dll",
+                    extra_dll = makeDllEntryPointOld(
                         source_path=extra_dll[0],
                         dest_path=extra_dll[1],
                         package_name=extra_dll[2],
                     )
 
-                if not os.path.isfile(extra_dll.source_path):
-                    sys.exit(
-                        "Error, attempting to copy plugin determined filename %r for module %r that is not a file."
-                        % (extra_dll[0], module.getFullName())
-                    )
+                    if not os.path.isfile(extra_dll.dest_path):
+                        sys.exit(
+                            "Error, copied filename %r for module %r that is not a file."
+                            % (extra_dll.dest_path, module.getFullName())
+                        )
+                else:
+                    if not os.path.isfile(extra_dll.source_path):
+                        sys.exit(
+                            "Error, attempting to copy plugin determined filename %r for module %r that is not a file."
+                            % (extra_dll.source_path, module.getFullName())
+                        )
 
-                if not os.path.isfile(extra_dll.dest_path):
-                    sys.exit(
-                        "Error, copied filename %r for module %r that is not a file."
-                        % (extra_dll[1], module.getFullName())
-                    )
+                    makePath(os.path.dirname(extra_dll.dest_path))
+
+                    shutil.copyfile(extra_dll.source_path, extra_dll.dest_path)
 
                 result.append(extra_dll)
 

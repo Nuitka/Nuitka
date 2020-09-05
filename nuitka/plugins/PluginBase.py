@@ -502,9 +502,11 @@ class NuitkaPluginBase(object):
         Returns:
             tuple
         """
+        # TODO: This should no longer be here, as this API is obsolete, pylint: disable=unused-argument
+
         for included_entry_point in self.getExtraDlls(module):
             # Copy to the dist directory.
-            target_path = os.path.join(dist_dir, included_entry_point.dest_path)
+            target_path = (included_entry_point.dest_path,)
             shutil.copyfile(included_entry_point.source_path, target_path)
 
             yield included_entry_point

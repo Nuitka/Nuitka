@@ -214,7 +214,7 @@ def findModule(importing, module_name, parent_package, level, warn):
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=too-many-branches
 
-    assert type(module_name) is ModuleName
+    assert type(module_name) is ModuleName, module_name
 
     if _debug_module_finding:
         print(
