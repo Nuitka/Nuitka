@@ -112,12 +112,16 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
             to_name=dict_key_name, expression=pair.getKey(), emit=emit, context=context
         )
 
-    assert pairs
+    pairs_count = len(pairs)
+
+    # Empty dictionaries should not get to this function, but be constant value instead.
+    assert pairs_count > 0
+
+    # Unique per dictionary, they might be nested, but used for all of them.
+    dict_key_name = context.allocateTempName("dict_key")
+    dict_value_name = context.allocateTempName("dict_value")
 
     for count, pair in enumerate(pairs):
-        dict_key_name = context.allocateTempName("dict_key")
-        dict_value_name = context.allocateTempName("dict_value")
-
         # Strange as it is, CPython 3.5 and before evaluated the key/value pairs
         # strictly in order, but for each pair, the value first.
         if python_version < 350:
@@ -128,7 +132,7 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
             generateValueCode(dict_value_name, pair)
 
         if count == 0:
-            emit("%s = _PyDict_NewPresized( %d );" % (to_name, len(pairs)))
+            emit("%s = _PyDict_NewPresized( %d );" % (to_name, pairs_count))
 
             context.addCleanupTempName(to_name)
 
