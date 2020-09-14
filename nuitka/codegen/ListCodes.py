@@ -24,6 +24,7 @@ from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateChildExpressionsCode,
     generateExpressionCode,
+    withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
@@ -37,26 +38,34 @@ def generateListCreationCode(to_name, expression, emit, context):
     element_name = context.allocateTempName("list_element")
 
     with withObjectCodeTemporaryAssignment(
-        to_name, "list_extend_result", expression, emit, context
+        to_name, "list_result", expression, emit, context
     ) as result_name:
+        emit("%s = PyList_New(%d);" % (result_name, len(elements)))
 
-        for count, element in enumerate(elements):
-            generateExpressionCode(
-                to_name=element_name, expression=element, emit=emit, context=context
-            )
+        needs_exception_exit = any(
+            element.mayRaiseException(BaseException) for element in elements
+        )
 
-            # Delayed allocation of the list to store in.
-            if count == 0:
-                emit("%s = PyList_New(%d);" % (result_name, len(elements)))
+        with withCleanupFinally(
+            "list_build", result_name, needs_exception_exit, emit, context
+        ) as guarded_emit:
+            emit = guarded_emit.emit
 
-                context.addCleanupTempName(result_name)
+            for count, element in enumerate(elements):
+                generateExpressionCode(
+                    to_name=element_name, expression=element, emit=emit, context=context
+                )
 
-            if not context.needsCleanup(element_name):
-                emit("Py_INCREF(%s);" % element_name)
-            else:
-                context.removeCleanupTempName(element_name)
+                # Use helper that makes sure we provide a reference.
+                if context.needsCleanup(element_name):
+                    context.removeCleanupTempName(element_name)
+                    helper_code = "PyList_SET_ITEM"
+                else:
+                    helper_code = "PyList_SET_ITEM0"
 
-            emit("PyList_SET_ITEM(%s, %d, %s);" % (result_name, count, element_name))
+                emit(
+                    "%s(%s, %d, %s);" % (helper_code, result_name, count, element_name)
+                )
 
 
 def generateListOperationAppendCode(statement, emit, context):
@@ -124,7 +133,7 @@ def generateListOperationPopCode(to_name, expression, emit, context):
     emit("assert(PyList_Check(%s));" % list_arg_name)
 
     with withObjectCodeTemporaryAssignment(
-        to_name, "list_extend_result", expression, emit, context
+        to_name, "list_pop_result", expression, emit, context
     ) as result_name:
 
         # TODO: Have a dedicated helper instead, this could be more efficient.

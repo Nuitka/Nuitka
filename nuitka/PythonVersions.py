@@ -113,13 +113,25 @@ def getComplexCallSequenceErrorTemplate():
     return getComplexCallSequenceErrorTemplate.result
 
 
+_needs_set_literal_reverse_insertion = None
+
+
 def needsSetLiteralReverseInsertion():
-    try:
-        value = eval("{1,1.0}.pop()")  # pylint: disable=eval-used
-    except SyntaxError:
-        return False
-    else:
-        return type(value) is float
+    """ For Python3, until Python3.5 ca. the order of set literals was reversed.
+
+    """
+    # Cached result, pylint: disable=global-statement
+    global _needs_set_literal_reverse_insertion
+
+    if _needs_set_literal_reverse_insertion is None:
+        try:
+            value = eval("{1,1.0}.pop()")  # pylint: disable=eval-used
+        except SyntaxError:
+            _needs_set_literal_reverse_insertion = False
+        else:
+            _needs_set_literal_reverse_insertion = type(value) is float
+
+    return _needs_set_literal_reverse_insertion
 
 
 def needsDuplicateArgumentColOffset():
