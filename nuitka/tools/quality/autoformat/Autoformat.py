@@ -49,10 +49,10 @@ from nuitka.utils.Utils import getOS
 
 
 def cleanupWindowsNewlines(filename):
-    """ Remove Windows new-lines from a file.
+    """Remove Windows new-lines from a file.
 
-        Simple enough to not depend on external binary and used by
-        the doctest extractions of the CPython test suites.
+    Simple enough to not depend on external binary and used by
+    the doctest extractions of the CPython test suites.
     """
 
     with open(filename, "rb") as f:
@@ -67,9 +67,7 @@ def cleanupWindowsNewlines(filename):
 
 
 def _cleanupTrailingWhitespace(filename):
-    """ Remove trailing white spaces from a file.
-
-    """
+    """Remove trailing white spaces from a file."""
     with open(filename, "r") as f:
         source_lines = list(f)
 
@@ -172,9 +170,7 @@ def _cleanupPyLintComments(filename, abort):
 
 
 def _cleanupImportRelative(filename):
-    """ Make imports of Nuitka package when possible.
-
-    """
+    """Make imports of Nuitka package when possible."""
 
     # Avoid doing it for "__main__" packages, because for those the Visual Code
     # IDE doesn't like it and it may not run
@@ -247,12 +243,9 @@ def _cleanupImportSortOrder(filename):
                 "-q",  # quiet, but stdout is still garbage
                 "-ot",  # Order imports by type in addition to alphabetically
                 "-m3",  # "vert-hanging"
-                "-up",  # Prefer braces () over \ for line continuation.
                 "-tc",  # Trailing commas
                 "-p",  # make sure nuitka is first party package in import sorting.
                 "nuitka",
-                "-ns",  # Do not ignore those:
-                "__init__.py",
                 filename,
             ],
             stdout=devnull,
@@ -271,7 +264,7 @@ warned_clang_format = False
 
 
 def _cleanupClangFormat(filename):
-    """ Call clang-format on a given filename to format C code.
+    """Call clang-format on a given filename to format C code.
 
     Args:
         filename: What file to re-format.
@@ -281,18 +274,21 @@ def _cleanupClangFormat(filename):
     # the form of a module, pylint: disable=global-statement
     global warned_clang_format
 
-    clang_format_path = getExecutablePath("clang-format-8") or getExecutablePath(
-        "clang-format-7"
+    clang_format_path = (
+        getExecutablePath("clang-format-10")
+        or getExecutablePath("clang-format-9")
+        or getExecutablePath("clang-format-8")
+        or getExecutablePath("clang-format-7")
     )
 
-    # Extra ball on Windows, check default installation PATH too.
+    # Extra ball on Windows, check default installations paths in MSVC and LLVM too.
     if not clang_format_path and getOS() == "Windows":
         with withEnvironmentPathAdded(
             "PATH",
-            r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\Llvm\8.0.0\bin",
+            r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\Llvm\bin",
+            r"C:\Program Files\LLVM\bin",
         ):
-            with withEnvironmentPathAdded("PATH", r"C:\Program Files\LLVM\bin"):
-                clang_format_path = getExecutablePath("clang-format")
+            clang_format_path = getExecutablePath("clang-format")
 
     if clang_format_path:
         subprocess.call(
@@ -360,7 +356,7 @@ def _transferBOM(source_filename, target_filename):
 
 
 def autoformat(filename, git_stage, abort, effective_filename=None):
-    """ Format source code with external tools
+    """Format source code with external tools
 
     Args:
         filename: filename to work on
@@ -448,7 +444,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None):
 
         elif is_c:
             cleanupWindowsNewlines(tmp_filename)
-            _cleanupClangFormat(filename)
+            _cleanupClangFormat(tmp_filename)
             cleanupWindowsNewlines(tmp_filename)
         elif is_txt:
             cleanupWindowsNewlines(tmp_filename)

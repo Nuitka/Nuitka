@@ -107,7 +107,7 @@ def buildClassNode2(provider, node, source_ref):
         # The frame guard has nothing to tell its line number to.
         body.source_ref = source_ref.atInternal()
 
-    locals_scope = function_body.getFunctionLocalsScope()
+    locals_scope = function_body.getLocalsScope()
 
     # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained, and

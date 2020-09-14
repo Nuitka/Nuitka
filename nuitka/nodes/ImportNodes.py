@@ -54,10 +54,10 @@ from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
 
 
 class ExpressionImportModuleHard(ExpressionBase):
-    """ Hard coded import names, e.g. of "__future__"
+    """Hard coded import names, e.g. of "__future__"
 
-        These are directly created for some Python mechanics, but also due to
-        compile time optimization for imports of statically known modules.
+    These are directly created for some Python mechanics, but also due to
+    compile time optimization for imports of statically known modules.
     """
 
     kind = "EXPRESSION_IMPORT_MODULE_HARD"
@@ -94,9 +94,9 @@ class ExpressionImportModuleHard(ExpressionBase):
 
 
 class ExpressionImportModuleNameHard(ExpressionBase):
-    """ Hard coded import names, e.g. of "os.path.dirname"
+    """Hard coded import names, e.g. of "os.path.dirname"
 
-        These are directly created for some Python mechanics.
+    These are directly created for some Python mechanics.
     """
 
     kind = "EXPRESSION_IMPORT_MODULE_NAME_HARD"

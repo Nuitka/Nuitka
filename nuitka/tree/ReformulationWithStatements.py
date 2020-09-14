@@ -57,7 +57,9 @@ from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.PythonVersions import python_version
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
-from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNodeWithPublish
+from .ReformulationTryExceptStatements import (
+    makeTryExceptSingleHandlerNodeWithPublish,
+)
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildNode,

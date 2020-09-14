@@ -32,7 +32,7 @@ from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
-    makeExpressionBuiltinRef,
+    makeExpressionBuiltinTypeRef,
 )
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
@@ -275,6 +275,7 @@ def getCallableNameDescBody():
                     instance=ExpressionVariableRef(
                         variable=called_variable, source_ref=internal_source_ref
                     ),
+                    # TODO: This ought to be a constant value.
                     classes=ExpressionMakeTuple(
                         elements=tuple(
                             ExpressionBuiltinAnonymousRef(
@@ -359,14 +360,14 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
         non_tuple_code = makeStatementConditional(
             condition=ExpressionConditionalOr(
                 left=ExpressionAttributeCheck(
-                    object_arg=ExpressionVariableRef(
+                    expression=ExpressionVariableRef(
                         variable=star_list_variable, source_ref=internal_source_ref
                     ),
                     attribute_name="__iter__",
                     source_ref=internal_source_ref,
                 ),
                 right=ExpressionAttributeCheck(
-                    object_arg=ExpressionVariableRef(
+                    expression=ExpressionVariableRef(
                         variable=star_list_variable, source_ref=internal_source_ref
                     ),
                     attribute_name="__getitem__",
@@ -416,7 +417,7 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
                 ),
                 source_ref=internal_source_ref,
             ),
-            right=makeExpressionBuiltinRef(
+            right=makeExpressionBuiltinTypeRef(
                 builtin_name="tuple", source_ref=internal_source_ref
             ),
             source_ref=internal_source_ref,
@@ -619,7 +620,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
                 ),
                 source_ref=internal_source_ref,
             ),
-            right=makeExpressionBuiltinRef(
+            right=makeExpressionBuiltinTypeRef(
                 builtin_name="dict", source_ref=internal_source_ref
             ),
             source_ref=internal_source_ref,
@@ -973,7 +974,7 @@ def _makeStarDictArgumentMergeToKwStatement(
                 ),
                 source_ref=internal_source_ref,
             ),
-            right=makeExpressionBuiltinRef(
+            right=makeExpressionBuiltinTypeRef(
                 builtin_name="dict", source_ref=internal_source_ref
             ),
             source_ref=internal_source_ref,
@@ -1027,7 +1028,7 @@ def getFunctionCallHelperStarList():
         variable_name="star_arg_list"
     )
 
-    statements = (
+    body = makeStatementsSequenceFromStatements(
         _makeStarListArgumentToTupleStatement(
             called_variable=called_variable, star_list_variable=star_arg_list_variable
         ),
@@ -1046,25 +1047,7 @@ def getFunctionCallHelperStarList():
         ),
     )
 
-    final = (
-        StatementReleaseVariable(
-            variable=called_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=star_arg_list_variable, source_ref=internal_source_ref
-        ),
-    )
-
-    result.setBody(
-        makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
-                provider=result,
-                tried=statements,
-                final=final,
-                source_ref=internal_source_ref,
-            )
-        )
-    )
+    result.setBody(body)
 
     return result
 
@@ -1112,7 +1095,7 @@ def getFunctionCallHelperKeywordsStarList():
         variable_name="star_arg_list"
     )
 
-    statements = (
+    body = makeStatementsSequenceFromStatements(
         _makeStarListArgumentToTupleStatement(
             called_variable=called_variable, star_list_variable=star_arg_list_variable
         ),
@@ -1133,26 +1116,7 @@ def getFunctionCallHelperKeywordsStarList():
         ),
     )
 
-    final = (
-        StatementReleaseVariable(
-            variable=called_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(variable=kw_variable, source_ref=internal_source_ref),
-        StatementReleaseVariable(
-            variable=star_arg_list_variable, source_ref=internal_source_ref
-        ),
-    )
-
-    result.setBody(
-        makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
-                provider=result,
-                tried=statements,
-                final=final,
-                source_ref=internal_source_ref,
-            )
-        )
-    )
+    result.setBody(body)
 
     return result
 
@@ -1200,7 +1164,7 @@ def getFunctionCallHelperPosStarList():
         variable_name="star_arg_list"
     )
 
-    statements = (
+    body = makeStatementsSequenceFromStatements(
         _makeStarListArgumentToTupleStatement(
             called_variable=called_variable, star_list_variable=star_arg_list_variable
         ),
@@ -1226,28 +1190,7 @@ def getFunctionCallHelperPosStarList():
         ),
     )
 
-    final = (
-        StatementReleaseVariable(
-            variable=called_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=args_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=star_arg_list_variable, source_ref=internal_source_ref
-        ),
-    )
-
-    result.setBody(
-        makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
-                provider=result,
-                tried=statements,
-                final=final,
-                source_ref=internal_source_ref,
-            )
-        )
-    )
+    result.setBody(body)
 
     return result
 
@@ -1296,7 +1239,7 @@ def getFunctionCallHelperPosKeywordsStarList():
         variable_name="star_arg_list"
     )
 
-    statements = (
+    body = makeStatementsSequenceFromStatements(
         _makeStarListArgumentToTupleStatement(
             called_variable=called_variable, star_list_variable=star_arg_list_variable
         ),
@@ -1324,29 +1267,7 @@ def getFunctionCallHelperPosKeywordsStarList():
         ),
     )
 
-    final = (
-        StatementReleaseVariable(
-            variable=called_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=args_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(variable=kw_variable, source_ref=internal_source_ref),
-        StatementReleaseVariable(
-            variable=star_arg_list_variable, source_ref=internal_source_ref
-        ),
-    )
-
-    result.setBody(
-        makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
-                provider=result,
-                tried=statements,
-                final=final,
-                source_ref=internal_source_ref,
-            )
-        )
-    )
+    result.setBody(body)
 
     return result
 
@@ -1404,7 +1325,7 @@ def getFunctionCallHelperStarDict():
         variable_name="star_arg_dict"
     )
 
-    statements = (
+    body = makeStatementsSequenceFromStatements(
         _makeStarDictArgumentToDictStatement(
             result=result,
             called_variable=called_variable,
@@ -1425,25 +1346,7 @@ def getFunctionCallHelperStarDict():
         ),
     )
 
-    final = (
-        StatementReleaseVariable(
-            variable=called_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=star_arg_dict_variable, source_ref=internal_source_ref
-        ),
-    )
-
-    result.setBody(
-        makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
-                provider=result,
-                tried=statements,
-                final=final,
-                source_ref=internal_source_ref,
-            )
-        )
-    )
+    result.setBody(body)
 
     return result
 
@@ -1504,7 +1407,7 @@ def getFunctionCallHelperPosStarDict():
         variable_name="star_arg_dict"
     )
 
-    statements = (
+    body = makeStatementsSequenceFromStatements(
         _makeStarDictArgumentToDictStatement(
             result=result,
             called_variable=called_variable,
@@ -1527,28 +1430,7 @@ def getFunctionCallHelperPosStarDict():
         ),
     )
 
-    final = (
-        StatementReleaseVariable(
-            variable=called_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=args_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=star_arg_dict_variable, source_ref=internal_source_ref
-        ),
-    )
-
-    result.setBody(
-        makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
-                provider=result,
-                tried=statements,
-                final=final,
-                source_ref=internal_source_ref,
-            )
-        )
-    )
+    result.setBody(body)
 
     return result
 
@@ -1634,7 +1516,7 @@ def getFunctionCallHelperKeywordsStarDict():
         variable_name="star_arg_dict"
     )
 
-    statements = (
+    body = makeStatementsSequenceFromStatements(
         _makeStarDictArgumentMergeToKwStatement(
             result=result,
             called_variable=called_variable,
@@ -1656,26 +1538,7 @@ def getFunctionCallHelperKeywordsStarDict():
         ),
     )
 
-    final = (
-        StatementReleaseVariable(
-            variable=called_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(variable=kw_variable, source_ref=internal_source_ref),
-        StatementReleaseVariable(
-            variable=star_arg_dict_variable, source_ref=internal_source_ref
-        ),
-    )
-
-    result.setBody(
-        makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
-                provider=result,
-                tried=statements,
-                final=final,
-                source_ref=internal_source_ref,
-            )
-        )
-    )
+    result.setBody(body)
 
     return result
 
@@ -1763,7 +1626,7 @@ def getFunctionCallHelperPosKeywordsStarDict():
         variable_name="star_arg_dict"
     )
 
-    statements = (
+    body = makeStatementsSequenceFromStatements(
         _makeStarDictArgumentMergeToKwStatement(
             result=result,
             called_variable=called_variable,
@@ -1787,29 +1650,7 @@ def getFunctionCallHelperPosKeywordsStarDict():
         ),
     )
 
-    final = (
-        StatementReleaseVariable(
-            variable=called_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=args_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(variable=kw_variable, source_ref=internal_source_ref),
-        StatementReleaseVariable(
-            variable=star_arg_dict_variable, source_ref=internal_source_ref
-        ),
-    )
-
-    result.setBody(
-        makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
-                provider=result,
-                tried=statements,
-                final=final,
-                source_ref=internal_source_ref,
-            )
-        )
-    )
+    result.setBody(body)
 
     return result
 
@@ -1902,28 +1743,9 @@ def getFunctionCallHelperStarListStarDict():
         )
     )
 
-    final = (
-        StatementReleaseVariable(
-            variable=called_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=star_arg_list_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=star_arg_dict_variable, source_ref=internal_source_ref
-        ),
-    )
+    body = makeStatementsSequenceFromStatements(*statements)
 
-    result.setBody(
-        makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
-                provider=result,
-                tried=statements,
-                final=final,
-                source_ref=internal_source_ref,
-            )
-        )
-    )
+    result.setBody(body)
 
     return result
 
@@ -1995,31 +1817,9 @@ def getFunctionCallHelperPosStarListStarDict():
         )
     )
 
-    final = (
-        StatementReleaseVariable(
-            variable=called_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=args_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=star_arg_list_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=star_arg_dict_variable, source_ref=internal_source_ref
-        ),
-    )
+    body = makeStatementsSequenceFromStatements(*statements)
 
-    result.setBody(
-        makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
-                provider=result,
-                tried=statements,
-                final=final,
-                source_ref=internal_source_ref,
-            )
-        )
-    )
+    result.setBody(body)
 
     return result
 
@@ -2081,29 +1881,9 @@ def getFunctionCallHelperKeywordsStarListStarDict():
         )
     )
 
-    final = (
-        StatementReleaseVariable(
-            variable=called_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(variable=kw_variable, source_ref=internal_source_ref),
-        StatementReleaseVariable(
-            variable=star_arg_list_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=star_arg_dict_variable, source_ref=internal_source_ref
-        ),
-    )
+    body = makeStatementsSequenceFromStatements(*statements)
 
-    result.setBody(
-        makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
-                provider=result,
-                tried=statements,
-                final=final,
-                source_ref=internal_source_ref,
-            )
-        )
-    )
+    result.setBody(body)
 
     return result
 
@@ -2179,32 +1959,9 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         )
     )
 
-    final = (
-        StatementReleaseVariable(
-            variable=called_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=args_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(variable=kw_variable, source_ref=internal_source_ref),
-        StatementReleaseVariable(
-            variable=star_arg_list_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
-            variable=star_arg_dict_variable, source_ref=internal_source_ref
-        ),
-    )
+    body = makeStatementsSequenceFromStatements(*statements)
 
-    result.setBody(
-        makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
-                provider=result,
-                tried=statements,
-                final=final,
-                source_ref=internal_source_ref,
-            )
-        )
-    )
+    result.setBody(body)
 
     return result
 
@@ -2246,7 +2003,7 @@ def getFunctionCallHelperDictionaryUnpacking():
                     ),
                     source_ref=internal_source_ref,
                 ),
-                right=makeExpressionBuiltinRef(
+                right=makeExpressionBuiltinTypeRef(
                     builtin_name="str", source_ref=internal_source_ref
                 ),
                 source_ref=internal_source_ref,

@@ -18,7 +18,7 @@
 """ Utils for file and directory operations.
 
 This provides enhanced and more error resilient forms of standard
-stuff. It will also frequently add sorting.
+stuff. It will also frequently add sorting for determism.
 
 """
 
@@ -35,7 +35,7 @@ from .Utils import getOS
 
 # Locking seems to be only required for Windows mostly, but we can keep
 # it for all.
-file_lock = None
+file_lock = RLock()
 
 # Use this in case of dead locks or even to see file operations being done.
 _lock_tracing = False
@@ -43,11 +43,14 @@ _lock_tracing = False
 
 @contextmanager
 def withFileLock(reason="unknown"):
-    # This is a singleton, pylint: disable=global-statement
-    global file_lock
+    """Acquire file handling lock.
 
-    if file_lock is None:
-        file_lock = RLock()
+    Args:
+        reason: What is being done.
+
+    Notes: This is most relevant for Windows, but prevents concurrent access
+    from threads generally, which could lead to observing half ready things.
+    """
 
     if _lock_tracing:
         my_print(getThreadIdent(), "Want file lock for %s" % reason)
@@ -57,12 +60,11 @@ def withFileLock(reason="unknown"):
     yield
     if _lock_tracing:
         my_print(getThreadIdent(), "Released file lock for %s" % reason)
-    if file_lock is not None:
-        file_lock.release()
+    file_lock.release()
 
 
 def areSamePaths(path1, path2):
-    """ Decide if two paths the same.
+    """Decide if two paths the same.
 
     Args:
         path1: First path
@@ -87,7 +89,7 @@ def areSamePaths(path1, path2):
 
 
 def relpath(path, start="."):
-    """ Make it a relative path, if possible.
+    """Make it a relative path, if possible.
 
     Args:
         path: path to work on
@@ -116,7 +118,7 @@ def relpath(path, start="."):
 
 
 def makePath(path):
-    """ Create a directory if it doesn't exist.
+    """Create a directory if it doesn't exist.
 
     Args:
         path: path to create as a directory
@@ -133,7 +135,7 @@ def makePath(path):
 
 
 def listDir(path):
-    """ Give a sorted listing of a path.
+    """Give a sorted listing of a path.
 
     Args:
         path: directory to create a listing from
@@ -161,7 +163,7 @@ def listDir(path):
 
 
 def getFileList(path, ignore_dirs=(), ignore_suffixes=()):
-    """ Get all files below a given path.
+    """Get all files below a given path.
 
     Args:
         path: directory to create a recurseive listing from
@@ -197,7 +199,7 @@ def getFileList(path, ignore_dirs=(), ignore_suffixes=()):
 
 
 def getSubDirectories(path):
-    """ Get all directories below a given path.
+    """Get all directories below a given path.
 
     Args:
         path: directory to create a recurseive listing from
@@ -224,7 +226,7 @@ def getSubDirectories(path):
 
 
 def deleteFile(path, must_exist):
-    """ Delete a file, potentially making sure it exists.
+    """Delete a file, potentially making sure it exists.
 
     Args:
         path: file to delete
@@ -250,20 +252,22 @@ def splitPath(path):
 
 
 def hasFilenameExtension(path, extensions):
+    """ Has a filename one of the given extensions. """
+
     extension = os.path.splitext(os.path.normcase(path))[1]
 
     return extension in extensions
 
 
 def removeDirectory(path, ignore_errors):
-    """ Remove a directory recursively.
+    """Remove a directory recursively.
 
-        On Windows, it happens that operations fail, and succeed when reried,
-        so added a retry and small delay, then another retry. Should make it
-        much more stable during tests.
+    On Windows, it happens that operations fail, and succeed when reried,
+    so added a retry and small delay, then another retry. Should make it
+    much more stable during tests.
 
-        All kinds of programs that scan files might cause this, but they do
-        it hopefully only briefly.
+    All kinds of programs that scan files might cause this, but they do
+    it hopefully only briefly.
     """
 
     def onError(func, path, exc_info):
@@ -341,7 +345,7 @@ def renameFile(source_filename, dest_filename):
 
 
 def copyTree(source_path, dest_path):
-    """ Copy whole directory tree, preserving attributes.
+    """Copy whole directory tree, preserving attributes.
 
     Args:
         source_path: where to copy from
@@ -366,7 +370,7 @@ def isPathBelow(path, filename):
 
 
 def getWindowsShortPathName(filename):
-    """ Gets the short path name of a given long path.
+    """Gets the short path name of a given long path.
 
     Args:
         filename - long Windows filename
@@ -404,7 +408,7 @@ def getWindowsShortPathName(filename):
 
 
 def getExternalUsePath(filename, only_dirname=False):
-    """ Gets the externally usable absolute path for a given relative path.
+    """Gets the externally usable absolute path for a given relative path.
 
     Args:
         filename - filename, potentially relative
@@ -426,3 +430,25 @@ def getExternalUsePath(filename, only_dirname=False):
             filename = getWindowsShortPathName(filename)
 
     return filename
+
+
+def getLinkTarget(filename):
+    """Return the path a link is pointing too, if any.
+
+    Args:
+        filename - check this path, need not be a filename
+
+    Returns:
+        (bool, link_target) - first value indicates if it is a link, second the link target
+
+    Notes:
+        This follows symlinks to the very end.
+    """
+    is_link = False
+    while os.path.exists(filename) and os.path.islink(filename):
+        link_target = os.readlink(filename)
+
+        filename = os.path.join(os.path.dirname(filename), link_target)
+        is_link = True
+
+    return is_link, filename

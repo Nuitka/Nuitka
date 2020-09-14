@@ -186,10 +186,10 @@ class ExpressionCallEmpty(ExpressionChildHavingBase):
 
 
 def makeExpressionCall(called, args, kw, source_ref):
-    """ Make the most simple call node possible.
+    """Make the most simple call node possible.
 
-        By avoiding the more complex classes, we can achieve that there is
-        less work to do for analysis.
+    By avoiding the more complex classes, we can achieve that there is
+    less work to do for analysis.
     """
     has_kw = kw is not None and (
         not kw.isExpressionConstantRef() or kw.getConstant() != {}

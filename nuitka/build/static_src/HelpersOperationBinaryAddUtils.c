@@ -162,7 +162,29 @@ static PyObject *SLOT_sq_concat_OBJECT_LIST_LIST(PyObject *operand1, PyObject *o
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand2));
 
-    return LIST_CONCAT(operand1, operand2);
+    Py_ssize_t size = Py_SIZE(operand1) + Py_SIZE(operand2);
+
+    PyListObject *result = (PyListObject *)PyList_New(size);
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    PyObject **src = ((PyListObject *)operand1)->ob_item;
+    PyObject **dest = result->ob_item;
+
+    for (Py_ssize_t i = 0; i < Py_SIZE(operand1); i++) {
+        PyObject *v = src[i];
+        Py_INCREF(v);
+        dest[i] = v;
+    }
+    src = ((PyListObject *)operand2)->ob_item;
+    dest = result->ob_item + Py_SIZE(operand1);
+    for (Py_ssize_t i = 0; i < Py_SIZE(operand2); i++) {
+        PyObject *v = src[i];
+        Py_INCREF(v);
+        dest[i] = v;
+    }
+    return (PyObject *)result;
 }
 
 static nuitka_bool SLOT_sq_concat_NBOOL_LIST_LIST(PyObject *operand1, PyObject *operand2) {

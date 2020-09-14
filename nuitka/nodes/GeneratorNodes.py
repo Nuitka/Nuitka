@@ -59,7 +59,7 @@ class ExpressionMakeGeneratorObject(ExpressionChildHavingBase):
             self.getGeneratorRef().getFunctionBody().getClosureVariables()
         ):
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
-            trace.addClosureUsage()
+            trace.addNameUsage()
 
             self.variable_closure_traces.append((closure_variable, trace))
 
@@ -132,7 +132,9 @@ class StatementGeneratorReturn(StatementReturn):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         if expression.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import (
+                makeStatementExpressionOnlyReplacementNode,
+            )
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=expression, node=self

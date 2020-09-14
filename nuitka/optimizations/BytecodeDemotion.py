@@ -33,9 +33,7 @@ from nuitka.plugins.Plugins import Plugins
 
 
 def demoteCompiledModuleToBytecode(module):
-    """ Demote a compiled module to uncompiled (bytecode).
-
-    """
+    """Demote a compiled module to uncompiled (bytecode)."""
 
     full_name = module.getFullName()
     filename = module.getCompileTimeFilename()

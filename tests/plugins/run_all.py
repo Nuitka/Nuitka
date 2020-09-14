@@ -78,7 +78,7 @@ def main():
 
         filename = os.path.relpath(filename)
 
-        extra_flags = ["expect_success", "ignore_infos"]
+        extra_flags = ["expect_success"]
 
         # We annotate some tests, use that to lower warnings.
         extra_flags.append("plugin_enable:pylint-warnings")

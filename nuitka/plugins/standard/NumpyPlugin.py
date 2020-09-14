@@ -23,48 +23,17 @@ import shutil
 import sys
 
 from nuitka import Options
+from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.plugins.Plugins import getActivePlugins
+from nuitka.plugins.Plugins import hasActivePlugin
+from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.utils import Execution
-from nuitka.utils.FileOperations import getFileList, makePath
+from nuitka.utils.FileOperations import getFileList, listDir, makePath
 from nuitka.utils.Utils import isWin32Windows
-
-# ------------------------------------------------------------------------------
-# The following code is largely inspired by PyInstaller hook_numpy.core.py
-# START
-# ------------------------------------------------------------------------------
-
-
-def get_sys_prefix():
-    """ Return sys.prefix as guaranteed abspath format.
-    """
-    sys_prefix = getattr(sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix))
-    sys_prefix = os.path.abspath(sys_prefix)
-    return sys_prefix
-
-
-def getScipyCoreBinaries(module):
-    """ Return binaries from the extra-dlls folder (Windows only).
-    """
-    binaries = []
-    scipy_dir = module.getCompileTimeDirectory()
-    extra_dll = os.path.join(scipy_dir, "extra-dll")
-    if not os.path.isdir(extra_dll):
-        return binaries
-
-    netto_bins = os.listdir(extra_dll)
-    suffix_start = len(extra_dll) + 1  # this will put the files in dist root
-
-    for f in netto_bins:
-        if not f.endswith(".dll"):
-            continue
-        binaries.append((os.path.join(extra_dll, f), suffix_start))
-
-    return binaries
 
 
 def getNumpyCoreBinaries(module):
-    """ Return any binaries in numpy/core and/or numpy/.libs.
+    """Return any binaries in numpy/core and/or numpy/.libs.
 
     Notes:
         This covers the special cases like MKL binaries.
@@ -74,7 +43,7 @@ def getNumpyCoreBinaries(module):
     """
     numpy_dir = module.getCompileTimeDirectory()
     numpy_core_dir = os.path.join(numpy_dir, "core")
-    base_prefix = get_sys_prefix()
+    base_prefix = getSystemPrefixPath()
 
     binaries = []
 
@@ -119,11 +88,6 @@ def getNumpyCoreBinaries(module):
         binaries.append([os.path.join(lib_dir, f), suffix_start])
 
     return binaries
-
-
-# ------------------------------------------------------------------------------
-# END PyInstaller inspired code
-# ------------------------------------------------------------------------------
 
 
 def getMatplotlibRc():
@@ -190,7 +154,7 @@ def copyMplDataFiles(module, dist_dir):
 
 
 class NumpyPlugin(NuitkaPluginBase):
-    """ This class represents the main logic of the plugin.
+    """This class represents the main logic of the plugin.
 
     This is a plugin to ensure scripts using numpy, scipy, matplotlib, pandas,
     scikit-learn, etc. work well in standalone mode.
@@ -206,9 +170,9 @@ class NumpyPlugin(NuitkaPluginBase):
     plugin_name = "numpy"  # Nuitka knows us by this name
     plugin_desc = "Required for numpy, scipy, pandas, matplotlib, etc."
 
-    def __init__(self, matplotlib, scipy):
-        self.matplotlib = matplotlib
-        self.scipy = scipy
+    def __init__(self, include_matplotlib, include_scipy):
+        self.matplotlib = include_matplotlib
+        self.scipy = include_scipy
 
         self.enabled_plugins = None  # list of active standard plugins
         self.numpy_copied = False  # indicator: numpy files copied
@@ -219,36 +183,38 @@ class NumpyPlugin(NuitkaPluginBase):
         self.mpl_data_copied = True  # indicator: matplotlib data copied
         if self.matplotlib:
             self.mpl_data_copied = False
-            for p in getActivePlugins():
-                if p.plugin_name.endswith("hinted-mods.py"):
-                    break
-            else:
-                self.warning(
-                    "matplotlib may need hinted compilation for non-standard backends"
-                )
+
+    @classmethod
+    def isRelevant(cls):
+        """Check whether plugin might be required.
+
+        Returns:
+            True if this is a standalone compilation.
+        """
+        return Options.isStandaloneMode()
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
-            "--include-scipy",
-            action="store_true",
-            dest="scipy",
-            default=False,
+            "--noinclude-scipy",
+            action="store_false",
+            dest="include_scipy",
+            default=True,
             help="""\
-Should scipy be included with numpy, Default is %default.""",
+Should scipy, sklearn or skimage when used be not included with numpy, Default is %default.""",
         )
 
         group.add_option(
-            "--include-matplotlib",
-            action="store_true",
-            dest="matplotlib",
-            default=False,
+            "--noinclude-matplotlib",
+            action="store_false",
+            dest="include_matplotlib",
+            default=True,
             help="""\
-Should matplotlib be included with numpy, Default is %default.""",
+Should matplotlib not be be included with numpy, Default is %default.""",
         )
 
     def considerExtraDlls(self, dist_dir, module):
-        """ Copy extra shared libraries or data for this installation.
+        """Copy extra shared libraries or data for this installation.
 
         Args:
             dist_dir: the name of the program's dist folder
@@ -280,20 +246,18 @@ Should matplotlib be included with numpy, Default is %default.""",
                 )
                 self.info(msg)
 
-        if not self.scipy_copied and full_name == "scipy":
+        if os.name == "nt" and not self.scipy_copied and full_name == "scipy":
+            # TODO: We are not getting called twice, are we?
+            assert not self.scipy_copied
             self.scipy_copied = True
-            binaries = getScipyCoreBinaries(module)
 
-            for f in binaries:
-                bin_file, idx = f  # (filename, pos. prefix + 1)
-                back_end = bin_file[idx:]
-                tar_file = os.path.join(dist_dir, back_end)
-                makePath(  # create any missing intermediate folders
-                    os.path.dirname(tar_file)
-                )
-                shutil.copyfile(bin_file, tar_file)
+            bin_total = 0
+            for entry_point in self._getScipyCoreBinaries(
+                scipy_dir=module.getCompileTimeDirectory()
+            ):
+                yield entry_point
+                bin_total += 1
 
-            bin_total = len(binaries)
             if bin_total > 0:
                 msg = "Copied %i %s from 'scipy' installation." % (
                     bin_total,
@@ -306,7 +270,23 @@ Should matplotlib be included with numpy, Default is %default.""",
             copyMplDataFiles(module, dist_dir)
             self.info("Copied 'matplotlib/mpl-data'.")
 
-        return ()
+    @staticmethod
+    def _getScipyCoreBinaries(scipy_dir):
+        """Return binaries from the extra-dlls folder (Windows only)."""
+
+        for dll_dir_name in ("extra_dll", ".libs"):
+            dll_dir_path = os.path.join(scipy_dir, dll_dir_name)
+
+            if os.path.isdir(dll_dir_path):
+                for source_path, source_filename in listDir(dll_dir_path):
+                    if source_filename.lower().endswith(".dll"):
+                        yield makeDllEntryPoint(
+                            source_path=source_path,
+                            dest_path=os.path.join(
+                                "scipy", dll_dir_name, source_filename
+                            ),
+                            package_name="scipy",
+                        )
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         # pylint: disable=too-many-branches,too-many-return-statements
@@ -364,11 +344,8 @@ Should matplotlib be included with numpy, Default is %default.""",
         # some special handling for matplotlib:
         # depending on whether 'tk-inter' resp. 'qt-plugins' are enabled,
         # matplotlib backends are included.
-        if self.enabled_plugins is None:
-            self.enabled_plugins = Options.getPluginsEnabled()
-
         if self.matplotlib:
-            if "tk-inter" in self.enabled_plugins:
+            if hasActivePlugin("tk-inter"):
                 if module_name in (
                     "matplotlib.backends.backend_tk",
                     "matplotlib.backends.backend_tkagg",
@@ -376,7 +353,7 @@ Should matplotlib be included with numpy, Default is %default.""",
                 ):
                     return True, "Needed for tkinter backend"
 
-            if "qt-plugins" in self.enabled_plugins:
+            if hasActivePlugin("qt-plugins"):
                 if module_name.startswith("matplotlib.backends.backend_qt"):
                     return True, "Needed for Qt backend"
 
@@ -385,7 +362,7 @@ Should matplotlib be included with numpy, Default is %default.""",
 
 
 class NumpyPluginDetector(NuitkaPluginBase):
-    """ Only used if plugin is NOT activated.
+    """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
@@ -395,7 +372,7 @@ class NumpyPluginDetector(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        """ Check whether plugin might be required.
+        """Check whether plugin might be required.
 
         Returns:
             True if this is a standalone compilation.
@@ -403,7 +380,7 @@ class NumpyPluginDetector(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):
-        """ This method checks whether numpy is required.
+        """This method checks whether numpy is required.
 
         Notes:
             For this we check whether its first name part is numpy relevant.
@@ -412,7 +389,11 @@ class NumpyPluginDetector(NuitkaPluginBase):
         Returns:
             None
         """
-        if module.getFullName().hasOneOfNamespaces(
-            "numpy", "scipy", "skimage", "pandas", "matplotlib", "sklearn",
+        module_name = module.getFullName()
+        if module_name.hasOneOfNamespaces(
+            "numpy", "scipy", "skimage", "pandas", "matplotlib", "sklearn"
         ):
-            self.warnUnusedPlugin("Numpy support.")
+            self.warnUnusedPlugin(
+                "Numpy support for at least '%s'."
+                % module_name.getTopLevelPackageName()
+            )

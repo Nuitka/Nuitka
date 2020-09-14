@@ -83,7 +83,7 @@ from nuitka.nodes.BuiltinRangeNodes import (
 )
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
-    makeExpressionBuiltinRef,
+    makeExpressionBuiltinTypeRef,
 )
 from nuitka.nodes.BuiltinSumNodes import (
     ExpressionBuiltinSum1,
@@ -97,8 +97,10 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinFrozenset,
     ExpressionBuiltinList,
     ExpressionBuiltinSet,
-    ExpressionBuiltinStr,
+    ExpressionBuiltinStrP2,
+    ExpressionBuiltinStrP3,
     ExpressionBuiltinTuple,
+    ExpressionBuiltinUnicodeP2,
 )
 from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
 from nuitka.nodes.CallNodes import makeExpressionCall
@@ -146,7 +148,9 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
-from nuitka.tree.ReformulationTryFinallyStatements import makeTryFinallyStatement
+from nuitka.tree.ReformulationTryFinallyStatements import (
+    makeTryFinallyStatement,
+)
 from nuitka.tree.TreeHelpers import (
     makeCallNode,
     makeSequenceCreationOrConstant,
@@ -156,9 +160,11 @@ from nuitka.tree.TreeHelpers import (
 
 
 def dir_extractor(node):
+    locals_scope = node.subnode_called.getLocalsScope()
+
     def buildDirEmptyCase(source_ref):
         source = makeExpressionBuiltinLocals(
-            provider=node.getParentVariableProvider(), source_ref=source_ref
+            locals_scope=locals_scope, source_ref=source_ref
         )
 
         result = makeCallNode(
@@ -177,6 +183,7 @@ def dir_extractor(node):
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
+        # TODO: Needs locals_scope attached.
         builtin_class=ExpressionBuiltinDir1,
         builtin_spec=BuiltinParameterSpecs.builtin_dir_spec,
         empty_special_class=buildDirEmptyCase,
@@ -184,13 +191,16 @@ def dir_extractor(node):
 
 
 def vars_extractor(node):
+    locals_scope = node.subnode_called.getLocalsScope()
+
     def selectVarsEmptyClass(source_ref):
         return makeExpressionBuiltinLocals(
-            provider=node.getParentVariableProvider(), source_ref=source_ref
+            locals_scope=locals_scope, source_ref=source_ref
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
+        # TODO: Needs locals_cope attached
         builtin_class=ExpressionBuiltinVars,
         builtin_spec=BuiltinParameterSpecs.builtin_vars_spec,
         empty_special_class=selectVarsEmptyClass,
@@ -591,21 +601,22 @@ def complex_extractor(node):
 
 
 def str_extractor(node):
+    builtin_class = ExpressionBuiltinStrP2 if str is bytes else ExpressionBuiltinStrP3
+
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
-        builtin_class=ExpressionBuiltinStr,
-        builtin_spec=BuiltinParameterSpecs.builtin_str_spec,
+        builtin_class=builtin_class,
+        builtin_spec=builtin_class.builtin_spec,
     )
 
 
 if python_version < 300:
-    from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinUnicode
 
     def unicode_extractor(node):
         return BuiltinParameterSpecs.extractBuiltinArgs(
             node=node,
-            builtin_class=ExpressionBuiltinUnicode,
-            builtin_spec=BuiltinParameterSpecs.builtin_unicode_spec,
+            builtin_class=ExpressionBuiltinUnicodeP2,
+            builtin_spec=ExpressionBuiltinUnicodeP2.builtin_spec,
         )
 
 
@@ -635,7 +646,7 @@ else:
         return BuiltinParameterSpecs.extractBuiltinArgs(
             node=node,
             builtin_class=selectBytesBuiltin,
-            builtin_spec=BuiltinParameterSpecs.builtin_bytes_spec,
+            builtin_spec=BuiltinParameterSpecs.builtin_bytes_p3_spec,
             empty_special_class=makeBytes0,
         )
 
@@ -705,24 +716,19 @@ def globals_extractor(node):
 
 
 def locals_extractor(node):
-    # Note: Locals on the module level is really globals.
-    provider = node.getParentVariableProvider()
+    locals_scope = node.subnode_called.getLocalsScope()
 
     def makeLocalsNode(source_ref):
-        return makeExpressionBuiltinLocals(provider=provider, source_ref=source_ref)
+        return makeExpressionBuiltinLocals(
+            locals_scope=locals_scope, source_ref=source_ref
+        )
 
-    if provider.isCompiledPythonModule():
-        return BuiltinParameterSpecs.extractBuiltinArgs(
-            node=node,
-            builtin_class=ExpressionBuiltinGlobals,
-            builtin_spec=BuiltinParameterSpecs.builtin_globals_spec,
-        )
-    else:
-        return BuiltinParameterSpecs.extractBuiltinArgs(
-            node=node,
-            builtin_class=makeLocalsNode,
-            builtin_spec=BuiltinParameterSpecs.builtin_locals_spec,
-        )
+    # Note: Locals on the module level is really globals.
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=makeLocalsNode,
+        builtin_spec=BuiltinParameterSpecs.builtin_locals_spec,
+    )
 
 
 if python_version < 300:
@@ -851,7 +857,7 @@ def eval_extractor(node):
                         ),
                         source_ref=source_ref,
                     ),
-                    right=makeExpressionBuiltinRef(
+                    right=makeExpressionBuiltinTypeRef(
                         builtin_name="bytes", source_ref=source_ref
                     ),
                     source_ref=source_ref,
@@ -888,7 +894,7 @@ def eval_extractor(node):
 
         if python_version >= 270:
             acceptable_builtin_types.append(
-                makeExpressionBuiltinRef(
+                makeExpressionBuiltinTypeRef(
                     builtin_name="memoryview", source_ref=source_ref
                 )
             )
@@ -1385,9 +1391,7 @@ _builtin_white_list = (
 
 
 def _describeNewNode(builtin_name, inspect_node):
-    """ Describe the change for better understanding.
-
-    """
+    """Describe the change for better understanding."""
 
     if inspect_node.isExpressionSideEffects():
         inspect_node = inspect_node.getExpression()

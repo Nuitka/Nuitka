@@ -35,24 +35,11 @@ from nuitka.utils.Utils import getOS, isWin32Windows
 
 
 def remove_suffix(mod_dir, mod_name):
-    """Return the path of a module's first level name.
-
-    """
+    """Return the path of a module's first level name."""
     if mod_name not in mod_dir:
         return mod_dir
     p = mod_dir.find(mod_name) + len(mod_name)
     return mod_dir[:p]
-
-
-def remove_prefix(mod_dir, mod_name):
-    """Return the tail of a module's path.
-
-    Remove everything preceding the top level name.
-    """
-    if mod_name not in mod_dir:
-        return mod_dir
-    p = mod_dir.find(mod_name)
-    return mod_dir[p:]
 
 
 _added_pywin32 = False
@@ -73,25 +60,25 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
     @staticmethod
     def _getImportsByFullname(full_name, package_dir):
-        """ Provides names of modules to imported implicitly.
+        """Provides names of modules to imported implicitly.
 
         Notes:
             This methods works much like 'getImplicitImports', except that it
             accepts the search argument as a string. This allows callers to
             obtain results, which cannot provide a Nuitka module object.
         """
-        # Many variables, branches, due to the many cases, pylint: disable=line-too-long,too-many-branches,too-many-statements
+        # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
 
         elements = full_name.split(".")
         if elements[0] in ("PyQt4", "PyQt5"):
             if python_version < 300:
-                yield "atexit", True
+                yield "atexit"
 
             # These are alternatives now:
             # TODO: One day it should avoid including both.
-            yield "sip", False
+            yield "sip"
             if elements[0] == "PyQt5":
-                yield "PyQt5.sip", False
+                yield "PyQt5.sip"
 
             child = elements[1] if len(elements) > 1 else None
 
@@ -126,7 +113,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "_QOpenGLFunctions_2_1",
                 "_QOpenGLFunctions_4_1_Core",
             ):
-                yield elements[0] + ".QtCore", False
+                yield elements[0] + ".QtCore"
 
             if child in (
                 "QtDeclarative",
@@ -142,15 +129,15 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "QtWebSockets",
                 "QtWebEngineWidgets",
             ):
-                yield elements[0] + ".QtNetwork", False
+                yield elements[0] + ".QtNetwork"
 
             if child == "QtWebEngineWidgets":
-                yield elements[0] + ".QtWebEngineCore", False
-                yield elements[0] + ".QtWebChannel", False
-                yield elements[0] + ".QtPrintSupport", False
+                yield elements[0] + ".QtWebEngineCore"
+                yield elements[0] + ".QtWebChannel"
+                yield elements[0] + ".QtPrintSupport"
 
             if child == "QtScriptTools":
-                yield elements[0] + ".QtScript", False
+                yield elements[0] + ".QtScript"
 
             if child in (
                 "QtWidgets",
@@ -173,7 +160,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "_QOpenGLFunctions_2_1",
                 "_QOpenGLFunctions_4_1_Core",
             ):
-                yield elements[0] + ".QtGui", False
+                yield elements[0] + ".QtGui"
 
             if full_name in (
                 "PyQt5.QtDesigner",
@@ -187,281 +174,283 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "PyQt5.QtQuickWidgets",
                 "PyQt5.QtSql",
             ):
-                yield "PyQt5.QtWidgets", False
+                yield "PyQt5.QtWidgets"
 
             if full_name in ("PyQt5.QtPrintSupport",):
-                yield "PyQt5.QtSvg", False
+                yield "PyQt5.QtSvg"
 
             if full_name in ("PyQt5.QtWebKitWidgets",):
-                yield "PyQt5.QtWebKit", False
-                yield "PyQt5.QtPrintSupport", False
+                yield "PyQt5.QtWebKit"
+                yield "PyQt5.QtPrintSupport"
 
             if full_name in ("PyQt5.QtMultimediaWidgets",):
-                yield "PyQt5.QtMultimedia", False
+                yield "PyQt5.QtMultimedia"
 
             if full_name in ("PyQt5.QtQuick", "PyQt5.QtQuickWidgets"):
-                yield "PyQt5.QtQml", False
+                yield "PyQt5.QtQml"
 
             if full_name in ("PyQt5.QtQuickWidgets", "PyQt5.QtQml"):
-                yield "PyQt5.QtQuick", False
+                yield "PyQt5.QtQuick"
 
             if full_name == "PyQt5.Qt":
-                yield "PyQt5.QtCore", False
-                yield "PyQt5.QtDBus", False
-                yield "PyQt5.QtGui", False
-                yield "PyQt5.QtNetwork", False
-                yield "PyQt5.QtNetworkAuth", False
-                yield "PyQt5.QtSensors", False
-                yield "PyQt5.QtSerialPort", False
-                yield "PyQt5.QtMultimedia", False
-                yield "PyQt5.QtQml", False
-                yield "PyQt5.QtWidgets", False
+                yield "PyQt5.QtCore"
+                yield "PyQt5.QtDBus"
+                yield "PyQt5.QtGui"
+                yield "PyQt5.QtNetwork"
+                yield "PyQt5.QtNetworkAuth"
+                yield "PyQt5.QtSensors"
+                yield "PyQt5.QtSerialPort"
+                yield "PyQt5.QtMultimedia"
+                yield "PyQt5.QtQml"
+                yield "PyQt5.QtWidgets"
 
         elif full_name == "sip" and python_version < 300:
-            yield "enum", False
+            yield "enum"
 
         elif full_name == "PySide.QtDeclarative":
-            yield "PySide.QtGui", False
+            yield "PySide.QtGui"
         elif full_name == "PySide.QtHelp":
-            yield "PySide.QtGui", False
+            yield "PySide.QtGui"
         elif full_name == "PySide.QtOpenGL":
-            yield "PySide.QtGui", False
+            yield "PySide.QtGui"
         elif full_name == "PySide.QtScriptTools":
-            yield "PySide.QtScript", False
-            yield "PySide.QtGui", False
+            yield "PySide.QtScript"
+            yield "PySide.QtGui"
         elif full_name == "PySide.QtSql":
-            yield "PySide.QtGui", False
+            yield "PySide.QtGui"
         elif full_name == "PySide.QtSvg":
-            yield "PySide.QtGui", False
+            yield "PySide.QtGui"
         elif full_name == "PySide.QtTest":
-            yield "PySide.QtGui", False
+            yield "PySide.QtGui"
         elif full_name == "PySide.QtUiTools":
-            yield "PySide.QtGui", False
-            yield "PySide.QtXml", False
+            yield "PySide.QtGui"
+            yield "PySide.QtXml"
         elif full_name == "PySide.QtWebKit":
-            yield "PySide.QtGui", False
+            yield "PySide.QtGui"
         elif full_name == "PySide.phonon":
-            yield "PySide.QtGui", False
+            yield "PySide.QtGui"
 
         elif full_name == "lxml":
-            yield "lxml.builder", False
-            yield "lxml.etree", False
-            yield "lxml.objectify", False
-            yield "lxml.sax", False
-            yield "lxml._elementpath", False
+            yield "lxml.builder"
+            yield "lxml.etree"
+            yield "lxml.objectify"
+            yield "lxml.sax"
+            yield "lxml._elementpath"
 
         elif full_name == "lxml.etree":
-            yield "lxml._elementpath", False
+            yield "lxml._elementpath"
 
         elif full_name == "lxml.html":
-            yield "lxml.html.clean", False
-            yield "lxml.html.diff", False
-            yield "lxml.etree", False
+            yield "lxml.html.clean"
+            yield "lxml.html.diff"
+            yield "lxml.etree"
 
         elif full_name == "gtk._gtk":
-            yield "pangocairo", True
-            yield "pango", True
-            yield "cairo", True
-            yield "gio", True
-            yield "atk", True
+            yield "pangocairo"
+            yield "pango"
+            yield "cairo"
+            yield "gio"
+            yield "atk"
         elif full_name == "atk":
-            yield "gobject", True
+            yield "gobject"
         elif full_name == "gtkunixprint":
-            yield "gobject", True
-            yield "cairo", True
-            yield "gtk", True
+            yield "gobject"
+            yield "cairo"
+            yield "gtk"
         elif full_name == "pango":
-            yield "gobject", True
+            yield "gobject"
         elif full_name == "pangocairo":
-            yield "pango", True
-            yield "cairo", True
+            yield "pango"
+            yield "cairo"
         elif full_name == "reportlab.rl_config":
-            yield "reportlab.rl_settings", True
+            yield "reportlab.rl_settings"
         elif full_name == "socket":
-            yield "_socket", False
+            yield "_socket"
         elif full_name == "ctypes":
-            yield "_ctypes", True
+            yield "_ctypes"
         elif full_name == "gi._gi":
-            yield "gi._error", True
+            yield "gi._error"
         elif full_name == "gi._gi_cairo":
-            yield "cairo", True
+            yield "cairo"
         elif full_name == "cairo._cairo":
-            yield "gi._gobject", False
+            yield "gi._gobject"
         elif full_name in ("Tkinter", "tkinter"):
-            yield "_tkinter", False
+            yield "_tkinter"
         elif full_name in (
             "cryptography.hazmat.bindings._openssl",
             "cryptography.hazmat.bindings._constant_time",
             "cryptography.hazmat.bindings._padding",
         ):
-            yield "_cffi_backend", True
+            yield "_cffi_backend"
         elif full_name.startswith("cryptography._Cryptography_cffi_"):
-            yield "_cffi_backend", True
+            yield "_cffi_backend"
         elif full_name == "bcrypt._bcrypt":
-            yield "_cffi_backend", True
+            yield "_cffi_backend"
         elif full_name == "nacl._sodium":
-            yield "_cffi_backend", True
+            yield "_cffi_backend"
+        elif full_name == "brotli._brotli":
+            yield "_cffi_backend"
         elif full_name == "_dbus_glib_bindings":
-            yield "_dbus_bindings", True
+            yield "_dbus_bindings"
         elif full_name == "_mysql":
-            yield "_mysql_exceptions", True
+            yield "_mysql_exceptions"
         elif full_name == "lxml.objectify":
-            yield "lxml.etree", True
+            yield "lxml.etree"
         elif full_name == "_yaml":
-            yield "yaml", True
+            yield "yaml"
         elif full_name == "apt_inst":
-            yield "apt_pkg", True
+            yield "apt_pkg"
 
         # start of engineio imports ------------------------------------------
         elif full_name == "engineio":
-            yield "engineio.async_drivers", False
+            yield "engineio.async_drivers"
 
         elif full_name == "engineio.async_drivers":
-            yield "engineio.async_drivers.aiohttp", False
-            yield "engineio.async_drivers.asgi", False
-            yield "engineio.async_drivers.eventlet", False
-            yield "engineio.async_drivers.gevent", False
-            yield "engineio.async_drivers.gevent_uwsgi", False
-            yield "engineio.async_drivers.sanic", False
-            yield "engineio.async_drivers.threading", False
-            yield "engineio.async_drivers.tornado", False
+            yield "engineio.async_drivers.aiohttp"
+            yield "engineio.async_drivers.asgi"
+            yield "engineio.async_drivers.eventlet"
+            yield "engineio.async_drivers.gevent"
+            yield "engineio.async_drivers.gevent_uwsgi"
+            yield "engineio.async_drivers.sanic"
+            yield "engineio.async_drivers.threading"
+            yield "engineio.async_drivers.tornado"
 
         # start of eventlet imports ------------------------------------------
         elif full_name == "eventlet":
-            yield "eventlet.hubs", False
+            yield "eventlet.hubs"
 
         elif full_name == "eventlet.hubs":
-            yield "eventlet.hubs.epolls", False
-            yield "eventlet.hubs.hub", False
-            yield "eventlet.hubs.kqueue", False
-            yield "eventlet.hubs.poll", False
-            yield "eventlet.hubs.pyevent", False
-            yield "eventlet.hubs.selects", False
-            yield "eventlet.hubs.timer", False
+            yield "eventlet.hubs.epolls"
+            yield "eventlet.hubs.hub"
+            yield "eventlet.hubs.kqueue"
+            yield "eventlet.hubs.poll"
+            yield "eventlet.hubs.pyevent"
+            yield "eventlet.hubs.selects"
+            yield "eventlet.hubs.timer"
 
         # start of gevent imports --------------------------------------------
         elif full_name == "gevent":
-            yield "_cffi_backend", True
-            yield "gevent._config", True
-            yield "gevent.core", True
-            yield "gevent.resolver_thread", True
-            yield "gevent.resolver_ares", True
-            yield "gevent.socket", True
-            yield "gevent.threadpool", True
-            yield "gevent.thread", True
-            yield "gevent.threading", True
-            yield "gevent.select", True
-            yield "gevent.hub", True
-            yield "gevent.greenlet", True
-            yield "gevent.local", True
-            yield "gevent.event", True
-            yield "gevent.queue", True
-            yield "gevent.resolver", True
-            yield "gevent.subprocess", True
+            yield "_cffi_backend"
+            yield "gevent._config"
+            yield "gevent.core"
+            yield "gevent.resolver_thread"
+            yield "gevent.resolver_ares"
+            yield "gevent.socket"
+            yield "gevent.threadpool"
+            yield "gevent.thread"
+            yield "gevent.threading"
+            yield "gevent.select"
+            yield "gevent.hub"
+            yield "gevent.greenlet"
+            yield "gevent.local"
+            yield "gevent.event"
+            yield "gevent.queue"
+            yield "gevent.resolver"
+            yield "gevent.subprocess"
             if getOS() == "Windows":
-                yield "gevent.libuv", True
+                yield "gevent.libuv"
             else:
-                yield "gevent.libev", True
+                yield "gevent.libev"
 
         elif full_name == "gevent.hub":
-            yield "gevent._hub_primitives", True
-            yield "gevent._greenlet_primitives", True
-            yield "gevent._hub_local", True
-            yield "gevent._waiter", True
-            yield "gevent._util", True
-            yield "gevent._ident", True
-            yield "gevent.exceptions", True
+            yield "gevent._hub_primitives"
+            yield "gevent._greenlet_primitives"
+            yield "gevent._hub_local"
+            yield "gevent._waiter"
+            yield "gevent._util"
+            yield "gevent._ident"
+            yield "gevent.exceptions"
 
         elif full_name == "gevent.libev":
-            yield "gevent.libev.corecext", True
-            yield "gevent.libev.corecffi", True
-            yield "gevent.libev.watcher", True
+            yield "gevent.libev.corecext"
+            yield "gevent.libev.corecffi"
+            yield "gevent.libev.watcher"
 
         elif full_name == "gevent.libuv":
-            yield "gevent._interfaces", True
-            yield "gevent._ffi", True
-            yield "gevent.libuv.loop", True
-            yield "gevent.libuv.watcher", True
+            yield "gevent._interfaces"
+            yield "gevent._ffi"
+            yield "gevent.libuv.loop"
+            yield "gevent.libuv.watcher"
 
         elif full_name == "gevent.libuv.loop":
-            yield "gevent.libuv._corecffi", True
-            yield "gevent._interfaces", True
+            yield "gevent.libuv._corecffi"
+            yield "gevent._interfaces"
 
         elif full_name == "gevent._ffi":
-            yield "gevent._ffi.loop", True
-            yield "gevent._ffi.callback", True
-            yield "gevent._ffi.watcher", True
+            yield "gevent._ffi.loop"
+            yield "gevent._ffi.callback"
+            yield "gevent._ffi.watcher"
 
         elif full_name == "gevent._waiter":
-            yield "gevent.__waiter", True
+            yield "gevent.__waiter"
 
         elif full_name == "gevent._hub_local":
-            yield "gevent.__hub_local", True
-            yield "gevent.__greenlet_primitives", True
+            yield "gevent.__hub_local"
+            yield "gevent.__greenlet_primitives"
 
         elif full_name == "gevent._hub_primitives":
-            yield "gevent.__hub_primitives", True
+            yield "gevent.__hub_primitives"
 
         elif full_name == "gevent.greenlet":
-            yield "gevent._hub_local", True
-            yield "gevent._greenlet", True
+            yield "gevent._hub_local"
+            yield "gevent._greenlet"
 
         elif full_name == "gevent._greenlet":
-            yield "gevent.__ident", True
+            yield "gevent.__ident"
 
         elif full_name == "gevent.monkey":
-            yield "gevent.builtins", True
-            yield "gevent.time", True
-            yield "gevent.local", True
-            yield "gevent.ssl", True
-            yield "gevent.events", True
+            yield "gevent.builtins"
+            yield "gevent.time"
+            yield "gevent.local"
+            yield "gevent.ssl"
+            yield "gevent.events"
 
         elif full_name == "gevent.resolver":
-            yield "gevent.resolver.blocking", True
-            yield "gevent.resolver.cares", True
-            yield "gevent.resolver.thread", True
+            yield "gevent.resolver.blocking"
+            yield "gevent.resolver.cares"
+            yield "gevent.resolver.thread"
 
         elif full_name == "gevent._semaphore":
-            yield "gevent._abstract_linkable", True
-            yield "gevent.__semaphore", True
+            yield "gevent._abstract_linkable"
+            yield "gevent.__semaphore"
 
         elif full_name == "gevent._abstract_linkable":
-            yield "gevent.__abstract_linkable", True
+            yield "gevent.__abstract_linkable"
 
         elif full_name == "gevent.local":
-            yield "gevent._local", True
+            yield "gevent._local"
 
         elif full_name == "gevent.event":
-            yield "gevent._event", True
+            yield "gevent._event"
 
         elif full_name == "gevent.queue":
-            yield "gevent._queue", True
+            yield "gevent._queue"
 
         elif full_name == "gevent.pool":
-            yield "gevent._imap", True
+            yield "gevent._imap"
 
         elif full_name == "gevent._imap":
-            yield "gevent.__imap", True
+            yield "gevent.__imap"
         # end of gevent imports ----------------------------------------------
 
         # start of tensorflow imports ----------------------------------------
         elif full_name == "tensorflow":
-            yield "tensorboard", False
-            yield "tensorflow_estimator", False
+            yield "tensorboard"
+            yield "tensorflow_estimator"
 
         elif full_name == "tensorflow.python":
-            yield "tensorflow.python._pywrap_tensorflow_internal", True
-            yield "tensorflow.python.ops", False
-            yield "tensorflow.python.ops.cond_v2", False
+            yield "tensorflow.python._pywrap_tensorflow_internal"
+            yield "tensorflow.python.ops"
+            yield "tensorflow.python.ops.cond_v2"
 
         elif full_name == "tensorflow.lite.python.interpreter_wrapper":
-            yield "tensorflow.lite.python.interpreter_wrapper._tensorflow_wrap_interpreter_wrapper", False
+            yield "tensorflow.lite.python.interpreter_wrapper._tensorflow_wrap_interpreter_wrapper"
 
         elif full_name == "tensorflow.lite.python.optimize":
-            yield "tensorflow.lite.python.optimize._tensorflow_lite_wrap_calibration_wrapper", False
+            yield "tensorflow.lite.python.optimize._tensorflow_lite_wrap_calibration_wrapper"
 
         elif full_name == "tensorflow.lite.toco.python":
-            yield "tensorflow.lite.toco.python._tensorflow_wrap_toco", False
+            yield "tensorflow.lite.toco.python._tensorflow_wrap_toco"
 
         # the remaining entries are relevant non-Windows platforms only
         elif elements[0] == "tensorflow" and getOS() != "Windows":
@@ -469,602 +458,607 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 full_name
                 == "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal"
             ):
-                yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal._api_implementation", False
+                yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal._api_implementation"
 
             elif (
                 full_name
                 == "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext"
             ):
-                yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext._message", False
+                yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext._message"
 
             elif full_name == "tensorflow.python.framework":
-                yield "tensorflow.python.framework.fast_tensor_util", False
+                yield "tensorflow.python.framework.fast_tensor_util"
 
             elif full_name == "tensorflow.compiler.tf2tensorrt":
-                yield "tensorflow.compiler.tf2tensorrt._wrap_py_utils", False
+                yield "tensorflow.compiler.tf2tensorrt._wrap_py_utils"
 
             elif full_name == "tensorflow.compiler.tf2tensorrt.python.ops":
-                yield "tensorflow.compiler.tf2tensorrt.python.ops.libtftrt", False
+                yield "tensorflow.compiler.tf2tensorrt.python.ops.libtftrt"
 
             elif full_name == "tensorflow.compiler.tf2xla.ops":
-                yield "tensorflow.compiler.tf2xla.ops._xla_ops", False
+                yield "tensorflow.compiler.tf2xla.ops._xla_ops"
 
             elif full_name == "tensorflow.contrib.tensor_forest":
-                yield "tensorflow.contrib.tensor_forest.libforestprotos", False
+                yield "tensorflow.contrib.tensor_forest.libforestprotos"
 
             elif full_name == "tensorflow.contrib.tensor_forest.python.ops":
-                yield "tensorflow.contrib.tensor_forest.python.ops._model_ops", False
-                yield "tensorflow.contrib.tensor_forest.python.ops._stats_ops", False
-                yield "tensorflow.contrib.tensor_forest.python.ops._tensor_forest_ops", False
+                yield "tensorflow.contrib.tensor_forest.python.ops._model_ops"
+                yield "tensorflow.contrib.tensor_forest.python.ops._stats_ops"
+                yield "tensorflow.contrib.tensor_forest.python.ops._tensor_forest_ops"
 
             elif full_name == "tensorflow.contrib.tensor_forest.hybrid.python.ops":
-                yield "tensorflow.contrib.tensor_forest.hybrid.python.ops._training.ops", False
+                yield "tensorflow.contrib.tensor_forest.hybrid.python.ops._training.ops"
 
             elif full_name == "tensorflow.contrib.resampler.python.ops":
-                yield "tensorflow.contrib.resampler.python.ops._resampler_ops", False
+                yield "tensorflow.contrib.resampler.python.ops._resampler_ops"
 
             elif full_name == "tensorflow.contrib.nearest_neighbor.python.ops":
-                yield "tensorflow.contrib.nearest_neighbor.python.ops._nearest_neighbor_ops", False
+                yield "tensorflow.contrib.nearest_neighbor.python.ops._nearest_neighbor_ops"
 
             elif full_name == "tensorflow.contrib.ignite":
-                yield "tensorflow.contrib.ignite._ignite_ops", False
+                yield "tensorflow.contrib.ignite._ignite_ops"
 
             elif full_name == "tensorflow.contrib.kinesis":
-                yield "tensorflow.contrib.kinesis._dataset_ops", False
+                yield "tensorflow.contrib.kinesis._dataset_ops"
 
             elif full_name == "tensorflow.contrib.ffmpeg":
-                yield "tensorflow.contrib.ffmpeg.ffmpeg", False
+                yield "tensorflow.contrib.ffmpeg.ffmpeg"
 
             elif full_name == "tensorflow.contrib.framework.python.ops":
-                yield "tensorflow.contrib.framework.python.ops._variable_ops", False
+                yield "tensorflow.contrib.framework.python.ops._variable_ops"
 
             elif full_name == "tensorflow.contrib.text.python.ops":
-                yield "tensorflow.contrib.text.python.ops._skip_gram_ops", False
+                yield "tensorflow.contrib.text.python.ops._skip_gram_ops"
 
             elif full_name == "tensorflow.contrib.reduce_slice_ops.python.ops":
-                yield "tensorflow.contrib.reduce_slice_ops.python.ops._reduce_slice_ops", False
+                yield "tensorflow.contrib.reduce_slice_ops.python.ops._reduce_slice_ops"
 
             elif full_name == "tensorflow.contrib.periodic_resample.python.ops":
-                yield "tensorflow.contrib.periodic_resample.python.ops._periodic_resample_op", False
+                yield "tensorflow.contrib.periodic_resample.python.ops._periodic_resample_op"
 
             elif full_name == "tensorflow.contrib.memory_stats.python.ops":
-                yield "tensorflow.contrib.memory_stats.python.ops._memory_stats_ops", False
+                yield "tensorflow.contrib.memory_stats.python.ops._memory_stats_ops"
 
             elif full_name == "tensorflow.contrib.libsvm.python.ops":
-                yield "tensorflow.contrib.libsvm.python.ops._libsvm_ops", False
+                yield "tensorflow.contrib.libsvm.python.ops._libsvm_ops"
 
             elif full_name == "tensorflow.contrib.fused_conv.python.ops":
-                yield "tensorflow.contrib.fused_conv.python.ops._fused_conv2d_bias_activation_op", False
+                yield "tensorflow.contrib.fused_conv.python.ops._fused_conv2d_bias_activation_op"
 
             elif full_name == "tensorflow.contrib.kafka":
-                yield "tensorflow.contrib.kafka._dataset_ops", False
+                yield "tensorflow.contrib.kafka._dataset_ops"
 
             elif full_name == "tensorflow.contrib.hadoop":
-                yield "tensorflow.contrib.hadoop._dataset_ops", False
+                yield "tensorflow.contrib.hadoop._dataset_ops"
 
             elif full_name == "tensorflow.contrib.seq2seq.python.ops":
-                yield "tensorflow.contrib.seq2seq.python.ops._beam_search_ops", False
+                yield "tensorflow.contrib.seq2seq.python.ops._beam_search_ops"
 
             elif full_name == "tensorflow.contrib.rpc.python.kernel_tests":
-                yield "tensorflow.contrib.rpc.python.kernel_tests.libtestexample", False
+                yield "tensorflow.contrib.rpc.python.kernel_tests.libtestexample"
 
             elif full_name == "tensorflow.contrib.boosted_trees.python.ops":
-                yield "tensorflow.contrib.boosted_trees.python.ops._boosted_trees_ops", False
+                yield "tensorflow.contrib.boosted_trees.python.ops._boosted_trees_ops"
 
             elif full_name == "tensorflow.contrib.layers.python.ops":
-                yield "tensorflow.contrib.layers.python.ops._sparse_feature_cross_op", False
+                yield "tensorflow.contrib.layers.python.ops._sparse_feature_cross_op"
 
             elif full_name == "tensorflow.contrib.image.python.ops":
-                yield "tensorflow.contrib.image.python.ops._distort_image_ops", False
-                yield "tensorflow.contrib.image.python.ops._image_ops", False
-                yield "tensorflow.contrib.image.python.ops._single_image_random_dot_stereograms", False
+                yield "tensorflow.contrib.image.python.ops._distort_image_ops"
+                yield "tensorflow.contrib.image.python.ops._image_ops"
+                yield "tensorflow.contrib.image.python.ops._single_image_random_dot_stereograms"
 
             elif full_name == "tensorflow.contrib.factorization.python.ops":
-                yield "tensorflow.contrib.factorization.python.ops._factorization_ops", False
+                yield "tensorflow.contrib.factorization.python.ops._factorization_ops"
 
             elif full_name == "tensorflow.contrib.input_pipeline.python.ops":
-                yield "tensorflow.contrib.input_pipeline.python.ops._input_pipeline_ops", False
+                yield "tensorflow.contrib.input_pipeline.python.ops._input_pipeline_ops"
 
             elif full_name == "tensorflow.contrib.rnn.python.ops":
-                yield "tensorflow.contrib.rnn.python.ops._gru_ops", False
-                yield "tensorflow.contrib.rnn.python.ops._lstm_ops", False
+                yield "tensorflow.contrib.rnn.python.ops._gru_ops"
+                yield "tensorflow.contrib.rnn.python.ops._lstm_ops"
 
             elif full_name == "tensorflow.contrib.bigtable.python.ops":
-                yield "tensorflow.contrib.bigtable.python.ops._bigtable", False
+                yield "tensorflow.contrib.bigtable.python.ops._bigtable"
         # end of tensorflow imports -------------------------------------------
 
         # boto3 imports ------------------------------------------------------
         elif full_name == "boto3":
-            yield "boto3.ec2", False
-            yield "boto3.ec2.createtags", False
-            yield "boto3.ec2.deletetags", False
-            yield "boto3.dynamodb", False
-            yield "boto3.s3", False
-            yield "boto3.s3.inject", False
-            yield "boto3.s3.transfer", False
+            yield "boto3.ec2"
+            yield "boto3.ec2.createtags"
+            yield "boto3.ec2.deletetags"
+            yield "boto3.dynamodb"
+            yield "boto3.s3"
+            yield "boto3.s3.inject"
+            yield "boto3.s3.transfer"
 
         # GDAL imports ------------------------------------------------------
         elif full_name == "osgeo":
-            yield "osgeo._gdal", False
-            yield "osgeo._gdalconst", False
-            yield "osgeo._gdal_array", False
-            yield "osgeo._gnm", False
-            yield "osgeo._ogr", False
-            yield "osgeo._osr", False
+            yield "osgeo._gdal"
+            yield "osgeo._gdalconst"
+            yield "osgeo._gdal_array"
+            yield "osgeo._gnm"
+            yield "osgeo._ogr"
+            yield "osgeo._osr"
 
         # OpenCV imports ------------------------------------------------------
         elif full_name == "cv2":
-            yield "numpy", True
-            yield "numpy.core", True
+            yield "numpy"
+            yield "numpy.core"
 
         # fastapi imports ---------------------------------------------------
         elif full_name == "fastapi":
-            yield "fastapi.routing", True
+            yield "fastapi.routing"
 
         # pydantic imports ---------------------------------------------------
         elif full_name == "pydantic":
-            yield "pydantic.typing", False
-            yield "pydantic.fields", False
-            yield "pydantic.utils", False
-            yield "pydantic.schema", False
-            yield "pydantic.env_settings", False
-            yield "pydantic.main", False
-            yield "pydantic.error_wrappers", False
-            yield "pydantic.validators", False
-            yield "pydantic.mypy", False
-            yield "pydantic.version", False
-            yield "pydantic.types", False
-            yield "pydantic.color", False
-            yield "pydantic.parse", False
-            yield "pydantic.json", False
-            yield "pydantic.datetime_parse", False
-            yield "pydantic.dataclasses", False
-            yield "pydantic.class_validators", False
-            yield "pydantic.networks", False
-            yield "pydantic.errors", False
+            yield "pydantic.typing"
+            yield "pydantic.fields"
+            yield "pydantic.utils"
+            yield "pydantic.schema"
+            yield "pydantic.env_settings"
+            yield "pydantic.main"
+            yield "pydantic.error_wrappers"
+            yield "pydantic.validators"
+            yield "pydantic.mypy"
+            yield "pydantic.version"
+            yield "pydantic.types"
+            yield "pydantic.color"
+            yield "pydantic.parse"
+            yield "pydantic.json"
+            yield "pydantic.datetime_parse"
+            yield "pydantic.dataclasses"
+            yield "pydantic.class_validators"
+            yield "pydantic.networks"
+            yield "pydantic.errors"
 
         # uvicorn imports -----------------------------------------------------
         elif full_name == "uvicorn":
-            yield "uvicorn.loops", False
-            yield "uvicorn.lifespan", False
-            yield "uvicorn.protocols", False
+            yield "uvicorn.loops"
+            yield "uvicorn.lifespan"
+            yield "uvicorn.protocols"
         elif full_name == "uvicorn.config":
-            yield "uvicorn.logging", False
+            yield "uvicorn.logging"
         elif full_name == "uvicorn.lifespan":
-            yield "uvicorn.lifespan.off", False
-            yield "uvicorn.lifespan.on", False
+            yield "uvicorn.lifespan.off"
+            yield "uvicorn.lifespan.on"
         elif full_name == "uvicorn.loops":
-            yield "uvicorn.loops.auto", False
-            yield "uvicorn.loops.uvloop", False
+            yield "uvicorn.loops.auto"
+            yield "uvicorn.loops.uvloop"
         elif full_name == "uvicorn.protocols":
-            yield "uvicorn.protocols.http", False
-            yield "uvicorn.protocols.websockets", False
+            yield "uvicorn.protocols.http"
+            yield "uvicorn.protocols.websockets"
         elif full_name == "uvicorn.protocols.http":
-            yield "uvicorn.protocols.http.auto", False
-            yield "uvicorn.protocols.http.h11_impl", False
-            yield "uvicorn.protocols.http.httptools_impl", False
+            yield "uvicorn.protocols.http.auto"
+            yield "uvicorn.protocols.http.h11_impl"
+            yield "uvicorn.protocols.http.httptools_impl"
         elif full_name == "uvicorn.protocols.websockets":
-            yield "uvicorn.protocols.websockets.auto", False
-            yield "uvicorn.protocols.websockets.websockets_impl", False
-            yield "uvicorn.protocols.websockets.wsproto_impl", False
+            yield "uvicorn.protocols.websockets.auto"
+            yield "uvicorn.protocols.websockets.websockets_impl"
+            yield "uvicorn.protocols.websockets.wsproto_impl"
 
         # vtk imports -----------------------------------------------------
         elif full_name == "vtkmodules":
-            yield "vtkmodules.all", False
-            yield "vtkmodules.util", False
+            yield "vtkmodules.all"
+            yield "vtkmodules.util"
 
         elif full_name == "vtkmodules.util":
-            yield "vtkmodules.util.misc", False
-            yield "vtkmodules.util.numpy_support", False
-            yield "vtkmodules.util.vtkAlgorithm", False
-            yield "vtkmodules.util.vtkConstants", False
-            yield "vtkmodules.util.vtkImageExportToArray", False
-            yield "vtkmodules.util.vtkImageImportFromArray", False
-            yield "vtkmodules.util.vtkMethodParser", False
-            yield "vtkmodules.util.vtkVariant", False
+            yield "vtkmodules.util.misc"
+            yield "vtkmodules.util.numpy_support"
+            yield "vtkmodules.util.vtkAlgorithm"
+            yield "vtkmodules.util.vtkConstants"
+            yield "vtkmodules.util.vtkImageExportToArray"
+            yield "vtkmodules.util.vtkImageImportFromArray"
+            yield "vtkmodules.util.vtkMethodParser"
+            yield "vtkmodules.util.vtkVariant"
 
         elif full_name == "vtkmodules.qt":
-            yield "vtkmodules.qt.QVTKRenderWindowInteractor", False
+            yield "vtkmodules.qt.QVTKRenderWindowInteractor"
 
         elif full_name == "vtkmodules.tk":
-            yield "vtkmodules.tk.vtkLoadPythonTkWidgets", False
-            yield "vtkmodules.tk.vtkTkImageViewerWidget", False
-            yield "vtkmodules.tk.vtkTkPhotoImage", False
-            yield "vtkmodules.tk.vtkTkRenderWidget", False
-            yield "vtkmodules.tk.vtkTkRenderWindowInteractor", False
+            yield "vtkmodules.tk.vtkLoadPythonTkWidgets"
+            yield "vtkmodules.tk.vtkTkImageViewerWidget"
+            yield "vtkmodules.tk.vtkTkPhotoImage"
+            yield "vtkmodules.tk.vtkTkRenderWidget"
+            yield "vtkmodules.tk.vtkTkRenderWindowInteractor"
 
         elif full_name == "vtkmodules.wx":
-            yield "vtkmodules.wx.wxVTKRenderWindow", False
-            yield "vtkmodules.wx.wxVTKRenderWindowInteractor", False
+            yield "vtkmodules.wx.wxVTKRenderWindow"
+            yield "vtkmodules.wx.wxVTKRenderWindowInteractor"
 
         # chainer imports -----------------------------------------------------
         elif full_name == "chainer":
-            yield "chainer.distributions", False
-            yield "chainer.distributions.utils", False
+            yield "chainer.distributions"
+            yield "chainer.distributions.utils"
 
         elif full_name == "chainer.distributions":
-            yield "chainer.distributions.utils", False
+            yield "chainer.distributions.utils"
 
         # numpy imports -------------------------------------------------------
         elif full_name == "numpy":
-            yield "numpy._mklinit", False
-            yield "numpy.compat", False
-            yield "numpy.lib", False
-            yield "numpy.linalg", False
-            yield "numpy.fft", False
-            yield "numpy.polynomial", False
-            yield "numpy.random", False
-            yield "numpy.ctypeslib", False
-            yield "numpy.ma", False
-            yield "numpy.matrixlib", False
+            yield "numpy._mklinit"
+            yield "numpy.compat"
+            yield "numpy.lib"
+            yield "numpy.linalg"
+            yield "numpy.fft"
+            yield "numpy.polynomial"
+            yield "numpy.random"
+            yield "numpy.ctypeslib"
+            yield "numpy.ma"
+            yield "numpy.matrixlib"
 
         elif full_name == "numpy.core":
-            yield "numpy.core._dtype_ctypes", False
-            yield "numpy.core._multiarray_tests", False
+            yield "numpy.core._dtype_ctypes"
+            yield "numpy.core._multiarray_tests"
 
         elif full_name == "numpy.random":
             # These are post-1.18 names. TODO: Once we detect versions of packages, be proper selective here.
-            yield "numpy.random._bit_generator", False
-            yield "numpy.random._bounded_integers", False
-            yield "numpy.random._common", False
-            yield "numpy.random._generator", False
-            yield "numpy.random._mt19937", False
-            yield "numpy.random._pcg64", False
-            yield "numpy.random._philox", False
-            yield "numpy.random._sfc64", False
+            yield "numpy.random._bit_generator"
+            yield "numpy.random._bounded_integers"
+            yield "numpy.random._common"
+            yield "numpy.random._generator"
+            yield "numpy.random._mt19937"
+            yield "numpy.random._pcg64"
+            yield "numpy.random._philox"
+            yield "numpy.random._sfc64"
 
             # These are pre-1.18 names
-            yield "numpy.random.bit_generator", False
-            yield "numpy.random.bounded_integers", False
-            yield "numpy.random.common", False
-            yield "numpy.random.generator", False
-            yield "numpy.random.mt19937", False
-            yield "numpy.random.pcg64", False
-            yield "numpy.random.philox", False
-            yield "numpy.random.sfc64", False
+            yield "numpy.random.bit_generator"
+            yield "numpy.random.bounded_integers"
+            yield "numpy.random.common"
+            yield "numpy.random.generator"
+            yield "numpy.random.mt19937"
+            yield "numpy.random.pcg64"
+            yield "numpy.random.philox"
+            yield "numpy.random.sfc64"
 
             # TODO: Clarify if entropy is needed for 1.18 or at all.
-            yield "numpy.random.entropy", False
-            yield "numpy.random.mtrand", False
+            yield "numpy.random.entropy"
+            yield "numpy.random.mtrand"
 
         # matplotlib imports --------------------------------------------------
         elif full_name == "matplotlib":
-            yield "matplotlib.backend_managers", True
-            yield "matplotlib.backend_bases", True
-            yield "mpl_toolkits", False
+            yield "matplotlib.backend_managers"
+            yield "matplotlib.backend_bases"
+            yield "mpl_toolkits"
 
         elif full_name == "matplotlib.backends":
-            yield "matplotlib.backends._backend_agg", False
-            yield "matplotlib.backends._tkagg", False
-            yield "matplotlib.backends.backend_tkagg", False
-            yield "matplotlib.backends.backend_agg", False
+            yield "matplotlib.backends._backend_agg"
+            yield "matplotlib.backends._tkagg"
+            yield "matplotlib.backends.backend_tkagg"
+            yield "matplotlib.backends.backend_agg"
 
         elif full_name.startswith("matplotlib.backends.backend_wx"):
-            yield "matplotlib.backends.backend_wx", True
-            yield "matplotlib.backends.backend_wxagg", True
-            yield "wx", True
+            yield "matplotlib.backends.backend_wx"
+            yield "matplotlib.backends.backend_wxagg"
+            yield "wx"
 
         elif full_name == "matplotlib.backends.backend_cairo":
-            yield "cairo", False
-            yield "cairocffi", False
+            yield "cairo"
+            yield "cairocffi"
 
         elif full_name.startswith("matplotlib.backends.backend_gtk3"):
-            yield "matplotlib.backends.backend_gtk3", True
-            yield "matplotlib.backends.backend_gtk3agg", True
-            yield "gi", True
+            yield "matplotlib.backends.backend_gtk3"
+            yield "matplotlib.backends.backend_gtk3agg"
+            yield "gi"
 
         elif full_name.startswith("matplotlib.backends.backend_web"):
-            yield "matplotlib.backends.backend_webagg", True
-            yield "matplotlib.backends.backend_webagg_core", True
-            yield "tornado", True
+            yield "matplotlib.backends.backend_webagg"
+            yield "matplotlib.backends.backend_webagg_core"
+            yield "tornado"
 
         elif full_name.startswith("matplotlib.backends.backend_qt4"):
-            yield "matplotlib.backends.backend_qt4agg", True
-            yield "matplotlib.backends.backend_qt4", True
-            yield "PyQt4", True
+            yield "matplotlib.backends.backend_qt4agg"
+            yield "matplotlib.backends.backend_qt4"
+            yield "PyQt4"
 
         elif full_name.startswith("matplotlib.backends.backend_qt5"):
-            yield "matplotlib.backends.backend_qt5agg", True
-            yield "matplotlib.backends.backend_qt5", True
-            yield "PyQt5", True
+            yield "matplotlib.backends.backend_qt5agg"
+            yield "matplotlib.backends.backend_qt5"
+            yield "PyQt5"
 
         # scipy imports -------------------------------------------------------
+        elif full_name == "scipy.stats._stats":
+            yield "scipy.special.cython_special"
         elif full_name == "scipy.special":
-            yield "scipy.special._ufuncs_cxx", False
+            yield "scipy.special._ufuncs_cxx"
         elif full_name == "scipy.linalg":
-            yield "scipy.linalg.cython_blas", False
-            yield "scipy.linalg.cython_lapack", False
+            yield "scipy.linalg.cython_blas"
+            yield "scipy.linalg.cython_lapack"
         elif full_name == "scipy.sparse.csgraph":
-            yield "scipy.sparse.csgraph._validation", False
+            yield "scipy.sparse.csgraph._validation"
         elif full_name == "scipy._lib":
-            yield "scipy._lib.messagestream", False
+            yield "scipy._lib.messagestream"
 
         # scipy imports -------------------------------------------------------
         elif full_name == "statsmodels.nonparametric":
-            yield "statsmodels.nonparametric.linbin", False
-            yield "statsmodels.nonparametric._smoothers_lowess", False
+            yield "statsmodels.nonparametric.linbin"
+            yield "statsmodels.nonparametric._smoothers_lowess"
 
         elif full_name == "statsmodels.tsa":
-            yield "statsmodels.tsa._exponential_smoothers", False
+            yield "statsmodels.tsa._exponential_smoothers"
 
         elif full_name == "statsmodels.tsa.innovations":
-            yield "statsmodels.tsa.innovations._arma_innovations", False
+            yield "statsmodels.tsa.innovations._arma_innovations"
 
         elif full_name == "statsmodels.tsa.kalmanf":
-            yield "statsmodels.tsa.kalmanf.kalman_loglike", False
+            yield "statsmodels.tsa.kalmanf.kalman_loglike"
 
         elif full_name == "statsmodels.tsa.regime_switching":
-            yield "statsmodels.tsa.regime_switching._hamilton_filter", False
-            yield "statsmodels.tsa.regime_switching._kim_smoother", False
+            yield "statsmodels.tsa.regime_switching._hamilton_filter"
+            yield "statsmodels.tsa.regime_switching._kim_smoother"
 
         elif full_name == "statsmodels.tsa.statespace":
-            yield "statsmodels.tsa.statespace._filters", False
-            yield "statsmodels.tsa.statespace._initialization", False
-            yield "statsmodels.tsa.statespace._kalman_filter", False
-            yield "statsmodels.tsa.statespace._kalman_smoother", False
-            yield "statsmodels.tsa.statespace._representation", False
-            yield "statsmodels.tsa.statespace._simulation_smoother", False
-            yield "statsmodels.tsa.statespace._smoothers", False
-            yield "statsmodels.tsa.statespace._tools", False
+            yield "statsmodels.tsa.statespace._filters"
+            yield "statsmodels.tsa.statespace._initialization"
+            yield "statsmodels.tsa.statespace._kalman_filter"
+            yield "statsmodels.tsa.statespace._kalman_smoother"
+            yield "statsmodels.tsa.statespace._representation"
+            yield "statsmodels.tsa.statespace._simulation_smoother"
+            yield "statsmodels.tsa.statespace._smoothers"
+            yield "statsmodels.tsa.statespace._tools"
 
         elif full_name == "statsmodels.tsa.statespace._filters":
-            yield "statsmodels.tsa.statespace._filters._conventional", False
-            yield "statsmodels.tsa.statespace._filters._inversions", False
-            yield "statsmodels.tsa.statespace._filters._univariate", False
-            yield "statsmodels.tsa.statespace._filters._univariate_diffuse", False
+            yield "statsmodels.tsa.statespace._filters._conventional"
+            yield "statsmodels.tsa.statespace._filters._inversions"
+            yield "statsmodels.tsa.statespace._filters._univariate"
+            yield "statsmodels.tsa.statespace._filters._univariate_diffuse"
 
         elif full_name == "statsmodels.tsa.statespace._smoothers":
-            yield "statsmodels.tsa.statespace._smoothers._alternative", False
-            yield "statsmodels.tsa.statespace._smoothers._classical", False
-            yield "statsmodels.tsa.statespace._smoothers._conventional", False
-            yield "statsmodels.tsa.statespace._smoothers._univariate", False
-            yield "statsmodels.tsa.statespace._smoothers._univariate_diffuse", False
+            yield "statsmodels.tsa.statespace._smoothers._alternative"
+            yield "statsmodels.tsa.statespace._smoothers._classical"
+            yield "statsmodels.tsa.statespace._smoothers._conventional"
+            yield "statsmodels.tsa.statespace._smoothers._univariate"
+            yield "statsmodels.tsa.statespace._smoothers._univariate_diffuse"
 
         # pywt imports -----------------------------------------------
         elif full_name == "pywt":
-            yield "pywt._extensions", False
+            yield "pywt._extensions"
         elif full_name == "pywt._extensions":
-            yield "pywt._extensions._cwt", False
-            yield "pywt._extensions._dwt", False
-            yield "pywt._extensions._pywt", False
-            yield "pywt._extensions._swt", False
+            yield "pywt._extensions._cwt"
+            yield "pywt._extensions._dwt"
+            yield "pywt._extensions._pywt"
+            yield "pywt._extensions._swt"
 
         # imageio imports -----------------------------------------------
         elif full_name == "imageio":
-            yield "PIL.BlpImagePlugin", False
-            yield "PIL.BmpImagePlugin", False
-            yield "PIL.BufrStubImagePlugin", False
-            yield "PIL.CurImagePlugin", False
-            yield "PIL.DcxImagePlugin", False
-            yield "PIL.DdsImagePlugin", False
-            yield "PIL.EpsImagePlugin", False
-            yield "PIL.FitsStubImagePlugin", False
-            yield "PIL.FliImagePlugin", False
-            yield "PIL.FpxImagePlugin", False
-            yield "PIL.FtexImagePlugin", False
-            yield "PIL.GbrImagePlugin", False
-            yield "PIL.GifImagePlugin", False
-            yield "PIL.GribStubImagePlugin", False
-            yield "PIL.Hdf5StubImagePlugin", False
-            yield "PIL.IcnsImagePlugin", False
-            yield "PIL.IcoImagePlugin", False
-            yield "PIL.ImImagePlugin", False
-            yield "PIL.ImtImagePlugin", False
-            yield "PIL.IptcImagePlugin", False
-            yield "PIL.Jpeg2KImagePlugin", False
-            yield "PIL.JpegImagePlugin", False
-            yield "PIL.McIdasImagePlugin", False
-            yield "PIL.MicImagePlugin", False
-            yield "PIL.MpegImagePlugin", False
-            yield "PIL.MpoImagePlugin", False
-            yield "PIL.MspImagePlugin", False
-            yield "PIL.PalmImagePlugin", False
-            yield "PIL.PcdImagePlugin", False
-            yield "PIL.PcxImagePlugin", False
-            yield "PIL.PdfImagePlugin", False
-            yield "PIL.PixarImagePlugin", False
-            yield "PIL.PngImagePlugin", False
-            yield "PIL.PpmImagePlugin", False
-            yield "PIL.PsdImagePlugin", False
-            yield "PIL.SgiImagePlugin", False
-            yield "PIL.SpiderImagePlugin", False
-            yield "PIL.SunImagePlugin", False
-            yield "PIL.TgaImagePlugin", False
-            yield "PIL.TiffImagePlugin", False
-            yield "PIL.WebPImagePlugin", False
-            yield "PIL.WmfImagePlugin", False
-            yield "PIL.XbmImagePlugin", False
-            yield "PIL.XpmImagePlugin", False
-            yield "PIL.XVThumbImagePlugin", False
+            yield "PIL.BlpImagePlugin"
+            yield "PIL.BmpImagePlugin"
+            yield "PIL.BufrStubImagePlugin"
+            yield "PIL.CurImagePlugin"
+            yield "PIL.DcxImagePlugin"
+            yield "PIL.DdsImagePlugin"
+            yield "PIL.EpsImagePlugin"
+            yield "PIL.FitsStubImagePlugin"
+            yield "PIL.FliImagePlugin"
+            yield "PIL.FpxImagePlugin"
+            yield "PIL.FtexImagePlugin"
+            yield "PIL.GbrImagePlugin"
+            yield "PIL.GifImagePlugin"
+            yield "PIL.GribStubImagePlugin"
+            yield "PIL.Hdf5StubImagePlugin"
+            yield "PIL.IcnsImagePlugin"
+            yield "PIL.IcoImagePlugin"
+            yield "PIL.ImImagePlugin"
+            yield "PIL.ImtImagePlugin"
+            yield "PIL.IptcImagePlugin"
+            yield "PIL.Jpeg2KImagePlugin"
+            yield "PIL.JpegImagePlugin"
+            yield "PIL.McIdasImagePlugin"
+            yield "PIL.MicImagePlugin"
+            yield "PIL.MpegImagePlugin"
+            yield "PIL.MpoImagePlugin"
+            yield "PIL.MspImagePlugin"
+            yield "PIL.PalmImagePlugin"
+            yield "PIL.PcdImagePlugin"
+            yield "PIL.PcxImagePlugin"
+            yield "PIL.PdfImagePlugin"
+            yield "PIL.PixarImagePlugin"
+            yield "PIL.PngImagePlugin"
+            yield "PIL.PpmImagePlugin"
+            yield "PIL.PsdImagePlugin"
+            yield "PIL.SgiImagePlugin"
+            yield "PIL.SpiderImagePlugin"
+            yield "PIL.SunImagePlugin"
+            yield "PIL.TgaImagePlugin"
+            yield "PIL.TiffImagePlugin"
+            yield "PIL.WebPImagePlugin"
+            yield "PIL.WmfImagePlugin"
+            yield "PIL.XbmImagePlugin"
+            yield "PIL.XpmImagePlugin"
+            yield "PIL.XVThumbImagePlugin"
 
         # scikit-image imports -----------------------------------------------
         elif full_name == "skimage.draw":
-            yield "skimage.draw._draw", False
+            yield "skimage.draw._draw"
 
         elif full_name == "skimage.external.tifffile":
-            yield "skimage.external.tifffile._tifffile", False
+            yield "skimage.external.tifffile._tifffile"
+
+        elif full_name == "skimage.feature.orb_cy":
+            yield "skimage.feature._orb_descriptor_positions"
 
         elif full_name == "skimage.feature":
-            yield "skimage.feature.brief_cy", False
-            yield "skimage.feature.censure_cy", False
-            yield "skimage.feature.corner_cy", False
-            yield "skimage.feature.orb_cy", False
-            yield "skimage.feature._cascade", False
-            yield "skimage.feature._haar", False
-            yield "skimage.feature._hessian_det_appx", False
-            yield "skimage.feature._hoghistogram", False
-            yield "skimage.feature._texture", False
+            yield "skimage.feature.brief_cy"
+            yield "skimage.feature.censure_cy"
+            yield "skimage.feature.corner_cy"
+            yield "skimage.feature.orb_cy"
+            yield "skimage.feature._cascade"
+            yield "skimage.feature._haar"
+            yield "skimage.feature._hessian_det_appx"
+            yield "skimage.feature._hoghistogram"
+            yield "skimage.feature._texture"
 
         elif full_name == "skimage.filters.rank":
-            yield "skimage.filters.rank.bilateral_cy", False
-            yield "skimage.filters.rank.core_cy", False
-            yield "skimage.filters.rank.generic_cy", False
-            yield "skimage.filters.rank.percentile_cy", False
+            yield "skimage.filters.rank.bilateral_cy"
+            yield "skimage.filters.rank.core_cy"
+            yield "skimage.filters.rank.generic_cy"
+            yield "skimage.filters.rank.percentile_cy"
 
         elif full_name == "skimage.future.graph":
-            yield "skimage.future.graph._ncut_cy", False
+            yield "skimage.future.graph._ncut_cy"
 
         elif full_name == "skimage.graph":
-            yield "skimage.graph.heap", False
-            yield "skimage.graph._mcp", False
-            yield "skimage.graph._spath", False
+            yield "skimage.graph.heap"
+            yield "skimage.graph._mcp"
+            yield "skimage.graph._spath"
 
         elif full_name == "skimage.io":
-            yield "skimage.io._plugins", False
+            yield "skimage.io._plugins"
 
         elif full_name == "skimage.io._plugins":
-            yield "skimage.io._plugins._colormixer", False
-            yield "skimage.io._plugins._histograms", False
-            yield "skimage.io._plugins.fits_plugin", False
-            yield "skimage.io._plugins.gdal_plugin", False
-            yield "skimage.io._plugins.gtk_plugin", False
-            yield "skimage.io._plugins.imageio_plugin", False
-            yield "skimage.io._plugins.imread_plugin", False
-            yield "skimage.io._plugins.matplotlib_plugin", False
-            yield "skimage.io._plugins.pil_plugin", False
-            yield "skimage.io._plugins.qt_plugin", False
-            yield "skimage.io._plugins.simpleitk_plugin", False
-            yield "skimage.io._plugins.skivi_plugin", False
-            yield "skimage.io._plugins.tifffile_plugin", False
-            yield "skimage.io._plugins.util", False
+            yield "skimage.io._plugins._colormixer"
+            yield "skimage.io._plugins._histograms"
+            yield "skimage.io._plugins.fits_plugin"
+            yield "skimage.io._plugins.gdal_plugin"
+            yield "skimage.io._plugins.gtk_plugin"
+            yield "skimage.io._plugins.imageio_plugin"
+            yield "skimage.io._plugins.imread_plugin"
+            yield "skimage.io._plugins.matplotlib_plugin"
+            yield "skimage.io._plugins.pil_plugin"
+            yield "skimage.io._plugins.qt_plugin"
+            yield "skimage.io._plugins.simpleitk_plugin"
+            yield "skimage.io._plugins.skivi_plugin"
+            yield "skimage.io._plugins.tifffile_plugin"
+            yield "skimage.io._plugins.util"
 
         elif full_name == "skimage.measure":
-            yield "skimage.measure._ccomp", False
-            yield "skimage.measure._find_contours_cy", False
-            yield "skimage.measure._marching_cubes_classic_cy", False
-            yield "skimage.measure._marching_cubes_lewiner_cy", False
-            yield "skimage.measure._moments_cy", False
-            yield "skimage.measure._pnpoly", False
+            yield "skimage.measure._ccomp"
+            yield "skimage.measure._find_contours_cy"
+            yield "skimage.measure._marching_cubes_classic_cy"
+            yield "skimage.measure._marching_cubes_lewiner_cy"
+            yield "skimage.measure._moments_cy"
+            yield "skimage.measure._pnpoly"
 
         elif full_name == "skimage.morphology":
-            yield "skimage.morphology._convex_hull", False
-            yield "skimage.morphology._extrema_cy", False
-            yield "skimage.morphology._flood_fill_cy", False
-            yield "skimage.morphology._greyreconstruct", False
-            yield "skimage.morphology._max_tree", False
-            yield "skimage.morphology._skeletonize_3d_cy", False
-            yield "skimage.morphology._skeletonize_cy", False
-            yield "skimage.morphology._watershed", False
+            yield "skimage.morphology._convex_hull"
+            yield "skimage.morphology._extrema_cy"
+            yield "skimage.morphology._flood_fill_cy"
+            yield "skimage.morphology._greyreconstruct"
+            yield "skimage.morphology._max_tree"
+            yield "skimage.morphology._skeletonize_3d_cy"
+            yield "skimage.morphology._skeletonize_cy"
+            yield "skimage.morphology._watershed"
 
         elif full_name == "skimage.restoration":
-            yield "skimage.restoration._denoise_cy", False
-            yield "skimage.restoration._nl_means_denoising", False
-            yield "skimage.restoration._unwrap_1d", False
-            yield "skimage.restoration._unwrap_2d", False
-            yield "skimage.restoration._unwrap_3d", False
+            yield "skimage.restoration._denoise_cy"
+            yield "skimage.restoration._nl_means_denoising"
+            yield "skimage.restoration._unwrap_1d"
+            yield "skimage.restoration._unwrap_2d"
+            yield "skimage.restoration._unwrap_3d"
 
         elif full_name == "skimage.segmentation":
-            yield "skimage.segmentation._felzenszwalb_cy", False
-            yield "skimage.segmentation._quickshift_cy", False
-            yield "skimage.segmentation._slic", False
+            yield "skimage.segmentation._felzenszwalb_cy"
+            yield "skimage.segmentation._quickshift_cy"
+            yield "skimage.segmentation._slic"
 
         elif full_name == "skimage.transform":
-            yield "skimage.transform._hough_transform", False
-            yield "skimage.transform._radon_transform", False
-            yield "skimage.transform._warps_cy", False
+            yield "skimage.transform._hough_transform"
+            yield "skimage.transform._radon_transform"
+            yield "skimage.transform._warps_cy"
 
         elif full_name == "skimage._shared":
-            yield "skimage._shared.geometry", False
-            yield "skimage._shared.interpolation", False
-            yield "skimage._shared.transform", False
+            yield "skimage._shared.geometry"
+            yield "skimage._shared.interpolation"
+            yield "skimage._shared.transform"
 
         # scikit-learn imports ------------------------------------------------
         elif full_name == "sklearn.cluster":
-            yield "sklearn.cluster._dbscan_inner", False
-            yield "sklearn.cluster._hierarchical", False
-            yield "sklearn.cluster._k_means", False
-            yield "sklearn.cluster._k_means_elkan", False
+            yield "sklearn.cluster._dbscan_inner"
+            yield "sklearn.cluster._hierarchical"
+            yield "sklearn.cluster._k_means"
+            yield "sklearn.cluster._k_means_elkan"
 
         elif full_name == "sklearn.datasets":
-            yield "sklearn.datasets._svmlight_format", False
+            yield "sklearn.datasets._svmlight_format"
 
         elif full_name == "sklearn.decomposition":
-            yield "sklearn.decomposition.cdnmf_fast", False
-            yield "sklearn.decomposition._online_lda", False
+            yield "sklearn.decomposition.cdnmf_fast"
+            yield "sklearn.decomposition._online_lda"
 
         elif full_name == "sklearn.ensemble":
-            yield "sklearn.ensemble._gradient_boosting", False
+            yield "sklearn.ensemble._gradient_boosting"
 
         elif full_name == "sklearn.externals":
-            yield "sklearn.externals.joblib", False
+            yield "sklearn.externals.joblib"
 
         elif full_name == "sklearn.externals.joblib":
-            yield "sklearn.externals.joblib.numpy_pickle", False
+            yield "sklearn.externals.joblib.numpy_pickle"
 
         elif full_name == "sklearn.ensemble._hist_gradient_boosting":
-            yield "sklearn.ensemble._hist_gradient_boosting.histogram", False
-            yield "sklearn.ensemble._hist_gradient_boosting.splitting", False
-            yield "sklearn.ensemble._hist_gradient_boosting.types", False
-            yield "sklearn.ensemble._hist_gradient_boosting.utils", False
-            yield "sklearn.ensemble._hist_gradient_boosting._binning", False
-            yield "sklearn.ensemble._hist_gradient_boosting._gradient_boosting", False
-            yield "sklearn.ensemble._hist_gradient_boosting._loss", False
-            yield "sklearn.ensemble._hist_gradient_boosting._predictor", False
+            yield "sklearn.ensemble._hist_gradient_boosting.histogram"
+            yield "sklearn.ensemble._hist_gradient_boosting.splitting"
+            yield "sklearn.ensemble._hist_gradient_boosting.types"
+            yield "sklearn.ensemble._hist_gradient_boosting.utils"
+            yield "sklearn.ensemble._hist_gradient_boosting._binning"
+            yield "sklearn.ensemble._hist_gradient_boosting._gradient_boosting"
+            yield "sklearn.ensemble._hist_gradient_boosting._loss"
+            yield "sklearn.ensemble._hist_gradient_boosting._predictor"
 
         elif full_name == "sklearn.feature_extraction":
-            yield "sklearn.feature_extraction._hashing", False
+            yield "sklearn.feature_extraction._hashing"
 
         elif full_name == "sklearn.linear_model":
-            yield "sklearn.linear_model.cd_fast", False
-            yield "sklearn.linear_model.sag_fast", False
-            yield "sklearn.linear_model.sgd_fast", False
+            yield "sklearn.linear_model.cd_fast"
+            yield "sklearn.linear_model.sag_fast"
+            yield "sklearn.linear_model.sgd_fast"
 
         elif full_name == "sklearn.manifold":
-            yield "sklearn.manifold._barnes_hut_tsne", False
-            yield "sklearn.manifold._utils", False
+            yield "sklearn.manifold._barnes_hut_tsne"
+            yield "sklearn.manifold._utils"
 
         elif full_name == "sklearn.metrics":
-            yield "sklearn.metrics.pairwise_fast", False
+            yield "sklearn.metrics.pairwise_fast"
 
         elif full_name == "sklearn.metrics.cluster":
-            yield "sklearn.metrics.cluster.expected_mutual_info_fast", False
+            yield "sklearn.metrics.cluster.expected_mutual_info_fast"
 
         elif full_name == "sklearn.neighbors":
-            yield "sklearn.neighbors.ball_tree", False
-            yield "sklearn.neighbors.dist_metrics", False
-            yield "sklearn.neighbors.kd_tree", False
-            yield "sklearn.neighbors.quad_tree", False
-            yield "sklearn.neighbors.typedefs", False
+            yield "sklearn.neighbors.ball_tree"
+            yield "sklearn.neighbors.dist_metrics"
+            yield "sklearn.neighbors.kd_tree"
+            yield "sklearn.neighbors.quad_tree"
+            yield "sklearn.neighbors.typedefs"
 
         elif full_name == "sklearn.preprocessing":
-            yield "sklearn.preprocessing._csr_polynomial_expansion", False
+            yield "sklearn.preprocessing._csr_polynomial_expansion"
 
         elif full_name == "sklearn.svm":
-            yield "sklearn.svm.liblinear", False
-            yield "sklearn.svm.libsvm", False
-            yield "sklearn.svm.libsvm_sparse", False
+            yield "sklearn.svm.liblinear"
+            yield "sklearn.svm.libsvm"
+            yield "sklearn.svm.libsvm_sparse"
 
         elif full_name == "sklearn.tree":
-            yield "sklearn.tree._criterion", False
-            yield "sklearn.tree._splitter", False
-            yield "sklearn.tree._tree", False
-            yield "sklearn.tree._utils", False
+            yield "sklearn.tree._criterion"
+            yield "sklearn.tree._splitter"
+            yield "sklearn.tree._tree"
+            yield "sklearn.tree._utils"
 
         elif full_name == "sklearn.utils":
-            yield "sklearn.utils.arrayfuncs", False
-            yield "sklearn.utils.fast_dict", False
-            yield "sklearn.utils.graph_shortest_path", False
-            yield "sklearn.utils.lgamma", False
-            yield "sklearn.utils.murmurhash", False
-            yield "sklearn.utils.seq_dataset", False
-            yield "sklearn.utils.sparsefuncs_fast", False
-            yield "sklearn.utils.weight_vector", False
-            yield "sklearn.utils._cython_blas", False
-            yield "sklearn.utils._logistic_sigmoid", False
-            yield "sklearn.utils._random", False
+            yield "sklearn.utils.arrayfuncs"
+            yield "sklearn.utils.fast_dict"
+            yield "sklearn.utils.graph_shortest_path"
+            yield "sklearn.utils.lgamma"
+            yield "sklearn.utils.murmurhash"
+            yield "sklearn.utils.seq_dataset"
+            yield "sklearn.utils.sparsefuncs_fast"
+            yield "sklearn.utils.weight_vector"
+            yield "sklearn.utils._cython_blas"
+            yield "sklearn.utils._logistic_sigmoid"
+            yield "sklearn.utils._random"
 
         elif full_name == "sklearn.utils.sparsetools":
-            yield "sklearn.utils.sparsetools._graph_validation", True
-            yield "sklearn.utils.sparsetools._graph_tools", True
+            yield "sklearn.utils.sparsetools._graph_validation"
+            yield "sklearn.utils.sparsetools._graph_tools"
         # end of scikit-learn imports -----------------------------------------
 
         elif full_name == "PIL._imagingtk":
-            yield "PIL._tkinter_finder", True
+            yield "PIL._tkinter_finder"
 
         elif full_name == "pkg_resources._vendor.packaging":
-            yield "pkg_resources._vendor.packaging.version", True
-            yield "pkg_resources._vendor.packaging.specifiers", True
-            yield "pkg_resources._vendor.packaging.requirements", True
+            yield "pkg_resources._vendor.packaging.version"
+            yield "pkg_resources._vendor.packaging.specifiers"
+            yield "pkg_resources._vendor.packaging.requirements"
 
         # pendulum imports -- START -------------------------------------------
         elif full_name == "pendulum.locales":
@@ -1077,61 +1071,61 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                     or idiom == "__pycache__"
                 ):
                     continue
-                yield "pendulum.locales." + idiom, False
+                yield "pendulum.locales." + idiom
 
         elif (
             full_name.startswith("pendulum.locales.") and elements[2] != "locale"
         ):  # only need the idiom folders
-            yield "pendulum.locales." + elements[2], False
-            yield "pendulum.locales." + elements[2] + ".locale", False
+            yield "pendulum.locales." + elements[2]
+            yield "pendulum.locales." + elements[2] + ".locale"
         # pendulum imports -- STOP --------------------------------------------
 
         # urllib3 -------------------------------------------------------------
         elif full_name.startswith(
             ("urllib3", "requests.packages", "requests_toolbelt._compat")
         ):
-            yield "urllib3", False
-            yield "urllib3._collections", False
-            yield "urllib3.connection", False
-            yield "urllib3.connection.appengine", False
-            yield "urllib3.connectionpool", False
-            yield "urllib3.contrib", False
-            yield "urllib3.contrib.appengine", False
-            yield "urllib3.exceptions", False
-            yield "urllib3.fields", False
-            yield "urllib3.filepost", False
-            yield "urllib3.packages", False
-            yield "urllib3.packages.six", False
-            yield "urllib3.packages.ssl_match_hostname", False
-            yield "urllib3.poolmanager", False
-            yield "urllib3.request", False
-            yield "urllib3.response", False
-            yield "urllib3.util", False
-            yield "urllib3.util.connection", False
-            yield "urllib3.util.queue", False
-            yield "urllib3.util.request", False
-            yield "urllib3.util.response", False
-            yield "urllib3.util.retry", False
-            yield "urllib3.util.ssl_", False
-            yield "urllib3.util.timeout", False
-            yield "urllib3.util.url", False
-            yield "urllib3.util.wait", False
-            yield "urllib.error", False
-            yield "urllib.parse", False
-            yield "urllib.request", False
-            yield "urllib.response", False
+            yield "urllib3"
+            yield "urllib3._collections"
+            yield "urllib3.connection"
+            yield "urllib3.connection.appengine"
+            yield "urllib3.connectionpool"
+            yield "urllib3.contrib"
+            yield "urllib3.contrib.appengine"
+            yield "urllib3.exceptions"
+            yield "urllib3.fields"
+            yield "urllib3.filepost"
+            yield "urllib3.packages"
+            yield "urllib3.packages.six"
+            yield "urllib3.packages.ssl_match_hostname"
+            yield "urllib3.poolmanager"
+            yield "urllib3.request"
+            yield "urllib3.response"
+            yield "urllib3.util"
+            yield "urllib3.util.connection"
+            yield "urllib3.util.queue"
+            yield "urllib3.util.request"
+            yield "urllib3.util.response"
+            yield "urllib3.util.retry"
+            yield "urllib3.util.ssl_"
+            yield "urllib3.util.timeout"
+            yield "urllib3.util.url"
+            yield "urllib3.util.wait"
+            yield "urllib.error"
+            yield "urllib.parse"
+            yield "urllib.request"
+            yield "urllib.response"
 
         elif full_name == "uvloop.loop":
-            yield "uvloop._noop", True
+            yield "uvloop._noop"
         elif full_name == "fitz.fitz":
-            yield "fitz._fitz", True
+            yield "fitz._fitz"
         elif full_name == "pandas._libs":
-            yield "pandas._libs.tslibs.np_datetime", False
-            yield "pandas._libs.tslibs.nattype", False
+            yield "pandas._libs.tslibs.np_datetime"
+            yield "pandas._libs.tslibs.nattype"
         elif full_name == "pandas.core.window":
-            yield "pandas._libs.skiplist", False
+            yield "pandas._libs.skiplist"
         elif full_name == "zmq.backend":
-            yield "zmq.backend.cython", True
+            yield "zmq.backend.cython"
         elif full_name == "flask.app":
             yield "jinja2.ext"
             yield "jinja2.ext.autoescape"
@@ -1158,38 +1152,57 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                     "_raw_ofb",
                 ):
                     if full_name == crypto_module_name + ".Util._raw_api":
-                        yield crypto_module_name + ".Cipher." + module_name, True
+                        yield crypto_module_name + ".Cipher." + module_name
             elif full_name == crypto_module_name + ".Util.strxor":
-                yield crypto_module_name + ".Util._strxor", True
+                yield crypto_module_name + ".Util._strxor"
             elif full_name == crypto_module_name + ".Util._cpu_features":
-                yield crypto_module_name + ".Util._cpuid_c", True
+                yield crypto_module_name + ".Util._cpuid_c"
             elif full_name == crypto_module_name + ".Hash.BLAKE2s":
-                yield crypto_module_name + ".Hash._BLAKE2s", True
+                yield crypto_module_name + ".Hash._BLAKE2s"
             elif full_name == crypto_module_name + ".Hash.SHA1":
-                yield crypto_module_name + ".Hash._SHA1", True
+                yield crypto_module_name + ".Hash._SHA1"
             elif full_name == crypto_module_name + ".Hash.SHA224":
-                yield crypto_module_name + ".Hash._SHA224", True
+                yield crypto_module_name + ".Hash._SHA224"
             elif full_name == crypto_module_name + ".Hash.SHA256":
-                yield crypto_module_name + ".Hash._SHA256", True
+                yield crypto_module_name + ".Hash._SHA256"
             elif full_name == crypto_module_name + ".Hash.SHA384":
-                yield crypto_module_name + ".Hash._SHA384", True
+                yield crypto_module_name + ".Hash._SHA384"
             elif full_name == crypto_module_name + ".Hash.SHA512":
-                yield crypto_module_name + ".Hash._SHA512", True
+                yield crypto_module_name + ".Hash._SHA512"
             elif full_name == crypto_module_name + ".Hash.MD5":
-                yield crypto_module_name + ".Hash._MD5", True
+                yield crypto_module_name + ".Hash._MD5"
             elif full_name == crypto_module_name + ".Protocol.KDF":
-                yield crypto_module_name + ".Cipher._Salsa20", True
-                yield crypto_module_name + ".Protocol._scrypt", True
+                yield crypto_module_name + ".Cipher._Salsa20"
+                yield crypto_module_name + ".Protocol._scrypt"
             elif full_name == crypto_module_name + ".Cipher._mode_gcm":
-                yield crypto_module_name + ".Hash._ghash_portable", True
+                yield crypto_module_name + ".Hash._ghash_portable"
         elif full_name == "pycparser.c_parser":
-            yield "pycparser.yacctab", True
-            yield "pycparser.lextab", True
+            yield "pycparser.yacctab"
+            yield "pycparser.lextab"
         elif full_name == "passlib.hash":
-            yield "passlib.handlers.sha2_crypt", True
+            yield "passlib.handlers.sha2_crypt"
+        elif full_name == "pyglet":
+            yield "pyglet.app"
+            yield "pyglet.canvas"
+            yield "pyglet.clock"
+            yield "pyglet.com"
+            yield "pyglet.event"
+            yield "pyglet.font"
+            yield "pyglet.gl"
+            yield "pyglet.graphics"
+            yield "pyglet.input"
+            yield "pyglet.image"
+            yield "pyglet.lib"
+            yield "pyglet.media"
+            yield "pyglet.model"
+            yield "pyglet.resource"
+            yield "pyglet.sprite"
+            yield "pyglet.shapes"
+            yield "pyglet.text"
+            yield "pyglet.window"
 
     def getImportsByFullname(self, full_name, package_dir):
-        """ Recursively create a set of imports for a fullname.
+        """Recursively create a set of imports for a fullname.
 
         Notes:
             If an imported item has imported kids, call me again with each kid,
@@ -1216,7 +1229,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         if module.isPythonShlibModule():
             for used_module in module.getUsedModules():
-                yield used_module[0], False
+                yield used_module[0]
 
         if full_name == "pkg_resources.extern":
             if self.pkg_utils_externals is None:
@@ -1232,7 +1245,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                     self.pkg_utils_externals = ()
 
             for pkg_util_external in self.pkg_utils_externals:
-                yield "pkg_resources._vendor." + pkg_util_external, False
+                yield "pkg_resources._vendor." + pkg_util_external
 
         elif full_name == "OpenGL":
             if self.opengl_plugins is None:
@@ -1262,7 +1275,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                             assert False, os_part
 
             for opengl_plugin in self.opengl_plugins:
-                yield opengl_plugin, True
+                yield opengl_plugin
 
         else:
             # create a flattened import set for full_name and yield from it
@@ -1441,7 +1454,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
             return ((gtk_dll_path, dist_dll_path, None),)
         elif full_name in ("win32api", "pythoncom") and isWin32Windows():
-            # Singleton, pylint: disable=global-statement
+            # Do this only once, pylint: disable=global-statement
             global _added_pywin32
 
             result = []
@@ -1492,6 +1505,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "IPython",  # Mostly unused, and a lot of modules.
         "wx._core",  # Too large generated code
         "pyVmomi.ServerObjects",  # Too large generated code
+        "pyglet.gl",  # Too large generated code
     )
 
     def decideCompilation(self, module_name, source_ref):

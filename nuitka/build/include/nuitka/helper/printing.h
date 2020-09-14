@@ -47,7 +47,9 @@ extern void PRINT_TRACEBACK(PyTracebackObject *traceback);
 #endif
 
 // Print the exception state, including NULL values.
-extern void PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb);
+#define PRINT_EXCEPTION(exception_type, exception_value, exception_tb)                                                 \
+    _PRINT_EXCEPTION(exception_type, exception_value, (PyObject *)exception_tb)
+extern void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb);
 
 // Print the current exception state, including NULL values.
 extern void PRINT_CURRENT_EXCEPTION(void);

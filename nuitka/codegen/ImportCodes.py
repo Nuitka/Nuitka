@@ -244,14 +244,14 @@ def generateImportNameCode(to_name, expression, emit, context):
             emit(
                 """\
 if (PyModule_Check(%(from_arg_name)s)) {
-   %(to_name)s = IMPORT_NAME_OR_MODULE(
+    %(to_name)s = IMPORT_NAME_OR_MODULE(
         %(from_arg_name)s,
         (PyObject *)moduledict_%(module_identifier)s,
         %(import_name)s,
         %(import_level)s
     );
 } else {
-   %(to_name)s = IMPORT_NAME(%(from_arg_name)s, %(import_name)s);
+    %(to_name)s = IMPORT_NAME(%(from_arg_name)s, %(import_name)s);
 }
 """
                 % {

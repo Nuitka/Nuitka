@@ -32,9 +32,7 @@ from nuitka.utils.Utils import getOS
 
 
 def getStandardLibraryPaths():
-    """ Get the standard library paths.
-
-    """
+    """Get the standard library paths."""
 
     # Using the function object to cache its result, avoiding global variable
     # usage.
@@ -108,9 +106,7 @@ def getStandardLibraryPaths():
 
 
 def isStandardLibraryPath(path):
-    """ Check if a path is in the standard library.
-
-    """
+    """Check if a path is in the standard library."""
 
     path = os.path.normcase(os.path.normpath(path))
 

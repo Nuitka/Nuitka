@@ -40,7 +40,7 @@ RT_ICON = 3
 
 
 def getResourcesFromDLL(filename, resource_kind, with_data=False):
-    """ Get the resources of a specific kind from a Windows DLL.
+    """Get the resources of a specific kind from a Windows DLL.
 
     Returns:
         List of resource names in the DLL.
@@ -55,7 +55,6 @@ def getResourcesFromDLL(filename, resource_kind, with_data=False):
     else:
         LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExA
 
-    EnumResourceNames = ctypes.windll.kernel32.EnumResourceNamesA
     EnumResourceLanguages = ctypes.windll.kernel32.EnumResourceLanguagesA
     FreeLibrary = ctypes.windll.kernel32.FreeLibrary
 
@@ -67,15 +66,23 @@ def getResourcesFromDLL(filename, resource_kind, with_data=False):
         ctypes.wintypes.LONG,
     )
 
+    EnumResourceNames = ctypes.windll.kernel32.EnumResourceNamesA
+    EnumResourceNames.argtypes = [
+        ctypes.wintypes.HMODULE,
+        ctypes.wintypes.LPVOID,
+        EnumResourceNameCallback,
+        ctypes.wintypes.LPARAM,
+    ]
+
     DONT_RESOLVE_DLL_REFERENCES = 0x1
-    LOAD_LIBRARY_AS_DATAFILE = 0x2
+    LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE = 0x40
     LOAD_LIBRARY_AS_IMAGE_RESOURCE = 0x20
 
     hmodule = LoadLibraryEx(
         filename,
         0,
         DONT_RESOLVE_DLL_REFERENCES
-        | LOAD_LIBRARY_AS_DATAFILE
+        | LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE
         | LOAD_LIBRARY_AS_IMAGE_RESOURCE,
     )
 
@@ -126,7 +133,7 @@ def getResourcesFromDLL(filename, resource_kind, with_data=False):
 
         return True
 
-    EnumResourceNames(hmodule, resource_kind, EnumResourceNameCallback(callback), None)
+    EnumResourceNames(hmodule, resource_kind, EnumResourceNameCallback(callback), 0)
 
     FreeLibrary(hmodule)
     return result
@@ -155,11 +162,11 @@ def _openFileWindowsResources(filename):
 def _closeFileWindowsResources(update_handle):
     import ctypes
 
-    ctypes.windll.kernel32.EndUpdateResourceA.argtypes = [
-        ctypes.wintypes.HANDLE,
-        ctypes.wintypes.BOOL,
-    ]
-    ret = ctypes.windll.kernel32.EndUpdateResourceA(update_handle, False)
+    EndUpdateResource = ctypes.windll.kernel32.EndUpdateResourceA
+    EndUpdateResource.argtypes = [ctypes.wintypes.HANDLE, ctypes.wintypes.BOOL]
+    EndUpdateResource.restype = ctypes.wintypes.BOOL
+
+    ret = EndUpdateResource(update_handle, False)
 
     if not ret:
         raise ctypes.WinError()
@@ -202,7 +209,7 @@ def deleteWindowsResources(filename, resource_kind, res_names):
 
 
 def copyResourcesFromFileToFile(source_filename, target_filename, resource_kind):
-    """ Copy resources from one file to another.
+    """Copy resources from one file to another.
 
     Args:
         source_filename - filename where the resources are taken from

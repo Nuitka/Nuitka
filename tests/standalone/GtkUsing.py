@@ -17,6 +17,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" pygtk standalone basic test.
+
+"""
+
+from __future__ import print_function
+
 import warnings
 
 warnings.filterwarnings("ignore", "")

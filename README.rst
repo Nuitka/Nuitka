@@ -27,9 +27,11 @@ compatible manner.
 
 You can use all Python library modules and all extension modules freely.
 
-It translates the Python into a C level program that then uses ``libpython``
-and a few C files of its own to execute in the same way as CPython does. All
-optimization is aimed at avoiding overhead, where it's unnecessary. None is
+Nuitka translates the Python modules into a C level program that then uses
+``libpython`` and static C files of its own to execute in the same way as
+CPython does.
+
+All optimization is aimed at avoiding overhead, where it's unnecessary. None is
 aimed at removing compatibility, although slight improvements will occasionally
 be done, where not every bug of standard Python is emulated, e.g. more complete
 error messages are given, but there is a full compatibility mode to disable
@@ -55,7 +57,7 @@ Requirements
     6 or higher. The Anaconda compilers [#]_ are suitable too, even if you
     use CPython, they are the easiest installation method.
 
-  * Visual Studio 2017 or higher on Windows [#]_, older versions may work
+  * Visual Studio 2019 or higher on Windows [#]_, older versions may work
     but are not officially supported. Configure to use the English language
     pack for best results (Nuitka filters away garbage outputs, but only
     for that language).
@@ -67,11 +69,11 @@ Requirements
 
 - Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8
 
-  .. admonition:: Python3, but for 3.3, and 3.4 and *only* those versions,
-     we need other Python versions as a *compile time* dependency
+  .. admonition:: For 3.3, and 3.4 and *only* those versions, we need other
+     Python versions as a *compile time* dependency
 
      Nuitka itself is fully compatible with all mentioned versions, Scons as
-     as an internally used tool is not.
+     an internally used tool is not.
 
      For these versions, you *need* a Python2 or Python 3.5 or higher installed
      as well, but only during the compile time only. That is for use with Scons
@@ -133,7 +135,7 @@ Requirements
        Use both MinGW64 and 64 bits Python if you have the choice of which
        Python to use. Install it to ``C:\MinGW64`` or ``\MinGW64`` (same disk
        root as Nuitka running) to find it automatically. Also, when prompted,
-       use ``posix`` for threads and ```dwarf`` for exception model, although
+       use ``posix`` for threads and ``dwarf`` for exception model, although
        these currently do not matter at all.
 
 .. [#] Installation of matching MinGW64 is easiest if you have an Anaconda or
@@ -227,41 +229,40 @@ Setup
 Install the C compiler
 ++++++++++++++++++++++
 
- - Download and install mingw64 from
-   `https://sourceforge.net/projects/mingw-w64/ <https://sourceforge.net/projects/mingw-w64/>`_
+ - Download and install mingw64 with online installer from
+   `Sourceforce MinGW64 <https://sourceforge.net/projects/mingw-w64/files/mingw-w64/>`_
 
-- in Architecture: choose "i686" if you want use 32bit or "x86_64" if you want
-  64 bit version Python
+   - For Architecture: choose ``x86_64`` (64 bits Python, recommended) or ``i686``
+     matching your Python installation, otherwise you will get errors about mismatch
+     at compile time.
 
- - Select destination folder to **c:\\MinGW64**
+ - Select destination folder to ``C:\\MinGW64``.
 
- - verify using command  **gcc.exe --version**
+ - Verify using command  ``C:\\MinGW64\\mingw64\\bin\\gcc.exe --version``.
 
- - Set a environment variable pointing to **gcc.exe**
+ - Set a environment variable pointing to ``gcc.exe``.
 
-   **CC=C:\\MinGW64\\mingw64\\bin\\gcc.exe** if 64 bit version
+   ``CC=C:\\MinGW64\\mingw64\\bin\\gcc.exe`` if 64 bit version
 
-   **CC=C:\\MinGW64\\mingw32\\bin\\gcc.exe** if 32 bit version
+   ``CC=C:\\MinGW64\\mingw32\\bin\\gcc.exe`` if 32 bit version
 
-Install Python 3.7 (64 Bits)
-++++++++++++++++++++++++++++
+Install Python (64 Bits)
+++++++++++++++++++++++++
 
  - Download and install from
    `https://www.python.org/downloads/windows <https://www.python.org/downloads/windows>`_
 
- - Select Windows x86-64 web-based installer **or**
+ - Select one of ``Windows x86-64 web-based installer`` (64 bits Python, recommended) or
+   ``x86-64 executable`` (32 bits Python) installer
 
- - Select Windows x86-64 executable installer
-
- - Verify using command **python --version**
+ - Verify using command ``python --version``.
 
 Install Nuitka
 ++++++++++++++
 
- - **pip install nuitka**
- - if you use anaconda:
- - **conda install -c conda-forge nuitka**
- - verify using command **nuitka --version**
+ - ``python -m pip install nuitka``
+ - or if you use anaconda: ``conda install -c conda-forge nuitka``
+ - Verify using command ``python -m nuitka --version``
 
 Write some code and test
 ------------------------
@@ -283,25 +284,38 @@ Create a folder for the Python code
       if __name__ == "__main__":
           main()
 
-Test it using **python hello.py**
-+++++++++++++++++++++++++++++++++
+Test your program
++++++++++++++++++
+
+Do as you normally would. Running Nuitka on code that works incorrectly is not
+easier to debug.
+
+.. code-block:: bash
+
+   python hello.py
+
+++++++++++++++++++++++++++
 
 Build it using
 ++++++++++++++
 
-  **python -m nuitka --standalone --mingw64 hello.py**
+.. code-block:: bash
 
-If you like to have full output add **--show-progress** **--show-scons**
+   python -m nuitka --mingw64 hello.py
+
+If you like to have full output add ``--show-progress`` and  ``--show-scons``.
 
 Run it
 ++++++
 
-Execute the **hello.exe** in the folder **hello.dist**
+Execute the ``hello.exe`` created near ``hello.py``.
 
 Distribute
 ++++++++++
 
-To distribute copy the **hello.dist** folder
+To distribute, build with ``--standalone`` option, which will not output a
+single executable, but a whole folder. Copy the resulting ``hello.dist`` folder
+to the other machine and run it.
 
 
 Use Cases
@@ -410,33 +424,45 @@ Tips
 Python command line flags
 -------------------------
 
-For passing things like ``-O`` or `-S`` to your program, there is a command
-line option name `--python-flag=` which makes Nuitka emulate these options.
+For passing things like ``-O`` or ``-S`` to your program, there is a command
+line option name ``--python-flag=`` which makes Nuitka emulate these options.
 
 The most important ones are supported, more can certainly be added.
 
-Caching
--------
+Caching compilation results
+---------------------------
 
 The C compiler, when invoked with the same input files, will take a long time
-and much CPU to compile. Make sure you are having ``ccache`` installed and
-configured on non-Windows. It will make repeated compilations much faster,
-even if things are not yet not perfect, i.e. changes to the program can
-cause many C files to change, requiring a new compilation instead of using
-the cached result.
+and much CPU to compile over and over. Make sure you are having ``ccache``
+installed and configured when using gcc (even on Windows). It will make
+repeated compilations much faster, even if things are not yet not perfect, i.e.
+changes to the program can cause many C files to change, requiring a new
+compilation instead of using the cached result.
 
-On Windows, Nuitka supports using ``ccache.exe`` which is not easy to come
-by though for the non-MSVC compilers, and ``clcache.exe`` which is just one
-``pip install clcache`` command away. To make Nuitka use those, set either
-``NUITKA_CCACHE_BINARY`` to the full path of ``ccache.exe`` or
-``NUITKA_CLCACHE_BINARY`` to the full path of ``clcache.exe``, which will be
-in the scripts folder of the Python, you installed it into.
+On Windows, with gcc Nuitka supports using ``ccache.exe`` which can e.g. be
+obtained from Anaconda, using ``conda install ccache`` which installs a binary,
+that you can reference even if you are using CPython otherwise. This is the
+easiest way to install ccache.
+
+Nuitka will pick up ``ccache`` if it's in found in system ``PATH``, and it will
+be possible to provide if by setting ``NUITKA_CCACHE_BINARY`` to the full path
+of the binary, e.g. from ``$CONDA/bin/ccache.exe``. When using Anaconda, it
+will be picked up automatically.
+
+For the Visual Studio compilers, you are just one ``pip install clcache``
+command away. To make Nuitka use those, set ``NUITKA_CLCACHE_BINARY`` to the
+full path of ``clcache.exe``, which will be in the scripts folder of the
+Python, you installed it into.
 
 Runners
 -------
 
 Avoid running the ``nuitka`` binary, doing ``python -m nuitka`` will make a
-100% sure you are using what you think you are.
+100% sure you are using what you think you are. Using the wrong Python will
+make it give you ``SyntaxError`` for good code or ``ImportError`` for installed
+modules. That is happening, when you run Nuitka with Python2 on Python3 code
+and vice versa. By explicitly calling the same Python interpreter binary, you
+avoid that issue entirely.
 
 Fastest C Compilers
 -------------------
@@ -475,9 +501,8 @@ with the compiled executables to the distribution folder.
 Using the external dependency walker is quite a time consuming, and may copy
 some unnecessary libraries along the way (better have too much than missing).
 
-Since Nuitka 0.6.2, there's an experimental alternative internal dependency
-walker that relies on pefile which analyses PE imports of
-executables/libraries.
+There's also an experimental alternative internal dependency walker that relies
+on pefile which analyses PE imports of executables and libraries.
 
 This implementation shall create smaller Standalone distributions since it
 won't include Windows' equivalent of the standard library, and will speed-up
@@ -517,6 +542,13 @@ following switch:
 
     Be aware that using this switch will increase compilation time a lot.
 
+Windows errors with resources
+-----------------------------
+
+On Windows, the Windows Defender tool and the Windows Indexing Service both
+scan the freshly created binaries, while Nuitka wants to work with it, e.g.
+adding more resources, and then preventing operations randomly due to holding
+locks. Make sure to exclude your compilation stage from these services.
 
 Windows standalone program redistribuation
 ------------------------------------------
@@ -560,6 +592,13 @@ When using MingGW64, you'll need the following redist versions:
 Once the corresponding runtime libraries are installed on the target system,
 you may remove all `api-ms-crt-*.dll` files from your Nuitka compiled dist
 folder.
+
+Detecting Nuitka at run time
+----------------------------
+
+It doesn't set ``sys.frozen`` unlike other tools. For Nuitka, we have the
+module attribute ``__compiled__`` to test if a specific module was compiled.
+
 
 Where to go next
 ================
@@ -628,21 +667,18 @@ project in all minor and major ways.
 
 The development of Nuitka occurs in git. We currently have these 3 branches:
 
-- `master
-  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/master>`__:
+- `master`
 
   This branch contains the stable release to which only hotfixes for bugs will
   be done. It is supposed to work at all times and is supported.
 
-- `develop
-  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/develop>`__:
+- `develop`
 
   This branch contains the ongoing development. It may at times contain little
   regressions, but also new features. On this branch, the integration work is
   done, whereas new features might be developed on feature branches.
 
-- `factory
-  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/factory>`__:
+- `factory`
 
   This branch contains unfinished and incomplete work. It is very frequently
   subject to ``git rebase`` and the public staging ground, where my work
@@ -651,14 +687,10 @@ The development of Nuitka occurs in git. We currently have these 3 branches:
   you very often will get merge conflicts. Simply resolve those by doing
   ``git reset --hard origin/factory`` and switch to the latest version.
 
-.. note::
-
-   I accept requests on the social code platforms, also patch files, if they
-   are good.
 
 .. note::
 
-   The `Developer Manual <http://nuitka.net/doc/developer-manual.html>`__
+   The `Developer Manual <https://nuitka.net/doc/developer-manual.html>`__
    explains the coding rules, branching model used, with feature branches and
    hotfix releases, the Nuitka design and much more. Consider reading it to
    become a contributor. This document is intended for Nuitka users.
@@ -668,7 +700,7 @@ Donations
 
 Should you feel that you cannot help Nuitka directly, but still want to
 support, please consider `making a donation
-<http://nuitka.net/pages/donations.html>`__ and help this way.
+<https://nuitka.net/pages/donations.html>`__ and help this way.
 
 Unsupported functionality
 =========================
@@ -820,6 +852,7 @@ or
 
    if False:
       # Your deactivated code might be here
+      use_something_not_use_by_program()
 
 
 It will also benefit from constant propagations, or enable them because once
@@ -848,17 +881,17 @@ Consider the following code:
 
 .. code-block:: python
 
-   print side_effect_having() + (1 / 0)
-   print something_else()
+   print(side_effect_having() + (1 / 0))
+   print(something_else())
 
 The ``(1 / 0)`` can be predicted to raise a ``ZeroDivisionError`` exception,
 which will be propagated through the ``+`` operation. That part is just
 Constant Propagation as normal.
 
-The call `side_effect_having()`` will have to be retained though, but the
-``print`` statement does not and can be turned into an explicit raise. The
-statement sequence can then be aborted and as such the ``something_else`` call
-needs no code generation or consideration anymore.
+The call ``side_effect_having()`` will have to be retained though, but the
+``print`` does not and can be turned into an explicit raise. The statement
+sequence can then be aborted and as such the ``something_else`` call needs no
+code generation or consideration anymore.
 
 To that end, Nuitka works with a special node that raises an exception and is
 wrapped with a so-called "side_effects" expression, but yet can be used in the
@@ -880,10 +913,10 @@ Consider the following code:
 
     try:
         b = 8
-        print range(3, b, 0)
-        print "Will not be executed"
-    except ValueError, e:
-        print e
+        print(range(3, b, 0))
+        print("Will not be executed")
+    except ValueError as e:
+        print(e)
 
 The ``try`` block is bigger than it needs to be. The statement ``b = 8`` cannot
 cause a ``ValueError`` to be raised. As such it can be moved to outside the try
@@ -893,10 +926,10 @@ without any risk.
 
     b = 8
     try:
-        print range(3, b, 0)
-        print "Will not be executed"
+        print(range(3, b, 0))
+        print("Will not be executed")
     except ValueError as e:
-        print e
+        print(e)
 
 .. admonition:: Status
 
@@ -915,17 +948,17 @@ code:
 
     try:
         b = 8
-        print range(3, b, 0)
-        print "Will not be executed"
-    except ValueError, e:
-        print e
+        print(range(3, b, 0))
+        print("Will not be executed!")
+    except ValueError as e:
+        print(e)
 
 .. code-block:: python
 
     try:
-        raise ValueError, "range() step argument must not be zero"
-    except ValueError, e:
-        print e
+        raise ValueError("range() step argument must not be zero")
+    except ValueError as e:
+        print(e)
 
 Which then can be lowered in complexity by avoiding the raise and catch
 of the exception, making it:
@@ -933,7 +966,7 @@ of the exception, making it:
 .. code-block:: python
 
    e = ValueError("range() step argument must not be zero")
-   print e
+   print(e)
 
 .. admonition:: Status
 
@@ -1212,8 +1245,8 @@ Projects used by Nuitka
 
 * The `black project <https://github.com/ambv/black>`__
 
-  Thanks for making a fast and reliable way for automatically formatting
-  the Nuitka source code.
+  Thanks for making a fast and reliable way for automatically formatting the
+  Nuitka source code.
 
 Updates for this Manual
 =======================
@@ -1222,7 +1255,7 @@ This document is written in REST. That is an ASCII format which is readable as
 ASCII, but used to generate PDF or HTML documents.
 
 You will find the current source under:
-http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.rst
+https://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.rst
 
 And the current PDF under:
-http://nuitka.net/doc/README.pdf
+https://nuitka.net/doc/README.pdf

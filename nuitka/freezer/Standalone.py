@@ -32,9 +32,8 @@ import pkgutil
 import shutil
 import subprocess
 import sys
-from logging import debug, info, warning
 
-from nuitka import Options, SourceCodeReferences, Tracing
+from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import iterItems
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
@@ -49,6 +48,7 @@ from nuitka.nodes.ModuleNodes import (
 )
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 from nuitka.utils.AppDirs import getCacheDir
@@ -104,7 +104,10 @@ def _detectedPrecompiledFile(filename, module_name, result, user_provided, techn
     if module_name in module_names:
         return
 
-    debug("Freezing module '%s' (from '%s').", module_name, filename)
+    if Options.isShowInclusion():
+        inclusion_logger.info(
+            "Freezing module '%s' (from '%s')." % (module_name, filename)
+        )
 
     uncompiled_module = makeUncompiledPythonModule(
         module_name=module_name,
@@ -157,14 +160,22 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
             "def main():", "def main():return\n\nif 0:\n def _unused():"
         )
 
-    debug("Freezing module '%s' (from '%s').", module_name, filename)
+    if Options.isShowInclusion():
+        inclusion_logger.info(
+            "Freezing module '%s' (from '%s')." % (module_name, filename)
+        )
 
     is_package = os.path.basename(filename) == "__init__.py"
     source_code = Plugins.onFrozenModuleSourceCode(
         module_name=module_name, is_package=is_package, source_code=source_code
     )
 
-    bytecode = compile(source_code, filename, "exec", dont_inherit=True)
+    bytecode = compile(
+        source_code,
+        module_name.replace(".", os.path.sep) + ".py",
+        "exec",
+        dont_inherit=True,
+    )
 
     bytecode = Plugins.onFrozenModuleBytecode(
         module_name=module_name, is_package=is_package, bytecode=bytecode
@@ -255,14 +266,12 @@ def _detectImports(command, user_provided, technical):
 
     # Don't let errors here go unnoticed.
     if process.returncode != 0:
-        warning("There is a problem with detecting imports, CPython said:")
+        general.warning("There is a problem with detecting imports, CPython said:")
         for line in stderr.split(b"\n"):
-            Tracing.printError(line)
+            printError(line)
         sys.exit("Error, please report the issue with above output.")
 
     result = []
-
-    debug("Detecting imports:")
 
     detections = []
 
@@ -385,7 +394,7 @@ def scanStandardLibraryPath(stdlib_dir):
             if "ensurepip" in dirs:
                 dirs.remove("ensurepip")
 
-            # Ignore "lib-dynload" and "lib-tk" and alikes.
+            # Ignore "lib-dynload" and "lib-tk" and alike.
             dirs[:] = [
                 dirname
                 for dirname in dirs
@@ -543,8 +552,6 @@ for imp in imports:
             if module.getFullName() not in early_names
         ]
 
-    debug("Finished detecting early imports.")
-
     return result
 
 
@@ -581,7 +588,7 @@ def _detectBinaryPathDLLsPosix(dll_filename):
 
         if _detected_python_rpath:
             _detected_python_rpath = _detected_python_rpath.replace(
-                b"$ORIGIN", os.path.dirname(sys.executable).encode("utf-8")
+                "$ORIGIN", os.path.dirname(sys.executable)
             )
 
     with withEnvironmentPathAdded("LD_LIBRARY_PATH", _detected_python_rpath):
@@ -590,6 +597,10 @@ def _detectBinaryPathDLLsPosix(dll_filename):
         )
 
         stdout, _stderr = process.communicate()
+
+        inclusion_logger.debug(
+            "ldd output for %s is %s and %s" % (dll_filename, stdout, _stderr)
+        )
 
         for line in stdout.split(b"\n"):
             if not line:
@@ -980,7 +991,7 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
             return result
 
     if Options.isShowProgress():
-        info("Analysing dependencies of '%s'." % binary_filename)
+        general.info("Analysing dependencies of '%s'." % binary_filename)
 
     scan_dirs = getScanDirectories(package_name, original_dir)
 
@@ -1081,7 +1092,7 @@ def _parsePEFileOutput(
         extracted = eval(getFileContents(cache_filename))
     else:
         if Options.isShowProgress():
-            info("Analysing dependencies of '%s'." % binary_filename)
+            general.info("Analysing dependencies of '%s'." % binary_filename)
 
         extracted = getPEFileInformation(binary_filename)
 
@@ -1190,10 +1201,10 @@ def detectBinaryDLLs(
     use_cache,
     update_cache,
 ):
-    """ Detect the DLLs used by a binary.
+    """Detect the DLLs used by a binary.
 
-        Using "ldd" (Linux), "pefile" or "depends.exe" (Windows), or
-        "otool" (macOS) the list of used DLLs is retrieved.
+    Using "ldd" (Linux), "pefile" or "depends.exe" (Windows), or
+    "otool" (macOS) the list of used DLLs is retrieved.
     """
 
     if (
@@ -1203,7 +1214,8 @@ def detectBinaryDLLs(
         return _detectBinaryPathDLLsPosix(dll_filename=original_filename)
     elif Utils.isWin32Windows() and Options.getWindowsDependencyTool() == "pefile":
         with TimerReport(
-            "Finding dependencies for %s took %%.2f seconds" % binary_filename
+            message="Finding dependencies for %s took %%.2f seconds" % binary_filename,
+            decider=Options.isShowProgress,
         ):
             return detectBinaryPathDLLsWindowsPE(
                 is_main_executable=is_main_executable,
@@ -1216,7 +1228,8 @@ def detectBinaryDLLs(
             )
     elif Utils.isWin32Windows():
         with TimerReport(
-            "Running depends.exe for %s took %%.2f seconds" % binary_filename
+            message="Running depends.exe for %s took %%.2f seconds" % binary_filename,
+            decider=Options.isShowProgress,
         ):
             return detectBinaryPathDLLsWindowsDependencyWalker(
                 is_main_executable=is_main_executable,
@@ -1256,10 +1269,8 @@ def detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache)
         for dll_filename in sorted(tuple(used_dlls)):
             if not os.path.isfile(dll_filename):
                 if _unfound_dlls:
-                    warning(
-                        """\
-Dependency '%s' could not be found, you might need to copy it
-manually."""
+                    general.warning(
+                        "Dependency '%s' could not be found, you might need to copy it manually."
                         % dll_filename
                     )
 
@@ -1274,17 +1285,15 @@ manually."""
     with ThreadPoolExecutor(max_workers=Utils.getCoreCount() * 3) as worker_pool:
         workers = []
 
-        for count, (original_filename, binary_filename, package_name) in enumerate(
-            standalone_entry_points
-        ):
+        for count, standalone_entry_point in enumerate(standalone_entry_points):
             workers.append(
                 worker_pool.submit(
                     addDLLInfo,
                     count,
                     source_dir,
-                    original_filename,
-                    binary_filename,
-                    package_name,
+                    standalone_entry_point.source_path,
+                    standalone_entry_point.dest_path,
+                    standalone_entry_point.package_name,
                 )
             )
 
@@ -1344,7 +1353,12 @@ def getSharedLibraryRPATH(filename):
 
     for line in stdout.split(b"\n"):
         if b"RPATH" in line or b"RUNPATH" in line:
-            return line[line.find(b"[") + 1 : line.rfind(b"]")]
+            result = line[line.find(b"[") + 1 : line.rfind(b"]")]
+
+            if str is not bytes:
+                result = result.decode("utf-8")
+
+            return result
 
     return None
 
@@ -1354,7 +1368,9 @@ def removeSharedLibraryRPATH(filename):
 
     if rpath is not None:
         if Options.isShowInclusion():
-            info("Removing 'RPATH' setting from '%s'.", filename)
+            inclusion_logger.info(
+                "Removing 'RPATH' setting '%s' from '%s'." % (rpath, filename)
+            )
 
         if not Utils.isExecutableCommand("chrpath"):
             sys.exit(
@@ -1421,7 +1437,7 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
             dll_name = os.path.basename(dll_filename1)
 
             if Options.isShowInclusion():
-                info(
+                inclusion_logger.info(
                     """Colliding DLL names for %s, checking identity of \
 '%s' <-> '%s'."""
                     % (dll_name, dll_filename1, dll_filename2)
@@ -1456,15 +1472,16 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
                     solved = False
 
                 if solved:
-                    warning(
+                    general.warning(
                         "Ignoring conflicting DLLs for '%s' and using newest file version."
                         % dll_name
                     )
                     continue
 
             # So we have conflicting DLLs, in which case we do not proceed.
-            warning(
-                """Ignoring non-identical DLLs for '%s'.
+            general.warning(
+                """\
+Ignoring non-identical DLLs for '%s'.
 %s used by:
    %s
 different from
@@ -1494,7 +1511,7 @@ different from
         dll_map.append((dll_filename, dll_name))
 
         if Options.isShowInclusion():
-            Tracing.general.info(
+            inclusion_logger.info(
                 "Included used shared library '%s' (used by %s)."
                 % (dll_filename, ", ".join(sources))
             )
@@ -1504,9 +1521,9 @@ different from
         # the relative DLL location in the ".dist" folder.
         for standalone_entry_point in standalone_entry_points:
             fixupBinaryDLLPathsMacOS(
-                binary_filename=standalone_entry_point[1],
+                binary_filename=standalone_entry_point.dest_path,
                 dll_map=dll_map,
-                original_location=standalone_entry_point[0],
+                original_location=standalone_entry_point.source_path,
             )
 
         for original_path, dll_filename in dll_map:
@@ -1520,7 +1537,7 @@ different from
         # For Linux, the "rpath" of libraries may be an issue and must be
         # removed.
         for standalone_entry_point in standalone_entry_points[1:]:
-            removeSharedLibraryRPATH(standalone_entry_point[1])
+            removeSharedLibraryRPATH(standalone_entry_point.dest_path)
 
         for _original_path, dll_filename in dll_map:
             removeSharedLibraryRPATH(os.path.join(dist_dir, dll_filename))
@@ -1528,14 +1545,14 @@ different from
         if python_version < 300:
             # For Win32, we might have to remove SXS paths
             for standalone_entry_point in standalone_entry_points[1:]:
-                removeSxsFromDLL(standalone_entry_point[1])
+                removeSxsFromDLL(standalone_entry_point.dest_path)
 
             for _original_path, dll_filename in dll_map:
                 removeSxsFromDLL(os.path.join(dist_dir, dll_filename))
 
 
 def copyDataFiles(dist_dir):
-    """ Copy the data files needed for standalone distribution.
+    """Copy the data files needed for standalone distribution.
 
     Args:
         dist_dir: The distribution folder under creation

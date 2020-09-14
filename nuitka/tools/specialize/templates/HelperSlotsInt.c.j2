@@ -29,8 +29,7 @@
 {% if target.type_name in ("nuitka_bool", "nbool") %}
     bool t = !no_overflow || x != 0;
 
-    {{target.getAssignFromBoolExpression(result, "t", give_ref=True)}};
-
+    {{ target.getAssignFromBoolExpressionCode(result, "t", give_ref=True) }}
     goto {{exit_result_ok}};
 {% else %}
     if (likely(no_overflow)) {

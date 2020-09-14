@@ -183,7 +183,9 @@ class StatementSpecialUnpackCheck(StatementChildHavingBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         if iterator.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import (
+                makeStatementExpressionOnlyReplacementNode,
+            )
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=iterator, node=self

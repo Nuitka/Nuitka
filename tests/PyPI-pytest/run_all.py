@@ -252,7 +252,6 @@ def main():
             uncompiled_stdout,
             compiled_stdout,
             ignore_warnings=True,
-            ignore_infos=True,
             syntax_errors=True,
         )
 
@@ -261,7 +260,6 @@ def main():
             uncompiled_stderr,
             compiled_stderr,
             ignore_warnings=True,
-            ignore_infos=True,
             syntax_errors=True,
         )
 

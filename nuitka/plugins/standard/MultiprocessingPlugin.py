@@ -32,15 +32,15 @@ from nuitka.utils.ModuleNames import ModuleName
 
 
 class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
-    """ This is to make multiprocessing work with Nuitka and use compiled code.
+    """This is to make multiprocessing work with Nuitka and use compiled code.
 
-        When running in accelerated mode, it's not good to fork a new Python
-        instance to run other code, as that won't be accelerated. And when
-        run in standalone mode, there may not even be a Python, but it's the
-        same principle.
+    When running in accelerated mode, it's not good to fork a new Python
+    instance to run other code, as that won't be accelerated. And when
+    run in standalone mode, there may not even be a Python, but it's the
+    same principle.
 
-        So by default, this module is on and works around the behavior of the
-        "multiprocessing.forking/multiprocessing.spawn" expectations.
+    So by default, this module is on and works around the behavior of the
+    "multiprocessing.forking/multiprocessing.spawn" expectations.
     """
 
     plugin_name = "multiprocessing"
@@ -48,6 +48,10 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
 
     def __init__(self):
         self.multiprocessing_added = False
+
+    @classmethod
+    def isRelevant(cls):
+        return Utils.getOS() == "Windows" and not Options.shallMakeModule()
 
     @staticmethod
     def getPreprocessorSymbols():
@@ -110,13 +114,13 @@ Monkey patching "multiprocessing" for compiled methods.""",
 
     @staticmethod
     def _addSlaveMainModule(root_module):
-        from nuitka.tree.Building import (
-            CompiledPythonModule,
-            readSourceCodeFromFilename,
-            createModuleTree,
-        )
         from nuitka.ModuleRegistry import addRootModule
         from nuitka.plugins.Plugins import Plugins
+        from nuitka.tree.Building import (
+            CompiledPythonModule,
+            createModuleTree,
+            readSourceCodeFromFilename,
+        )
 
         # First, build the module node and then read again from the
         # source code.

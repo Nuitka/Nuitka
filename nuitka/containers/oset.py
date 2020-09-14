@@ -55,6 +55,10 @@ class OrderedSet(MutableSet):
             curr = end[1]
             curr[2] = end[1] = self.map[key] = [key, curr, end]
 
+    def update(self, keys):
+        for key in keys:
+            self.add(key)
+
     def discard(self, key):
         if key in self.map:
             key, prev, next = self.map.pop(key)
@@ -99,3 +103,17 @@ class OrderedSet(MutableSet):
             result.add(key)
 
         return result
+
+    def index(self, key):
+        if key in self.map:
+            end = self.end
+            curr = self.map[key]
+
+            count = 0
+            while curr is not end:
+                curr = curr[1]
+                count += 1
+
+            return count - 1
+
+        return None

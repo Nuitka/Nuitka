@@ -28,29 +28,29 @@ making it more difficult to use.
 
 from logging import warning
 
+from nuitka import Options
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
-from nuitka.Options import isDebug, shallWarnImplicitRaises
 from nuitka.PythonVersions import python_version
 
 
 def makeConstantReplacementNode(constant, node):
     from .ConstantRefNodes import makeConstantRefNode
 
-    return makeConstantRefNode(constant=constant, source_ref=node.getSourceReference())
+    return makeConstantRefNode(constant=constant, source_ref=node.source_ref)
 
 
 def makeRaiseExceptionReplacementExpression(
     expression, exception_type, exception_value
 ):
-    from .ExceptionNodes import ExpressionRaiseException
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+    from .ExceptionNodes import ExpressionRaiseException
 
-    source_ref = expression.getSourceReference()
+    source_ref = expression.source_ref
 
     assert type(exception_type) is str
 
-    if shallWarnImplicitRaises():
+    if Options.shallWarnImplicitRaises():
         warning(
             '%s: Will always raise exception: "%s(%s)"',
             source_ref.getAsString(),
@@ -72,14 +72,14 @@ def makeRaiseExceptionReplacementExpression(
 
 
 def makeRaiseExceptionReplacementStatement(statement, exception_type, exception_value):
-    from .ExceptionNodes import StatementRaiseExceptionImplicit
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+    from .ExceptionNodes import StatementRaiseExceptionImplicit
 
     source_ref = statement.getSourceReference()
 
     assert type(exception_type) is str
 
-    if shallWarnImplicitRaises():
+    if Options.shallWarnImplicitRaises():
         warning(
             '%s: Will always raise exception: "%s(%s)"',
             source_ref.getAsString(),
@@ -122,11 +122,11 @@ def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
 def makeRaiseExceptionExpressionFromTemplate(
     exception_type, template, template_args, source_ref
 ):
-    from .ExceptionNodes import ExpressionRaiseException
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
-    from .OperatorNodes import makeBinaryOperationNode
     from .ConstantRefNodes import makeConstantRefNode
     from .ContainerMakingNodes import ExpressionMakeTuple
+    from .ExceptionNodes import ExpressionRaiseException
+    from .OperatorNodes import makeBinaryOperationNode
 
     if type(template_args) is tuple:
         template_args = ExpressionMakeTuple(
@@ -201,8 +201,12 @@ def makeCompileTimeConstantReplacementNode(value, node):
         if value.__name__ in builtin_names:
             from .BuiltinRefNodes import makeExpressionBuiltinRef
 
+            # Need not provide locals_scope, not used for these kinds of built-in refs that
+            # refer to types.
             return makeExpressionBuiltinRef(
-                builtin_name=value.__name__, source_ref=node.getSourceReference()
+                builtin_name=value.__name__,
+                locals_scope=None,
+                source_ref=node.getSourceReference(),
             )
         else:
             return node
@@ -211,8 +215,8 @@ def makeCompileTimeConstantReplacementNode(value, node):
 
 
 def getComputationResult(node, computation, description):
-    """ With a computation function, execute it and return constant result or
-        exception node.
+    """With a computation function, execute it and return constant result or
+    exception node.
 
     """
 
@@ -229,7 +233,7 @@ def getComputationResult(node, computation, description):
     else:
         new_node = makeCompileTimeConstantReplacementNode(value=result, node=node)
 
-        if isDebug():
+        if Options.is_debug:
             assert new_node is not node, (node, result)
 
         if new_node is not node:
@@ -375,11 +379,8 @@ def makeVariableRefNode(variable, source_ref):
         return ExpressionVariableRef(variable=variable, source_ref=source_ref)
 
 
-def makeExpressionBuiltinLocals(provider, source_ref):
-    while provider.isExpressionOutlineFunction():
-        provider = provider.getParentVariableProvider()
-
-    if provider.isCompiledPythonModule():
+def makeExpressionBuiltinLocals(locals_scope, source_ref):
+    if locals_scope.isModuleScope():
         from .GlobalsLocalsNodes import ExpressionBuiltinGlobals
 
         return ExpressionBuiltinGlobals(source_ref=source_ref)
@@ -390,21 +391,17 @@ def makeExpressionBuiltinLocals(provider, source_ref):
             ExpressionBuiltinLocalsUpdated,
         )
 
-        if provider.isExpressionClassBody():
+        if locals_scope.isClassScope():
             return ExpressionBuiltinLocalsRef(
-                locals_scope=provider.getFunctionLocalsScope(), source_ref=source_ref
+                locals_scope=locals_scope, source_ref=source_ref
             )
-        elif python_version >= 300 or provider.isUnoptimized():
-            assert provider.getFunctionLocalsScope(), provider
+        elif python_version >= 300 or locals_scope.isUnoptimizedFunctionScope():
+            assert locals_scope.isFunctionScope(), locals_scope
 
             return ExpressionBuiltinLocalsUpdated(
-                locals_scope=provider.getFunctionLocalsScope(), source_ref=source_ref
+                locals_scope=locals_scope, source_ref=source_ref
             )
         else:
-            # TODO: Make this not true, there ought to be always a locals
-            # scope.
-            assert not provider.getFunctionLocalsScope(), provider
-
             return ExpressionBuiltinLocalsCopy(
-                locals_scope=provider.getFunctionLocalsScope(), source_ref=source_ref
+                locals_scope=locals_scope, source_ref=source_ref
             )

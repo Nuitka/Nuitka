@@ -1,7 +1,7 @@
 Format: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=166
 Upstream-Name: nuitka
 Upstream-Contact: Kay Hayen <kay.hayen@gmail.com>
-Source: http://nuitka.net/
+Source: https://nuitka.net/
 
 Files: *
 Copyright: 2020 Kay Hayen

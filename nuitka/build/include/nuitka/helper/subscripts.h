@@ -20,10 +20,6 @@
 
 extern PyObject *STRING_FROM_CHAR(unsigned char c);
 
-#if PYTHON_VERSION >= 370
-extern PyObject *const_str_plain___class_getitem__;
-#endif
-
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, PyObject *const_subscript,
                                                              Py_ssize_t int_subscript) {
     CHECK_OBJECT(source);

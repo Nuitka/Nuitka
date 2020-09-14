@@ -11,8 +11,8 @@ to answer commonly asked questions regarding that, and to provide some insight
 
 ## Getting Started
 
-* Read the [Nuitka User Manual](http://nuitka.net/doc/user-manual.html)
-* Read the [Nuitka Developer Manual](http://nuitka.net/doc/developer-manual.html)
+* Read the [Nuitka User Manual](https://nuitka.net/doc/user-manual.html)
+* Read the [Nuitka Developer Manual](https://nuitka.net/doc/developer-manual.html)
 * Checkout the git repo of Nuitka
 
 ## Submitting a Pull Request

@@ -54,7 +54,9 @@ from .VariableCodes import (
 )
 
 
-def _getFunctionCreationArgs(defaults_name, kw_defaults_name, annotations_name):
+def getFunctionCreationArgs(
+    defaults_name, kw_defaults_name, annotations_name, closure_variables
+):
     result = []
 
     if defaults_name is not None:
@@ -66,22 +68,30 @@ def _getFunctionCreationArgs(defaults_name, kw_defaults_name, annotations_name):
     if annotations_name is not None:
         result.append("PyObject *annotations")
 
+    if closure_variables:
+        result.append("struct Nuitka_CellObject **closure")
+
     return result
 
 
 def getFunctionMakerDecl(
-    function_identifier, defaults_name, kw_defaults_name, annotations_name
+    function_identifier,
+    closure_variables,
+    defaults_name,
+    kw_defaults_name,
+    annotations_name,
 ):
 
-    function_creation_arg_spec = _getFunctionCreationArgs(
+    function_creation_args = getFunctionCreationArgs(
         defaults_name=defaults_name,
         kw_defaults_name=kw_defaults_name,
         annotations_name=annotations_name,
+        closure_variables=closure_variables,
     )
 
     return template_function_make_declaration % {
         "function_identifier": function_identifier,
-        "function_creation_arg_spec": ", ".join(function_creation_arg_spec),
+        "function_creation_args": ", ".join(function_creation_args),
     }
 
 
@@ -94,13 +104,13 @@ def _getFunctionMakerIdentifier(function_identifier):
 
 
 def getFunctionQualnameObj(owner, context):
-    """ Get code to pass to function alike object creation for qualname.
+    """Get code to pass to function alike object creation for qualname.
 
-        Qualname for functions existed for Python3, generators only after
-        3.5 and coroutines and asyncgen for as long as they existed.
+    Qualname for functions existed for Python3, generators only after
+    3.5 and coroutines and asyncgen for as long as they existed.
 
-        If identical to the name, we do not pass it as a value, but
-        NULL instead.
+    If identical to the name, we do not pass it as a value, but
+    NULL instead.
     """
 
     if owner.isExpressionFunctionBody():
@@ -131,10 +141,11 @@ def getFunctionMakerCode(
 ):
     # We really need this many parameters here and functions have many details,
     # that we express as variables
-    function_creation_args = _getFunctionCreationArgs(
+    function_creation_args = getFunctionCreationArgs(
         defaults_name=defaults_name,
         kw_defaults_name=kw_defaults_name,
         annotations_name=annotations_name,
+        closure_variables=closure_variables,
     )
 
     if function_doc is None:
@@ -173,6 +184,7 @@ def getFunctionMakerCode(
         "kw_defaults": "kw_defaults" if kw_defaults_name else "NULL",
         "annotations": "annotations" if annotations_name else "NULL",
         "closure_count": len(closure_variables),
+        "closure_name": "closure" if closure_variables else "NULL",
         "module_identifier": module_identifier,
     }
 
@@ -246,10 +258,12 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
 
     # Creation code needs to be done only once.
     if not context.hasHelperCode(function_identifier):
+        closure_variables = function_body.getClosureVariables()
+
         maker_code = getFunctionMakerCode(
             function_body=function_body,
             function_identifier=function_identifier,
-            closure_variables=function_body.getClosureVariables(),
+            closure_variables=closure_variables,
             defaults_name=defaults_name,
             kw_defaults_name=kw_defaults_name,
             annotations_name=annotations_name,
@@ -261,6 +275,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
 
         function_decl = getFunctionMakerDecl(
             function_identifier=function_body.getCodeName(),
+            closure_variables=closure_variables,
             defaults_name=defaults_name,
             kw_defaults_name=kw_defaults_name,
             annotations_name=annotations_name,
@@ -282,11 +297,18 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
     getReleaseCode(release_name=annotations_name, emit=emit, context=context)
 
 
-def getClosureCopyCode(to_name, closure_variables, closure_type, context):
-    """ Get code to copy closure variables storage.
+def getClosureCopyCode(closure_variables, context):
+    """Get code to copy closure variables storage.
 
     This gets used by generator/coroutine/asyncgen with varying "closure_type".
     """
+    if closure_variables:
+        closure_name = context.allocateTempName(
+            "closure", "struct Nuitka_CellObject *[%d]" % len(closure_variables)
+        )
+    else:
+        closure_name = None
+
     closure_copy = []
 
     for count, (variable, variable_trace) in enumerate(closure_variables):
@@ -294,7 +316,7 @@ def getClosureCopyCode(to_name, closure_variables, closure_type, context):
             context, variable, variable_trace
         )
 
-        target_cell_code = "((%s)%s)->m_closure[%d]" % (closure_type, to_name, count)
+        target_cell_code = "%s[%d]" % (closure_name, count)
 
         variable_c_type = variable_declaration.getCType()
 
@@ -304,7 +326,7 @@ def getClosureCopyCode(to_name, closure_variables, closure_type, context):
             emit=closure_copy.append,
         )
 
-    return closure_copy
+    return closure_name, closure_copy
 
 
 def getFunctionCreationCode(
@@ -329,12 +351,12 @@ def getFunctionCreationCode(
     if annotations_name is not None:
         args.append(annotations_name)
 
-    closure_copy = getClosureCopyCode(
-        to_name=to_name,
-        closure_type="struct Nuitka_FunctionObject *",
-        closure_variables=closure_variables,
-        context=context,
+    closure_name, closure_copy = getClosureCopyCode(
+        closure_variables=closure_variables, context=context
     )
+
+    if closure_name:
+        args.append(closure_name)
 
     function_maker_identifier = _getFunctionMakerIdentifier(
         function_identifier=function_identifier
@@ -552,7 +574,6 @@ def getFunctionCode(
     parameters,
     closure_variables,
     user_variables,
-    outline_variables,
     temp_variables,
     function_doc,
     file_scope,
@@ -565,7 +586,6 @@ def getFunctionCode(
             parameters=parameters,
             closure_variables=closure_variables,
             user_variables=user_variables,
-            outline_variables=outline_variables,
             temp_variables=temp_variables,
             function_doc=function_doc,
             file_scope=file_scope,
@@ -582,7 +602,6 @@ def _getFunctionCode(
     parameters,
     closure_variables,
     user_variables,
-    outline_variables,
     temp_variables,
     function_doc,
     file_scope,
@@ -596,7 +615,7 @@ def _getFunctionCode(
         context=context,
         parameters=parameters,
         closure_variables=closure_variables,
-        user_variables=user_variables + outline_variables,
+        user_variables=user_variables,
         temp_variables=temp_variables,
     )
 
@@ -735,11 +754,10 @@ def generateFunctionCallCode(to_name, expression, emit, context):
 def generateFunctionOutlineCode(to_name, expression, emit, context):
     assert (
         expression.isExpressionOutlineBody()
-        or expression.isExpressionOutlineFunction()
-        or expression.isExpressionClassBody()
+        or expression.isExpressionOutlineFunctionBase()
     )
 
-    if expression.isExpressionOutlineFunctionBodyBase():
+    if expression.isExpressionOutlineFunctionBase():
         context = PythonFunctionOutlineContext(parent=context, outline=expression)
 
     # Need to set return target, to assign to_name from.
@@ -750,8 +768,9 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 
     # TODO: Put the return value name as that to_name.c_type too.
 
-    if expression.isExpressionOutlineFunctionBodyBase() and expression.getBody().mayRaiseException(
-        BaseException
+    if (
+        expression.isExpressionOutlineFunctionBase()
+        and expression.getBody().mayRaiseException(BaseException)
     ):
         exception_target = context.allocateLabel("outline_exception")
         old_exception_target = context.setExceptionEscape(exception_target)

@@ -45,9 +45,7 @@ from .shapes.StandardShapes import tshape_unknown
 
 
 class ExpressionVariableNameRef(ExpressionBase):
-    """ These are used before the actual variable object is known from VariableClosure.
-
-    """
+    """These are used before the actual variable object is known from VariableClosure."""
 
     kind = "EXPRESSION_VARIABLE_NAME_REF"
 
@@ -85,11 +83,11 @@ class ExpressionVariableNameRef(ExpressionBase):
 
 
 class ExpressionVariableLocalNameRef(ExpressionVariableNameRef):
-    """ These are used before the actual variable object is known from VariableClosure.
+    """These are used before the actual variable object is known from VariableClosure.
 
-        The special thing about this as opposed to ExpressionVariableNameRef is that
-        these must remain local names and cannot fallback to outside scopes. This is
-        used for __annotations__.
+    The special thing about this as opposed to ExpressionVariableNameRef is that
+    these must remain local names and cannot fallback to outside scopes. This is
+    used for "__annotations__".
 
     """
 
@@ -276,6 +274,10 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             self, variable=variable, source_ref=source_ref
         )
 
+    @staticmethod
+    def isExpressionVariableRef():
+        return True
+
     def getDetails(self):
         return {"variable": self.variable}
 
@@ -328,7 +330,7 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             variable_name = self.variable.getName()
 
             if variable_name in Builtins.builtin_exception_names:
-                if not self.variable.getOwner().getModuleDictScope().isEscaped():
+                if not self.variable.getOwner().getLocalsScope().isEscaped():
                     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
                     new_node = ExpressionBuiltinExceptionRef(
@@ -351,12 +353,14 @@ Module variable '%s' found to be built-in exception reference.""" % (
             elif variable_name in Builtins.builtin_names:
                 if (
                     variable_name in _hard_names
-                    or not self.variable.getOwner().getModuleDictScope().isEscaped()
+                    or not self.variable.getOwner().getLocalsScope().isEscaped()
                 ):
                     from .BuiltinRefNodes import makeExpressionBuiltinRef
 
                     new_node = makeExpressionBuiltinRef(
-                        builtin_name=variable_name, source_ref=self.getSourceReference()
+                        builtin_name=variable_name,
+                        locals_scope=self.getFunctionsLocalsScope(),
+                        source_ref=self.getSourceReference(),
                     )
 
                     change_tags = "new_builtin_ref"
@@ -446,7 +450,7 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
             and self.variable.isModuleVariable()
         ):
             # Just inform the collection that all escaped.
-            trace_collection.onLocalsUsage(self.getParentVariableProvider())
+            trace_collection.onLocalsUsage(locals_scope=self.getFunctionsLocalsScope())
 
         return call_node, None, None
 
@@ -471,6 +475,35 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
             or not self.variable_trace.mustHaveValue()
             or not self.variable_trace.getTypeShape().hasShapeSlotBool()
         )
+
+    def getFunctionsLocalsScope(self):
+        return self.getParentVariableProvider().getLocalsScope()
+
+
+class ExpressionVariableOrBuiltinRef(ExpressionVariableRef):
+    kind = "EXPRESSION_VARIABLE_OR_BUILTIN_REF"
+
+    __slots__ = ("locals_scope",)
+
+    def __init__(self, variable, locals_scope, source_ref):
+        ExpressionVariableRef.__init__(self, variable=variable, source_ref=source_ref)
+
+        self.locals_scope = locals_scope
+
+    def getDetails(self):
+        return {"variable": self.variable, "locals_scope": self.locals_scope}
+
+    def getFunctionsLocalsScope(self):
+        return self.locals_scope
+
+
+def makeExpressionVariableRef(variable, locals_scope, source_ref):
+    if variable.getName() in _hard_names:
+        return ExpressionVariableOrBuiltinRef(
+            variable=variable, locals_scope=locals_scope, source_ref=source_ref
+        )
+    else:
+        return ExpressionVariableRef(variable=variable, source_ref=source_ref)
 
 
 class ExpressionTempVariableRef(ExpressionVariableRefBase):

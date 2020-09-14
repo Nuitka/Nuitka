@@ -20,7 +20,7 @@
 """
 
 template_function_make_declaration = """\
-static PyObject *MAKE_FUNCTION_%(function_identifier)s(%(function_creation_arg_spec)s);
+static PyObject *MAKE_FUNCTION_%(function_identifier)s(%(function_creation_args)s);
 """
 
 template_function_direct_declaration = """\
@@ -43,6 +43,7 @@ static PyObject *%(function_maker_identifier)s(%(function_creation_args)s) {
 #endif
         %(module_identifier)s,
         %(function_doc)s,
+        %(closure_name)s,
         %(closure_count)d
     );
 
@@ -51,8 +52,8 @@ static PyObject *%(function_maker_identifier)s(%(function_creation_args)s) {
 """
 
 template_make_function = """\
-%(to_name)s = %(function_maker_identifier)s(%(args)s);
 %(closure_copy)s
+%(to_name)s = %(function_maker_identifier)s(%(args)s);
 """
 
 template_function_body = """\

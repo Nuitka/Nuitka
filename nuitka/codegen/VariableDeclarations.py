@@ -48,12 +48,21 @@ class VariableDeclaration(object):
         self.heap_name = heap_name
 
     def makeCFunctionLevelDeclaration(self):
-        return "%s%s%s%s%s;" % (
+        pos = self.c_type.find("[")
+        if pos != -1:
+            lead_c_type = self.c_type[:pos]
+            suffix_c_type = self.c_type[pos:]
+        else:
+            lead_c_type = self.c_type
+            suffix_c_type = ""
+
+        return "%s%s%s%s%s%s;" % (
             "NUITKA_MAY_BE_UNUSED " if self.maybe_unused else "",
-            self.c_type,
-            " " if self.c_type[-1] != "*" else "",
+            lead_c_type,
+            " " if lead_c_type[-1] != "*" else "",
             self.code_name,
             "" if self.init_value is None else " = %s" % self.init_value,
+            suffix_c_type,
         )
 
     def makeCStructDeclaration(self):
@@ -144,10 +153,10 @@ class VariableStorage(object):
 
     @contextmanager
     def withLocalStorage(self):
-        """ Local storage for only just during context usage.
+        """Local storage for only just during context usage.
 
-            This is for automatic removal of that scope. These are supposed
-            to be nestable eventually.
+        This is for automatic removal of that scope. These are supposed
+        to be nestable eventually.
 
         """
 

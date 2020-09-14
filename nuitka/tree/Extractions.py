@@ -22,24 +22,22 @@ know the variables written by a piece of code ahead of abstractly executing a
 loop.
 """
 
+from nuitka.containers.oset import OrderedSet
+
 from .Operations import VisitorNoopMixin, visitTree
 
 
 class VariableWriteExtractor(VisitorNoopMixin):
-    """ Extract variables written to.
-
-    """
+    """Extract variables written to."""
 
     def __init__(self):
-        self.written_to = set()
+        self.written_to = OrderedSet()
 
     def onEnterNode(self, node):
         if node.isStatementAssignmentVariable() or node.isStatementDelVariable():
             self.written_to.add(node.getVariable())
 
     def getResult(self):
-        # TODO: This can cause ordering issues should execution be based on this
-        # container order.
         return self.written_to
 
 

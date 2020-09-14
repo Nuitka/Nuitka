@@ -219,7 +219,6 @@ def main():
                 stdout_cpython,
                 stdout_nuitka,
                 ignore_warnings=True,
-                ignore_infos=True,
                 syntax_errors=True,
             )
 
@@ -228,7 +227,6 @@ def main():
                 stderr_cpython,
                 stderr_nuitka,
                 ignore_warnings=True,
-                ignore_infos=True,
                 syntax_errors=True,
             )
 

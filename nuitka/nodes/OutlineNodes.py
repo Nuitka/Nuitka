@@ -26,17 +26,18 @@ expressions, or multiple returns, without running in a too different context.
 from .ExceptionNodes import ExpressionRaiseException
 from .ExpressionBases import ExpressionChildHavingBase
 from .FunctionNodes import ExpressionFunctionBodyBase
+from .LocalsScopes import getLocalsDictHandle
 
 
 class ExpressionOutlineBody(ExpressionChildHavingBase):
-    """ Outlined expression code.
+    """Outlined expression code.
 
-        This is for a call to a piece of code to be executed in a specific
-        context. It contains an exclusively owned function body, that has
-        no other references, and can be considered part of the calling
-        context.
+    This is for a call to a piece of code to be executed in a specific
+    context. It contains an exclusively owned function body, that has
+    no other references, and can be considered part of the calling
+    context.
 
-        It must return a value, to use as expression value.
+    It must return a value, to use as expression value.
     """
 
     kind = "EXPRESSION_OUTLINE_BODY"
@@ -156,10 +157,10 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
         return self.getBody().willRaiseException(exception_type)
 
     def getEntryPoint(self):
-        """ Entry point for code.
+        """Entry point for code.
 
-            Normally ourselves. Only outlines will refer to their parent which
-            technically owns them.
+        Normally ourselves. Only outlines will refer to their parent which
+        technically owns them.
 
         """
 
@@ -169,36 +170,37 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
         return self.provider.getCodeName()
 
 
-class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
-    """ Outlined function code.
+class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
+    """Outlined function code.
 
-        This is for a call to a function to be called in-line to be executed
-        in a specific context. It contains an exclusively owned function body,
-        that has no other references, and can be considered part of the calling
-        context.
+    This is for a call to a function to be called in-line to be executed
+    in a specific context. It contains an exclusively owned function body,
+    that has no other references, and can be considered part of the calling
+    context.
 
-        As normal function it must return a value, to use as expression value,
-        but we know we only exist once.
+    As normal function it must return a value, to use as expression value,
+    but we know we only exist once.
 
-        Once this has no frame, it can be changed to a mere outline expression.
+    Once this has no frame, it can be changed to a mere outline expression.
     """
 
-    def __init__(self, provider, name, source_ref, code_prefix="outline", body=None):
-        assert name != ""
-
+    def __init__(self, provider, name, body, code_prefix, source_ref):
         ExpressionFunctionBodyBase.__init__(
             self,
             provider=provider,
             name=name,
+            body=body,
             code_prefix=code_prefix,
             flags=None,
-            body=body,
             source_ref=source_ref,
         )
 
         self.temp_scope = None
 
-    def isExpressionOutlineFunctionBodyBase(self):
+        self.locals_scope = None
+
+    @staticmethod
+    def isExpressionOutlineFunctionBase():
         return True
 
     def getDetails(self):
@@ -290,27 +292,21 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
         return self.provider.allocateTempScope(name=self.name + "$" + name)
 
     def getEntryPoint(self):
-        """ Entry point for code.
+        """Entry point for code.
 
-            Normally ourselves. Only outlines will refer to their parent which
-            technically owns them.
+        Normally ourselves. Only outlines will refer to their parent which
+        technically owns them.
 
         """
 
         return self.provider.getEntryPoint()
 
-    def getCodeName(self):
-        return self.provider.getCodeName()
-
     def getClosureVariable(self, variable_name):
         # Simply try and get from our parent.
         return self.provider.getVariableForReference(variable_name=variable_name)
 
-
-# TODO: No other uses of the base class, maybe ExpressionOutlineBody should be
-# moved to be so, or that level should be removed.
-class ExpressionOutlineFunction(ExpressionOutlineFunctionBodyBase):
-    kind = "EXPRESSION_OUTLINE_FUNCTION"
+    def getLocalsScope(self):
+        return self.locals_scope
 
     def isEarlyClosure(self):
         return self.provider.isEarlyClosure()
@@ -318,5 +314,20 @@ class ExpressionOutlineFunction(ExpressionOutlineFunctionBodyBase):
     def isUnoptimized(self):
         return self.provider.isUnoptimized()
 
-    def getFunctionLocalsScope(self):
-        return self.provider.getFunctionLocalsScope()
+
+class ExpressionOutlineFunction(ExpressionOutlineFunctionBase):
+    kind = "EXPRESSION_OUTLINE_FUNCTION"
+
+    def __init__(self, provider, name, source_ref, body=None):
+        ExpressionOutlineFunctionBase.__init__(
+            self,
+            provider=provider,
+            name=name,
+            code_prefix="outline_",
+            body=body,
+            source_ref=source_ref,
+        )
+
+        self.locals_scope = getLocalsDictHandle(
+            "locals_%s" % self.getCodeName(), "python_function", self
+        )

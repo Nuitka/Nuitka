@@ -15,9 +15,11 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-/* These are constants used in truediv code.
-
- */
+/** For setting exceptions.
+ *
+ * These are non-inline variants for exception raises, done so to avoid the code bloat.
+ *
+ **/
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
@@ -25,4 +27,22 @@
 #include "nuitka/prelude.h"
 #endif
 
-extern PyObject *const_float_minus_0_0, *const_float_0_0;
+void FORMAT_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name) {
+    *exception_type = PyExc_NameError;
+    Py_INCREF(*exception_type);
+
+    *exception_value =
+        Nuitka_String_FromFormat("name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
+    CHECK_OBJECT(*exception_value);
+}
+
+#if PYTHON_VERSION < 340
+void FORMAT_GLOBAL_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name) {
+    *exception_type = PyExc_NameError;
+    Py_INCREF(*exception_type);
+
+    *exception_value =
+        Nuitka_String_FromFormat("global name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
+    CHECK_OBJECT(*exception_value);
+}
+#endif

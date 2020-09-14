@@ -91,8 +91,8 @@ extern PyTypeObject Nuitka_Coroutine_Type;
 typedef PyObject *(*coroutine_code)(struct Nuitka_CoroutineObject *, PyObject *);
 
 extern PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyObject *name, PyObject *qualname,
-                                      PyCodeObject *code_object, Py_ssize_t closure_given,
-                                      Py_ssize_t heap_storage_size);
+                                      PyCodeObject *code_object, struct Nuitka_CellObject **closure,
+                                      Py_ssize_t closure_given, Py_ssize_t heap_storage_size);
 
 static inline bool Nuitka_Coroutine_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Coroutine_Type; }
 

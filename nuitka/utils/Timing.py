@@ -21,10 +21,9 @@ Mostly for measurements of Nuitka of itself, e.g. how long did it take to
 call an external tool.
 """
 
-from logging import info
 from timeit import default_timer as timer
 
-from nuitka.Options import isShowProgress
+from nuitka.Tracing import general
 
 
 class StopWatch(object):
@@ -45,21 +44,37 @@ class StopWatch(object):
 
     stop = end
 
-    def delta(self):
-        return self.end_time - self.start_time
+    def getDelta(self):
+        if self.end_time is not None:
+            return self.end_time - self.start_time
+        else:
+            return timer() - self.start_time
 
 
 class TimerReport(object):
-    """ Timer that reports how long things took.
+    """Timer that reports how long things took.
 
-        Mostly intended as a wrapper for external process calls.
+    Mostly intended as a wrapper for external process calls.
     """
 
-    __slots__ = ("message", "timer")
+    __slots__ = ("message", "decider", "logger", "timer", "min_report_time")
 
-    def __init__(self, message):
+    def __init__(self, message, logger=None, decider=True, min_report_time=None):
         self.message = message
+
+        if decider is True:
+            decider = lambda: True
+        if logger is None:
+            logger = general
+
+        self.logger = logger
+        self.decider = decider
+        self.min_report_time = min_report_time
+
         self.timer = None
+
+    def getTimer(self):
+        return self.timer
 
     def __enter__(self):
         self.timer = StopWatch()
@@ -68,5 +83,12 @@ class TimerReport(object):
     def __exit__(self, exception_type, exception_value, exception_tb):
         self.timer.end()
 
-        if exception_type is None and isShowProgress():
-            info(self.message % self.timer.delta())
+        delta_time = self.timer.getDelta()
+
+        # Check if its above the provided limit.
+        above_threshold = (
+            self.min_report_time is None or delta_time >= self.min_report_time
+        )
+
+        if exception_type is None and above_threshold and self.decider():
+            self.logger.info(self.message % self.timer.getDelta())

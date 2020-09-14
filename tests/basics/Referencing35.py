@@ -38,6 +38,9 @@ sys.path.insert(
 
 # isort:start
 
+# Tests do all bad things:
+# pylint: disable=not-an-iterable
+
 import asyncio
 import types
 
@@ -193,6 +196,23 @@ async def run():
 
 def simpleFunction10():
     asyncio.get_event_loop().run_until_complete(run())
+
+
+def nosimpleFunction11():
+    async def someCoroutine():
+        return 10
+
+    coro = someCoroutine()
+
+    def someGenerator():
+        yield from coro
+
+    try:
+        list(someGenerator())
+    except TypeError:
+        pass
+
+    coro.close()
 
 
 # These need stderr to be wrapped.
