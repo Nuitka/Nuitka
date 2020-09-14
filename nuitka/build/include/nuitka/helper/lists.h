@@ -99,4 +99,12 @@ NUITKA_MAY_BE_UNUSED static bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject 
     return true;
 }
 
+// Like PyList_SET_ITEM but takes a reference to the item.
+#define PyList_SET_ITEM0(tuple, index, value)                                                                          \
+    {                                                                                                                  \
+        PyObject *tmp = value;                                                                                         \
+        Py_INCREF(tmp);                                                                                                \
+        PyList_SET_ITEM(tuple, index, tmp);                                                                            \
+    }
+
 #endif

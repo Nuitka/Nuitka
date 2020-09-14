@@ -22,6 +22,7 @@
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateExpressionCode,
+    withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
 from .ConstantCodes import getConstantAccess
@@ -63,22 +64,30 @@ def getTupleCreationCode(to_name, elements, emit, context):
     else:
         element_name = context.allocateTempName("tuple_element")
 
-        for count, element in enumerate(elements):
-            generateExpressionCode(
-                to_name=element_name, expression=element, emit=emit, context=context
-            )
+        needs_exception_exit = any(
+            element.mayRaiseException(BaseException) for element in elements
+        )
 
-            if count == 0:
-                emit("%s = PyTuple_New(%d);" % (to_name, len(elements)))
+        emit("%s = PyTuple_New(%d);" % (to_name, len(elements)))
 
-                context.addCleanupTempName(to_name)
+        with withCleanupFinally(
+            "tuple_build", to_name, needs_exception_exit, emit, context
+        ) as guarded_emit:
+            emit = guarded_emit.emit
 
-            if not context.needsCleanup(element_name):
-                emit("Py_INCREF(%s);" % element_name)
-            else:
-                context.removeCleanupTempName(element_name)
+            for count, element in enumerate(elements):
+                generateExpressionCode(
+                    to_name=element_name, expression=element, emit=emit, context=context
+                )
 
-            emit("PyTuple_SET_ITEM(%s, %d, %s);" % (to_name, count, element_name))
+                # Use helper that makes sure we provide a reference.
+                if context.needsCleanup(element_name):
+                    context.removeCleanupTempName(element_name)
+                    helper_code = "PyTuple_SET_ITEM"
+                else:
+                    helper_code = "PyTuple_SET_ITEM0"
+
+                emit("%s(%s, %d, %s);" % (helper_code, to_name, count, element_name))
 
 
 def generateBuiltinTupleCode(to_name, expression, emit, context):
