@@ -405,11 +405,11 @@ class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
 
 
 class StatementDictOperationUpdate(StatementChildrenHavingBase):
-    """ Update dict value.
+    """Update dict value.
 
-        This is mainly used for re-formulations, where a dictionary
-        update will be performed on what is known not to be a
-        general mapping.
+    This is mainly used for re-formulations, where a dictionary
+    update will be performed on what is known not to be a
+    general mapping.
     """
 
     kind = "STATEMENT_DICT_OPERATION_UPDATE"

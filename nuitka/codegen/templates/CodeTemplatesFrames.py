@@ -92,7 +92,7 @@ if (%(exception_tb)s == NULL) {
     %(exception_tb)s = ADD_TRACEBACK(%(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s);
 }
 
-// Attachs locals to frame if any.
+// Attaches locals to frame if any.
 %(attach_locals)s
 
 // Release cached frame.

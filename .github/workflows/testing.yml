@@ -26,42 +26,42 @@ jobs:
             - '3.8'
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Use Python ${{ matrix.python_version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python_version }}
+      - name: Use Python ${{ matrix.python_version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get install chrpath
-        pip install -r requirements-devel.txt
+      - name: Install Nuitka dependencies
+        run: |
+          sudo apt-get install chrpath gdb ccache
+          pip install -r requirements-devel.txt
 
-    - name: Install Nuitka
-      run:
-        pip install .
+      - name: Install Nuitka
+        run:
+          pip install .
 
-    - name: Run Nuitka test suite
-      run: |
-        python -m nuitka --version
-        env | sort
-        python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+      - name: Run Nuitka test suite
+        run: |
+          python -m nuitka --version
+          env | sort
+          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
 
-    - name: PyLint on Nuitka source code
-      run: |
-        ./bin/check-nuitka-with-pylint
-      if: matrix.python_version >= '3.7' || matrix.python_version == '2.7'
+      - name: PyLint on Nuitka source code
+        run: |
+          ./bin/check-nuitka-with-pylint
+        if: matrix.python_version >= '3.7' || matrix.python_version == '2.7'
 
-    - name: RestLint on Nuitka source code
-      run: |
-        ./bin/check-nuitka-with-restlint
-      if: matrix.python_version == '3.7'
+      - name: RestLint on Nuitka source code
+        run: |
+          ./bin/check-nuitka-with-restlint
+        if: matrix.python_version == '3.7'
 
-    - name: Codespell on Nuitka source code
-      run: |
-        ./bin/check-nuitka-with-codespell
-      if: matrix.python_version == '3.7'
+      - name: Codespell on Nuitka source code
+        run: |
+          ./bin/check-nuitka-with-codespell
+        if: matrix.python_version == '3.7'
 
   mac:
     runs-on: macOS-latest
@@ -74,37 +74,40 @@ jobs:
             - '3.8'
     name: macOS Python ${{ matrix.python_version }}
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Install Python ${{ matrix.python_version }} using Conda
-      run: |
-        sudo chown -R $USER $CONDA
-        $CONDA/bin/conda install python=${{ matrix.python_version }}
-        find $CONDA -name '*python${{ matrix.python_version }}*'
+      - name: Use Python ${{ matrix.python_version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
 
-    - name: Install dependencies
-      run: |
-        export PATH=$PATH:$CONDA/bin
-        python${{ matrix.python_version }} -m pip install --user -r requirements.txt
-        python${{ matrix.python_version }} -m pip install --user -r requirements-devel.txt
+      - name: Verbose installation output for Python
+        run: |
+          set -x
+          which python
+          otool -L $(which python)
+          otool -l $(which python)
+          ls -lR $(dirname $(dirname $(which python)))
 
-    - name: Install Nuitka
-      run: |
-        export PATH=$PATH:$CONDA/bin
-        python${{ matrix.python_version }} setup.py develop
+      - name: Install Nuitka dependencies
+        run: |
+          brew install ccache
+          pip install -r requirements-devel.txt
 
-    - name: Verbose scons output in compilation
-      run: |
-        export PATH=$PATH:$CONDA/bin
-        python${{ matrix.python_version }} -m nuitka --module --show-scons --run tests/basics/Empty.py
-        python${{ matrix.python_version }} -m nuitka --show-scons --run tests/basics/Empty.py
+      - name: Install Nuitka
+        run:
+          pip install .
 
-    - name: Run Nuitka test suite
-      run: |
-        export PATH=$PATH:$CONDA/bin
-        python${{ matrix.python_version }} -m nuitka --version
-        env | sort
-        python${{ matrix.python_version }} ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+      - name: Verbose scons output in compilation
+        run: |
+          python -m nuitka --module --show-scons --run tests/basics/Empty.py
+          python -m nuitka --show-scons --run tests/basics/Empty.py
+
+      - name: Run Nuitka test suite
+        run: |
+          python -m nuitka --version
+          env | sort
+          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
 
   windows:
     runs-on: windows-latest
@@ -121,16 +124,16 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Use Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python_version }}
 
       - name: Install MinGW using Conda
         shell: bash
         run: |
-          $CONDA/Scripts/conda install m2w64-gcc libpython
+          $CONDA/Scripts/conda install m2w64-gcc libpython ccache
 
-      - name: Install dependencies
+      - name: Install Nuitka dependencies
         run: |
           pip install -r requirements-devel.txt
 
@@ -138,9 +141,19 @@ jobs:
         run: |
           pip install .
 
-      - name: Run Nuitka test suite
+      - name: Verbose scons output in compilation
+        shell: bash
         run: |
+          export CC=$CONDA/Library/mingw-w64/bin/gcc.exe
+
+          python -m nuitka --module --show-scons --run tests/basics/Empty.py
+          python -m nuitka --show-scons --run tests/basics/Empty.py
+
+      - name: Run Nuitka test suite
+        shell: bash
+        run: |
+          export CC=$CONDA/Library/mingw-w64/bin/gcc.exe
+
           python -m nuitka --version
           env | sort
-          CC=$CONDA/Library/mingw-w64/bin/gcc.exe python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
-        shell: bash
+          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads

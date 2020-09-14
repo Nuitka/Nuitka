@@ -141,8 +141,6 @@ PyObject *BUILTIN_ORD(PyObject *value) {
 
 #if PYTHON_VERSION >= 300
 
-extern PyObject *const_str_empty;
-
 #define _PyUnicode_UTF8_LENGTH(op) (((PyCompactUnicodeObject *)(op))->utf8_length)
 #define PyUnicode_UTF8_LENGTH(op)                                                                                      \
     (assert(_PyUnicode_CHECK(op)), assert(PyUnicode_IS_READY(op)),                                                     \

@@ -192,7 +192,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
             PyObject *result = func(descr, source, (PyObject *)type);
             Py_DECREF(descr);
 
-            CHECK_OBJECT(result);
+            CHECK_OBJECT_X(result);
             return result;
         }
 
@@ -313,7 +313,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
             PyObject *result = func(descr, source, (PyObject *)type);
             Py_DECREF(descr);
 
-            CHECK_OBJECT(result);
+            CHECK_OBJECT_X(result);
             return result;
         }
 
@@ -431,7 +431,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
             PyObject *result = func(descr, source, (PyObject *)type);
             Py_DECREF(descr);
 
-            CHECK_OBJECT(result);
+            CHECK_OBJECT_X(result);
             return result;
         }
 

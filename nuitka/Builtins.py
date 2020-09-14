@@ -24,6 +24,7 @@ import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType
 
 from nuitka.__past__ import builtins, iterItems
+from nuitka.containers.odict import OrderedDict
 from nuitka.PythonVersions import python_version
 
 
@@ -43,26 +44,26 @@ def _getBuiltinExceptionNames():
         else:
             return False
 
-    exceptions = {}
+    exceptions = OrderedDict()
 
     # Hide Python3 changes for built-in exception names
     if python_version < 300:
         import exceptions as builtin_exceptions
 
-        for key in dir(builtin_exceptions):
+        for key in sorted(dir(builtin_exceptions)):
             name = str(key)
 
             if isExceptionName(name):
                 exceptions[name] = getattr(builtin_exceptions, key)
 
-        for key in dir(builtins):
+        for key in sorted(dir(builtins)):
             name = str(key)
 
             if isExceptionName(name):
                 exceptions[name] = getattr(builtins, key)
     else:
 
-        for key in dir(builtins):
+        for key in sorted(dir(builtins)):
             if isExceptionName(key):
                 exceptions[key] = getattr(builtins, key)
 
@@ -88,6 +89,7 @@ assert "StopAsyncIteration" in builtin_exception_names or python_version < 350
 
 def _getBuiltinNames():
     names = [str(x) for x in dir(builtins)]
+    names.sort()
 
     for builtin_exception_name in builtin_exception_names:
         if builtin_exception_name in names:
@@ -119,8 +121,11 @@ builtin_names, builtin_warnings = _getBuiltinNames()
 builtin_named_values = dict((getattr(builtins, x), x) for x in builtin_names)
 builtin_named_values_list = tuple(builtin_named_values)
 
+assert type in builtin_named_values
+
 assert "__import__" in builtin_names
 assert "int" in builtin_names
+assert "type" in builtin_names
 
 assert "__doc__" not in builtin_names
 assert "sys" not in builtin_names
@@ -142,38 +147,47 @@ builtin_type_names = getBuiltinTypeNames()
 
 
 def _getAnonBuiltins():
-    with open(sys.executable) as any_file:
-        anon_names = {
-            # Strangely not Python3 types module
-            "NoneType": type(None),
-            "ellipsis": type(Ellipsis),  # see above
-            "NotImplementedType": type(NotImplemented),
-            "function": FunctionType,
-            "builtin_function_or_method": BuiltinFunctionType,
-            # Can't really have it any better way.
-            # "compiled_function"          : BuiltinFunctionType,
-            "generator": GeneratorType,
-            # "compiled_generator"         : GeneratorType, # see above
-            "code": type(_getAnonBuiltins.__code__),
-            "file": type(any_file),
-        }
+    # We use the order when encoding in the constants blob. Therefore it is imported
+    # to not reorder these values, the C side uses the absolute indexes.
+    anon_names = OrderedDict()
+    anon_codes = OrderedDict()
 
-    anon_codes = {
-        "NoneType": "Py_TYPE(Py_None)",
-        "ellipsis": "&PyEllipsis_Type",
-        "NotImplementedType": "Py_TYPE(Py_NotImplemented)",
-        "function": "&PyFunction_Type",
-        "builtin_function_or_method": "&PyCFunction_Type",
-        "compiled_function": "&Nuitka_Function_Type",
-        "compiled_generator": "&Nuitka_Generator_Type",
-        "code": "&PyCode_Type",
-        "file": "&PyFile_Type",
-    }
+    # Strangely these are not in Python3 types module
+    anon_names["NoneType"] = type(None)
+    anon_codes["NoneType"] = "Py_TYPE(Py_None)"
+
+    anon_names["ellipsis"] = type(Ellipsis)  # see above
+    anon_codes["ellipsis"] = "&PyEllipsis_Type"
+
+    anon_names["NotImplementedType"] = type(NotImplemented)
+    anon_codes["NotImplementedType"] = "Py_TYPE(Py_NotImplemented)"
+
+    anon_names["function"] = FunctionType
+    anon_codes["function"] = "&PyFunction_Type"
+
+    anon_names["generator"] = GeneratorType
+    anon_codes["generator"] = "&PyGenerator_Type"
+
+    anon_names["builtin_function_or_method"] = BuiltinFunctionType
+    anon_codes["builtin_function_or_method"] = "&PyCFunction_Type"
+
+    # Can't really have it until we have __nuitka__
+    # "compiled_function"          : BuiltinFunctionType,
+    # "compiled_generator"         : GeneratorType, # see above
+    # anon_codes["compiled_function"] =  "&Nuitka_Function_Type"
+    # anon_codes["compiled_generator"] =  "&Nuitka_Generator_Type"
+
+    anon_names["code"] = type(_getAnonBuiltins.__code__)
+    anon_codes["code"] = "&PyCode_Type"
 
     if python_version < 300:
         # There are only there for Python2,
         # pylint: disable=I0021,no-name-in-module
         from types import ClassType, InstanceType, MethodType
+
+        with open(sys.executable) as any_file:
+            anon_names["file"] = type(any_file)
+        anon_codes["file"] = "&PyFile_Type"
 
         anon_names["classobj"] = ClassType
         anon_codes["classobj"] = "&PyClass_Type"
@@ -188,7 +202,7 @@ def _getAnonBuiltins():
 
 
 builtin_anon_names, builtin_anon_codes = _getAnonBuiltins()
-builtin_anon_values = dict((b, a) for a, b in builtin_anon_names.items())
+builtin_anon_values = OrderedDict((b, a) for a, b in builtin_anon_names.items())
 
 # For being able to check if it's not hashable, we need something not using
 # a hash.
@@ -196,10 +210,10 @@ builtin_anon_value_list = tuple(builtin_anon_values)
 
 
 def calledWithBuiltinArgumentNamesDecorator(f):
-    """ Allow a function to be called with an "_arg" if a built-in name.
+    """Allow a function to be called with an "_arg" if a built-in name.
 
-        This avoids using built-in names in Nuitka source, while enforcing
-        a policy how to make them pretty.
+    This avoids using built-in names in Nuitka source, while enforcing
+    a policy how to make them pretty.
     """
 
     @functools.wraps(f)

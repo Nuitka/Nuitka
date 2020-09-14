@@ -203,6 +203,27 @@ Include into files matching the PATTERN. Overrides all recursion other options.
 Can be given multiple times. Default empty.""",
 )
 
+include_group.add_option(
+    "--prefer-source-code",
+    action="store_true",
+    dest="prefer_source_code",
+    default=None,
+    help="""\
+For already compiled extension modules, where there is both a source file and an
+extension module, normally the extension module is used, but it should be better
+to compile the module from available source code for best performance. If not
+desired, there is --no-prefer-source-code to disable warnings about it. Default
+off.""",
+)
+include_group.add_option(
+    "--no-prefer-source-code",
+    action="store_false",
+    dest="prefer_source_code",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+
 parser.add_option_group(include_group)
 
 recurse_group = OptionGroup(parser, "Control the recursion into imported modules")
@@ -551,31 +572,31 @@ c_compiler_group.add_option(
     default=False,
     help="""\
 Enforce the use of clang. On Windows this requires a working Visual
-Studio version to piggy back.
-Defaults to off.""",
+Studio version to piggy back on. Defaults to off.""",
 )
 
-c_compiler_group.add_option(
-    "--mingw64",
-    action="store_true",
-    dest="mingw64",
-    default=False,
-    help="""\
-Enforce the use of MinGW64 on Windows.
-Defaults to off.""",
-)
+if os.name == "nt":
+    c_compiler_group.add_option(
+        "--mingw64",
+        action="store_true",
+        dest="mingw64",
+        default=False,
+        help="""\
+Enforce the use of MinGW64 on Windows. Defaults to off.""",
+    )
 
-c_compiler_group.add_option(
-    "--msvc",
-    action="store",
-    dest="msvc",
-    default=None,
-    help="""\
+    c_compiler_group.add_option(
+        "--msvc",
+        action="store",
+        dest="msvc",
+        default=None,
+        help="""\
 Enforce the use of specific MSVC version on Windows. Allowed values
-are e.g. 14.0, specify an illegal value for a list of installed compilers.
+are e.g. 14.0, specify an illegal value for a list of installed compilers,
+beware that only latest MSVC is really supported.
 
 Defaults to the most recent version.""",
-)
+    )
 
 c_compiler_group.add_option(
     "-j",
@@ -602,6 +623,16 @@ Defaults to off.""",
 parser.add_option_group(c_compiler_group)
 
 tracing_group = OptionGroup(parser, "Tracing features")
+
+tracing_group.add_option(
+    "--quiet",
+    action="store_true",
+    dest="quiet",
+    default=False,
+    help="""\
+Disable all information outputs, but show warnings.
+Defaults to off.""",
+)
 
 tracing_group.add_option(
     "--show-scons",
@@ -637,8 +668,18 @@ tracing_group.add_option(
     action="store_true",
     dest="show_inclusion",
     default=False,
-    help="""Provide a final summary on included modules.
+    help="""\
+Provide information for included modules and DLLs
 Defaults to off.""",
+)
+
+tracing_group.add_option(
+    "--show-modules-output",
+    action="store",
+    dest="show_inclusion_output",
+    default=None,
+    help="""\
+Where to output --show-modules, should be a filename. Default is standard output.""",
 )
 
 tracing_group.add_option(
@@ -649,6 +690,15 @@ tracing_group.add_option(
     help="""\
 Output details of actions taken, esp. in optimizations. Can become a lot.
 Defaults to off.""",
+)
+
+tracing_group.add_option(
+    "--verbose-output",
+    action="store",
+    dest="verbose_output",
+    default=None,
+    help="""\
+Where to output --verbose, should be a filename. Default is standard output.""",
 )
 
 parser.add_option_group(tracing_group)
@@ -751,14 +801,16 @@ def _considerPluginOptions():
 
     for arg in sys.argv[1:]:
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
-            plugin_name = arg[16:]
-            if "=" in plugin_name:
+            plugin_names = arg[16:]
+            if "=" in plugin_names:
                 sys.exit(
                     "Error, plugin options format changed. Use '--plugin-enable=%s --help' to know new options."
-                    % plugin_name
+                    % plugin_names.split("=", 1)[0]
                 )
 
-            addPluginCommandLineOptions(parser=parser, plugin_name=plugin_name)
+            addPluginCommandLineOptions(
+                parser=parser, plugin_names=plugin_names.split(",")
+            )
 
         if arg.startswith("--user-plugin="):
             plugin_name = arg[14:]
@@ -773,6 +825,8 @@ def _considerPluginOptions():
 
 def parseOptions():
     # First, isolate the first non-option arguments.
+    extra_args = []
+
     if is_nuitka_run:
         count = 0
 
@@ -791,8 +845,6 @@ def parseOptions():
         if count > 0:
             extra_args = sys.argv[count + 1 :]
             sys.argv = sys.argv[0 : count + 1]
-    else:
-        extra_args = []
 
     # Next, lets activate plugins early, so they can inject more options to the parser.
     _considerPluginOptions()

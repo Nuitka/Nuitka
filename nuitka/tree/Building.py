@@ -53,7 +53,12 @@ import os
 import sys
 from logging import info, warning
 
-from nuitka import Options, OutputDirectories, SourceCodeReferences
+from nuitka import (
+    ModuleRegistry,
+    Options,
+    OutputDirectories,
+    SourceCodeReferences,
+)
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     long,
     unicode,
@@ -71,7 +76,8 @@ from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
     ExpressionBuiltinFormat,
 )
-from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
+from nuitka.nodes.BuiltinRefNodes import quick_names
+from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStrP3
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional,
@@ -157,6 +163,7 @@ from .ReformulationImportStatements import (
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
 from .ReformulationNamespacePackages import (
+    createImporterCacheAssignment,
     createNamespacePackage,
     createPathAssignment,
 )
@@ -190,13 +197,30 @@ from .TreeHelpers import (
 )
 from .VariableClosure import completeVariableClosures
 
+if str is not bytes:
 
-def buildVariableReferenceNode(provider, node, source_ref):
-    return ExpressionVariableNameRef(
-        variable_name=mangleName(node.id, provider),
-        provider=provider,
-        source_ref=source_ref,
-    )
+    def buildVariableReferenceNode(provider, node, source_ref):
+        # Shortcut for Python3, which gives syntax errors for assigning these.
+        if node.id in quick_names:
+            return makeConstantRefNode(
+                constant=quick_names[node.id], source_ref=source_ref
+            )
+
+        return ExpressionVariableNameRef(
+            provider=provider,
+            variable_name=mangleName(node.id, provider),
+            source_ref=source_ref,
+        )
+
+
+else:
+
+    def buildVariableReferenceNode(provider, node, source_ref):
+        return ExpressionVariableNameRef(
+            provider=provider,
+            variable_name=mangleName(node.id, provider),
+            source_ref=source_ref,
+        )
 
 
 # Python3.4 or higher, True and False, are not given as variables anymore.
@@ -381,7 +405,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         ):
             SyntaxErrors.raiseSyntaxError("cannot make __class__ global", source_ref)
 
-        provider.registerProvidedVariable(variable=closure_variable)
+        provider.getLocalsScope().registerClosureVariable(variable=closure_variable)
 
     # Drop this, not really part of our tree.
     return None
@@ -594,7 +618,10 @@ def buildFormattedValueNode(provider, node, source_ref):
     if conversion == 0:
         pass
     elif conversion == 3:
-        value = ExpressionBuiltinStr(
+        # TODO: We might start using this for Python2 too.
+        assert str is not bytes
+
+        value = ExpressionBuiltinStrP3(
             value=value, encoding=None, errors=None, source_ref=source_ref
         )
     elif conversion == 2:
@@ -766,31 +793,51 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         if provider.isCompiledPythonPackage():
             # This assigns "__path__" value.
             statements.append(createPathAssignment(provider, internal_source_ref))
+            statements.append(
+                createImporterCacheAssignment(provider, internal_source_ref)
+            )
 
         if python_version >= 340 and not is_main:
             statements += (
                 StatementAssignmentAttribute(
-                    source=ExpressionModuleAttributeFileRef(
-                        variable=provider.getVariableForReference("__file__"),
+                    expression=ExpressionModuleAttributeSpecRef(
+                        variable=provider.getVariableForReference("__spec__"),
                         source_ref=internal_source_ref,
                     ),
                     attribute_name="origin",
-                    expression=ExpressionModuleAttributeSpecRef(
-                        variable=provider.getVariableForReference("__spec__"),
+                    source=ExpressionModuleAttributeFileRef(
+                        variable=provider.getVariableForReference("__file__"),
                         source_ref=internal_source_ref,
                     ),
                     source_ref=internal_source_ref,
                 ),
                 StatementAssignmentAttribute(
-                    source=makeConstantRefNode(True, internal_source_ref),
-                    attribute_name="has_location",
                     expression=ExpressionModuleAttributeSpecRef(
                         variable=provider.getVariableForReference("__spec__"),
                         source_ref=internal_source_ref,
                     ),
+                    attribute_name="has_location",
+                    source=makeConstantRefNode(True, internal_source_ref),
                     source_ref=internal_source_ref,
                 ),
             )
+
+            if provider.isCompiledPythonPackage():
+                statements.append(
+                    StatementAssignmentAttribute(
+                        expression=ExpressionModuleAttributeSpecRef(
+                            variable=provider.getVariableForReference("__spec__"),
+                            source_ref=internal_source_ref,
+                        ),
+                        attribute_name="submodule_search_locations",
+                        source=ExpressionVariableNameRef(
+                            provider=provider,
+                            variable_name="__path__",
+                            source_ref=internal_source_ref,
+                        ),
+                        source_ref=internal_source_ref,
+                    )
+                )
 
     if python_version >= 300:
         statements.append(
@@ -978,12 +1025,12 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
 
 
 class CodeTooComplexCode(Exception):
-    """ The code of the module is too complex.
+    """The code of the module is too complex.
 
-        It cannot be compiled, with recursive code, and therefore the bytecode
-        should be used instead.
+    It cannot be compiled, with recursive code, and therefore the bytecode
+    should be used instead.
 
-        Example of this is "idnadata".
+    Example of this is "idnadata".
     """
 
 
@@ -1033,6 +1080,8 @@ def buildModuleTree(filename, package, is_top, is_main):
     )
 
     if is_top:
+        ModuleRegistry.addRootModule(module)
+
         OutputDirectories.setMainModule(module)
 
         # Detect to be frozen modules if any, so we can consider to not recurse

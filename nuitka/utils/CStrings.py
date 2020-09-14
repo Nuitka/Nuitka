@@ -26,9 +26,7 @@ import re
 
 
 def identifierEncode(c):
-    """ Nuitka handler to encode unicode to ASCII identifiers for C compiler.
-
-    """
+    """Nuitka handler to encode unicode to ASCII identifiers for C compiler."""
     return "$%02x$" % ord(c.object[c.end - 1]), c.end
 
 
@@ -36,9 +34,9 @@ codecs.register_error("c_identifier", identifierEncode)
 
 
 def _encodePythonStringToC(value):
-    """ Encode a string, so that it gives a C string literal.
+    """Encode a string, so that it gives a C string literal.
 
-        This doesn't handle limits.
+    This doesn't handle limits.
     """
     assert type(value) is bytes, type(value)
 
@@ -73,9 +71,7 @@ def _encodePythonStringToC(value):
 
 
 def encodePythonStringToC(value):
-    """ Encode a string, so that it gives a C string literal.
-
-    """
+    """Encode a string, so that it gives a C string literal."""
 
     # Not all compilers allow arbitrary large C strings, therefore split it up
     # into chunks. That changes nothing to the meanings, but is easier on the
@@ -94,9 +90,7 @@ def encodePythonStringToC(value):
 
 
 def encodePythonIdentifierToC(value):
-    """ Encode an identifier from a given Python string.
-
-    """
+    """Encode an identifier from a given Python string."""
 
     # Python identifiers allow almost of characters except a very
     # few, much more than C identifiers support. This attempts to

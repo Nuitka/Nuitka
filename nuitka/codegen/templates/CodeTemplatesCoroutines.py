@@ -19,11 +19,11 @@
 
 """
 
-template_coroutine_object_maker_template = """\
-static PyObject *%(function_identifier)s_maker(void);
+template_coroutine_object_maker = """\
+static PyObject *%(coroutine_maker_identifier)s(%(coroutine_creation_args)s);
 """
 
-template_coroutine_object_body_template = """
+template_coroutine_object_body = """
 struct %(function_identifier)s_locals {
 %(function_local_types)s
 };
@@ -47,13 +47,14 @@ static PyObject *%(function_identifier)s_context(struct Nuitka_CoroutineObject *
 %(coroutine_exit)s
 }
 
-static PyObject *%(function_identifier)s_maker(void) {
+static PyObject *%(coroutine_maker_identifier)s(%(coroutine_creation_args)s) {
     return Nuitka_Coroutine_New(
         %(function_identifier)s_context,
         %(coroutine_module)s,
         %(coroutine_name_obj)s,
         %(coroutine_qualname_obj)s,
         %(code_identifier)s,
+        %(closure_name)s,
         %(closure_count)d,
         sizeof(struct %(function_identifier)s_locals)
     );
@@ -61,8 +62,8 @@ static PyObject *%(function_identifier)s_maker(void) {
 """
 
 template_make_coroutine = """\
-%(to_name)s = %(coroutine_identifier)s_maker();
 %(closure_copy)s
+%(to_name)s = %(coroutine_maker_identifier)s(%(args)s);
 """
 
 # TODO: For functions NUITKA_CANNOT_GET_HERE is injected by composing code.

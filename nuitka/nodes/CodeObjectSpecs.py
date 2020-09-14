@@ -138,9 +138,7 @@ class CodeObjectSpec(object):
         return self.co_kind
 
     def updateLocalNames(self, local_names):
-        """ Add detected local variables after closure has been decided.
-
-        """
+        """Add detected local variables after closure has been decided."""
         self.co_varnames += tuple(
             local_name
             for local_name in local_names

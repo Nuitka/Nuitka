@@ -50,7 +50,9 @@ class StatementReturn(StatementChildHavingBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         if expression.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import (
+                makeStatementExpressionOnlyReplacementNode,
+            )
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=expression, node=self
@@ -105,9 +107,7 @@ class StatementReturnConstantBase(StatementBase):
 
     @abstractmethod
     def getConstant(self):
-        """ The returned constant value.
-
-        """
+        """The returned constant value."""
 
     def getExpression(self):
         return makeConstantReplacementNode(node=self, constant=self.getConstant())

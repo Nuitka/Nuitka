@@ -200,10 +200,10 @@ def isConstant(constant):
 
 
 def isMutable(constant):
-    """ Is a constant mutable
+    """Is a constant mutable
 
-        That means a user of a reference to it, can modify it. Strings are
-        a prime example of immutable, dictionaries are mutable.
+    That means a user of a reference to it, can modify it. Strings are
+    a prime example of immutable, dictionaries are mutable.
     """
     # Many cases and all return, that is how we do it here,
     # pylint: disable=too-many-return-statements
@@ -248,11 +248,11 @@ def isMutable(constant):
 
 
 def isHashable(constant):
-    """ Is a constant hashable
+    """Is a constant hashable
 
-        That means a user of a reference to it, can use it for dicts and set
-        keys. This is distinct from mutable, there is one types that is not
-        mutable, and still not hashable: slices.
+    That means a user of a reference to it, can use it for dicts and set
+    keys. This is distinct from mutable, there is one types that is not
+    mutable, and still not hashable: slices.
     """
     # Many cases and all return, that is how we do it here,
     # pylint: disable=too-many-return-statements
@@ -393,9 +393,7 @@ def getConstantWeight(constant):
 
 
 def isCompileTimeConstantValue(value):
-    """ Determine if a value will be usable at compile time.
-
-    """
+    """Determine if a value will be usable at compile time."""
     # This needs to match code in makeCompileTimeConstantReplacementNode
     if isConstant(value):
         return True

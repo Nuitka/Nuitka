@@ -144,6 +144,7 @@ def main():
         nuitka_call = [
             os.environ["PYTHON"],
             nuitka,
+            "--quiet",
             "--python-flag=-S",
             os.path.basename(test_case),
         ]

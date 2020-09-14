@@ -53,7 +53,7 @@ class ExpressionMakeCoroutineObject(ExpressionChildHavingBase):
             self.getCoroutineRef().getFunctionBody().getClosureVariables()
         ):
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
-            trace.addClosureUsage()
+            trace.addNameUsage()
 
             self.variable_closure_traces.append((closure_variable, trace))
 

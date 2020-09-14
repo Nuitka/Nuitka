@@ -152,20 +152,22 @@ def main():
             )
         elif filename == "reimport_main_dynamic":
             if python_version < "3":
-                os.environ["NUITKA_EXTRA_OPTIONS"] = (
-                    extra_options
-                    + " --include-plugin-directory=%s" % (os.path.abspath(filename))
+                os.environ[
+                    "NUITKA_EXTRA_OPTIONS"
+                ] = extra_options + " --include-plugin-directory=%s" % (
+                    os.path.abspath(filename)
                 )
             else:
-                os.environ["NUITKA_EXTRA_OPTIONS"] = (
-                    extra_options
-                    + " --include-plugin-files=%s/*.py" % (os.path.abspath(filename))
+                os.environ[
+                    "NUITKA_EXTRA_OPTIONS"
+                ] = extra_options + " --include-plugin-files=%s/*.py" % (
+                    os.path.abspath(filename)
                 )
 
             extra_flags.append("ignore_warnings")
         elif filename == "multiprocessing_using":
             if os.name == "nt":
-                extra_flags += ("plugin_enable:multiprocessing", "ignore_infos")
+                extra_flags.append("plugin_enable:multiprocessing")
 
             elif sys.platform == "darwin" and python_version >= "3.8":
                 reportSkip("Hangs for unknown reasons", ".", filename)

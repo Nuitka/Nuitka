@@ -61,8 +61,6 @@ static PyMemberDef Nuitka_Method_members[] = {
      (char *)"the instance to which a method is bound; None for unbound method"},
     {NULL}};
 
-extern PyObject *const_str_plain_getattr;
-
 static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
 #if PYTHON_VERSION < 300
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't pickle instancemethod objects");
@@ -83,8 +81,6 @@ static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
     return result;
 #endif
 }
-
-extern PyObject *const_str_plain___newobj__;
 
 static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyObject *args) {
     int proto;
@@ -152,8 +148,6 @@ static PyMethodDef Nuitka_Method_methods[] = {
     {"__deepcopy__", (PyCFunction)Nuitka_Method_deepcopy, METH_O, NULL},
     {NULL}};
 
-extern PyObject *const_str_plain___name__;
-
 static char const *GET_CLASS_NAME(PyObject *klass) {
     if (klass == NULL) {
         return "?";
@@ -171,8 +165,6 @@ static char const *GET_CLASS_NAME(PyObject *klass) {
         return ((PyTypeObject *)klass)->tp_name;
     }
 }
-
-extern PyObject *const_str_plain___class__;
 
 static char const *GET_INSTANCE_CLASS_NAME(PyObject *instance) {
     PyObject *klass = PyObject_GetAttr(instance, const_str_plain___class__);

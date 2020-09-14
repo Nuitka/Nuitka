@@ -87,6 +87,7 @@ from .ConstantCodes import (
     generateConstantNoneReferenceCode,
     generateConstantReferenceCode,
     generateConstantTrueReferenceCode,
+    getConstantsDefinitionCode,
 )
 from .CoroutineCodes import (
     generateAsyncIterCode,
@@ -182,7 +183,6 @@ from .ListCodes import (
     generateListOperationExtendCode,
     generateListOperationPopCode,
 )
-from .LoaderCodes import getMetapathLoaderBodyCode
 from .LocalsDictCodes import (
     generateLocalsDictDelCode,
     generateLocalsDictSetCode,
@@ -200,8 +200,8 @@ from .LoopCodes import (
 from .ModuleCodes import (
     generateModuleAttributeCode,
     generateModuleAttributeFileCode,
+    generateNuitkaLoaderCreationCode,
     getModuleCode,
-    getModuleValues,
 )
 from .OperationCodes import (
     generateOperationBinaryCode,
@@ -269,12 +269,13 @@ _generated_functions = {}
 
 
 def generateFunctionBodyCode(function_body, context):
+    # TODO: Generate both codes, and base direct/etc. decisions on context.
+    # pylint: disable=too-many-branches
+
     function_identifier = function_body.getCodeName()
 
     if function_identifier in _generated_functions:
         return _generated_functions[function_identifier]
-
-    # TODO: Generate both codes, and base direct/etc. decisions on context.
 
     if function_body.isExpressionGeneratorObjectBody():
         function_context = Contexts.PythonGeneratorObjectContext(
@@ -314,6 +315,11 @@ def generateFunctionBodyCode(function_body, context):
             needs_exception_exit=needs_exception_exit,
             needs_generator_return=function_body.needsGeneratorReturnExit(),
         )
+
+        function_decl = getGeneratorObjectDeclCode(
+            function_identifier=function_identifier,
+            closure_variables=function_body.getClosureVariables(),
+        )
     elif function_body.isExpressionCoroutineObjectBody():
         function_code = getCoroutineObjectCode(
             context=function_context,
@@ -325,6 +331,12 @@ def generateFunctionBodyCode(function_body, context):
             needs_exception_exit=needs_exception_exit,
             needs_generator_return=function_body.needsGeneratorReturnExit(),
         )
+
+        function_decl = getCoroutineObjectDeclCode(
+            function_identifier=function_body.getCodeName(),
+            closure_variables=function_body.getClosureVariables(),
+        )
+
     elif function_body.isExpressionAsyncgenObjectBody():
         function_code = getAsyncgenObjectCode(
             context=function_context,
@@ -336,29 +348,41 @@ def generateFunctionBodyCode(function_body, context):
             needs_exception_exit=needs_exception_exit,
             needs_generator_return=function_body.needsGeneratorReturnExit(),
         )
+
+        function_decl = getAsyncgenObjectDeclCode(
+            function_identifier=function_body.getCodeName(),
+            closure_variables=function_body.getClosureVariables(),
+        )
+
     elif function_body.isExpressionClassBody():
         function_code = getFunctionCode(
             context=function_context,
             function_identifier=function_identifier,
             parameters=None,
             closure_variables=function_body.getClosureVariables(),
-            user_variables=function_body.getUserLocalVariables(),
-            outline_variables=function_body.getOutlineLocalVariables(),
+            user_variables=function_body.getUserLocalVariables()
+            + function_body.getOutlineLocalVariables(),
             temp_variables=function_body.getTempVariables(),
             function_doc=function_body.getDoc(),
             needs_exception_exit=needs_exception_exit,
             file_scope=getExportScopeCode(cross_module=False),
         )
-    else:
-        parameters = function_body.getParameters()
 
+        function_decl = getFunctionDirectDecl(
+            function_identifier=function_identifier,
+            closure_variables=function_body.getClosureVariables(),
+            file_scope=getExportScopeCode(cross_module=False),
+            context=function_context,
+        )
+
+    else:
         function_code = getFunctionCode(
             context=function_context,
             function_identifier=function_identifier,
-            parameters=parameters,
+            parameters=function_body.getParameters(),
             closure_variables=function_body.getClosureVariables(),
-            user_variables=function_body.getUserLocalVariables(),
-            outline_variables=function_body.getOutlineLocalVariables(),
+            user_variables=function_body.getUserLocalVariables()
+            + function_body.getOutlineLocalVariables(),
             temp_variables=function_body.getTempVariables(),
             function_doc=function_body.getDoc(),
             needs_exception_exit=needs_exception_exit,
@@ -367,43 +391,22 @@ def generateFunctionBodyCode(function_body, context):
             ),
         )
 
-    return function_code, function_context
+        if function_body.needsDirectCall():
+            function_decl = getFunctionDirectDecl(
+                function_identifier=function_identifier,
+                closure_variables=function_body.getClosureVariables(),
+                file_scope=getExportScopeCode(
+                    cross_module=function_body.isCrossModuleUsed()
+                ),
+                context=function_context,
+            )
+        else:
+            function_decl = None
+
+    return function_code, function_decl
 
 
-def _generateFunctionDeclCode(function_body, context):
-    if function_body.isExpressionGeneratorObjectBody():
-        return getGeneratorObjectDeclCode(
-            function_identifier=function_body.getCodeName()
-        )
-    elif function_body.isExpressionCoroutineObjectBody():
-        return getCoroutineObjectDeclCode(
-            function_identifier=function_body.getCodeName()
-        )
-    elif function_body.isExpressionAsyncgenObjectBody():
-        return getAsyncgenObjectDeclCode(
-            function_identifier=function_body.getCodeName()
-        )
-    elif function_body.isExpressionClassBody():
-        return getFunctionDirectDecl(
-            function_identifier=function_body.getCodeName(),
-            closure_variables=function_body.getClosureVariables(),
-            file_scope=getExportScopeCode(cross_module=False),
-            context=context,
-        )
-    elif function_body.needsDirectCall():
-        return getFunctionDirectDecl(
-            function_identifier=function_body.getCodeName(),
-            closure_variables=function_body.getClosureVariables(),
-            file_scope=getExportScopeCode(
-                cross_module=function_body.isCrossModuleUsed()
-            ),
-            context=context,
-        )
-    else:
-        return None
-
-
-def prepareModuleCode(global_context, module, module_name):
+def generateModuleCode(module, data_filename):
     # As this not only creates all modules, but also functions, it deals
     # also with its functions.
 
@@ -411,10 +414,8 @@ def prepareModuleCode(global_context, module, module_name):
 
     context = Contexts.PythonModuleContext(
         module=module,
-        module_name=module_name,
-        code_name=module.getCodeName(),
-        filename=module.getFilename(),
-        global_context=global_context,
+        # TODO: Have output filename already before generating code.
+        data_filename=data_filename,
     )
 
     context.setExceptionEscape("module_exception_exit")
@@ -427,17 +428,11 @@ def prepareModuleCode(global_context, module, module_name):
         if function_body.getBody() is None:
             continue
 
-        function_code, function_context = generateFunctionBodyCode(
+        function_code, function_decl = generateFunctionBodyCode(
             function_body=function_body, context=context
         )
 
-        assert type(function_code) is str, type(function_code)
-
         function_body_codes.append(function_code)
-
-        function_decl = _generateFunctionDeclCode(
-            function_body=function_body, context=function_context
-        )
 
         if function_decl is not None:
             function_decl_codes.append(function_decl)
@@ -460,38 +455,22 @@ def prepareModuleCode(global_context, module, module_name):
 
         function_decl_codes.append(function_decl)
 
-    template_values = getModuleValues(
-        module_name=module_name,
-        module_identifier=module.getCodeName(),
-        function_decl_codes=function_decl_codes,
-        function_body_codes=function_body_codes,
-        temp_variables=module.getTempVariables(),
-        outline_variables=module.getOutlineLocalVariables(),
-        is_main_module=module.isMainModule(),
-        is_internal_module=module.isInternalModule(),
-        is_package=module.isCompiledPythonPackage(),
-        is_top=module.isTopModule(),
-        context=context,
-    )
-
-    return template_values, context
+    return getModuleCode(module, function_decl_codes, function_body_codes, context)
 
 
-def generateModuleCode(module_context, template_values):
-    return getModuleCode(module_context=module_context, template_values=template_values)
-
-
-def generateHelpersCode(other_modules):
+def generateHelpersCode():
     calls_decl_code = getCallsDecls()
 
-    loader_code = getMetapathLoaderBodyCode(other_modules)
     calls_body_code = getCallsCode()
 
-    return calls_decl_code, calls_body_code + loader_code
+    constants_header_code, constants_body_code = getConstantsDefinitionCode()
 
-
-def makeGlobalContext():
-    return Contexts.PythonGlobalContext()
+    return (
+        calls_decl_code,
+        calls_body_code,
+        constants_header_code,
+        constants_body_code,
+    )
 
 
 setExpressionDispatchDict(
@@ -527,10 +506,11 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_COMPLEX1": generateBuiltinComplex1Code,
         "EXPRESSION_BUILTIN_COMPLEX2": generateBuiltinComplex2Code,
         "EXPRESSION_BUILTIN_LEN": generateBuiltinLenCode,
-        "EXPRESSION_BUILTIN_STR": generateBuiltinStrCode,
+        "EXPRESSION_BUILTIN_STR_P2": generateBuiltinStrCode,
+        "EXPRESSION_BUILTIN_STR_P3": generateBuiltinStrCode,
         "EXPRESSION_BUILTIN_BYTES1": generateBuiltinBytes1Code,
         "EXPRESSION_BUILTIN_BYTES3": generateBuiltinBytes3Code,
-        "EXPRESSION_BUILTIN_UNICODE": generateBuiltinUnicodeCode,
+        "EXPRESSION_BUILTIN_UNICODE_P2": generateBuiltinUnicodeCode,
         "EXPRESSION_BUILTIN_CHR": generateBuiltinChrCode,
         "EXPRESSION_BUILTIN_ORD": generateBuiltinOrdCode,
         "EXPRESSION_BUILTIN_BIN": generateBuiltinBinCode,
@@ -566,6 +546,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_REF": generateBuiltinRefCode,
+        "EXPRESSION_BUILTIN_WITH_CONTEXT_REF": generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_EXCEPTION_REF": generateExceptionRefCode,
         "EXPRESSION_BUILTIN_ANONYMOUS_REF": generateBuiltinAnonymousRefCode,
         "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF": generateExceptionCaughtTypeCode,
@@ -683,6 +664,7 @@ setExpressionDispatchDict(
         "EXPRESSION_SPECIAL_UNPACK": generateSpecialUnpackCode,
         "EXPRESSION_TEMP_VARIABLE_REF": generateVariableReferenceCode,
         "EXPRESSION_VARIABLE_REF": generateVariableReferenceCode,
+        "EXPRESSION_VARIABLE_OR_BUILTIN_REF": generateVariableReferenceCode,
         "EXPRESSION_YIELD": generateYieldCode,
         "EXPRESSION_YIELD_FROM": generateYieldFromCode,
         "EXPRESSION_YIELD_FROM_WAITABLE": generateYieldFromWaitableCode,
@@ -699,6 +681,7 @@ setExpressionDispatchDict(
         "EXPRESSION_LOCALS_VARIABLE_REF_OR_FALLBACK": generateLocalsDictVariableRefOrFallbackCode,
         "EXPRESSION_LOCALS_VARIABLE_REF": generateLocalsDictVariableRefCode,
         "EXPRESSION_RAISE_EXCEPTION": generateRaiseExpressionCode,
+        "EXPRESSION_NUITKA_LOADER_CREATION": generateNuitkaLoaderCreationCode,
     }
 )
 

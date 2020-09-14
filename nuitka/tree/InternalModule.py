@@ -20,18 +20,24 @@
 This is a container for helper functions that are shared across modules. It
 may not exist, and is treated specially in code generation. This avoids to
 own these functions to a random module.
+
+TODO: Clarify by renaming that the top module is now used, and these are
+merely helpers to do it.
 """
 
 
-from nuitka.nodes.FunctionNodes import ExpressionFunctionBody
-from nuitka.nodes.ModuleNodes import PythonInternalModule
+from nuitka.ModuleRegistry import getRootTopModule
+from nuitka.nodes.FunctionNodes import (
+    ExpressionFunctionBody,
+    ExpressionFunctionPureBody,
+)
 from nuitka.SourceCodeReferences import fromFilename
 
 internal_source_ref = fromFilename("internal").atInternal()
 
 
 def once_decorator(func):
-    """ Cache result of a function call without arguments.
+    """Cache result of a function call without arguments.
 
     Used for all internal function accesses to become a singleton.
 
@@ -53,15 +59,18 @@ def once_decorator(func):
 
 @once_decorator
 def getInternalModule():
-    """ Get the singleton internal module.
+    """Get the singleton internal module."""
 
-    """
-
-    return PythonInternalModule()
+    return getRootTopModule()
 
 
-def makeInternalHelperFunctionBody(name, parameters):
-    return ExpressionFunctionBody(
+def makeInternalHelperFunctionBody(name, parameters, inline_const_args=False):
+    if inline_const_args:
+        node_class = ExpressionFunctionPureBody
+    else:
+        node_class = ExpressionFunctionBody
+
+    return node_class(
         provider=getInternalModule(),
         name=name,
         code_object=None,

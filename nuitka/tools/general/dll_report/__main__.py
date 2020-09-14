@@ -79,7 +79,7 @@ Use pefile dependencies. Default is %default.""",
 
         if options.pefile:
             with TimerReport(
-                "Finding dependencies for %s took %%.2f seconds" % filename
+                message="Finding dependencies for %s took %%.2f seconds" % filename
             ):
                 from nuitka import Options
 
@@ -103,7 +103,9 @@ Use pefile dependencies. Default is %default.""",
 
         print("DLLs recursively dependended (depends.exe):")
 
-        with TimerReport("Finding dependencies for %s took %%.2f seconds" % filename):
+        with TimerReport(
+            message="Finding dependencies for %s took %%.2f seconds" % filename
+        ):
             r = detectBinaryPathDLLsWindowsDependencyWalker(
                 is_main_executable=False,
                 source_dir="notexist",

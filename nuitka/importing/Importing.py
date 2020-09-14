@@ -37,20 +37,22 @@ it's from the standard library, one can abuse the attribute ``__file__`` of the
 
 from __future__ import print_function
 
+import collections
 import hashlib
 import imp
 import os
 import sys
 import zipfile
-from logging import warning
 
 from nuitka import Options
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import recursion_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir
+from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
@@ -65,9 +67,9 @@ main_path = None
 
 
 def setMainScriptDirectory(main_dir):
-    """ Initialize the main script directory.
+    """Initialize the main script directory.
 
-        We use this as part of the search path for modules.
+    We use this as part of the search path for modules.
     """
     # We need to set this from the outside, pylint: disable=global-statement
 
@@ -76,11 +78,11 @@ def setMainScriptDirectory(main_dir):
 
 
 def isPackageDir(dirname):
-    """ Decide if a directory is a package.
+    """Decide if a directory is a package.
 
-        Before Python3.3 it's required to have a "__init__.py" file, but then
-        it became impossible to decide, and for extra fun, there is also the
-        extra packages provided via "*.pth" file tricks by "site.py" loading.
+    Before Python3.3 it's required to have a "__init__.py" file, but then
+    it became impossible to decide, and for extra fun, there is also the
+    extra packages provided via "*.pth" file tricks by "site.py" loading.
     """
 
     return (
@@ -94,14 +96,8 @@ def isPackageDir(dirname):
     )
 
 
-def getExtensionModuleSuffixes():
-    for suffix, _mode, kind in imp.get_suffixes():
-        if kind == imp.C_EXTENSION:
-            yield suffix
-
-
 def getModuleNameAndKindFromFilename(module_filename):
-    """ Given a filename, decide the module name and kind.
+    """Given a filename, decide the module name and kind.
 
     Args:
         module_name - file path of the module
@@ -122,10 +118,7 @@ def getModuleNameAndKindFromFilename(module_filename):
         module_name = os.path.basename(module_filename)[:-3]
         module_kind = "py"
     else:
-        for suffix, _mode, kind in imp.get_suffixes():
-            if kind != imp.C_EXTENSION:
-                continue
-
+        for suffix in getSharedLibrarySuffixes():
             if module_filename.endswith(suffix):
                 module_name = os.path.basename(module_filename)[: -len(suffix)]
                 module_kind = "shlib"
@@ -176,20 +169,24 @@ def warnAbout(importing, module_name, parent_package, level, tried_names):
 
             if _debug_module_finding:
                 if parent_package is not None:
-                    warning(
-                        "%s: Cannot find '%s' in package '%s' %s (tried %s).",
-                        importing.getSourceReference().getAsString(),
-                        module_name,
-                        parent_package,
-                        level_desc,
-                        ",".join(tried_names),
+                    recursion_logger.warning(
+                        "%s: Cannot find '%s' in package '%s' %s (tried %s)."
+                        % (
+                            importing.getSourceReference().getAsString(),
+                            module_name,
+                            parent_package,
+                            level_desc,
+                            ",".join(tried_names),
+                        )
                     )
                 else:
-                    warning(
-                        "%s: Cannot find '%s' %s.",
-                        importing.getSourceReference().getAsString(),
-                        module_name,
-                        level_desc,
+                    recursion_logger.warning(
+                        "%s: Cannot find '%s' %s."
+                        % (
+                            importing.getSourceReference().getAsString(),
+                            module_name,
+                            level_desc,
+                        )
                     )
 
 
@@ -204,20 +201,20 @@ def normalizePackageName(module_name):
 
 
 def findModule(importing, module_name, parent_package, level, warn):
-    """ Find a module with given package name as parent.
+    """Find a module with given package name as parent.
 
-        The package name can be None of course. Level is the same
-        as with "__import__" built-in. Warnings are optional.
+    The package name can be None of course. Level is the same
+    as with "__import__" built-in. Warnings are optional.
 
-        Returns:
-            Returns a triple of package name the module is in, filename of
-            it, which can be a directory for packages, and the location
-            method used.
+    Returns:
+        Returns a triple of package name the module is in, filename of
+        it, which can be a directory for packages, and the location
+        method used.
     """
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=too-many-branches
 
-    assert type(module_name) is ModuleName
+    assert type(module_name) is ModuleName, module_name
 
     if _debug_module_finding:
         print(
@@ -310,13 +307,36 @@ def findModule(importing, module_name, parent_package, level, warn):
 # Some platforms are case insensitive.
 case_sensitive = not sys.platform.startswith(("win", "cygwin", "darwin"))
 
+ImportScanFinding = collections.namedtuple(
+    "ImportScanFinding", ("found_in", "priority", "full_path", "search_order")
+)
+
+
+def _reportCandidates(module_name, candidate, candidates):
+    if (
+        candidate.priority == 1
+        and Options.shallPreferSourcecodeOverExtensionModules() is None
+    ):
+        for c in candidates:
+            # Don't compare to itself and don't consider unused bytecode a problem.
+            if c is candidate or c.priority == 3:
+                continue
+
+            if c.search_order == candidate.search_order:
+                recursion_logger.info(
+                    """\
+Should decide '--prefer-source-code' vs. '--no-prefer-source-code', using \
+existing '%s' extension module by default. Candidates were: %s <-> %s."""
+                    % (module_name, candidate, c)
+                )
+
 
 def _findModuleInPath2(module_name, search_path):
-    """ This is out own module finding low level implementation.
+    """This is out own module finding low level implementation.
 
-        Just the full module name and search path are given. This is then
-        tasked to raise "ImportError" or return a path if it finds it, or
-        None, if it is a built-in.
+    Just the full module name and search path are given. This is then
+    tasked to raise "ImportError" or return a path if it finds it, or
+    None, if it is a built-in.
     """
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=too-many-branches,too-many-locals
@@ -327,7 +347,14 @@ def _findModuleInPath2(module_name, search_path):
 
     considered = set()
 
-    for entry in search_path:
+    # Higher values are lower priority.
+    priority_map = {
+        imp.PY_COMPILED: 3,
+        imp.PY_SOURCE: 0 if Options.shallPreferSourcecodeOverExtensionModules() else 2,
+        imp.C_EXTENSION: 1,
+    }
+
+    for count, entry in enumerate(search_path):
         # Don't try again, just with an entry of different casing or complete
         # duplicate.
         if os.path.normcase(entry) in considered:
@@ -339,6 +366,8 @@ def _findModuleInPath2(module_name, search_path):
         # First, check for a package with an init file, that would be the
         # first choice.
         if os.path.isdir(package_directory):
+            found = False
+
             for suffix, _mode, mtype in imp.get_suffixes():
                 if mtype == imp.C_EXTENSION:
                     continue
@@ -348,36 +377,63 @@ def _findModuleInPath2(module_name, search_path):
                 file_path = os.path.join(package_directory, package_file_name)
 
                 if os.path.isfile(file_path):
-                    candidates.add((entry, 1, package_directory))
-                    break
-            else:
-                if python_version >= 300:
-                    candidates.add((entry, 2, package_directory))
+                    candidates.add(
+                        ImportScanFinding(
+                            found_in=entry,
+                            priority=priority_map[mtype],
+                            full_path=package_directory,
+                            search_order=count,
+                        )
+                    )
+                    found = True
 
-        # Then, check out suffixes of all kinds.
-        for suffix, _mode, _type in imp.get_suffixes():
-            file_path = os.path.join(entry, module_name + suffix)
-            if os.path.isfile(file_path):
-                candidates.add((entry, 1, file_path))
-                break
+            if not found and python_version >= 300:
+                candidates.add(
+                    ImportScanFinding(
+                        found_in=entry,
+                        priority=10,
+                        full_path=package_directory,
+                        search_order=count + len(search_path),
+                    )
+                )
+
+        # Then, check out suffixes of all kinds, but only for one directory.
+        last_mtype = 0
+        for suffix, _mode, mtype in imp.get_suffixes():
+            # Use first match per kind only.
+            if mtype == last_mtype:
+                continue
+
+            full_path = os.path.join(entry, module_name + suffix)
+
+            if os.path.isfile(full_path):
+                candidates.add(
+                    ImportScanFinding(
+                        found_in=entry,
+                        priority=priority_map[mtype],
+                        full_path=full_path,
+                        search_order=count,
+                    )
+                )
+                last_mtype = mtype
 
     if _debug_module_finding:
-        print("Candidates", candidates)
+        print("Candidates:", candidates)
 
     if candidates:
-        # Ignore lower priority matches from package directories without
-        # "__init__.py" file.
-        min_prio = min(candidate[1] for candidate in candidates)
-        candidates = [candidate for candidate in candidates if candidate[1] == min_prio]
+        # Sort by priority, with entries from same path element coming first, then desired type.
+        candidates = sorted(candidates, key=lambda c: (c.search_order, c.priority))
 
         # On case sensitive systems, no resolution needed.
         if case_sensitive:
-            return candidates[0][2]
+            _reportCandidates(module_name, candidates[0], candidates)
+            return candidates[0].full_path
         else:
             for candidate in candidates:
                 for fullname, _filename in listDir(candidate[0]):
-                    if fullname == candidate[2]:
-                        return candidate[2]
+                    if fullname == candidate.full_path:
+                        _reportCandidates(module_name, candidate, candidates)
+                        return candidate.full_path
 
             # Only exact case matches matter, all candidates were ignored,
             # lets just fall through to raising the import error.
@@ -487,7 +543,7 @@ def _findModuleInPath(module_name):
         )
     except SyntaxError:
         # Warn user, as this is kind of unusual.
-        warning(
+        recursion_logger.warning(
             "%s: Module cannot be imported due to syntax errors.",
             module_name if package_name is None else package_name + "." + module_name,
         )

@@ -34,7 +34,7 @@ from .StatementNodes import StatementsSequence
 
 
 def checkFrameStatements(value):
-    """ Check that frames statements list value proper.
+    """Check that frames statements list value proper.
 
     Must not be None, must not contain None, and of course only statements
     sequences, or statements, may be empty.
@@ -112,9 +112,7 @@ class StatementsFrameBase(StatementsSequence):
         return self.code_object.getVarNames()
 
     def updateLocalNames(self):
-        """ For use during variable closure phase. Finalize attributes.
-
-        """
+        """For use during variable closure phase. Finalize attributes."""
         provider = self.getParentVariableProvider()
 
         if not provider.isCompiledPythonModule():
@@ -232,7 +230,9 @@ class StatementsFrameBase(StatementsSequence):
             del new_statements[-1]
 
         if outside_pre or outside_post:
-            from .NodeMakingHelpers import makeStatementsSequenceReplacementNode
+            from .NodeMakingHelpers import (
+                makeStatementsSequenceReplacementNode,
+            )
 
             if new_statements:
                 self.setStatements(new_statements)

@@ -58,9 +58,7 @@ class CTypeBase(object):
 
     @classmethod
     def getLocalVariableInitTestCode(cls, value_name, inverted):
-        """ Get code to test for uninitialized.
-
-        """
+        """Get code to test for uninitialized."""
 
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
@@ -69,9 +67,7 @@ class CTypeBase(object):
     def emitVariableAssignCode(
         cls, value_name, needs_release, tmp_name, ref_count, in_place, emit, context
     ):
-        """ Get code to assign local variable.
-
-        """
+        """Get code to assign local variable."""
 
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
@@ -80,45 +76,35 @@ class CTypeBase(object):
     def getDeleteObjectCode(
         cls, to_name, value_name, needs_check, tolerant, emit, context
     ):
-        """ Get code to delete (del) local variable.
-
-        """
+        """Get code to delete (del) local variable."""
 
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def getVariableArgReferencePassingCode(cls, variable_code_name):
-        """ Get code to pass variable as reference argument.
-
-        """
+        """Get code to pass variable as reference argument."""
 
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def getVariableArgDeclarationCode(cls, variable_code_name):
-        """ Get variable declaration code with given name.
-
-        """
+        """Get variable declaration code with given name."""
 
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def getCellObjectAssignmentCode(cls, target_cell_code, variable_code_name, emit):
-        """ Get assignment code to given cell object from object.
-
-        """
+        """Get assignment code to given cell object from object."""
 
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
-        """ Get the assignment code from C boolean condition.
-
-        """
+        """Get the assignment code from C boolean condition."""
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
 
@@ -126,16 +112,12 @@ class CTypeBase(object):
     def emitAssignmentCodeToNuitkaIntOrLong(
         cls, to_name, value_name, needs_check, emit, context
     ):
-        """ Get the assignment code to int or long type.
-
-        """
+        """Get the assignment code to int or long type."""
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, to_name
 
     @classmethod
     def getReleaseCode(cls, variable_code_name, needs_check, emit):
-        """ Get release code for given object.
-
-        """
+        """Get release code for given object."""
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type

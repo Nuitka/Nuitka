@@ -83,15 +83,21 @@ class ControlFlowDescriptionValueErrorNoEscape(ControlFlowDescriptionNoEscape):
         return ValueError
 
 
-class ControlFlowDescriptionComparisonUnorderable(ControlFlowDescriptionFullEscape):
-    pass
+class ControlFlowDescriptionComparisonUnorderable(ControlFlowDescriptionNoEscape):
+    @staticmethod
+    def getExceptionExit():
+        return TypeError
+
+    @staticmethod
+    def isUnsupported():
+        return True
 
 
 class ControlFlowDescriptionFormatError(ControlFlowDescriptionFullEscape):
     pass
 
 
-class ControlFlowDescriptionOperationUnsupportedBase(ControlFlowDescriptionFullEscape):
+class ControlFlowDescriptionOperationUnsupportedBase(ControlFlowDescriptionNoEscape):
     @staticmethod
     def getExceptionExit():
         return TypeError

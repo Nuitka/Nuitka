@@ -240,14 +240,19 @@ class StatementLocalsDictSync(StatementChildHavingBase):
     named_child = "locals"
     getLocals = StatementChildHavingBase.childGetter("locals")
 
-    __slots__ = ("previous_traces", "variable_traces")
+    __slots__ = ("locals_scope", "previous_traces", "variable_traces")
 
     @calledWithBuiltinArgumentNamesDecorator
-    def __init__(self, locals_arg, source_ref):
+    def __init__(self, locals_scope, locals_arg, source_ref):
         StatementChildHavingBase.__init__(self, value=locals_arg, source_ref=source_ref)
 
         self.previous_traces = None
         self.variable_traces = None
+
+        self.locals_scope = locals_scope
+
+    def getDetails(self):
+        return {"locals_scope": self.locals_scope}
 
     def getPreviousVariablesTraces(self):
         return self.previous_traces
@@ -264,16 +269,12 @@ class StatementLocalsDictSync(StatementChildHavingBase):
         if provider.isCompiledPythonModule():
             return None, "new_statements", "Removed sync back to locals without locals."
 
-        self.previous_traces = trace_collection.onLocalsUsage(
-            self.getParentVariableProvider()
-        )
+        self.previous_traces = trace_collection.onLocalsUsage(self.locals_scope)
         if not self.previous_traces:
             return None, "new_statements", "Removed sync back to locals without locals."
 
         trace_collection.removeAllKnowledge()
-        self.variable_traces = trace_collection.onLocalsUsage(
-            self.getParentVariableProvider()
-        )
+        self.variable_traces = trace_collection.onLocalsUsage(self.locals_scope)
 
         return self, None, None
 

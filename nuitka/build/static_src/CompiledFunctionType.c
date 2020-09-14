@@ -232,8 +232,7 @@ static PyObject *Nuitka_Function_get_closure(struct Nuitka_FunctionObject *objec
         PyObject *result = PyTuple_New(object->m_closure_given);
 
         for (Py_ssize_t i = 0; i < object->m_closure_given; i++) {
-            PyTuple_SET_ITEM(result, i, (PyObject *)object->m_closure[i]);
-            Py_INCREF((PyObject *)object->m_closure[i]);
+            PyTuple_SET_ITEM0(result, i, (PyObject *)object->m_closure[i]);
         }
 
         return result;
@@ -373,8 +372,6 @@ static PyObject *Nuitka_Function_get_globals(struct Nuitka_FunctionObject *funct
     Py_INCREF(result);
     return result;
 }
-
-extern PyObject *const_str_plain___module__;
 
 static int Nuitka_Function_set_module(struct Nuitka_FunctionObject *object, PyObject *value) {
     if (object->m_dict == NULL) {
@@ -616,12 +613,12 @@ static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *fun
 #if PYTHON_VERSION < 300
 struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name, PyCodeObject *code_object,
                                                   PyObject *defaults, PyObject *module, PyObject *doc,
-                                                  Py_ssize_t closure_given)
+                                                  struct Nuitka_CellObject **closure, Py_ssize_t closure_given)
 #else
 struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name, PyObject *qualname,
                                                   PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults,
                                                   PyObject *annotations, PyObject *module, PyObject *doc,
-                                                  Py_ssize_t closure_given)
+                                                  struct Nuitka_CellObject **closure, Py_ssize_t closure_given)
 #endif
 {
     struct Nuitka_FunctionObject *result;
@@ -629,10 +626,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     // Macro to assign result memory from GC or free list.
     allocateFromFreeList(free_list_functions, struct Nuitka_FunctionObject, Nuitka_Function_Type, closure_given);
 
-    /* Note: The closure is set externally. TODO: Stop that, it's causing problems once we are tracked. */
-    for (Py_ssize_t i = 0; i < closure_given; i++) {
-        result->m_closure[i] = NULL;
-    }
+    memcpy(&result->m_closure[0], closure, closure_given * sizeof(struct Nuitka_CellObject *));
     result->m_closure_given = closure_given;
 
     result->m_c_code = c_code != NULL ? c_code : Nuitka_FunctionEmptyCodeImpl;

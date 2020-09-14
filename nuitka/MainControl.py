@@ -25,10 +25,17 @@ a distribution folder.
 """
 
 import os
-import shutil
 import sys
 
+from nuitka.build.DataComposerInterface import runDataComposer
+from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.finalizations.FinalizeMarkups import getImportedNames
+from nuitka.freezer.IncludedEntryPoints import (
+    addIncludedEntryPoints,
+    addShlibEntryPoint,
+    getStandardEntryPoints,
+    setMainEntryPoint,
+)
 from nuitka.freezer.Standalone import copyDataFiles
 from nuitka.importing import Importing, Recursion
 from nuitka.Options import getPythonFlags
@@ -40,7 +47,7 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
-from nuitka.Tracing import general
+from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
 from nuitka.utils.AppDirs import getCacheDir
@@ -51,21 +58,20 @@ from nuitka.utils.FileOperations import (
     makePath,
     removeDirectory,
 )
+from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import isWin32Windows
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML
 from .build import SconsInterface
-from .codegen import CodeGeneration, ConstantCodes, Reports
+from .codegen import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
-from .freezer.BytecodeModuleFreezer import generateBytecodeFrozenCode
 from .freezer.Standalone import copyUsedDLLs
 from .optimizations import Optimization
 from .tree import Building
 
 
 def createNodeTree(filename):
-    """ Create a node tree.
+    """Create a node tree.
 
     Turn that source code into a node tree structure. If recursion into
     imported modules is available, more trees will be available during
@@ -80,8 +86,6 @@ def createNodeTree(filename):
         is_top=True,
         is_main=not Options.shallMakeModule(),
     )
-
-    ModuleRegistry.addRootModule(main_module)
 
     # First remove old object files and old generated files, old binary or
     # module, and standalone mode program directory if any, they can only do
@@ -173,6 +177,7 @@ def cleanSourceDirectory(source_dir):
         ".res",
         ".S",
         ".txt",
+        ".const",
     )
 
     def check(path):
@@ -197,23 +202,23 @@ def cleanSourceDirectory(source_dir):
 
 
 def pickSourceFilenames(source_dir, modules):
-    """ Pick the names for the C files of each module.
+    """Pick the names for the C files of each module.
 
-        Args:
-            source_dir - the directory to put the module sources will be put into
-            modules    - all the modules to build.
+    Args:
+        source_dir - the directory to put the module sources will be put into
+        modules    - all the modules to build.
 
-        Returns:
-            Dictionary mapping modules to filenames in source_dir.
+    Returns:
+        Dictionary mapping modules to filenames in source_dir.
 
-        Notes:
-            These filenames can collide, due to e.g. mixed case usage, or there
-            being duplicate copies, e.g. a package named the same as the main
-            binary.
+    Notes:
+        These filenames can collide, due to e.g. mixed case usage, or there
+        being duplicate copies, e.g. a package named the same as the main
+        binary.
 
-            Conflicts are resolved by appending @<number> with a count in the
-            list of sorted modules. We try to be reproducible here, so we get
-            still good caching for external tools.
+        Conflicts are resolved by appending @<number> with a count in the
+        list of sorted modules. We try to be reproducible here, so we get
+        still good caching for external tools.
     """
 
     collision_filenames = set()
@@ -272,16 +277,11 @@ standalone_entry_points = []
 
 
 def makeSourceDirectory(main_module):
-    """ Get the full list of modules imported, create code for all of them.
-
-    """
+    """Get the full list of modules imported, create code for all of them."""
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # no sense, pylint: disable=too-many-branches
 
     assert main_module.isCompiledPythonModule()
-
-    # The global context used to generate code.
-    global_context = CodeGeneration.makeGlobalContext()
 
     # assert main_module in ModuleRegistry.getDoneModules()
 
@@ -291,7 +291,7 @@ def makeSourceDirectory(main_module):
     # drop the frozen one.
     # TODO: This really should be done when the compiled module comes into
     # existence.
-    for module in ModuleRegistry.getDoneUserModules():
+    for module in ModuleRegistry.getDoneModules():
         if module.isCompiledPythonModule():
             uncompiled_module = ModuleRegistry.getUncompiledModule(
                 module_name=module.getFullName(),
@@ -317,7 +317,7 @@ def makeSourceDirectory(main_module):
         if "*" in any_case_module or "{" in any_case_module:
             continue
 
-        for module in ModuleRegistry.getDoneUserModules():
+        for module in ModuleRegistry.getDoneModules():
             if module.getFullName() == any_case_module:
                 break
         else:
@@ -335,79 +335,43 @@ def makeSourceDirectory(main_module):
         source_dir=source_dir, modules=ModuleRegistry.getDoneModules()
     )
 
-    # First pass, generate code and use constants doing so, but prepare the
-    # final code generation only, because constants code will be added at the
-    # end only.
-    prepared_modules = {}
-
+    # Generate code for modules.
     for module in ModuleRegistry.getDoneModules():
         if module.isCompiledPythonModule():
             c_filename = module_filenames[module]
-
-            try:
-                prepared_modules[c_filename] = CodeGeneration.prepareModuleCode(
-                    global_context=global_context,
-                    module=module,
-                    module_name=module.getFullName(),
-                )
-            except Exception:
-                general.warning("Problem creating code for module %r." % module)
-                raise
-
-            # Main code constants need to be allocated already too.
-            if module is main_module and not Options.shallMakeModule():
-                prepared_modules[c_filename][1].getConstantCode(0)
-
-    # Second pass, generate the actual module code into the files.
-    for module in ModuleRegistry.getDoneModules():
-        if module.isCompiledPythonModule():
-            c_filename = module_filenames[module]
-
-            template_values, module_context = prepared_modules[c_filename]
 
             source_code = CodeGeneration.generateModuleCode(
-                module_context=module_context, template_values=template_values
+                module=module,
+                data_filename=os.path.basename(c_filename + "onst"),  # Really .const
             )
 
             writeSourceCode(filename=c_filename, source_code=source_code)
 
             if Options.isShowInclusion():
-                general.info("Included compiled module '%s'." % module.getFullName())
-        elif module.isPythonShlibModule():
-            target_filename = os.path.join(
-                OutputDirectories.getStandaloneDirectoryPath(),
-                *module.getFullName().split(".")
-            )
-            target_filename += Utils.getSharedLibrarySuffix()
-
-            target_dir = os.path.dirname(target_filename)
-
-            if not os.path.isdir(target_dir):
-                makePath(target_dir)
-
-            shutil.copyfile(module.getFilename(), target_filename)
-
-            standalone_entry_points.append(
-                (
-                    module.getFilename(),
-                    target_filename,
-                    module.getFullName().getPackageName(),
+                inclusion_logger.info(
+                    "Included compiled module '%s'." % module.getFullName()
                 )
-            )
+        elif module.isPythonShlibModule():
+            addShlibEntryPoint(module)
+
+            if Options.isShowInclusion():
+                inclusion_logger.info(
+                    "Included extension module '%s'." % module.getFullName()
+                )
         elif module.isUncompiledPythonModule():
             if Options.isShowInclusion():
-                general.info("Included uncompiled module '%s'." % module.getFullName())
+                inclusion_logger.info(
+                    "Included uncompiled module '%s'." % module.getFullName()
+                )
         else:
             assert False, module
 
-    writeSourceCode(
-        filename=os.path.join(source_dir, "__constants.c"),
-        source_code=ConstantCodes.getConstantsDefinitionCode(context=global_context),
-    )
-
-    helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode(
-        ModuleRegistry.getDoneUserModules()
-    )
+    (
+        helper_decl_code,
+        helper_impl_code,
+        constants_header_code,
+        constants_body_code,
+    ) = CodeGeneration.generateHelpersCode()
 
     writeSourceCode(
         filename=os.path.join(source_dir, "__helpers.h"), source_code=helper_decl_code
@@ -415,6 +379,16 @@ def makeSourceDirectory(main_module):
 
     writeSourceCode(
         filename=os.path.join(source_dir, "__helpers.c"), source_code=helper_impl_code
+    )
+
+    writeSourceCode(
+        filename=os.path.join(source_dir, "__constants.h"),
+        source_code=constants_header_code,
+    )
+
+    writeSourceCode(
+        filename=os.path.join(source_dir, "__constants.c"),
+        source_code=constants_body_code,
     )
 
     for filename, source_code in Plugins.getExtraCodeFiles().items():
@@ -458,7 +432,7 @@ def runScons(main_module, quiet):
         "module_count": "%d"
         % (
             1
-            + len(ModuleRegistry.getDoneUserModules())
+            + len(ModuleRegistry.getDoneModules())
             + len(ModuleRegistry.getUncompiledNonTechnicalModules())
         ),
     }
@@ -563,6 +537,12 @@ def runScons(main_module, quiet):
     if link_libraries:
         options["link_libraries"] = ",".join(link_libraries)
 
+    if Options.shallMakeModule():
+        options["module_suffix"] = getSharedLibrarySuffix(preferred=True)
+
+    if Options.shallRunInDebugger():
+        options["full_names"] = "true"
+
     return SconsInterface.runScons(options, quiet), options
 
 
@@ -647,18 +627,18 @@ def compileTree(main_module):
         # Now build the target language code for the whole tree.
         makeSourceDirectory(main_module=main_module)
 
-        frozen_code = generateBytecodeFrozenCode()
+        bytecode_accessor = ConstantAccessor(
+            data_filename="__bytecode.const", top_level_name="bytecode_data"
+        )
 
-        if frozen_code is not None:
-            writeSourceCode(
-                filename=os.path.join(source_dir, "__frozen.c"), source_code=frozen_code
-            )
+        # This should take all bytecode values, even ones needed for frozen or
+        # not produce anything.
+        loader_code = LoaderCodes.getMetapathLoaderBodyCode(bytecode_accessor)
 
-        if not isWin32Windows():
-            writeBinaryData(
-                filename=os.path.join(source_dir, "__constants.bin"),
-                binary_data=ConstantCodes.stream_data.getBytes(),
-            )
+        writeSourceCode(
+            filename=os.path.join(source_dir, "__loader.c"), source_code=loader_code
+        )
+
     else:
         source_dir = OutputDirectories.getSourceDirectoryPath()
 
@@ -680,6 +660,10 @@ def compileTree(main_module):
 
     if Options.shallNotDoExecCCompilerCall():
         return True, {}
+
+    # TODO: On Windows, we could run this in parallel to Scons, on Linux we need it
+    # for linking.
+    runDataComposer(source_dir)
 
     # Run the Scons to build things.
     result, options = runScons(main_module=main_module, quiet=not Options.isShowScons())
@@ -714,14 +698,14 @@ of the precise Python interpreter binary and '-m nuitka', e.g. use this
 
 
 def main():
-    """ Main program flow of Nuitka
+    """Main program flow of Nuitka
 
-        At this point, options will be parsed already, Nuitka will be executing
-        in the desired version of Python with desired flags, and we just get
-        to execute the task assigned.
+    At this point, options will be parsed already, Nuitka will be executing
+    in the desired version of Python with desired flags, and we just get
+    to execute the task assigned.
 
-        We might be asked to only re-compile generated C, dump only an XML
-        representation of the internal node tree after optimization, etc.
+    We might be asked to only re-compile generated C, dump only an XML
+    representation of the internal node tree after optimization, etc.
     """
 
     # Main has to fulfill many options, leading to many branches and statements
@@ -758,24 +742,22 @@ def main():
 
             sys.exit(0)
 
-        executePostProcessing(OutputDirectories.getResultFullpath())
+        executePostProcessing()
 
         if Options.isStandaloneMode():
             binary_filename = options["result_exe"]
 
-            standalone_entry_points.insert(0, (binary_filename, binary_filename, None))
+            setMainEntryPoint(binary_filename)
 
             dist_dir = OutputDirectories.getStandaloneDirectoryPath()
 
-            for module in ModuleRegistry.getDoneUserModules():
-                standalone_entry_points.extend(
-                    Plugins.considerExtraDlls(dist_dir, module)
-                )
+            for module in ModuleRegistry.getDoneModules():
+                addIncludedEntryPoints(Plugins.considerExtraDlls(dist_dir, module))
 
             copyUsedDLLs(
                 source_dir=OutputDirectories.getSourceDirectoryPath(),
                 dist_dir=dist_dir,
-                standalone_entry_points=standalone_entry_points,
+                standalone_entry_points=getStandardEntryPoints(),
             )
 
             copyDataFiles(dist_dir=dist_dir)

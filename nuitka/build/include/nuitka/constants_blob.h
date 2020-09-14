@@ -40,4 +40,9 @@ extern const unsigned char constant_bin[0];
 #endif
 #endif
 
+extern void loadConstantsBlob(PyObject **, char const *name, int count);
+#ifndef __NUITKA_NO_ASSERT__
+extern void checkConstantsBlob(PyObject **, char const *name, int count);
+#endif
+
 #endif

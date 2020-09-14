@@ -43,9 +43,7 @@ from .shapes.StandardShapes import tshape_unknown
 
 
 class StatementAssignmentVariableName(StatementChildHavingBase):
-    """ Precursor of StatementAssignmentVariable used during tree building phase
-
-    """
+    """Precursor of StatementAssignmentVariable used during tree building phase"""
 
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_NAME"
 
@@ -82,9 +80,7 @@ class StatementAssignmentVariableName(StatementChildHavingBase):
 
 
 class StatementDelVariableName(StatementBase):
-    """ Precursor of StatementDelVariable used during tree building phase
-
-    """
+    """Precursor of StatementDelVariable used during tree building phase"""
 
     kind = "STATEMENT_DEL_VARIABLE_NAME"
 
@@ -121,17 +117,17 @@ class StatementDelVariableName(StatementBase):
 
 
 class StatementAssignmentVariable(StatementChildHavingBase):
-    """ Assignment to a variable from an expression.
+    """Assignment to a variable from an expression.
 
-        All assignment forms that are not to attributes, slices, subscripts
-        use this.
+    All assignment forms that are not to attributes, slices, subscripts
+    use this.
 
-        The source might be a complex expression. The target can be any kind
-        of variable, temporary, local, global, etc.
+    The source might be a complex expression. The target can be any kind
+    of variable, temporary, local, global, etc.
 
-        Assigning a variable is something we trace in a new version, this is
-        hidden behind target variable reference, which has this version once
-        it can be determined.
+    Assigning a variable is something we trace in a new version, this is
+    hidden behind target variable reference, which has this version once
+    it can be determined.
     """
 
     # Using slots, they don't need that
@@ -350,67 +346,51 @@ Removed assignment of %s from itself which is known to be defined."""
         if variable.hasAccessesOutsideOf(provider) is False:
             last_trace = variable.getMatchingAssignTrace(self)
 
-            if last_trace is not None:
-                if source.isCompileTimeConstant() and not last_trace.hasLoopUsages():
+            if last_trace is not None and not last_trace.getMergeOrNameUsageCount():
+                if source.isCompileTimeConstant():
+                    # TODO: We do not trust these yet
                     if not variable.isModuleVariable():
-                        # Can safely forward propagate only non-mutable constants.
-                        if source.isMutable():
-                            # Something might be possible still, lets check for
-                            # ununused.
-                            if (
-                                not last_trace.hasPotentialUsages()
-                                and not last_trace.hasDefiniteUsages()
-                                and not last_trace.getNameUsageCount()
-                            ):
-                                if not last_trace.getPrevious().isUnassignedTrace():
-                                    result = StatementDelVariable(
-                                        variable=self.variable,
-                                        version=self.variable_version,
-                                        tolerant=True,
-                                        source_ref=self.source_ref,
-                                    )
-                                else:
-                                    result = None
-
-                                return (
-                                    result,
-                                    "new_statements",
-                                    "Dropped dead assignment statement to '%s'."
-                                    % (self.getVariableName()),
+                        # Unused constants can be eliminated in any case.
+                        if not last_trace.getUsageCount():
+                            if not last_trace.getPrevious().isUnassignedTrace():
+                                result = StatementDelVariable(
+                                    variable=self.variable,
+                                    version=self.variable_version,
+                                    tolerant=True,
+                                    source_ref=self.source_ref,
                                 )
-                        else:
-                            if not last_trace.getNameUsageCount():
-                                self.variable_trace.setReplacementNode(
-                                    lambda _usage: source.makeClone()
-                                )
-
-                                propagated = True
                             else:
-                                propagated = False
+                                result = None
 
-                            if (
-                                not last_trace.hasPotentialUsages()
-                                and not last_trace.getNameUsageCount()
-                            ):
-                                if not last_trace.getPrevious().isUnassignedTrace():
-                                    result = StatementDelVariable(
-                                        variable=self.variable,
-                                        version=self.variable_version,
-                                        tolerant=True,
-                                        source_ref=self.source_ref,
-                                    )
-                                else:
-                                    result = None
+                            return (
+                                result,
+                                "new_statements",
+                                "Dropped dead assignment statement to '%s'."
+                                % (self.getVariableName()),
+                            )
 
-                                return (
-                                    result,
-                                    "new_statements",
-                                    "Dropped %s assignment statement to '%s'."
-                                    % (
-                                        "propagated" if propagated else "dead",
-                                        self.getVariableName(),
-                                    ),
+                        # Can safely forward propagate only non-mutable constants.
+                        if not source.isMutable():
+                            self.variable_trace.setReplacementNode(
+                                lambda _usage: source.makeClone()
+                            )
+
+                            if not last_trace.getPrevious().isUnassignedTrace():
+                                result = StatementDelVariable(
+                                    variable=self.variable,
+                                    version=self.variable_version,
+                                    tolerant=True,
+                                    source_ref=self.source_ref,
                                 )
+                            else:
+                                result = None
+
+                            return (
+                                result,
+                                "new_statements",
+                                "Dropped propagated assignment statement to '%s'."
+                                % self.getVariableName(),
+                            )
                 elif source.isExpressionFunctionCreation():
                     # TODO: Prepare for inlining.
                     pass
@@ -444,19 +424,19 @@ Removed assignment of %s from itself which is known to be defined."""
 
 
 class StatementDelVariable(StatementBase):
-    """ Deleting a variable.
+    """Deleting a variable.
 
-        All del forms that are not to attributes, slices, subscripts
-        use this.
+    All del forms that are not to attributes, slices, subscripts
+    use this.
 
-        The target can be any kind of variable, temporary, local, global, etc.
+    The target can be any kind of variable, temporary, local, global, etc.
 
-        Deleting a variable is something we trace in a new version, this is
-        hidden behind target variable reference, which has this version once
-        it can be determined.
+    Deleting a variable is something we trace in a new version, this is
+    hidden behind target variable reference, which has this version once
+    it can be determined.
 
-        Tolerance means that the value might be unset. That can happen with
-        re-formulation of ours, and Python3 exception variables.
+    Tolerance means that the value might be unset. That can happen with
+    re-formulation of ours, and Python3 exception variables.
     """
 
     kind = "STATEMENT_DEL_VARIABLE"
@@ -607,6 +587,9 @@ class StatementDelVariable(StatementBase):
                     % variable.getName(),
                 )
 
+        if not self.tolerant:
+            self.previous_trace.addNameUsage()
+
         # TODO: Why doesn't this module variable check not follow from other checks done here, e.g. name usages.
         # TODO: This currently cannot be done as releases do not create successor traces yet, although they
         # probably should.
@@ -616,15 +599,8 @@ class StatementDelVariable(StatementBase):
             if variable.hasAccessesOutsideOf(provider) is False:
                 last_trace = variable.getMatchingDelTrace(self)
 
-                if last_trace is not None and not variable.hasSuccessorTraces(
-                    last_trace
-                ):
-                    if (
-                        not last_trace.hasLoopUsages()
-                        and not last_trace.hasPotentialUsages()
-                        and not last_trace.hasDefiniteUsages()
-                        and not last_trace.getNameUsageCount()
-                    ):
+                if last_trace is not None and not last_trace.getMergeOrNameUsageCount():
+                    if not last_trace.getUsageCount():
                         result = StatementReleaseVariable(
                             variable=variable, source_ref=self.source_ref
                         )
@@ -635,11 +611,6 @@ class StatementDelVariable(StatementBase):
                             "Changed del to release for variable '%s' not used afterwards."
                             % variable.getName(),
                         )
-
-        # The "del" is a potential use of a value. TODO: This could be made more
-        # beautiful indication, as it's not any kind of usage.
-        if not self.tolerant:
-            self.previous_trace.addPotentialUsage()
 
         # If not tolerant, we may exception exit now during the __del__
         if not self.tolerant and not self.previous_trace.mustHaveValue():
@@ -682,12 +653,12 @@ class StatementDelVariable(StatementBase):
 
 
 class StatementReleaseVariable(StatementBase):
-    """ Releasing a variable.
+    """Releasing a variable.
 
-        Just release the value, which of course is not to be used afterwards.
+    Just release the value, which of course is not to be used afterwards.
 
-        Typical code: Function exit, try/finally release of temporary
-        variables.
+    Typical code: Function exit, try/finally release of temporary
+    variables.
     """
 
     kind = "STATEMENT_RELEASE_VARIABLE"

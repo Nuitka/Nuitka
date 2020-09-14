@@ -52,6 +52,14 @@ def getRootModules():
     return root_modules
 
 
+def getRootTopModule():
+    top_module = next(iter(root_modules))
+
+    assert top_module.isTopModule()
+
+    return top_module
+
+
 def hasRootModule(module_name):
     for module in root_modules:
         if module.getFullName() == module_name:
@@ -161,13 +169,6 @@ def remainingCount():
 
 def getDoneModules():
     return sorted(done_modules, key=lambda module: module.getFullName())
-
-
-def getDoneUserModules():
-    return sorted(
-        [module for module in done_modules if not module.isInternalModule()],
-        key=lambda module: module.getFullName(),
-    )
 
 
 def removeDoneModule(module):

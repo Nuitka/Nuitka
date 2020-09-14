@@ -30,11 +30,11 @@ from nuitka.utils.FileOperations import getFileContentByLine, listDir
 
 
 def getLoadedPackages():
-    """ Extract packages with no __file__, i.e. they got added manually.
+    """Extract packages with no __file__, i.e. they got added manually.
 
-        They are frequently created with "*.pth" files that then check for the
-        "__init__.py" to exist, and when it doesn't, then they create during the
-        loading of "site.py" an package with "__path__" set.
+    They are frequently created with "*.pth" files that then check for the
+    "__init__.py" to exist, and when it doesn't, then they create during the
+    loading of "site.py" an package with "__path__" set.
     """
 
     for module_name, module in sys.modules.items():

@@ -29,9 +29,9 @@ def enableDebug(globals_dict):
     templates = dict(globals_dict)
 
     class TemplateWrapper(object):
-        """ Wrapper around templates.
+        """Wrapper around templates.
 
-            To better trace and control template usage.
+        To better trace and control template usage.
 
         """
 
@@ -41,6 +41,11 @@ def enableDebug(globals_dict):
 
         def __str__(self):
             return self.value
+
+        def __add__(self, other):
+            return self.__class__(
+                self.name + "+" + other.name, self.value + other.value
+            )
 
         def __mod__(self, other):
             assert type(other) is dict, self.name

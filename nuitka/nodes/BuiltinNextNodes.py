@@ -87,4 +87,11 @@ class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
     def computeExpression(self, trace_collection):
         # TODO: The "iterator" should be investigated here, if it is iterable,
         # or if the default is raising.
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None

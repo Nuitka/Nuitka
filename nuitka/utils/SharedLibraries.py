@@ -99,7 +99,7 @@ def locateDLL(dll_name):
 
 
 def getSxsFromDLL(filename, with_data=False):
-    """ List the SxS manifests of a Windows DLL.
+    """List the SxS manifests of a Windows DLL.
 
     Args:
         filename: Filename of DLL to investigate
@@ -115,7 +115,7 @@ def getSxsFromDLL(filename, with_data=False):
 
 
 def removeSxsFromDLL(filename):
-    """ Remove the Windows DLL SxS manifest.
+    """Remove the Windows DLL SxS manifest.
 
     Args:
         filename: Filename to remove SxS manifests from
@@ -136,10 +136,10 @@ def removeSxsFromDLL(filename):
 
 
 def getWindowsDLLVersion(filename):
-    """ Return DLL version information from a file.
+    """Return DLL version information from a file.
 
-        If not present, it will be (0, 0, 0, 0), otherwise it will be
-        a tuple of 4 numbers.
+    If not present, it will be (0, 0, 0, 0), otherwise it will be
+    a tuple of 4 numbers.
     """
     # Get size needed for buffer (0 if no info)
     import ctypes.wintypes
@@ -226,7 +226,7 @@ def getWindowsDLLVersion(filename):
 
 # TODO: Relocate this to nuitka.freezer maybe.
 def getPEFileInformation(filename):
-    """ Return the PE file information of a Windows EXE or DLL
+    """Return the PE file information of a Windows EXE or DLL
 
     Args:
         filename - The file to be investigated.
@@ -291,7 +291,7 @@ def getPEFileInformation(filename):
 
 
 def callInstallNameTool(filename, mapping):
-    """ Update the macOS shared library information for a binary or shared library.
+    """Update the macOS shared library information for a binary or shared library.
 
     Args:
         filename - The file to be modified.
@@ -342,7 +342,7 @@ def callInstallNameToolAddRPath(filename, rpath):
 
 
 def getPyWin32Dir():
-    """ Find the pywin32 DLL directory
+    """Find the pywin32 DLL directory
 
     Args:
         None

@@ -23,11 +23,19 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
 class EventletPlugin(NuitkaPluginBase):
-    """ This class represents the main logic of the plugin.
-    """
+    """This class represents the main logic of the plugin."""
 
     plugin_name = "eventlet"
     plugin_desc = "Required by the eventlet package"
+
+    @classmethod
+    def isRelevant(cls):
+        """One time only check: may this plugin be required?
+
+        Returns:
+            True if this is a standalone compilation.
+        """
+        return Options.isStandaloneMode()
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
 
@@ -38,8 +46,8 @@ class EventletPlugin(NuitkaPluginBase):
         return None
 
 
-class EventlettPluginDetector(NuitkaPluginBase):
-    """ Only used if plugin is NOT activated.
+class EventletPluginDetector(NuitkaPluginBase):
+    """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
@@ -49,7 +57,7 @@ class EventlettPluginDetector(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        """ One time only check: may this plugin be required?
+        """One time only check: may this plugin be required?
 
         Returns:
             True if this is a standalone compilation.
@@ -57,7 +65,7 @@ class EventlettPluginDetector(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):
-        """ This method checks whether eventlet is imported.
+        """This method checks whether eventlet is imported.
 
         Notes:
             Issue a warning if package eventlet is encountered.

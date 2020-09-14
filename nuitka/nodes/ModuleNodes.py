@@ -33,16 +33,16 @@ from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
-from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
+from nuitka.SourceCodeReferences import fromFilename
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import getFileContentByLine, relpath
 from nuitka.utils.ModuleNames import ModuleName
 
 from .Checkers import checkStatementsSequenceOrNone
-from .FutureSpecs import FutureSpec, fromFlags
+from .FutureSpecs import fromFlags
 from .IndicatorMixins import EntryPointMixin, MarkNeedsAnnotationsMixin
-from .LocalsScopes import getLocalsDictHandle, setLocalsDictType
+from .LocalsScopes import getLocalsDictHandle
 from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeMixin,
@@ -76,10 +76,6 @@ class PythonModuleBase(NodeBase):
 
     @staticmethod
     def isTopModule():
-        return False
-
-    @staticmethod
-    def isInternalModule():
         return False
 
     def attemptRecursion(self):
@@ -150,7 +146,7 @@ class PythonModuleBase(NodeBase):
         return None
 
     def getCompileTimeFilename(self):
-        """ The compile time filename for the module.
+        """The compile time filename for the module.
 
         Returns:
             Full path to module file at compile time.
@@ -163,7 +159,7 @@ class PythonModuleBase(NodeBase):
         return os.path.abspath(self.getSourceReference().getFilename())
 
     def getCompileTimeDirectory(self):
-        """ The compile time directory for the module.
+        """The compile time directory for the module.
 
         Returns:
             Full path to module directory at compile time.
@@ -215,9 +211,7 @@ class CompiledPythonModule(
     EntryPointMixin,
     PythonModuleBase,
 ):
-    """ Compiled Python Module
-
-    """
+    """Compiled Python Module"""
 
     # This one has a few indicators, pylint: disable=too-many-instance-attributes
 
@@ -264,7 +258,10 @@ class CompiledPythonModule(
         self.source_code = None
 
         self.module_dict_name = "globals_%s" % (self.getCodeName(),)
-        setLocalsDictType(self.module_dict_name, "module_dict")
+
+        self.locals_scope = getLocalsDictHandle(
+            self.module_dict_name, "module_dict", self
+        )
 
     def getDetails(self):
         return {
@@ -334,10 +331,8 @@ class CompiledPythonModule(
 
                 attrs = {"style": "filled"}
 
-                if variable_trace.hasDefiniteUsages():
+                if variable_trace.getUsageCount():
                     attrs["color"] = "blue"
-                elif variable_trace.hasPotentialUsages():
-                    attrs["color"] = "yellow"
                 else:
                     attrs["color"] = "red"
 
@@ -382,7 +377,7 @@ class CompiledPythonModule(
     def hasVariableName(self, variable_name):
         return variable_name in self.variables or variable_name in self.temp_variables
 
-    def getVariables(self):
+    def getProvidedVariables(self):
         return self.variables.values()
 
     def getFilename(self):
@@ -539,9 +534,7 @@ class CompiledPythonModule(
 
     @staticmethod
     def getFunctionVariablesWithAutoReleases():
-        """ Return the list of function variables that should be released at exit.
-
-        """
+        """Return the list of function variables that should be released at exit."""
         return ()
 
     def getOutlineLocalVariables(self):
@@ -555,7 +548,7 @@ class CompiledPythonModule(
         for outline in outlines:
             result.extend(outline.getUserLocalVariables())
 
-        return tuple(result)
+        return result
 
     def hasClosureVariable(self, variable):
         # Modules don't do this, pylint: disable=no-self-use,unused-argument
@@ -571,13 +564,8 @@ class CompiledPythonModule(
                 outline.removeUserVariable(variable)
                 break
 
-    @staticmethod
-    def getFunctionLocalsScope():
-        """ Modules have no locals scope. """
-        return None
-
-    def getModuleDictScope(self):
-        return getLocalsDictHandle(self.module_dict_name)
+    def getLocalsScope(self):
+        return self.locals_scope
 
 
 class CompiledPythonPackage(CompiledPythonModule):
@@ -632,9 +620,7 @@ def makeUncompiledPythonModule(
 
 
 class UncompiledPythonModule(PythonModuleBase):
-    """ Compiled Python Module
-
-    """
+    """Compiled Python Module"""
 
     kind = "UNCOMPILED_PYTHON_MODULE"
 
@@ -772,39 +758,6 @@ class PythonMainModule(CompiledPythonModule):
             return os.path.dirname(self.getFilename())
         else:
             return CompiledPythonModule.getOutputFilename(self)
-
-
-class PythonInternalModule(CompiledPythonModule):
-    """ The internal module is the parent for Python helpers.
-
-        For some operations, e.g. merging star arguments with
-        normal keyword arguments for a function call, there are
-        Python helpers.
-
-        This module is the home for these functions to live in,
-        but has no own module code.
-    """
-
-    kind = "PYTHON_INTERNAL_MODULE"
-
-    def __init__(self):
-        CompiledPythonModule.__init__(
-            self,
-            module_name=ModuleName("__internal__"),
-            is_top=False,
-            mode="compiled",
-            source_ref=SourceCodeReference.fromFilenameAndLine(
-                filename="internal", line=0
-            ),
-            future_spec=FutureSpec(),
-        )
-
-    @staticmethod
-    def isInternalModule():
-        return True
-
-    def getOutputFilename(self):
-        return "__internal"
 
 
 class PythonShlibModule(PythonModuleBase):

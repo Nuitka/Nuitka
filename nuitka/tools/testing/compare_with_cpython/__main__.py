@@ -44,6 +44,7 @@ from nuitka.utils.Execution import (
     check_output,
     wrapCommandForDebuggerForSubprocess,
 )
+from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.Timing import StopWatch
 
 
@@ -108,12 +109,14 @@ def _getCPythonResults(cpython_cmd):
         my_print("Retrying CPython due to permission problems after delay.")
         time.sleep(2)
 
-    cpython_time = stop_watch.delta()
+    cpython_time = stop_watch.getDelta()
 
     return cpython_time, stdout_cpython, stderr_cpython, exit_cpython
 
 
-def getCPythonResults(cpython_cmd, cpython_cached):
+def getCPythonResults(cpython_cmd, cpython_cached, force_update):
+    # Many details, pylint: disable=too-many-locals
+
     cached = False
     if cpython_cached:
         # TODO: Hashing stuff and creating cache filename is duplicate code
@@ -146,7 +149,7 @@ def getCPythonResults(cpython_cmd, cpython_cached):
             getTestingCPythonOutputsCacheDir(), command_hash.hexdigest()
         )
 
-        if os.path.exists(cache_filename):
+        if os.path.exists(cache_filename) and not force_update:
             with open(cache_filename, "rb") as cache_file:
                 (
                     cpython_time,
@@ -190,7 +193,6 @@ def main():
     silent_mode = hasArg("silent")
     ignore_stderr = hasArg("ignore_stderr")
     ignore_warnings = hasArg("ignore_warnings")
-    ignore_infos = hasArg("ignore_infos")
     expect_success = hasArg("expect_success")
     expect_failure = hasArg("expect_failure")
     python_debug = hasArg("python_debug")
@@ -214,6 +216,9 @@ def main():
     full_compat = not hasArg("improved")
     cpython_cached = hasArg("cpython_cache")
     syntax_errors = hasArg("syntax_errors")
+    noprefer_source = hasArg("noprefer_source")
+    noverbose_log = hasArg("noverbose_log")
+    noinclusion_log = hasArg("noinclusion_log")
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -392,6 +397,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if full_compat:
         extra_options.append("--full-compat")
 
+    if noprefer_source:
+        extra_options.append("--no-prefer-source")
+
     if coverage_mode:
         # Coverage modules hates Nuitka to re-execute, and so we must avoid
         # that.
@@ -435,6 +443,12 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     for user_plugin in user_plugins:
         extra_options.append("--user-plugin=" + user_plugin)
+
+    if not noverbose_log:
+        extra_options.append("--verbose-output=%s.optimization.log" % filename)
+
+    if not noinclusion_log:
+        extra_options.append("--show-modules-output=%s.inclusion.log" % filename)
 
     # Now build the command to run Nuitka.
     if not two_step_execution:
@@ -499,11 +513,11 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if comparison_mode:
         cpython_time, stdout_cpython, stderr_cpython, exit_cpython = getCPythonResults(
-            cpython_cmd=cpython_cmd, cpython_cached=cpython_cached
+            cpython_cmd=cpython_cmd, cpython_cached=cpython_cached, force_update=False
         )
 
-    if comparison_mode and not silent_mode:
-        displayOutput(stdout_cpython, stderr_cpython)
+        if not silent_mode:
+            displayOutput(stdout_cpython, stderr_cpython)
 
     if comparison_mode and not silent_mode:
         my_print("*" * 80)
@@ -618,7 +632,7 @@ Stderr was:
             time.sleep(2)
 
     stop_watch.stop()
-    nuitka_time = stop_watch.delta()
+    nuitka_time = stop_watch.getDelta()
 
     if not silent_mode:
         displayOutput(stdout_nuitka, stderr_nuitka)
@@ -628,36 +642,61 @@ Stderr was:
             assert not stderr_nuitka
 
     if comparison_mode:
-        exit_code_stdout = compareOutput(
-            "stdout",
-            stdout_cpython,
-            stdout_nuitka,
-            ignore_warnings,
-            ignore_infos,
-            syntax_errors,
-        )
 
-        if ignore_stderr:
-            exit_code_stderr = 0
-        else:
-            exit_code_stderr = compareOutput(
-                "stderr",
-                stderr_cpython,
-                stderr_nuitka,
-                ignore_warnings,
-                ignore_infos,
-                syntax_errors,
+        def makeComparisons(trace_result):
+            exit_code_stdout = compareOutput(
+                "stdout", stdout_cpython, stdout_nuitka, ignore_warnings, syntax_errors
             )
 
-        exit_code_return = exit_cpython != exit_nuitka
-
-        if exit_code_return:
-            my_print(
-                """\
-Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
-                    exit_cpython=exit_cpython, exit_nuitka=exit_nuitka
+            if ignore_stderr:
+                exit_code_stderr = 0
+            else:
+                exit_code_stderr = compareOutput(
+                    "stderr",
+                    stderr_cpython,
+                    stderr_nuitka,
+                    ignore_warnings,
+                    syntax_errors,
                 )
+
+            exit_code_return = exit_cpython != exit_nuitka
+
+            if exit_code_return and trace_result:
+                my_print(
+                    """Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
+                        exit_cpython=exit_cpython, exit_nuitka=exit_nuitka
+                    )
+                )
+
+            return exit_code_stdout, exit_code_stderr, exit_code_return
+
+        if cpython_cached:
+            exit_code_stdout, exit_code_stderr, exit_code_return = makeComparisons(
+                trace_result=False
             )
+            if exit_code_stdout or exit_code_stderr or exit_code_return:
+                my_print(
+                    "Updating CPython cache by force due to non-matching comparison results.",
+                    style="yellow",
+                )
+
+                (
+                    cpython_time,
+                    stdout_cpython,
+                    stderr_cpython,
+                    exit_cpython,
+                ) = getCPythonResults(
+                    cpython_cmd=cpython_cmd,
+                    cpython_cached=cpython_cached,
+                    force_update=True,
+                )
+
+                if not silent_mode:
+                    displayOutput(stdout_cpython, stderr_cpython)
+
+        exit_code_stdout, exit_code_stderr, exit_code_return = makeComparisons(
+            trace_result=True
+        )
 
         # In case of segfault, also output the call stack by entering debugger
         # without stdin forwarded.
@@ -678,7 +717,15 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
         exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 
         if exit_code:
-            sys.exit("Error, outputs differed.")
+            problems = []
+            if exit_code_stdout:
+                problems.append("stdout")
+            if exit_code_stderr:
+                problems.append("stderr")
+            if exit_code_return:
+                problems.append("exit_code")
+
+            sys.exit("Error, results differed (%s)." % ",".join(problems))
 
         if expect_success and exit_cpython != 0:
             if silent_mode:
@@ -720,10 +767,9 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
                 else:
                     os.unlink(nuitka_cmd2[0])
         else:
-            if os.name == "nt":
-                module_filename = os.path.basename(filename) + ".pyd"
-            else:
-                module_filename = os.path.basename(filename) + ".so"
+            module_filename = os.path.basename(filename) + getSharedLibrarySuffix(
+                preferred=True
+            )
 
             if os.path.exists(module_filename):
                 os.unlink(module_filename)

@@ -75,9 +75,7 @@ from .TreeHelpers import (
 
 
 def buildTupleCreationNode(provider, elements, source_ref):
-    """ For use in Python3 classes for the bases.
-
-    """
+    """For use in Python3 classes for the bases."""
 
     for element in elements:
         if getKind(element) == "Starred":
