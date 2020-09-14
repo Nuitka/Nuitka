@@ -25,6 +25,7 @@ from nuitka.PythonVersions import python_version
 from .CodeHelpers import (
     generateChildExpressionsCode,
     generateExpressionCode,
+    withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
@@ -45,7 +46,7 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
         seq_name = None
 
     with withObjectCodeTemporaryAssignment(
-        to_name, "dict_result", expression, emit, context
+        to_name, "dict_value", expression, emit, context
     ) as value_name:
 
         if expression.getNamedArgumentPairs():
@@ -99,18 +100,7 @@ def generateDictionaryCreationCode(to_name, expression, emit, context):
 
 
 def _getDictionaryCreationCode(to_name, pairs, emit, context):
-    def generateValueCode(dict_value_name, pair):
-        generateExpressionCode(
-            to_name=dict_value_name,
-            expression=pair.getValue(),
-            emit=emit,
-            context=context,
-        )
-
-    def generateKeyCode(dict_key_name, pair):
-        generateExpressionCode(
-            to_name=dict_key_name, expression=pair.getKey(), emit=emit, context=context
-        )
+    # Detailed, and verbose code, pylint: disable=too-many-locals
 
     pairs_count = len(pairs)
 
@@ -121,43 +111,80 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
     dict_key_name = context.allocateTempName("dict_key")
     dict_value_name = context.allocateTempName("dict_value")
 
-    for count, pair in enumerate(pairs):
-        # Strange as it is, CPython 3.5 and before evaluated the key/value pairs
-        # strictly in order, but for each pair, the value first.
-        if python_version < 350:
-            generateValueCode(dict_value_name, pair)
-            generateKeyCode(dict_key_name, pair)
+    # Create dictionary early. We could wait until first value is there, but
+    # that adds only complexity for an unlikely case, and prevents us from
+    # using general code.
+    emit("%s = _PyDict_NewPresized( %d );" % (to_name, pairs_count))
+
+    is_hashable_key = [pair.subnode_key.isKnownToBeHashable() for pair in pairs]
+
+    # Does this dictionary build need an exception handling at all.
+    if all(is_hashable_key):
+        for pair in pairs:
+            if pair.subnode_key.mayRaiseException(BaseException):
+                needs_exception_exit = True
+                break
+            if pair.subnode_value.mayRaiseException(BaseException):
+                needs_exception_exit = True
+                break
         else:
-            generateKeyCode(dict_key_name, pair)
-            generateValueCode(dict_value_name, pair)
+            needs_exception_exit = False
+    else:
+        needs_exception_exit = True
 
-        if count == 0:
-            emit("%s = _PyDict_NewPresized( %d );" % (to_name, pairs_count))
+    with withCleanupFinally(
+        "dict_build", to_name, needs_exception_exit, emit, context
+    ) as guarded_emit:
+        emit = guarded_emit.emit
 
-            context.addCleanupTempName(to_name)
+        def generateValueCode(dict_value_name, pair):
+            generateExpressionCode(
+                to_name=dict_value_name,
+                expression=pair.subnode_value,
+                emit=emit,
+                context=context,
+            )
 
-        needs_check = not pair.getKey().isKnownToBeHashable()
-        res_name = context.getIntResName()
+        def generateKeyCode(dict_key_name, pair):
+            generateExpressionCode(
+                to_name=dict_key_name,
+                expression=pair.subnode_key,
+                emit=emit,
+                context=context,
+            )
 
-        emit(
-            "%s = PyDict_SetItem(%s, %s, %s);"
-            % (res_name, to_name, dict_key_name, dict_value_name)
-        )
+        for count, pair in enumerate(pairs):
+            # Strange as it is, CPython 3.5 and before evaluated the key/value pairs
+            # strictly in order, but for each pair, the value first.
+            if python_version < 350:
+                generateValueCode(dict_value_name, pair)
+                generateKeyCode(dict_key_name, pair)
+            else:
+                generateKeyCode(dict_key_name, pair)
+                generateValueCode(dict_value_name, pair)
 
-        if context.needsCleanup(dict_value_name):
-            emit("Py_DECREF(%s);" % dict_value_name)
-            context.removeCleanupTempName(dict_value_name)
+            needs_check = not is_hashable_key[count]
+            res_name = context.getIntResName()
 
-        if context.needsCleanup(dict_key_name):
-            emit("Py_DECREF(%s);" % dict_key_name)
-            context.removeCleanupTempName(dict_key_name)
+            emit(
+                "%s = PyDict_SetItem(%s, %s, %s);"
+                % (res_name, to_name, dict_key_name, dict_value_name)
+            )
 
-        getErrorExitBoolCode(
-            condition="%s != 0" % res_name,
-            needs_check=needs_check,
-            emit=emit,
-            context=context,
-        )
+            if context.needsCleanup(dict_value_name):
+                emit("Py_DECREF(%s);" % dict_value_name)
+                context.removeCleanupTempName(dict_value_name)
+
+            if context.needsCleanup(dict_key_name):
+                emit("Py_DECREF(%s);" % dict_key_name)
+                context.removeCleanupTempName(dict_key_name)
+
+            getErrorExitBoolCode(
+                condition="%s != 0" % res_name,
+                needs_check=needs_check,
+                emit=emit,
+                context=context,
+            )
 
 
 def generateDictOperationUpdateCode(statement, emit, context):

@@ -30,7 +30,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import my_print, printError
 
 from .Emission import withSubCollector
-from .LabelCodes import getStatementTrace
+from .LabelCodes import getGotoCode, getLabelCode, getStatementTrace
 from .Reports import onMissingHelper
 
 expression_dispatch_dict = {}
@@ -466,3 +466,37 @@ def pickCodeHelper(
         right_shape=right_shape,
         helper_right=CTypePyObjectPtr,
     )
+
+
+@contextmanager
+def withCleanupFinally(name, release_name, needs_exception, emit, context):
+
+    assert not context.needsCleanup(release_name)
+
+    if needs_exception:
+        exception_target = context.allocateLabel("%s_exception" % name)
+        old_exception_target = context.setExceptionEscape(exception_target)
+
+    with withSubCollector(emit, context) as guarded_emit:
+        yield guarded_emit
+
+    assert not context.needsCleanup(release_name)
+    context.addCleanupTempName(release_name)
+
+    if needs_exception:
+        noexception_exit = context.allocateLabel("%s_noexception" % name)
+        getGotoCode(noexception_exit, emit)
+
+        context.setExceptionEscape(old_exception_target)
+
+        emit("// Exception handling pass through code for %s:" % name)
+        getLabelCode(exception_target, emit)
+
+        from .ErrorCodes import getErrorExitReleaseCode
+
+        emit(getErrorExitReleaseCode(context))
+
+        getGotoCode(old_exception_target, emit)
+
+        emit("// Finished with no exception for %s:" % name)
+        getLabelCode(noexception_exit, emit)
