@@ -174,11 +174,7 @@ template_read_shared_known = """\
 # by keeping track of things that were added by "site.py" mechanisms. Then
 # we can avoid the second call entirely for most cases.
 template_read_mvar_unclear = """\
-%(tmp_name)s = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(var_name)s);
-
-if (unlikely(%(tmp_name)s == NULL)) {
-    %(tmp_name)s = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)%(var_name)s);
-}
+%(tmp_name)s = LOOKUP_MODULE_VALUE(moduledict_%(module_identifier)s, %(var_name)s);
 """
 
 template_read_locals_dict_with_fallback = """\
