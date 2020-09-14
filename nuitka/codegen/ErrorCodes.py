@@ -276,6 +276,7 @@ def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
     )
 
 
+# TODO: Get rid of this function entirely.
 def getNameReferenceErrorCode(variable_name, condition, emit, context):
     helper_code = "FORMAT_NAME_ERROR"
 

@@ -23,6 +23,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
     tshape_int_or_long,
 )
+from nuitka.PythonVersions import python_version
 
 from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
 from .c_types.CTypePyObjectPtrs import (
@@ -30,9 +31,14 @@ from .c_types.CTypePyObjectPtrs import (
     CTypePyObjectPtr,
     CTypePyObjectPtrPtr,
 )
-from .CodeHelpers import decideConversionCheckNeeded, generateExpressionCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment2,
+)
 from .ErrorCodes import (
     getAssertionCode,
+    getErrorExitCode,
     getLocalVariableReferenceErrorCode,
     getNameReferenceErrorCode,
 )
@@ -107,44 +113,63 @@ def getVariableReferenceCode(
     to_name, variable, variable_trace, needs_check, conversion_check, emit, context
 ):
     if variable.isModuleVariable():
-        variable_declaration = VariableDeclaration(
-            "module_var", variable.getName(), None, None
-        )
+        owner = context.getOwner()
+
+        with withObjectCodeTemporaryAssignment2(
+            to_name, "mvar_value", conversion_check, emit, context
+        ) as value_name:
+            # TODO: Rather have this passed from a distinct node type, so inlining
+            # doesn't change things.
+
+            emit(
+                "%(value_name)s = %(helper_code)s(moduledict_%(module_identifier)s, %(var_name)s);"
+                % {
+                    "helper_code": "GET_MODULE_VARIABLE_VALUE_IN_FUNCTION"
+                    if python_version < 340
+                    and not owner.isCompiledPythonModule()
+                    and not owner.isExpressionClassBody()
+                    else "GET_MODULE_VARIABLE_VALUE",
+                    "module_identifier": context.getModuleCodeName(),
+                    "value_name": value_name,
+                    "var_name": context.getConstantCode(constant=variable.getName()),
+                }
+            )
+
+            getErrorExitCode(
+                check_name=value_name,
+                emit=emit,
+                context=context,
+                needs_check=needs_check,
+            )
     else:
         variable_declaration = getLocalVariableDeclaration(
             context, variable, variable_trace
         )
 
-    value_name = variable_declaration.getCType().emitValueAccessCode(
-        value_name=variable_declaration, emit=emit, context=context
-    )
+        value_name = variable_declaration.getCType().emitValueAccessCode(
+            value_name=variable_declaration, emit=emit, context=context
+        )
 
-    if needs_check:
-        condition = value_name.getCType().getLocalVariableInitTestCode(value_name, True)
-
-        if variable.isModuleVariable():
-            getNameReferenceErrorCode(
-                variable_name=variable.getName(),
-                condition=condition,
-                emit=emit,
-                context=context,
+        if needs_check:
+            condition = value_name.getCType().getLocalVariableInitTestCode(
+                value_name, True
             )
-        else:
+
             getLocalVariableReferenceErrorCode(
                 variable=variable, condition=condition, emit=emit, context=context
             )
-    else:
-        value_name.getCType().emitValueAssertionCode(
-            value_name=value_name, emit=emit, context=context
-        )
+        else:
+            value_name.getCType().emitValueAssertionCode(
+                value_name=value_name, emit=emit, context=context
+            )
 
-    to_name.getCType().emitAssignConversionCode(
-        to_name=to_name,
-        value_name=value_name,
-        needs_check=conversion_check,
-        emit=emit,
-        context=context,
-    )
+        to_name.getCType().emitAssignConversionCode(
+            to_name=to_name,
+            value_name=value_name,
+            needs_check=conversion_check,
+            emit=emit,
+            context=context,
+        )
 
 
 def generateVariableReferenceCode(to_name, expression, emit, context):

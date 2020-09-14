@@ -241,8 +241,41 @@ def decideConversionCheckNeeded(to_name, expression):
     return conversion_check
 
 
+# TODO: Get rid of the duplication of code with
+# "withObjectCodeTemporaryAssignment" by setting on one of them.
+
+
+@contextmanager
+def withObjectCodeTemporaryAssignment2(
+    to_name, value_name, needs_conversion_check, emit, context
+):
+    """ Converting to the target type, provide temporary object value name only if necessary. """
+
+    if to_name.c_type == "PyObject *":
+        value_name = to_name
+    else:
+        value_name = context.allocateTempName(value_name)
+
+    yield value_name
+
+    if to_name is not value_name:
+        to_name.getCType().emitAssignConversionCode(
+            to_name=to_name,
+            value_name=value_name,
+            needs_check=needs_conversion_check,
+            emit=emit,
+            context=context,
+        )
+
+        from .ErrorCodes import getReleaseCode
+
+        getReleaseCode(value_name, emit, context)
+
+
 @contextmanager
 def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, context):
+    """ Converting to the target type, provide temporary object value name only if necessary. """
+
     if to_name.c_type == "PyObject *":
         value_name = to_name
     else:
