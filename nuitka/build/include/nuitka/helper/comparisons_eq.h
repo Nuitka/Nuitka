@@ -22,7 +22,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-/* C helpers for type specialized "==" (EQ) comparions */
+/* C helpers for type specialized "==" (EQ) comparisons */
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);

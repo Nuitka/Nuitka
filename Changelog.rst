@@ -1,3 +1,171 @@
+Nuitka Release 0.6.9
+====================
+
+This releases contains important bug fixes for regressions of the 0.6.8 series
+which had relatively many problems. Not all of these could be addressed as
+hotfixes, and other issues were even very involved, causing many changes to
+be necessary.
+
+There are also many general improvements and performance work for tracing and
+loops, but the full potential of this will not be unlocked with this release
+yet.
+
+Bug Fixes
+---------
+
+- Fix, loop optimization sometimes didn't determinate, effectively making
+  Nuitka run forever, with no indication why. This has been fixed and a
+  mechanism to give up after too many attempts has been added.
+
+- Fix, closure taking object allowed a brief period where the garbage collector
+  was exposed to uninitialized objects. Fixed in 0.6.8.1 already.
+
+- Python3.6+: Fix corruption for exceptions thrown into asyncgen. Fixed in
+  0.6.8.1 already.
+
+- Fix, deleting variables detected as C type bool could raise an
+  ``UnboundLocalError`` that was wrong. Fixed in 0.6.8.1 already.
+
+- Python3.8.3+: Fix, future annotations parsing was using hard coded values that
+  were changed in CPython, leading to errors.
+
+- Windows: Avoid encoding issues for Python3 on more systems, by going from wide
+  characters to unicode strings more directly, avoiding an encoding as UTF8 in
+  the middle. Fixed in 0.6.8.2 already.
+
+- Windows: Do not crash when warning about uninstalled MSVC using Python3. This
+  is a Scons bug that we fixed. Fixed in 0.6.8.3 already.
+
+- Standalone: The output of dependency walker should be considered as "latin1"
+  rather than UTF8. Fixed in 0.6.8.3 already.
+
+- Standalone: Added missing hidden dependencies for ``flask``. Fixed in 0.6.8.1
+  already.
+
+- Standalone: Fixed ``win32com.client`` on Windows. Fixed in 0.6.8.1
+  already.
+
+- Standalone: Use ``pkgutil`` to scan encoding modules, properly ignoring the
+  same files as Python does in case of garbage files being there. Fixed in 0.6.8.2
+  already.
+
+- Plugins: Enabling a plugin after the filename to compile was given, didn't
+  allow for arguments to the passed, causing problems. Fixed in 0.6.8.3 already.
+
+- Standalone: The ``certifi`` data file is now supported for all modules using it
+  and not only some.
+
+- Standalone: The bytecode for the standard library had filenames pointing to
+  the original installation attached. While these were not used, but replaced
+  at runtime, they increased the size of the binary, and leaked information.
+
+- Standalone: The path of ``sys.executable`` was not None, but pointing to the
+  original executable, which could also point to some temporary virtualenv
+  directory and therefore not exist, also it was leaking information about the
+  original install.
+
+- Windows: With the MSVC compiler, elimination of duplicate strings was not
+  active, causing even unused strings to be present in the binary, some of which
+  contained file paths of the Nuitka installation.
+
+- Standalone: Added support for pyglet.
+
+- Plugins: The command line handling for Pmw plugin was using wrong defaults,
+  making it include more code than necessary, and to crash if it was not there.
+
+New Features
+------------
+
+- Windows: Added support for using Python 2.7 through a symlink too. This was
+  already working for Python3, but a scons problem prevented this from working.
+
+- Caching of compiled C files is now checked with ccache and clcache, and added
+  automatically where possible, plus a report of the success is made. This can
+  accelerate the re-compile very much, even if you have to go through Nuitka
+  compilation itself, which is not (yet) cached.
+
+- Added new ``--quiet`` option that will disable informational traces that are
+  going to become more.
+
+- The Clang from MSVC installation is now picked up for both 32 and 64 bits and
+  follows the new location in latest Visual Studio 2019.
+
+- Windows: The ``ccache`` from Anaconda is now supported as well as the one
+  from msys64.
+
+Optimization
+------------
+
+- The value tracing has become more correct with loops and in general less often
+  inhibits optimization. Escaping of value traces is now a separate trace state
+  allowing for more appropriate handling of actual unknowns.
+
+- Memory used for value tracing has been lowered by removing unnecessary states
+  for traces, that we don't use anymore.
+
+- Windows: Prevent scons from scanning for MSVC when asked to use MinGW64. This
+  avoids a performance loss doing something that will then end up being unused.
+
+- Windows: Use function level linking with MSVC, this will allow for smaller
+  binaries to be created, that don't have to include unused helper functions.
+
+Cleanups
+--------
+
+- The scons file now uses Nuitka utils functions and is itself split up into
+  several modules for enhanced readability.
+
+- Plugin interfaces for providing extra entry points have been cleaned up and
+  now named tuples are used. Backward compatibility is maintained though.
+
+Organisational
+--------------
+
+- The use of the logging module was replaced with more of our custom tracing
+  and we now have the ability to write the optimization log to a separate
+  file.
+
+- Old style plugin options are now detected and reported as a usage error
+  rather than unknown plugin.
+
+- Changed submodules to use git over https, so as to not require ssh which
+  requires a key registered and causes problems with firewalls too.
+
+- More correct Debian copyright file, made formatting of emails in source code
+  consistent.
+
+- Added repository for Ubuntu focal.
+
+Summary
+-------
+
+The main focus of this release has been bug fixes with only a little
+performance work due to the large amount of regressions and other findings from
+the last release.
+
+The new constants loading for removes a major scalability problem. The checked
+and now consistently possible use of ``ccache`` and ``clcache`` allows for much
+quicker recompilation. Nuitka itself can still be slow in some cases, but
+should have seen some improvements too. Scalability will have to remain a focus
+for the next releases too.
+
+The other focus, was to make the binaries contain no original path location,
+which is interesting for standalone mode. Nuitka should be very good in this
+area now.
+
+For optimization, the new loop code is again better. But it was also very time
+consuming, to redo it, yet again. This has prevented other optimization to be
+added.
+
+And then for correctness, the locals scope work, while very invasive, was
+necessary, to handle the usage of locals inside of contractions, but also will
+be instrumental for function inlining to become generally available.
+
+So, ultimately, this release is a necessary intermediate step. Upcoming
+releases will be able to focus more clearly on run time performance again as
+well as on scalability for generated C code.
+
+
 Nuitka Release 0.6.8
 ====================
 
@@ -166,14 +334,12 @@ Optimization
 Organisational
 --------------
 
-- Mailing list was deleted, remove references, we now prefer Gitter chat.
-
 - Updated developer manual with changes that happened, remvoing the obsolete
   language choice section.
 
 - Added 3.8 support mentions is even more places.
 
-- The mailing list has been closed. We now prefer Gitter chat and Github issues
+- The mailing list has been deleted. We now prefer Gitter chat and Github issues
   for discussions.
 
 - Visual Code recommended extensions are now defined as such in the project
@@ -227,7 +393,6 @@ Cleanups
 
 - Removed accessors for lookup sources from nodes, allowing for faster usage and
   making sure, lookups are only done where needed.
-
 
 Summary
 -------
@@ -1214,10 +1379,10 @@ Organisational
 - Nuitka is participating in the GSoC 2019 under the PSF umbrella. We hope to
   grow even further. Thanks to the mentors who volunteered for this important
   task. Check out the
-  `GSoC 2019 page <http://nuitka.net/pages/gsoc2019.html#mentors>`__ and thanks
+  `GSoC 2019 page <https://nuitka.net/pages/gsoc2019.html#mentors>`__ and thanks
   to the students that are already helping out.
 
-- Added Nuitka internal `API documentation <http://nuitka.net/apidoc>`__ that
+- Added Nuitka internal `API documentation <https://nuitka.net/apidoc>`__ that
   will receive more love in the future. It got some for this release, but a
   lot is missing.
 
@@ -6579,7 +6744,7 @@ Organizational
 - Updated the Nuitka GUI to the latest version, with enhanced features.
 
 - The builds of releases and update of the `downloads page
-  <http://nuitka.net/pages/download.html>`__ is now driven by Buildbot. Page
+  <https://nuitka.net/pages/download.html>`__ is now driven by Buildbot. Page
   will be automatically updated as updated binaries arrive.
 
 Cleanups
@@ -6604,7 +6769,7 @@ Cleanups
 - The ``dir`` built-in with no arguments is now re-formulated to ``locals`` or
   ``globals`` with their ``.keys()`` attribute taken.
 
-- Dramatic amounts of cleanups to code generation specialties, that got done
+- Dramatic amounts of cleanups to code generation specialities, that got done
   right for the new C-ish code generation.
 
 New Tests
@@ -6643,7 +6808,7 @@ the most important problems have been dealt with. Others are still in the
 pipeline.
 
 More work will be needed to take full advantage. This has been explained in a
-`separate post <http://nuitka.net/posts/state-of-nuitka.html>`__ in greater
+`separate post <https://nuitka.net/posts/state-of-nuitka.html>`__ in greater
 detail.
 
 
@@ -6859,7 +7024,7 @@ Organizational
 - Using dedicated `Buildbot <http://buildbot.net>`__ for continuous integration
   testing and release creation as well.
 
-- The `Downloads <http://nuitka.net/pages/download.html>`__ now offers MSI files
+- The `Downloads <https://nuitka.net/pages/download.html>`__ now offers MSI files
   for Win64 as well.
 
 - Discontinued the support for cross compilation to Win32. That was too limited
@@ -7091,7 +7256,7 @@ for the last release, but a complicated and major issue forced a new release,
 and many other small issues.
 
 And then there is performance. As can be seen in the `performance graph
-<http://nuitka.net/pages/performance.html>`__, this release is the fastest so
+<https://nuitka.net/pages/performance.html>`__, this release is the fastest so
 far. This came mainly from examining the need for comparison slots for compiled
 types.
 
@@ -7223,7 +7388,7 @@ traditional code acceleration for rich comparisons, making it significant, and
 the bug fixes make Nuitka more compatible than ever.
 
 So give this a roll, it's worth it. And feel free to join the mailing list
-(since closed) or `make a donation <http://nuitka.net/pages/donations.html>`__
+(since closed) or `make a donation <https://nuitka.net/pages/donations.html>`__
 to support Nuitka.
 
 
@@ -7321,16 +7486,16 @@ Organizational
   immediately obvious which license Nuitka is under.
 
 - Added section about Nuitka license to the "`User Manual
-  <http://nuitka.net/doc/user-manual.html#license>`__".
+  <https://nuitka.net/doc/user-manual.html#license>`__".
 
-- Added `Nuitka Logo <http://nuitka.net/doc/images/Nuitka-Logo-Symbol.png>`__
+- Added `Nuitka Logo <https://nuitka.net/doc/images/Nuitka-Logo-Symbol.png>`__
   to the distribution.
 
 - Use Nuitka Logo as the bitmap in the Windows installer.
 
 - Use Nuitka Logo in the documentation ("`User Manual
-  <http://nuitka.net/doc/user-manual.html>`__" and "`Developer Manual
-  <http://nuitka.net/doc/developer-manual.html>`__").
+  <https://nuitka.net/doc/user-manual.html>`__" and "`Developer Manual
+  <https://nuitka.net/doc/developer-manual.html>`__").
 
 - Enhanced documentation to number page numbers starting after table of
   contents, removed header/footer from cover pages.
@@ -7534,7 +7699,7 @@ Organizational
   into shape for Europython still.
 
   Added notes about it being disabled it in the "`User Manual
-  <http://nuitka.net/doc/user-manual.html>`__" documentation.
+  <https://nuitka.net/doc/user-manual.html>`__" documentation.
 
 Summary
 -------
@@ -7651,10 +7816,10 @@ New Optimization
 Organizational
 --------------
 
-- Accepting `Donations <http://nuitka.net/pages/donations.html>`__ via Paypal,
+- Accepting `Donations <https://nuitka.net/pages/donations.html>`__ via Paypal,
   please support funding travels, website, etc.
 
-- The "`User Manual <http://nuitka.net/doc/user-manual.html>`__" has been
+- The "`User Manual <https://nuitka.net/doc/user-manual.html>`__" has been
   updated with new content. We now do support Visual Studio, documented the
   required LLVM version for clang, Win64 and modules may include modules too,
   etc. Lots of information was no longer accurate and has been updated.
@@ -7724,7 +7889,7 @@ Nuitka Release 0.4.2
 
 This release comes with many bug fixes, some of which are severe. It also
 contains new features, like basic Python 3.3 support. And the `performance
-diagrams <http://nuitka.net/pages/performance.html>`__ got expanded.
+diagrams <https://nuitka.net/pages/performance.html>`__ got expanded.
 
 New Features
 ------------
@@ -7960,7 +8125,7 @@ New Tests
 Organizational
 --------------
 
-- The `Downloads <http://nuitka.net/pages/download.html>`__ page now offers RPMs
+- The `Downloads <https://nuitka.net/pages/download.html>`__ page now offers RPMs
   for RHEL6, CentOS6, F17, F18, and openSUSE 12.1, 12.2, 12.3. This large
   coverage is thanks to openSUSE build service and "ownssh" for contributing an
   RPM spec file.
@@ -7969,7 +8134,7 @@ Organizational
 
 - Added "ownssh" as contributor.
 
-- Revamped the "`User Manual <http://nuitka.net/doc/user-manual.html>`__" in
+- Revamped the "`User Manual <https://nuitka.net/doc/user-manual.html>`__" in
   terms of layout, structure, and content.
 
 Summary
@@ -8153,7 +8318,7 @@ Then lots of work on optimization and infrastructure. The major goal of this
 release was to get in shape for actual optimization. This is also why for the
 first time, it is tested that some things are indeed compile time optimized to
 spot regressions easier. And we are having performance diagrams, `even if weak
-ones <http://nuitka.net/pages/performance.html>`__:
+ones <https://nuitka.net/pages/performance.html>`__:
 
 New Features
 ------------
@@ -8519,14 +8684,14 @@ Organizational
   this.
 
 - Added examples for the typical use cases to the "`User Manual
-  <http://nuitka.net/doc/user-manual.html>`__".
+  <https://nuitka.net/doc/user-manual.html>`__".
 
 - The "compare_with_cpython" script has gained an option to immediately remove
   the Nuitka outputs (build directory and binary) if successful. Also the
   temporary files are now put under "/var/tmp" if available.
 
 - Debian package improvements, registering with "doc-base" the "`User Manual
-  <http://nuitka.net/doc/user-manual.html>`__" so it is easier to discover. Also
+  <https://nuitka.net/doc/user-manual.html>`__" so it is easier to discover. Also
   suggest "mingw32" package which provides the cross compiler to Windows.
 
 - Partial support for MSVC (Visual Studio 2008 to be exact, the version that
@@ -8685,8 +8850,8 @@ Organizational
 
 - Removed the "misc/gist" git sub-module, which was previously used by
   "misc/make-doc.py" to generate HTML from "`User Manual
-  <http://nuitka.net/doc/user-manual.html>`__" and "`Developer Manual
-  <http://nuitka.net/doc/developer-manual.html>`__".
+  <https://nuitka.net/doc/user-manual.html>`__" and "`Developer Manual
+  <https://nuitka.net/doc/developer-manual.html>`__".
 
   These are now done with Nikola, which is much better at it and it integrates
   with the web site.
@@ -9664,7 +9829,7 @@ Organizational
 --------------
 
 - Added more information to the "`Developer Manual
-  <http://nuitka.net/doc/developer-manual.html>`__", e.g. documenting the tree
+  <https://nuitka.net/doc/developer-manual.html>`__", e.g. documenting the tree
   changes for ``assert`` to become a conditional statement with a raise
   statement, etc.
 
@@ -9927,7 +10092,7 @@ New Optimization
 Organizational
 --------------
 
-- Added a "`Developer Manual <http://nuitka.net/doc/developer-manual.html>`__"
+- Added a "`Developer Manual <https://nuitka.net/doc/developer-manual.html>`__"
   to the release. It's incomplete, but it details some of the existing stuff,
   coding rules, plans for "type inference", etc.
 
@@ -9967,7 +10132,7 @@ Organizational
   problem when changing the license of all of Nuitka to that license.
 
 - Give contributors listed in the "`User Manual
-  <http://nuitka.net/doc/user-manual.html>`__" an exception to the GPL terms
+  <https://nuitka.net/doc/user-manual.html>`__" an exception to the GPL terms
   until Nuitka is licensed under "Apache License 2.0" as well.
 
 - Added an ``--experimental`` option which can be used to control experimental
@@ -10658,8 +10823,8 @@ Nuitka Release 0.3.12
 
 This is to inform you about the new release of Nuitka many bug fixes, and
 substantial improvements especially in the organizational area. There is a new
-"`User Manual <http://nuitka.net/doc/user-manual.html>`__" (`PDF
-<http://nuitka.net/doc/user-manual.pdf>`__), with much improved content, a
+"`User Manual <https://nuitka.net/doc/user-manual.html>`__" (`PDF
+<https://nuitka.net/doc/user-manual.pdf>`__), with much improved content, a
 ``sys.meta_path`` based import mechanism for ``--deep`` mode, git flow
 goodness.
 
@@ -10779,7 +10944,7 @@ Organizational
 
 - Migrated the "README.txt" from org-mode to ReStructured Text, which allows
   for a more readable document, and to generate a nice "`User Manual
-  <http://nuitka.net/doc/user-manual.html>`__" in PDF form.
+  <https://nuitka.net/doc/user-manual.html>`__" in PDF form.
 
 - The amount of information in "README.txt" was increased, with many more
   subjects are now covered, e.g. "git flow" and how to join Nuitka
@@ -10905,7 +11070,7 @@ Organizational
 
 - The Nuitka git repository now uses "git flow". The new git policy will be
   detailed in another `separate posting
-  <http://nuitka.net/posts/nuitka-git-flow.html>`__.
+  <https://nuitka.net/posts/nuitka-git-flow.html>`__.
 
 - There is an unstable ``develop`` branch in which the development occurs. For
   this release ca. 40 commits were done to this branch, before merging it. I am
@@ -12386,7 +12551,7 @@ New Tests
 Organizational
 --------------
 
-- The `gitweb interface <http://nuitka.net/gitweb>`__ might be considered an
+- The `gitweb interface <https://nuitka.net/gitweb>`__ might be considered an
   alternative to downloading the source if you want to provide a pointer, or
   want to take a quick glance at the source code. You can already download with
   git, follow the link below to the page explaining it.

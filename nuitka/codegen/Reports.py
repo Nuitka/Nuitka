@@ -21,30 +21,39 @@ Initially this is about missing optimization only, but it should expand into
 real stuff.
 """
 
-from logging import error, info
-
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
+from nuitka.Tracing import codegen_logger, optimization_logger
 
 _missing_helpers = OrderedDict()
 
 _missing_operations = OrderedSet()
 
-# _error_for_missing = True
 _error_for_missing = False
+# _error_for_missing = True
 
 
 def doMissingOptimizationReport():
-    level = error if _error_for_missing else info
-
     for helper, source_refs in _missing_helpers.items():
-        level("Missing C helper code variant, used fallback: %s", helper)
-        for source_ref in source_refs:
+        message = "Missing C helper code variant, used fallback: %s at %s" % (
+            ",".join(source_ref.getAsString() for source_ref in source_refs),
+            helper,
+        )
 
-            level("Occurred at %s." % source_ref.getAsString())
+        if _error_for_missing:
+            codegen_logger.warning(message)
+        else:
+            codegen_logger.info(message)
 
     for desc in _missing_operations:
-        level("Missing optimization, used fallback: %s", desc)
+        if _error_for_missing:
+            optimization_logger.warning(
+                "Missing optimization, used fallback: %s" % (desc,)
+            )
+        else:
+            optimization_logger.info(
+                "Missing optimization, used fallback: %s" % (desc,)
+            )
 
 
 def onMissingHelper(helper_name, source_ref):

@@ -345,8 +345,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
         PyObject *descr = _PyType_Lookup(type, attr_name);
         descrgetfunc func = NULL;
 
-        if (descr != NULL)
-        {
+        if (descr != NULL) {
             Py_INCREF(descr);
 
 #if PYTHON_VERSION < 300
@@ -354,8 +353,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
 #endif
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr))
-                {
+                if (func != NULL && PyDescr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -374,17 +372,16 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
-        if ( dictoffset != 0 )
-        {
+        if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
-            if ( dictoffset < 0 )
-            {
+            if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
 
                 tsize = ((PyVarObject *)source)->ob_size;
-                if (tsize < 0)
+                if (tsize < 0) {
                     tsize = -tsize;
+                }
                 size = _PyObject_VAR_SIZE( type, tsize );
 
                 dictoffset += (long)size;
@@ -394,16 +391,14 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
             dict = *dictptr;
         }
 
-        if (dict != NULL)
-        {
+        if (dict != NULL) {
             CHECK_OBJECT(dict);
 
             Py_INCREF(dict);
 
             PyObject *called_object = PyDict_GetItem(dict, attr_name);
 
-            if (called_object != NULL)
-            {
+            if (called_object != NULL) {
                 Py_INCREF(called_object);
                 Py_XDECREF(descr);
                 Py_DECREF(dict);
@@ -556,8 +551,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
                 args2
             );
 
-            if (unlikely(called_object == NULL))
-            {
+            if (unlikely(called_object == NULL)) {
                 return NULL;
             }
 
@@ -592,8 +586,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
             (char *)Nuitka_String_AsString_Unchecked(attr_name)
         );
 
-        if (unlikely(called_object == NULL))
-        {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 

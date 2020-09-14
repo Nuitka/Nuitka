@@ -24,7 +24,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
 class TensorflowPlugin(NuitkaPluginBase):
-    """ This class represents the main logic of the plugin.
+    """This class represents the main logic of the plugin.
 
     This is a plugin to ensure tensorflow scripts compile and work well in
     standalone mode.
@@ -39,19 +39,26 @@ class TensorflowPlugin(NuitkaPluginBase):
     plugin_desc = "Required by the tensorflow package"
 
     def __init__(self):
-        """ Maintain switch to ensure once-only copy of tensorflow files.
-        """
+        """Maintain switch to ensure once-only copy of tensorflow files."""
         self.files_copied = False
         return None
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    @classmethod
+    def isRelevant(cls):
+        """This method is called one time only to check, whether the plugin might make sense at all.
 
+        Returns:
+            True if this is a standalone compilation.
+        """
+        return Options.isStandaloneMode()
+
+    def onModuleEncounter(self, module_filename, module_name, module_kind):
         for candidate in ("tensor", "google"):
             if module_name.hasNamespace(candidate):
                 return True, "Accept everything from %s" % candidate
 
     def onModuleSourceCode(self, module_name, source_code):
-        """ Neutralize some path magic in tensorflow.
+        """Neutralize some path magic in tensorflow.
 
         Notes:
             Make sure tensorflow understands, we are not running as a PIP
@@ -77,7 +84,7 @@ class TensorflowPlugin(NuitkaPluginBase):
         return "\n".join(source_lines)
 
     def decideCompilation(self, module_name, source_ref):
-        """ Include major packages as bytecode.
+        """Include major packages as bytecode.
 
         Notes:
             Tensorflow is a very large package and mainly used to interactively
@@ -100,7 +107,7 @@ class TensorflowPlugin(NuitkaPluginBase):
 
 
 class TensorflowPluginDetector(NuitkaPluginBase):
-    """ Only used if plugin is NOT activated.
+    """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
@@ -110,7 +117,7 @@ class TensorflowPluginDetector(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        """ This method is called one time only to check, whether the plugin might make sense at all.
+        """This method is called one time only to check, whether the plugin might make sense at all.
 
         Returns:
             True if this is a standalone compilation.
@@ -118,7 +125,7 @@ class TensorflowPluginDetector(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):
-        """ This method checks whether a tensorflow module is imported.
+        """This method checks whether a tensorflow module is imported.
 
         Notes:
             For this we check whether its full name contains the string "tensorflow".

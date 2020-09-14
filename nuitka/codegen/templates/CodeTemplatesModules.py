@@ -23,7 +23,7 @@ stuff related to importing, and of course the generated code license.
 """
 
 template_global_copyright = """\
-/* Generated code for Python module '%(name)s'
+/* Generated code for Python module '%(module_name)s'
  * created by Nuitka version %(version)s
  *
  * This code is in part copyright %(year)s Kay Hayen.
@@ -45,9 +45,11 @@ template_global_copyright = """\
 template_module_body_template = r"""
 #include "nuitka/prelude.h"
 
+#include "nuitka/unfreezing.h"
+
 #include "__helpers.h"
 
-/* The "_module_%(module_identifier)s" is a Python object pointer of module type.
+/* The "module_%(module_identifier)s" is a Python object pointer of module type.
  *
  * Note: For full compatibility with CPython, every module variable access
  * needs to go through it except for cases where the module cannot possibly
@@ -58,14 +60,16 @@ PyObject *module_%(module_identifier)s;
 PyDictObject *moduledict_%(module_identifier)s;
 
 /* The declarations of module constants used, if any. */
-%(constant_decl_codes)s
+static PyObject *mod_consts[%(constants_count)d];
+
+static PyObject *module_filename_obj = NULL;
 
 /* Indicator if this modules private constants were created yet. */
 static bool constants_created = false;
 
 /* Function to create module private constants. */
 static void createModuleConstants(void) {
-%(constant_init_codes)s
+    loadConstantsBlob(&mod_consts[0], "%(module_name)s", %(constants_count)d);
 
     constants_created = true;
 }
@@ -76,7 +80,7 @@ void checkModuleConstants_%(module_identifier)s(void) {
     // The module may not have been used at all, then ignore this.
     if (constants_created == false) return;
 
-%(constant_check_codes)s
+    checkConstantsBlob(&mod_consts[0], "%(module_name)s", %(constants_count)d);
 }
 #endif
 
@@ -92,22 +96,6 @@ static void createModuleCodeObjects(void) {
 
 // The module function definitions.
 %(module_functions_code)s
-
-extern PyObject *const_str_plain___compiled__;
-
-extern PyObject *const_str_plain___package__;
-extern PyObject *const_str_empty;
-
-#if PYTHON_VERSION >= 300
-extern PyObject *const_str_dot;
-extern PyObject *const_str_plain___loader__;
-#endif
-
-#if PYTHON_VERSION >= 340
-extern PyObject *const_str_plain___spec__;
-extern PyObject *const_str_plain__initializing;
-extern PyObject *const_str_plain_submodule_search_locations;
-#endif
 
 extern void _initCompiledCellType();
 extern void _initCompiledGeneratorType();
@@ -273,8 +261,11 @@ static PyMethodDef _method_def_create_compiled_function = {
 
 #endif
 
+// Actual name might be different when loaded as a package.
+NUITKA_MAY_BE_UNUSED static char const *module_full_name = "%(module_name)s";
+
 // Internal entry point for module code.
-PyObject *modulecode_%(module_identifier)s(PyObject *module) {
+PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *module_entry) {
     module_%(module_identifier)s = module;
 
 #if defined(_NUITKA_EXE) || PYTHON_VERSION >= 300
@@ -356,8 +347,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module) {
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
     {
         PyObject *function_tables = PyObject_GetAttrString((PyObject *)builtin_module, "compiled_function_tables");
-        if (function_tables == NULL)
-        {
+        if (function_tables == NULL) {
             DROP_ERROR_OCCURRED();
             function_tables = PyDict_New();
         }
@@ -400,8 +390,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module) {
 
         char const *last_dot = strrchr(module_name_cstr, '.');
 
-        if (last_dot != NULL)
-        {
+        if (last_dot != NULL) {
             UPDATE_STRING_DICT1(
                 moduledict_%(module_identifier)s,
                 (Nuitka_StringObject *)const_str_plain___package__,
@@ -412,8 +401,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module) {
         PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
         Py_ssize_t dot_index = PyUnicode_Find(module_name, const_str_dot, 0, PyUnicode_GetLength(module_name), -1);
 
-        if (dot_index != -1)
-        {
+        if (dot_index != -1) {
             UPDATE_STRING_DICT1(
                 moduledict_%(module_identifier)s,
                 (Nuitka_StringObject *)const_str_plain___package__,
@@ -430,8 +418,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module) {
     // it ourselves in the same way than CPython does. Note: This must be done
     // before the frame object is allocated, or else it may fail.
 
-    if (GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__) == NULL)
-    {
+    if (GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__) == NULL) {
         PyObject *value = (PyObject *)builtin_module;
 
         // Check if main module, not a dict then but the module itself.
@@ -455,30 +442,14 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module) {
 #else
     // Other modules get a "ModuleSpec" from the standard mechanism.
     {
-        PyObject *bootstrap_module = PyImport_ImportModule("importlib._bootstrap");
-        CHECK_OBJECT(bootstrap_module);
-        PyObject *module_spec_class = PyObject_GetAttrString(bootstrap_module, "ModuleSpec");
-        Py_DECREF(bootstrap_module);
+        PyObject *bootstrap_module = getImportLibBootstrapModule();
+        PyObject *_spec_from_module = PyObject_GetAttrString(bootstrap_module, "_spec_from_module");
 
-        PyObject *args[] = {
-            GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__),
-            (PyObject *)&Nuitka_Loader_Type
-        };
-
-        PyObject *spec_value = CALL_FUNCTION_WITH_ARGS2(
-            module_spec_class,
-            args
-        );
-        Py_DECREF(module_spec_class);
+        PyObject *spec_value = CALL_FUNCTION_WITH_SINGLE_ARG(_spec_from_module, module_%(module_identifier)s);
+        Py_DECREF(_spec_from_module);
 
         // We can assume this to never fail, or else we are in trouble anyway.
         CHECK_OBJECT(spec_value);
-
-// For packages set the submodule search locations as well, even if to empty
-// list, so investigating code will consider it a package.
-#if %(is_package)s
-        SET_ATTRIBUTE(spec_value, const_str_plain_submodule_search_locations, PyList_New(0));
-#endif
 
 // Mark the execution in the "__spec__" value.
         SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_True);
@@ -549,7 +520,6 @@ static struct PyModuleDef mdef_%(module_identifier)s = {
  * library export. This is hidden behind the MOD_INIT_DECL macro.
  */
 MOD_INIT_DECL(%(module_identifier)s) {
-    char const *module_full_name = "%(module_name)s";
     if (_Py_PackageContext != NULL) {
         module_full_name = _Py_PackageContext;
     }
@@ -570,15 +540,14 @@ MOD_INIT_DECL(%(module_identifier)s) {
     PyObject *module = PyModule_Create(&mdef_%(module_identifier)s);
     CHECK_OBJECT(module);
 
-    PyObject *module_name = PyUnicode_FromString(module_full_name);
-    int res = PyDict_SetItem(PyImport_GetModuleDict(), module_name, module);
-    assert(res != -1);
+    bool res = Nuitka_SetModuleString(module_full_name, module);
+    assert(res != false);
 #endif
 
 #if PYTHON_VERSION < 300
-    modulecode_%(module_identifier)s(module);
+    modulecode_%(module_identifier)s(module, NULL);
 #else
-    PyObject *result = modulecode_%(module_identifier)s(module);
+    PyObject *result = modulecode_%(module_identifier)s(module, NULL);
     return result;
 #endif
 }

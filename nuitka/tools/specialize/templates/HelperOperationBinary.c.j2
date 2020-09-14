@@ -22,8 +22,26 @@ static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelper
 {% if left.type_name == "object" and right.type_name == "object" %}
     {# CPython2 treats integer values with fast path. #}
 #if PYTHON_VERSION < 300
-    if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
-        return _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_INT_INT(operand1, operand2);
+    if ({{left.getIntCheckExpression("operand1")}} && {{right.getIntCheckExpression("operand2")}}) {
+        {% import 'HelperSlotsInt.c.j2' as int_slots %}
+
+        {{target.getTypeDecl()}} result;
+
+        {{ int_slots.int_slot(operator, nb_slot, target, int_desc, int_desc, "result", "operand1", "operand2", "exit_result", "exit_result_ok", "exit_result_exception") }}
+
+        exit_result:
+
+        if (unlikely(result == {{target.getExceptionResultIndicatorValue()}})) {
+            return {{target.getExceptionResultIndicatorValue()}};
+        }
+
+        exit_result_ok:
+
+        return result;
+
+{# Not all operations have defined a definite exception exit, so this can be unused #}
+        exit_result_exception:
+        return {{target.getExceptionResultIndicatorValue()}};
     }
 #endif
 {% endif %}
@@ -203,7 +221,7 @@ static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelper
 {% endif %}
 
 
-{{target.getReturnUnsupportedTypeErrorCode(operator, left, right, "type1", "type2")}}
+{{ target.getReturnUnsupportedTypeErrorCode(operator, left, right, "type1", "type2") }}
 {% endif %}
 }
 

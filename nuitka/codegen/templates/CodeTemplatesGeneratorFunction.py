@@ -20,7 +20,7 @@
 """
 
 template_genfunc_yielder_maker_decl = """\
-static PyObject *%(function_identifier)s_maker(void);
+static PyObject *%(generator_maker_identifier)s(%(generator_creation_args)s);
 """
 
 template_genfunc_yielder_body_template = """
@@ -30,7 +30,8 @@ struct %(function_identifier)s_locals {
 
 static PyObject *%(function_identifier)s_context(struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value) {
     CHECK_OBJECT(generator);
-    assert(Nuitka_Generator_Check( (PyObject *)generator ));
+    assert(Nuitka_Generator_Check((PyObject *)generator));
+    CHECK_OBJECT_X(yield_return_value);
 
     // Heap access if used.
 %(heap_declaration)s
@@ -47,7 +48,7 @@ static PyObject *%(function_identifier)s_context(struct Nuitka_GeneratorObject *
 %(generator_exit)s
 }
 
-static PyObject *%(function_identifier)s_maker(void) {
+static PyObject *%(generator_maker_identifier)s(%(generator_creation_args)s) {
     return Nuitka_Generator_New(
         %(function_identifier)s_context,
         %(generator_module)s,
@@ -56,18 +57,20 @@ static PyObject *%(function_identifier)s_maker(void) {
         %(generator_qualname_obj)s,
 #endif
         %(code_identifier)s,
+        %(closure_name)s,
         %(closure_count)d,
         sizeof(struct %(function_identifier)s_locals)
     );
 }
 """
 
-template_make_generator_template = """\
-%(to_name)s = %(generator_identifier)s_maker();
+template_make_generator = """\
 %(closure_copy)s
+%(to_name)s = %(generator_maker_identifier)s(%(args)s);
 """
 
-template_make_empty_generator_template = """\
+template_make_empty_generator = """\
+%(closure_copy)s
 %(to_name)s = Nuitka_Generator_NewEmpty(
     %(generator_module)s,
     %(generator_name_obj)s,
@@ -75,9 +78,9 @@ template_make_empty_generator_template = """\
     %(generator_qualname_obj)s,
 #endif
     %(code_identifier)s,
+    %(closure_name)s,
     %(closure_count)d
 );
-%(closure_copy)s
 """
 
 

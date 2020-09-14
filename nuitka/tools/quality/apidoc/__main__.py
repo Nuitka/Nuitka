@@ -50,7 +50,7 @@ def main():
         dest="upload",
         default=False,
         help="""\
-Upload to http://nuitka.net/apidoc requires access rights and is done by the
+Upload to https://nuitka.net/apidoc requires access rights and is done by the
 official servers automatically only. Without this, create the local html folder
 only.
 

@@ -100,14 +100,16 @@ def checkRequirements(filename):
 def displayError(dirname, filename):
     assert dirname is None
 
-    my_print("Listing of dist folder:")
+    filename = filename[:-3] + ".dist"
+
+    my_print("Listing of dist folder '%s':" % filename)
 
     if os.name == "nt":
-        command = "dir /b /s /a:-D %s"
+        command = "dir /b /s /a:-D %s" % filename
     else:
-        command = "ls -Rla %s"
+        command = "ls -Rla %s" % filename
 
-    os.system(command % filename)
+    os.system(command)
 
 
 def main():
@@ -131,13 +133,7 @@ def main():
             my_print("Skipping", filename)
             continue
 
-        extra_flags = [
-            "expect_success",
-            "standalone",
-            "remove_output",
-            # For enum plugin info
-            "ignore_infos",
-        ]
+        extra_flags = ["expect_success", "standalone", "remove_output"]
 
         # skip each test if their respective requirements are not met
         requirements_met, error_message = checkRequirements(filename)
@@ -186,11 +182,16 @@ def main():
             extra_flags.append("ignore_warnings")
 
         if filename == "NumpyUsing.py":
+            extra_flags.append("plugin_enable:numpy")
+
             # TODO: Disabled for now.
             reportSkip("numpy.test not fully working yet", ".", filename)
             continue
 
-            # extra_flags.append("plugin_enable:data-files")
+        if filename == "PandasUsing.py":
+            extra_flags.append("plugin_enable:numpy")
+            extra_flags.append("plugin_disable:pylint-warnings")
+
         if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
 
@@ -318,6 +319,8 @@ def main():
                 if r"windows performance toolkit" in loaded_filename:
                     continue
                 if r"powershell" in loaded_filename:
+                    continue
+                if r"azure dev spaces cli" in loaded_filename:
                     continue
 
             if loaded_filename.startswith(current_dir):
@@ -611,8 +614,16 @@ def main():
                 my_print("Listing of dist folder:")
                 os.system("ls -Rla %s" % filename[:-3] + ".dist")
 
-                my_print("strace:")
-                os.system("strace -s4096 -e file %s" % binary_filename)
+                my_print("Inclusion log:")
+                os.system("cat %s" % filename[:-3] + ".py.inclusion.log")
+
+                # Run with traces to help debugging, specifically in CI environment.
+                if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
+                    my_print("dtruss:")
+                    os.system("sudo dtruss %s" % binary_filename)
+                else:
+                    my_print("strace:")
+                    os.system("strace -s4096 -e file %s" % binary_filename)
 
             search_mode.onErrorDetected(1)
 

@@ -19,9 +19,12 @@
 
 """
 
-template_constants_reading = """
+template_constants_reading = r"""
 #include "nuitka/prelude.h"
 #include "structseq.h"
+
+// Global constants storage
+PyObject *global_constants[%(global_constants_count)d];
 
 // Sentinel PyObject to be used for all our call iterator endings. It will
 // become a PyCObject pointing to NULL. It's address is unique, and that's
@@ -36,25 +39,24 @@ PyObject *Nuitka_dunder_compiled_value = NULL;
 const unsigned char constant_bin[0];
 #endif
 
-%(constant_declarations)s
-
-static void _createGlobalConstants(void) {
-    NUITKA_MAY_BE_UNUSED PyObject *exception_type, *exception_value;
-    NUITKA_MAY_BE_UNUSED PyTracebackObject *exception_tb;
-
-#ifdef _MSC_VER
-    // Prevent unused warnings in case of simple programs, the attribute
-    // NUITKA_MAY_BE_UNUSED doesn't work for MSVC.
-    (void *)exception_type; (void *)exception_value; (void *)exception_tb;
+#ifdef _NUITKA_STANDALONE
+extern PyObject *getStandaloneSysExecutablePath(PyObject *basename);
 #endif
 
-%(constant_inits)s
+static void _createGlobalConstants(void) {
+    // The empty name means global.
+    loadConstantsBlob(&global_constants[0], "", %(global_constants_count)d);
 
 #if _NUITKA_EXE
-    /* Set the "sys.executable" path to the original CPython executable. */
+    /* Set the "sys.executable" path to the original CPython executable or point to inside the
+       distribution for standalone. */
     PySys_SetObject(
         (char *)"executable",
+#ifndef _NUITKA_STANDALONE
         %(sys_executable)s
+#else
+        getStandaloneSysExecutablePath(%(sys_executable)s)
+#endif
     );
 
 #ifndef _NUITKA_STANDALONE
@@ -129,7 +131,8 @@ static void _createGlobalConstants(void) {
 // for sanity.
 #ifndef __NUITKA_NO_ASSERT__
 void checkGlobalConstants(void) {
-%(constant_checks)s
+// TODO: Ask constant code to check values.
+
 }
 #endif
 

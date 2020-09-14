@@ -75,9 +75,7 @@ def updateDebianChangelog(old_version, new_version, distribution):
 
 
 def checkChangeLog(message):
-    """ Check debian changelog for given message to be present.
-
-    """
+    """Check debian changelog for given message to be present."""
 
     for line in getFileContentByLine("debian/changelog"):
         if line.startswith(" --"):
@@ -90,7 +88,7 @@ def checkChangeLog(message):
 
 
 def cleanupTarfileForDebian(filename, new_name):
-    """ Remove files that shouldn't be in Debian.
+    """Remove files that shouldn't be in Debian.
 
     The inline copies should definitely not be there. Also remove the
     PDF files for now.

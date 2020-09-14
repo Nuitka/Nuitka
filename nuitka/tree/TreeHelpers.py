@@ -60,7 +60,7 @@ def dump(node):
 
 
 def getKind(node):
-    return node.__class__.__name__.split(".")[-1]
+    return node.__class__.__name__.rsplit(".", 1)[-1]
 
 
 def extractDocFromBody(node):
@@ -73,7 +73,10 @@ def extractDocFromBody(node):
             doc = body[0].value.s
             body = body[1:]
         elif getKind(body[0].value) == "Constant":  # python3.8
-            doc = body[0].value.value
+            # Only strings should be used, but all other constants can immediately be ignored,
+            # it seems that e.g. Ellipsis is common.
+            if type(body[0].value.value) is str:
+                doc = body[0].value.value
             body = body[1:]
 
         if "no_docstrings" in Options.getPythonFlags():
@@ -108,9 +111,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
     flags = set()
 
     def _checkCoroutine(field):
-        """ Check only for co-routine nature of the field and only update that.
-
-        """
+        """Check only for co-routine nature of the field and only update that."""
         # TODO: This is clumsy code, trying to achieve what non-local does for
         # Python2 as well.
 
@@ -492,7 +493,7 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
 
 
 def makeStatementsSequenceOrStatement(statements, source_ref):
-    """ Make a statement sequence, but only if more than one statement
+    """Make a statement sequence, but only if more than one statement
 
     Useful for when we can unroll constructs already here, but are not sure if
     we actually did that. This avoids the branch or the pollution of doing it
@@ -645,7 +646,7 @@ def makeDictCreationOrConstant(keys, values, source_ref):
 
 def makeDictCreationOrConstant2(keys, values, source_ref):
     # Create dictionary node. Tries to avoid it for constant values that are not
-    # mutable. Keys are strings.
+    # mutable. Keys are Python strings here.
 
     assert len(keys) == len(values)
     for value in values:

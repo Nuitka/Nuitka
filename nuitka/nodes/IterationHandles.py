@@ -106,7 +106,7 @@ class ConstantIterationHandleBase(IterationHandleBase):
 
     def getNextValueExpression(self):
         # TODO: Better doc string.
-        """ Returns truth value of the next expression or Stops the iteration handle
+        """Returns truth value of the next expression or Stops the iteration handle
         and returns None if end is reached.
         """
         try:
@@ -168,8 +168,7 @@ class ConstantIndexableIterationHandle(ConstantIterationHandleBase):
 
 
 class ConstantSetAndDictIterationHandle(ConstantIterationHandleBase):
-    """Class for the set and dictionary constants.
-    """
+    """Class for the set and dictionary constants."""
 
     def __init__(self, constant_node):
         ConstantIterationHandleBase.__init__(self, constant_node)

@@ -449,7 +449,7 @@ API Documentation and Guidelines
 ================================
 
 There is API documentation generated with ``doxygen``, available at `this
-location <http://nuitka.net/apidoc>`__ .
+location <https://nuitka.net/apidoc>`__ .
 
 To ensure meaningful ``doxygen`` output, the following guidelines must be
 observed when creating or updating Python source:
@@ -730,10 +730,10 @@ Nuitka uses a lot of packages and imports between them.
 Internal/Plugin API
 ===================
 
-The documentation from the source code for both the Python and the
-C parts are published as `Nuitka API <http://nuitka.net/apidoc>`__
-and argumently in a relatively bad shape as we started generating
-those with Doxygen only relatively late.
+The documentation from the source code for both the Python and the C parts are
+published as `Nuitka API <https://nuitka.net/apidoc>`__ and argumently in a
+relatively bad shape as we started generating those with Doxygen only
+relatively late.
 
 .. code-block:: sh
 
@@ -2563,15 +2563,16 @@ compile time optimized, this is made visible in the node tree.
 
     print arg1, "1", 1
 
-This is in Nuitka then like this, where the code for print doesn't do any
-conversions anymore and relies on the string nature of its input.
+This is in Nuitka converted so that the code generation for ``print`` doesn't
+do any conversions itself anymore and relies on the string nature of its input.
 
 .. code-block:: python
 
     print str(arg1), "1", str(1)
 
 Only string objects are spared from the ``str`` built-in wrapper, because that
-would only cause noise in optimization stage.
+would only cause noise in optimization stage. Later optization can then find it
+unnecessary for certain arguments.
 
 Additionally, each ``print`` may have a target, and multiple arguments, which
 we break down as well for dumber code generation. The target is evaluated first
@@ -4299,7 +4300,7 @@ This document is written in REST. That is an ASCII format which is readable as
 ASCII, but used to generate PDF or HTML documents.
 
 You will find the current source under:
-http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=Developer_Manual.rst
+https://github.com/Nuitka/Nuitka/blob/develop/Developer_Manual.rst
 
 And the current PDF under:
-http://nuitka.net/doc/Developer_Manual.pdf
+https://nuitka.net/doc/Developer_Manual.pdf

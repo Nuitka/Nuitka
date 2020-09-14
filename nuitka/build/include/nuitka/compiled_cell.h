@@ -34,38 +34,16 @@ struct Nuitka_CellObject {
     PyObject *ob_ref;
 };
 
-extern struct Nuitka_CellObject *Nuitka_Cell_New(void);
+// Create cell with out value, and with or without reference given.
+extern struct Nuitka_CellObject *Nuitka_Cell_Empty(void);
+extern struct Nuitka_CellObject *Nuitka_Cell_New0(PyObject *value);
+extern struct Nuitka_CellObject *Nuitka_Cell_New1(PyObject *value);
 
-extern void Nuitka_Cells_New(struct Nuitka_CellObject **closure, int count);
-
-NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_NEW0(PyObject *value) {
-    CHECK_OBJECT(value);
-
-    struct Nuitka_CellObject *result = Nuitka_Cell_New();
-    assert(result != NULL);
-
-    result->ob_ref = value;
-    Py_INCREF(value);
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_NEW1(PyObject *value) {
-    CHECK_OBJECT(value);
-
-    struct Nuitka_CellObject *result = Nuitka_Cell_New();
-    assert(result != NULL);
-
-    result->ob_ref = value;
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_EMPTY(void) {
-    struct Nuitka_CellObject *result = Nuitka_Cell_New();
-    result->ob_ref = NULL;
-
-    return result;
-}
-
+// Check stuff while accessing a compile cell in debug mode.
+#ifdef __NUITKA_NO_ASSERT__
+#define Nuitka_Cell_GET(cell) (((struct Nuitka_CellObject *)(cell))->ob_ref)
+#else
+#define Nuitka_Cell_GET(cell)                                                                                          \
+    (CHECK_OBJECT(cell), assert(Nuitka_Cell_Check((PyObject *)cell)), (((struct Nuitka_CellObject *)(cell))->ob_ref))
+#endif
 #endif

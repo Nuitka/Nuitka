@@ -97,12 +97,14 @@ extern PyTypeObject Nuitka_Function_Type;
 #if PYTHON_VERSION < 300
 extern struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name,
                                                          PyCodeObject *code_object, PyObject *defaults,
-                                                         PyObject *module, PyObject *doc, Py_ssize_t closure_given);
+                                                         PyObject *module, PyObject *doc,
+                                                         struct Nuitka_CellObject **closure, Py_ssize_t closure_given);
 #else
 extern struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name, PyObject *qualname,
                                                          PyCodeObject *code_object, PyObject *defaults,
                                                          PyObject *kwdefaults, PyObject *annotations, PyObject *module,
-                                                         PyObject *doc, Py_ssize_t closure_given);
+                                                         PyObject *doc, struct Nuitka_CellObject **closure,
+                                                         Py_ssize_t closure_given);
 #endif
 
 static inline bool Nuitka_Function_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Function_Type; }

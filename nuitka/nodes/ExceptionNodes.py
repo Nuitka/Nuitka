@@ -94,7 +94,9 @@ class StatementRaiseException(
         if exception_type is not None and exception_type.willRaiseException(
             BaseException
         ):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import (
+                makeStatementExpressionOnlyReplacementNode,
+            )
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=exception_type, node=self
@@ -198,7 +200,7 @@ class StatementReraiseException(StatementRaiseExceptionMixin, StatementBase):
 
 
 class ExpressionRaiseException(ExpressionChildrenHavingBase):
-    """ This node type is only produced via optimization.
+    """This node type is only produced via optimization.
 
     CPython only knows exception raising as a statement, but often the raising
     of exceptions can be predicted to occur as part of an expression, which it
@@ -283,44 +285,42 @@ class ExpressionBuiltinMakeException(ExpressionChildHavingBase):
         return False
 
 
-if str is bytes:
-    ExpressionBuiltinMakeExceptionImportError = ExpressionBuiltinMakeException
-else:
+class ExpressionBuiltinMakeExceptionImportError(ExpressionChildrenHavingBase):
+    """ Python3 ImportError dedicated node with extra arguments. """
 
-    class ExpressionBuiltinMakeExceptionImportError(ExpressionChildrenHavingBase):
-        kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR"
+    kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR"
 
-        named_children = ("args", "name", "path")
-        getArgs = ExpressionChildrenHavingBase.childGetter("args")
-        getImportErrorName = ExpressionChildrenHavingBase.childGetter("name")
-        getImportErrorPath = ExpressionChildrenHavingBase.childGetter("path")
+    named_children = ("args", "name", "path")
+    getArgs = ExpressionChildrenHavingBase.childGetter("args")
+    getImportErrorName = ExpressionChildrenHavingBase.childGetter("name")
+    getImportErrorPath = ExpressionChildrenHavingBase.childGetter("path")
 
-        __slots__ = ("exception_name",)
+    __slots__ = ("exception_name",)
 
-        def __init__(self, exception_name, args, name, path, source_ref):
-            ExpressionChildrenHavingBase.__init__(
-                self,
-                values={"args": tuple(args), "name": name, "path": path},
-                source_ref=source_ref,
-            )
+    def __init__(self, exception_name, args, name, path, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"args": tuple(args), "name": name, "path": path},
+            source_ref=source_ref,
+        )
 
-            self.exception_name = exception_name
+        self.exception_name = exception_name
 
-        def getDetails(self):
-            return {"exception_name": self.exception_name}
+    def getDetails(self):
+        return {"exception_name": self.exception_name}
 
-        def getExceptionName(self):
-            return self.exception_name
+    def getExceptionName(self):
+        return self.exception_name
 
-        def computeExpression(self, trace_collection):
-            return self, None, None
+    def computeExpression(self, trace_collection):
+        return self, None, None
 
-        def mayRaiseException(self, exception_type):
-            for arg in self.getArgs():
-                if arg.mayRaiseException(exception_type):
-                    return True
+    def mayRaiseException(self, exception_type):
+        for arg in self.getArgs():
+            if arg.mayRaiseException(exception_type):
+                return True
 
-            return False
+        return False
 
 
 class ExpressionCaughtExceptionTypeRef(ExpressionBase):

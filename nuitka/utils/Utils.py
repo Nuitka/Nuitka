@@ -43,16 +43,12 @@ def getOS():
 
 
 def isWin32Windows():
-    """ The Win32 variants of Python does have win32 only, not posix.
-
-    """
+    """The Win32 variants of Python does have win32 only, not posix."""
     return os.name == "nt"
 
 
 def isPosixWindows():
-    """ The MSYS2 variant of Python does have posix only, not Win32.
-
-    """
+    """The MSYS2 variant of Python does have posix only, not Win32."""
     return os.name == "posix" and getOS() == "Windows"
 
 
@@ -82,32 +78,6 @@ def getArchitecture():
         return os.uname()[4]
 
 
-def getSharedLibrarySuffix():
-    if python_version < 300:
-        import imp
-
-        result = None
-
-        for suffix, _mode, module_type in imp.get_suffixes():
-            if module_type != imp.C_EXTENSION:
-                continue
-
-            if result is None or len(suffix) < len(result):
-                result = suffix
-
-        return result
-    else:
-        import importlib.machinery  # pylint: disable=I0021,import-error,no-name-in-module
-
-        result = None
-
-        for suffix in importlib.machinery.EXTENSION_SUFFIXES:
-            if result is None or len(suffix) < len(result):
-                result = suffix
-
-        return result
-
-
 def getCoreCount():
     cpu_count = 0
 
@@ -128,10 +98,10 @@ def getCoreCount():
 
 
 def encodeNonAscii(var_name):
-    """ Encode variable name that is potentially not ASCII to ASCII only.
+    """Encode variable name that is potentially not ASCII to ASCII only.
 
-        For Python3, unicode identifiers can be used, but these are not
-        possible in C, so we need to replace them.
+    For Python3, unicode identifiers can be used, but these are not
+    possible in C, so we need to replace them.
     """
     if python_version < 300:
         return var_name

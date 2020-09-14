@@ -750,9 +750,9 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
 
 
 def makeStatementConditional(condition, yes_branch, no_branch, source_ref):
-    """ Create conditional statement, with yes_branch not being empty.
+    """Create conditional statement, with yes_branch not being empty.
 
-        May have to invert condition to achieve that.
+    May have to invert condition to achieve that.
     """
 
     if yes_branch is None:

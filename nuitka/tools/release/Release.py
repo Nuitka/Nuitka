@@ -71,9 +71,7 @@ def checkBranchName():
 
 
 def getBranchCategory(branch_name):
-    """ There are 3 categories of releases. Map branch name on them.
-
-    """
+    """There are 3 categories of releases. Map branch name on them."""
 
     if (
         branch_name.startswith("release")

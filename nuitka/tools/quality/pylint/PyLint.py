@@ -150,7 +150,7 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
 --min-public-methods=0
 --max-public-methods=100
 --max-args=11
---max-parents=12
+--max-parents=13
 --max-statements=50
 --max-nested-blocks=10
 --max-bool-expr=10\
@@ -188,6 +188,13 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
             "\n"
         )
 
+    if pylint_version >= "2.6":
+        default_pylint_options += """\
+--disable=raise-missing-from\
+""".split(
+            "\n"
+        )
+
     if os.name != "nt":
         default_pylint_options.append("--rcfile=%s" % os.devnull)
 
@@ -204,11 +211,9 @@ def _cleanupPylintOutput(output):
     # Normalize from Windows newlines potentially
     output = output.replace("\r\n", "\n")
 
-    lines = output.split("\n")
-
     lines = [
         line
-        for line in lines
+        for line in output.split("\n")
         if line
         if "Using config file" not in line
         if "Unable to import 'resource'" not in line
@@ -258,10 +263,9 @@ def _executePylint(filenames, pylint_options, extra_options):
             my_print(line)
 
     if stdout:
-        # If we filtered everything away, remove the leading file name report.
-        if len(stdout) == 1:
-            assert stdout[0].startswith("*****")
-            stdout = []
+        # If we filtered everything away, remove the leading file name reports.
+        while stdout and stdout[-1].startswith("******"):
+            del stdout[-1]
 
         for line in stdout:
             my_print(line)

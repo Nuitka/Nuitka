@@ -45,7 +45,7 @@ class ExpressionStringConcatenation(ExpressionChildHavingBase):
 
     def computeExpression(self, trace_collection):
         # TODO: Could remove itself if only one argument or merge arguments
-        # of mergable types.
+        # of mergeable types.
         streaks = []
 
         start = None

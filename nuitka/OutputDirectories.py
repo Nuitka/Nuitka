@@ -27,15 +27,15 @@ this.
 import os
 
 from nuitka import Options
-from nuitka.utils import FileOperations, Utils
+from nuitka.utils.FileOperations import makePath
+from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.Utils import getOS
 
 _main_module = None
 
 
 def setMainModule(main_module):
-    """ Call this before using other methods of this module.
-
-    """
+    """Call this before using other methods of this module."""
     # Technically required.
     assert main_module.isCompiledPythonModule()
 
@@ -45,15 +45,13 @@ def setMainModule(main_module):
 
 
 def getSourceDirectoryPath():
-    """ Return path inside the build directory.
-
-    """
+    """Return path inside the build directory."""
 
     result = Options.getOutputPath(
         path=os.path.basename(getTreeFilenameWithSuffix(_main_module, ".build"))
     )
 
-    FileOperations.makePath(result)
+    makePath(result)
 
     return result
 
@@ -77,18 +75,16 @@ def getResultBasepath():
 
 
 def getResultFullpath():
-    """ Get the final output binary result full path.
-
-    """
+    """Get the final output binary result full path."""
 
     result = getResultBasepath()
 
     if Options.shallMakeModule():
-        result += Utils.getSharedLibrarySuffix()
+        result += getSharedLibrarySuffix(preferred=True)
     else:
         if Options.getOutputFilename() is not None:
             result = Options.getOutputFilename()
-        elif Utils.getOS() == "Windows":
+        elif getOS() == "Windows":
             result += ".exe"
         elif not Options.isStandaloneMode():
             result += ".bin"

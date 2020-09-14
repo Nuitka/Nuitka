@@ -24,6 +24,7 @@ from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
     getClosureCopyCode,
+    getFunctionCreationArgs,
     getFunctionQualnameObj,
     setupFunctionLocalVariables,
 )
@@ -32,7 +33,7 @@ from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_exception_exit,
     template_asyncgen_noexception_exit,
-    template_asyncgen_object_body_template,
+    template_asyncgen_object_body,
     template_asyncgen_object_maker_template,
     template_asyncgen_return_exit,
     template_make_asyncgen,
@@ -40,9 +41,21 @@ from .templates.CodeTemplatesAsyncgens import (
 from .YieldCodes import getYieldReturnDispatchCode
 
 
-def getAsyncgenObjectDeclCode(function_identifier):
+def _getAsyncgenMakerIdentifier(function_identifier):
+    return "MAKE_ASYNCGEN_" + function_identifier
+
+
+def getAsyncgenObjectDeclCode(function_identifier, closure_variables):
+    asyncgen_creation_args = getFunctionCreationArgs(
+        defaults_name=None,
+        kw_defaults_name=None,
+        annotations_name=None,
+        closure_variables=closure_variables,
+    )
+
     return template_asyncgen_object_maker_template % {
-        "function_identifier": function_identifier
+        "asyncgen_maker_identifier": _getAsyncgenMakerIdentifier(function_identifier),
+        "asyncgen_creation_args": ", ".join(asyncgen_creation_args),
     }
 
 
@@ -115,13 +128,22 @@ struct %(function_identifier)s_locals *asyncgen_heap = \
     else:
         heap_declaration = ""
 
-    return template_asyncgen_object_body_template % {
+    asyncgen_creation_args = getFunctionCreationArgs(
+        defaults_name=None,
+        kw_defaults_name=None,
+        annotations_name=None,
+        closure_variables=closure_variables,
+    )
+
+    return template_asyncgen_object_body % {
         "function_identifier": function_identifier,
         "function_body": indented(function_codes.codes),
         "heap_declaration": indented(heap_declaration),
         "function_local_types": indented(local_type_decl),
         "function_var_inits": indented(function_locals),
         "function_dispatch": indented(getYieldReturnDispatchCode(context)),
+        "asyncgen_maker_identifier": _getAsyncgenMakerIdentifier(function_identifier),
+        "asyncgen_creation_args": ", ".join(asyncgen_creation_args),
         "asyncgen_exit": generator_exit,
         "asyncgen_module": getModuleAccessCode(context),
         "asyncgen_name_obj": context.getConstantCode(
@@ -131,6 +153,7 @@ struct %(function_identifier)s_locals *asyncgen_heap = \
         "code_identifier": context.getCodeObjectHandle(
             code_object=asyncgen_object_body.getCodeObject()
         ),
+        "closure_name": "closure" if closure_variables else "NULL",
         "closure_count": len(closure_variables),
     }
 
@@ -140,18 +163,22 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
 
     closure_variables = expression.getClosureVariableVersions()
 
-    closure_copy = getClosureCopyCode(
-        to_name=to_name,
-        closure_type="struct Nuitka_AsyncgenObject *",
-        closure_variables=closure_variables,
-        context=context,
+    closure_name, closure_copy = getClosureCopyCode(
+        closure_variables=closure_variables, context=context
     )
+
+    args = []
+    if closure_name:
+        args.append(closure_name)
 
     emit(
         template_make_asyncgen
         % {
             "to_name": to_name,
-            "asyncgen_identifier": asyncgen_object_body.getCodeName(),
+            "asyncgen_maker_identifier": _getAsyncgenMakerIdentifier(
+                asyncgen_object_body.getCodeName()
+            ),
+            "args": ", ".join(str(arg) for arg in args),
             "closure_copy": indented(closure_copy, 0, True),
         }
     )

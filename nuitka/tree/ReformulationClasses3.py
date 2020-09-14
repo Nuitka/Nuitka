@@ -34,7 +34,7 @@ from nuitka.nodes.AttributeNodes import (
 )
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
-from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinRef
+from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
@@ -136,7 +136,13 @@ def buildClassNode3(provider, node, source_ref):
         provider=provider, name=node.name, doc=class_doc, source_ref=source_ref
     )
 
-    class_variable = class_creation_function.getVariableForAssignment("__class__")
+    class_locals_scope = class_creation_function.getLocalsScope()
+
+    # Only local variable, for provision to methods.
+    class_variable = class_locals_scope.getLocalVariable(
+        owner=class_creation_function, variable_name="__class__"
+    )
+    class_locals_scope.registerProvidedVariable(class_variable)
 
     class_variable_ref = ExpressionVariableRef(
         variable=class_variable, source_ref=source_ref
@@ -171,7 +177,7 @@ def buildClassNode3(provider, node, source_ref):
         # The frame guard has nothing to tell its line number to.
         body.source_ref = source_ref
 
-    locals_scope = class_creation_function.getFunctionLocalsScope()
+    locals_scope = class_creation_function.getLocalsScope()
 
     statements = [
         StatementSetLocals(
@@ -204,30 +210,29 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    # The "__qualname__" attribute is new in Python 3.3.
-    if python_version >= 300:
-        qualname = class_creation_function.getFunctionQualname()
+    # The "__qualname__" attribute is new in Python3.
+    qualname = class_creation_function.getFunctionQualname()
 
-        if python_version < 340:
-            qualname_ref = makeConstantRefNode(
-                constant=qualname, source_ref=source_ref, user_provided=True
-            )
-        else:
-            qualname_ref = ExpressionFunctionQualnameRef(
-                function_body=class_creation_function, source_ref=source_ref
-            )
-
-        statements.append(
-            StatementLocalsDictOperationSet(
-                locals_scope=locals_scope,
-                variable_name="__qualname__",
-                value=qualname_ref,
-                source_ref=source_ref,
-            )
+    if python_version < 340:
+        qualname_ref = makeConstantRefNode(
+            constant=qualname, source_ref=source_ref, user_provided=True
+        )
+    else:
+        qualname_ref = ExpressionFunctionQualnameRef(
+            function_body=class_creation_function, source_ref=source_ref
         )
 
-        if python_version >= 340:
-            qualname_assign = statements[-1]
+    statements.append(
+        StatementLocalsDictOperationSet(
+            locals_scope=locals_scope,
+            variable_name="__qualname__",
+            value=qualname_ref,
+            source_ref=source_ref,
+        )
+    )
+
+    if python_version >= 340:
+        qualname_assign = statements[-1]
 
     if python_version >= 360 and class_creation_function.needsAnnotationsDictionary():
         statements.append(
@@ -441,13 +446,13 @@ def buildClassNode3(provider, node, source_ref):
                     variable=tmp_bases, source_ref=source_ref
                 ),
                 expression_yes=unspecified_metaclass_expression,
-                expression_no=makeExpressionBuiltinRef(
+                expression_no=makeExpressionBuiltinTypeRef(
                     builtin_name="type", source_ref=source_ref
                 ),
                 source_ref=source_ref,
             )
     else:
-        unspecified_metaclass_expression = makeExpressionBuiltinRef(
+        unspecified_metaclass_expression = makeExpressionBuiltinTypeRef(
             builtin_name="type", source_ref=source_ref
         )
 
@@ -483,7 +488,7 @@ def buildClassNode3(provider, node, source_ref):
             call_prepare,
             makeStatementConditional(
                 condition=ExpressionAttributeCheck(
-                    object_arg=ExpressionTempVariableRef(
+                    expression=ExpressionTempVariableRef(
                         variable=tmp_prepared, source_ref=source_ref
                     ),
                     attribute_name="__getitem__",
@@ -495,7 +500,7 @@ def buildClassNode3(provider, node, source_ref):
                     template="%s.__prepare__() must return a mapping, not %s",
                     template_args=(
                         ExpressionBuiltinGetattr(
-                            object_arg=ExpressionTempVariableRef(
+                            expression=ExpressionTempVariableRef(
                                 variable=tmp_metaclass, source_ref=source_ref
                             ),
                             name=makeConstantRefNode(
@@ -582,7 +587,7 @@ def buildClassNode3(provider, node, source_ref):
         ),
         makeStatementConditional(
             condition=ExpressionAttributeCheck(
-                object_arg=ExpressionTempVariableRef(
+                expression=ExpressionTempVariableRef(
                     variable=tmp_metaclass, source_ref=source_ref
                 ),
                 attribute_name="__prepare__",
@@ -643,6 +648,7 @@ def getClassBasesMroConversionHelper():
             ps_default_count=0,
             ps_kw_only_args=(),
         ),
+        inline_const_args=False,  # TODO: Allow this.
     )
 
     temp_scope = None
@@ -655,7 +661,7 @@ def getClassBasesMroConversionHelper():
 
     non_type_case = makeStatementConditional(
         condition=ExpressionAttributeCheck(
-            object_arg=ExpressionTempVariableRef(
+            expression=ExpressionTempVariableRef(
                 variable=tmp_item_variable, source_ref=internal_source_ref
             ),
             attribute_name="__mro_entries__",

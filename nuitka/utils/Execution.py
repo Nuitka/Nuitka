@@ -34,10 +34,10 @@ from .Utils import getArchitecture, getOS, isWin32Windows
 
 
 def callExec(args):
-    """ Do exec in a portable way preserving exit code.
+    """Do exec in a portable way preserving exit code.
 
-        On Windows, unfortunately there is no real exec, so we have to spawn
-        a new process instead.
+    On Windows, unfortunately there is no real exec, so we have to spawn
+    a new process instead.
     """
 
     # On Windows os.execl does not work properly
@@ -90,9 +90,7 @@ def getExecutablePath(filename):
 
 
 def getPythonExePathWindows(search, arch):
-    """ Find Python on Windows.
-
-    """
+    """Find Python on Windows."""
 
     # Shortcuts for the default installation directories, to avoid going to
     # registry at all unless necessary. Any Python2 will do for Scons, so it
@@ -135,13 +133,13 @@ def getPythonExePathWindows(search, arch):
 
 
 def check_output(*popenargs, **kwargs):
-    """ Call a process and check result code.
+    """Call a process and check result code.
 
-        This is for Python 2.6 compatibility, which doesn't have that in its
-        standard library.
+    This is for Python 2.6 compatibility, which doesn't have that in its
+    standard library.
 
-        Note: We use same name as in Python stdlib, violating our rules to
-        make it more recognizable what this does.
+    Note: We use same name as in Python stdlib, violating our rules to
+    make it more recognizable what this does.
     """
 
     if "stdout" in kwargs:
@@ -162,13 +160,13 @@ def check_output(*popenargs, **kwargs):
 
 
 def check_call(*popenargs, **kwargs):
-    """ Call a process and check result code.
+    """Call a process and check result code.
 
-        Note: This catches the error, and makes it nicer, and an error
-        exit. So this is for tooling only.
+    Note: This catches the error, and makes it nicer, and an error
+    exit. So this is for tooling only.
 
-        Note: We use same name as in Python stdlib, violating our rules to
-        make it more recognizable what this does.
+    Note: We use same name as in Python stdlib, violating our rules to
+    make it more recognizable what this does.
     """
     try:
         subprocess.check_call(*popenargs, **kwargs)
@@ -177,9 +175,9 @@ def check_call(*popenargs, **kwargs):
 
 
 @contextmanager
-def withEnvironmentPathAdded(env_var_name, path):
-    if type(path) in (tuple, list):
-        path = os.pathsep.join(path)
+def withEnvironmentPathAdded(env_var_name, *paths):
+    paths = [path for path in paths if path]
+    path = os.pathsep.join(paths)
 
     if path:
         if str is not bytes and type(path) is bytes:
@@ -223,7 +221,7 @@ def withEnvironmentVarOverriden(env_var_name, value):
 
 
 def wrapCommandForDebuggerForExec(*args):
-    """ Wrap a command for system debugger to call exec
+    """Wrap a command for system debugger to call exec
 
     Args:
         args: (list of str) args for call to be debugged
@@ -250,7 +248,7 @@ def wrapCommandForDebuggerForExec(*args):
 
 
 def wrapCommandForDebuggerForSubprocess(*args):
-    """ Wrap a command for system debugger with subprocess module.
+    """Wrap a command for system debugger with subprocess module.
 
     Args:
         args: (list of str) args for call to be debugged

@@ -22,8 +22,6 @@
 Has many options, read --help output.
 """
 
-from __future__ import print_function
-
 import os
 import subprocess
 import sys
@@ -31,13 +29,14 @@ import tempfile
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
-from nuitka.tools.testing.Common import withDirectoryChange
+from nuitka.tools.testing.Common import my_print, withDirectoryChange
 from nuitka.utils.Execution import (
     check_call,
     check_output,
     getExecutablePath,
     getPythonExePathWindows,
 )
+from nuitka.utils.Timing import TimerReport
 
 
 def parseOptions():
@@ -204,7 +203,27 @@ covered. With Python 2.x these are not run. Default is %default.""",
         dest="cpython37",
         default=True,
         help="""\
-The standard CPython3.6 test suite. Execute this for all corner cases to be
+The standard CPython3.7 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default.""",
+    )
+
+    parser.add_option(
+        "--skip-cpython38-tests",
+        action="store_false",
+        dest="cpython38",
+        default=True,
+        help="""\
+The standard CPython3.8 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default.""",
+    )
+
+    parser.add_option(
+        "--skip-cpython39-tests",
+        action="store_false",
+        dest="cpython39",
+        default=True,
+        help="""\
+The standard CPython3.9 test suite. Execute this for all corner cases to be
 covered. With Python 2.x these are not run. Default is %default.""",
     )
 
@@ -311,6 +330,15 @@ Do not use Python3.8 even if available on the system. Default is %default.""",
     )
 
     parser.add_option(
+        "--no-python3.9",
+        action="store_true",
+        dest="no39",
+        default=False,
+        help="""\
+Do not use Python3.9 even if available on the system. Default is %default.""",
+    )
+
+    parser.add_option(
         "--coverage",
         action="store_true",
         dest="coverage",
@@ -352,6 +380,8 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows. D
             options.no37 = True
         if sys.version_info[0:2] != (3, 8):
             options.no38 = True
+        if sys.version_info[0:2] != (3, 9):
+            options.no39 = True
 
     if options.cpython_no_other:
         if sys.version_info[0:2] != (2, 6):
@@ -370,6 +400,10 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows. D
             options.cpython36 = False
         if sys.version_info[0:2] != (3, 7):
             options.cpython37 = False
+        if sys.version_info[0:2] != (3, 8):
+            options.cpython38 = False
+        if sys.version_info[0:2] != (3, 9):
+            options.cpython39 = False
 
     if options.cpython_none:
         options.cpython26 = False
@@ -380,6 +414,8 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows. D
         options.cpython35 = False
         options.cpython36 = False
         options.cpython37 = False
+        options.cpython38 = False
+        options.cpython39 = False
 
     if options.coverage and os.path.exists(".coverage"):
         os.unlink(".coverage")
@@ -419,9 +455,7 @@ def publishCoverageData():
     copyToGlobalCoverageData("data.coverage", "meta.coverage." + suffix)
 
     def makeCoverageRelative(filename):
-        """ Normalize coverage data.
-
-        """
+        """Normalize coverage data."""
 
         with open(filename) as input_file:
             data = input_file.read()
@@ -448,7 +482,7 @@ def main():
 
     # Lets honor this Debian option here.
     if "nocheck" in os.environ.get("DEB_BUILD_OPTIONS", "").split():
-        print("Skipped all tests as per DEB_BUILD_OPTIONS environment.")
+        my_print("Skipped all tests as per DEB_BUILD_OPTIONS environment.")
         sys.exit(0)
 
     # Make sure our resolving of "python2" to "python" doesn't get in the way.
@@ -485,6 +519,8 @@ def main():
             return False
         if command == "python3.8" and options.no38:
             return False
+        if command == "python3.9" and options.no39:
+            return False
 
         # Shortcuts for python versions, also needed for Windows as it won't have
         # the version number in the Python binaries at all.
@@ -503,6 +539,8 @@ def main():
         if command == "python3.7" and sys.version_info[0:2] == (3, 7):
             return True
         if command == "python3.8" and sys.version_info[0:2] == (3, 8):
+            return True
+        if command == "python3.9" and sys.version_info[0:2] == (3, 9):
             return True
 
         path = os.environ["PATH"]
@@ -557,6 +595,12 @@ def main():
         os.environ["NUITKA_EXTRA_OPTIONS"] = flags
 
     def executeSubTest(command, hide_output=False):
+        with TimerReport(
+            message="Overall execution of %r took %%.2f seconds" % command
+        ):
+            _executeSubTest(command, hide_output)
+
+    def _executeSubTest(command, hide_output):
         if options.coverage and "search" in command:
             command = command.replace("search", "coverage")
 
@@ -567,9 +611,7 @@ def main():
         # "python", and we need to pass this alone then.
         parts.insert(0, sys.executable)
 
-        print("Run '%s' in '%s'." % (" ".join(parts), os.getcwd()))
-
-        sys.stdout.flush()
+        my_print("Run '%s' in '%s'." % (" ".join(parts), os.getcwd()))
 
         if hide_output:
             with open(os.devnull, "w") as devnull:
@@ -583,8 +625,8 @@ def main():
     def execute_tests(where, use_python, flags):
         # Many cases, pylint: disable=too-many-branches,too-many-statements
 
-        print(
-            "Executing test case called %s with CPython %s and extra flags '%s'."
+        my_print(
+            "Executing test case called '%s' with CPython '%s' and extra flags '%s'."
             % (where, use_python, flags)
         )
 
@@ -600,40 +642,40 @@ def main():
                 os.environ["PYTHON"] = getExecutablePath(use_python)
 
         if options.basic_tests:
-            print(
-                "Running the basic tests with options '%s' with %s:"
+            my_print(
+                "Running the basic tests with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(where, "basics", flags)
             executeSubTest("./tests/basics/run_all.py search")
 
         if options.syntax_tests:
-            print(
-                "Running the syntax tests with options '%s' with %s:"
+            my_print(
+                "Running the syntax tests with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(where, "syntax", flags)
             executeSubTest("./tests/syntax/run_all.py search")
 
         if options.program_tests:
-            print(
-                "Running the program tests with options '%s' with %s:"
+            my_print(
+                "Running the program tests with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(where, "programs", flags)
             executeSubTest("./tests/programs/run_all.py search")
 
         if options.package_tests:
-            print(
-                "Running the package tests with options '%s' with %s:"
+            my_print(
+                "Running the package tests with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(where, "packages", flags)
             executeSubTest("./tests/packages/run_all.py search")
 
         if options.plugin_tests:
-            print(
-                "Running the plugin tests with options '%s' with %s:"
+            my_print(
+                "Running the plugin tests with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(where, "plugins", flags)
@@ -644,24 +686,24 @@ def main():
         # results.
         if use_python != "python2.6":
             if options.optimization_tests:
-                print(
-                    "Running the optimizations tests with options '%s' with %s:"
+                my_print(
+                    "Running the optimizations tests with options '%s' with '%s':"
                     % (flags, use_python)
                 )
                 setExtraFlags(where, "optimizations", flags)
                 executeSubTest("./tests/optimizations/run_all.py search")
 
         if options.standalone_tests and not options.coverage:
-            print(
-                "Running the standalone tests with options '%s' with %s:"
+            my_print(
+                "Running the standalone tests with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(None, "standalone", flags)
             executeSubTest("./tests/standalone/run_all.py search")
 
         if options.reflection_test and not options.coverage:
-            print(
-                "Running the reflection test with options '%s' with %s:"
+            my_print(
+                "Running the reflection test with options '%s' with '%s':"
                 % (flags, use_python)
             )
             setExtraFlags(None, "reflected", flags)
@@ -670,29 +712,29 @@ def main():
         if not use_python.startswith("python3"):
             if os.path.exists("./tests/CPython26/run_all.py"):
                 if options.cpython26:
-                    print(
-                        "Running the CPython 2.6 tests with options '%s' with %s:"
+                    my_print(
+                        "Running the CPython 2.6 tests with options '%s' with '%s':"
                         % (flags, use_python)
                     )
 
                     setExtraFlags(where, "26tests", flags)
                     executeSubTest("./tests/CPython26/run_all.py search")
             else:
-                print("The CPython2.6 tests are not present, not run.")
+                my_print("The CPython2.6 tests are not present, not run.")
 
             # Running the Python 2.7 test suite with CPython 2.6 gives little
             # insight, because "importlib" will not be there and that's it.
             if use_python != "python2.6":
                 if os.path.exists("./tests/CPython27/run_all.py"):
                     if options.cpython27:
-                        print(
-                            "Running the CPython 2.7 tests with options '%s' with %s:"
+                        my_print(
+                            "Running the CPython 2.7 tests with options '%s' with '%s':"
                             % (flags, use_python)
                         )
                         setExtraFlags(where, "27tests", flags)
                         executeSubTest("./tests/CPython27/run_all.py search")
                 else:
-                    print("The CPython2.7 tests are not present, not run.")
+                    my_print("The CPython2.7 tests are not present, not run.")
 
         if "--debug" not in flags:
             # Not running the Python 3.2 test suite with CPython2.6, as that's about
@@ -703,7 +745,7 @@ def main():
                         setExtraFlags(where, "32tests", flags)
                         executeSubTest("./tests/CPython32/run_all.py search")
                 else:
-                    print("The CPython3.2 tests are not present, not run.")
+                    my_print("The CPython3.2 tests are not present, not run.")
 
             # Running the Python 3.3 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
@@ -712,7 +754,7 @@ def main():
                         setExtraFlags(where, "33tests", flags)
                         executeSubTest("./tests/CPython33/run_all.py search")
                 else:
-                    print("The CPython3.3 tests are not present, not run.")
+                    my_print("The CPython3.3 tests are not present, not run.")
 
             # Running the Python 3.4 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
@@ -721,7 +763,7 @@ def main():
                         setExtraFlags(where, "34tests", flags)
                         executeSubTest("./tests/CPython34/run_all.py search")
                 else:
-                    print("The CPython3.4 tests are not present, not run.")
+                    my_print("The CPython3.4 tests are not present, not run.")
 
             # Running the Python 3.5 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
@@ -730,7 +772,7 @@ def main():
                         setExtraFlags(where, "35tests", flags)
                         executeSubTest("./tests/CPython35/run_all.py search")
                 else:
-                    print("The CPython3.5 tests are not present, not run.")
+                    my_print("The CPython3.5 tests are not present, not run.")
 
             # Running the Python 3.6 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
@@ -739,24 +781,34 @@ def main():
                         setExtraFlags(where, "36tests", flags)
                         executeSubTest("./tests/CPython36/run_all.py search")
                 else:
-                    print("The CPython3.6 tests are not present, not run.")
+                    my_print("The CPython3.6 tests are not present, not run.")
 
             # Running the Python 3.7 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
                 if os.path.exists("./tests/CPython37/run_all.py"):
-                    if options.cpython36:
+                    if options.cpython37:
                         setExtraFlags(where, "37tests", flags)
                         executeSubTest("./tests/CPython37/run_all.py search")
                 else:
-                    print("The CPython3.7 tests are not present, not run.")
+                    my_print("The CPython3.7 tests are not present, not run.")
 
+            # Running the Python 3.8 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
                 if os.path.exists("./tests/CPython38/run_all.py"):
-                    if options.cpython36:
+                    if options.cpython38:
                         setExtraFlags(where, "38tests", flags)
                         executeSubTest("./tests/CPython38/run_all.py search")
                 else:
-                    print("The CPython3.8 tests are not present, not run.")
+                    my_print("The CPython3.8 tests are not present, not run.")
+
+            # Running the Python 3.9 test suite only with CPython3.x.
+            if not use_python.startswith("python2"):
+                if os.path.exists("./tests/CPython39/run_all.py"):
+                    if options.cpython38:
+                        setExtraFlags(where, "39tests", flags)
+                        executeSubTest("./tests/CPython39/run_all.py search")
+                else:
+                    my_print("The CPython3.9 tests are not present, not run.")
 
         if "NUITKA_EXTRA_OPTIONS" in os.environ:
             del os.environ["NUITKA_EXTRA_OPTIONS"]
@@ -770,62 +822,63 @@ def main():
         or checkExecutableCommand("python3.6")
         or checkExecutableCommand("python3.7")
         or checkExecutableCommand("python3.8")
+        or checkExecutableCommand("python3.9")
     )
 
     if checkExecutableCommand("python2.6"):
         execute_tests("python2.6-debug", "python2.6", "--debug")
     else:
-        print("Cannot execute tests with Python 2.6, disabled or not installed.")
+        my_print("Cannot execute tests with Python 2.6, disabled or not installed.")
 
     if checkExecutableCommand("python2.7"):
         execute_tests("python2.7-debug", "python2.7", "--debug")
     else:
-        print("Cannot execute tests with Python 2.7, disabled or not installed.")
+        my_print("Cannot execute tests with Python 2.7, disabled or not installed.")
 
     if checkExecutableCommand("python2.6"):
         execute_tests("python2.6-nodebug", "python2.6", "")
     else:
-        print("Cannot execute tests with Python 2.6, disabled or not installed.")
+        my_print("Cannot execute tests with Python 2.6, disabled or not installed.")
 
     if checkExecutableCommand("python2.7"):
         execute_tests("python2.7-nodebug", "python2.7", "")
     else:
-        print("Cannot execute tests with Python 2.7, disabled or not installed.")
+        my_print("Cannot execute tests with Python 2.7, disabled or not installed.")
 
     if checkExecutableCommand("python3.3"):
         execute_tests("python3.3-nodebug", "python3.3", "")
     else:
-        print("Cannot execute tests with Python 3.3, disabled or not installed.")
+        my_print("Cannot execute tests with Python 3.3, disabled or not installed.")
 
     if checkExecutableCommand("python3.4"):
         execute_tests("python3.4-nodebug", "python3.4", "")
     else:
-        print("Cannot execute tests with Python 3.4, disabled or not installed.")
+        my_print("Cannot execute tests with Python 3.4, disabled or not installed.")
 
     if checkExecutableCommand("python3.5"):
         execute_tests("python3.5-nodebug", "python3.5", "")
     else:
-        print("Cannot execute tests with Python 3.5, disabled or not installed.")
+        my_print("Cannot execute tests with Python 3.5, disabled or not installed.")
 
     if checkExecutableCommand("python3.6"):
         execute_tests("python3.6-nodebug", "python3.6", "")
     else:
-        print("Cannot execute tests with Python 3.6, disabled or not installed.")
+        my_print("Cannot execute tests with Python 3.6, disabled or not installed.")
 
     if checkExecutableCommand("python3.7"):
         execute_tests("python3.7-nodebug", "python3.7", "")
     else:
-        print("Cannot execute tests with Python 3.7, disabled or not installed.")
+        my_print("Cannot execute tests with Python 3.7, disabled or not installed.")
 
     if checkExecutableCommand("python3.8"):
         execute_tests("python3.8-nodebug", "python3.8", "")
     else:
-        print("Cannot execute tests with Python 3.8, disabled or not installed.")
+        my_print("Cannot execute tests with Python 3.8, disabled or not installed.")
 
     if options.coverage:
         publishCoverageData()
 
-    print("OK.")
+    my_print("OK.")
 
 
 if __name__ == "__main__":

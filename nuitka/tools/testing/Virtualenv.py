@@ -84,9 +84,9 @@ class Virtualenv(object):
 
 @contextmanager
 def withVirtualenv(env_name, base_dir=None, python=None, delete=True, style=None):
-    """ Create a virtualenv and change into it.
+    """Create a virtualenv and change into it.
 
-        Activating for actual use will be your task.
+    Activating for actual use will be your task.
     """
 
     print("Creating virtualenv for quick test:")

@@ -45,6 +45,7 @@ import time
 from nuitka.tools.testing.Common import getTempDir, my_print, setup
 from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
+from nuitka.utils.Importing import getSharedLibrarySuffix
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 
@@ -68,6 +69,8 @@ PACKAGE_LIST = (
     "nuitka/finalizations",
     "nuitka/plugins",
     "nuitka/plugins/standard",
+    "nuitka/plugins/commercial",
+    "nuitka/constants",
     "nuitka/containers",
     "nuitka/utils",
 )
@@ -101,7 +104,18 @@ def diffRecursive(dir1, dir2):
         # TODO: Temporary ignore ".bin", until we have something better than marshal which behaves
         # differently in compiled Nuitka:
         if filename.endswith(
-            (".o", ".os", ".obj", ".dblite", ".tmp", ".sconsign", ".txt", ".bin", ".exp")
+            (
+                ".o",
+                ".os",
+                ".obj",
+                ".dblite",
+                ".tmp",
+                ".sconsign",
+                ".txt",
+                ".bin",
+                ".const",
+                ".exp",
+            )
         ):
             continue
 
@@ -191,7 +205,7 @@ def executePASS1():
                     os.environ["PYTHON"],
                     nuitka_main_path,
                     "--module",
-                    "--debug",
+                    "--nofollow-imports",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % target_dir,
                     "--no-pyi-file",
@@ -247,6 +261,12 @@ def executePASS1():
         os.path.join("nuitka", "build", "include"),
     )
 
+    # The data composer tool, use it by source.
+    copyTree(
+        os.path.join(base_dir, "nuitka", "tools"),
+        os.path.join("nuitka", "tools"),
+    )
+
 
 def compileAndCompareWith(nuitka):
     if "PYTHONHASHSEED" not in os.environ:
@@ -280,7 +300,6 @@ def compileAndCompareWith(nuitka):
                 command = [
                     nuitka,
                     "--module",
-                    "--debug",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % tmp_dir,
                     "--no-pyi-file",
@@ -307,10 +326,9 @@ def compileAndCompareWith(nuitka):
 
                 shutil.rmtree(target_dir)
 
-                if os.name == "nt":
-                    target_filename = filename.replace(".py", ".pyd")
-                else:
-                    target_filename = filename.replace(".py", ".so")
+                target_filename = filename.replace(
+                    ".py", getSharedLibrarySuffix(preferred=True)
+                )
 
                 os.unlink(os.path.join(tmp_dir, target_filename))
 
@@ -403,7 +421,7 @@ def executePASS5():
     if result != 0:
         sys.exit(result)
 
-    os.unlink(os.path.join(tmp_dir, "nuitka.so"))
+    os.unlink(os.path.join(tmp_dir, "nuitka" + getSharedLibrarySuffix(preferred=True)))
     os.unlink(os.path.join(tmp_dir, "nuitka.pyi"))
     shutil.rmtree(os.path.join(tmp_dir, "nuitka.build"))
 

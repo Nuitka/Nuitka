@@ -99,35 +99,4 @@ NUITKA_MAY_BE_UNUSED static bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject 
     return true;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *LIST_CONCAT(PyObject *l1, PyObject *l2) {
-    Py_ssize_t size = Py_SIZE(l1) + Py_SIZE(l2);
-
-    // Ignore MemoryError.
-    if (unlikely(size < 0)) {
-        return PyErr_NoMemory();
-    }
-
-    PyListObject *result = (PyListObject *)PyList_New(size);
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-    PyObject **src = ((PyListObject *)l1)->ob_item;
-    PyObject **dest = result->ob_item;
-
-    for (Py_ssize_t i = 0; i < Py_SIZE(l1); i++) {
-        PyObject *v = src[i];
-        Py_INCREF(v);
-        dest[i] = v;
-    }
-    src = ((PyListObject *)l2)->ob_item;
-    dest = result->ob_item + Py_SIZE(l1);
-    for (Py_ssize_t i = 0; i < Py_SIZE(l2); i++) {
-        PyObject *v = src[i];
-        Py_INCREF(v);
-        dest[i] = v;
-    }
-    return (PyObject *)result;
-}
-
 #endif

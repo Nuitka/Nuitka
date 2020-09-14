@@ -54,11 +54,11 @@ class ExpressionBase(NodeBase):
         return self
 
     def isCompileTimeConstant(self):
-        """ Has a value that we can use at compile time.
+        """Has a value that we can use at compile time.
 
-            Yes or no. If it has such a value, simulations can be applied at
-            compile time and e.g. operations or conditions, or even calls may
-            be executed against it.
+        Yes or no. If it has such a value, simulations can be applied at
+        compile time and e.g. operations or conditions, or even calls may
+        be executed against it.
         """
         # Virtual method, pylint: disable=no-self-use
         return False
@@ -72,10 +72,10 @@ class ExpressionBase(NodeBase):
             return None
 
     def isKnownToBeIterable(self, count):
-        """ Can be iterated at all (count is None) or exactly count times.
+        """Can be iterated at all (count is None) or exactly count times.
 
-            Yes or no. If it can be iterated a known number of times, it may
-            be asked to unpack itself.
+        Yes or no. If it can be iterated a known number of times, it may
+        be asked to unpack itself.
         """
 
         # Virtual method, pylint: disable=no-self-use,unused-argument
@@ -90,26 +90,26 @@ class ExpressionBase(NodeBase):
         return False
 
     def getIterationLength(self):
-        """ Value that "len" or "PyObject_Size" would give, if known.
+        """Value that "len" or "PyObject_Size" would give, if known.
 
-            Otherwise it is "None" to indicate unknown.
+        Otherwise it is "None" to indicate unknown.
         """
 
         # Virtual method, pylint: disable=no-self-use
         return None
 
     def getIterationMinLength(self):
-        """ Value that "len" or "PyObject_Size" would give at minimum, if known.
+        """Value that "len" or "PyObject_Size" would give at minimum, if known.
 
-            Otherwise it is "None" to indicate unknown.
+        Otherwise it is "None" to indicate unknown.
         """
 
         return self.getIterationLength()
 
     def getIterationMaxLength(self):
-        """ Value that "len" or "PyObject_Size" would give at maximum, if known.
+        """Value that "len" or "PyObject_Size" would give at maximum, if known.
 
-            Otherwise it is "None" to indicate unknown.
+        Otherwise it is "None" to indicate unknown.
         """
 
         return self.getIterationLength()
@@ -120,11 +120,11 @@ class ExpressionBase(NodeBase):
         return None
 
     def getStrValue(self):
-        """ Value that "str" or "PyObject_Str" would give, if known.
+        """Value that "str" or "PyObject_Str" would give, if known.
 
-            Otherwise it is "None" to indicate unknown. Users must not
-            forget to take side effects into account, when replacing a
-            node with its string value.
+        Otherwise it is "None" to indicate unknown. Users must not
+        forget to take side effects into account, when replacing a
+        node with its string value.
         """
         string_value = self.getStringValue()
 
@@ -134,9 +134,7 @@ class ExpressionBase(NodeBase):
         return None
 
     def getTypeValue(self):
-        """ Type of the node.
-
-        """
+        """Type of the node."""
 
         from .TypeNodes import ExpressionBuiltinType1
 
@@ -170,7 +168,7 @@ class ExpressionBase(NodeBase):
 
     @abstractmethod
     def computeExpressionRaw(self, trace_collection):
-        """ Abstract execution of the node.
+        """Abstract execution of the node.
 
         Returns:
             tuple(node, tags, description)
@@ -717,21 +715,15 @@ class ExpressionBase(NodeBase):
         return True
 
     def hasShapeSlotLen(self):
-        """ The type shape tells us, if "len" is available.
-
-        """
+        """The type shape tells us, if "len" is available."""
         return self.getTypeShape().hasShapeSlotLen()
 
     def hasShapeSlotIter(self):
-        """ The type shape tells us, if "iter" is available.
-
-        """
+        """The type shape tells us, if "iter" is available."""
         return self.getTypeShape().hasShapeSlotIter()
 
     def hasShapeSlotNext(self):
-        """ The type shape tells us, if "next" is available.
-
-        """
+        """The type shape tells us, if "next" is available."""
         return self.getTypeShape().hasShapeSlotNext()
 
     # TODO: Maybe this is a shape slot thing.
@@ -748,38 +740,30 @@ class ExpressionBase(NodeBase):
         return None
 
     def getIntValue(self):
-        """ Value that "int" or "PyNumber_Int" (sp) would give, if known.
+        """Value that "int" or "PyNumber_Int" (sp) would give, if known.
 
-            Otherwise it is "None" to indicate unknown. Users must not
-            forget to take side effects into account, when replacing a
-            node with its string value.
+        Otherwise it is "None" to indicate unknown. Users must not
+        forget to take side effects into account, when replacing a
+        node with its string value.
         """
         # Virtual method, pylint: disable=no-self-use
         return None
 
     def hasShapeDictionaryExact(self):
-        """ Does a node have exactly a dictionary shape.
-
-        """
+        """Does a node have exactly a dictionary shape."""
 
         return self.getTypeShape() is tshape_dict
 
     def hasShapeStrExact(self):
-        """ Does an expression have exactly a string shape.
-
-        """
+        """Does an expression have exactly a string shape."""
         return self.getTypeShape() is tshape_str
 
     def hasShapeUnicodeExact(self):
-        """ Does an expression have exactly a unicode shape.
-
-        """
+        """Does an expression have exactly a unicode shape."""
         return self.getTypeShape() is tshape_unicode
 
 
 class CompileTimeConstantExpressionBase(ExpressionBase):
-    # Base classes can be abstract, pylint: disable=abstract-method
-
     # TODO: Do this for all computations, do this in the base class of all
     # nodes.
     __slots__ = ("computed_attribute",)
@@ -790,13 +774,29 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         self.computed_attribute = None
 
     def isCompileTimeConstant(self):
-        """ Has a value that we can use at compile time.
+        """Has a value that we can use at compile time.
 
-            Yes or no. If it has such a value, simulations can be applied at
-            compile time and e.g. operations or conditions, or even calls may
-            be executed against it.
+        Yes or no. If it has such a value, simulations can be applied at
+        compile time and e.g. operations or conditions, or even calls may
+        be executed against it.
         """
         return True
+
+    @abstractmethod
+    def getCompileTimeConstant(self):
+        """Return compile time constant.
+
+        Notes: Only available after passing "isCompileTimeConstant()".
+
+        """
+
+    def isUserProvidedConstant(self):
+        """Return compile time constant.
+
+        Notes: Only useful after passing "isCompileTimeConstant()".
+        """
+        # Virtual method, pylint: disable=no-self-use
+        return False
 
     def isMutable(self):
         # Virtual method, pylint: disable=no-self-use
@@ -1030,11 +1030,11 @@ class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
         ChildrenHavingMixin.__init__(self, values=values)
 
     def computeExpressionRaw(self, trace_collection):
-        """ Compute an expression.
+        """Compute an expression.
 
-            Default behavior is to just visit the child expressions first, and
-            then the node "computeExpression". For a few cases this needs to
-            be overloaded, e.g. conditional expressions.
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
         """
         # First apply the sub-expressions, as they are evaluated before
         # the actual operation.
@@ -1097,11 +1097,11 @@ class ExpressionChildHavingBase(ExpressionBase):
 
     # TODO: De-duplicate this with multiple child variant.
     def computeExpressionRaw(self, trace_collection):
-        """ Compute an expression.
+        """Compute an expression.
 
-            Default behavior is to just visit the child expressions first, and
-            then the node "computeExpression". For a few cases this needs to
-            be overloaded, e.g. conditional expressions.
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
         """
         # First apply the sub-expressions, as they are evaluated before.
         sub_expressions = self.getVisitableNodes()
@@ -1129,9 +1129,9 @@ class ExpressionChildHavingBase(ExpressionBase):
         return self.computeExpression(trace_collection=trace_collection)
 
     def setChild(self, name, value):
-        """ Set a child value.
+        """Set a child value.
 
-            Do not overload, provider self.checkers instead.
+        Do not overload, provider self.checkers instead.
         """
         # Only accept legal child names
         assert name == self.named_child, name
@@ -1194,9 +1194,9 @@ class ExpressionChildHavingBase(ExpressionBase):
             raise AssertionError(self, "has illegal child", value, value.__class__)
 
     def getVisitableNodesNamed(self):
-        """ Named children dictionary.
+        """Named children dictionary.
 
-            For use in debugging and XML output.
+        For use in debugging and XML output.
         """
         attr_name = "subnode_" + self.named_child
         value = getattr(self, attr_name)

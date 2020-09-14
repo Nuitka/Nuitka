@@ -43,13 +43,9 @@ import SCons.Defaults
 import SCons.Tool
 import SCons.Util
 
-mingw_paths = [
-    r'c:\MinGW\bin',
-    r'C:\cygwin64\bin',
-    r'C:\msys64',
-    r'C:\cygwin\bin',
-    r'C:\msys',
-]
+# Nuitka: Only use version specific paths if possible.
+# Cygwin and msys2 should be avoided.
+mingw_paths = []
 
 
 def shlib_generator(target, source, env, for_signature):
@@ -122,14 +118,18 @@ SCons.Tool.SourceFileScanner.add_scanner('.rc', SCons.Defaults.CScan)
 key_program = 'mingw32-make'
 
 
-def find_version_specific_mingw_paths():
-    r"""
-    One example of default mingw install paths is:
-    C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev2\mingw64\bin
+# Nuitka: We try to find matching ones only.
+def find_version_specific_mingw_paths(env):
+    if env["TARGET_ARCH"] == "x86_64":
+        new_paths = glob.glob(r'c:\MinGW64\mingw64\bin')
+        new_paths += glob.glob(r'\MinGW64\mingw64\bin')
+    else:
+        new_paths = glob.glob(r'c:\MinGW64\mingw64\bin')
+        new_paths += glob.glob(r'\MinGW64\mingw64\bin')
 
-    Use glob'ing to find such and add to mingw_paths
-    """
-    new_paths = glob.glob(r"C:\mingw-w64\*\mingw64\bin")
+    # Older versions of MinGW just has this.
+    new_paths += glob.glob(r'c:\MinGW64\bin')
+    new_paths += glob.glob(r'\MinGW64\bin')
 
     return new_paths
 
@@ -137,7 +137,7 @@ def find_version_specific_mingw_paths():
 def generate(env):
     global mingw_paths
     # Check for reasoanble mingw default paths
-    mingw_paths += find_version_specific_mingw_paths()
+    mingw_paths += find_version_specific_mingw_paths(env)
 
     mingw = SCons.Tool.find_program_path(env, key_program, default_paths=mingw_paths)
     if mingw:

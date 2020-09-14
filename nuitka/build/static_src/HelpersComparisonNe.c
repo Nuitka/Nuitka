@@ -22,7 +22,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-/* C helpers for type specialized "!=" (NE) comparions */
+/* C helpers for type specialized "!=" (NE) comparisons */
 
 #if PYTHON_VERSION < 300
 static PyObject *COMPARE_NE_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {

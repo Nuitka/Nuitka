@@ -40,10 +40,10 @@ from nuitka.utils.Utils import isWin32Windows
 
 
 class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
-    """ This is for plugins of PyQt4/PyQt5 and PySide once it is supported.
+    """This is for plugins of PyQt4/PyQt5 and PySide once it is supported.
 
-        When loads an image, it may use a plug-in, which in turn used DLLs,
-        which for standalone mode, can cause issues of not having it.
+    When loads an image, it may use a plug-in, which in turn used DLLs,
+    which for standalone mode, can cause issues of not having it.
     """
 
     plugin_name = "qt-plugins"
@@ -54,6 +54,10 @@ class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
 
         self.qt_dirs = {}
         self.webengine_done = False
+
+    @classmethod
+    def isRelevant(cls):
+        return Options.isStandaloneMode()
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -71,7 +75,7 @@ not exist, a list of all available will be given.""",
 
     @staticmethod
     def createPreModuleLoadCode(module):
-        """ Method called when a module is being imported.
+        """Method called when a module is being imported.
 
         Notes:
             If full name equals "PyQt?" we insert code to include the dist
@@ -93,7 +97,10 @@ path = os.environ.get("PATH", "")
 if not path.startswith(__nuitka_binary_dir):
     os.environ["PATH"] = __nuitka_binary_dir + ";" + path
 """
-        return code, "Adding dist folder to 'PATH' environment variable."
+        return (
+            code,
+            "Adding binary folder to runtime 'PATH' environment variable for proper loading.",
+        )
 
     def getPyQtPluginDirs(self, qt_version):
         if qt_version in self.qt_dirs:
@@ -262,7 +269,7 @@ if os.path.exists(guess_path):
                     [],
                 )
 
-                self.info("Copying OpenSSL DLLs to %r" % (dist_dir,))
+                self.info("Copying OpenSSL DLLs to %r." % dist_dir)
 
                 for filename in qt_bin_files:
                     basename = os.path.basename(filename).lower()
@@ -318,7 +325,7 @@ if os.path.exists(guess_path):
                 if isWin32Windows():
                     opengl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
 
-                    self.info("Copying OpenGL DLLs to %r" % (dist_dir,))
+                    self.info("Copying OpenGL DLLs to %r." % dist_dir)
 
                     for filename in qt_bin_files:
                         basename = os.path.basename(filename).lower()
@@ -409,11 +416,11 @@ if os.path.exists(guess_path):
 
     @staticmethod
     def createPostModuleLoadCode(module):
-        """ Create code to load after a module was successfully imported.
+        """Create code to load after a module was successfully imported.
 
-            For Qt we need to set the library path to the distribution folder
-            we are running from. The code is immediately run after the code
-            and therefore makes sure it's updated properly.
+        For Qt we need to set the library path to the distribution folder
+        we are running from. The code is immediately run after the code
+        and therefore makes sure it's updated properly.
         """
 
         full_name = module.getFullName()

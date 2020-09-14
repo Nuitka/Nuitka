@@ -34,6 +34,8 @@ allowed_tags = (
     "new_statements",
     # New expression added.
     "new_expression",
+    # Loop analysis is incomplete, or only just now completed.
+    "loop_analysis",
     # TODO: A bit unclear what this it, potentially a changed variable.
     "var_usage",
     # Detected module variable to be read only.

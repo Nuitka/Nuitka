@@ -41,10 +41,10 @@ def getCodeObjectsDeclCode(context):
 
 
 def _getMakeCodeObjectArgs(code_object_handle, context):
-    """ Code objects have many flags for creation.
+    """Code objects have many flags for creation.
 
-        This is also version dependent, but we hide this behind macros
-        that ignore some arguments.
+    This is also version dependent, but we hide this behind macros
+    that ignore some arguments.
     """
 
     co_flags = []
@@ -97,23 +97,16 @@ def getCodeObjectsInitCode(context):
     code_objects = context.getCodeObjects()
 
     # Create the always identical, but dynamic filename first thing.
-    if code_objects:
-        context.markAsNeedsModuleFilenameObject()
-        filename_code = "module_filename_obj"
+    module_filename = context.getOwner().getRunTimeFilename()
 
-    if context.needsModuleFilenameObject():
-        module_filename = context.getOwner().getRunTimeFilename()
+    # We do not care about release of this object, as code object live
+    # forever anyway.
+    if Options.getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
+        template = "module_filename_obj = %s; CHECK_OBJECT(module_filename_obj);"
+    else:
+        template = "module_filename_obj = MAKE_RELATIVE_PATH(%s); CHECK_OBJECT(module_filename_obj);"
 
-        # We do not care about release of this object, as code object live
-        # forever anyway.
-        if Options.getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
-            template = "module_filename_obj = %s;"
-        else:
-            template = "module_filename_obj = MAKE_RELATIVE_PATH(%s);"
-
-        statements.append(
-            template % (context.getConstantCode(constant=module_filename))
-        )
+    statements.append(template % (context.getConstantCode(constant=module_filename)))
 
     for code_object_key, code_identifier in code_objects:
         # Make sure the filename is always identical.
@@ -121,11 +114,10 @@ def getCodeObjectsInitCode(context):
 
         args = (
             code_identifier,
-            filename_code,
             ", ".join(str(s) for s in _getMakeCodeObjectArgs(code_object_key, context)),
         )
 
-        code = "%s = MAKE_CODEOBJECT(%s, %s);" % args
+        code = "%s = MAKE_CODEOBJECT(module_filename_obj, %s);" % args
 
         statements.append(code)
 

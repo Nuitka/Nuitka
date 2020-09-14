@@ -46,9 +46,7 @@ from .shapes.StandardShapes import (
 
 
 class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
-    """ Base class for all binary operation expression.
-
-    """
+    """Base class for all binary operation expression."""
 
     named_children = ("left", "right")
     nice_children = tuple(child_name + " operand" for child_name in named_children)
@@ -130,6 +128,18 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
             self.simulator(left, right)
         except TypeError as e:
             return e
+        except Exception as e:
+            raise NuitkaAssumptionError(
+                "Unexpected exception type doing operation simulation",
+                self.operator,
+                self.simulator,
+                left_shape,
+                right_shape,
+                repr(left),
+                repr(right),
+                e,
+                "!=",
+            )
         else:
             raise NuitkaAssumptionError(
                 "Unexpected no-exception doing operation simulation",
@@ -188,7 +198,8 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
                     new_node=makeRaiseExceptionReplacementExpressionFromInstance(
                         expression=self,
                         exception=self.createUnsupportedException(
-                            left_shape, right_shape
+                            left_shape,
+                            right_shape,
                         ),
                     ),
                     old_node=self,
@@ -199,7 +210,7 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
                     result,
                     "new_raise",
                     "Replaced operator '%s' with %s %s arguments that cannot work."
-                    % (self.operator, left_shape, right_shape,),
+                    % (self.operator, left_shape, right_shape),
                 )
 
         if self.escape_desc.isValueEscaping():
@@ -714,9 +725,7 @@ class ExpressionOperationAbs(ExpressionOperationUnaryBase):
 
 class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
     # Base classes can be abstract, pylint: disable=abstract-method
-    """ Base class for all inplace operations.
-
-    """
+    """Base class for all inplace operations."""
 
     inplace_suspect = True
 
@@ -758,7 +767,8 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
                     new_node=makeRaiseExceptionReplacementExpressionFromInstance(
                         expression=self,
                         exception=self.createUnsupportedException(
-                            left_shape, right_shape
+                            left_shape,
+                            right_shape,
                         ),
                     ),
                     old_node=self,
@@ -769,7 +779,7 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
                     result,
                     "new_raise",
                     "Replaced inplace-operator '%s' with %s %s arguments that cannot work."
-                    % (self.operator, left_shape, right_shape,),
+                    % (self.operator, left_shape, right_shape),
                 )
 
         if self.escape_desc.isValueEscaping():
@@ -788,8 +798,8 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
 
             return (
                 result,
-                "new_raise",
-                "Lowered inplace-operator '%s' to binary operation.." % (self.operator),
+                "new_expression",
+                "Lowered inplace-operator '%s' to binary operation." % self.operator,
             )
 
         return self, None, None

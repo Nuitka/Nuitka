@@ -60,12 +60,13 @@ os.environ["PYTHONHASHSEED"] = "0"
 os.environ["PYTHONPATH"] = os.pathsep.join(sys.path)
 
 os.system(
-    "%s %s --python-flag=-S --output-dir=%s %s %s %s"
+    "%s %s --python-flag=-S --output-dir=%s %s %s %s %s"
     % (
         sys.executable,
         nuitka_binary,
         tempdir,
         "--unstripped",
+        "--quiet",
         os.environ.get("NUITKA_EXTRA_OPTIONS", ""),
         input_file,
     )

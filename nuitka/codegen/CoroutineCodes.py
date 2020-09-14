@@ -29,6 +29,7 @@ from .ErrorCodes import getErrorExitCode
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
     getClosureCopyCode,
+    getFunctionCreationArgs,
     getFunctionQualnameObj,
     setupFunctionLocalVariables,
 )
@@ -38,17 +39,29 @@ from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesCoroutines import (
     template_coroutine_exception_exit,
     template_coroutine_noexception_exit,
-    template_coroutine_object_body_template,
-    template_coroutine_object_maker_template,
+    template_coroutine_object_body,
+    template_coroutine_object_maker,
     template_coroutine_return_exit,
     template_make_coroutine,
 )
 from .YieldCodes import getYieldReturnDispatchCode
 
 
-def getCoroutineObjectDeclCode(function_identifier):
-    return template_coroutine_object_maker_template % {
-        "function_identifier": function_identifier
+def _getCoroutineMakerIdentifier(function_identifier):
+    return "MAKE_COROUTINE_" + function_identifier
+
+
+def getCoroutineObjectDeclCode(function_identifier, closure_variables):
+    coroutine_creation_args = getFunctionCreationArgs(
+        defaults_name=None,
+        kw_defaults_name=None,
+        annotations_name=None,
+        closure_variables=closure_variables,
+    )
+
+    return template_coroutine_object_maker % {
+        "coroutine_maker_identifier": _getCoroutineMakerIdentifier(function_identifier),
+        "coroutine_creation_args": ", ".join(coroutine_creation_args),
     }
 
 
@@ -123,13 +136,22 @@ struct %(function_identifier)s_locals *coroutine_heap = \
     else:
         heap_declaration = ""
 
-    return template_coroutine_object_body_template % {
+    coroutine_creation_args = getFunctionCreationArgs(
+        defaults_name=None,
+        kw_defaults_name=None,
+        annotations_name=None,
+        closure_variables=closure_variables,
+    )
+
+    return template_coroutine_object_body % {
         "function_identifier": function_identifier,
         "function_body": indented(function_codes.codes),
         "heap_declaration": indented(heap_declaration),
         "function_local_types": indented(local_type_decl),
         "function_var_inits": indented(function_locals),
         "function_dispatch": indented(getYieldReturnDispatchCode(context)),
+        "coroutine_maker_identifier": _getCoroutineMakerIdentifier(function_identifier),
+        "coroutine_creation_args": ", ".join(coroutine_creation_args),
         "coroutine_exit": generator_exit,
         "coroutine_module": getModuleAccessCode(context),
         "coroutine_name_obj": context.getConstantCode(
@@ -141,6 +163,7 @@ struct %(function_identifier)s_locals *coroutine_heap = \
         "code_identifier": context.getCodeObjectHandle(
             code_object=coroutine_object_body.getCodeObject()
         ),
+        "closure_name": "closure" if closure_variables else "NULL",
         "closure_count": len(closure_variables),
     }
 
@@ -150,18 +173,22 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
 
     closure_variables = expression.getClosureVariableVersions()
 
-    closure_copy = getClosureCopyCode(
-        to_name=to_name,
-        closure_type="struct Nuitka_CoroutineObject *",
-        closure_variables=closure_variables,
-        context=context,
+    closure_name, closure_copy = getClosureCopyCode(
+        closure_variables=closure_variables, context=context
     )
+
+    args = []
+    if closure_name:
+        args.append(closure_name)
 
     emit(
         template_make_coroutine
         % {
             "to_name": to_name,
-            "coroutine_identifier": coroutine_object_body.getCodeName(),
+            "coroutine_maker_identifier": _getCoroutineMakerIdentifier(
+                coroutine_object_body.getCodeName()
+            ),
+            "args": ", ".join(str(arg) for arg in args),
             "closure_copy": indented(closure_copy, 0, True),
         }
     )

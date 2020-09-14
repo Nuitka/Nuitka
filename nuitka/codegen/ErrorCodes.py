@@ -36,6 +36,7 @@ from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .templates.CodeTemplatesExceptions import (
     template_error_catch_exception,
     template_error_catch_quick_exception,
+    template_error_format_name_error_exception,
     template_error_format_string_exception,
 )
 
@@ -159,9 +160,7 @@ def getErrorExitCode(
     )
 
 
-def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
-    assert not condition.endswith(";")
-
+def _getExceptionChainingCode(context):
     (
         exception_type,
         exception_value,
@@ -169,55 +168,16 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
         _exception_lineno,
     ) = context.variable_storage.getExceptionVariableDescriptions()
 
-    if len(args) == 1 and type(args[0]) is str:
-        from .ConstantCodes import getModuleConstantCode
+    keeper_vars = context.getExceptionKeeperVariables()
 
-        set_exception = [
-            "%s = %s;" % (exception_type, exception),
-            "Py_INCREF(%s);" % exception_type,
-            "%s = %s;" % (exception_value, getModuleConstantCode(constant=args[0])),
-            "%s = NULL;" % exception_tb,
-        ]
+    if keeper_vars[0] is not None:
+        return ("ADD_EXCEPTION_CONTEXT(&%s, &%s);" % (keeper_vars[0], keeper_vars[1]),)
     else:
-        set_exception = [
-            "%s = %s;" % (exception_type, exception),
-            "Py_INCREF(%s);" % exception_type,
-            "%s = Py%s_FromFormat(%s);"
-            % (
-                exception_value,
-                "String" if python_version < 300 else "Unicode",
-                ", ".join('"%s"' % arg for arg in args),
-            ),
-            "%s = NULL;" % exception_tb,
-        ]
-
-    if python_version >= 300:
-        keeper_vars = context.getExceptionKeeperVariables()
-
-        if keeper_vars[0] is not None:
-            set_exception.append(
-                "ADD_EXCEPTION_CONTEXT(&%s, &%s);" % (keeper_vars[0], keeper_vars[1])
-            )
-        else:
-            set_exception.append(
-                "NORMALIZE_EXCEPTION(&%s, &%s, &%s);"
-                % (exception_type, exception_value, exception_tb)
-            )
-            set_exception.append("CHAIN_EXCEPTION(%s);" % exception_value)
-
-    emit(
-        template_error_format_string_exception
-        % {
-            "condition": condition,
-            "exception_exit": context.getExceptionEscape(),
-            "set_exception": indented(set_exception),
-            "release_temps": indented(getErrorExitReleaseCode(context)),
-            "var_description_code": indented(
-                getFrameVariableTypeDescriptionCode(context)
-            ),
-            "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
-        }
-    )
+        return (
+            "NORMALIZE_EXCEPTION(&%s, &%s, &%s);"
+            % (exception_type, exception_value, exception_tb),
+            "CHAIN_EXCEPTION(%s);" % exception_value,
+        )
 
 
 def getTakeReferenceCode(value_name, emit):
@@ -272,49 +232,88 @@ def getCheckObjectCode(check_name, emit):
 
 
 def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
+    variable_name = variable.getName()
+
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
+
     if variable.getOwner() is not context.getOwner():
-        getErrorFormatExitBoolCode(
-            condition=condition,
-            exception="PyExc_NameError",
-            args=(
-                """\
-free variable '%s' referenced before assignment in enclosing scope""",
-                variable.getName(),
-            ),
-            emit=emit,
-            context=context,
-        )
+        helper_code = "FORMAT_UNBOUND_CLOSURE_ERROR"
     else:
-        getErrorFormatExitBoolCode(
-            condition=condition,
-            exception="PyExc_UnboundLocalError",
-            args=(
-                """\
-local variable '%s' referenced before assignment""",
-                variable.getName(),
+        helper_code = "FORMAT_UNBOUND_LOCAL_ERROR"
+
+    set_exception = [
+        "%s(&%s, &%s, %s);"
+        % (
+            helper_code,
+            exception_type,
+            exception_value,
+            context.getConstantCode(variable_name),
+        ),
+        "%s = NULL;" % exception_tb,
+    ]
+
+    # TODO: Move this into the helper code.
+    if python_version >= 300:
+        set_exception.extend(_getExceptionChainingCode(context))
+
+    emit(
+        template_error_format_string_exception
+        % {
+            "condition": condition,
+            "exception_exit": context.getExceptionEscape(),
+            "set_exception": indented(set_exception),
+            "release_temps": indented(getErrorExitReleaseCode(context)),
+            "var_description_code": indented(
+                getFrameVariableTypeDescriptionCode(context)
             ),
-            emit=emit,
-            context=context,
-        )
+            "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
+        }
+    )
 
 
 def getNameReferenceErrorCode(variable_name, condition, emit, context):
+    helper_code = "FORMAT_NAME_ERROR"
+
     if python_version < 340:
         owner = context.getOwner()
 
         if not owner.isCompiledPythonModule() and not owner.isExpressionClassBody():
-            error_message = "global name '%s' is not defined"
-        else:
-            error_message = "name '%s' is not defined"
-    else:
-        error_message = "name '%s' is not defined"
+            helper_code = "FORMAT_GLOBAL_NAME_ERROR"
 
-    error_message = error_message % variable_name
+    (
+        exception_type,
+        exception_value,
+        _exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
-    getErrorFormatExitBoolCode(
-        condition=condition,
-        exception="PyExc_NameError",
-        args=(error_message,),
-        emit=emit,
-        context=context,
+    set_exception = "%s(&%s, &%s, %s);" % (
+        helper_code,
+        exception_type,
+        exception_value,
+        context.getConstantCode(variable_name),
+    )
+
+    # TODO: Make this part of the helper code as well.
+    if python_version >= 300:
+        set_exception = [set_exception]
+        set_exception.extend(_getExceptionChainingCode(context))
+
+    emit(
+        template_error_format_name_error_exception
+        % {
+            "condition": condition,
+            "exception_exit": context.getExceptionEscape(),
+            "set_exception": indented(set_exception),
+            "release_temps": indented(getErrorExitReleaseCode(context)),
+            "var_description_code": indented(
+                getFrameVariableTypeDescriptionCode(context)
+            ),
+            "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
+        }
     )

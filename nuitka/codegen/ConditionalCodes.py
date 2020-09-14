@@ -40,17 +40,6 @@ def generateConditionCode(condition, emit, context):
     getReleaseCode(compare_name, emit, context)
 
 
-# TODO: Inline this once "enable_bool_ctype" is completed
-def getConditionCheckTrueCode(to_name, value_name, needs_check, emit, context):
-    value_name.getCType().emitTruthCheckCode(
-        to_name=to_name,
-        value_name=value_name,
-        needs_check=needs_check,
-        emit=emit,
-        context=context,
-    )
-
-
 def generateConditionalAndOrCode(to_name, expression, emit, context):
     # This is a complex beast, handling both "or" and "and" expressions,
     # and it needs to micro manage details.

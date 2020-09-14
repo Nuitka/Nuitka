@@ -17,6 +17,8 @@
 #
 """ Playing around with constants only. """
 
+# pylint: disable=invalid-name,redefined-outer-name
+
 from __future__ import print_function
 
 try:
@@ -106,8 +108,7 @@ mutableConstantChanger()
 
 
 def defaultKeepsIdentity(arg="str_value"):
-    print("Default constant values are still shared if immutable:")
-    print(arg is "str_value")
+    print("Default constant values are still shared if immutable:", arg is "str_value")
 
 
 defaultKeepsIdentity()

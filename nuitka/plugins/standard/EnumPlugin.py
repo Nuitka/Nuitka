@@ -27,9 +27,7 @@ from nuitka.PythonVersions import python_version
 
 
 class NuitkaPluginEnumWorkarounds(NuitkaPluginBase):
-    """ This is to make enum module work when compiled with Nuitka.
-
-    """
+    """This is to make enum module work when compiled with Nuitka."""
 
     plugin_name = "enum-compat"
 

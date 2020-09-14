@@ -158,8 +158,9 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
                 size_t size;
 
                 tsize = ((PyVarObject *)source)->ob_size;
-                if (tsize < 0)
+                if (tsize < 0) {
                     tsize = -tsize;
+                }
                 size = _PyObject_VAR_SIZE(type, tsize);
 
                 dictoffset += (long)size;
@@ -192,7 +193,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
             PyObject *result = func(descr, source, (PyObject *)type);
             Py_DECREF(descr);
 
-            CHECK_OBJECT(result);
+            CHECK_OBJECT_X(result);
             return result;
         }
 
@@ -313,7 +314,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
             PyObject *result = func(descr, source, (PyObject *)type);
             Py_DECREF(descr);
 
-            CHECK_OBJECT(result);
+            CHECK_OBJECT_X(result);
             return result;
         }
 
@@ -397,8 +398,9 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
                 size_t size;
 
                 tsize = ((PyVarObject *)source)->ob_size;
-                if (tsize < 0)
+                if (tsize < 0) {
                     tsize = -tsize;
+                }
                 size = _PyObject_VAR_SIZE(type, tsize);
 
                 dictoffset += (long)size;
@@ -431,7 +433,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
             PyObject *result = func(descr, source, (PyObject *)type);
             Py_DECREF(descr);
 
-            CHECK_OBJECT(result);
+            CHECK_OBJECT_X(result);
             return result;
         }
 

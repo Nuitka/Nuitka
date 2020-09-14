@@ -178,9 +178,6 @@ class Variable(getMetaClassBase("Variable")):
         self.traces.add(variable_trace)
 
     def removeTrace(self, variable_trace):
-        # Make it unusable, and break GC cycles while at it.
-        variable_trace.previous = None
-
         self.traces.remove(variable_trace)
 
     def updateUsageState(self):
@@ -236,23 +233,6 @@ class Variable(getMetaClassBase("Variable")):
                 return trace
 
         return None
-
-    def hasSuccessorTraces(self, trace):
-        def consider(candidate):
-            if candidate.isMergeTrace():
-                for p in candidate.previous:
-                    if consider(p):
-                        return True
-            elif candidate.hasPreviousTrace(trace):
-                return True
-
-            return False
-
-        for candidate in self.traces:
-            if consider(candidate):
-                return True
-
-        return False
 
     def getTypeShapes(self):
         result = set()

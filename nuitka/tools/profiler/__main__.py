@@ -29,8 +29,6 @@ import runpy
 import sys
 import tempfile
 
-import vmprof  # pylint: disable=I0021,import-error
-
 
 def _namelen(e):
     if e.startswith("py:"):
@@ -69,6 +67,8 @@ def show(stats):
 
 
 def main():
+    import vmprof  # pylint: disable=I0021,import-error
+
     with tempfile.NamedTemporaryFile() as prof_file:
         vmprof.enable(prof_file.fileno(), 0.001)
 

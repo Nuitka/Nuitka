@@ -12,8 +12,8 @@ Release:        5%{?dist}
 Summary:        Python compiler with full language support and CPython compatibility
 Group:          Development/Languages/Python
 License:        Apache License 2.0
-URL:            http://nuitka.net/
-Source0:        http://nuitka.net/releases/Nuitka-%{version}.tar.gz
+URL:            https://nuitka.net/
+Source0:        https://nuitka.net/releases/Nuitka-%{version}.tar.gz
 Source1:        nuitka-rpmlintrc
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 %if 0%{?fedora} < 28 && 0%{?rhel} < 8
@@ -42,6 +42,7 @@ BuildRequires:  python3-setuptools
 BuildRequires:  gcc-c++
 BuildRequires:  strace
 BuildRequires:  chrpath
+BuildRequires:  ccache
 %if 0%{?fedora} < 28 && 0%{?rhel} < 8
 Requires:       python-devel
 %endif
@@ -54,6 +55,7 @@ Requires:       python36-devel
 Requires:       gcc-c++
 Requires:       strace
 Requires:       chrpath
+Requires:       ccache
 BuildArchitectures: noarch
 
 %description
@@ -77,10 +79,17 @@ python3=`which python3 2>/dev/null || true`
 
 if [ "$python2_version" != "2.6" ]
 then
-    # Remove files not needed only for Python 2.6, only cause errors during
-    # compilation.
+    # Remove files needed only for Python 2.6, they only cause errors during
+    # compilation with Python3.
     rm -rf nuitka/build/inline_copy/lib/scons-2.3.2
+else
+    # Remove files mot needed for Python 2.6, they only cause errors during
+    # compilation with Python 2.6.
+    rm -rf nuitka/build/inline_copy/lib/scons-3*
 fi
+
+# This is Windows only
+rm -rf nuitka/build/inline_copy/pefile
 
 if [ "$python2" != "" ]
 then
@@ -100,8 +109,18 @@ python2=`which python2 || true`
 
 if [ "$python2" != "" ]
 then
+    echo "Basic compilation test of empty module:"
+    $python2 -m nuitka.__main__ --module --show-scons --run tests/basics/Empty.py
+    echo "Basic compilation test of empty program:"
+    $python2 -m nuitka.__main__ --show-scons --run tests/basics/Empty.py
+
     $python2 ./tests/run-tests --skip-reflection-test
 else
+    echo "Basic compilation test of empty module:"
+    python3 -m nuitka --module --show-scons --run tests/basics/Empty.py
+    echo "Basic compilation test of empty program:"
+    python3 -m nuitka --show-scons --run tests/basics/Empty.py
+
     python3 ./tests/run-tests --skip-reflection-test
 fi
 

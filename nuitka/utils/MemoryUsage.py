@@ -25,9 +25,7 @@ from .Utils import getOS
 
 
 def getOwnProcessMemoryUsage():
-    """ Memory usage of own process in bytes.
-
-    """
+    """Memory usage of own process in bytes."""
 
     if getOS() == "Windows":
         # adapted from http://code.activestate.com/recipes/578513

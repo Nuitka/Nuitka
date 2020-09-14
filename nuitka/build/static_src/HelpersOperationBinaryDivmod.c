@@ -1071,7 +1071,64 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
 
 #if PYTHON_VERSION < 300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
-        return _BINARY_OPERATION_DIVMOD_OBJECT_INT_INT(operand1, operand2);
+
+        PyObject *result;
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        if (unlikely(b == 0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+            goto exit_result_exception;
+        }
+
+        if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+            long a_div_b = a / b;
+            long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
+
+            if (a_mod_b && (b ^ a_mod_b) < 0) {
+                a_mod_b += b;
+                a_div_b -= 1;
+            }
+
+            result = Py_BuildValue("(ll)", a_div_b, a_mod_b);
+            goto exit_result_ok;
+        }
+
+        {
+            PyObject *operand1_object = operand1;
+            PyObject *operand2_object = operand2;
+
+            PyObject *o = PyLong_Type.tp_as_number->nb_divmod(operand1_object, operand2_object);
+            assert(o != Py_NotImplemented);
+
+            result = o;
+            goto exit_result;
+        }
+
+    exit_result:
+
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+    exit_result_ok:
+
+        return result;
+
+    exit_result_exception:
+        return NULL;
     }
 #endif
 

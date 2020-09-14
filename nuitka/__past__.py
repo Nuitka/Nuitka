@@ -76,7 +76,9 @@ else:
 
 if str is bytes:
     from cStringIO import StringIO  # pylint: disable=I0021,import-error
+    from cStringIO import StringIO as BytesIO  # pylint: disable=I0021,import-error
 else:
+    from io import BytesIO  # pylint: disable=I0021,import-error
     from io import StringIO  # pylint: disable=I0021,import-error
 
 try:
@@ -99,9 +101,9 @@ if str is bytes:
         MutableSet,
     )
 else:
-    from collections.abc import (  # pylint: disable=I0021,import-error,no-name-in-module
-        Iterable,  # pylint: disable=I0021,import-error
-        MutableSet,  # pylint: disable=I0021,import-error
+    from collections.abc import (  # pylint: disable=I0021,import-error,import-error,no-name-in-module
+        Iterable,
+        MutableSet,
     )
 
 if str is bytes:
@@ -109,9 +111,17 @@ if str is bytes:
 else:
     intern = sys.intern
 
+if str is bytes:
+    to_byte = chr
+else:
+
+    def to_byte(value):
+        assert type(value) is int and 0 <= value < 256
+        return bytes((value,))
+
 
 def getMetaClassBase(meta_class_prefix):
-    """ For Python2/3 compatible source, we create a base class that has the metaclass
+    """For Python2/3 compatible source, we create a base class that has the metaclass
     used and doesn't require making a choice.
     """
 
@@ -128,6 +138,7 @@ assert long
 assert unicode
 assert urlretrieve
 assert StringIO
+assert BytesIO
 assert type(xrange) is type, xrange
 assert total_ordering
 assert intern

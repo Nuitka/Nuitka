@@ -17,14 +17,14 @@
 #
 """ Module/Package attribute nodes
 
-The represent special values of the modules. The __name__,
-__package__, __file__, and __spec__ values can all be highly
-dynamic and version dependent.
+The represent special values of the modules. The "__name__", "__package__",
+"__file__", and "__spec__" values can all be highly dynamic and version
+dependent
 
-These nodes are intended to allow for as much compile time
-optimization as possible, despite this difficulty. In some
-modes these node become constants quickly, in others they
-will present boundaries for optimization.
+These nodes are intended to allow for as much compile time optimization as
+possible, despite this difficulty. In some modes these node become constants
+quickly, in others they will present boundaries for optimization.
+
 """
 
 import os
@@ -36,9 +36,9 @@ from .ExpressionBases import ExpressionBase
 
 
 class ExpressionModuleAttributeBase(ExpressionBase):
-    """ Expression base class for module attributes.
+    """Expression base class for module attributes.
 
-        This
+    This
     """
 
     # Base classes can be abstract, pylint: disable=abstract-method
@@ -65,13 +65,13 @@ class ExpressionModuleAttributeBase(ExpressionBase):
 
 
 class ExpressionModuleAttributeFileRef(ExpressionModuleAttributeBase):
-    """ Expression that represents accesses to __file__ of module.
+    """Expression that represents accesses to __file__ of module.
 
-        The __file__ is a static or dynamic value depending on the
-        file reference mode. If it requests runtime, i.e. looks at
-        where it is loaded from, then there is not a lot to be said
-        about its value, otherwise it becomes a constant value
-        quickly.
+    The __file__ is a static or dynamic value depending on the
+    file reference mode. If it requests runtime, i.e. looks at
+    where it is loaded from, then there is not a lot to be said
+    about its value, otherwise it becomes a constant value
+    quickly.
     """
 
     kind = "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF"
@@ -91,11 +91,11 @@ class ExpressionModuleAttributeFileRef(ExpressionModuleAttributeBase):
 
 
 class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
-    """ Expression that represents accesses to __name__ of module.
+    """Expression that represents accesses to __name__ of module.
 
-        For binaries this can be relatively well known, but modules
-        living in a package, go by what loads them to ultimately
-        determine their name.
+    For binaries this can be relatively well known, but modules
+    living in a package, go by what loads them to ultimately
+    determine their name.
     """
 
     kind = "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF"
@@ -115,11 +115,11 @@ class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
 
 
 class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
-    """ Expression that represents accesses to __package__ of module.
+    """Expression that represents accesses to __package__ of module.
 
-        For binaries this can be relatively well known, but modules
-        living in a package, go by what loads them to ultimately
-        determine their parent package.
+    For binaries this can be relatively well known, but modules
+    living in a package, go by what loads them to ultimately
+    determine their parent package.
     """
 
     kind = "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF"
@@ -155,11 +155,11 @@ class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
 
 
 class ExpressionModuleAttributeLoaderRef(ExpressionModuleAttributeBase):
-    """ Expression that represents accesses to __loader__ of module.
+    """Expression that represents accesses to __loader__ of module.
 
-        The loader of Nuitka is going to load the module, and there
-        is not a whole lot to be said about it here, it is assumed
-        to be largely ignored in user code.
+    The loader of Nuitka is going to load the module, and there
+    is not a whole lot to be said about it here, it is assumed
+    to be largely ignored in user code.
     """
 
     kind = "EXPRESSION_MODULE_ATTRIBUTE_LOADER_REF"
@@ -169,13 +169,13 @@ class ExpressionModuleAttributeLoaderRef(ExpressionModuleAttributeBase):
 
 
 class ExpressionModuleAttributeSpecRef(ExpressionModuleAttributeBase):
-    """ Expression that represents accesses to __spec__ of module.
+    """Expression that represents accesses to __spec__ of module.
 
-        The __spec__ is used by the loader mechanism and sometimes
-        by code checking e.g. if something is a package. It exists
-        only for modern Python. For the main program module, it's
-        always None (it is also not really loaded in the same way
-        as other code).
+    The __spec__ is used by the loader mechanism and sometimes
+    by code checking e.g. if something is a package. It exists
+    only for modern Python. For the main program module, it's
+    always None (it is also not really loaded in the same way
+    as other code).
     """
 
     kind = "EXPRESSION_MODULE_ATTRIBUTE_SPEC_REF"
@@ -191,3 +191,30 @@ class ExpressionModuleAttributeSpecRef(ExpressionModuleAttributeBase):
             )
 
         return self, None, None
+
+
+class ExpressionNuitkaLoaderCreation(ExpressionBase):
+    __slots__ = ("provider",)
+
+    kind = "EXPRESSION_NUITKA_LOADER_CREATION"
+
+    def __init__(self, provider, source_ref):
+        ExpressionBase.__init__(self, source_ref=source_ref)
+
+        self.provider = provider
+
+    def finalize(self):
+        del self.parent
+        del self.provider
+
+    def computeExpressionRaw(self, trace_collection):
+        # Nothing can be done here.
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        # Never raises an exception.
+        return False
+
+    def mayHaveSideEffects(self):
+        # No effect really by itself.
+        return False

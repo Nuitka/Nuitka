@@ -24,13 +24,13 @@ make others possible.
 
 
 import inspect
-from logging import debug, info
+from logging import info
 
 from nuitka import ModuleRegistry, Options, Variables
 from nuitka.importing import ImportCache
 from nuitka.nodes.LocalsScopes import LocalsDictHandle, getLocalsDictHandles
 from nuitka.plugins.Plugins import Plugins
-from nuitka.Tracing import printLine
+from nuitka.Tracing import optimization_logger, printLine, recursion_logger
 from nuitka.utils import MemoryUsage
 
 from . import Graphs, TraceCollections
@@ -44,28 +44,27 @@ _is_verbose = Options.isVerbose()
 def _attemptRecursion(module):
     new_modules = module.attemptRecursion()
 
-    for new_module in new_modules:
-        debug(
-            "{source_ref} : {tags} : {message}".format(
-                source_ref=new_module.getSourceReference().getAsString(),
-                tags="new_code",
-                message="Recursed to module package.",
+    if Options.isShowInclusion():
+        for new_module in new_modules:
+            recursion_logger.info(
+                "{source_ref} : {tags} : {message}".format(
+                    source_ref=new_module.getSourceReference().getAsString(),
+                    tags="new_code",
+                    message="Recursed to module package.",
+                )
             )
-        )
 
 
 tag_set = None
 
 
 def signalChange(tags, source_ref, message):
-    """ Indicate a change to the optimization framework.
-
-    """
+    """Indicate a change to the optimization framework."""
     if message is not None:
         # Try hard to not call a delayed evaluation of node descriptions.
 
         if _is_verbose:
-            debug(
+            optimization_logger.info(
                 "{source_ref} : {tags} : {message}".format(
                     source_ref=source_ref.getAsString(),
                     tags=tags,
@@ -174,9 +173,7 @@ def optimizeModule(module):
 
 
 def areReadOnlyTraces(variable_traces):
-    """ Do these traces contain any writes.
-
-    """
+    """Do these traces contain any writes."""
 
     # Many cases immediately return, that is how we do it here,
     for variable_trace in variable_traces:
@@ -204,9 +201,7 @@ def areReadOnlyTraces(variable_traces):
 
 
 def areEmptyTraces(variable_traces):
-    """ Do these traces contain any writes or accesses.
-
-    """
+    """Do these traces contain any writes or accesses."""
     # Many cases immediately return, that is how we do it here,
     # pylint: disable=too-many-return-statements
 
@@ -221,17 +216,17 @@ def areEmptyTraces(variable_traces):
 
             return False
         elif variable_trace.isUninitTrace():
-            if variable_trace.hasDefiniteUsages():
+            if variable_trace.getUsageCount():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
                 return False
         elif variable_trace.isUnknownTrace():
-            if variable_trace.hasDefiniteUsages():
+            if variable_trace.getUsageCount():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
                 return False
         elif variable_trace.isMergeTrace():
-            if variable_trace.hasDefiniteUsages():
+            if variable_trace.getUsageCount():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
                 return False
@@ -488,8 +483,8 @@ after that.""".format(
 
 
 def restoreFromXML(text):
-    from nuitka.TreeXML import fromString
     from nuitka.nodes.NodeBases import fromXML
+    from nuitka.TreeXML import fromString
 
     xml = fromString(text)
 
@@ -499,9 +494,7 @@ def restoreFromXML(text):
 
 
 def makeOptimizationPass(initial_pass):
-    """ Make a single pass for optimization, indication potential completion.
-
-    """
+    """Make a single pass for optimization, indication potential completion."""
     # Controls complex optimization, pylint: disable=too-many-branches
 
     finished = True
@@ -626,7 +619,7 @@ def optimize(output_filename):
 
     # Demote compiled modules to bytecode, now that imports had a chance to be resolved, and
     # dependencies were handled.
-    for module in ModuleRegistry.getDoneUserModules():
+    for module in ModuleRegistry.getDoneModules():
         if (
             module.isCompiledPythonModule()
             and module.getCompilationMode() == "bytecode"

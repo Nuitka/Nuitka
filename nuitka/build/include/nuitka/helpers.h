@@ -21,9 +21,21 @@
 #define _DEBUG_FRAME 0
 #define _DEBUG_REFRAME 0
 #define _DEBUG_EXCEPTIONS 0
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_GENERATOR
+#define _DEBUG_GENERATOR 1
+#else
 #define _DEBUG_GENERATOR 0
+#endif
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_COROUTINE
+#define _DEBUG_COROUTINE 1
+#else
 #define _DEBUG_COROUTINE 0
+#endif
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ASYNCGEN
+#define _DEBUG_ASYNCGEN 1
+#else
 #define _DEBUG_ASYNCGEN 0
+#endif
 #define _DEBUG_CLASSES 0
 
 #ifdef _NUITKA_EXPERIMENTAL_REPORT_REFCOUNTS
@@ -31,15 +43,6 @@
 #else
 #define _DEBUG_REFCOUNTS 0
 #endif
-
-extern PyObject *const_tuple_empty;
-extern PyObject *const_str_plain___dict__;
-extern PyObject *const_str_plain___class__;
-extern PyObject *const_str_plain___enter__;
-extern PyObject *const_str_plain___exit__;
-
-extern PyObject *const_int_0;
-extern PyObject *const_int_pos_1;
 
 // From CPython, to allow us quick access to the dictionary of an module, the
 // structure is normally private, but we need it for quick access to the module
@@ -61,8 +64,8 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject **args);
 #include "nuitka/helper/printing.h"
 
 // Helper to check that an object is valid and has positive reference count.
-#define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0));
-#define CHECK_OBJECT_X(value) (assert((value) == NULL || Py_REFCNT(value) > 0));
+#define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0))
+#define CHECK_OBJECT_X(value) (assert((value) == NULL || Py_REFCNT(value) > 0))
 
 extern void CHECK_OBJECT_DEEP(PyObject *value);
 
@@ -130,10 +133,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT(PyObject *value) {
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *encoding, PyObject *errors) {
     CHECK_OBJECT(value);
-    if (encoding)
-        CHECK_OBJECT(encoding);
-    if (errors)
-        CHECK_OBJECT(errors);
+    CHECK_OBJECT_X(encoding);
+    CHECK_OBJECT_X(errors);
 
     char const *encoding_str;
 
@@ -305,8 +306,6 @@ extern PyObject *BUILTIN_BYTES1(PyObject *value);
 extern PyObject *BUILTIN_BYTES3(PyObject *value, PyObject *encoding, PyObject *errors);
 #endif
 
-extern PyObject *const_str_plain___builtins__;
-
 // For built-in eval() functionality, works on byte compiled code already.
 extern PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals);
 
@@ -342,18 +341,6 @@ extern void checkGlobalConstants(void);
 // Unstreaming constants from a blob.
 #include "nuitka/constants_blob.h"
 
-extern void UNSTREAM_INIT(void);
-extern PyObject *UNSTREAM_STRING(unsigned char const *buffer, Py_ssize_t size, bool intern);
-extern PyObject *UNSTREAM_CHAR(unsigned char value, bool intern);
-#if PYTHON_VERSION < 300
-extern PyObject *UNSTREAM_UNICODE(unsigned char const *buffer, Py_ssize_t size);
-#else
-extern PyObject *UNSTREAM_BYTES(unsigned char const *buffer, Py_ssize_t size);
-extern PyObject *UNSTREAM_STRING_ASCII(unsigned char const *buffer, Py_ssize_t size, bool intern);
-#endif
-extern PyObject *UNSTREAM_FLOAT(unsigned char const *buffer);
-extern PyObject *UNSTREAM_BYTEARRAY(unsigned char const *buffer, Py_ssize_t size);
-
 // Performance enhancements to Python types.
 extern void enhancePythonTypes(void);
 
@@ -385,8 +372,6 @@ extern void _initSlotCompare(void);
 // Select the metaclass from specified one and given bases.
 extern PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases);
 #endif
-
-extern PyObject *const_str_plain___name__;
 
 NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME(PyObject *module) {
     assert(PyModule_Check(module));

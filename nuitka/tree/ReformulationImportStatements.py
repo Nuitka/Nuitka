@@ -194,9 +194,7 @@ def buildImportFromNode(provider, node, source_ref):
             import_locals = makeConstantRefNode({}, source_ref, True)
 
         return StatementImportStar(
-            target_scope=provider.getModuleDictScope()
-            if provider.isCompiledPythonModule()
-            else provider.getFunctionLocalsScope(),
+            target_scope=provider.getLocalsScope(),
             module_import=ExpressionBuiltinImport(
                 name=makeConstantRefNode(module_name, source_ref, True),
                 globals_arg=import_globals,

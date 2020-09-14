@@ -46,7 +46,9 @@ from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
-from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionExpressionFromTemplate
+from nuitka.nodes.NodeMakingHelpers import (
+    makeRaiseExceptionExpressionFromTemplate,
+)
 from nuitka.nodes.OperatorNodes import (
     makeBinaryOperationNode,
     makeExpressionOperationBinaryInplace,
@@ -470,6 +472,14 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
                     ExpressionConstantEllipsisRef(source_ref=source_ref),
                 ),
             )
+        elif python_version >= 390:
+            return (
+                "Subscript",
+                (
+                    buildNode(provider, node.value, source_ref),
+                    buildNode(provider, node.slice, source_ref),
+                ),
+            )
         else:
             assert False, slice_kind
     elif kind in ("Tuple", "List"):
@@ -553,9 +563,7 @@ def buildAssignNode(provider, node, source_ref):
 
 
 def buildAnnAssignNode(provider, node, source_ref):
-    """ Python3.6 annotation assignment.
-
-    """
+    """Python3.6 annotation assignment."""
     # There are many cases to deal with here.
 
     if provider.isCompiledPythonModule() or provider.isExpressionClassBody():
@@ -1153,9 +1161,7 @@ def buildInplaceAssignNode(provider, node, source_ref):
 
 
 def buildNamedExprNode(provider, node, source_ref):
-    """ Assignment expressions, Python3.8 or higher only.
-
-    """
+    """Assignment expressions, Python3.8 or higher only."""
 
     outline_body = ExpressionOutlineBody(
         provider=provider, name="assignment_expr", source_ref=source_ref
