@@ -1,5 +1,5 @@
-Nuitka Release 0.6.9 (Draft)
-============================
+Nuitka Release 0.6.9
+====================
 
 This releases contains important bug fixes for regressions of the 0.6.8 series
 which had relatively many problems. Not all of these could be addressed as
