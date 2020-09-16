@@ -31,7 +31,7 @@ static void CHAIN_EXCEPTION(PyObject *exception_value) {
     // Implicit chain of exception already existing.
     PyThreadState *thread_state = PyThreadState_GET();
 
-    // Normalize existing exception first. TODO: Will normally be done already.
+    // Normalize existing exception first.
     NORMALIZE_EXCEPTION(&EXC_TYPE(thread_state), &EXC_VALUE(thread_state),
                         (PyTracebackObject **)&EXC_TRACEBACK(thread_state));
 
