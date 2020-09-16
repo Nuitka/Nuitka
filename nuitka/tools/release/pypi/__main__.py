@@ -72,7 +72,7 @@ def main():
     with withVirtualenv("check_nuitka") as venv:
         print("Installing Nuitka into virtualenv:")
         print("*" * 40)
-        venv.runCommand("pip install ../dist/Nuitka*.tar.gz")
+        venv.runCommand("python -m pip install ../dist/Nuitka*.tar.gz")
         print("*" * 40)
 
         print("Compiling basic test:")
