@@ -438,9 +438,6 @@ def main():
 
     executePASS5()
 
-    os.unlink(os.path.join(tmp_dir, "nuitka" + exe_suffix))
-    os.rmdir(tmp_dir)
-
 
 if __name__ == "__main__":
     main()
