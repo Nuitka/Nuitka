@@ -46,3 +46,21 @@ void FORMAT_GLOBAL_NAME_ERROR(PyObject **exception_type, PyObject **exception_va
     CHECK_OBJECT(*exception_value);
 }
 #endif
+
+void FORMAT_UNBOUND_LOCAL_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name) {
+    *exception_type = PyExc_UnboundLocalError;
+    Py_INCREF(*exception_type);
+
+    *exception_value = Nuitka_String_FromFormat("local variable '%s' referenced before assignment",
+                                                Nuitka_String_AsString_Unchecked(variable_name));
+    CHECK_OBJECT(*exception_value);
+}
+
+void FORMAT_UNBOUND_CLOSURE_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name) {
+    *exception_type = PyExc_NameError;
+    Py_INCREF(*exception_type);
+
+    *exception_value = Nuitka_String_FromFormat("free variable '%s' referenced before assignment in enclosing scope",
+                                                Nuitka_String_AsString_Unchecked(variable_name));
+    CHECK_OBJECT(*exception_value);
+}
