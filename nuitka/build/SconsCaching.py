@@ -372,33 +372,40 @@ def _writeClcacheLog(filename, cache_result):
 
 
 def extractClcacheLogFromOutput(data):
-    match = re.match(b"^(.*Finished. Exit code \\d+.*?\\n)(.*)$", data, re.S)
+    clcache_output = []
+    normal_output = []
 
-    if match:
-        clcache_output, data = match.groups()
+    for line in data.split(b"\r\n"):
+        if b"clcache.py" in line:
+            clcache_output.append(line)
+        else:
+            normal_output.append(line)
 
+    data = b"\r\n".join(normal_output)
+    if data:
+        data += b"\r\n"
+
+    for clcache_line in clcache_output:
         match = re.search(
-            b"Reusing cached object.*?for object file (.*?)\\r", clcache_output, re.S
+            b"Reusing cached object.*?for object file (.*?)\\r", clcache_line
         )
 
         if match:
             _writeClcacheLog(match.group(1), "cache hit")
             return data
 
-        match = re.search(b"Adding file (.*?) to cache", clcache_output, re.S)
+        match = re.search(b"Adding file (.*?) to cache", clcache_line)
         if match:
             _writeClcacheLog(match.group(1), "cache miss")
             return data
 
-        match = re.search(
-            b"Compiler source files: \\['().*?)'\\]", clcache_output, re.S
-        )
+        match = re.search(b"Compiler source files: \\['(.*?)'\\]", clcache_line)
         if match:
             _writeClcacheLog(match.group(1), "cache miss")
             return data
 
+    if clcache_output:
         # Sometimes no message at all might be recognized.
         scons_logger.warning("Caching with clcache could not be decoded.")
-        return data
 
     return data
