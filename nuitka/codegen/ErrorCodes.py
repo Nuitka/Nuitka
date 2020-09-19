@@ -180,55 +180,6 @@ def _getExceptionChainingCode(context):
         )
 
 
-def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
-    assert not condition.endswith(";")
-
-    (
-        exception_type,
-        exception_value,
-        exception_tb,
-        _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
-
-    if len(args) == 1 and type(args[0]) is str:
-        set_exception = [
-            "%s = %s;" % (exception_type, exception),
-            "Py_INCREF(%s);" % exception_type,
-            "%s = %s;" % (exception_value, context.getConstantCode(constant=args[0])),
-            "Py_INCREF(%s);" % exception_value,
-            "%s = NULL;" % exception_tb,
-        ]
-    else:
-        set_exception = [
-            "%s = %s;" % (exception_type, exception),
-            "Py_INCREF(%s);" % exception_type,
-            "%s = Py%s_FromFormat(%s);"
-            % (
-                exception_value,
-                "String" if python_version < 300 else "Unicode",
-                ", ".join('"%s"' % arg for arg in args),
-            ),
-            "%s = NULL;" % exception_tb,
-        ]
-
-    if python_version >= 300:
-        set_exception.extend(_getExceptionChainingCode(context))
-
-    emit(
-        template_error_format_string_exception
-        % {
-            "condition": condition,
-            "exception_exit": context.getExceptionEscape(),
-            "set_exception": indented(set_exception),
-            "release_temps": indented(getErrorExitReleaseCode(context)),
-            "var_description_code": indented(
-                getFrameVariableTypeDescriptionCode(context)
-            ),
-            "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
-        }
-    )
-
-
 def getTakeReferenceCode(value_name, emit):
     # TODO: This should be done via the C type
     if value_name.c_type == "PyObject *":
@@ -281,30 +232,48 @@ def getCheckObjectCode(check_name, emit):
 
 
 def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
+    variable_name = variable.getName()
+
+    (
+        exception_type,
+        exception_value,
+        exception_tb,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
+
     if variable.getOwner() is not context.getOwner():
-        getErrorFormatExitBoolCode(
-            condition=condition,
-            exception="PyExc_NameError",
-            args=(
-                """\
-free variable '%s' referenced before assignment in enclosing scope""",
-                variable.getName(),
-            ),
-            emit=emit,
-            context=context,
-        )
+        helper_code = "FORMAT_UNBOUND_CLOSURE_ERROR"
     else:
-        getErrorFormatExitBoolCode(
-            condition=condition,
-            exception="PyExc_UnboundLocalError",
-            args=(
-                """\
-local variable '%s' referenced before assignment""",
-                variable.getName(),
+        helper_code = "FORMAT_UNBOUND_LOCAL_ERROR"
+
+    set_exception = [
+        "%s(&%s, &%s, %s);"
+        % (
+            helper_code,
+            exception_type,
+            exception_value,
+            context.getConstantCode(variable_name),
+        ),
+        "%s = NULL;" % exception_tb,
+    ]
+
+    # TODO: Move this into the helper code.
+    if python_version >= 300:
+        set_exception.extend(_getExceptionChainingCode(context))
+
+    emit(
+        template_error_format_string_exception
+        % {
+            "condition": condition,
+            "exception_exit": context.getExceptionEscape(),
+            "set_exception": indented(set_exception),
+            "release_temps": indented(getErrorExitReleaseCode(context)),
+            "var_description_code": indented(
+                getFrameVariableTypeDescriptionCode(context)
             ),
-            emit=emit,
-            context=context,
-        )
+            "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
+        }
+    )
 
 
 def getNameReferenceErrorCode(variable_name, condition, emit, context):
