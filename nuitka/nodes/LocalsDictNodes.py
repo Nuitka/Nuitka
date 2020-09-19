@@ -36,6 +36,7 @@ from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase, ExpressionChildHavingBase
 from .NodeBases import StatementBase, StatementChildHavingBase
+from .shapes.BuiltinTypeShapes import tshape_dict
 from .VariableRefNodes import ExpressionTempVariableRef
 
 
@@ -182,9 +183,10 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
         return call_node, None, None
 
     def mayRaiseException(self, exception_type):
-        return python_version >= 300 or self.subnode_fallback.mayRaiseException(
-            exception_type
-        )
+        if python_version < 300 or self.locals_scope.getTypeShape() is tshape_dict:
+            return False
+
+        return self.subnode_fallback.mayRaiseException(exception_type)
 
 
 # TODO: Why is this unused.
