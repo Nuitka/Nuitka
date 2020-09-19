@@ -1,12 +1,20 @@
-Nuitka Release 0.6.9 (Draft)
-============================
+Nuitka Release 0.6.10 (Draft)
+=============================
+
+This release is not done yet.
+
+
+Nuitka Release 0.6.9
+====================
 
 This releases contains important bug fixes for regressions of the 0.6.8 series
 which had relatively many problems. Not all of these could be addressed as
-hotfixes.
+hotfixes, and other issues were even very involved, causing many changes to
+be necessary.
 
 There are also many general improvements and performance work for tracing and
-loops, but the full potential of this will not be unlocked with this release yet.
+loops, but the full potential of this will not be unlocked with this release
+yet.
 
 Bug Fixes
 ---------
@@ -160,7 +168,8 @@ necessary, to handle the usage of locals inside of contractions, but also will
 be instrumental for function inlining to become generally available.
 
 So, ultimately, this release is a necessary intermediate step. Upcoming
-releases will be able to focus more clearly on run time performance again.
+releases will be able to focus more clearly on run time performance again as
+well as on scalability for generated C code.
 
 
 Nuitka Release 0.6.8

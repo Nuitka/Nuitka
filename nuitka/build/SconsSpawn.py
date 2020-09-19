@@ -155,7 +155,10 @@ def getWindowsSpawnFunction(module_mode, source_files):
             def check(line):
                 return line in (b"", b"Generating Code...") or line in source_basenames
 
-            data = b"\r\n".join(line for line in data.split(b"\r\n") if not check(line))
+            data = (
+                b"\r\n".join(line for line in data.split(b"\r\n") if not check(line))
+                + b"\r\n"
+            )
 
         if data.rstrip():
             if not decodeData:

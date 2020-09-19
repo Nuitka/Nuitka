@@ -612,6 +612,12 @@ extern void FORMAT_NAME_ERROR(PyObject **exception_type, PyObject **exception_va
 extern void FORMAT_GLOBAL_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name);
 #endif
 
+// Format a UnboundLocalError exception for a variable name.
+extern void FORMAT_UNBOUND_LOCAL_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name);
+
+extern void FORMAT_UNBOUND_CLOSURE_ERROR(PyObject **exception_type, PyObject **exception_value,
+                                         PyObject *variable_name);
+
 // Similar to PyException_SetTraceback, only done for Python3.
 #if PYTHON_VERSION < 300
 #define ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(exception_value, exception_tb) ;
