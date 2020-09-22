@@ -406,6 +406,7 @@ def extractClcacheLogFromOutput(data):
 
     if clcache_output:
         # Sometimes no message at all might be recognized.
-        scons_logger.warning("Caching with clcache could not be decoded.")
+        scons_logger.warning("Caching with clcache could not be decoded, got this:")
+        scons_logger.warning(b"\n".join(clcache_output))
 
     return data
