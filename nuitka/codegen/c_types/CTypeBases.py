@@ -46,18 +46,7 @@ class CTypeBase(object):
         assert False, cls.c_type
 
     @classmethod
-    def getVariableInitCode(cls, variable_code_name, init_from):
-        init_value = cls.getInitValue(init_from)
-
-        return "%s%s%s = %s;" % (
-            cls.c_type,
-            " " if cls.c_type[-1] not in "*" else "",
-            variable_code_name,
-            init_value,
-        )
-
-    @classmethod
-    def getLocalVariableInitTestCode(cls, value_name, inverted):
+    def getInitTestConditionCode(cls, value_name, inverted):
         """Get code to test for uninitialized."""
 
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
@@ -117,7 +106,57 @@ class CTypeBase(object):
         assert False, to_name
 
     @classmethod
-    def getReleaseCode(cls, variable_code_name, needs_check, emit):
+    def getReleaseCode(cls, value_name, needs_check, emit):
         """Get release code for given object."""
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
+
+    @classmethod
+    def emitReinitCode(cls, value_name, emit):
+        """Get release code for given object."""
+        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        assert False, cls.c_type
+
+    @classmethod
+    def getTakeReferenceCode(cls, value_name, emit):
+        """Take reference code for given object."""
+
+        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        assert False, cls.c_type
+
+    @classmethod
+    def emitTruthCheckCode(cls, to_name, value_name, emit):
+        """Check the truth of a value and indicate exception to an int."""
+        assert to_name.c_type == "int", to_name
+
+        emit("%s = %s ? 1 : 0;" % (to_name, cls.getTruthCheckCode(value_name)))
+
+    @classmethod
+    def emitValueAssertionCode(cls, value_name, emit):
+        """Assert that the value is not unassigned."""
+
+        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        assert False, cls.c_type
+
+    @classmethod
+    def emitReleaseAssertionCode(cls, value_name, emit):
+        """Assert that the container of the value is not released already of unassigned."""
+        cls.emitValueAssertionCode(value_name, emit)
+
+
+class CTypeNotReferenceCountedMixin(object):
+    """Mixin for C types, that have no reference counting mechanism."""
+
+    @classmethod
+    def getReleaseCode(cls, value_name, needs_check, emit):
+        # If no check is needed, assert it for debug mode.
+        if not needs_check:
+            cls.emitValueAssertionCode(value_name, emit=emit)
+
+    @classmethod
+    def getTakeReferenceCode(cls, value_name, emit):
+        pass
+
+    @classmethod
+    def emitReleaseAssertionCode(cls, value_name, emit):
+        pass

@@ -21,10 +21,10 @@
 
 from nuitka.codegen.ErrorCodes import getReleaseCode
 
-from .CTypeBases import CTypeBase
+from .CTypeBases import CTypeBase, CTypeNotReferenceCountedMixin
 
 
-class CTypeNuitkaBoolEnum(CTypeBase):
+class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
     c_type = "nuitka_bool"
 
     helper_code = "NBOOL"
@@ -59,17 +59,8 @@ class CTypeNuitkaBoolEnum(CTypeBase):
         assert False, to_name
 
     @classmethod
-    def getLocalVariableInitTestCode(cls, value_name, inverted):
-        return "%s %s NUITKA_BOOL_UNASSIGNED" % (value_name, "==" if inverted else "!=")
-
-    @classmethod
     def getTruthCheckCode(cls, value_name):
         return "%s == NUITKA_BOOL_TRUE" % value_name
-
-    @classmethod
-    def emitTruthCheckCode(cls, to_name, value_name, needs_check, emit, context):
-        # Not using needs_check, pylint: disable=unused-argument
-        emit("%s = %s ? 1 : 0;" % (to_name, cls.getTruthCheckCode(value_name)))
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
@@ -77,8 +68,7 @@ class CTypeNuitkaBoolEnum(CTypeBase):
         return value_name
 
     @classmethod
-    def emitValueAssertionCode(cls, value_name, emit, context):
-        # Not using the context, pylint: disable=unused-argument
+    def emitValueAssertionCode(cls, value_name, emit):
         emit("assert(%s != NUITKA_BOOL_UNASSIGNED);" % value_name)
 
     @classmethod
@@ -103,9 +93,12 @@ class CTypeNuitkaBoolEnum(CTypeBase):
             return init_from
 
     @classmethod
-    def getReleaseCode(cls, variable_code_name, needs_check, emit):
-        # TODO: Allow optimization to not get here.
-        pass
+    def getInitTestConditionCode(cls, value_name, inverted):
+        return "%s %s NUITKA_BOOL_UNASSIGNED" % (value_name, "==" if inverted else "!=")
+
+    @classmethod
+    def emitReinitCode(cls, value_name, emit):
+        emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
 
     @classmethod
     def getDeleteObjectCode(

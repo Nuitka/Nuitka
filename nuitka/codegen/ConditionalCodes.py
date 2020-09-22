@@ -22,19 +22,28 @@ Branches, conditions, truth checks.
 
 from .CodeHelpers import decideConversionCheckNeeded, generateExpressionCode
 from .Emission import SourceCodeCollector
-from .ErrorCodes import getReleaseCode, getTakeReferenceCode
+from .ErrorCodes import (
+    getErrorExitBoolCode,
+    getReleaseCode,
+    getTakeReferenceCode,
+)
 from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
 
 
 def generateConditionCode(condition, emit, context):
-    compare_name = context.allocateTempName("condition_result", "nuitka_bool")
+    if condition.mayRaiseExceptionBool(BaseException):
+        compare_name = context.allocateTempName("condition_result", "nuitka_bool")
+    else:
+        compare_name = context.allocateTempName("condition_result", "bool")
 
     generateExpressionCode(
         to_name=compare_name, expression=condition, emit=emit, context=context
     )
 
     getBranchingCode(
-        condition="%s == NUITKA_BOOL_TRUE" % compare_name, emit=emit, context=context
+        condition=compare_name.getCType().getTruthCheckCode(compare_name),
+        emit=emit,
+        context=context,
     )
 
     getReleaseCode(compare_name, emit, context)
@@ -81,10 +90,18 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     left_name.getCType().emitTruthCheckCode(
         to_name=truth_name,
         value_name=left_name,
-        needs_check=left_value.mayRaiseExceptionBool(BaseException),
         emit=emit,
-        context=context,
     )
+
+    needs_check = left_value.mayRaiseExceptionBool(BaseException)
+
+    if needs_check:
+        getErrorExitBoolCode(
+            condition="%s == -1" % truth_name,
+            needs_check=True,
+            emit=emit,
+            context=context,
+        )
 
     getBranchingCode(condition="%s == 1" % truth_name, emit=emit, context=context)
 

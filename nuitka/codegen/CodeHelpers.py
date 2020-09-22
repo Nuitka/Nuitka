@@ -349,15 +349,19 @@ class HelperCallHandle(object):
         )
 
         # TODO: Move helper calling to something separate.
-        from .ErrorCodes import getErrorExitCode, getReleaseCode
+        from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
 
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=arg_names,
-            needs_check=needs_check,
-            emit=emit,
-            context=context,
-        )
+        # TODO: Have a method to indicate these.
+        if value_name.getCType().c_type != "bool":
+            getErrorExitCode(
+                check_name=value_name,
+                release_names=arg_names,
+                needs_check=needs_check,
+                emit=emit,
+                context=context,
+            )
+        else:
+            getReleaseCodes(arg_names, emit, context)
 
         if ref_count:
             context.addCleanupTempName(value_name)
@@ -366,7 +370,7 @@ class HelperCallHandle(object):
             self.target_type is not None
             and self.target_type.helper_code != self.helper_target.helper_code
         ):
-            if self.target_type.helper_code in ("NBOOL", "NVOID"):
+            if self.target_type.helper_code in ("NBOOL", "NVOID", "CBOOL"):
                 self.target_type.emitAssignConversionCode(
                     to_name=to_name,
                     value_name=value_name,

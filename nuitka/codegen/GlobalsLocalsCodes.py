@@ -146,8 +146,8 @@ def _getVariableDictUpdateCode(
 
     variable_c_type = variable_declaration.getCType()
 
-    test_code = variable_c_type.getLocalVariableInitTestCode(
-        variable_declaration, False
+    test_code = variable_c_type.getInitTestConditionCode(
+        value_name=variable_declaration, inverted=False
     )
 
     access_code = SourceCodeCollector()

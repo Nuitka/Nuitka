@@ -117,9 +117,7 @@ _needs_set_literal_reverse_insertion = None
 
 
 def needsSetLiteralReverseInsertion():
-    """ For Python3, until Python3.5 ca. the order of set literals was reversed.
-
-    """
+    """For Python3, until Python3.5 ca. the order of set literals was reversed."""
     # Cached result, pylint: disable=global-statement
     global _needs_set_literal_reverse_insertion
 
