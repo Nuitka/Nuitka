@@ -674,7 +674,12 @@ Stderr was:
             exit_code_stdout, exit_code_stderr, exit_code_return = makeComparisons(
                 trace_result=False
             )
+
             if exit_code_stdout or exit_code_stderr or exit_code_return:
+                old_stdout_cpython = stdout_cpython
+                old_stderr_cpython = stderr_cpython
+                old_exit_cpython = exit_cpython
+
                 my_print(
                     "Updating CPython cache by force due to non-matching comparison results.",
                     style="yellow",
@@ -692,7 +697,12 @@ Stderr was:
                 )
 
                 if not silent_mode:
-                    displayOutput(stdout_cpython, stderr_cpython)
+                    if (
+                        old_stdout_cpython != stdout_cpython
+                        or old_stderr_cpython != stderr_cpython
+                        or old_exit_cpython != exit_cpython
+                    ):
+                        displayOutput(stdout_cpython, stderr_cpython)
 
         exit_code_stdout, exit_code_stderr, exit_code_return = makeComparisons(
             trace_result=True
