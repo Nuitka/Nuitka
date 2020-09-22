@@ -63,6 +63,7 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
 )
+from .shapes.BuiltinTypeShapes import tshape_function
 
 
 class MaybeLocalVariableUsage(Exception):
@@ -732,6 +733,10 @@ class ExpressionFunctionCreation(
 
     def getName(self):
         return self.getFunctionRef().getName()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_function
 
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []

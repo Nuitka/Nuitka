@@ -2284,6 +2284,57 @@ class ShapeTypeModule(ShapeBase):
 tshape_module = ShapeTypeModule()
 
 
+class ShapeTypeFunction(ShapeBase):
+    # TODO: Add typical value.
+
+    @staticmethod
+    def getTypeName():
+        return "function"
+
+    @staticmethod
+    def hasShapeSlotBool():
+        return True
+
+    @staticmethod
+    def hasShapeSlotAbs():
+        return False
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return False
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
+    def hasShapeSlotComplex():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return False
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return False
+
+
+tshape_function = ShapeTypeFunction()
+
+
 class ShapeTypeBuiltinModule(ShapeTypeModule):
     typical_value = __import__("_ctypes")
 

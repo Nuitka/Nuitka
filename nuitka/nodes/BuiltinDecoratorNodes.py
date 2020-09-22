@@ -23,48 +23,57 @@ C call to the built-ins resulting wrapper, will speed up things.
 """
 
 from .ExpressionBases import ExpressionChildHavingBase
+from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 from .shapes.BuiltinTypeShapes import tshape_classmethod, tshape_staticmethod
 
 
-class ExpressionBuiltinStaticmethod(ExpressionChildHavingBase):
-    kind = "EXPRESSION_BUILTIN_STATICMETHOD"
-
+class ExpressionBuiltinStaticmethodClassmethodBase(ExpressionChildHavingBase):
     named_child = "value"
-    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
-        # TODO: Consider shape and predict exception raise or not.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
         return self, None, None
 
     def isKnownToBeIterable(self, count):
         return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    # TODO: Side effect from child mixin should do these, there is one for multiple children.
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseException(exception_type)
+
+    def mayHaveSideEffect(self):
+        return self.subnode_value.mayHaveSideEffect()
+
+    def extractSideEffects(self):
+        return self.subnode_value.extractSideEffects()
+
+    def computeExpressionDrop(self, statement, trace_collection):
+        result = makeStatementOnlyNodesFromExpressions(
+            self.subnode_value.extractSideEffects()
+        )
+
+        return (
+            result,
+            "new_statements",
+            "Removed unused %r call." % self.getTypeShape().getTypeName(),
+        )
+
+
+class ExpressionBuiltinStaticmethod(ExpressionBuiltinStaticmethodClassmethodBase):
+    kind = "EXPRESSION_BUILTIN_STATICMETHOD"
 
     def getTypeShape(self):
         return tshape_staticmethod
 
 
-class ExpressionBuiltinClassmethod(ExpressionChildHavingBase):
+class ExpressionBuiltinClassmethod(ExpressionBuiltinStaticmethodClassmethodBase):
     kind = "EXPRESSION_BUILTIN_CLASSMETHOD"
-
-    named_child = "value"
-    getValue = ExpressionChildHavingBase.childGetter("value")
-
-    def __init__(self, value, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
-
-    def computeExpression(self, trace_collection):
-        # TODO: Consider shape and predict exception raise or not.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return self, None, None
-
-    def isKnownToBeIterable(self, count):
-        return False
 
     def getTypeShape(self):
         return tshape_classmethod
