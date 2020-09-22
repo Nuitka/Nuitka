@@ -415,7 +415,7 @@ def generateBuiltinStaticmethodCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_STATICMETHOD",
-        arg_desc=(("staticmethod_arg", expression.getValue()),),
+        arg_desc=(("staticmethod_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -428,7 +428,7 @@ def generateBuiltinClassmethodCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_CLASSMETHOD",
-        arg_desc=(("classmethod_arg", expression.getValue()),),
+        arg_desc=(("classmethod_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
