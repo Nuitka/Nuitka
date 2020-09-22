@@ -21,8 +21,8 @@
 
 
 from nuitka.codegen.templates.CodeTemplatesVariables import (
-    template_release_clear,
-    template_release_unclear,
+    template_release_object_clear,
+    template_release_object_unclear,
 )
 
 from .CTypeBases import CTypeBase
@@ -71,23 +71,8 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
                 emit("%s.ilong_value = %s;" % (int_name, int_value))
 
     @classmethod
-    def getLocalVariableInitTestCode(cls, value_name, inverted):
-        assert False, "TODO"
-
-        return "%s %s NUITKA_BOOL_UNASSIGNED" % (value_name, "==" if inverted else "!=")
-
-    @classmethod
     def getTruthCheckCode(cls, value_name):
-        assert False, "TODO"
-
-        return "%s == NUITKA_BOOL_TRUE" % value_name
-
-    @classmethod
-    def emitTruthCheckCode(cls, to_name, value_name, needs_check, emit, context):
-        # pylint: disable=unused-argument
-        assert False, "TODO"
-
-        emit("%s = %s ? 1 : 0;" % (to_name, cls.getTruthCheckCode(value_name)))
+        return "%s != 0" % value_name
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
@@ -95,8 +80,7 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
         return value_name
 
     @classmethod
-    def emitValueAssertionCode(cls, value_name, emit, context):
-        # Not using the context, pylint: disable=unused-argument
+    def emitValueAssertionCode(cls, value_name, emit):
         emit("assert(%s.validity != NUITKA_ILONG_UNASSIGNED);" % value_name)
 
     @classmethod
@@ -122,18 +106,27 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
             return init_from
 
     @classmethod
-    def getReleaseCode(cls, variable_code_name, needs_check, emit):
-        emit(
-            "if ((%s.validity & NUITKA_ILONG_OBJECT_VALID) == NUITKA_ILONG_OBJECT_VALID) {"
-            % variable_code_name
+    def getInitTestConditionCode(cls, value_name, inverted):
+        return "%s.validity %s NUITKA_ILONG_UNASSIGNED" % (
+            value_name,
+            "==" if inverted else "!=",
         )
 
-        if needs_check:
-            template = template_release_unclear
-        else:
-            template = template_release_clear
+    @classmethod
+    def getReleaseCode(cls, value_name, needs_check, emit):
+        emit(
+            "if ((%s.validity & NUITKA_ILONG_OBJECT_VALID) == NUITKA_ILONG_OBJECT_VALID) {"
+            % value_name
+        )
 
-        emit(template % {"identifier": "%s.ilong_object" % variable_code_name})
+        # TODO: Have a slave C type that does it.
+
+        if needs_check:
+            template = template_release_object_unclear
+        else:
+            template = template_release_object_clear
+
+        emit(template % {"identifier": "%s.ilong_object" % value_name})
 
         emit("}")
 

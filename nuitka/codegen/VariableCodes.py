@@ -151,8 +151,8 @@ def getVariableReferenceCode(
         )
 
         if needs_check:
-            condition = value_name.getCType().getLocalVariableInitTestCode(
-                value_name, True
+            condition = value_name.getCType().getInitTestConditionCode(
+                value_name, inverted=True
             )
 
             getLocalVariableReferenceErrorCode(
@@ -160,7 +160,7 @@ def getVariableReferenceCode(
             )
         else:
             value_name.getCType().emitValueAssertionCode(
-                value_name=value_name, emit=emit, context=context
+                value_name=value_name, emit=emit
             )
 
         to_name.getCType().emitAssignConversionCode(
@@ -436,29 +436,25 @@ def _getVariableDelCode(
 def generateVariableReleaseCode(statement, emit, context):
     variable = statement.getVariable()
 
+    # Only for normal variables we do this.
+    assert not variable.isModuleVariable()
+
+    variable_trace = statement.getVariableTrace()
+
     if variable.isSharedTechnically():
         # TODO: We might start to not allocate the cell object, then a check
         # would be due. But currently we always allocate it.
         needs_check = False
     else:
-        needs_check = not statement.variable_trace.mustHaveValue()
+        needs_check = not variable_trace.mustHaveValue()
 
-    _getVariableReleaseCode(
-        variable=statement.getVariable(),
-        variable_trace=statement.getVariableTrace(),
-        needs_check=needs_check,
-        emit=emit,
-        context=context,
-    )
+    value_name = getLocalVariableDeclaration(context, variable, variable_trace)
 
+    c_type = value_name.getCType()
 
-def _getVariableReleaseCode(variable, variable_trace, needs_check, emit, context):
-    assert not variable.isModuleVariable()
+    if not needs_check:
+        c_type.emitReleaseAssertionCode(value_name=value_name, emit=emit)
 
-    variable_declaration = getLocalVariableDeclaration(
-        context, variable, variable_trace
-    )
+    c_type.getReleaseCode(value_name=value_name, needs_check=needs_check, emit=emit)
 
-    variable_declaration.getCType().getReleaseCode(
-        variable_code_name=variable_declaration, needs_check=needs_check, emit=emit
-    )
+    c_type.emitReinitCode(value_name=value_name, emit=emit)

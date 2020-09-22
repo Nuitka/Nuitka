@@ -150,18 +150,11 @@ template_del_shared_known = """\
 """
 
 
-# TODO: We could know, if we could loop, and only set the
-# variable to NULL then, using a different template.
-template_release_unclear = """\
-Py_XDECREF(%(identifier)s);
-%(identifier)s = NULL;
-"""
+template_release_object_unclear = """\
+Py_XDECREF(%(identifier)s);"""
 
-template_release_clear = """\
-CHECK_OBJECT(%(identifier)s);
-Py_DECREF(%(identifier)s);
-%(identifier)s = NULL;
-"""
+template_release_object_clear = """\
+Py_DECREF(%(identifier)s);"""
 
 template_read_shared_known = """\
 %(tmp_name)s = Nuitka_Cell_GET(%(identifier)s);

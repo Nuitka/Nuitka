@@ -15,26 +15,18 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" CType classes for void, a special value to represent discarding stuff.
-
-Cannot be read from obviously. Also drops references immediately when trying
-to assign to it.
+""" CType classes for C bool, this cannot represent unassigned, nor indicate exception.
 
 """
 
-from nuitka import Options
-
 from .CTypeBases import CTypeBase, CTypeNotReferenceCountedMixin
 
-# This is going to not use arguments very commonly. For now disable
-# the warning all around, specialize one done, pylint: disable=unused-argument
 
-
-class CTypeVoid(CTypeNotReferenceCountedMixin, CTypeBase):
-    c_type = "nuitka_void"
+class CTypeBool(CTypeNotReferenceCountedMixin, CTypeBase):
+    c_type = "bool"
 
     # Return value only obviously.
-    helper_code = "NVOID"
+    helper_code = "CBOOL"
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
@@ -43,28 +35,30 @@ class CTypeVoid(CTypeNotReferenceCountedMixin, CTypeBase):
 
     @classmethod
     def emitValueAssertionCode(cls, value_name, emit):
-        assert False
-
-    @classmethod
-    def emitReinitCode(cls, value_name, emit):
-        emit("%s = NUITKA_VOID_OK;" % value_name)
+        pass
 
     @classmethod
     def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
-        # We have no storage, the original user will cleanup after itself. This
-        # is the main point of the whole type.
-        from ..ErrorCodes import getReleaseCode
+        # Conversion cannot fail, pylint: disable=unused-argument
 
-        getReleaseCode(value_name, emit, context)
-
-        # The only possible value, and in this case never read, but the compiler hates
-        # it being defined which is hard for us to know ahead of time.
-        if Options.is_debug:
-            emit("%s = NUITKA_VOID_OK;" % to_name)
+        if value_name.c_type == cls.c_type:
+            emit("%s = %s;" % (to_name, value_name))
+        else:
+            emit(
+                "%s = %s;"
+                % (
+                    to_name,
+                    value_name.getCType().getTruthCheckCode(value_name=value_name),
+                )
+            )
 
     @classmethod
     def getInitValue(cls, init_from):
-        assert False
+        return "<not_possible>"
+
+    @classmethod
+    def getInitTestConditionCode(cls, value_name, inverted):
+        return "<not_possible>"
 
     @classmethod
     def getDeleteObjectCode(
@@ -74,11 +68,13 @@ class CTypeVoid(CTypeNotReferenceCountedMixin, CTypeBase):
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
-        # The only possible value, and in this case never read, but the compiler hates
-        # it being defined which is hard for us to know ahead of time.
-        if Options.is_debug:
-            emit("%s = NUITKA_VOID_OK;" % to_name)
+        emit("%s = (%s) ? true : false;" % (to_name, condition))
 
     @classmethod
     def getExceptionCheckCondition(cls, value_name):
-        return "%s == NUITKA_VOID_EXCEPTION" % value_name
+        # Expected to not be used, pylint: disable=unused-argument
+        assert False
+
+    @classmethod
+    def getTruthCheckCode(cls, value_name):
+        return "%s != false" % value_name

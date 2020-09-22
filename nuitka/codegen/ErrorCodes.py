@@ -181,30 +181,14 @@ def _getExceptionChainingCode(context):
 
 
 def getTakeReferenceCode(value_name, emit):
-    # TODO: This should be done via the C type
-    if value_name.c_type == "PyObject *":
-        emit("Py_INCREF(%s);" % value_name)
-    elif value_name.c_type == "nuitka_bool":
-        pass
-    elif value_name.c_type == "nuitka_void":
-        pass
-    else:
-        assert False, repr(value_name)
+    value_name.getCType().getTakeReferenceCode(value_name=value_name, emit=emit)
 
 
 def getReleaseCode(release_name, emit, context):
     if context.needsCleanup(release_name):
-        # TODO: This should be done via the C type and its getReleaseCode() method, but this
-        # one does too much for object, in that it always assigns NULL to the object for no
-        # good reason in non-debug mode.
-        if release_name.c_type == "PyObject *":
-            emit("Py_DECREF(%s);" % release_name)
-        elif release_name.c_type == "nuitka_bool":
-            pass
-        elif release_name.c_type == "nuitka_void":
-            pass
-        else:
-            assert False, repr(release_name)
+        release_name.getCType().getReleaseCode(
+            value_name=release_name, needs_check=False, emit=emit
+        )
 
         context.removeCleanupTempName(release_name)
 
@@ -225,10 +209,6 @@ return NULL;"""
 
 def getAssertionCode(check, emit):
     emit("assert(%s);" % check)
-
-
-def getCheckObjectCode(check_name, emit):
-    emit("CHECK_OBJECT(%s);" % check_name)
 
 
 def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
