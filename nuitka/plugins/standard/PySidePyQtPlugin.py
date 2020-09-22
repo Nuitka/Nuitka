@@ -269,7 +269,7 @@ if os.path.exists(guess_path):
                     [],
                 )
 
-                self.info("Copying OpenSSL DLLs to %r" % (dist_dir,))
+                self.info("Copying OpenSSL DLLs to %r." % dist_dir)
 
                 for filename in qt_bin_files:
                     basename = os.path.basename(filename).lower()
@@ -325,7 +325,7 @@ if os.path.exists(guess_path):
                 if isWin32Windows():
                     opengl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
 
-                    self.info("Copying OpenGL DLLs to %r" % (dist_dir,))
+                    self.info("Copying OpenGL DLLs to %r." % dist_dir)
 
                     for filename in qt_bin_files:
                         basename = os.path.basename(filename).lower()

@@ -29,13 +29,13 @@ _missing_helpers = OrderedDict()
 
 _missing_operations = OrderedSet()
 
-# _error_for_missing = True
 _error_for_missing = False
+# _error_for_missing = True
 
 
 def doMissingOptimizationReport():
     for helper, source_refs in _missing_helpers.items():
-        message = "Missing C helper code variant, used fallback: %s at %s", (
+        message = "Missing C helper code variant, used fallback: %s at %s" % (
             ",".join(source_ref.getAsString() for source_ref in source_refs),
             helper,
         )
@@ -47,9 +47,13 @@ def doMissingOptimizationReport():
 
     for desc in _missing_operations:
         if _error_for_missing:
-            optimization_logger.warning("Missing optimization, used fallback: %s", desc)
+            optimization_logger.warning(
+                "Missing optimization, used fallback: %s" % (desc,)
+            )
         else:
-            optimization_logger.info("Missing optimization, used fallback: %s", desc)
+            optimization_logger.info(
+                "Missing optimization, used fallback: %s" % (desc,)
+            )
 
 
 def onMissingHelper(helper_name, source_ref):
