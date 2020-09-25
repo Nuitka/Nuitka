@@ -4827,3 +4827,50 @@ bitand_shapes_strorunicode.update(
 bitxor_shapes_strorunicode.update(
     mergeStrOrUnicode(bitxor_shapes_str, bitxor_shapes_unicode)
 )
+
+
+class ShapeTypeBuiltinExceptionClass(ShapeBase):
+    typical_value = None
+
+    @staticmethod
+    def hasShapeSlotBool():
+        return True
+
+    @staticmethod
+    def hasShapeSlotAbs():
+        return False
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return False
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
+    def hasShapeSlotComplex():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return False
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return False
+
+
+tshape_exception_class = ShapeTypeBuiltinExceptionClass()
