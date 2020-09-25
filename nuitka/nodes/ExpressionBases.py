@@ -790,16 +790,20 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
 
         """
 
-    def isUserProvidedConstant(self):
-        """Return compile time constant.
+    @staticmethod
+    def isUserProvidedConstant():
+        """Return if compile time constant comes from user code.
 
         Notes: Only useful after passing "isCompileTimeConstant()".
         """
-        # Virtual method, pylint: disable=no-self-use
         return False
 
-    def isMutable(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def isMutable():
+        """Return if compile time constant is mutable.
+
+        Notes: Only useful after passing "isCompileTimeConstant()".
+        """
         return False
 
     def mayHaveSideEffects(self):

@@ -575,6 +575,7 @@ setExpressionDispatchDict(
         "EXPRESSION_CONSTANT_DICT_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TUPLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TUPLE_EMPTY_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TUPLE_MUTABLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_LIST_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_LIST_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SET_REF": generateConstantReferenceCode,
