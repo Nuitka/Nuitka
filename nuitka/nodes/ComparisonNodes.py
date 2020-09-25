@@ -21,6 +21,7 @@
 
 from nuitka import PythonOperators
 from nuitka.Errors import NuitkaAssumptionError
+from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import (
@@ -28,7 +29,7 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_bool
+from .shapes.BuiltinTypeShapes import tshape_bool, tshape_exception_class
 
 
 class ExpressionComparisonBase(ExpressionChildrenHavingBase):
@@ -436,6 +437,18 @@ class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
         assert False
 
         return PythonOperators.all_comparison_functions[self.comparator]
+
+    def mayRaiseExceptionComparison(self):
+        if python_version < 300:
+            return False
+
+        # TODO: Add shape for exceptions.
+        type_shape = self.subnode_right.getTypeShape()
+
+        if type_shape is tshape_exception_class:
+            return False
+
+        return True
 
 
 class ExpressionComparisonExceptionMatch(ExpressionComparisonExceptionMatchBase):

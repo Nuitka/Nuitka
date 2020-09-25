@@ -42,6 +42,7 @@ from .ExceptionNodes import (
     ExpressionBuiltinMakeExceptionImportError,
 )
 from .ExpressionBases import CompileTimeConstantExpressionBase
+from .shapes.BuiltinTypeShapes import tshape_exception_class
 
 
 class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
@@ -221,6 +222,9 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         return {"exception_name": self.builtin_name}
 
     getExceptionName = ExpressionBuiltinRefBase.getBuiltinName
+
+    def getTypeShape(self):
+        return tshape_exception_class
 
     def getCompileTimeConstant(self):
         return builtin_exception_values[self.builtin_name]
