@@ -57,6 +57,7 @@ struct Nuitka_FunctionObject {
     // Same as code_object->co_varnames
     PyObject **m_varnames;
 
+    // C implementation of the function
     function_impl_code m_c_code;
 
 #if PYTHON_VERSION >= 380
@@ -82,6 +83,9 @@ struct Nuitka_FunctionObject {
 #if PYTHON_VERSION >= 300
     PyObject *m_qualname;
 #endif
+
+    // Constant return value to use.
+    PyObject *m_constant_return_value;
 
     // A kind of uuid for the function object, used in comparisons.
     long m_counter;

@@ -591,14 +591,14 @@ void _initCompiledFunctionType(void) {
 // Shared implementation for empty functions. When a function body is empty, but
 // still needs to exist, e.g. overloaded functions, this is saving the effort to
 // produce one.
-static PyObject *Nuitka_FunctionEmptyCodeImpl(struct Nuitka_FunctionObject const *function, PyObject **python_pars) {
-    PyObject *result = Py_None;
-
+static PyObject *_Nuitka_FunctionEmptyCodeImpl(struct Nuitka_FunctionObject const *function, PyObject **python_pars) {
     Py_ssize_t arg_count = function->m_args_overall_count;
 
     for (Py_ssize_t i = 0; i < arg_count; i++) {
         Py_DECREF(python_pars[i]);
     }
+
+    PyObject *result = function->m_constant_return_value;
 
     Py_INCREF(result);
     return result;
@@ -629,7 +629,13 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     memcpy(&result->m_closure[0], closure, closure_given * sizeof(struct Nuitka_CellObject *));
     result->m_closure_given = closure_given;
 
-    result->m_c_code = c_code != NULL ? c_code : Nuitka_FunctionEmptyCodeImpl;
+    if (c_code != NULL) {
+        result->m_c_code = c_code;
+        result->m_constant_return_value = NULL;
+    } else {
+        result->m_c_code = _Nuitka_FunctionEmptyCodeImpl;
+        result->m_constant_return_value = Py_None;
+    }
 
     Py_INCREF(name);
     result->m_name = name;

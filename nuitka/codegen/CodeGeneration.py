@@ -424,8 +424,12 @@ def generateModuleCode(module, data_filename):
     function_body_codes = []
 
     for function_body in module.getUsedFunctions():
-        # Empty functions get no code.
-        if function_body.getBody() is None:
+        # Constant function returners get no code.
+        (
+            is_constant_returning,
+            _constant_return_value,
+        ) = function_body.getConstantReturnValue()
+        if is_constant_returning:
             continue
 
         function_code, function_decl = generateFunctionBodyCode(
