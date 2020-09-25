@@ -178,7 +178,8 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
             return None
 
     def isMutable(self):
-        return isMutable(self.constant)
+        # This is expected to be overloaded by child classes.
+        assert False, self
 
     def isKnownToBeHashable(self):
         return isHashable(self.constant)
@@ -385,6 +386,10 @@ class ExpressionConstantNoneRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return tshape_none
 
+    @staticmethod
+    def isMutable():
+        return False
+
 
 class ExpressionConstantBoolRefBase(ExpressionConstantRefBase):
     @staticmethod
@@ -395,11 +400,17 @@ class ExpressionConstantBoolRefBase(ExpressionConstantRefBase):
         # Best case already.
         pass
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bool
+
+    @staticmethod
+    def isMutable():
+        return False
 
 
 class ExpressionConstantTrueRef(ExpressionConstantBoolRefBase):
@@ -440,6 +451,10 @@ class ExpressionConstantEllipsisRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return tshape_ellipsis
 
+    @staticmethod
+    def isMutable():
+        return False
+
 
 class ExpressionConstantDictRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_DICT_REF"
@@ -462,6 +477,30 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
     def getIterationHandle(self):
         return ConstantSetAndDictIterationHandle(self)
 
+    @staticmethod
+    def isMutable():
+        return True
+
+
+_the_empty_dict = {}
+
+
+class ExpressionConstantDictEmptyRef(ExpressionConstantDictRef):
+    kind = "EXPRESSION_CONSTANT_DICT_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref, user_provided=False):
+        ExpressionConstantDictRef.__init__(
+            self,
+            constant=_the_empty_dict,
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
+
+    def getDetails(self):
+        return {}
+
 
 class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_TUPLE_REF"
@@ -480,8 +519,22 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return tshape_tuple
 
+    @staticmethod
+    def isMutable():
+        return False
 
-the_empty_tuple = ()
+
+class ExpressionConstantTupleMutableRef(ExpressionConstantTupleRef):
+    kind = "EXPRESSION_CONSTANT_TUPLE_MUTABLE_REF"
+
+    __slots__ = ()
+
+    @staticmethod
+    def isMutable():
+        return True
+
+
+_the_empty_tuple = ()
 
 
 class ExpressionConstantTupleEmptyRef(ExpressionConstantTupleRef):
@@ -492,13 +545,17 @@ class ExpressionConstantTupleEmptyRef(ExpressionConstantTupleRef):
     def __init__(self, source_ref, user_provided=False):
         ExpressionConstantTupleRef.__init__(
             self,
-            constant=the_empty_tuple,
+            constant=_the_empty_tuple,
             user_provided=user_provided,
             source_ref=source_ref,
         )
 
     def getDetails(self):
         return {}
+
+    @staticmethod
+    def isMutable():
+        return False
 
 
 class ExpressionConstantListRef(ExpressionConstantRefBase):
@@ -518,8 +575,12 @@ class ExpressionConstantListRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return tshape_list
 
+    @staticmethod
+    def isMutable():
+        return True
 
-the_empty_list = []
+
+_the_empty_list = []
 
 
 class ExpressionConstantListEmptyRef(ExpressionConstantListRef):
@@ -530,7 +591,7 @@ class ExpressionConstantListEmptyRef(ExpressionConstantListRef):
     def __init__(self, source_ref, user_provided=False):
         ExpressionConstantListRef.__init__(
             self,
-            constant=the_empty_list,
+            constant=_the_empty_list,
             user_provided=user_provided,
             source_ref=source_ref,
         )
@@ -556,11 +617,15 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return tshape_set
 
+    @staticmethod
+    def isMutable():
+        return True
+
     def getIterationHandle(self):
         return ConstantSetAndDictIterationHandle(self)
 
 
-the_empty_set = set()
+_the_empty_set = set()
 
 
 class ExpressionConstantSetEmptyRef(ExpressionConstantSetRef):
@@ -571,7 +636,7 @@ class ExpressionConstantSetEmptyRef(ExpressionConstantSetRef):
     def __init__(self, source_ref, user_provided=False):
         ExpressionConstantSetRef.__init__(
             self,
-            constant=the_empty_set,
+            constant=_the_empty_set,
             user_provided=user_provided,
             source_ref=source_ref,
         )
@@ -594,11 +659,15 @@ class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
     def isExpressionConstantFrozensetRef():
         return True
 
+    @staticmethod
+    def isMutable():
+        return False
+
     def getTypeShape(self):
         return tshape_frozenset
 
 
-the_empty_frozenset = frozenset()
+_the_empty_frozenset = frozenset()
 
 
 class ExpressionConstantFrozensetEmptyRef(ExpressionConstantFrozensetRef):
@@ -609,7 +678,7 @@ class ExpressionConstantFrozensetEmptyRef(ExpressionConstantFrozensetRef):
     def __init__(self, source_ref, user_provided=False):
         ExpressionConstantFrozensetRef.__init__(
             self,
-            constant=the_empty_frozenset,
+            constant=_the_empty_frozenset,
             user_provided=user_provided,
             source_ref=source_ref,
         )
@@ -635,6 +704,10 @@ class ExpressionConstantIntRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return tshape_int
 
+    @staticmethod
+    def isMutable():
+        return False
+
 
 class ExpressionConstantLongRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_LONG_REF"
@@ -652,6 +725,10 @@ class ExpressionConstantLongRef(ExpressionConstantRefBase):
 
     def getTypeShape(self):
         return tshape_long
+
+    @staticmethod
+    def isMutable():
+        return False
 
 
 class ExpressionConstantStrRef(ExpressionConstantRefBase):
@@ -671,6 +748,10 @@ class ExpressionConstantStrRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return tshape_str
 
+    @staticmethod
+    def isMutable():
+        return False
+
 
 class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_UNICODE_REF"
@@ -689,6 +770,10 @@ class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return tshape_unicode
 
+    @staticmethod
+    def isMutable():
+        return False
+
 
 class ExpressionConstantBytesRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_BYTES_REF"
@@ -705,6 +790,10 @@ class ExpressionConstantBytesRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return tshape_bytes
 
+    @staticmethod
+    def isMutable():
+        return False
+
 
 class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_BYTEARRAY_REF"
@@ -720,6 +809,10 @@ class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
 
     def getTypeShape(self):
         return tshape_bytearray
+
+    @staticmethod
+    def isMutable():
+        return True
 
 
 class ExpressionConstantFloatRef(ExpressionConstantRefBase):
@@ -739,6 +832,10 @@ class ExpressionConstantFloatRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return tshape_float
 
+    @staticmethod
+    def isMutable():
+        return False
+
 
 class ExpressionConstantComplexRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_COMPLEX_REF"
@@ -756,6 +853,10 @@ class ExpressionConstantComplexRef(ExpressionConstantRefBase):
 
     def getTypeShape(self):
         return tshape_complex
+
+    @staticmethod
+    def isMutable():
+        return False
 
 
 class ExpressionConstantSliceRef(ExpressionConstantRefBase):
@@ -775,6 +876,10 @@ class ExpressionConstantSliceRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return tshape_slice
 
+    @staticmethod
+    def isMutable():
+        return False
+
 
 class ExpressionConstantXrangeRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_XRANGE_REF"
@@ -792,6 +897,10 @@ class ExpressionConstantXrangeRef(ExpressionConstantRefBase):
 
     def getTypeShape(self):
         return tshape_xrange
+
+    @staticmethod
+    def isMutable():
+        return False
 
 
 class ExpressionConstantTypeRef(ExpressionConstantRefBase):
@@ -826,25 +935,9 @@ class ExpressionConstantTypeRef(ExpressionConstantRefBase):
 
         return new_node, tags, message
 
-
-the_empty_dict = {}
-
-
-class ExpressionConstantDictEmptyRef(ExpressionConstantDictRef):
-    kind = "EXPRESSION_CONSTANT_DICT_EMPTY_REF"
-
-    __slots__ = ()
-
-    def __init__(self, source_ref, user_provided=False):
-        ExpressionConstantDictRef.__init__(
-            self,
-            constant=the_empty_dict,
-            user_provided=user_provided,
-            source_ref=source_ref,
-        )
-
-    def getDetails(self):
-        return {}
+    @staticmethod
+    def isMutable():
+        return False
 
 
 def makeConstantRefNode(constant, source_ref, user_provided=False):
@@ -909,11 +1002,18 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
                 )
         elif constant_type is tuple:
             if constant:
-                return ExpressionConstantTupleRef(
-                    source_ref=source_ref,
-                    constant=constant,
-                    user_provided=user_provided,
-                )
+                if isMutable(constant):
+                    return ExpressionConstantTupleMutableRef(
+                        source_ref=source_ref,
+                        constant=constant,
+                        user_provided=user_provided,
+                    )
+                else:
+                    return ExpressionConstantTupleRef(
+                        source_ref=source_ref,
+                        constant=constant,
+                        user_provided=user_provided,
+                    )
             else:
                 return ExpressionConstantTupleEmptyRef(
                     source_ref=source_ref, user_provided=user_provided
