@@ -46,6 +46,7 @@ static PyObject *%(function_maker_identifier)s(%(function_creation_args)s) {
         %(closure_name)s,
         %(closure_count)d
     );
+%(constant_return_code)s
 
     return (PyObject *)result;
 }

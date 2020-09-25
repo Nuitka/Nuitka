@@ -140,7 +140,7 @@ def getFunctionMakerCode(
     context,
 ):
     # We really need this many parameters here and functions have many details,
-    # that we express as variables
+    # that we express as variables, pylint: disable=too-many-locals
     function_creation_args = getFunctionCreationArgs(
         defaults_name=defaults_name,
         kw_defaults_name=kw_defaults_name,
@@ -153,12 +153,27 @@ def getFunctionMakerCode(
     else:
         function_doc = context.getConstantCode(constant=function_doc)
 
-    if function_body.getBody() is None:
+    (
+        is_constant_returning,
+        constant_return_value,
+    ) = function_body.getConstantReturnValue()
+
+    if is_constant_returning:
         function_impl_identifier = "NULL"
+
+        if constant_return_value is None:
+            # Default value, spare the code for common case.
+            constant_return_code = ""
+        else:
+            constant_return_code = (
+                "result->m_constant_return_value = %s;"
+                % context.getConstantCode(constant_return_value)
+            )
     else:
         function_impl_identifier = _getFunctionEntryPointIdentifier(
             function_identifier=function_identifier
         )
+        constant_return_code = ""
 
     function_maker_identifier = _getFunctionMakerIdentifier(
         function_identifier=function_identifier
@@ -186,6 +201,7 @@ def getFunctionMakerCode(
         "closure_count": len(closure_variables),
         "closure_name": "closure" if closure_variables else "NULL",
         "module_identifier": module_identifier,
+        "constant_return_code": indented(constant_return_code),
     }
 
     # TODO: Make it optional.

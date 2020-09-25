@@ -489,6 +489,16 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             if variable in self.auto_release
         )
 
+    @staticmethod
+    def getConstantReturnValue():
+        """Special function that checks if code generation allows to use common C code.
+
+        Notes:
+            This is only done for standard functions.
+
+        """
+        return False, False
+
 
 class ExpressionFunctionBody(
     MarkUnoptimizedFunctionIndicatorMixin, ExpressionFunctionEntryPointBase
@@ -666,6 +676,29 @@ class ExpressionFunctionBody(
 
     def needsExceptionReturnValue(self):
         return self.return_exception
+
+    def getConstantReturnValue(self):
+        """Special function that checks if code generation allows to use common C code."""
+        body = self.getBody()
+
+        if body is None:
+            return True, None
+
+        first_statement = body.getStatements()[0]
+
+        if first_statement.isStatementReturn():
+            return_value = first_statement.getExpression()
+
+            # TODO: For mutable constants, we could also have something, but it would require an indicator
+            # flag to make a deep copy.
+            if return_value.isCompileTimeConstant() and not return_value.isMutable():
+                constant_value = return_value.getCompileTimeConstant()
+
+                return True, constant_value
+            else:
+                return False, False
+        else:
+            return False, False
 
 
 class ExpressionFunctionPureBody(ExpressionFunctionBody):
