@@ -129,10 +129,11 @@ def otherFunction():
         def __iter__(self):
             return BasicIterClass(self.n)
 
+    print("Exception from iterating over too short class:", end=" ")
     try:
         a, b, c = IteratingSequenceClass(2)
     except ValueError:
-        print("Exception from iterating over too short class", sys.exc_info())
+        print("gave", sys.exc_info())
 
 
 def anotherFunction():
