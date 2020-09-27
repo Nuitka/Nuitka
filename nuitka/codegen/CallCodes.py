@@ -361,28 +361,37 @@ def _getInstanceCallCodePosArgsQuick(
     to_name, called_name, called_attribute_name, arg_names, needs_check, emit, context
 ):
     arg_size = len(arg_names)
-    quick_instance_calls_used.add(arg_size)
 
     # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
 
     emitLineNumberUpdateCode(emit, context)
 
-    emit(
-        """\
+    # For one argument, we have a dedicated helper function that might
+    # be more efficient.
+    if arg_size == 1:
+        emit(
+            """%s = CALL_METHOD_WITH_SINGLE_ARG(%s, %s, %s);"""
+            % (to_name, called_name, called_attribute_name, arg_names[0])
+        )
+    else:
+        quick_instance_calls_used.add(arg_size)
+
+        emit(
+            """\
 {
     PyObject *call_args[] = {%s};
     %s = CALL_METHOD_WITH_ARGS%d(%s, %s, call_args);
 }
 """
-        % (
-            ", ".join(str(arg_name) for arg_name in arg_names),
-            to_name,
-            arg_size,
-            called_name,
-            called_attribute_name,
+            % (
+                ", ".join(str(arg_name) for arg_name in arg_names),
+                to_name,
+                arg_size,
+                called_name,
+                called_attribute_name,
+            )
         )
-    )
 
     getErrorExitCode(
         check_name=to_name,
