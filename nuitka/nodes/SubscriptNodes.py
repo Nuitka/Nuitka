@@ -57,7 +57,8 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
             trace_collection=trace_collection,
         )
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "subscript assignment statement"
 
 
@@ -89,7 +90,8 @@ class StatementDelSubscript(StatementChildrenHavingBase):
             trace_collection=trace_collection,
         )
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "subscript del statement"
 
 
@@ -112,5 +114,6 @@ class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):
             trace_collection=trace_collection,
         )
 
-    def isKnownToBeIterable(self, count):
+    @staticmethod
+    def isKnownToBeIterable(count):
         return None

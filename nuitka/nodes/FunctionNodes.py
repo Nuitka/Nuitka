@@ -956,11 +956,13 @@ class ExpressionFunctionRef(ExpressionBase):
         # TODO: Function collection may now know something.
         return self, None, None
 
-    def mayHaveSideEffects(self):
-        # Using a function has no side effects.
+    @staticmethod
+    def mayHaveSideEffects():
+        # Using a function has no side effects, the use might, but this is not it.
         return False
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
 

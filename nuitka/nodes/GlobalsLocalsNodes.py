@@ -42,10 +42,12 @@ class ExpressionBuiltinGlobals(ExpressionBase):
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         return False
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
 

@@ -244,7 +244,8 @@ Determined iteration end check to always raise.""",
 
         return self, None, None
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "iteration check statement"
 
 

@@ -165,17 +165,20 @@ Explicit raise already raises implicitly building exception cause.""",
 
         return self, None, None
 
-    def needsFrame(self):
+    @staticmethod
+    def needsFrame():
         return True
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "exception raise statement"
 
 
 class StatementRaiseExceptionImplicit(StatementRaiseException):
     kind = "STATEMENT_RAISE_EXCEPTION_IMPLICIT"
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "implicit exception raise statement"
 
 
@@ -192,10 +195,12 @@ class StatementReraiseException(StatementRaiseExceptionMixin, StatementBase):
 
     # TODO: Not actually true, leads to wrong frame attached if there is
     # no pending exception.
-    def needsFrame(self):
+    @staticmethod
+    def needsFrame():
         return False
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "exception re-raise statement"
 
 

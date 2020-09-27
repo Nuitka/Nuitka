@@ -439,7 +439,6 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         trace_collection.onControlFlowEscape(self)
@@ -460,7 +459,8 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
     def onContentEscapes(self, trace_collection):
         trace_collection.onVariableContentEscapes(self.variable)
 
-    def isKnownToBeIterable(self, count):
+    @staticmethod
+    def isKnownToBeIterable(count):
         return None
 
     def mayHaveSideEffects(self):
@@ -597,12 +597,14 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
     def onContentEscapes(self, trace_collection):
         trace_collection.onVariableContentEscapes(self.variable)
 
-    def mayHaveSideEffects(self):
-        # Can't happen with temporary variables.
+    @staticmethod
+    def mayHaveSideEffects():
+        # Can't happen with temporary variables, unless we used them wrongly.
         return False
 
-    def mayRaiseException(self, exception_type):
-        # Can't happen with temporary variables.
+    @staticmethod
+    def mayRaiseException(exception_type):
+        # Can't happen with temporary variables, unless we used them wrongly.
         return False
 
     def mayRaiseExceptionImportName(self, exception_type, import_name):
@@ -612,14 +614,14 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
             )
 
         else:
-            return ExpressionBase.mayRaiseExceptionImportName(
-                self, exception_type, import_name
-            )
+            return True
 
-    def isKnownToBeIterableAtMin(self, count):
+    @staticmethod
+    def isKnownToBeIterableAtMin(count):
         # TODO: See through the variable current trace.
         return None
 
-    def isKnownToBeIterableAtMax(self, count):
+    @staticmethod
+    def isKnownToBeIterableAtMax(count):
         # TODO: See through the variable current trace.
         return None

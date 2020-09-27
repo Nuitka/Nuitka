@@ -85,11 +85,13 @@ class StatementLoop(StatementChildHavingBase):
 
         return False
 
-    def mayBreak(self):
+    @staticmethod
+    def mayBreak():
         # The loop itself may never break another loop.
         return False
 
-    def mayContinue(self):
+    @staticmethod
+    def mayContinue():
         # The loop itself may never continue another loop.
         return False
 
@@ -101,7 +103,8 @@ class StatementLoop(StatementChildHavingBase):
         else:
             return not loop_body.mayBreak()
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         # Loops can only raise, if their body does, but they also issue the
         # async exceptions, so we must make them do it all the time.
         return True
@@ -374,7 +377,8 @@ Removed useless loop with immediate 'break' statement.""",
 
         return self, None, None
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "loop statement"
 
 
@@ -387,13 +391,16 @@ class StatementLoopContinue(StatementBase):
     def finalize(self):
         del self.parent
 
-    def isStatementAborting(self):
+    @staticmethod
+    def isStatementAborting():
         return True
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayContinue(self):
+    @staticmethod
+    def mayContinue():
         return True
 
     def computeStatement(self, trace_collection):
@@ -402,7 +409,8 @@ class StatementLoopContinue(StatementBase):
 
         return self, None, None
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "loop continue statement"
 
 
@@ -415,13 +423,16 @@ class StatementLoopBreak(StatementBase):
     def finalize(self):
         del self.parent
 
-    def isStatementAborting(self):
+    @staticmethod
+    def isStatementAborting():
         return True
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayBreak(self):
+    @staticmethod
+    def mayBreak():
         return True
 
     def computeStatement(self, trace_collection):
@@ -430,5 +441,6 @@ class StatementLoopBreak(StatementBase):
 
         return self, None, None
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "loop break statement"

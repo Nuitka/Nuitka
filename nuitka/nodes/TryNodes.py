@@ -528,5 +528,6 @@ class StatementTry(StatementChildrenHavingBase):
 
         return self.getBlockTry().needsFrame()
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "tried block statement"

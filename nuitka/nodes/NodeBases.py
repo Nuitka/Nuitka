@@ -348,31 +348,28 @@ class NodeBase(NodeMetaClassBase):
     def isExpressionOperationInplace():
         return False
 
-    def isExpressionSideEffects(self):
-        # Virtual method, pylint: disable=no-self-use
-
-        # We need to provide this, as these node kinds are only imported if
-        # necessary, but we test against them.
+    @staticmethod
+    def isExpressionSideEffects():
         return False
 
-    def isExpressionMakeSequence(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def isExpressionMakeSequence():
         return False
 
-    def isNumberConstant(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def isNumberConstant():
         return False
 
-    def isExpressionCall(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def isExpressionCall():
         return False
 
-    def isExpressionFunctionBodyBase(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def isExpressionFunctionBodyBase():
         return False
 
-    def isExpressionOutlineFunctionBase(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def isExpressionOutlineFunctionBase():
         return False
 
     def visit(self, context, visitor):
@@ -381,26 +378,29 @@ class NodeBase(NodeMetaClassBase):
         for visitable in self.getVisitableNodes():
             visitable.visit(context, visitor)
 
-    def getVisitableNodes(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def getVisitableNodes():
+
         return ()
 
-    def getVisitableNodesNamed(self):
+    @staticmethod
+    def getVisitableNodesNamed():
         """Named children dictionary.
 
         For use in debugging and XML output.
         """
 
-        # Virtual method, pylint: disable=no-self-use
         return ()
 
-    def getName(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def getName():
+        """ Name of the node if any. """
+
         return None
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         """ Unless we are told otherwise, everything may have a side effect. """
-        # Virtual method, pylint: disable=no-self-use
 
         return True
 
@@ -412,21 +412,24 @@ class NodeBase(NodeMetaClassBase):
 
         return (self,)
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         """ Unless we are told otherwise, everything may raise everything. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayReturn(self):
-        return "_RETURN" in self.kind
-
-    def mayBreak(self):
-        # For overload, pylint: disable=no-self-use
+    @staticmethod
+    def mayReturn():
+        """ May this node do a return exit, to be overloaded for things that might. """
         return False
 
-    def mayContinue(self):
-        # For overload, pylint: disable=no-self-use
+    @staticmethod
+    def mayBreak():
+        return False
+
+    @staticmethod
+    def mayContinue():
         return False
 
     def needsFrame(self):
@@ -434,16 +437,15 @@ class NodeBase(NodeMetaClassBase):
 
         return self.mayRaiseException(BaseException)
 
-    def willRaiseException(self, exception_type):
+    @staticmethod
+    def willRaiseException(exception_type):
         """ Unless we are told otherwise, nothing may raise anything. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-
+        # Virtual method, pylint: disable=unused-argument
         return False
 
-    def isStatementAborting(self):
+    @staticmethod
+    def isStatementAborting():
         """ Is the node aborting, control flow doesn't continue after this node.  """
-        assert self.isStatement(), self.kind
-
         return False
 
 
@@ -828,8 +830,8 @@ class StatementBase(NodeBase):
 
     # TODO: Have them all.
     # @abstractmethod
-    def getStatementNiceName(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def getStatementNiceName():
         return "undescribed statement"
 
     def computeStatementSubExpressions(self, trace_collection):

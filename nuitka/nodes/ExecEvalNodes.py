@@ -278,7 +278,8 @@ class StatementLocalsDictSync(StatementChildHavingBase):
 
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
 

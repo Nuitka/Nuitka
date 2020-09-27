@@ -200,7 +200,8 @@ class StatementsSequence(StatementChildHavingBase):
         else:
             return self
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "statements sequence"
 
 
@@ -236,7 +237,8 @@ class StatementExpressionOnly(StatementChildHavingBase):
 
         return self, None, None
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "expression only statement"
 
 
@@ -272,10 +274,12 @@ class StatementPreserveFrameException(StatementBase):
                 "Removed frame preservation for generators.",
             )
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def needsFrame(self):
+    @staticmethod
+    def needsFrame():
         return True
 
 
@@ -301,7 +305,8 @@ class StatementRestoreFrameException(StatementBase):
     def computeStatement(self, trace_collection):
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
 
@@ -318,5 +323,6 @@ class StatementPublishException(StatementBase):
         # TODO: Determine the need for it.
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False

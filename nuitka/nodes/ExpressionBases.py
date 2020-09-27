@@ -71,22 +71,25 @@ class ExpressionBase(NodeBase):
         else:
             return None
 
-    def isKnownToBeIterable(self, count):
+    @staticmethod
+    def isKnownToBeIterable(count):
         """Can be iterated at all (count is None) or exactly count times.
 
         Yes or no. If it can be iterated a known number of times, it may
         be asked to unpack itself.
         """
 
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
         return False
 
-    def isKnownToBeIterableAtMin(self, count):
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def isKnownToBeIterableAtMin(count):
+        # Virtual method, pylint: disable=unused-argument
         return False
 
-    def isKnownToBeIterableAtMax(self, count):
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def isKnownToBeIterableAtMax(count):
+        # Virtual method, pylint: disable=unused-argument
         return False
 
     def getIterationLength(self):
@@ -146,10 +149,10 @@ class ExpressionBase(NodeBase):
         # Virtual method, pylint: disable=no-self-use
         return None
 
-    def isKnownToBeHashable(self):
-        """ Is the value hashable, i.e. suitable for dictionary/set keying."""
+    @staticmethod
+    def isKnownToBeHashable():
+        """ Is the value hashable, i.e. suitable for dictionary/set key usage."""
 
-        # Virtual method, pylint: disable=no-self-use
         # Unknown by default.
         return None
 
@@ -622,92 +625,104 @@ class ExpressionBase(NodeBase):
     def onContentEscapes(self, trace_collection):
         pass
 
-    def mayRaiseExceptionBool(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
         """ Unless we are told otherwise, everything may raise being checked. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-
+        # Virtual method, pylint: disable=unused-argument
         return True
 
-    def mayRaiseExceptionAbs(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionAbs(exception_type):
         """ Unless we are told otherwise, everything may raise in 'abs'. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionInt(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionInt(exception_type):
         """ Unless we are told otherwise, everything may raise in __int__. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionLong(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionLong(exception_type):
         """ Unless we are told otherwise, everything may raise in __long__. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionFloat(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionFloat(exception_type):
         """ Unless we are told otherwise, everything may raise in __float__. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionBytes(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionBytes(exception_type):
         """ Unless we are told otherwise, everything may raise in __bytes__. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionIn(self, exception_type, checked_value):
+    @staticmethod
+    def mayRaiseExceptionIn(exception_type, checked_value):
         """ Unless we are told otherwise, everything may raise being iterated. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
+    @staticmethod
+    def mayRaiseExceptionAttributeLookup(exception_type, attribute_name):
         """ Unless we are told otherwise, everything may raise for attribute access. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
+    @staticmethod
+    def mayRaiseExceptionAttributeLookupSpecial(exception_type, attribute_name):
         """ Unless we are told otherwise, everything may raise for attribute access. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeLookupObject(self, exception_type, attribute):
+    @staticmethod
+    def mayRaiseExceptionAttributeLookupObject(exception_type, attribute):
         """ Unless we are told otherwise, everything may raise for attribute access. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeCheck(self, exception_type, attribute_name):
+    @staticmethod
+    def mayRaiseExceptionAttributeCheck(exception_type, attribute_name):
         """ Unless we are told otherwise, everything may raise for attribute check. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeCheckObject(self, exception_type, attribute):
+    @staticmethod
+    def mayRaiseExceptionAttributeCheckObject(exception_type, attribute):
         """ Unless we are told otherwise, everything may raise for attribute check. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionImportName(self, exception_type, import_name):
+    @staticmethod
+    def mayRaiseExceptionImportName(exception_type, import_name):
         """ Unless we are told otherwise, everything may raise for name import. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
         return True
 
-    def mayHaveSideEffectsBool(self):
+    @staticmethod
+    def mayHaveSideEffectsBool():
         """ Unless we are told otherwise, everything may have a side effect for bool check. """
-        # Virtual method, pylint: disable=no-self-use
 
         return True
 
-    def mayHaveSideEffectsAbs(self):
+    @staticmethod
+    def mayHaveSideEffectsAbs():
         """ Unless we are told otherwise, everything may have a side effect for abs check. """
-        # Virtual method, pylint: disable=no-self-use
 
         # TODO: Bonus points for check type shapes that will be good
         # for abs, i.e. number shapes like Int, Long, Float, Complex.
@@ -727,26 +742,27 @@ class ExpressionBase(NodeBase):
         return self.getTypeShape().hasShapeSlotNext()
 
     # TODO: Maybe this is a shape slot thing.
-    def isIndexable(self):
+    @staticmethod
+    def isIndexable():
         """ Unless we are told otherwise, it's not indexable. """
-        # Virtual method, pylint: disable=no-self-use
 
         return False
 
     # TODO: The ought to be a type shape check for that too.
-    def getIntegerValue(self):
+    @staticmethod
+    def getIntegerValue():
         """ Node as integer value, if possible."""
-        # Virtual method, pylint: disable=no-self-use
+
         return None
 
-    def getIntValue(self):
+    @staticmethod
+    def getIntValue():
         """Value that "int" or "PyNumber_Int" (sp) would give, if known.
 
         Otherwise it is "None" to indicate unknown. Users must not
         forget to take side effects into account, when replacing a
         node with its string value.
         """
-        # Virtual method, pylint: disable=no-self-use
         return None
 
     def hasShapeDictionaryExact(self):
@@ -773,7 +789,8 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
 
         self.computed_attribute = None
 
-    def isCompileTimeConstant(self):
+    @staticmethod
+    def isCompileTimeConstant():
         """Has a value that we can use at compile time.
 
         Yes or no. If it has such a value, simulations can be applied at
@@ -806,37 +823,34 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         """
         return False
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         # Virtual method overload
         return False
 
-    def mayHaveSideEffectsBool(self):
+    @staticmethod
+    def mayHaveSideEffectsBool():
         # Virtual method overload
         return False
 
-    def mayRaiseException(self, exception_type):
-        # Virtual method overload
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayRaiseExceptionBool(self, exception_type):
-        # Virtual method overload
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
         return False
 
     def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
-        # Virtual method overload
-
         # We remember it from our computation.
         return not self.computed_attribute
 
     def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
-        # Virtual method overload
-
         # We remember it from our computation.
         return not self.computed_attribute
 
-    def mayRaiseExceptionAttributeCheck(self, exception_type, attribute_name):
-        # Virtual method overload
-
+    @staticmethod
+    def mayRaiseExceptionAttributeCheck(exception_type, attribute_name):
         # Checking attributes of compile time constants never raises.
         return False
 
