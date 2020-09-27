@@ -127,7 +127,9 @@ Side effects printed item promoted to statements.""",
 
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
+        # Output may always fail due to external reasons.
         return True
 
 
@@ -164,5 +166,7 @@ Exception raise in 'print' statement destination converted to explicit raise."""
 
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
+        # Output may always fail due to external reasons.
         return True

@@ -64,13 +64,16 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
     def getBuiltinName(self):
         return self.builtin_name
 
-    def isKnownToBeHashable(self):
+    @staticmethod
+    def isKnownToBeHashable():
         return True
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         return False
 
     def getStrValue(self):
@@ -158,7 +161,8 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     def getStringValue(self):
         return repr(self.getCompileTimeConstant())
 
-    def isKnownToBeIterable(self, count):
+    @staticmethod
+    def isKnownToBeIterable(count):
         # TODO: Why yes, some may be, could be told here.
         return None
 
@@ -227,11 +231,12 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     def getTypeShape():
         return tshape_exception_class
 
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
     def getCompileTimeConstant(self):
         return builtin_exception_values[self.builtin_name]
-
-    def mayRaiseException(self, exception_type):
-        return False
 
     def computeExpressionRaw(self, trace_collection):
         # Not much that can be done here.

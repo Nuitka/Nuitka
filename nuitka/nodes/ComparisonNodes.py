@@ -493,7 +493,8 @@ class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
 
         return right.mayRaiseExceptionIn(exception_type, left)
 
-    def mayRaiseExceptionBool(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
         return False
 
     def computeExpression(self, trace_collection):

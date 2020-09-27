@@ -414,7 +414,8 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
             exception_type
         )
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals dictionary value set statement"
 
 
@@ -517,7 +518,8 @@ class StatementLocalsDictOperationDel(StatementBase):
     def mayRaiseException(self, exception_type):
         return self.may_raise_del and not self.tolerant
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals dictionary value del statement"
 
 
@@ -582,7 +584,8 @@ Forward propagating locals.""",
 
         return self, None, None
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals mapping init statement"
 
 
@@ -597,10 +600,12 @@ class StatementSetLocalsDictionary(StatementSetLocals):
             source_ref=source_ref,
         )
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals dictionary init statement"
 
 
@@ -645,8 +650,10 @@ class StatementReleaseLocals(StatementBase):
     def getLocalsScope(self):
         return self.locals_scope
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals dictionary release statement"

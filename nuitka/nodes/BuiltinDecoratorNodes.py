@@ -36,7 +36,8 @@ class ExpressionBuiltinStaticmethodClassmethodBase(ExpressionChildHavingBase):
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    def isKnownToBeIterable(self, count):
+    @staticmethod
+    def isKnownToBeIterable(count):
         return False
 
     @staticmethod

@@ -66,10 +66,12 @@ class ExpressionMakeGeneratorObject(ExpressionChildHavingBase):
         # TODO: Generator body may know something too.
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         return False
 
     def getClosureVariableVersions(self):
@@ -125,6 +127,10 @@ class StatementGeneratorReturn(StatementReturn):
     def __init__(self, expression, source_ref):
         StatementReturn.__init__(self, expression=expression, source_ref=source_ref)
 
+    @staticmethod
+    def isStatementGeneratorReturn():
+        return True
+
     def computeStatement(self, trace_collection):
         expression = trace_collection.onExpression(self.getExpression())
 
@@ -162,10 +168,7 @@ Generator return value is always None.""",
         return self, None, None
 
     @staticmethod
-    def isStatementGeneratorReturn():
-        return True
-
-    def getStatementNiceName(self):
+    def getStatementNiceName():
         return "generator return statement"
 
 
@@ -181,5 +184,6 @@ class StatementGeneratorReturnNone(StatementReturnNone):
     def isStatementGeneratorReturn():
         return True
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "generator return statement"

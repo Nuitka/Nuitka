@@ -60,7 +60,10 @@ class ExpressionModuleAttributeBase(ExpressionBase):
     def getVariable(self):
         return self.variable
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
+        # These attributes can be expected to be present.
+
         return False
 
 
@@ -211,10 +214,12 @@ class ExpressionNuitkaLoaderCreation(ExpressionBase):
         # Nothing can be done here.
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         # Never raises an exception.
         return False
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         # No effect really by itself.
         return False

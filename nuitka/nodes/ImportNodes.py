@@ -496,12 +496,14 @@ class StatementImportStar(StatementChildHavingBase):
 
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         # Not done. TODO: Later we can try and check for "__all__" if it
         # really can be that way.
         return True
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "star import statement"
 
 

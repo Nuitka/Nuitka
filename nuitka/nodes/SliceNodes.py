@@ -221,7 +221,8 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
             trace_collection=trace_collection,
         )
 
-    def isKnownToBeIterable(self, count):
+    @staticmethod
+    def isKnownToBeIterable(count):
         # TODO: Should ask SliceRegistry
         return None
 

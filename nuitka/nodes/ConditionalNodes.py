@@ -745,7 +745,8 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
 
         return False
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "branch statement"
 
 

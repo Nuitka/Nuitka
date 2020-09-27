@@ -33,7 +33,8 @@ class ExpressionBuiltinOrd(ExpressionBuiltinSingleArgBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_ord_spec
 
-    def isKnownToBeIterable(self, count):
+    @staticmethod
+    def isKnownToBeIterable(count):
         return False
 
 
