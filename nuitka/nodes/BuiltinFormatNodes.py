@@ -52,7 +52,8 @@ class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
             source_ref=source_ref,
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str_or_unicode
 
     def computeExpression(self, trace_collection):
@@ -98,7 +99,8 @@ class ExpressionBuiltinAscii(ExpressionBuiltinSingleArgBase):
     if python_version >= 300:
         builtin_spec = BuiltinParameterSpecs.builtin_ascii_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str
 
 
@@ -107,7 +109,8 @@ class ExpressionBuiltinBin(ExpressionBuiltinSingleArgBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_bin_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str
 
 
@@ -116,7 +119,8 @@ class ExpressionBuiltinOct(ExpressionBuiltinSingleArgBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_oct_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str
 
 
@@ -125,7 +129,8 @@ class ExpressionBuiltinHex(ExpressionBuiltinSingleArgBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_hex_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str
 
 
@@ -145,7 +150,8 @@ class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
     def getIntValue(self):
         return self
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_int_or_long
 
     def computeExpressionDrop(self, statement, trace_collection):

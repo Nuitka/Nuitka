@@ -51,7 +51,8 @@ class ExpressionBuiltinInt1(ExpressionChildHavingBase):
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         # TODO: Depending on input type shape and value, we should improve this.
         return tshape_int_or_long_derived
 
@@ -122,7 +123,8 @@ class ExpressionBuiltinInt2(ExpressionBuiltinIntLong2Base):
     builtin_spec = BuiltinParameterSpecs.builtin_int_spec
     builtin = int
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_int_or_long
 
 
@@ -137,7 +139,8 @@ if python_version < 300:
         def __init__(self, value, source_ref):
             ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-        def getTypeShape(self):
+        @staticmethod
+        def getTypeShape():
             # TODO: Depending on input type shape and value, we should improve this.
             return tshape_long_derived
 
@@ -155,5 +158,6 @@ if python_version < 300:
         builtin_spec = BuiltinParameterSpecs.builtin_long_spec
         builtin = long
 
-        def getTypeShape(self):
+        @staticmethod
+        def getTypeShape():
             return tshape_long
