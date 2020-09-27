@@ -321,7 +321,8 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
     def getDetails(self):
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bool
 
     def mayRaiseException(self, exception_type):
@@ -429,7 +430,8 @@ class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
     def getDetails(self):
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bool
 
     def getSimulator(self):
@@ -474,7 +476,8 @@ class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
     def getDetails(self):
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bool
 
     def mayRaiseException(self, exception_type):

@@ -46,8 +46,8 @@ class ExpressionBase(NodeBase):
     # TODO: Maybe we can do this only for debug mode.
     __slots__ = ("code_generated",)
 
-    def getTypeShape(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def getTypeShape():
         return tshape_unknown
 
     def getValueShape(self):

@@ -37,7 +37,8 @@ class ExpressionBuiltinComplex1(ExpressionChildHavingBase):
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         # Note: The complex built-in will convert overloads from __complex__
         # slot and create a new one instead.
         return tshape_complex
@@ -73,5 +74,6 @@ class ExpressionBuiltinComplex2(
             trace_collection=trace_collection, given_values=given_values
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_complex

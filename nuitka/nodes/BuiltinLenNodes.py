@@ -48,7 +48,9 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
             len_node=self, trace_collection=trace_collection
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
+        # Length could be really big, using a long.
         return tshape_int_or_long
 
     def mayRaiseException(self, exception_type):

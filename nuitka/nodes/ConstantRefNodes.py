@@ -383,7 +383,8 @@ class ExpressionConstantNoneRef(ExpressionConstantRefBase):
     def getDetails(self):
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_none
 
     @staticmethod
@@ -448,7 +449,8 @@ class ExpressionConstantEllipsisRef(ExpressionConstantRefBase):
     def getDetails(self):
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_ellipsis
 
     @staticmethod
@@ -468,7 +470,8 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
     def isExpressionConstantDictRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_dict
 
     def hasShapeDictionaryExact(self):
@@ -516,7 +519,8 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     def isExpressionConstantTupleRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_tuple
 
     @staticmethod
@@ -572,7 +576,8 @@ class ExpressionConstantListRef(ExpressionConstantRefBase):
     def isExpressionConstantListRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_list
 
     @staticmethod
@@ -614,7 +619,8 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
     def isExpressionConstantSetRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_set
 
     @staticmethod
@@ -663,7 +669,8 @@ class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
     def isMutable():
         return False
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_frozenset
 
 
@@ -701,7 +708,8 @@ class ExpressionConstantIntRef(ExpressionConstantRefBase):
     def isExpressionConstantIntRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_int
 
     @staticmethod
@@ -723,7 +731,8 @@ class ExpressionConstantLongRef(ExpressionConstantRefBase):
     def isExpressionConstantLongRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_long
 
     @staticmethod
@@ -745,7 +754,8 @@ class ExpressionConstantStrRef(ExpressionConstantRefBase):
     def isExpressionConstantStrRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str
 
     @staticmethod
@@ -767,7 +777,8 @@ class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
     def isExpressionConstantUnicodeRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_unicode
 
     @staticmethod
@@ -787,7 +798,8 @@ class ExpressionConstantBytesRef(ExpressionConstantRefBase):
     def isExpressionConstantBytesRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bytes
 
     @staticmethod
@@ -807,7 +819,8 @@ class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
     def isExpressionConstantBytearrayRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bytearray
 
     @staticmethod
@@ -829,7 +842,8 @@ class ExpressionConstantFloatRef(ExpressionConstantRefBase):
     def isExpressionConstantFloatRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_float
 
     @staticmethod
@@ -851,7 +865,8 @@ class ExpressionConstantComplexRef(ExpressionConstantRefBase):
     def isExpressionConstantComplexRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_complex
 
     @staticmethod
@@ -873,7 +888,8 @@ class ExpressionConstantSliceRef(ExpressionConstantRefBase):
     def isExpressionConstantSliceRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_slice
 
     @staticmethod
@@ -895,7 +911,8 @@ class ExpressionConstantXrangeRef(ExpressionConstantRefBase):
     def isExpressionConstantXrangeRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_xrange
 
     @staticmethod
@@ -917,7 +934,8 @@ class ExpressionConstantTypeRef(ExpressionConstantRefBase):
     def isExpressionConstantTypeRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_type
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):

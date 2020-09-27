@@ -643,7 +643,8 @@ class ExpressionOperationNot(ExpressionOperationUnaryBase):
             self, operator="Not", operand=operand, source_ref=source_ref
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bool
 
     def getDetails(self):

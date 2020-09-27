@@ -223,7 +223,8 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
 
     getExceptionName = ExpressionBuiltinRefBase.getBuiltinName
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_exception_class
 
     def getCompileTimeConstant(self):

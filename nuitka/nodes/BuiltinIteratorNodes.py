@@ -263,7 +263,8 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
             source_ref=source_ref,
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         # TODO: This could be more specific.
         return tshape_iterator
 

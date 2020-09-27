@@ -145,7 +145,8 @@ class ExpressionMakeTuple(ExpressionMakeSequenceBase):
             self, sequence_kind="TUPLE", elements=elements, source_ref=source_ref
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_tuple
 
     def getSimulator(self):
@@ -163,7 +164,8 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
             self, sequence_kind="LIST", elements=elements, source_ref=source_ref
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_list
 
     def getSimulator(self):
@@ -196,7 +198,8 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
             self, sequence_kind="SET", elements=elements, source_ref=source_ref
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_set
 
     def getSimulator(self):

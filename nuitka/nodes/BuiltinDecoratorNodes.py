@@ -68,12 +68,14 @@ class ExpressionBuiltinStaticmethodClassmethodBase(ExpressionChildHavingBase):
 class ExpressionBuiltinStaticmethod(ExpressionBuiltinStaticmethodClassmethodBase):
     kind = "EXPRESSION_BUILTIN_STATICMETHOD"
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_staticmethod
 
 
 class ExpressionBuiltinClassmethod(ExpressionBuiltinStaticmethodClassmethodBase):
     kind = "EXPRESSION_BUILTIN_CLASSMETHOD"
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_classmethod

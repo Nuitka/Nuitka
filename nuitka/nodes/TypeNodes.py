@@ -92,7 +92,8 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
 
         return self, None, None
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_type
 
     def computeExpressionDrop(self, statement, trace_collection):

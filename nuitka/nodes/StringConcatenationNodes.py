@@ -40,7 +40,8 @@ class ExpressionStringConcatenation(ExpressionChildHavingBase):
             self, value=tuple(values), source_ref=source_ref
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str_or_unicode
 
     def computeExpression(self, trace_collection):
