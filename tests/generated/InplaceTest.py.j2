@@ -31,6 +31,11 @@ cond = 8
 def forgetType(value):
     return value
 
+def displayException(e):
+    if len(e.args) == 1 and "unsupported operand" in e.args[0] and "=" not in e.args[0]:
+        e.args = (e.args[0].replace(":", "=:"),)
+
+    return e
 
 {% for op_name, ioperation in ioperations %}
 {% for l_type, left_1, left_2 in candidates %}
@@ -46,7 +51,7 @@ def {{operation_id}}():
     try:
         left {{ioperation}}= right
     except Exception as e: # pylint: disable=broad-except
-        print("{{operation_id}} compile time occurred:", e)
+        print("{{operation_id}} compile time occurred:", displayException(e))
     else:
         print("{{operation_id}} compile time result:", left)
 
@@ -58,7 +63,7 @@ def {{operation_id}}():
         # We expect this to be compile time computed.
         left {{ioperation}}= right
     except Exception as e: # pylint: disable=broad-except
-        print("{{operation_id}} compile time occurred:", e)
+        print("{{operation_id}} compile time occurred:", displayException(e))
     else:
         print("{{operation_id}} compile time result:", left)
 
@@ -71,7 +76,7 @@ def {{operation_id}}():
         # We expect this to be compile time error checked still.
         left {{ioperation}}= right
     except Exception as e: # pylint: disable=broad-except
-        print("{{operation_id}} runtime occurred:", e)
+        print("{{operation_id}} runtime occurred:", displayException(e))
     else:
         print("{{operation_id}} runtime result:", left)
 
@@ -83,7 +88,7 @@ def {{operation_id}}():
     try:
         left {{ioperation}}= right
     except Exception as e: # pylint: disable=broad-except
-        print("{{operation_id}} runtime occurred:", e)
+        print("{{operation_id}} runtime occurred:", displayException(e))
     else:
         print("{{operation_id}} runtime result:", left)
 
@@ -95,7 +100,7 @@ def {{operation_id}}():
         # We expect this to be run time error checked still.
         left {{ioperation}}= right
     except Exception as e: # pylint: disable=broad-except
-        print("{{operation_id}} runtime occurred:", e)
+        print("{{operation_id}} runtime occurred:", displayException(e))
     else:
         print("{{operation_id}} runtime result:", left)
 
@@ -107,7 +112,7 @@ def {{operation_id}}():
         # We expect this to be compile time error checked still.
         left {{ioperation}}= right
     except Exception as e: # pylint: disable=broad-except
-        print("{{operation_id}} runtime occurred:", e)
+        print("{{operation_id}} runtime occurred:", displayException(e))
     else:
         print("{{operation_id}} runtime result:", left)
 
