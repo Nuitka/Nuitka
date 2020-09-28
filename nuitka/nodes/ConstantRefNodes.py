@@ -182,7 +182,8 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
         assert False, self
 
     def isKnownToBeHashable(self):
-        return isHashable(self.constant)
+        # This is expected to be overloaded by child classes.
+        assert False, self
 
     def extractUnhashableNode(self):
         value = getUnhashableConstant(self.constant)
@@ -391,6 +392,10 @@ class ExpressionConstantNoneRef(ExpressionConstantRefBase):
     def isMutable():
         return False
 
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
 
 class ExpressionConstantBoolRefBase(ExpressionConstantRefBase):
     @staticmethod
@@ -412,6 +417,10 @@ class ExpressionConstantBoolRefBase(ExpressionConstantRefBase):
     @staticmethod
     def isMutable():
         return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
 
 
 class ExpressionConstantTrueRef(ExpressionConstantBoolRefBase):
@@ -457,6 +466,10 @@ class ExpressionConstantEllipsisRef(ExpressionConstantRefBase):
     def isMutable():
         return False
 
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
 
 class ExpressionConstantDictRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_DICT_REF"
@@ -483,6 +496,10 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
     @staticmethod
     def isMutable():
         return True
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
 
 
 _the_empty_dict = {}
@@ -527,6 +544,10 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     def isMutable():
         return False
 
+    def isKnownToBeHashable(self):
+        # There are a few exceptions, where non-mutable can be non-hashable, e.g. slice.
+        return isHashable(self.constant)
+
 
 class ExpressionConstantTupleMutableRef(ExpressionConstantTupleRef):
     kind = "EXPRESSION_CONSTANT_TUPLE_MUTABLE_REF"
@@ -536,6 +557,10 @@ class ExpressionConstantTupleMutableRef(ExpressionConstantTupleRef):
     @staticmethod
     def isMutable():
         return True
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
 
 
 _the_empty_tuple = ()
@@ -556,10 +581,6 @@ class ExpressionConstantTupleEmptyRef(ExpressionConstantTupleRef):
 
     def getDetails(self):
         return {}
-
-    @staticmethod
-    def isMutable():
-        return False
 
 
 class ExpressionConstantListRef(ExpressionConstantRefBase):
@@ -583,6 +604,10 @@ class ExpressionConstantListRef(ExpressionConstantRefBase):
     @staticmethod
     def isMutable():
         return True
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
 
 
 _the_empty_list = []
@@ -627,6 +652,10 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
     def isMutable():
         return True
 
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
     def getIterationHandle(self):
         return ConstantSetAndDictIterationHandle(self)
 
@@ -668,6 +697,10 @@ class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
     @staticmethod
     def isMutable():
         return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
 
     @staticmethod
     def getTypeShape():
@@ -716,6 +749,10 @@ class ExpressionConstantIntRef(ExpressionConstantRefBase):
     def isMutable():
         return False
 
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
 
 class ExpressionConstantLongRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_LONG_REF"
@@ -738,6 +775,10 @@ class ExpressionConstantLongRef(ExpressionConstantRefBase):
     @staticmethod
     def isMutable():
         return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
 
 
 class ExpressionConstantStrRef(ExpressionConstantRefBase):
@@ -762,6 +803,10 @@ class ExpressionConstantStrRef(ExpressionConstantRefBase):
     def isMutable():
         return False
 
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
 
 class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_UNICODE_REF"
@@ -785,6 +830,10 @@ class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
     def isMutable():
         return False
 
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
 
 class ExpressionConstantBytesRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_BYTES_REF"
@@ -806,6 +855,10 @@ class ExpressionConstantBytesRef(ExpressionConstantRefBase):
     def isMutable():
         return False
 
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
 
 class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_BYTEARRAY_REF"
@@ -826,6 +879,10 @@ class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
     @staticmethod
     def isMutable():
         return True
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
 
 
 class ExpressionConstantFloatRef(ExpressionConstantRefBase):
@@ -850,6 +907,10 @@ class ExpressionConstantFloatRef(ExpressionConstantRefBase):
     def isMutable():
         return False
 
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
 
 class ExpressionConstantComplexRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_COMPLEX_REF"
@@ -872,6 +933,10 @@ class ExpressionConstantComplexRef(ExpressionConstantRefBase):
     @staticmethod
     def isMutable():
         return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
 
 
 class ExpressionConstantSliceRef(ExpressionConstantRefBase):
@@ -896,6 +961,10 @@ class ExpressionConstantSliceRef(ExpressionConstantRefBase):
     def isMutable():
         return False
 
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
 
 class ExpressionConstantXrangeRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_XRANGE_REF"
@@ -918,6 +987,10 @@ class ExpressionConstantXrangeRef(ExpressionConstantRefBase):
     @staticmethod
     def isMutable():
         return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
 
 
 class ExpressionConstantTypeRef(ExpressionConstantRefBase):
@@ -956,6 +1029,10 @@ class ExpressionConstantTypeRef(ExpressionConstantRefBase):
     @staticmethod
     def isMutable():
         return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
 
 
 def makeConstantRefNode(constant, source_ref, user_provided=False):
