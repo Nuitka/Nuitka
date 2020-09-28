@@ -2876,12 +2876,12 @@ pow_shapes_bool.update(
         tshape_unicode_derived: operation_result_unknown,
         tshape_bytes_derived: operation_result_unknown,
         # Int keep their type, as bool is 0 or 1 int.
-        tshape_int: operation_result_unknown,  # TODO: operation_result_intorfloat,
-        tshape_long: operation_result_unknown,  # TODO: operation_result_longorfloat,
-        tshape_int_or_long: operation_result_unknown,  # TODO: operation_result_intorlongorfloat,
+        tshape_int: operation_result_unknown,  # TODO: operation_result_zerodiv_intorfloat,
+        tshape_long: operation_result_unknown,  # TODO: operation_result_zerodiv_longorfloat,
+        tshape_int_or_long: operation_result_unknown,  # TODO: operation_result_izerodiv_ntorlongorfloat,
         tshape_bool: operation_result_int_noescape,
-        tshape_float: operation_result_float_noescape,
-        tshape_complex: operation_result_complex_noescape,
+        tshape_float: operation_result_zerodiv_float,
+        tshape_complex: operation_result_zerodiv_complex,
         # Unsupported:
         tshape_str: operation_result_unsupported_pow,
         tshape_bytes: operation_result_unsupported_pow,
