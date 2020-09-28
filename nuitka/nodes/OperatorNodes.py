@@ -798,8 +798,8 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
 
             return (
                 result,
-                "new_raise",
-                "Lowered inplace-operator '%s' to binary operation.." % (self.operator),
+                "new_expression",
+                "Lowered inplace-operator '%s' to binary operation." % self.operator,
             )
 
         return self, None, None
