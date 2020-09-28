@@ -527,6 +527,15 @@ class TraceCollectionBase(object):
             raise
 
     def computedStatementResult(self, statement, change_tags, change_desc):
+        """Make sure the replacement statement is computed.
+
+        Use this when a replacement expression needs to be seen by the trace
+        collection and be computed, without causing any duplication, but where
+        otherwise there would be loss of annotated effects.
+
+        This may e.g. be true for nodes that need an initial run to know their
+        exception result and type shape.
+        """
         # Need to compute the replacement still.
         new_statement = statement.computeStatement(self)
 
@@ -537,6 +546,28 @@ class TraceCollectionBase(object):
             return new_statement
         else:
             return statement, change_tags, change_desc
+
+    def computedExpressionResult(self, expression, change_tags, change_desc):
+        """Make sure the replacement expression is computed.
+
+        Use this when a replacement expression needs to be seen by the trace
+        collection and be computed, without causing any duplication, but where
+        otherwise there would be loss of annotated effects.
+
+        This may e.g. be true for nodes that need an initial run to know their
+        exception result and type shape.
+        """
+
+        # Need to compute the replacement still.
+        new_expression = expression.computeExpression(self)
+
+        if new_expression is not expression:
+            # Signal intermediate result as well.
+            self.signalChange(change_tags, expression.getSourceReference(), change_desc)
+
+            return new_expression
+        else:
+            return expression, change_tags, change_desc
 
     def mergeBranches(self, collection_yes, collection_no):
         """Merge two alternative branches into this trace.

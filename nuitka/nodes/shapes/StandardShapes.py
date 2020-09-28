@@ -21,6 +21,7 @@ from nuitka.codegen.c_types.CTypePyObjectPtrs import CTypePyObjectPtr
 from nuitka.codegen.Reports import onMissingOperation
 
 from .ControlFlowDescriptions import ControlFlowDescriptionFullEscape
+from .ShapeMixins import ShapeIteratorMixin
 
 
 class ShapeBase(object):
@@ -91,6 +92,10 @@ class ShapeBase(object):
 
     @staticmethod
     def hasShapeSlotContains():
+        return None
+
+    @staticmethod
+    def hasShapeSlotHash():
         return None
 
     add_shapes = {}
@@ -557,7 +562,7 @@ class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
         self.predictor = predictor
 
 
-class ShapeIterator(ShapeBase):
+class ShapeIterator(ShapeBase, ShapeIteratorMixin):
     @staticmethod
     def hasShapeSlotBool():
         return None
@@ -579,20 +584,8 @@ class ShapeIterator(ShapeBase):
         return None
 
     @staticmethod
-    def hasShapeSlotIter():
-        return True
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return True
-
-    @staticmethod
     def getShapeIter():
         return tshape_iterator
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return True
 
 
 tshape_iterator = ShapeIterator()

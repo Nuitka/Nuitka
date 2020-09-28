@@ -45,7 +45,16 @@ from .shapes.StandardShapes import (
 )
 
 
-class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
+class ExpressionPropertiesFromTypeShapeMixin(object):
+    """Given a self.type_shape, this can derive default properties from there."""
+
+    def isKnownToBeHashable(self):
+        return self.type_shape.hasShapeSlotHash()
+
+
+class ExpressionOperationBinaryBase(
+    ExpressionPropertiesFromTypeShapeMixin, ExpressionChildrenHavingBase
+):
     """Base class for all binary operation expression."""
 
     named_children = ("left", "right")
@@ -93,7 +102,7 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
         )
 
     def mayRaiseException(self, exception_type):
-        # TODO: Match more precisely
+        # TODO: Match getExceptionExit() more precisely against exception type given
         return (
             self.escape_desc is None
             or self.escape_desc.getExceptionExit() is not None
@@ -797,7 +806,7 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
                 self.operator[1:], left, right, self.source_ref
             )
 
-            return (
+            return trace_collection.computedExpressionResult(
                 result,
                 "new_expression",
                 "Lowered inplace-operator '%s' to binary operation." % self.operator,
