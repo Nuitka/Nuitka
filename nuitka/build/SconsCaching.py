@@ -375,20 +375,22 @@ def extractClcacheLogFromOutput(data):
     clcache_output = []
     normal_output = []
 
-    for line in data.split(b"\r\n"):
+    for line in data.split(b"\n"):
+        # Remove the "\r", clcache and compiler may or may not output it.
+        line = line.strip()
+
         if b"clcache.py" in line:
             clcache_output.append(line)
         else:
             normal_output.append(line)
 
+    # Make sure we have Windows new lines for the compiler output though.
     data = b"\r\n".join(normal_output)
     if data:
         data += b"\r\n"
 
     for clcache_line in clcache_output:
-        match = re.search(
-            b"Reusing cached object.*?for object file (.*?)\\r", clcache_line
-        )
+        match = re.search(b"Reusing cached object.*?for object file (.*)", clcache_line)
 
         if match:
             _writeClcacheLog(match.group(1), "cache hit")
