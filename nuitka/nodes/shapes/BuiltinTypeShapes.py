@@ -153,7 +153,12 @@ matmult_shapes_float = matmult_shapes_none
 add_shapes_complex = {}
 sub_shapes_complex = {}
 mult_shapes_complex = {}
-floordiv_shapes_complex = floordiv_shapes_none
+
+if python_version < 300:
+    floordiv_shapes_complex = {}
+else:
+    floordiv_shapes_complex = floordiv_shapes_none
+
 truediv_shapes_complex = {}
 olddiv_shapes_complex = {}
 mod_shapes_complex = {}
@@ -812,6 +817,7 @@ else:
     tshape_int_or_long = tshape_int
 
 
+# TODO: Make this Python2 only, and use ShapeTypeIntDerived for Python3
 class ShapeTypeIntOrLongDerived(ShapeTypeUnknown):
     pass
 
@@ -2484,6 +2490,7 @@ operation_result_unsupported_olddiv = (
     ControlFlowDescriptionOldDivUnsupported,
 )
 operation_result_unsupported_mod = tshape_unknown, ControlFlowDescriptionModUnsupported
+
 operation_result_unsupported_divmod = (
     tshape_unknown,
     ControlFlowDescriptionDivmodUnsupported,
@@ -2808,7 +2815,9 @@ mod_shapes_bool.update(
         tshape_int_or_long: operation_result_zerodiv_intorlong,
         tshape_bool: operation_result_zerodiv_int,
         tshape_float: operation_result_zerodiv_float,
-        tshape_complex: operation_result_unsupported_mod,
+        tshape_complex: operation_result_zerodiv_complex
+        if python_version < 300
+        else operation_result_unsupported_mod,
         # Unsupported:
         tshape_str: operation_result_unsupported_mod,
         tshape_bytes: operation_result_unsupported_mod,
@@ -3143,7 +3152,9 @@ mod_shapes_int.update(
         tshape_int_or_long: operation_result_zerodiv_intorlong,
         tshape_bool: operation_result_zerodiv_int,
         tshape_float: operation_result_zerodiv_float,
-        tshape_complex: operation_result_unsupported_mod,
+        tshape_complex: operation_result_zerodiv_complex
+        if python_version < 300
+        else operation_result_unsupported_mod,
         # Unsupported:
         tshape_str: operation_result_unsupported_mod,
         tshape_bytes: operation_result_unsupported_mod,
@@ -3445,7 +3456,9 @@ mod_shapes_long.update(
         tshape_int_or_long: operation_result_zerodiv_long,
         tshape_bool: operation_result_zerodiv_long,
         tshape_float: operation_result_zerodiv_float,
-        tshape_complex: operation_result_unsupported_mod,
+        tshape_complex: operation_result_zerodiv_complex
+        if python_version < 300
+        else operation_result_unsupported_mod,
         # Unsupported:
         tshape_str: operation_result_unsupported_mod,
         tshape_bytes: operation_result_unsupported_mod,
@@ -3922,6 +3935,39 @@ truediv_shapes_complex.update(
         tshape_none: operation_result_unsupported_truediv,
     }
 )
+
+if python_version < 300:
+    floordiv_shapes_complex.update(
+        {
+            # Standard
+            tshape_unknown: operation_result_unknown,
+            tshape_long_derived: operation_result_unknown,
+            tshape_int_or_long_derived: operation_result_unknown,
+            tshape_float_derived: operation_result_unknown,
+            tshape_str_derived: operation_result_unknown,
+            tshape_unicode_derived: operation_result_unknown,
+            tshape_bytes_derived: operation_result_unknown,
+            # floats do math ops
+            tshape_int: operation_result_zerodiv_complex,
+            tshape_long: operation_result_zerodiv_complex,
+            tshape_int_or_long: operation_result_zerodiv_complex,
+            tshape_bool: operation_result_zerodiv_complex,
+            tshape_float: operation_result_zerodiv_complex,
+            tshape_complex: operation_result_zerodiv_complex,
+            # Unsupported:
+            tshape_str: operation_result_unsupported_floordiv,
+            tshape_bytes: operation_result_unsupported_floordiv,
+            tshape_bytearray: operation_result_unsupported_floordiv,
+            tshape_unicode: operation_result_unsupported_floordiv,
+            tshape_tuple: operation_result_unsupported_floordiv,
+            tshape_list: operation_result_unsupported_floordiv,
+            tshape_set: operation_result_unsupported_floordiv,
+            tshape_frozenset: operation_result_unsupported_floordiv,
+            tshape_dict: operation_result_unsupported_floordiv,
+            tshape_type: operation_result_unsupported_floordiv,
+            tshape_none: operation_result_unsupported_floordiv,
+        }
+    )
 
 olddiv_shapes_complex.update(
     cloneWithUnsupportedChange(
