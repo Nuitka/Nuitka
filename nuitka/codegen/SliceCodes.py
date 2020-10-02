@@ -23,7 +23,6 @@ are also created here, and can be used for indexing.
 """
 
 from nuitka import Options
-from nuitka.Constants import isNumberConstant
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
@@ -41,21 +40,21 @@ from .IndexCodes import (
 )
 
 
+def _isSmallNumberConstant(node):
+    if node.isNumberConstant():
+        value = node.getConstant()
+        return abs(int(value)) < 2 ** 63 - 1
+    else:
+        return False
+
+
 def _generateSliceRangeIdentifier(lower, upper, scope, emit, context):
     lower_name = context.allocateTempName(scope + "slicedel_index_lower", "Py_ssize_t")
     upper_name = context.allocateTempName(scope + "_index_upper", "Py_ssize_t")
 
-    def isSmallNumberConstant(node):
-        value = node.getConstant()
-
-        if isNumberConstant(value):
-            return abs(int(value)) < 2 ** 63 - 1
-        else:
-            return False
-
     if lower is None:
         getMinIndexCode(to_name=lower_name, emit=emit)
-    elif lower.isExpressionConstantRef() and isSmallNumberConstant(lower):
+    elif lower.isExpressionConstantRef() and _isSmallNumberConstant(lower):
         getIndexValueCode(to_name=lower_name, value=int(lower.getConstant()), emit=emit)
     else:
         value_name = context.allocateTempName(scope + "_lower_index_value")
@@ -70,7 +69,7 @@ def _generateSliceRangeIdentifier(lower, upper, scope, emit, context):
 
     if upper is None:
         getMaxIndexCode(to_name=upper_name, emit=emit)
-    elif upper.isExpressionConstantRef() and isSmallNumberConstant(upper):
+    elif upper.isExpressionConstantRef() and _isSmallNumberConstant(upper):
         getIndexValueCode(to_name=upper_name, value=int(upper.getConstant()), emit=emit)
     else:
         value_name = context.allocateTempName(scope + "_upper_index_value")
