@@ -34,8 +34,6 @@ work on, and let them decide and do the heavy lifting of optimization
 and annotation is happening in the nodes that implement these compute slots.
 """
 
-from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
-
 from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
@@ -222,11 +220,10 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     getAttribute = ExpressionChildrenHavingBase.childGetter("name")
     getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
-    @calledWithBuiltinArgumentNamesDecorator
-    def __init__(self, object_arg, name, default, source_ref):
+    def __init__(self, expression, name, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values={"expression": object_arg, "name": name, "default": default},
+            values={"expression": expression, "name": name, "default": default},
             source_ref=source_ref,
         )
 
@@ -283,11 +280,10 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
     getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
     getValue = ExpressionChildrenHavingBase.childGetter("value")
 
-    @calledWithBuiltinArgumentNamesDecorator
-    def __init__(self, object_arg, name, value, source_ref):
+    def __init__(self, expression, name, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values={"expression": object_arg, "attribute": name, "value": value},
+            values={"expression": expression, "attribute": name, "value": value},
             source_ref=source_ref,
         )
 
@@ -304,11 +300,10 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
     named_children = ("expression", "attribute")
     getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
 
-    @calledWithBuiltinArgumentNamesDecorator
-    def __init__(self, object_arg, name, source_ref):
+    def __init__(self, expression, name, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values={"expression": object_arg, "attribute": name},
+            values={"expression": expression, "attribute": name},
             source_ref=source_ref,
         )
 
