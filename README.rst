@@ -253,7 +253,7 @@ Install Python (64 Bits)
    `https://www.python.org/downloads/windows <https://www.python.org/downloads/windows>`_
 
  - Select one of ``Windows x86-64 web-based installer`` (64 bits Python, recommended) or
-   ``x86-64 executable`` (32 bits Python) installer
+   ``x86 executable`` (32 bits Python) installer
 
  - Verify using command ``python --version``.
 
