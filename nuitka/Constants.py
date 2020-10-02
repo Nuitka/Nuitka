@@ -352,10 +352,6 @@ def getConstantIterationLength(constant):
     return len(constant)
 
 
-def isNumberConstant(constant):
-    return type(constant) in (int, long, float, bool)
-
-
 def isIndexConstant(constant):
     return type(constant) in (int, long, bool)
 

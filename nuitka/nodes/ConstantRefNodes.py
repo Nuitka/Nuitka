@@ -40,7 +40,6 @@ from nuitka.Constants import (
     isIndexConstant,
     isIterableConstant,
     isMutable,
-    isNumberConstant,
 )
 from nuitka.Options import isDebug
 
@@ -191,8 +190,10 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
         if value is not None:
             return makeConstantRefNode(constant=value, source_ref=self.source_ref)
 
-    def isNumberConstant(self):
-        return isNumberConstant(self.constant)
+    @staticmethod
+    def isNumberConstant():
+        # This is expected to be overloaded by child classes that disagree, bool, int, long and float
+        return False
 
     def isIndexConstant(self):
         return isIndexConstant(self.constant)
@@ -276,10 +277,6 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
             )
 
         return pairs
-
-    @staticmethod
-    def isBoolConstant():
-        return False
 
     def mayHaveSideEffects(self):
         # Constants have no side effects
@@ -398,10 +395,6 @@ class ExpressionConstantNoneRef(ExpressionConstantRefBase):
 
 
 class ExpressionConstantBoolRefBase(ExpressionConstantRefBase):
-    @staticmethod
-    def isBoolConstant():
-        return True
-
     def computeExpressionBool(self, trace_collection):
         # Best case already.
         pass
@@ -420,6 +413,10 @@ class ExpressionConstantBoolRefBase(ExpressionConstantRefBase):
 
     @staticmethod
     def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isNumberConstant():
         return True
 
 
@@ -753,6 +750,10 @@ class ExpressionConstantIntRef(ExpressionConstantRefBase):
     def isKnownToBeHashable():
         return True
 
+    @staticmethod
+    def isNumberConstant():
+        return True
+
 
 class ExpressionConstantLongRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_LONG_REF"
@@ -778,6 +779,10 @@ class ExpressionConstantLongRef(ExpressionConstantRefBase):
 
     @staticmethod
     def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isNumberConstant():
         return True
 
 
@@ -909,6 +914,10 @@ class ExpressionConstantFloatRef(ExpressionConstantRefBase):
 
     @staticmethod
     def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isNumberConstant():
         return True
 
 
