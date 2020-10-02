@@ -128,6 +128,18 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
             self.simulator(left, right)
         except TypeError as e:
             return e
+        except Exception as e:
+            raise NuitkaAssumptionError(
+                "Unexpected exception type doing operation simulation",
+                self.operator,
+                self.simulator,
+                left_shape,
+                right_shape,
+                repr(left),
+                repr(right),
+                e,
+                "!=",
+            )
         else:
             raise NuitkaAssumptionError(
                 "Unexpected no-exception doing operation simulation",
@@ -186,7 +198,8 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
                     new_node=makeRaiseExceptionReplacementExpressionFromInstance(
                         expression=self,
                         exception=self.createUnsupportedException(
-                            left_shape, right_shape
+                            left_shape,
+                            right_shape,
                         ),
                     ),
                     old_node=self,
@@ -754,7 +767,8 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
                     new_node=makeRaiseExceptionReplacementExpressionFromInstance(
                         expression=self,
                         exception=self.createUnsupportedException(
-                            left_shape, right_shape
+                            left_shape,
+                            right_shape,
                         ),
                     ),
                     old_node=self,
