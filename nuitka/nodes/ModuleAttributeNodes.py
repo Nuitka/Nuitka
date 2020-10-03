@@ -85,7 +85,7 @@ class ExpressionModuleAttributeFileRef(ExpressionModuleAttributeBase):
         if Options.getFileReferenceMode() != "runtime":
             result = makeConstantRefNode(
                 constant=self.variable.getModule().getRunTimeFilename(),
-                source_ref=self.getSourceReference(),
+                source_ref=self.source_ref,
             )
 
             return result, "new_expression", "Using original '__file__' value."
@@ -109,7 +109,7 @@ class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
         if not Options.shallMakeModule():
             result = makeConstantRefNode(
                 constant=self.variable.getModule().getFullName().asString(),
-                source_ref=self.getSourceReference(),
+                source_ref=self.source_ref,
             )
 
             return result, "new_expression", "Using constant '__name__' value."

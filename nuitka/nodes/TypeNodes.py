@@ -76,11 +76,11 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
                 new_node = makeExpressionBuiltinRef(
                     builtin_name=type_name,
                     locals_scope=None,
-                    source_ref=self.getSourceReference(),
+                    source_ref=self.source_ref,
                 )
             else:
                 new_node = ExpressionBuiltinAnonymousRef(
-                    builtin_name=type_name, source_ref=self.getSourceReference()
+                    builtin_name=type_name, source_ref=self.source_ref
                 )
 
             return (

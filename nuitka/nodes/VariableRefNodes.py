@@ -335,7 +335,7 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
 
                     new_node = ExpressionBuiltinExceptionRef(
                         exception_name=self.variable.getName(),
-                        source_ref=self.getSourceReference(),
+                        source_ref=self.source_ref,
                     )
 
                     change_tags = "new_builtin_ref"
@@ -360,7 +360,7 @@ Module variable '%s' found to be built-in exception reference.""" % (
                     new_node = makeExpressionBuiltinRef(
                         builtin_name=variable_name,
                         locals_scope=self.getFunctionsLocalsScope(),
-                        source_ref=self.getSourceReference(),
+                        source_ref=self.source_ref,
                     )
 
                     change_tags = "new_builtin_ref"
@@ -376,7 +376,7 @@ Module variable '%s' found to be built-in reference.""" % (
                     change_desc = None
             elif variable_name == "__name__":
                 new_node = ExpressionModuleAttributeNameRef(
-                    variable=variable, source_ref=self.getSourceReference()
+                    variable=variable, source_ref=self.source_ref
                 )
 
                 change_tags = "new_expression"
@@ -384,7 +384,7 @@ Module variable '%s' found to be built-in reference.""" % (
 Replaced read-only module attribute '__name__' with module attribute reference."""
             elif variable_name == "__package__":
                 new_node = ExpressionModuleAttributePackageRef(
-                    variable=variable, source_ref=self.getSourceReference()
+                    variable=variable, source_ref=self.source_ref
                 )
 
                 change_tags = "new_expression"
@@ -392,7 +392,7 @@ Replaced read-only module attribute '__name__' with module attribute reference."
 Replaced read-only module attribute '__package__' with module attribute reference."""
             elif variable_name == "__loader__" and python_version >= 300:
                 new_node = ExpressionModuleAttributeLoaderRef(
-                    variable=variable, source_ref=self.getSourceReference()
+                    variable=variable, source_ref=self.source_ref
                 )
 
                 change_tags = "new_expression"
@@ -400,7 +400,7 @@ Replaced read-only module attribute '__package__' with module attribute referenc
 Replaced read-only module attribute '__loader__' with module attribute reference."""
             elif variable_name == "__spec__" and python_version >= 340:
                 new_node = ExpressionModuleAttributeSpecRef(
-                    variable=variable, source_ref=self.getSourceReference()
+                    variable=variable, source_ref=self.source_ref
                 )
 
                 change_tags = "new_expression"

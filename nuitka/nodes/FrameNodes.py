@@ -203,7 +203,7 @@ class StatementsFrameBase(StatementsSequence):
         if not new_statements:
             trace_collection.signalChange(
                 "new_statements",
-                self.getSourceReference(),
+                self.source_ref,
                 "Removed empty frame object of '%s'."
                 % self.code_object.getCodeObjectName(),
             )
@@ -243,7 +243,7 @@ class StatementsFrameBase(StatementsSequence):
             else:
                 trace_collection.signalChange(
                     "new_statements",
-                    self.getSourceReference(),
+                    self.source_ref,
                     "Removed useless frame object of '%s'."
                     % self.code_object.getCodeObjectName(),
                 )
