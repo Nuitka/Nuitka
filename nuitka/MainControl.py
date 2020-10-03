@@ -417,7 +417,7 @@ def runScons(main_module, quiet):
         ),
         "result_name": OutputDirectories.getResultBasepath(),
         "source_dir": OutputDirectories.getSourceDirectoryPath(),
-        "debug_mode": _asBoolStr(Options.isDebug()),
+        "debug_mode": _asBoolStr(Options.is_debug),
         "python_debug": _asBoolStr(Options.isPythonDebug()),
         "unstripped_mode": _asBoolStr(Options.isUnstripped()),
         "module_mode": _asBoolStr(Options.shallMakeModule()),
@@ -655,7 +655,7 @@ def compileTree(main_module):
     if Options.isShowMemory():
         InstanceCounters.printStats()
 
-    if Options.isDebug():
+    if Options.is_debug:
         Reports.doMissingOptimizationReport()
 
     if Options.shallNotDoExecCCompilerCall():
