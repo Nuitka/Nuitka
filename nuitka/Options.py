@@ -121,7 +121,7 @@ Error, '--nofollow-import-to' takes only module names, not directory path '%s'."
 
     scons_python = getPythonPathForScons()
 
-    if scons_python is not None and not os.path.exists(scons_python):
+    if scons_python is not None and not os.path.isfile(scons_python):
         sys.exit("Error, no such Python binary '%s'." % scons_python)
 
     if options.output_filename is not None and (
