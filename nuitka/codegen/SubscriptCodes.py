@@ -22,7 +22,6 @@ much faster than general subscript lookups.
 """
 
 from nuitka import Options
-from nuitka.Constants import isIndexConstant
 
 from .CodeHelpers import (
     generateChildExpressionCode,
@@ -35,10 +34,8 @@ from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 
 def _decideIntegerSubscript(subscript):
     if subscript.isExpressionConstantRef():
-        constant = subscript.getConstant()
-
-        if isIndexConstant(constant):
-            constant_value = int(constant)
+        if subscript.isIndexConstant():
+            constant_value = subscript.getIndexValue()
 
             if abs(constant_value) < 2 ** 31:
                 return constant_value, True

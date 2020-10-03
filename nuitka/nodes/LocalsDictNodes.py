@@ -596,7 +596,9 @@ class StatementSetLocalsDictionary(StatementSetLocals):
         StatementSetLocals.__init__(
             self,
             locals_scope=locals_scope,
-            new_locals=ExpressionConstantDictEmptyRef(source_ref=source_ref),
+            new_locals=ExpressionConstantDictEmptyRef(
+                source_ref=source_ref, user_provided=True
+            ),
             source_ref=source_ref,
         )
 

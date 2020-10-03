@@ -156,8 +156,10 @@ class ExpressionBase(NodeBase):
         # Unknown by default.
         return None
 
-    def extractUnhashableNode(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def extractUnhashableNode():
+        """ Return the value that is not hashable, if isKnowtoBeHashable() returns False. """
+
         # Not available by default.
         return None
 
@@ -806,14 +808,6 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         Notes: Only available after passing "isCompileTimeConstant()".
 
         """
-
-    @staticmethod
-    def isUserProvidedConstant():
-        """Return if compile time constant comes from user code.
-
-        Notes: Only useful after passing "isCompileTimeConstant()".
-        """
-        return False
 
     @staticmethod
     def isMutable():

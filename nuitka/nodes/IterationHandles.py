@@ -98,6 +98,7 @@ class ConstantIterationHandleBase(IterationHandleBase):
 
     def __init__(self, constant_node):
         assert constant_node.isIterableConstant()
+
         self.constant_node = constant_node
         self.iter = iter(self.constant_node.constant)
 
