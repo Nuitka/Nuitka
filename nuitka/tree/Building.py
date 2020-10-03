@@ -468,7 +468,7 @@ def buildBytesNode(node, source_ref):
 
 
 def buildEllipsisNode(source_ref):
-    return ExpressionConstantEllipsisRef(source_ref=source_ref, user_provided=True)
+    return ExpressionConstantEllipsisRef(source_ref=source_ref)
 
 
 def buildStatementLoopContinue(node, source_ref):
@@ -526,9 +526,7 @@ def buildReturnNode(provider, node, source_ref):
         or provider.isExpressionAsyncgenObjectBody()
     ):
         if expression is None:
-            expression = ExpressionConstantNoneRef(
-                source_ref=source_ref, user_provided=True
-            )
+            expression = ExpressionConstantNoneRef(source_ref=source_ref)
 
         return StatementGeneratorReturn(expression=expression, source_ref=source_ref)
     else:
@@ -844,9 +842,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             StatementAssignmentVariableName(
                 provider=provider,
                 variable_name="__cached__",
-                source=ExpressionConstantNoneRef(
-                    source_ref=internal_source_ref, user_provided=True
-                ),
+                source=ExpressionConstantNoneRef(source_ref=internal_source_ref),
                 source_ref=internal_source_ref,
             )
         )

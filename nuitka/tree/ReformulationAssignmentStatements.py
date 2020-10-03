@@ -105,9 +105,7 @@ def buildExtSliceNode(provider, node, source_ref):
                 start=lower, stop=upper, step=step, source_ref=source_ref
             )
         elif dim_kind == "Ellipsis":
-            element = ExpressionConstantEllipsisRef(
-                source_ref=source_ref, user_provided=True
-            )
+            element = ExpressionConstantEllipsisRef(source_ref=source_ref)
         elif dim_kind == "Index":
             element = buildNode(
                 provider=provider, node=dim.value, source_ref=source_ref
