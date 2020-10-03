@@ -228,7 +228,7 @@ PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering)
 
     PyObject *args[] = {file_name, mode, buffering};
 
-    char const *arg_names[] = {"file_name", "mode", "buffering"};
+    char const *arg_names[] = {"name", "mode", "buffering"};
 
     return CALL_BUILTIN_KW_ARGS(NUITKA_ACCESS_BUILTIN(open), args, arg_names, 3);
 }
@@ -239,7 +239,7 @@ PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering,
 
     PyObject *args[] = {file_name, mode, buffering, encoding, errors, newline, closefd, opener};
 
-    char const *arg_names[] = {"file_name", "mode", "buffering", "encoding", "errors", "newline", "closefd", "opener"};
+    char const *arg_names[] = {"file", "mode", "buffering", "encoding", "errors", "newline", "closefd", "opener"};
 
     return CALL_BUILTIN_KW_ARGS(NUITKA_ACCESS_BUILTIN(open), args, arg_names, 8);
 }

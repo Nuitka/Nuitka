@@ -343,7 +343,7 @@ else:
     builtin_open_spec = BuiltinParameterSpec(
         "open",
         (
-            "name",
+            "file",
             "mode",
             "buffering",
             "encoding",
