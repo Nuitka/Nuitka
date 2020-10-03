@@ -80,7 +80,7 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
         return makeConstantRefNode(
             constant=str(self.getCompileTimeConstant()),
             user_provided=True,
-            source_ref=self.getSourceReference(),
+            source_ref=self.source_ref,
         )
 
 

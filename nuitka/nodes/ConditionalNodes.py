@@ -692,7 +692,7 @@ Condition for branch statement was predicted to be always %s."""
                 ),
                 yes_branch=no_branch,
                 no_branch=None,
-                source_ref=self.getSourceReference(),
+                source_ref=self.source_ref,
             )
 
             del self.parent

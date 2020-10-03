@@ -254,7 +254,7 @@ Propagated implicit raise expression to raise statement.""",
             exception_value=self.getExceptionValue(),
             exception_trace=None,
             exception_cause=None,
-            source_ref=self.getSourceReference(),
+            source_ref=self.source_ref,
         )
 
 

@@ -126,7 +126,7 @@ class ExpressionBuiltinRangeMixin(object):
                 low=self.getLow(),
                 high=self.getHigh(),
                 step=self.getStep(),
-                source_ref=self.getSourceReference(),
+                source_ref=self.source_ref,
             )
 
             self.parent.replaceChild(self, result)

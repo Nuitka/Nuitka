@@ -335,7 +335,7 @@ class StatementTry(StatementChildrenHavingBase):
 
             result = StatementsSequence(
                 statements=pre_statements + [self] + post_statements,
-                source_ref=self.getSourceReference(),
+                source_ref=self.source_ref,
             )
 
             def explain():

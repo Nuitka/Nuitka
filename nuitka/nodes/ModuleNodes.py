@@ -156,7 +156,7 @@ class PythonModuleBase(NodeBase):
             all.
 
         """
-        return os.path.abspath(self.getSourceReference().getFilename())
+        return os.path.abspath(self.source_ref.getFilename())
 
     def getCompileTimeDirectory(self):
         """The compile time directory for the module.
@@ -787,7 +787,7 @@ class PythonShlibModule(PythonModuleBase):
         del self.used_modules
 
     def getFilename(self):
-        return self.getSourceReference().getFilename()
+        return self.source_ref.getFilename()
 
     def startTraversal(self):
         pass
