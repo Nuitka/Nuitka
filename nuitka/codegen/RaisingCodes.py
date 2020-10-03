@@ -21,7 +21,7 @@ Exceptions from other operations are consider ErrorCodes domain.
 
 """
 
-from nuitka.Options import isDebug
+from nuitka import Options
 
 from .CodeHelpers import (
     generateChildExpressionsCode,
@@ -191,7 +191,7 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
 
     # Missed optimization opportunity, please report it, this should not
     # normally happen. We are supposed to propagate this upwards.
-    if isDebug():
+    if Options.is_debug:
         # TODO: Need to optimize ExpressionLocalsVariableRefOrFallback once we know
         # it handles cases where the value is not in locals dict properly.
 

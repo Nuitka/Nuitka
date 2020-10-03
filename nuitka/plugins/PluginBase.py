@@ -331,7 +331,7 @@ class NuitkaPluginBase(object):
         if mode == "bytecode":
             trigger_module.setSourceCode(code)
 
-        if Options.isDebug():
+        if Options.is_debug:
             source_path = os.path.join(
                 OutputDirectories.getSourceDirectoryPath(), module_name + ".py"
             )

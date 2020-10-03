@@ -170,7 +170,7 @@ class TempMixin(object):
 
         # For finally handlers of Python3, which have conditions on assign and
         # use, the NULL init is needed.
-        debug = Options.isDebug() and python_version >= 300
+        debug = Options.is_debug and python_version >= 300
 
         if debug:
             keeper_obj_init = "NULL"
@@ -213,7 +213,7 @@ class TempMixin(object):
         # use.
         if preserver_id not in self.preserver_variable_declaration:
 
-            debug = Options.isDebug() and python_version >= 300
+            debug = Options.is_debug and python_version >= 300
 
             if debug:
                 preserver_obj_init = "NULL"
