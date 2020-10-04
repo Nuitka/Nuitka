@@ -500,7 +500,7 @@ def buildClassNode3(provider, node, source_ref):
                     template="%s.__prepare__() must return a mapping, not %s",
                     template_args=(
                         ExpressionBuiltinGetattr(
-                            object_arg=ExpressionTempVariableRef(
+                            expression=ExpressionTempVariableRef(
                                 variable=tmp_metaclass, source_ref=source_ref
                             ),
                             name=makeConstantRefNode(

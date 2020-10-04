@@ -4,6 +4,19 @@ nuitka (0.6.10~rc2+ds-1) unstable; urgency=medium
 
  -- Kay Hayen <kay.hayen@gmail.com>  Sat, 19 Sep 2020 19:02:54 +0200
 
+nuitka (0.6.9.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 04 Oct 2020 12:47:36 +0200
+
+nuitka (0.6.9.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 19 Sep 2020 14:38:08 +0200
+>>>>>>> 0.6.9.2
+
 nuitka (0.6.9+ds-1) unstable; urgency=medium
 
   * New upstream release.
