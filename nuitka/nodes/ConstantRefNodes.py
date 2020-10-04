@@ -209,54 +209,6 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
             for value in self.constant
         )
 
-    def isMapping(self):
-        return type(self.constant) is dict
-
-    def isMappingWithConstantStringKeys(self):
-        assert self.isMapping()
-
-        for key in self.constant:
-            if type(key) not in (str, unicode):
-                return False
-        return True
-
-    def getMappingPairs(self):
-        assert self.isMapping()
-
-        pairs = []
-
-        source_ref = self.source_ref
-
-        for key, value in iterItems(self.constant):
-            pairs.append(
-                makeConstantRefNode(constant=key, source_ref=source_ref),
-                makeConstantRefNode(constant=value, source_ref=source_ref),
-            )
-
-        return pairs
-
-    def getMappingStringKeyPairs(self):
-        assert self.isMapping()
-
-        pairs = []
-
-        source_ref = self.source_ref
-
-        for key, value in iterItems(self.constant):
-            pairs.append(
-                (key, makeConstantRefNode(constant=value, source_ref=source_ref))
-            )
-
-        return pairs
-
-    def mayHaveSideEffects(self):
-        # Constants have no side effects
-        return False
-
-    def extractSideEffects(self):
-        # Constants have no side effects
-        return ()
-
     def getIntegerValue(self):
         if self.isNumberConstant():
             return int(self.constant)
@@ -269,27 +221,15 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         else:
             return None
 
-    def getStringValue(self):
-        if self.isStringConstant():
-            return self.constant
-        else:
-            return None
-
-    def getIterationLength(self):
-        if self.isIterableConstant():
-            return len(self.constant)
-        else:
-            return None
-
     def isIterableConstant(self):
         # This is expected to be overloaded by child classes.
         assert False, self
 
-    def isUnicodeConstant(self):
-        return type(self.constant) is unicode
+    def getIterationLength(self):
+        # This is expected to be overloaded by child classes if they are iterable
+        assert not self.isIterableConstant(), self
 
-    def isStringConstant(self):
-        return type(self.constant) is str
+        return None
 
     def getStrValue(self):
         return makeConstantRefNode(
@@ -522,6 +462,9 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
     def isIterableConstant():
         return True
 
+    def getIterationLength(self):
+        return len(self.constant)
+
     def computeExpressionIter1(self, iter_node, trace_collection):
         result = makeConstantRefNode(
             constant=tuple(self.constant),
@@ -537,6 +480,19 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
             "new_constant",
             """Iteration over constant dict lowered to tuple.""",
         )
+
+    def isMappingWithConstantStringKeys(self):
+        return all(type(key) in (str, unicode) for key in self.constant)
+
+    def getMappingStringKeyPairs(self):
+        pairs = []
+
+        for key, value in iterItems(self.constant):
+            pairs.append(
+                (key, makeConstantRefNode(constant=value, source_ref=self.source_ref))
+            )
+
+        return pairs
 
 
 _the_empty_dict = {}
@@ -557,6 +513,10 @@ class ExpressionConstantDictEmptyRef(ExpressionConstantDictRef):
 
     def getDetails(self):
         return {"user_provided": self.user_provided}
+
+    @staticmethod
+    def getIterationLength():
+        return 0
 
 
 class ExpressionConstantTupleRef(ExpressionConstantRefBase):
@@ -588,6 +548,9 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     @staticmethod
     def isIterableConstant():
         return True
+
+    def getIterationLength(self):
+        return len(self.constant)
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         # Note: Tuples are as good as it gets.
@@ -627,6 +590,10 @@ class ExpressionConstantTupleEmptyRef(ExpressionConstantTupleRef):
     def getDetails(self):
         return {"user_provided": self.user_provided}
 
+    @staticmethod
+    def getIterationLength():
+        return 0
+
 
 class ExpressionConstantListRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_LIST_REF"
@@ -657,6 +624,9 @@ class ExpressionConstantListRef(ExpressionConstantRefBase):
     @staticmethod
     def isIterableConstant():
         return True
+
+    def getIterationLength(self):
+        return len(self.constant)
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         result = makeConstantRefNode(
@@ -694,6 +664,10 @@ class ExpressionConstantListEmptyRef(ExpressionConstantListRef):
     def getDetails(self):
         return {"user_provided": self.user_provided}
 
+    @staticmethod
+    def getIterationLength():
+        return 0
+
 
 class ExpressionConstantSetRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_SET_REF"
@@ -727,6 +701,9 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
     @staticmethod
     def isIterableConstant():
         return True
+
+    def getIterationLength(self):
+        return len(self.constant)
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         result = makeConstantRefNode(
@@ -764,6 +741,10 @@ class ExpressionConstantSetEmptyRef(ExpressionConstantSetRef):
     def getDetails(self):
         return {"user_provided": self.user_provided}
 
+    @staticmethod
+    def getIterationLength():
+        return 0
+
 
 class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_FROZENSET_REF"
@@ -794,6 +775,9 @@ class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
     @staticmethod
     def isIterableConstant():
         return True
+
+    def getIterationLength(self):
+        return len(self.constant)
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         result = makeConstantRefNode(
@@ -830,6 +814,10 @@ class ExpressionConstantFrozensetEmptyRef(ExpressionConstantFrozensetRef):
 
     def getDetails(self):
         return {"user_provided": self.user_provided}
+
+    @staticmethod
+    def getIterationLength():
+        return 0
 
 
 class ExpressionConstantIntRef(ExpressionConstantUntrackedRefBase):
@@ -940,8 +928,14 @@ class ExpressionConstantStrRef(ExpressionConstantRefBase):
     def isIterableConstant():
         return True
 
+    def getIterationLength(self):
+        return len(self.constant)
+
     def getStrValue(self):
         return self
+
+    def getStringValue(self):
+        return self.constant
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         # Note: str are as good as it gets.
@@ -978,6 +972,9 @@ class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
     def isIterableConstant():
         return True
 
+    def getIterationLength(self):
+        return len(self.constant)
+
     def computeExpressionIter1(self, iter_node, trace_collection):
         # Note: unicode are as good as it gets
         return iter_node, None, None
@@ -1011,6 +1008,9 @@ class ExpressionConstantBytesRef(ExpressionConstantRefBase):
     def isIterableConstant():
         return True
 
+    def getIterationLength(self):
+        return len(self.constant)
+
     def computeExpressionIter1(self, iter_node, trace_collection):
         # Note: bytes are as good as it gets
         return iter_node, None, None
@@ -1043,6 +1043,9 @@ class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
     @staticmethod
     def isIterableConstant():
         return True
+
+    def getIterationLength(self):
+        return len(self.constant)
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         result = makeConstantRefNode(
@@ -1187,6 +1190,9 @@ class ExpressionConstantXrangeRef(ExpressionConstantUntrackedRefBase):
     @staticmethod
     def isIterableConstant():
         return True
+
+    def getIterationLength(self):
+        return len(self.constant)
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         # Note: xrange are as good as it gets.

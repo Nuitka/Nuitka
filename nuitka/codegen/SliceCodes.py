@@ -42,7 +42,7 @@ from .IndexCodes import (
 
 def _isSmallNumberConstant(node):
     if node.isNumberConstant():
-        value = node.getConstant()
+        value = node.getCompileTimeConstant()
         return abs(int(value)) < 2 ** 63 - 1
     else:
         return False
@@ -55,7 +55,9 @@ def _generateSliceRangeIdentifier(lower, upper, scope, emit, context):
     if lower is None:
         getMinIndexCode(to_name=lower_name, emit=emit)
     elif lower.isExpressionConstantRef() and _isSmallNumberConstant(lower):
-        getIndexValueCode(to_name=lower_name, value=int(lower.getConstant()), emit=emit)
+        getIndexValueCode(
+            to_name=lower_name, value=int(lower.getCompileTimeConstant()), emit=emit
+        )
     else:
         value_name = context.allocateTempName(scope + "_lower_index_value")
 
@@ -70,7 +72,9 @@ def _generateSliceRangeIdentifier(lower, upper, scope, emit, context):
     if upper is None:
         getMaxIndexCode(to_name=upper_name, emit=emit)
     elif upper.isExpressionConstantRef() and _isSmallNumberConstant(upper):
-        getIndexValueCode(to_name=upper_name, value=int(upper.getConstant()), emit=emit)
+        getIndexValueCode(
+            to_name=upper_name, value=int(upper.getCompileTimeConstant()), emit=emit
+        )
     else:
         value_name = context.allocateTempName(scope + "_upper_index_value")
 

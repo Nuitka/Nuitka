@@ -58,7 +58,7 @@ def _generateCallCodePosOnly(
         context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
 
         if call_args is not None:
-            call_args_value = call_args.getConstant()
+            call_args_value = call_args.getCompileTimeConstant()
         else:
             call_args_value = ()
 
@@ -266,9 +266,7 @@ def generateCallCode(to_name, expression, emit, context):
         to_name, "call_result", expression, emit, context
     ) as result_name:
 
-        if call_kw is None or (
-            call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}
-        ):
+        if call_kw is None or call_kw.isExpressionConstantDictEmptyRef():
             _generateCallCodePosOnly(
                 to_name=result_name,
                 called_name=called_name,
@@ -280,9 +278,7 @@ def generateCallCode(to_name, expression, emit, context):
         else:
             call_args = expression.getCallArgs()
 
-            if call_args is None or (
-                call_args.isExpressionConstantRef() and call_args.getConstant() == ()
-            ):
+            if call_args is None or call_args.isExpressionConstantTupleEmptyRef():
                 _generateCallCodeKwOnly(
                     to_name=result_name,
                     called_name=called_name,

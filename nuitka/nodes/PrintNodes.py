@@ -118,7 +118,8 @@ Side effects printed item promoted to statements.""",
                 )
 
         if value.isCompileTimeConstant():
-            if not (value.isExpressionConstantRef() and value.isUnicodeConstant()):
+            # Avoid unicode encoding issues.
+            if not value.isExpressionConstantUnicodeRef():
                 new_value = value.getStrValue()
                 assert new_value is not None, value
 

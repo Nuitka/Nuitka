@@ -284,7 +284,7 @@ def makeStatementsSequenceReplacementNode(statements, node):
 def convertNoneConstantToNone(node):
     if node is None:
         return None
-    elif node.isExpressionConstantRef() and node.getConstant() is None:
+    elif node.isExpressionConstantNoneRef():
         return None
     else:
         return node

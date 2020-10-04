@@ -158,9 +158,6 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
 
         return new_node, tags, message
 
-    def getStringValue(self):
-        return repr(self.getCompileTimeConstant())
-
     @staticmethod
     def isKnownToBeIterable(count):
         # TODO: Why yes, some may be, could be told here.
@@ -205,9 +202,6 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
 
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
-
-    def getStringValue(self):
-        return repr(self.getCompileTimeConstant())
 
 
 class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):

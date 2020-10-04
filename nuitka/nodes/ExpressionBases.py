@@ -117,9 +117,9 @@ class ExpressionBase(NodeBase):
 
         return self.getIterationLength()
 
-    def getStringValue(self):
-        """ Node as string value, if possible."""
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def getStringValue():
+        """ Node as string value, if possible. """
         return None
 
     def getStrValue(self):
@@ -821,6 +821,11 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
     def mayHaveSideEffects():
         # Virtual method overload
         return False
+
+    @staticmethod
+    def extractSideEffects():
+        # Constants have no side effects
+        return ()
 
     @staticmethod
     def mayHaveSideEffectsBool():
