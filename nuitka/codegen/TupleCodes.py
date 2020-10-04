@@ -57,7 +57,7 @@ def getTupleCreationCode(to_name, elements, emit, context):
     if _areConstants(elements):
         getConstantAccess(
             to_name=to_name,
-            constant=tuple(element.getConstant() for element in elements),
+            constant=tuple(element.getCompileTimeConstant() for element in elements),
             emit=emit,
             context=context,
         )

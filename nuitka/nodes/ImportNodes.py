@@ -426,7 +426,9 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                     message,
                 ) = trace_collection.getCompileTimeComputationResult(
                     node=self,
-                    computation=lambda: __import__(module_name.getConstant()),
+                    computation=lambda: __import__(
+                        module_name.getCompileTimeConstant()
+                    ),
                     description="Replaced '__import__' call with non-string module name argument.",
                 )
 

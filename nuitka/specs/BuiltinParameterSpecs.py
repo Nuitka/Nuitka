@@ -525,7 +525,7 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
                 if not low.isNumberConstant():
                     return True
 
-                return low.getConstant() < 256
+                return low.getCompileTimeConstant() < 256
             elif arg_count == 2:
                 low, high = values
 
@@ -534,7 +534,9 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
                 if not low.isNumberConstant() or not high.isNumberConstant():
                     return True
 
-                return high.getConstant() - low.getConstant() < 256
+                return (
+                    high.getCompileTimeConstant() - low.getCompileTimeConstant() < 256
+                )
             elif arg_count == 3:
                 low, high, step = values
 
@@ -545,9 +547,9 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
                 ):
                     return True
 
-                low = low.getConstant()
-                high = high.getConstant()
-                step = step.getConstant()
+                low = low.getCompileTimeConstant()
+                high = high.getCompileTimeConstant()
+                step = step.getCompileTimeConstant()
 
                 # It's going to give a ZeroDivisionError in this case.
                 if step == 0:

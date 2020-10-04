@@ -708,12 +708,12 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
         return 0
 
 
-def convertNoneConstantOrEmptyDictToNone(node):
+def _convertNoneConstantOrEmptyDictToNone(node):
     if node is None:
         return None
-    elif node.isExpressionConstantRef() and node.getConstant() is None:
+    elif node.isExpressionConstantNoneRef():
         return None
-    elif node.isExpressionConstantRef() and node.getConstant() == {}:
+    elif node.isExpressionConstantDictEmptyRef():
         return None
     else:
         return node
@@ -744,7 +744,7 @@ class ExpressionFunctionCreation(
     getKwDefaults = ExpressionChildrenHavingBase.childGetter("kw_defaults")
     getAnnotations = ExpressionChildrenHavingBase.childGetter("annotations")
 
-    checkers = {"kw_defaults": convertNoneConstantOrEmptyDictToNone}
+    checkers = {"kw_defaults": _convertNoneConstantOrEmptyDictToNone}
 
     def __init__(self, function_ref, defaults, kw_defaults, annotations, source_ref):
         assert kw_defaults is None or kw_defaults.isExpression()
@@ -809,19 +809,15 @@ class ExpressionFunctionCreation(
         # TODO: Until we have something to re-order the keyword arguments, we
         # need to skip this. For the immediate need, we avoid this complexity,
         # as a re-ordering will be needed.
-        if call_kw is not None and (
-            not call_kw.isExpressionConstantRef() or call_kw.getConstant() != {}
-        ):
-            return call_node, None, None
-
-        if call_kw is not None:
+        if call_kw is not None and not call_kw.isExpressionConstantDictEmptyRef():
             return call_node, None, None
 
         if call_args is None:
             args_tuple = ()
         else:
             assert (
-                call_args.isExpressionConstantRef() or call_args.isExpressionMakeTuple()
+                call_args.isExpressionConstantTupleRef()
+                or call_args.isExpressionMakeTuple()
             )
 
             args_tuple = call_args.getIterationValues()

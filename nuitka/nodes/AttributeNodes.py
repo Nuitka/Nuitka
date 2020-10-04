@@ -236,7 +236,7 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
         default = self.getDefault()
 
         if default is None or not default.mayHaveSideEffects():
-            attribute = self.getAttribute()
+            attribute = self.subnode_name
 
             attribute_name = attribute.getStringValue()
 

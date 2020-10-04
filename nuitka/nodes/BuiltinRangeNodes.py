@@ -66,11 +66,7 @@ class ExpressionBuiltinRangeMixin(object):
             if child.getIntegerValue() is None:
                 return True
 
-            if (
-                python_version >= 270
-                and child.isExpressionConstantRef()
-                and type(child.getConstant()) is float
-            ):
+            if python_version >= 270 and child.isExpressionConstantFloatRef():
                 return True
 
         return False
@@ -84,11 +80,7 @@ class ExpressionBuiltinRangeMixin(object):
             if child.getIntegerValue() is None:
                 return True
 
-            if (
-                python_version >= 270
-                and child.isExpressionConstantRef()
-                and type(child.getConstant()) is float
-            ):
+            if python_version >= 270 and child.isExpressionConstantFloatRef():
                 return True
 
         step = self.getStep()

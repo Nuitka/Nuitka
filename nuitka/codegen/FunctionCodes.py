@@ -226,10 +226,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
         if kw_defaults:
             kw_defaults_name = context.allocateTempName("kw_defaults")
 
-            assert (
-                not kw_defaults.isExpressionConstantRef()
-                or kw_defaults.getConstant() != {}
-            ), kw_defaults.getConstant()
+            assert not kw_defaults.isExpressionConstantDictEmptyRef(), kw_defaults
 
             generateExpressionCode(
                 to_name=kw_defaults_name,

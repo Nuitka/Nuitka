@@ -170,8 +170,8 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildHavingBase
             return self, None, None
 
         constant_value = Constants.createConstantDict(
-            keys=[pair.getKey().getConstant() for pair in pairs],
-            values=[pair.getValue().getConstant() for pair in pairs],
+            keys=[pair.subnode_key.getCompileTimeConstant() for pair in pairs],
+            values=[pair.subnode_value.getCompileTimeConstant() for pair in pairs],
         )
 
         new_node = makeConstantReplacementNode(constant=constant_value, node=self)
@@ -235,20 +235,15 @@ Created dictionary found to be constant.""",
         return True
 
     def isMappingWithConstantStringKeys(self):
-        for pair in self.getPairs():
-            key = pair.getKey()
-
-            if not key.isExpressionConstantRef() or not key.isStringConstant():
-                return False
-        return True
+        return all(
+            pair.subnode_key.isExpressionConstantStrRef() for pair in self.subnode_pairs
+        )
 
     def getMappingStringKeyPairs(self):
         return [
-            (pair.getKey().getConstant(), pair.getValue()) for pair in self.getPairs()
+            (pair.subnode_key.getCompileTimeConstant(), pair.subnode_value)
+            for pair in self.getPairs()
         ]
-
-    def getMappingPairs(self):
-        return self.getPairs()
 
     # TODO: Missing computeExpressionIter1 here. For now it would require us to
     # add lots of temporary variables for keys, which then becomes the tuple,

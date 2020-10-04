@@ -570,7 +570,9 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
             assert False, sequence_kind
 
         result = makeConstantRefNode(
-            constant=const_type(element.getConstant() for element in elements),
+            constant=const_type(
+                element.getCompileTimeConstant() for element in elements
+            ),
             source_ref=source_ref,
             user_provided=True,
         )
@@ -616,8 +618,8 @@ def makeDictCreationOrConstant(keys, values, source_ref):
         # before being marshaled.
         result = makeConstantRefNode(
             constant=Constants.createConstantDict(
-                keys=[key.getConstant() for key in keys],
-                values=[value.getConstant() for value in values],
+                keys=[key.getCompileTimeConstant() for key in keys],
+                values=[value.getCompileTimeConstant() for value in values],
             ),
             user_provided=True,
             source_ref=source_ref,
@@ -661,7 +663,7 @@ def makeDictCreationOrConstant2(keys, values, source_ref):
         # before being marshaled.
         result = makeConstantRefNode(
             constant=Constants.createConstantDict(
-                keys=keys, values=[value.getConstant() for value in values]
+                keys=keys, values=[value.getCompileTimeConstant() for value in values]
             ),
             user_provided=True,
             source_ref=source_ref,

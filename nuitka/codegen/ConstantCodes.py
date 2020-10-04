@@ -53,7 +53,10 @@ def generateConstantReferenceCode(to_name, expression, emit, context):
     """ Assign the constant behind the expression to to_name."""
 
     getConstantAccess(
-        to_name=to_name, constant=expression.getConstant(), emit=emit, context=context
+        to_name=to_name,
+        constant=expression.getCompileTimeConstant(),
+        emit=emit,
+        context=context,
     )
 
 
