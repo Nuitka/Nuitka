@@ -158,8 +158,9 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
                 size_t size;
 
                 tsize = ((PyVarObject *)source)->ob_size;
-                if (tsize < 0)
+                if (tsize < 0) {
                     tsize = -tsize;
+                }
                 size = _PyObject_VAR_SIZE(type, tsize);
 
                 dictoffset += (long)size;
@@ -397,8 +398,9 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
                 size_t size;
 
                 tsize = ((PyVarObject *)source)->ob_size;
-                if (tsize < 0)
+                if (tsize < 0) {
                     tsize = -tsize;
+                }
                 size = _PyObject_VAR_SIZE(type, tsize);
 
                 dictoffset += (long)size;

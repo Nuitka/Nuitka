@@ -334,7 +334,7 @@ def checkPluginSinglePath(plugin_filename, module_package):
                         ModuleRegistry.addRootModule(module)
 
                     if Options.isShowInclusion():
-                        recursion_logger.info("Package directory %s", package_dir)
+                        recursion_logger.info("Package directory '%s'." % package_dir)
 
                     for sub_path, sub_filename in listDir(package_dir):
                         if sub_filename in ("__init__.py", "__pycache__"):

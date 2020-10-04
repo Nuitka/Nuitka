@@ -1159,25 +1159,43 @@ def super_extractor(node):
 
 
 def hasattr_extractor(node):
+    # We need to have to builtin arguments, pylint: disable=redefined-builtin
+    def makeExpressionBuiltinHasattr(object, name, source_ref):
+        return ExpressionBuiltinHasattr(
+            expression=object, name=name, source_ref=source_ref
+        )
+
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
-        builtin_class=ExpressionBuiltinHasattr,
+        builtin_class=makeExpressionBuiltinHasattr,
         builtin_spec=BuiltinParameterSpecs.builtin_hasattr_spec,
     )
 
 
 def getattr_extractor(node):
+    # We need to have to builtin arguments, pylint: disable=redefined-builtin
+    def makeExpressionBuiltinGetattr(object, name, default, source_ref):
+        return ExpressionBuiltinGetattr(
+            expression=object, name=name, default=default, source_ref=source_ref
+        )
+
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
-        builtin_class=ExpressionBuiltinGetattr,
+        builtin_class=makeExpressionBuiltinGetattr,
         builtin_spec=BuiltinParameterSpecs.builtin_getattr_spec,
     )
 
 
 def setattr_extractor(node):
+    # We need to have to builtin arguments, pylint: disable=redefined-builtin
+    def makeExpressionBuiltinSetattr(object, name, value, source_ref):
+        return ExpressionBuiltinSetattr(
+            expression=object, name=name, value=value, source_ref=source_ref
+        )
+
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
-        builtin_class=ExpressionBuiltinSetattr,
+        builtin_class=makeExpressionBuiltinSetattr,
         builtin_spec=BuiltinParameterSpecs.builtin_setattr_spec,
     )
 

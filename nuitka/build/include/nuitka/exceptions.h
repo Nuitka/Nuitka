@@ -398,10 +398,11 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyObject **exception
     PRINT_STRING("NORMALIZE_EXCEPTION: Enter\n");
     PRINT_EXCEPTION(*exception_type, *exception_value, *exception_tb);
 #endif
-
     CHECK_OBJECT_X(*exception_type);
     CHECK_OBJECT_X(*exception_value);
-    CHECK_OBJECT_X(*exception_tb);
+    if (exception_tb) {
+        CHECK_OBJECT_X(*exception_tb);
+    }
 
     // TODO: Often we already know this to be true.
     if (*exception_type != Py_None && *exception_type != NULL) {
@@ -411,7 +412,7 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyObject **exception
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("NORMALIZE_EXCEPTION: Leave\n");
-    PRINT_EXCEPTION(*exception_type, *exception_value, *exception_tb);
+    PRINT_EXCEPTION(*exception_type, *exception_value, exception_tb ? *exception_tb : NULL);
 #endif
 }
 
