@@ -23,7 +23,7 @@ to be very general, yet the node type for loop, becomes very simple.
 """
 
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
-from nuitka.tree.Extractions import getVariablesWritten
+from nuitka.tree.Extractions import getVariablesWrittenOrRead
 
 from .Checkers import checkStatementsSequenceOrNone
 from .NodeBases import StatementBase, StatementChildHavingBase
@@ -123,7 +123,7 @@ class StatementLoop(StatementChildHavingBase):
         # about that if we are in the first iteration, later we # will have more
         # precise knowledge.
         if self.loop_variables is None:
-            self.loop_variables = getVariablesWritten(loop_body)
+            self.loop_variables = getVariablesWrittenOrRead(loop_body)
 
             all_first_pass = True
         else:

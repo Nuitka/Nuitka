@@ -32,7 +32,6 @@ from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.nodes.shapes.StandardShapes import tshape_uninit
-from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceLine
 from nuitka.utils.FileOperations import relpath
 from nuitka.utils.InstanceCounters import counted_del, counted_init
@@ -404,10 +403,7 @@ class TraceCollectionBase(object):
                 self.markActiveVariableAsEscaped(variable)
 
             elif variable.isLocalVariable():
-                if (
-                    python_version >= 300
-                    and variable.hasWritesOutsideOf(self.owner) is not False
-                ):
+                if variable.hasAccessesOutsideOf(self.owner) is not False:
                     self.markActiveVariableAsEscaped(variable)
 
     def removeAllKnowledge(self):
