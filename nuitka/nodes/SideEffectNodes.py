@@ -60,8 +60,12 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
             source_ref=source_ref,
         )
 
-    def isExpressionSideEffects(self):
+    @staticmethod
+    def isExpressionSideEffects():
         return True
+
+    def getTypeShape(self):
+        return self.subnode_expression.getTypeShape()
 
     def computeExpressionRaw(self, trace_collection):
         new_side_effects = []

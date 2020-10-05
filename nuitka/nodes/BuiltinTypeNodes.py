@@ -156,14 +156,14 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
         value = self.getValue()
 
         if value is not None:
-            truth_value = self.getValue().getTruthValue()
+            truth_value = value.getTruthValue()
 
             if truth_value is not None:
                 result = wrapExpressionWithNodeSideEffects(
                     new_node=makeConstantReplacementNode(
                         constant=truth_value, node=self
                     ),
-                    old_node=self.getValue(),
+                    old_node=value,
                 )
 
                 return (
