@@ -29,6 +29,10 @@ from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeTuple,
     makeExpressionMakeTupleOrConstant,
 )
+from nuitka.nodes.DictionaryNodes import (
+    makeExpressionMakeDictOrConstant,
+    makeExpressionPairs,
+)
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
@@ -60,7 +64,6 @@ from .TreeHelpers import (
     buildNode,
     buildNodeList,
     getKind,
-    makeDictCreationOrConstant,
     makeStatementsSequenceFromStatements,
 )
 
@@ -209,8 +212,10 @@ def _makeCallNode(
                 user_provided=True,
                 source_ref=source_ref,
             ),
-            kw=makeDictCreationOrConstant(
-                keys=keys, values=values, source_ref=source_ref
+            kw=makeExpressionMakeDictOrConstant(
+                makeExpressionPairs(keys=keys, values=values),
+                user_provided=True,
+                source_ref=source_ref,
             ),
             source_ref=source_ref,
         )
@@ -272,8 +277,10 @@ def _makeCallNode(
 
         if keys:
             helper_args.append(
-                makeDictCreationOrConstant(
-                    keys=keys, values=values, source_ref=source_ref
+                makeExpressionMakeDictOrConstant(
+                    pairs=makeExpressionPairs(keys=keys, values=values),
+                    user_provided=True,
+                    source_ref=source_ref,
                 )
             )
 

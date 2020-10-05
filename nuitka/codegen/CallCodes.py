@@ -140,7 +140,7 @@ def _generateCallCodePosOnly(
     elif call_args.isExpressionMakeTuple():
         call_arg_names = []
 
-        for call_arg_element in call_args.getElements():
+        for call_arg_element in call_args.subnode_elements:
             call_arg_name = generateChildExpressionCode(
                 child_name=call_args.getChildName() + "_element",
                 expression=call_arg_element,

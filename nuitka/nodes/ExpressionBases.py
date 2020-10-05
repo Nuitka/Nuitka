@@ -85,11 +85,6 @@ class ExpressionBase(NodeBase):
         # Virtual method, pylint: disable=unused-argument
         return False
 
-    @staticmethod
-    def isKnownToBeIterableAtMax(count):
-        # Virtual method, pylint: disable=unused-argument
-        return False
-
     def getIterationLength(self):
         """Value that "len" or "PyObject_Size" would give, if known.
 
@@ -101,14 +96,6 @@ class ExpressionBase(NodeBase):
 
     def getIterationMinLength(self):
         """Value that "len" or "PyObject_Size" would give at minimum, if known.
-
-        Otherwise it is "None" to indicate unknown.
-        """
-
-        return self.getIterationLength()
-
-    def getIterationMaxLength(self):
-        """Value that "len" or "PyObject_Size" would give at maximum, if known.
 
         Otherwise it is "None" to indicate unknown.
         """

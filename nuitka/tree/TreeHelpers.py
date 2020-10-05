@@ -31,7 +31,7 @@ from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from nuitka.nodes.DictionaryNodes import (
     ExpressionKeyValuePair,
-    ExpressionMakeDict,
+    makeExpressionMakeDict,
 )
 from nuitka.nodes.ExceptionNodes import StatementReraiseException
 from nuitka.nodes.FrameNodes import (
@@ -530,55 +530,6 @@ def makeStatementsSequenceFromStatements(*statements):
     )
 
 
-def makeDictCreationOrConstant(keys, values, source_ref):
-    # Create dictionary node. Tries to avoid it for constant values that are not
-    # mutable.
-
-    assert len(keys) == len(values)
-    for key, value in zip(keys, values):
-        if not key.isExpressionConstantRef() or not key.isKnownToBeHashable():
-            constant = False
-            break
-
-        if not value.isExpressionConstantRef():
-            constant = False
-            break
-    else:
-        constant = True
-
-    # Note: This would happen in optimization instead, but lets just do it
-    # immediately to save some time.
-    if constant:
-        # Unless told otherwise, create the dictionary in its full size, so
-        # that no growing occurs and the constant becomes as similar as possible
-        # before being marshaled.
-        result = makeConstantRefNode(
-            constant=Constants.createConstantDict(
-                keys=[key.getCompileTimeConstant() for key in keys],
-                values=[value.getCompileTimeConstant() for value in values],
-            ),
-            user_provided=True,
-            source_ref=source_ref,
-        )
-    else:
-        result = ExpressionMakeDict(
-            pairs=[
-                ExpressionKeyValuePair(
-                    key=key, value=value, source_ref=key.getSourceReference()
-                )
-                for key, value in zip(keys, values)
-            ],
-            source_ref=source_ref,
-        )
-
-    if values:
-        result.setCompatibleSourceReference(
-            source_ref=values[-1].getCompatibleSourceReference()
-        )
-
-    return result
-
-
 def makeDictCreationOrConstant2(keys, values, source_ref):
     # Create dictionary node. Tries to avoid it for constant values that are not
     # mutable. Keys are Python strings here.
@@ -605,7 +556,7 @@ def makeDictCreationOrConstant2(keys, values, source_ref):
             source_ref=source_ref,
         )
     else:
-        result = ExpressionMakeDict(
+        result = makeExpressionMakeDict(
             pairs=[
                 ExpressionKeyValuePair(
                     key=makeConstantRefNode(

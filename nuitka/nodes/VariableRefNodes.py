@@ -620,8 +620,3 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
     def isKnownToBeIterableAtMin(count):
         # TODO: See through the variable current trace.
         return None
-
-    @staticmethod
-    def isKnownToBeIterableAtMax(count):
-        # TODO: See through the variable current trace.
-        return None

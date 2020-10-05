@@ -460,7 +460,8 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
     def getTypeShape():
         return tshape_dict
 
-    def hasShapeDictionaryExact(self):
+    @staticmethod
+    def hasShapeDictionaryExact():
         return True
 
     def getIterationHandle(self):
