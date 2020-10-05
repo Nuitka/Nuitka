@@ -654,10 +654,16 @@ else:
 
 
 def bool_extractor(node):
+    def makeBool0(source_ref):
+        # pylint: disable=unused-argument
+
+        return makeConstantReplacementNode(constant=bool(), node=node)
+
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
         builtin_class=ExpressionBuiltinBool,
         builtin_spec=BuiltinParameterSpecs.builtin_bool_spec,
+        empty_special_class=makeBool0,
     )
 
 

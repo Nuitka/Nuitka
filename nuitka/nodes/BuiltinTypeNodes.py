@@ -153,24 +153,21 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
     builtin_spec = BuiltinParameterSpecs.builtin_bool_spec
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
 
-        if value is not None:
-            truth_value = value.getTruthValue()
+        truth_value = value.getTruthValue()
 
-            if truth_value is not None:
-                result = wrapExpressionWithNodeSideEffects(
-                    new_node=makeConstantReplacementNode(
-                        constant=truth_value, node=self
-                    ),
-                    old_node=value,
-                )
+        if truth_value is not None:
+            result = wrapExpressionWithNodeSideEffects(
+                new_node=makeConstantReplacementNode(constant=truth_value, node=self),
+                old_node=value,
+            )
 
-                return (
-                    result,
-                    "new_constant",
-                    "Predicted truth value of built-in bool argument",
-                )
+            return (
+                result,
+                "new_constant",
+                "Predicted truth value of built-in bool argument",
+            )
 
         return ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
 
