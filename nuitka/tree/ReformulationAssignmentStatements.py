@@ -45,6 +45,7 @@ from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
@@ -81,7 +82,6 @@ from .TreeHelpers import (
     buildNode,
     getKind,
     makeConstantRefNode,
-    makeSequenceCreationOrConstant,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
@@ -115,8 +115,8 @@ def buildExtSliceNode(provider, node, source_ref):
 
         elements.append(element)
 
-    return makeSequenceCreationOrConstant(
-        sequence_kind="tuple", elements=elements, source_ref=source_ref
+    return makeExpressionMakeTupleOrConstant(
+        elements=elements, user_provided=True, source_ref=source_ref
     )
 
 

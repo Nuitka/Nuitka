@@ -48,7 +48,10 @@ from nuitka.nodes.ConditionalNodes import (
     makeStatementConditional,
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerMakingNodes import (
+    makeExpressionMakeTuple,
+    makeExpressionMakeTupleOrConstant,
+)
 from nuitka.nodes.ContainerOperationNodes import (
     ExpressionListOperationExtend,
     StatementListOperationAppend,
@@ -96,7 +99,7 @@ from .InternalModule import (
     makeInternalHelperFunctionBody,
     once_decorator,
 )
-from .ReformulationSequenceCreation import buildTupleCreationNode
+from .ReformulationSequenceCreation import buildTupleUnpacking
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
@@ -104,12 +107,28 @@ from .TreeHelpers import (
     buildNode,
     buildNodeList,
     extractDocFromBody,
+    getKind,
     makeDictCreationOrConstant2,
-    makeSequenceCreationOrConstant,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
     mangleName,
 )
+
+
+def _buildBasesTupleCreationNode(provider, elements, source_ref):
+    """For use in Python3 classes for the bases."""
+
+    for element in elements:
+        if getKind(element) == "Starred":
+            return buildTupleUnpacking(
+                provider=provider, elements=elements, source_ref=source_ref
+            )
+
+    return makeExpressionMakeTupleOrConstant(
+        elements=buildNodeList(provider, elements, source_ref),
+        user_provided=True,
+        source_ref=source_ref,
+    )
 
 
 def buildClassNode3(provider, node, source_ref):
@@ -297,8 +316,7 @@ def buildClassNode3(provider, node, source_ref):
                 called=ExpressionTempVariableRef(
                     variable=tmp_metaclass, source_ref=source_ref
                 ),
-                args=makeSequenceCreationOrConstant(
-                    sequence_kind="tuple",
+                args=makeExpressionMakeTuple(
                     elements=(
                         makeConstantRefNode(
                             constant=node.name,
@@ -346,7 +364,9 @@ def buildClassNode3(provider, node, source_ref):
     for decorator in buildNodeList(provider, reversed(node.decorator_list), source_ref):
         decorated_body = makeExpressionCall(
             called=decorator,
-            args=ExpressionMakeTuple(elements=(decorated_body,), source_ref=source_ref),
+            args=makeExpressionMakeTuple(
+                elements=(decorated_body,), source_ref=source_ref
+            ),
             kw=None,
             source_ref=decorator.getSourceReference(),
         )
@@ -362,7 +382,7 @@ def buildClassNode3(provider, node, source_ref):
         statements.append(
             StatementAssignmentVariable(
                 variable=tmp_bases if python_version < 370 else tmp_bases_orig,
-                source=buildTupleCreationNode(
+                source=_buildBasesTupleCreationNode(
                     provider=provider, elements=node.bases, source_ref=source_ref
                 ),
                 source_ref=source_ref,
@@ -466,7 +486,7 @@ def buildClassNode3(provider, node, source_ref):
                 attribute_name="__prepare__",
                 source_ref=source_ref,
             ),
-            args=ExpressionMakeTuple(
+            args=makeExpressionMakeTuple(
                 elements=(
                     makeConstantRefNode(
                         constant=node.name, source_ref=source_ref, user_provided=True
@@ -680,7 +700,7 @@ def getClassBasesMroConversionHelper():
                         attribute_name="__mro_entries__",
                         source_ref=internal_source_ref,
                     ),
-                    args=ExpressionMakeTuple(
+                    args=makeExpressionMakeTuple(
                         elements=(
                             ExpressionVariableRef(
                                 variable=args_variable, source_ref=internal_source_ref

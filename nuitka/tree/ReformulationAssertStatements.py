@@ -23,7 +23,7 @@ source code comments with developer manual sections.
 """
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.OperatorNodes import ExpressionOperationNot
 from nuitka.Options import getPythonFlags
@@ -53,7 +53,7 @@ def buildAssertNode(provider, node, source_ref):
         return None
 
     if exception_value is not None and python_version > 272:
-        exception_value = ExpressionMakeTuple(
+        exception_value = makeExpressionMakeTuple(
             elements=(exception_value,), source_ref=source_ref
         )
 

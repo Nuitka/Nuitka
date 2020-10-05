@@ -169,7 +169,11 @@ from .ReformulationNamespacePackages import (
     createPathAssignment,
 )
 from .ReformulationPrintStatements import buildPrintNode
-from .ReformulationSequenceCreation import buildSequenceCreationNode
+from .ReformulationSequenceCreation import (
+    buildListCreationNode,
+    buildSetCreationNode,
+    buildTupleCreationNode,
+)
 from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 from .ReformulationTryFinallyStatements import buildTryFinallyNode
@@ -676,9 +680,9 @@ setBuildingDispatchers(
         "DictComp": buildDictContractionNode,
         "SetComp": buildSetContractionNode,
         "Dict": buildDictionaryNode,
-        "Set": buildSequenceCreationNode,
-        "Tuple": buildSequenceCreationNode,
-        "List": buildSequenceCreationNode,
+        "Set": buildSetCreationNode,
+        "Tuple": buildTupleCreationNode,
+        "List": buildListCreationNode,
         "Global": handleGlobalDeclarationNode,
         "Nonlocal": handleNonlocalDeclarationNode,
         "TryExcept": buildTryExceptionNode,

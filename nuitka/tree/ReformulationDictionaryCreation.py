@@ -37,7 +37,7 @@ from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
     ExpressionKeyValuePair,
     ExpressionMakeDict,
@@ -156,7 +156,7 @@ def getDictUnpackingHelper():
                                 source_ref=internal_source_ref,
                                 user_provided=True,
                             ),
-                            right=ExpressionMakeTuple(
+                            right=makeExpressionMakeTuple(
                                 elements=(
                                     ExpressionAttributeLookup(
                                         expression=ExpressionBuiltinType1(
@@ -298,7 +298,7 @@ def buildDictionaryUnpacking(provider, node, source_ref):
             annotations=None,
             source_ref=source_ref,
         ),
-        values=(ExpressionMakeTuple(helper_args, source_ref),),
+        values=(makeExpressionMakeTuple(helper_args, source_ref),),
         source_ref=source_ref,
     )
 

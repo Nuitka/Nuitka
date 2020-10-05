@@ -53,23 +53,21 @@ class ExpressionBase(NodeBase):
     def getValueShape(self):
         return self
 
-    def isCompileTimeConstant(self):
+    @staticmethod
+    def isCompileTimeConstant():
         """Has a value that we can use at compile time.
 
         Yes or no. If it has such a value, simulations can be applied at
         compile time and e.g. operations or conditions, or even calls may
         be executed against it.
         """
-        # Virtual method, pylint: disable=no-self-use
         return False
 
-    def getTruthValue(self):
+    @staticmethod
+    def getTruthValue():
         """ Return known truth value. The "None" value indicates unknown. """
 
-        if self.isCompileTimeConstant():
-            return bool(self.getCompileTimeConstant())
-        else:
-            return None
+        return None
 
     @staticmethod
     def isKnownToBeIterable(count):
@@ -800,6 +798,9 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         be executed against it.
         """
         return True
+
+    def getTruthValue(self):
+        return bool(self.getCompileTimeConstant())
 
     @abstractmethod
     def getCompileTimeConstant(self):

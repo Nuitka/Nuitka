@@ -36,7 +36,12 @@ from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerMakingNodes import (
+    makeExpressionMakeListOrConstant,
+    makeExpressionMakeSetLiteralOrConstant,
+    makeExpressionMakeTuple,
+    makeExpressionMakeTupleOrConstant,
+)
 from nuitka.nodes.ContainerOperationNodes import (
     ExpressionListOperationExtend,
     ExpressionSetOperationUpdate,
@@ -68,45 +73,68 @@ from .TreeHelpers import (
     buildNode,
     buildNodeList,
     getKind,
-    makeSequenceCreationOrConstant,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
 )
 
 
-def buildTupleCreationNode(provider, elements, source_ref):
-    """For use in Python3 classes for the bases."""
-
-    for element in elements:
-        if getKind(element) == "Starred":
-            return _buildTupleUnpacking(
-                provider=provider, elements=elements, source_ref=source_ref
-            )
-
-    return makeSequenceCreationOrConstant(
-        sequence_kind="TUPLE",
-        elements=buildNodeList(provider, elements, source_ref),
-        source_ref=source_ref,
+def _raiseStarredSyntaxError(element, source_ref):
+    SyntaxErrors.raiseSyntaxError(
+        "can use starred expression only as assignment target",
+        source_ref.atColumnNumber(element.col_offset),
     )
 
 
-def buildSequenceCreationNode(provider, node, source_ref):
+def buildTupleCreationNode(provider, node, source_ref):
     if python_version >= 300:
         for element in node.elts:
             if getKind(element) == "Starred":
                 if python_version < 350:
-                    SyntaxErrors.raiseSyntaxError(
-                        "can use starred expression only as assignment target",
-                        source_ref.atColumnNumber(element.col_offset),
-                    )
+                    _raiseStarredSyntaxError(element, source_ref)
                 else:
-                    return _buildSequenceUnpacking(
-                        provider=provider, node=node, source_ref=source_ref
+                    return buildTupleUnpacking(
+                        provider=provider, elements=node.elts, source_ref=source_ref
                     )
 
-    return makeSequenceCreationOrConstant(
-        sequence_kind=getKind(node).upper(),
+    return makeExpressionMakeTupleOrConstant(
         elements=buildNodeList(provider, node.elts, source_ref),
+        user_provided=True,
+        source_ref=source_ref,
+    )
+
+
+def buildListCreationNode(provider, node, source_ref):
+    if python_version >= 300:
+        for element in node.elts:
+            if getKind(element) == "Starred":
+                if python_version < 350:
+                    _raiseStarredSyntaxError(element, source_ref)
+                else:
+                    return buildListUnpacking(
+                        provider=provider, elements=node.elts, source_ref=source_ref
+                    )
+
+    return makeExpressionMakeListOrConstant(
+        elements=buildNodeList(provider, node.elts, source_ref),
+        user_provided=True,
+        source_ref=source_ref,
+    )
+
+
+def buildSetCreationNode(provider, node, source_ref):
+    if python_version >= 300:
+        for element in node.elts:
+            if getKind(element) == "Starred":
+                if python_version < 350:
+                    _raiseStarredSyntaxError(element, source_ref)
+                else:
+                    return _buildSetUnpacking(
+                        provider=provider, elements=node.elts, source_ref=source_ref
+                    )
+
+    return makeExpressionMakeSetLiteralOrConstant(
+        elements=buildNodeList(provider, node.elts, source_ref),
+        user_provided=True,
         source_ref=source_ref,
     )
 
@@ -336,8 +364,9 @@ def buildListUnpacking(provider, elements, source_ref):
             helper_args.append(buildNode(provider, element.value, source_ref))
         else:
             helper_args.append(
-                ExpressionMakeTuple(
+                makeExpressionMakeTupleOrConstant(
                     elements=(buildNode(provider, element, source_ref),),
+                    user_provided=True,
                     source_ref=source_ref,
                 )
             )
@@ -352,7 +381,7 @@ def buildListUnpacking(provider, elements, source_ref):
             annotations=None,
             source_ref=source_ref,
         ),
-        values=(ExpressionMakeTuple(helper_args, source_ref),),
+        values=(makeExpressionMakeTuple(helper_args, source_ref),),
         source_ref=source_ref,
     )
 
@@ -361,7 +390,7 @@ def buildListUnpacking(provider, elements, source_ref):
     return result
 
 
-def _buildTupleUnpacking(provider, elements, source_ref):
+def buildTupleUnpacking(provider, elements, source_ref):
     return ExpressionBuiltinTuple(
         value=buildListUnpacking(provider, elements, source_ref), source_ref=source_ref
     )
@@ -380,8 +409,9 @@ def _buildSetUnpacking(provider, elements, source_ref):
             helper_args.append(buildNode(provider, element.value, source_ref))
         else:
             helper_args.append(
-                ExpressionMakeTuple(
+                makeExpressionMakeTupleOrConstant(
                     elements=(buildNode(provider, element, source_ref),),
+                    user_provided=True,
                     source_ref=source_ref,
                 )
             )
@@ -396,23 +426,10 @@ def _buildSetUnpacking(provider, elements, source_ref):
             annotations=None,
             source_ref=source_ref,
         ),
-        values=(ExpressionMakeTuple(helper_args, source_ref),),
+        values=(makeExpressionMakeTuple(helper_args, source_ref),),
         source_ref=source_ref,
     )
 
     result.setCompatibleSourceReference(helper_args[-1].getCompatibleSourceReference())
 
     return result
-
-
-def _buildSequenceUnpacking(provider, node, source_ref):
-    kind = getKind(node)
-
-    if kind == "List":
-        return buildListUnpacking(provider, node.elts, source_ref)
-    elif kind == "Tuple":
-        return _buildTupleUnpacking(provider, node.elts, source_ref)
-    elif kind == "Set":
-        return _buildSetUnpacking(provider, node.elts, source_ref)
-    else:
-        assert False, kind

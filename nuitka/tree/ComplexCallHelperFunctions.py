@@ -45,7 +45,7 @@ from nuitka.nodes.ConditionalNodes import (
     makeStatementConditional,
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import StatementDictOperationSetKeyValue
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
@@ -280,8 +280,7 @@ def getCallableNameDescBody():
                     instance=ExpressionVariableRef(
                         variable=called_variable, source_ref=internal_source_ref
                     ),
-                    # TODO: This ought to be a constant value.
-                    classes=ExpressionMakeTuple(
+                    classes=makeExpressionMakeTuple(
                         elements=tuple(
                             ExpressionBuiltinAnonymousRef(
                                 builtin_name=builtin_name,
@@ -315,7 +314,7 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
                         source_ref=internal_source_ref,
                         user_provided=True,
                     ),
-                    right=ExpressionMakeTuple(
+                    right=makeExpressionMakeTuple(
                         elements=(
                             ExpressionFunctionCall(
                                 function=ExpressionFunctionCreation(
@@ -446,7 +445,7 @@ def _makeRaiseExceptionMustBeMapping(called_variable, star_dict_variable):
                         source_ref=internal_source_ref,
                         user_provided=True,
                     ),
-                    right=ExpressionMakeTuple(
+                    right=makeExpressionMakeTuple(
                         elements=(
                             ExpressionFunctionCall(
                                 function=ExpressionFunctionCreation(
@@ -711,7 +710,7 @@ def _makeRaiseDuplicationItem(called_variable, tmp_key_variable):
                         source_ref=internal_source_ref,
                         user_provided=True,
                     ),
-                    right=ExpressionMakeTuple(
+                    right=makeExpressionMakeTuple(
                         elements=(
                             ExpressionFunctionCall(
                                 function=ExpressionFunctionCreation(

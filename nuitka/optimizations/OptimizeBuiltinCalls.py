@@ -112,6 +112,7 @@ from nuitka.nodes.ConditionalNodes import (
     makeStatementConditional,
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from nuitka.nodes.ExecEvalNodes import (
     ExpressionBuiltinCompile,
     ExpressionBuiltinEval,
@@ -154,7 +155,6 @@ from nuitka.tree.ReformulationTryFinallyStatements import (
 )
 from nuitka.tree.TreeHelpers import (
     makeCallNode,
-    makeSequenceCreationOrConstant,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
 )
@@ -911,9 +911,9 @@ def eval_extractor(node):
                         instance=ExpressionTempVariableRef(
                             variable=source_variable, source_ref=source_ref
                         ),
-                        classes=makeSequenceCreationOrConstant(
-                            sequence_kind="tuple",
+                        classes=makeExpressionMakeTupleOrConstant(
                             elements=acceptable_builtin_types,
+                            user_provided=True,
                             source_ref=source_ref,
                         ),
                         source_ref=source_ref,
