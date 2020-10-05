@@ -25,7 +25,7 @@ The "dir()" call without arguments is reformulated to locals or globals calls.
 """
 
 from .ConstantRefNodes import makeConstantRefNode
-from .DictionaryNodes import ExpressionKeyValuePair, ExpressionMakeDict
+from .DictionaryNodes import ExpressionKeyValuePair, makeExpressionMakeDict
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .VariableRefNodes import ExpressionTempVariableRef, ExpressionVariableRef
 
@@ -111,7 +111,7 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
 
     def computeExpressionRaw(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
-            result = ExpressionMakeDict(
+            result = makeExpressionMakeDict(
                 pairs=(
                     ExpressionKeyValuePair(
                         key=makeConstantRefNode(
@@ -182,14 +182,21 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
 
         # Locals is sorted of course.
         def _sorted(pairs):
+            # TODO: Should use a locals scope for this.
             names = self.getParentVariableProvider().getLocalVariableNames()
 
-            return sorted(
-                pairs,
-                key=lambda pair: names.index(pair.getKey().getCompileTimeConstant()),
+            return tuple(
+                sorted(
+                    pairs,
+                    key=lambda pair: names.index(
+                        pair.getKey().getCompileTimeConstant()
+                    ),
+                )
             )
 
-        result = ExpressionMakeDict(pairs=_sorted(pairs), source_ref=self.source_ref)
+        result = makeExpressionMakeDict(
+            pairs=_sorted(pairs), source_ref=self.source_ref
+        )
 
         return result, "new_expression", "Statically predicted locals dictionary."
 

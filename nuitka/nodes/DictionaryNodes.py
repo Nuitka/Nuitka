@@ -29,6 +29,10 @@ from nuitka.PythonVersions import python_version
 
 from .AttributeNodes import ExpressionAttributeLookup
 from .BuiltinHashNodes import ExpressionBuiltinHash
+from .ConstantRefNodes import (
+    ExpressionConstantDictEmptyRef,
+    makeConstantRefNode,
+)
 from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
@@ -43,7 +47,19 @@ from .NodeMakingHelpers import (
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
+from .shapes.BuiltinTypeShapes import tshape_dict
 from .TypeNodes import ExpressionBuiltinType1
+
+
+def makeExpressionPairs(keys, values):
+    assert len(keys) == len(values)
+
+    return [
+        ExpressionKeyValuePair(
+            key=key, value=value, source_ref=key.getSourceReference()
+        )
+        for key, value in zip(keys, values)
+    ]
 
 
 class ExpressionKeyValuePair(
@@ -107,19 +123,71 @@ class ExpressionKeyValuePair(
             return key_part + self.subnode_value.extractSideEffects()
 
 
+def makeExpressionMakeDict(pairs, source_ref):
+    if pairs:
+        return ExpressionMakeDict(pairs, source_ref)
+    else:
+        # TODO: Get rid of user provided for empty dict refs, makes no sense.
+        return ExpressionConstantDictEmptyRef(
+            user_provided=False, source_ref=source_ref
+        )
+
+
+def makeExpressionMakeDictOrConstant(pairs, user_provided, source_ref):
+    # Create dictionary node. Tries to avoid it for constant values that are not
+    # mutable.
+
+    for pair in pairs:
+        # TODO: Compile time constant ought to be the criterion.
+        if (
+            not pair.subnode_value.isExpressionConstantRef()
+            or not pair.subnode_key.isExpressionConstantRef()
+        ):
+            result = makeExpressionMakeDict(pairs, source_ref)
+            break
+    else:
+        # Unless told otherwise, create the dictionary in its full size, so
+        # that no growing occurs and the constant becomes as similar as possible
+        # before being marshaled.
+        result = makeConstantRefNode(
+            constant=Constants.createConstantDict(
+                keys=[pair.subnode_key.getCompileTimeConstant() for pair in pairs],
+                values=[pair.subnode_value.getCompileTimeConstant() for pair in pairs],
+            ),
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
+
+    if pairs:
+        result.setCompatibleSourceReference(
+            source_ref=pairs[-1].subnode_value.getCompatibleSourceReference()
+        )
+
+    return result
+
+
 class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildHavingBase):
     kind = "EXPRESSION_MAKE_DICT"
 
     named_child = "pairs"
-    getPairs = ExpressionChildHavingBase.childGetter("pairs")
 
     def __init__(self, pairs, source_ref):
+        assert pairs
+
         ExpressionChildHavingBase.__init__(
             self, value=tuple(pairs), source_ref=source_ref
         )
 
+    @staticmethod
+    def getTypeShape():
+        return tshape_dict
+
+    @staticmethod
+    def hasShapeDictionaryExact():
+        return True
+
     def computeExpression(self, trace_collection):
-        pairs = self.getPairs()
+        pairs = self.subnode_pairs
 
         is_constant = True
 
@@ -184,37 +252,31 @@ Created dictionary found to be constant.""",
         )
 
     def mayRaiseException(self, exception_type):
-        for pair in self.getPairs():
+        for pair in self.subnode_pairs:
             if pair.mayRaiseException(exception_type):
                 return True
 
         return False
 
-    def mayHaveSideEffectsBool(self):
+    @staticmethod
+    def mayHaveSideEffectsBool():
         return False
 
     def isKnownToBeIterable(self, count):
-        return count is None or count == len(self.getPairs())
+        return count is None or count == len(self.subnode_pairs)
 
     def getIterationLength(self):
-        pair_count = len(self.getPairs())
+        pair_count = len(self.subnode_pairs)
 
         # Hashing may consume elements.
-        if pair_count >= 2:
+        if pair_count > 1:
             return None
         else:
             return pair_count
 
-    def getIterationMinLength(self):
-        pair_count = len(self.getPairs())
-
-        if pair_count == 0:
-            return 0
-        else:
-            return 1
-
-    def getIterationMaxLength(self):
-        return len(self.getPairs())
+    @staticmethod
+    def getIterationMinLength():
+        return 1
 
     def canPredictIterationValues(self):
         # Dictionaries are fully predictable, pylint: disable=no-self-use
@@ -224,14 +286,10 @@ Created dictionary found to be constant.""",
         return True
 
     def getIterationValue(self, count):
-        return self.getPairs()[count].getKey()
+        return self.subnode_pairs[count].getKey()
 
-    def getTruthValue(self):
-        return self.getIterationLength() > 0
-
-    def isMapping(self):
-        # Dictionaries are always mappings, but this is a virtual method,
-        # pylint: disable=no-self-use
+    @staticmethod
+    def getTruthValue():
         return True
 
     def isMappingWithConstantStringKeys(self):
@@ -242,7 +300,7 @@ Created dictionary found to be constant.""",
     def getMappingStringKeyPairs(self):
         return [
             (pair.subnode_key.getCompileTimeConstant(), pair.subnode_value)
-            for pair in self.getPairs()
+            for pair in self.subnode_pairs
         ]
 
     # TODO: Missing computeExpressionIter1 here. For now it would require us to
@@ -256,7 +314,7 @@ Created dictionary found to be constant.""",
     def computeExpressionDrop(self, statement, trace_collection):
         expressions = []
 
-        for pair in self.getPairs():
+        for pair in self.subnode_pairs:
             expressions.extend(pair.extractSideEffects())
 
         result = makeStatementOnlyNodesFromExpressions(expressions=expressions)
@@ -272,9 +330,6 @@ Removed sequence creation for unused sequence.""",
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         return iter_node, None, None
-
-    def hasShapeDictionaryExact(self):
-        return True
 
 
 class StatementDictOperationSet(StatementChildrenHavingBase):

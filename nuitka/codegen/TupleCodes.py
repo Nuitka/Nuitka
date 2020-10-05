@@ -47,7 +47,7 @@ def generateTupleCreationCode(to_name, expression, emit, context):
 
         getTupleCreationCode(
             to_name=value_name,
-            elements=expression.getElements(),
+            elements=expression.subnode_elements,
             emit=emit,
             context=context,
         )

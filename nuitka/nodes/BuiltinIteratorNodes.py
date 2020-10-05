@@ -95,12 +95,6 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         iter_length = self.getValue().getIterationMinLength()
         return iter_length is not None and count <= iter_length
 
-    def isKnownToBeIterableAtMax(self, count):
-        assert type(count) is int
-
-        iter_length = self.getValue().getIterationMaxLength()
-        return iter_length is not None and count <= iter_length
-
     def getIterationLength(self):
         return self.getValue().getIterationLength()
 
@@ -328,13 +322,6 @@ class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
 
         iter_length = self.getValue().getIterationMinLength()
         return iter_length is not None and iter_length < count
-
-    def isKnownToBeIterableAtMax(self, count):
-        assert type(count) is int
-
-        iter_length = self.getValue().getIterationMaxLength()
-
-        return iter_length is not None and count <= iter_length
 
     def onRelease(self, trace_collection):
         # print "onRelease", self

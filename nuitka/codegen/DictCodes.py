@@ -95,7 +95,10 @@ def generateDictionaryCreationCode(to_name, expression, emit, context):
         to_name, "dict_result", expression, emit, context
     ) as value_name:
         _getDictionaryCreationCode(
-            to_name=value_name, pairs=expression.getPairs(), emit=emit, context=context
+            to_name=value_name,
+            pairs=expression.subnode_pairs,
+            emit=emit,
+            context=context,
         )
 
 

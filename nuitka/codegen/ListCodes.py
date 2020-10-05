@@ -32,7 +32,7 @@ from .PythonAPICodes import generateCAPIObjectCode
 
 
 def generateListCreationCode(to_name, expression, emit, context):
-    elements = expression.getElements()
+    elements = expression.subnode_elements
     assert elements
 
     element_name = context.allocateTempName("list_element")

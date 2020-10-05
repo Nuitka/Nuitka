@@ -161,8 +161,8 @@ class ValueTraceBase(object):
 
         return None
 
-    def hasShapeDictionaryExact(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def hasShapeDictionaryExact():
         return False
 
 
@@ -440,11 +440,7 @@ class ValueTraceMerge(ValueTraceMergeBase):
         self.usage_count += 1
 
     def hasShapeDictionaryExact(self):
-        for previous in self.previous:
-            if not previous.hasShapeDictionaryExact():
-                return False
-
-        return True
+        return all(previous.hasShapeDictionaryExact() for previous in self.previous)
 
 
 class ValueTraceLoopBase(ValueTraceMergeBase):

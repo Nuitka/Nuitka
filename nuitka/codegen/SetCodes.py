@@ -36,7 +36,7 @@ from .PythonAPICodes import generateCAPIObjectCode
 def generateSetCreationCode(to_name, expression, emit, context):
     element_name = context.allocateTempName("set_element")
 
-    elements = expression.getElements()
+    elements = expression.subnode_elements
 
     # Supposed to optimize empty set to constant value.
     assert elements, expression
@@ -84,7 +84,7 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
 
         context.addCleanupTempName(result_name)
 
-        elements = expression.getElements()
+        elements = expression.subnode_elements
 
         element_names = []
 
