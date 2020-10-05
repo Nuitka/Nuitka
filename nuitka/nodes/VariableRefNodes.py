@@ -129,6 +129,18 @@ class ExpressionVariableRefBase(ExpressionBase):
         else:
             return self.variable_trace.getTypeShape()
 
+    def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # The variable itself is to be considered escaped.
+        trace_collection.markActiveVariableAsEscaped(self.variable)
+
+        if not self.isKnownToHaveAttribute(attribute_name):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return lookup_node, None, None
+
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
         tags = None
         message = None
@@ -455,6 +467,9 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
 
     def hasShapeDictionaryExact(self):
         return self.variable_trace.hasShapeDictionaryExact()
+
+    def getTruthValue(self):
+        return self.variable_trace.getTruthValue()
 
     def onContentEscapes(self, trace_collection):
         trace_collection.onVariableContentEscapes(self.variable)

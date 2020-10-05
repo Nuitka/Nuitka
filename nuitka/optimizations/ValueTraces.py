@@ -165,6 +165,10 @@ class ValueTraceBase(object):
     def hasShapeDictionaryExact():
         return False
 
+    @staticmethod
+    def getTruthValue():
+        return None
+
 
 class ValueTraceUnassignedBase(ValueTraceBase):
     __slots__ = ()
@@ -354,6 +358,9 @@ class ValueTraceAssign(ValueTraceBase):
     def hasShapeDictionaryExact(self):
         return self.assign_node.subnode_source.hasShapeDictionaryExact()
 
+    def getTruthValue(self):
+        return self.assign_node.subnode_source.getTruthValue()
+
 
 class ValueTraceMergeBase(ValueTraceBase):
     """Merge of two or more traces or start of loops."""
@@ -442,6 +449,30 @@ class ValueTraceMerge(ValueTraceMergeBase):
     def hasShapeDictionaryExact(self):
         return all(previous.hasShapeDictionaryExact() for previous in self.previous)
 
+    def getTruthValue(self):
+        any_false = False
+        any_true = False
+
+        for previous in self.previous:
+            truth_value = previous.getTruthValue()
+
+            # One unknown kills it.
+            if truth_value is None:
+                return None
+            elif truth_value is True:
+                # True and false values resembled unknown.
+                if any_false:
+                    return None
+                any_true = True
+            else:
+                # True and false values resembled unknown.
+                if any_true:
+                    return None
+                any_false = True
+
+        # Now all agreed and were not unknown, so we can conclude all false or all true.
+        return any_true
+
 
 class ValueTraceLoopBase(ValueTraceMergeBase):
     __slots__ = ("loop_node", "type_shapes", "type_shape", "recursion")
@@ -511,6 +542,7 @@ class ValueTraceLoopComplete(ValueTraceLoopBase):
             and self.type_shapes == other.type_shapes
         )
 
+    # TODO: These could be better
     @staticmethod
     def mustHaveValue():
         return False
@@ -518,6 +550,10 @@ class ValueTraceLoopComplete(ValueTraceLoopBase):
     @staticmethod
     def mustNotHaveValue():
         return False
+
+    @staticmethod
+    def getTruthValue():
+        return None
 
 
 class ValueTraceLoopIncomplete(ValueTraceLoopBase):
@@ -540,3 +576,7 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
     @staticmethod
     def mustNotHaveValue():
         return False
+
+    @staticmethod
+    def getTruthValue():
+        return None
