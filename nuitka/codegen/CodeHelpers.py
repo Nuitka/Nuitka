@@ -349,7 +349,11 @@ class HelperCallHandle(object):
         )
 
         # TODO: Move helper calling to something separate.
-        from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
+        from .ErrorCodes import (
+            getErrorExitCode,
+            getReleaseCode,
+            getReleaseCodes,
+        )
 
         # TODO: Have a method to indicate these.
         if value_name.getCType().c_type != "bool":
