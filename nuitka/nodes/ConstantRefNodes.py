@@ -136,8 +136,6 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
     def getCompileTimeConstant(self):
         return self.constant
 
-    getConstant = getCompileTimeConstant
-
     def getIterationHandle(self):
         if self.isIterableConstant():
             return ConstantIndexableIterationHandle(self)
@@ -385,6 +383,12 @@ class ExpressionConstantTrueRef(ExpressionConstantBoolRefBase):
             self, constant=True, source_ref=source_ref
         )
 
+    @staticmethod
+    def getTruthValue():
+        """ Return known truth value. """
+
+        return True
+
 
 class ExpressionConstantFalseRef(ExpressionConstantBoolRefBase):
     kind = "EXPRESSION_CONSTANT_FALSE_REF"
@@ -395,6 +399,12 @@ class ExpressionConstantFalseRef(ExpressionConstantBoolRefBase):
         ExpressionConstantBoolRefBase.__init__(
             self, constant=False, source_ref=source_ref
         )
+
+    @staticmethod
+    def getTruthValue():
+        """ Return known truth value. """
+
+        return False
 
 
 class ExpressionConstantEllipsisRef(ExpressionConstantUntrackedRefBase):
@@ -426,6 +436,12 @@ class ExpressionConstantEllipsisRef(ExpressionConstantUntrackedRefBase):
     @staticmethod
     def isIterableConstant():
         return False
+
+    @staticmethod
+    def getTruthValue():
+        """ Return known truth value. """
+
+        return True
 
 
 class ExpressionConstantDictRef(ExpressionConstantRefBase):
@@ -494,11 +510,40 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
 
         return pairs
 
+    @staticmethod
+    def getTruthValue():
+        """Return known truth value.
+
+        The empty dict is not allowed here, so we can hardcode it.
+        """
+
+        return True
+
+
+class EmptyContainerMixin(object):
+    __slots__ = ()
+
+    def getDetails(self):
+        return {"user_provided": self.user_provided}
+
+    @staticmethod
+    def getIterationLength():
+        return 0
+
+    @staticmethod
+    def getTruthValue():
+        """Return known truth value.
+
+        The empty container is false, so we can hardcode it.
+        """
+
+        return False
+
 
 _the_empty_dict = {}
 
 
-class ExpressionConstantDictEmptyRef(ExpressionConstantDictRef):
+class ExpressionConstantDictEmptyRef(EmptyContainerMixin, ExpressionConstantDictRef):
     kind = "EXPRESSION_CONSTANT_DICT_EMPTY_REF"
 
     __slots__ = ()
@@ -510,13 +555,6 @@ class ExpressionConstantDictEmptyRef(ExpressionConstantDictRef):
             user_provided=user_provided,
             source_ref=source_ref,
         )
-
-    def getDetails(self):
-        return {"user_provided": self.user_provided}
-
-    @staticmethod
-    def getIterationLength():
-        return 0
 
 
 class ExpressionConstantTupleRef(ExpressionConstantRefBase):
@@ -556,6 +594,15 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
         # Note: Tuples are as good as it gets.
         return iter_node, None, None
 
+    @staticmethod
+    def getTruthValue():
+        """Return known truth value.
+
+        The empty dict is not allowed here, so we can hardcode it.
+        """
+
+        return True
+
 
 class ExpressionConstantTupleMutableRef(ExpressionConstantTupleRef):
     kind = "EXPRESSION_CONSTANT_TUPLE_MUTABLE_REF"
@@ -574,7 +621,7 @@ class ExpressionConstantTupleMutableRef(ExpressionConstantTupleRef):
 _the_empty_tuple = ()
 
 
-class ExpressionConstantTupleEmptyRef(ExpressionConstantTupleRef):
+class ExpressionConstantTupleEmptyRef(EmptyContainerMixin, ExpressionConstantTupleRef):
     kind = "EXPRESSION_CONSTANT_TUPLE_EMPTY_REF"
 
     __slots__ = ()
@@ -586,13 +633,6 @@ class ExpressionConstantTupleEmptyRef(ExpressionConstantTupleRef):
             user_provided=user_provided,
             source_ref=source_ref,
         )
-
-    def getDetails(self):
-        return {"user_provided": self.user_provided}
-
-    @staticmethod
-    def getIterationLength():
-        return 0
 
 
 class ExpressionConstantListRef(ExpressionConstantRefBase):
@@ -648,7 +688,7 @@ class ExpressionConstantListRef(ExpressionConstantRefBase):
 _the_empty_list = []
 
 
-class ExpressionConstantListEmptyRef(ExpressionConstantListRef):
+class ExpressionConstantListEmptyRef(EmptyContainerMixin, ExpressionConstantListRef):
     kind = "EXPRESSION_CONSTANT_LIST_EMPTY_REF"
 
     __slots__ = ()
@@ -660,13 +700,6 @@ class ExpressionConstantListEmptyRef(ExpressionConstantListRef):
             user_provided=user_provided,
             source_ref=source_ref,
         )
-
-    def getDetails(self):
-        return {"user_provided": self.user_provided}
-
-    @staticmethod
-    def getIterationLength():
-        return 0
 
 
 class ExpressionConstantSetRef(ExpressionConstantRefBase):
@@ -725,7 +758,7 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
 _the_empty_set = set()
 
 
-class ExpressionConstantSetEmptyRef(ExpressionConstantSetRef):
+class ExpressionConstantSetEmptyRef(EmptyContainerMixin, ExpressionConstantSetRef):
     kind = "EXPRESSION_CONSTANT_SET_EMPTY_REF"
 
     __slots__ = ()
@@ -737,13 +770,6 @@ class ExpressionConstantSetEmptyRef(ExpressionConstantSetRef):
             user_provided=user_provided,
             source_ref=source_ref,
         )
-
-    def getDetails(self):
-        return {"user_provided": self.user_provided}
-
-    @staticmethod
-    def getIterationLength():
-        return 0
 
 
 class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
@@ -799,7 +825,9 @@ class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
 _the_empty_frozenset = frozenset()
 
 
-class ExpressionConstantFrozensetEmptyRef(ExpressionConstantFrozensetRef):
+class ExpressionConstantFrozensetEmptyRef(
+    EmptyContainerMixin, ExpressionConstantFrozensetRef
+):
     kind = "EXPRESSION_CONSTANT_FROZENSET_EMPTY_REF"
 
     __slots__ = ()
@@ -811,13 +839,6 @@ class ExpressionConstantFrozensetEmptyRef(ExpressionConstantFrozensetRef):
             user_provided=user_provided,
             source_ref=source_ref,
         )
-
-    def getDetails(self):
-        return {"user_provided": self.user_provided}
-
-    @staticmethod
-    def getIterationLength():
-        return 0
 
 
 class ExpressionConstantIntRef(ExpressionConstantUntrackedRefBase):
@@ -1238,6 +1259,10 @@ class ExpressionConstantTypeRef(ExpressionConstantUntrackedRefBase):
     @staticmethod
     def isIterableConstant():
         return False
+
+    @staticmethod
+    def getTruthValue():
+        return True
 
 
 def makeConstantRefNode(constant, source_ref, user_provided=False):

@@ -28,11 +28,7 @@ from nuitka import Constants, Options, Tracing
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionMakeList,
-    ExpressionMakeSetLiteral,
-    ExpressionMakeTuple,
-)
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from nuitka.nodes.DictionaryNodes import (
     ExpressionKeyValuePair,
     ExpressionMakeDict,
@@ -49,10 +45,7 @@ from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.PythonVersions import (
-    needsSetLiteralReverseInsertion,
-    python_version,
-)
+from nuitka.PythonVersions import python_version
 
 
 def dump(node):
@@ -537,63 +530,6 @@ def makeStatementsSequenceFromStatements(*statements):
     )
 
 
-def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
-    # Sequence creation. Tries to avoid creations with only constant
-    # elements. Would be caught by optimization, but would be useless churn. For
-    # mutable constants we cannot do it though.
-
-    # Due to the many sequence types, there is a lot of cases here
-    # pylint: disable=too-many-branches
-
-    for element in elements:
-        if not element.isExpressionConstantRef():
-            constant = False
-            break
-    else:
-        constant = True
-
-    sequence_kind = sequence_kind.lower()
-
-    # Note: This would happen in optimization instead, but lets just do it
-    # immediately to save some time.
-    if constant:
-        if sequence_kind == "tuple":
-            const_type = tuple
-        elif sequence_kind == "list":
-            const_type = list
-        elif sequence_kind == "set":
-            const_type = set
-
-            if needsSetLiteralReverseInsertion():
-                elements = tuple(reversed(elements))
-        else:
-            assert False, sequence_kind
-
-        result = makeConstantRefNode(
-            constant=const_type(
-                element.getCompileTimeConstant() for element in elements
-            ),
-            source_ref=source_ref,
-            user_provided=True,
-        )
-    else:
-        if sequence_kind == "tuple":
-            result = ExpressionMakeTuple(elements=elements, source_ref=source_ref)
-        elif sequence_kind == "list":
-            result = ExpressionMakeList(elements=elements, source_ref=source_ref)
-        elif sequence_kind == "set":
-            result = ExpressionMakeSetLiteral(elements=elements, source_ref=source_ref)
-        else:
-            assert False, sequence_kind
-
-    if elements:
-        result.setCompatibleSourceReference(
-            source_ref=elements[-1].getCompatibleSourceReference()
-        )
-
-    return result
-
-
 def makeDictCreationOrConstant(keys, values, source_ref):
     # Create dictionary node. Tries to avoid it for constant values that are not
     # mutable.
@@ -748,8 +684,8 @@ def makeCallNode(called, *args, **kwargs):
     source_ref = args[-1]
 
     if len(args) > 1:
-        args = makeSequenceCreationOrConstant(
-            sequence_kind="tuple", elements=args[:-1], source_ref=source_ref
+        args = makeExpressionMakeTupleOrConstant(
+            elements=args[:-1], user_provided=True, source_ref=source_ref
         )
     else:
         args = None

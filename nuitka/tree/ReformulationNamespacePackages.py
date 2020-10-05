@@ -28,8 +28,8 @@ from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionMakeList,
-    ExpressionMakeTuple,
+    makeExpressionMakeList,
+    makeExpressionMakeTuple,
 )
 from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
 from nuitka.nodes.FutureSpecs import FutureSpec
@@ -63,7 +63,7 @@ def _makeCall(module_name, import_name, attribute_name, source_ref, *args):
             attribute_name=attribute_name,
             source_ref=source_ref,
         ),
-        args=ExpressionMakeTuple(elements=args, source_ref=source_ref),
+        args=makeExpressionMakeTuple(elements=args, source_ref=source_ref),
         source_ref=source_ref,
     )
 
@@ -85,7 +85,7 @@ def createPathAssignment(package, source_ref):
                     attribute_name="dirname",
                     source_ref=source_ref,
                 ),
-                args=ExpressionMakeTuple(
+                args=makeExpressionMakeTuple(
                     elements=(
                         ExpressionModuleAttributeFileRef(
                             variable=package.getVariableForReference("__file__"),
@@ -129,7 +129,7 @@ def createPathAssignment(package, source_ref):
 
                 elements.append(path_part)
 
-        path_value = ExpressionMakeList(elements=elements, source_ref=source_ref)
+        path_value = makeExpressionMakeList(elements=elements, source_ref=source_ref)
 
     return StatementAssignmentVariableName(
         provider=package,

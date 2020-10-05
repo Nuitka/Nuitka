@@ -124,13 +124,13 @@ def makeRaiseExceptionExpressionFromTemplate(
 ):
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
     from .ConstantRefNodes import makeConstantRefNode
-    from .ContainerMakingNodes import ExpressionMakeTuple
+    from .ContainerMakingNodes import makeExpressionMakeTupleOrConstant
     from .ExceptionNodes import ExpressionRaiseException
     from .OperatorNodes import makeBinaryOperationNode
 
     if type(template_args) is tuple:
-        template_args = ExpressionMakeTuple(
-            elements=template_args, source_ref=source_ref
+        template_args = makeExpressionMakeTupleOrConstant(
+            elements=template_args, user_provided=False, source_ref=source_ref
         )
 
     return ExpressionRaiseException(

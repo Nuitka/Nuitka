@@ -657,11 +657,14 @@ class ExpressionFunctionBody(
 
         assert False, self
 
-    def isCompileTimeConstant(self):
-        # TODO: It's actually pretty much compile time accessible maybe.
+    @staticmethod
+    def isCompileTimeConstant():
+        # TODO: It's actually pretty much compile time accessible maybe, but that
+        # would require extra effort.
         return False
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         # The function definition has no side effects, calculating the defaults
         # would be, but that is done outside of this.
         return False

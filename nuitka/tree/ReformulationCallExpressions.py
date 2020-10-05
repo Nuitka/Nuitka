@@ -25,7 +25,10 @@ source code comments with developer manual sections.
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerMakingNodes import (
+    makeExpressionMakeTuple,
+    makeExpressionMakeTupleOrConstant,
+)
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
@@ -58,7 +61,6 @@ from .TreeHelpers import (
     buildNodeList,
     getKind,
     makeDictCreationOrConstant,
-    makeSequenceCreationOrConstant,
     makeStatementsSequenceFromStatements,
 )
 
@@ -109,7 +111,7 @@ def buildCallNode(provider, node, source_ref):
 
             helper_args = [
                 ExpressionTempVariableRef(variable=tmp_called, source_ref=source_ref),
-                ExpressionMakeTuple(
+                makeExpressionMakeTuple(
                     elements=buildDictionaryUnpackingArgs(
                         provider=provider,
                         keys=(keyword.arg for keyword in node.keywords),
@@ -202,8 +204,10 @@ def _makeCallNode(
     if list_star_arg is None and dict_star_arg is None:
         result = makeExpressionCall(
             called=called,
-            args=makeSequenceCreationOrConstant(
-                sequence_kind="tuple", elements=positional_args, source_ref=source_ref
+            args=makeExpressionMakeTupleOrConstant(
+                elements=positional_args,
+                user_provided=True,
+                source_ref=source_ref,
             ),
             kw=makeDictCreationOrConstant(
                 keys=keys, values=values, source_ref=source_ref
@@ -255,9 +259,9 @@ def _makeCallNode(
 
         if positional_args:
             helper_args.append(
-                makeSequenceCreationOrConstant(
-                    sequence_kind="tuple",
+                makeExpressionMakeTupleOrConstant(
                     elements=positional_args,
+                    user_provided=True,
                     source_ref=source_ref,
                 )
             )
