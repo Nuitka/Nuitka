@@ -45,10 +45,9 @@ class ExpressionMakeSequenceBase(
     SideEffectsFromChildrenMixin, ExpressionChildHavingBase
 ):
     named_child = "elements"
-    getElements = ExpressionChildHavingBase.childGetter("elements")
 
     def __init__(self, sequence_kind, elements, source_ref):
-        assert sequence_kind in ("TUPLE", "LIST", "SET"), sequence_kind
+        assert elements
 
         for element in elements:
             assert element.isExpression(), element
@@ -68,7 +67,7 @@ class ExpressionMakeSequenceBase(
         """ The simulator for the container making, for overload. """
 
     def computeExpression(self, trace_collection):
-        elements = self.getElements()
+        elements = self.subnode_elements
 
         for count, element in enumerate(elements):
             if element.willRaiseException(BaseException):
@@ -98,39 +97,42 @@ class ExpressionMakeSequenceBase(
         return False
 
     def isKnownToBeIterable(self, count):
-        return count is None or count == len(self.getElements())
+        return count is None or count == len(self.subnode_elements)
 
     def isKnownToBeIterableAtMin(self, count):
-        return count <= len(self.getElements())
+        return count <= len(self.subnode_elements)
 
     def getIterationValue(self, count):
-        return self.getElements()[count]
+        return self.subnode_elements[count]
 
     def getIterationValueRange(self, start, stop):
-        return self.getElements()[start:stop]
+        return self.subnode_elements[start:stop]
 
     @staticmethod
     def canPredictIterationValues():
         return True
 
     def getIterationValues(self):
-        return self.getElements()
+        return self.subnode_elements
 
     def getIterationHandle(self):
-        return ListAndTupleContainerMakingIterationHandle(self.getElements())
+        return ListAndTupleContainerMakingIterationHandle(self.subnode_elements)
 
-    def getTruthValue(self):
-        return self.getIterationLength() > 0
+    @staticmethod
+    def getTruthValue():
+        return True
 
     def mayRaiseException(self, exception_type):
-        for element in self.getElements():
+        for element in self.subnode_elements:
             if element.mayRaiseException(exception_type):
                 return True
 
         return False
 
     def computeExpressionDrop(self, statement, trace_collection):
-        result = makeStatementOnlyNodesFromExpressions(expressions=self.getElements())
+        result = makeStatementOnlyNodesFromExpressions(
+            expressions=self.subnode_elements
+        )
 
         del self.parent
 
@@ -190,7 +192,7 @@ class ExpressionMakeTuple(ExpressionMakeSequenceBase):
         return tuple
 
     def getIterationLength(self):
-        return len(self.getElements())
+        return len(self.subnode_elements)
 
 
 def makeExpressionMakeList(elements, source_ref):
@@ -243,11 +245,11 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
         return list
 
     def getIterationLength(self):
-        return len(self.getElements())
+        return len(self.subnode_elements)
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         result = ExpressionMakeTuple(
-            elements=self.getElements(), source_ref=self.source_ref
+            elements=self.subnode_elements, source_ref=self.source_ref
         )
 
         self.parent.replaceChild(self, result)
@@ -278,7 +280,7 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
         return set
 
     def getIterationLength(self):
-        element_count = len(self.getElements())
+        element_count = len(self.subnode_elements)
 
         # Hashing and equality may consume elements of the produced set.
         if element_count >= 2:
@@ -286,19 +288,13 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
         else:
             return element_count
 
-    def getIterationMinLength(self):
-        element_count = len(self.getElements())
-
-        if element_count == 0:
-            return 0
-        else:
-            return 1
-
-    def getIterationMaxLength(self):
-        return len(self.getElements())
+    @staticmethod
+    def getIterationMinLength():
+        # Hashing and equality may consume elements of the produced set.
+        return 1
 
     def mayRaiseException(self, exception_type):
-        for element in self.getElements():
+        for element in self.subnode_elements:
             if not element.isKnownToBeHashable():
                 return True
 
@@ -309,7 +305,7 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         result = ExpressionMakeTuple(
-            elements=self.getElements(), source_ref=self.source_ref
+            elements=self.subnode_elements, source_ref=self.source_ref
         )
 
         self.parent.replaceChild(self, result)
