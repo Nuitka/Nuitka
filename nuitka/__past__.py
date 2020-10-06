@@ -82,7 +82,7 @@ else:
     from io import StringIO  # pylint: disable=I0021,import-error,ungrouped-imports
 
 if str is bytes:
-    from cStringIO import StringIO as BytesIO  # pylint: disable=I0021,import-error
+    BytesIO = StringIO
 else:
     from io import BytesIO  # pylint: disable=I0021,import-error
 
