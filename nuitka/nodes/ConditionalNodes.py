@@ -550,7 +550,7 @@ branches.""",
             trace_collection.signalChange(
                 tags="new_statements",
                 source_ref=yes_branch.source_ref,
-                message="Removed conditional branch not taken due to false condition value.",
+                message="Removed conditional branch that cannot be taken due to false condition value.",
             )
 
             yes_branch.finalize()
@@ -561,7 +561,7 @@ branches.""",
             trace_collection.signalChange(
                 tags="new_statements",
                 source_ref=no_branch.source_ref,
-                message="Removed 'else' branch not taken due to true condition value.",
+                message="Removed 'else' branch that cannot be taken due to true condition value.",
             )
 
             no_branch.finalize()
