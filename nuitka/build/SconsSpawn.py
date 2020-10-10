@@ -78,7 +78,7 @@ def runProcessMonitored(cmdline, env):
     # Allow a minute before warning for long compile time.
     thread.join(60)
 
-    if thread.isAlive():
+    if thread.is_alive():
         scons_logger.info(
             "Slow C compilation detected, used %.0fs so far, this might indicate scalability problems."
             % thread.timer_report.getTimer().getDelta()
@@ -212,7 +212,7 @@ def runSpawnMonitored(spawn, sh, escape, cmd, args, env):
     # Allow a minute before warning for long compile time.
     thread.join(60)
 
-    if thread.isAlive():
+    if thread.is_alive():
         scons_logger.info(
             "Slow C compilation detected, used %.0fs so far, this might indicate scalability problems."
             % thread.timer_report.getTimer().getDelta()
