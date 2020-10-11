@@ -59,7 +59,6 @@ from .SconsUtils import (
     changeKeyboardInteruptToErrorExit,
     decodeData,
     getExecutablePath,
-    setEnvironmentVariable,
 )
 
 
@@ -262,6 +261,8 @@ link_libraries = getListOption("link_libraries", "")
 # Mode to only output compiler information, for use in "nuitka --version"
 # only.
 compiler_version_mode = getBoolOption("compiler_version", False)
+
+assume_yes_for_downloads = getBoolOption("assume_yes_for_downloads", False)
 
 # Avoid localized outputs.
 os.environ["LANG"] = "C"
@@ -1779,6 +1780,7 @@ if gcc_mode:
         source_dir=source_dir,
         python_prefix=python_prefix,
         show_scons_mode=show_scons_mode,
+        assume_yes_for_downloads=assume_yes_for_downloads,
     ):
         cache_mode = False
 
