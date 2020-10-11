@@ -351,10 +351,10 @@ def shallUseStaticLibPython():
     """*bool* = derived from `sys.prefix` and `os.name`
 
     Notes:
-        Currently only AnaConda on non-Windows can do this.
+        Currently only Anaconda on non-Windows can do this.
     """
 
-    # For AnaConda default to trying static lib python library, which
+    # For Anaconda default to trying static lib python library, which
     # normally is just not available or if it is even unusable.
     return (
         os.path.exists(os.path.join(sys.prefix, "conda-meta"))
@@ -374,7 +374,7 @@ def shallTreatUninstalledPython():
         a Python runtime available.
 
         Most often uninstalled Python versions are self compiled or
-        from AnaConda.
+        from Anaconda.
     """
 
     if shallMakeModule() or isStandaloneMode():

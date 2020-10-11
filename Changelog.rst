@@ -560,7 +560,7 @@ Bug Fixes
   are found.
 
 - Standalone: Fixup for problem with standard library module in most recent
-  AnaConda versions.
+  Anaconda versions.
 
 - Scons: Fix, was using ``CXXFLAGS`` and ``CPPFLAGS`` even for the C
   compiler, which is wrong, and could lead to compilation errors.
@@ -2989,7 +2989,7 @@ New Features
   <http://bugs.nuitka.net/issue368>`__.
 
 - Added option ``--python2-for-scons`` to specify the Python2 execute to
-  use for calling Scons. This should allow using AnaConda Python for that
+  use for calling Scons. This should allow using Anaconda Python for that
   task.
 
 Optimization
@@ -4104,7 +4104,7 @@ Nuitka Release 0.5.20
 This release is mostly about catching up with issues. Most address standalone
 problems with special modules, but there are also some general compatibility
 corrections, as well as important fixes for Python3.5 and coroutines and to
-improve compatibility with special Python variants like AnaConda under the
+improve compatibility with special Python variants like Anaconda under the
 Windows system.
 
 Bug Fixes
@@ -4124,7 +4124,7 @@ Bug Fixes
 - Windows: Detecting the Python DLL and EXE used at compile time and preserving
   this information use during backend compilation. This should make sure we use
   the proper ones, and avoids hacks for specific Python variants, enhancing the
-  support for AnaConda, WinPython, and CPython installations.
+  support for Anaconda, WinPython, and CPython installations.
 
 - Windows: The ``--python-debug`` flag now properly detects if the run time
   is supporting things and error exits if it's not available. For a CPython3.5
@@ -4150,7 +4150,7 @@ Bug Fixes
 New Features
 ------------
 
-- Added support for AnaConda Python on this Linux. Both accelerated and
+- Added support for Anaconda Python on this Linux. Both accelerated and
   standalone mode work now. `Issue#295 <http://bugs.nuitka.net/issue295>`__.
 
 - Added support for standalone mode on FreeBSD. `Issue#294
@@ -4522,7 +4522,7 @@ Bug Fixes
 - Fix, the PyLint warnings plug-in could crash in some cases, make sure it's
   more robust.
 
-- Windows: Fix, the combination of AnaConda Python, MinGW 64 bits and mere
+- Windows: Fix, the combination of Anaconda Python, MinGW 64 bits and mere
   acceleration was not working. `Issue#254 <http://bugs.nuitka.net/issue254>`__.
 
 - Standalone: Preserve not only namespace packages created by ``.pth`` files,
@@ -4733,7 +4733,7 @@ New Features
   ``PyQt5`` plug-in support. Experimental Windows ``multiprocessing`` support.
   Experimental PyLint warnings disable support. More to come.
 
-- Added support for AnaConda accelerated mode on macOS by modifying the rpath
+- Added support for Anaconda accelerated mode on macOS by modifying the rpath
   to the Python DLL.
 
 - Added experimental support for ``multiprocessing`` on Windows, which needs
@@ -4928,8 +4928,8 @@ New Features
 
 - Using a self compiled Python running from the source tree is now supported.
 
-- Added support for ``AnaConda`` Python distribution. As it doesn't install
-  the Python DLL, we copy it along for acceleration mode.
+- Added support for Anaconda Python distribution. As it doesn't install the
+  Python DLL, we copy it along for acceleration mode.
 
 - Added support for Visual Studio 2015. `Issue#222
   <http://bugs.nuitka.net/issue222>`__. Fixed in 0.5.13.3 already.
