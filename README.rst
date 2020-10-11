@@ -131,8 +131,8 @@ Requirements
        where the C compiler is too old. Nuitka used to require a C++ compiler
        in the past, but it changed.
 
-.. [#] Download MinGW64 from here http://mingw-w64.org/ and choose 64 or 32
-       bits matching your Python.
+.. [#] Download MinGW64 from here http://mingw-w64.org/ using "MingW-W64-builds"
+       links and choose 64 or 32 bits matching your Python from
 
        Use both MinGW64 and 64 bits Python if you have the choice of which
        Python to use. Install it to ``C:\MinGW64`` or ``\MinGW64`` (same disk
@@ -140,8 +140,8 @@ Requirements
        use ``posix`` for threads and ``dwarf`` for exception model, although
        these currently do not matter at all.
 
-.. [#] Installation of matching MinGW64 is easiest if you use an Anaconda or
-       Miniconda installation.
+.. [#] Installation of matching MinGW64 if you use an Anaconda or Miniconda
+       installation.
 
        Execute ``<path_to_Anaconda>\Scripts\conda install m2w64-gcc libpython``
        and then before you run Nuitka do ``setenv
