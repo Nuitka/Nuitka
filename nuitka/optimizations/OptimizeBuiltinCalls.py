@@ -23,6 +23,7 @@ types, and then specialize for the ones, where it makes sense.
 
 from logging import warning
 
+from nuitka.__past__ import xrange  # pylint: disable=I0021,redefined-builtin
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.nodes.AssignNodes import (
@@ -436,11 +437,14 @@ def range_extractor(node):
 
     def makeRange0(source_ref):
         # pylint: disable=unused-argument
-
-        return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression=node,
-            exception=TypeError("range expected at least 1 arguments, got 0"),
-        )
+        try:
+            range()
+        except Exception as e:  # We want to broad here, pylint: disable=broad-except
+            return makeRaiseExceptionReplacementExpressionFromInstance(
+                expression=node, exception=e
+            )
+        else:
+            raise NuitkaAssumptionError("range without argument is expected to raise")
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
@@ -463,16 +467,14 @@ def xrange_extractor(node):
 
     def makeXrange0(source_ref):
         # pylint: disable=unused-argument
-        if python_version < 300:
-            exception_message = "xrange requires 1-3 int arguments"
-        elif python_version < 380:
-            exception_message = "range expected 1 arguments, got 0"
+        try:
+            xrange()
+        except Exception as e:  # We want to broad here, pylint: disable=broad-except
+            return makeRaiseExceptionReplacementExpressionFromInstance(
+                expression=node, exception=e
+            )
         else:
-            exception_message = "range expected 1 argument, got 0"
-
-        return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression=node, exception=TypeError(exception_message)
-        )
+            raise NuitkaAssumptionError("range without argument is expected to raise")
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
