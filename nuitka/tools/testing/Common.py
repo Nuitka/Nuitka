@@ -32,8 +32,9 @@ import tempfile
 from contextlib import contextmanager
 from optparse import OptionGroup, OptionParser
 
+from nuitka.freezer.DependsExe import getDependsExePath
 from nuitka.Tracing import my_print
-from nuitka.utils.AppDirs import getAppDir, getCacheDir
+from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_output, withEnvironmentVarOverriden
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
@@ -453,20 +454,6 @@ def hasDebugPython():
     return False
 
 
-def getDependsExePath():
-    if "APPDATA" not in os.environ:
-        sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
-
-    nuitka_app_dir = getAppDir()
-
-    depends_dir = os.path.join(nuitka_app_dir, _python_arch)
-    depends_exe = os.path.join(depends_dir, "depends.exe")
-
-    assert os.path.exists(depends_exe), depends_exe
-
-    return depends_exe
-
-
 def isExecutableCommand(command):
     path = os.environ["PATH"]
 
@@ -641,15 +628,13 @@ Error, needs 'strace' on your system to scan used libraries."""
                 continue
 
             dll_filename = line[line.find("]") + 2 :].rstrip()
-            assert os.path.isfile(dll_filename), dll_filename
+            dll_filename = os.path.normcase(dll_filename)
+
+            assert os.path.isfile(dll_filename), repr(dll_filename)
 
             # The executable itself is of course exempted.
-            if os.path.normcase(dll_filename) == os.path.normcase(
-                os.path.abspath(path)
-            ):
+            if dll_filename == os.path.normcase(os.path.abspath(path)):
                 continue
-
-            dll_filename = os.path.normcase(dll_filename)
 
             result.append(dll_filename)
 

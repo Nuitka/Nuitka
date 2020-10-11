@@ -281,7 +281,7 @@ def shallWarnUnusualCode():
 
 def assumeYesForDownloads():
     """*bool* = "--assume-yes-for-downloads" """
-    return options.assume_yes_for_downloads
+    return options is not None and options.assume_yes_for_downloads
 
 
 def isDebug():
