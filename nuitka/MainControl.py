@@ -543,6 +543,9 @@ def runScons(main_module, quiet):
     if Options.shallRunInDebugger():
         options["full_names"] = "true"
 
+    if Options.assumeYesForDownloads():
+        options["assume_yes_for_downloads"] = "true"
+
     return SconsInterface.runScons(options, quiet), options
 
 

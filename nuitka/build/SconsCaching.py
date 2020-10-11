@@ -25,6 +25,8 @@ import sys
 from collections import defaultdict
 
 from nuitka.Tracing import scons_logger
+from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.Execution import getPythonInstallPathWindows
 from nuitka.utils.FileOperations import getLinkTarget, withFileLock
 from nuitka.utils.Utils import getOS, isWin32Windows
 
@@ -59,9 +61,6 @@ def _getCcacheGuessedPaths(python_prefix):
             yield os.path.join(python_dir, "bin", "ccache.exe")
             yield os.path.join(python_dir, "scripts", "ccache.exe")
 
-        # Maybe MSYS2 happens to be installed at the default location.
-        yield r"C:\msys64\usr\bin\ccache.exe"
-
     elif getOS() == "Darwin":
         # For macOS, we might find Homebrew ccache installed but not in PATH.
         yield "/usr/local/opt/ccache"
@@ -78,7 +77,9 @@ def _getClcacheGuessedPaths(python_prefix):
         yield os.path.join(python_dir, "bin", "clcache.exe")
 
 
-def _injectCcache(the_compiler, cc_path, env, python_prefix, show_scons_mode):
+def _injectCcache(
+    the_compiler, cc_path, env, python_prefix, show_scons_mode, assume_yes_for_downloads
+):
     # We deal with a lot of cases here, pylint: disable=too-many-branches
 
     ccache_binary = os.environ.get("NUITKA_CCACHE_BINARY")
@@ -103,6 +104,17 @@ def _injectCcache(the_compiler, cc_path, env, python_prefix, show_scons_mode):
                         )
 
                     break
+
+        if ccache_binary is None:
+            ccache_binary = getCachedDownload(
+                url="https://github.com/ccache/ccache/releases/download/v3.7.12/ccache-3.7.12-windows-32.zip",
+                is_arch_specific=False,
+                binary="ccache.exe",
+                message="Nuitka will make use of ccache to speed up repeated compilation.",
+                reject=None,
+                assume_yes_for_downloads=assume_yes_for_downloads,
+            )
+
     else:
         if show_scons_mode:
             scons_logger.info(
@@ -151,7 +163,14 @@ def _injectCcache(the_compiler, cc_path, env, python_prefix, show_scons_mode):
     return result
 
 
-def enableCcache(the_compiler, env, source_dir, python_prefix, show_scons_mode):
+def enableCcache(
+    the_compiler,
+    env,
+    source_dir,
+    python_prefix,
+    show_scons_mode,
+    assume_yes_for_downloads,
+):
     # The ccache needs absolute path, otherwise it will not work.
     ccache_logfile = os.path.abspath(
         os.path.join(source_dir, "ccache-%d.txt" % os.getpid())
@@ -179,10 +198,13 @@ def enableCcache(the_compiler, env, source_dir, python_prefix, show_scons_mode):
         env=env,
         python_prefix=python_prefix,
         show_scons_mode=show_scons_mode,
+        assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
 
 def enableClcache(the_compiler, env, source_dir, python_prefix, show_scons_mode):
+    # Many branches to deal with, pylint: disable=too-many-branches
+
     # The ccache needs absolute path, otherwise it will not work.
     clcache_logfile = os.path.abspath(
         os.path.join(source_dir, "clcache-%d.txt" % os.getpid())
@@ -214,6 +236,33 @@ def enableClcache(the_compiler, env, source_dir, python_prefix, show_scons_mode)
                         )
 
                     break
+
+        if clcache_binary is None and os.name == "nt":
+
+            def checkClcache(install_dir):
+                candidate = os.path.join(install_dir, "scripts", "clcache.exe")
+
+                if show_scons_mode:
+                    scons_logger.info(
+                        "Checking if clcache is at '%s' python installation path."
+                        % candidate
+                    )
+
+                if os.path.exists(candidate):
+                    return True
+
+            candidate = getPythonInstallPathWindows(
+                supported=("3.6", "3.7", "3.8", "3.9"), decider=checkClcache
+            )
+
+            if candidate is not None:
+                clcache_binary = os.path.join(candidate, "scripts", "clcache.exe")
+
+                if show_scons_mode:
+                    scons_logger.info(
+                        "Using clcache '%s' from registry path." % clcache_binary
+                    )
+
     else:
         if show_scons_mode:
             scons_logger.info(
@@ -230,7 +279,7 @@ def enableClcache(the_compiler, env, source_dir, python_prefix, show_scons_mode)
 
         if show_scons_mode:
             scons_logger.info(
-                "Found ccache '%s' to cache C compilation result." % clcache_binary
+                "Found clcache '%s' to cache C compilation result." % clcache_binary
             )
             scons_logger.info(
                 "Providing real cl.exe path '%s' via environment." % cl_binary

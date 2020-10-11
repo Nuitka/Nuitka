@@ -81,7 +81,7 @@ def _getSconsBinaryCall():
 
 
 def _getPythonSconsExePathWindows():
-    """Find Python2 on Windows.
+    """Find Python for Scons on Windows.
 
     First try a few guesses, the look into registry for user or system wide
     installations of Python2. Both Python 2.6 and 2.7, and 3.5 or higher
@@ -89,43 +89,20 @@ def _getPythonSconsExePathWindows():
     """
 
     # Ordered in the list of preference.
-    scons_supported = ("2.7", "2.6", "3.5", "3.6", "3.7", "3.8")
+    python_dir = Execution.getPythonInstallPathWindows(
+        supported=("2.7", "3.5", "3.6", "3.7", "3.8", "3.9", "2.6")
+    )
 
-    # Shortcuts for the default installation directories, to avoid going to
-    # registry at all unless necessary. Any Python2 will do for Scons, so it
-    # might be avoided entirely.
-    for search in scons_supported:
-        candidate = r"c:\Python%s\python.exe" % search.replace(".", "")
-
-        if os.path.isfile(candidate):
-            return candidate
-
-    # Windows only code, pylint: disable=I0021,import-error,undefined-variable
-    if python_version < 300:
-        import _winreg as winreg  # pylint: disable=I0021,import-error,no-name-in-module
+    if python_dir is not None:
+        return os.path.join(python_dir, "python.exe")
     else:
-        import winreg  # pylint: disable=I0021,import-error,no-name-in-module
-
-    for search in scons_supported:
-        for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
-            for arch_key in (0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY):
-                try:
-                    key = winreg.OpenKey(
-                        hkey_branch,
-                        r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
-                        0,
-                        winreg.KEY_READ | arch_key,
-                    )
-
-                    return os.path.join(winreg.QueryValue(key, ""), "python.exe")
-                except WindowsError:
-                    pass
+        return None
 
 
 def _getPythonForSconsExePath():
-    """Find a way to call any Python2.
+    """Find a way to call any Python that works for Scons.
 
-    Scons needs it as it doesn't support Python3.
+    Scons needs it as it doesn't support all Python versions.
     """
     python_exe = Options.getPythonPathForScons()
 

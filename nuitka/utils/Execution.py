@@ -266,3 +266,62 @@ def wrapCommandForDebuggerForSubprocess(*args):
     args = args[0:1] + args[2:]
 
     return args
+
+
+def getPythonInstallPathWindows(supported, decider=lambda x: True):
+    """Find suitable Python on Windows.
+
+    Go over a list of provided, supported versions, and first try a few
+    guesses for their paths, then look into registry for user or system wide
+    installations.
+
+    The decider may reject a Python, then the search is continued, otherwise
+    it's returned.
+    """
+    # Many cases to deal with, due to arches, caching, etc.
+    # pylint: disable=too-many-branches
+
+    seen = set()
+
+    # Shortcuts for the default installation directories, to avoid going to
+    # registry at all unless necessary. Any Python2 will do for Scons, so it
+    # might be avoided entirely.
+    for search in supported:
+        candidate = r"C:\Python%s\python.exe" % search.replace(".", "")
+
+        if os.path.isfile(candidate):
+            install_dir = os.path.normcase(os.path.dirname(candidate))
+
+            if decider(install_dir):
+                return install_dir
+
+            seen.add(install_dir)
+
+    # Windows only code, pylint: disable=I0021,import-error,undefined-variable
+    if python_version < 300:
+        import _winreg as winreg  # pylint: disable=I0021,import-error,no-name-in-module
+    else:
+        import winreg  # pylint: disable=I0021,import-error,no-name-in-module
+
+    for search in supported:
+        for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+            for arch_key in (0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY):
+                for suffix in "", "-32":
+                    try:
+                        key = winreg.OpenKey(
+                            hkey_branch,
+                            r"SOFTWARE\Python\PythonCore\%s%s\InstallPath"
+                            % (search, suffix),
+                            0,
+                            winreg.KEY_READ | arch_key,
+                        )
+
+                        install_dir = os.path.normpath(winreg.QueryValue(key, ""))
+                    except WindowsError:
+                        pass
+                    else:
+                        if install_dir not in seen:
+                            if decider(install_dir):
+                                return install_dir
+
+                            seen.add(install_dir)
