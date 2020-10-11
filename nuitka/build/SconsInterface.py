@@ -149,7 +149,7 @@ to build the C files to binary.
 
 You may provide it using option "--python-for-scons=path_to_python.exe"
 in case it is not visible in registry, e.g. due to using uninstalled
-AnaConda Python.
+Anaconda Python.
 """
             )
 

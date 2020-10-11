@@ -104,7 +104,7 @@ Requirements
      need to copy the ``PythonXX.DLL`` alongside it, something Nuitka does
      automatically.
 
-  .. admonition:: It **has to** be CPython, AnaConda or MiniConda Python.
+  .. admonition:: It **has to** be CPython, Anaconda or Miniconda Python.
 
      It is known that Windows app store Python definitely does not work, it's
      checked against. And on macOS "pyenv" likely does **not** work.
@@ -123,11 +123,13 @@ Requirements
   and known to be good. Feedback is welcome. Generally, the architectures that
   Debian supports can be considered good and tested too.
 
-.. [#] Support for this C11 is a given with gcc 5 or higher or any clang
-       version. The MSVC compiler doesn't do it yet. But as a workaround,
-       as the C++03 language standard is very overlapping with C11, it is then
-       used instead where the C compiler is too old. Nuitka used to require a
-       C++ compiler in the past, but it changed.
+.. [#] Support for this C11 is a given with gcc 5.x or higher or any clang
+       version.
+
+       The MSVC compiler doesn't do it yet. But as a workaround, as the C++03
+       language standard is very overlapping with C11, it is then used instead
+       where the C compiler is too old. Nuitka used to require a C++ compiler
+       in the past, but it changed.
 
 .. [#] Download MinGW64 from here http://mingw-w64.org/ and choose 64 or 32
        bits matching your Python.
@@ -138,14 +140,21 @@ Requirements
        use ``posix`` for threads and ``dwarf`` for exception model, although
        these currently do not matter at all.
 
-.. [#] Installation of matching MinGW64 is easiest if you have an Anaconda or
+.. [#] Installation of matching MinGW64 is easiest if you use an Anaconda or
        Miniconda installation.
 
        Execute ``<path_to_Anaconda>\Scripts\conda install m2w64-gcc libpython``
        and then before you run Nuitka do ``setenv
        CC=<path_to_Anaconda>\Library\mingw-w64\bin\gcc.exe`` and then its use
-       will be forced. Nuitka also uses it automatically, if you run it like
-       this ``<path_to_Anaconda>\python -m nuitka ...``.
+       will be forced.
+
+       Nuitka running through Anaconda Python also uses it automatically, if you
+       run it like this ``<path_to_Anaconda>\python -m nuitka ...``. But if MSVC
+       is already installed, you will have to provide ``--mingw64`` or else that
+       will be preferred.
+
+       Due to Anaconda performance issues, this command may run really long even
+       on a fresh install of Anaconda.
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
