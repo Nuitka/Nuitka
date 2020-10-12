@@ -250,7 +250,7 @@ def decideFilenameVersionSkip(filename):
     """
 
     # This will make many decisions with immediate returns.
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     assert type(filename) is str
     assert type(_python_version) is str
@@ -302,18 +302,16 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("38.py") and _python_version < "3.8":
         return False
 
+    # Skip tests that require Python 3.9 at least.
+    if filename.endswith("39.py") and _python_version < "3.9":
+        return False
+
     return True
 
 
 def decideNeeds2to3(filename):
-    return (
-        _python_version.startswith("3")
-        and not filename.endswith("32.py")
-        and not filename.endswith("33.py")
-        and not filename.endswith("35.py")
-        and not filename.endswith("36.py")
-        and not filename.endswith("37.py")
-        and not filename.endswith("38.py")
+    return _python_version.startswith("3") and not filename.endswith(
+        ("32.py", "33.py", "34.py", "35.py", "36.py", "37.py", "38.py", "39.py")
     )
 
 
