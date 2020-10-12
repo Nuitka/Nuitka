@@ -203,7 +203,27 @@ covered. With Python 2.x these are not run. Default is %default.""",
         dest="cpython37",
         default=True,
         help="""\
-The standard CPython3.6 test suite. Execute this for all corner cases to be
+The standard CPython3.7 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default.""",
+    )
+
+    parser.add_option(
+        "--skip-cpython38-tests",
+        action="store_false",
+        dest="cpython38",
+        default=True,
+        help="""\
+The standard CPython3.8 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default.""",
+    )
+
+    parser.add_option(
+        "--skip-cpython39-tests",
+        action="store_false",
+        dest="cpython39",
+        default=True,
+        help="""\
+The standard CPython3.9 test suite. Execute this for all corner cases to be
 covered. With Python 2.x these are not run. Default is %default.""",
     )
 
@@ -310,6 +330,15 @@ Do not use Python3.8 even if available on the system. Default is %default.""",
     )
 
     parser.add_option(
+        "--no-python3.9",
+        action="store_true",
+        dest="no39",
+        default=False,
+        help="""\
+Do not use Python3.9 even if available on the system. Default is %default.""",
+    )
+
+    parser.add_option(
         "--coverage",
         action="store_true",
         dest="coverage",
@@ -351,6 +380,8 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows. D
             options.no37 = True
         if sys.version_info[0:2] != (3, 8):
             options.no38 = True
+        if sys.version_info[0:2] != (3, 9):
+            options.no39 = True
 
     if options.cpython_no_other:
         if sys.version_info[0:2] != (2, 6):
@@ -369,6 +400,10 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows. D
             options.cpython36 = False
         if sys.version_info[0:2] != (3, 7):
             options.cpython37 = False
+        if sys.version_info[0:2] != (3, 8):
+            options.cpython38 = False
+        if sys.version_info[0:2] != (3, 9):
+            options.cpython39 = False
 
     if options.cpython_none:
         options.cpython26 = False
@@ -379,6 +414,8 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows. D
         options.cpython35 = False
         options.cpython36 = False
         options.cpython37 = False
+        options.cpython38 = False
+        options.cpython39 = False
 
     if options.coverage and os.path.exists(".coverage"):
         os.unlink(".coverage")
@@ -482,6 +519,8 @@ def main():
             return False
         if command == "python3.8" and options.no38:
             return False
+        if command == "python3.9" and options.no39:
+            return False
 
         # Shortcuts for python versions, also needed for Windows as it won't have
         # the version number in the Python binaries at all.
@@ -500,6 +539,8 @@ def main():
         if command == "python3.7" and sys.version_info[0:2] == (3, 7):
             return True
         if command == "python3.8" and sys.version_info[0:2] == (3, 8):
+            return True
+        if command == "python3.9" and sys.version_info[0:2] == (3, 9):
             return True
 
         path = os.environ["PATH"]
@@ -745,19 +786,29 @@ def main():
             # Running the Python 3.7 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
                 if os.path.exists("./tests/CPython37/run_all.py"):
-                    if options.cpython36:
+                    if options.cpython37:
                         setExtraFlags(where, "37tests", flags)
                         executeSubTest("./tests/CPython37/run_all.py search")
                 else:
                     my_print("The CPython3.7 tests are not present, not run.")
 
+            # Running the Python 3.8 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
                 if os.path.exists("./tests/CPython38/run_all.py"):
-                    if options.cpython36:
+                    if options.cpython38:
                         setExtraFlags(where, "38tests", flags)
                         executeSubTest("./tests/CPython38/run_all.py search")
                 else:
                     my_print("The CPython3.8 tests are not present, not run.")
+
+            # Running the Python 3.9 test suite only with CPython3.x.
+            if not use_python.startswith("python2"):
+                if os.path.exists("./tests/CPython39/run_all.py"):
+                    if options.cpython38:
+                        setExtraFlags(where, "39tests", flags)
+                        executeSubTest("./tests/CPython39/run_all.py search")
+                else:
+                    my_print("The CPython3.9 tests are not present, not run.")
 
         if "NUITKA_EXTRA_OPTIONS" in os.environ:
             del os.environ["NUITKA_EXTRA_OPTIONS"]
@@ -771,6 +822,7 @@ def main():
         or checkExecutableCommand("python3.6")
         or checkExecutableCommand("python3.7")
         or checkExecutableCommand("python3.8")
+        or checkExecutableCommand("python3.9")
     )
 
     if checkExecutableCommand("python2.6"):
