@@ -767,6 +767,48 @@ simply execute this command:
     git submodule foreach 'git checkout $(basename $(pwd)) && \
     git reset --hard origin/$(basename $(pwd))'
 
+When adding a test suite, for a new version, proceed like this:
+
+.. code-block: sh
+
+   # Switch to a new branch.
+   git checkout CPython38
+   git branch CPython39
+   git checkout CPython39
+
+   # Delete all but root commit
+   git rebase -i root
+   rm -rf test
+   cp ~/repos/Nuitka-references/final/Python-3.9.0/Lib/test test
+   git add test
+
+   # Update commit message to mention proper Python version.
+   git commit --amend
+
+   # Push to github, setting upstream for branch.
+   git push -u
+
+   # Cherry pick the removal commits from previous branches.
+   git log origin/CPython38 --reverse --oneline | grep ' Removed' | cut -d' ' -f1 | xargs git cherry-pick
+   # While being prompted for merge conflicts with the deleted files:
+   git status | sed -n 's/deleted by them://p' | xargs git rm --ignore-unmatch x ; git cherry-pick --continue
+
+   # Push to github, this is useful.
+   git push
+
+   # Cherry pick the first commit of run_all.py, the copy it from the last state, and amend the commits.
+   git log --reverse origin/CPython38 --oneline -- run_all.py | head -1 | cut -d' ' -f1 | xargs git cherry-pick
+   git checkout origin/CPython38 -- run_all.py
+   git commit --amend run_all.py
+
+   # Same for .gitignore
+   git log --reverse origin/CPython38 --oneline -- .gitignore | head -1 | cut -d' ' -f1 | xargs git cherry-pick
+   git checkout origin/CPython38 -- .gitignore
+   git commit --amend .gitignore
+
+
+   git push
+
 
 Design Descriptions
 ===================
