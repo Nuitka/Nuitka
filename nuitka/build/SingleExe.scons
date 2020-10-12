@@ -584,10 +584,9 @@ elif clang_mode:
 
 
 the_compiler = env["CC"] or env["CXX"]
-printCompilerVersionOutput("Picked compiler:", the_compiler)
-
 the_cc_name = os.path.normcase(os.path.basename(the_compiler))
-printCompilerVersionOutput("Picked name:", the_cc_name)
+
+scons_logger.info("Backend C compiler: %s (%s)." % (the_compiler, the_cc_name))
 
 # Requested or user provided, detect if it's clang even from environment
 if "clang" in the_cc_name and "-cl" not in the_cc_name:
