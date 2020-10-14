@@ -72,7 +72,7 @@ def generateListOperationAppendCode(statement, emit, context):
     list_arg_name = context.allocateTempName("append_list")
     generateExpressionCode(
         to_name=list_arg_name,
-        expression=statement.getList(),
+        expression=statement.subnode_list_arg,
         emit=emit,
         context=context,
     )
@@ -80,7 +80,7 @@ def generateListOperationAppendCode(statement, emit, context):
     value_arg_name = context.allocateTempName("append_value")
     generateExpressionCode(
         to_name=value_arg_name,
-        expression=statement.getValue(),
+        expression=statement.subnode_value,
         emit=emit,
         context=context,
     )

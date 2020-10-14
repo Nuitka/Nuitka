@@ -116,15 +116,19 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
 
 
 def generateSetOperationAddCode(statement, emit, context):
-    set_arg_name = context.allocateTempName("append_list")
+
+    set_arg_name = context.allocateTempName("add_set")
     generateExpressionCode(
-        to_name=set_arg_name, expression=statement.getSet(), emit=emit, context=context
+        to_name=set_arg_name,
+        expression=statement.subnode_set_arg,
+        emit=emit,
+        context=context,
     )
 
-    value_arg_name = context.allocateTempName("append_value")
+    value_arg_name = context.allocateTempName("add_value")
     generateExpressionCode(
         to_name=value_arg_name,
-        expression=statement.getValue(),
+        expression=statement.subnode_value,
         emit=emit,
         context=context,
     )
