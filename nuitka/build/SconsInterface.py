@@ -302,7 +302,12 @@ def runScons(options, quiet):
             Tracing.printLine("Scons command:", " ".join(scons_command))
 
         Tracing.flushStandardOutputs()
-        result = subprocess.call(scons_command, shell=False, cwd=source_dir)
+
+        # Call scons, make sure to pass on quiet setting.
+        with Execution.withEnvironmentVarOverriden(
+            "NUITKA_QUIET", "1" if Tracing.is_quiet else "0"
+        ):
+            result = subprocess.call(scons_command, shell=False, cwd=source_dir)
 
         if result == 0:
             checkCachingSuccess(source_dir or options["source_dir"])
