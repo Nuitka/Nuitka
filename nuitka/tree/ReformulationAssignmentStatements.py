@@ -470,6 +470,14 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
                     ExpressionConstantEllipsisRef(source_ref=source_ref),
                 ),
             )
+        elif python_version >= 390:
+            return (
+                "Subscript",
+                (
+                    buildNode(provider, node.value, source_ref),
+                    buildNode(provider, node.slice, source_ref),
+                ),
+            )
         else:
             assert False, slice_kind
     elif kind in ("Tuple", "List"):

@@ -457,6 +457,8 @@ def myDetect(self, progs):
             # Ignore gcc before gcc version 5, no C11 support. We will find the
             # C++ compiler of it though.
             if gcc_version < (5,):
+                gcc_version = None
+
                 progs = [
                     "gcc-6.5",
                     "gcc-6.3",
@@ -582,10 +584,9 @@ elif clang_mode:
 
 
 the_compiler = env["CC"] or env["CXX"]
-printCompilerVersionOutput("Picked compiler:", the_compiler)
-
 the_cc_name = os.path.normcase(os.path.basename(the_compiler))
-printCompilerVersionOutput("Picked name:", the_cc_name)
+
+scons_logger.info("Backend C compiler: %s (%s)." % (the_compiler, the_cc_name))
 
 # Requested or user provided, detect if it's clang even from environment
 if "clang" in the_cc_name and "-cl" not in the_cc_name:
@@ -724,10 +725,6 @@ if gcc_mode:
     # to negative values.
     env.Append(CCFLAGS=["-fwrapv"])
 
-    # Save some memory for gcc by not tracing macro code locations at all.
-    if gcc_version >= (5,) and not debug_mode and not clang_mode:
-        env.Append(CCFLAGS=["-ftrack-macro-expansion=0"])
-
 
 # Support for clang.
 if "clang" in the_cc_name:
@@ -811,6 +808,13 @@ version for lto mode (>= 4.6)."""
     elif static_libpython and not lto_mode:
         env.Append(CCFLAGS=["-fno-lto"])
         env.Append(LINKFLAGS=["-fno-lto"])
+
+    # Save some memory for gcc by not tracing macro code locations at all.
+    if gcc_version >= (5,) and not debug_mode and not clang_mode:
+        env.Append(CCFLAGS=["-ftrack-macro-expansion=0"])
+
+    # We don't care about that.
+    env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
 
     # Give a warning if LTO mode was specified, but won't be used.
     if lto_mode and gcc_version < (4, 6):

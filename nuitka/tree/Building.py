@@ -113,6 +113,7 @@ from nuitka.nodes.ReturnNodes import (
     StatementReturnNone,
     makeStatementReturnConstant,
 )
+from nuitka.nodes.SliceNodes import ExpressionBuiltinSlice
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
 from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
@@ -648,6 +649,16 @@ def buildJoinedStrNode(provider, node, source_ref):
         return makeConstantRefNode(constant="", source_ref=source_ref)
 
 
+def buildSliceNode(provider, node, source_ref):
+    """Python3.9 or higher, slice notations."""
+    return ExpressionBuiltinSlice(
+        start=buildNode(provider, node.lower, source_ref, allow_none=True),
+        stop=buildNode(provider, node.upper, source_ref, allow_none=True),
+        step=buildNode(provider, node.step, source_ref, allow_none=True),
+        source_ref=source_ref,
+    )
+
+
 setBuildingDispatchers(
     path_args3={
         "Name": buildVariableReferenceNode,
@@ -702,6 +713,7 @@ setBuildingDispatchers(
         "JoinedStr": buildJoinedStrNode,
         "FormattedValue": buildFormattedValueNode,
         "NamedExpr": buildNamedExprNode,
+        "Slice": buildSliceNode,
     },
     path_args2={
         "Constant": buildNamedConstantNode,  # Python3.8
