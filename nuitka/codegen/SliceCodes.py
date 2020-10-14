@@ -277,7 +277,7 @@ def generateDelSliceCode(statement, emit, context):
         context.setCurrentSourceCodeReference(old_source_ref)
 
 
-def generateBuiltinSliceCode(to_name, expression, emit, context):
+def generateBuiltinSlice3Code(to_name, expression, emit, context):
     lower_name, upper_name, step_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
@@ -298,6 +298,34 @@ def generateBuiltinSliceCode(to_name, expression, emit, context):
         getErrorExitCode(
             check_name=result_name,
             release_names=(lower_name, upper_name, step_name),
+            needs_check=False,  # Note: Cannot fail
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateBuiltinSlice2Code(to_name, expression, emit, context):
+    lower_name, upper_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "sliceobj_value", expression, emit, context
+    ) as result_name:
+        emit(
+            "%s = MAKE_SLICEOBJ2(%s, %s);"
+            % (
+                result_name,
+                lower_name if lower_name is not None else "Py_None",
+                upper_name if upper_name is not None else "Py_None",
+            )
+        )
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_names=(lower_name, upper_name),
             needs_check=False,  # Note: Cannot fail
             emit=emit,
             context=context,

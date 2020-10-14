@@ -57,10 +57,10 @@ from nuitka.nodes.OperatorNodes import (
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SliceNodes import (
-    ExpressionBuiltinSlice,
     ExpressionSliceLookup,
     StatementAssignmentSlice,
     StatementDelSlice,
+    makeExpressionBuiltinSlice,
 )
 from nuitka.nodes.SubscriptNodes import (
     ExpressionSubscriptLookup,
@@ -101,7 +101,7 @@ def buildExtSliceNode(provider, node, source_ref):
             upper = buildNode(provider, dim.upper, source_ref, True)
             step = buildNode(provider, dim.step, source_ref, True)
 
-            element = ExpressionBuiltinSlice(
+            element = makeExpressionBuiltinSlice(
                 start=lower, stop=upper, step=step, source_ref=source_ref
             )
         elif dim_kind == "Ellipsis":
@@ -162,7 +162,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
             return StatementAssignmentSubscript(
                 expression=lookup_source,
                 source=source,
-                subscript=ExpressionBuiltinSlice(
+                subscript=makeExpressionBuiltinSlice(
                     start=lower, stop=upper, step=None, source_ref=source_ref
                 ),
                 source_ref=source_ref,
@@ -444,7 +444,7 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
                     "Subscript",
                     (
                         buildNode(provider, node.value, source_ref),
-                        ExpressionBuiltinSlice(
+                        makeExpressionBuiltinSlice(
                             start=lower, stop=upper, step=step, source_ref=source_ref
                         ),
                     ),
@@ -671,7 +671,7 @@ def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
         if use_sliceobj:
             return StatementDelSubscript(
                 expression=lookup_source,
-                subscript=ExpressionBuiltinSlice(
+                subscript=makeExpressionBuiltinSlice(
                     start=lower, stop=upper, step=None, source_ref=source_ref
                 ),
                 source_ref=source_ref,
@@ -962,7 +962,7 @@ def _buildInplaceAssignSliceNode(
                     expression=ExpressionTempVariableRef(
                         variable=tmp_variable1, source_ref=source_ref
                     ),
-                    subscript=ExpressionBuiltinSlice(
+                    subscript=makeExpressionBuiltinSlice(
                         start=lower_ref2,
                         stop=upper_ref2,
                         step=None,
@@ -988,7 +988,7 @@ def _buildInplaceAssignSliceNode(
                 expression=ExpressionTempVariableRef(
                     variable=tmp_variable1, source_ref=source_ref
                 ),
-                subscript=ExpressionBuiltinSlice(
+                subscript=makeExpressionBuiltinSlice(
                     start=lower_ref1, stop=upper_ref1, step=None, source_ref=source_ref
                 ),
                 source=ExpressionTempVariableRef(

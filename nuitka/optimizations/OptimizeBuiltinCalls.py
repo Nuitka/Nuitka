@@ -137,7 +137,7 @@ from nuitka.nodes.OperatorNodes import (
 )
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.SliceNodes import ExpressionBuiltinSlice
+from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
     ExpressionBuiltinSuper,
@@ -1244,7 +1244,7 @@ def slice_extractor(node):
             stop = start
             start = None
 
-        return ExpressionBuiltinSlice(
+        return makeExpressionBuiltinSlice(
             start=start, stop=stop, step=step, source_ref=source_ref
         )
 

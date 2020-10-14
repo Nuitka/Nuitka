@@ -26,6 +26,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ3(PyObject *start, PyObject *
 
     return PySlice_New(start, stop, step);
 }
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ2(PyObject *start, PyObject *stop) {
+    CHECK_OBJECT(start);
+    CHECK_OBJECT(stop);
+
+    return PySlice_New(start, stop, Py_None);
+}
 
 #if PYTHON_VERSION < 300
 // Note: It appears that Python3 has no index slicing operations anymore, but
