@@ -31,12 +31,16 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
     ExpressionSpecBasedComputationMixin,
 )
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import (
+    SideEffectsFromChildrenMixin,
+    StatementChildrenHavingBase,
+)
 from .NodeMakingHelpers import (
     convertNoneConstantToNone,
     makeStatementExpressionOnlyReplacementNode,
     makeStatementOnlyNodesFromExpressions,
 )
+from .shapes.BuiltinTypeShapes import tshape_slice
 
 
 class StatementAssignmentSlice(StatementChildrenHavingBase):
@@ -227,26 +231,48 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
         return None
 
 
-class ExpressionBuiltinSlice(
-    ExpressionSpecBasedComputationMixin, ExpressionChildrenHavingBase
-):
-    kind = "EXPRESSION_BUILTIN_SLICE"
+def makeExpressionBuiltinSlice(start, stop, step, source_ref):
+    if start is None:
+        start = ExpressionConstantNoneRef(source_ref=source_ref)
+    if stop is None:
+        stop = ExpressionConstantNoneRef(source_ref=source_ref)
 
-    named_children = ("start", "stop", "step")
-    getStart = ExpressionChildrenHavingBase.childGetter("start")
-    getStop = ExpressionChildrenHavingBase.childGetter("stop")
-    getStep = ExpressionChildrenHavingBase.childGetter("step")
+    if step is None:
+        return ExpressionBuiltinSlice2(start=start, stop=stop, source_ref=source_ref)
+    else:
+        return ExpressionBuiltinSlice3(
+            start=start, stop=stop, step=step, source_ref=source_ref
+        )
 
+
+class ExpressionBuiltinSliceMixin(SideEffectsFromChildrenMixin):
     builtin_spec = BuiltinParameterSpecs.builtin_slice_spec
 
-    def __init__(self, start, stop, step, source_ref):
-        if start is None:
-            start = ExpressionConstantNoneRef(source_ref=source_ref)
-        if stop is None:
-            stop = ExpressionConstantNoneRef(source_ref=source_ref)
-        if step is None:
-            step = ExpressionConstantNoneRef(source_ref=source_ref)
+    @staticmethod
+    def getTypeShape():
+        return tshape_slice
 
+    @staticmethod
+    def isKnownToBeIterable(count):
+        # Virtual method provided by mixin, pylint: disable=unused-argument
+
+        # Definitely not iterable at all
+        return False
+
+    def mayHaveSideEffects(self):
+        return self.mayRaiseException(BaseException)
+
+
+class ExpressionBuiltinSlice3(
+    ExpressionBuiltinSliceMixin,
+    ExpressionSpecBasedComputationMixin,
+    ExpressionChildrenHavingBase,
+):
+    kind = "EXPRESSION_BUILTIN_SLICE3"
+
+    named_children = ("start", "stop", "step")
+
+    def __init__(self, start, stop, step, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values={"start": start, "stop": stop, "step": step},
@@ -254,19 +280,42 @@ class ExpressionBuiltinSlice(
         )
 
     def computeExpression(self, trace_collection):
-        start = self.getStart()
-        stop = self.getStop()
-        step = self.getStep()
-
-        args = (start, stop, step)
-
         return self.computeBuiltinSpec(
-            trace_collection=trace_collection, given_values=args
+            trace_collection=trace_collection,
+            given_values=(self.subnode_start, self.subnode_stop, self.subnode_step),
         )
 
     def mayRaiseException(self, exception_type):
         return (
-            self.getStart().mayRaiseException(exception_type)
-            or self.getStop().mayRaiseException(exception_type)
-            or self.getStep().mayRaiseException(exception_type)
+            self.subnode_start.mayRaiseException(exception_type)
+            or self.subnode_stop.mayRaiseException(exception_type)
+            or self.subnode_step.mayRaiseException(exception_type)
         )
+
+
+class ExpressionBuiltinSlice2(
+    ExpressionBuiltinSliceMixin,
+    ExpressionSpecBasedComputationMixin,
+    ExpressionChildrenHavingBase,
+):
+    kind = "EXPRESSION_BUILTIN_SLICE2"
+
+    named_children = ("start", "stop")
+
+    def __init__(self, start, stop, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"start": start, "stop": stop},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        return self.computeBuiltinSpec(
+            trace_collection=trace_collection,
+            given_values=(self.subnode_start, self.subnode_stop),
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_start.mayRaiseException(
+            exception_type
+        ) or self.subnode_stop.mayRaiseException(exception_type)
