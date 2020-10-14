@@ -79,10 +79,10 @@ class NodeBase(NodeMetaClassBase):
         graphical display.
 
         """
-        details = self.getDetails()
+        details = self.getDetailsForDisplay()
 
         if details:
-            return "'%s' with %s" % (self.kind, self.getDetails())
+            return "'%s' with %s" % (self.kind, details)
         else:
             return "'%s'" % self.kind
 
