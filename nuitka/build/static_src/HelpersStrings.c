@@ -307,6 +307,23 @@ static PyObject *_NuitkaUnicode_resize_copy(PyObject *unicode, Py_ssize_t length
     }
 }
 
+// We use older form code, make some backward compatible defines available.
+#if PYTHON_VERSION >= 390
+
+#ifdef Py_REF_DEBUG
+#define _Py_DEC_REFTOTAL _Py_RefTotal--;
+#else
+#define _Py_DEC_REFTOTAL
+#endif
+
+#ifdef Py_TRACE_REFS
+#define _Py_ForgetReference(unicode) _Py_ForgetReference(unicode)
+#else
+#define _Py_ForgetReference(unicode)
+#endif
+
+#endif
+
 static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t length) {
     assert(PyUnicode_IS_COMPACT(unicode));
 
