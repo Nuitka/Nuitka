@@ -111,5 +111,11 @@ def buildSubscriptNode(provider, node, source_ref):
             subscript=ExpressionConstantEllipsisRef(source_ref=source_ref),
             source_ref=source_ref,
         )
+    elif python_version >= 390:
+        return ExpressionSubscriptLookup(
+            expression=buildNode(provider, node.value, source_ref),
+            subscript=buildNode(provider, node.slice, source_ref),
+            source_ref=source_ref,
+        )
     else:
         assert False, kind

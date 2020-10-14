@@ -141,8 +141,8 @@ def main():
         # that environment variable.
         if "PYTHON" not in os.environ:
             Tracing.general.warning(
-                "The version '%s' is not currently supported. Expect problems.",
-                python_version_str,
+                "The version %r is not currently supported. Expect problems."
+                % python_version_str,
             )
 
     if os.name == "nt":

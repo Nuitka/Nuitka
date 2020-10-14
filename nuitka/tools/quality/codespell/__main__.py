@@ -41,7 +41,7 @@ def codespell(filenames, verbose, write):
     if verbose:
         my_print("Consider", " ".join(filenames))
 
-    command = ["codespell"]
+    command = ["codespell", "-I", "misc/codespell-ignore.txt"]
     if write:
         command.append("-w")
     command += filenames
