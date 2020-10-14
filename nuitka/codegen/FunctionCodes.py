@@ -25,6 +25,7 @@ from nuitka.Tracing import general
 
 from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateExpressionCode,
     generateStatementSequenceCode,
     withObjectCodeTemporaryAssignment,
@@ -36,7 +37,7 @@ from .Indentation import indented
 from .LabelCodes import getGotoCode, getLabelCode
 from .LineNumberCodes import emitErrorLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
-from .PythonAPICodes import getReferenceExportCode
+from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
 from .templates.CodeTemplatesFunction import (
     function_direct_body_template,
     template_function_body,
@@ -824,3 +825,16 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     context.setReturnTarget(old_return_target)
     context.setReturnReleaseMode(old_return_release_mode)
     context.setReturnValueName(old_return_value_name)
+
+
+def generateFunctionErrorStrCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="_PyObject_FunctionStr",
+        arg_desc=(("func_arg", expression.subnode_value),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )

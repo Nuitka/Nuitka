@@ -133,6 +133,7 @@ from .FrameCodes import (
 from .FunctionCodes import (
     generateFunctionCallCode,
     generateFunctionCreationCode,
+    generateFunctionErrorStrCode,
     generateFunctionOutlineCode,
     getExportScopeCode,
     getFunctionCode,
@@ -607,6 +608,7 @@ setExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_NOT_IN": generateDictOperationInCode,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
+        "EXPRESSION_FUNCTION_ERROR_STR": generateFunctionErrorStrCode,
         "EXPRESSION_IMPORT_MODULE_HARD": generateImportModuleHardCode,
         "EXPRESSION_IMPORT_MODULE_NAME_HARD": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORT_NAME": generateImportNameCode,

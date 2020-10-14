@@ -42,7 +42,6 @@ from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 from .Checkers import checkStatementsSequenceOrNone
 from .CodeObjectSpecs import CodeObjectSpec
 from .ExpressionBases import (
-    CompileTimeConstantExpressionBase,
     ExpressionBase,
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
@@ -59,7 +58,6 @@ from .NodeBases import (
     SideEffectsFromChildrenMixin,
 )
 from .NodeMakingHelpers import (
-    makeConstantReplacementNode,
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
 )
@@ -1050,41 +1048,3 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
 
     def getClosureVariableVersions(self):
         return self.variable_closure_traces
-
-
-class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
-    """Node for value __qualname__ of class.
-
-    Notes:
-        This is for Python 3.4 and higher only, where classes calculate the __qualname__
-        value at runtime, then it's determined dynamically, while 3.3 set it more
-        statically, and Python2 didn't have this feature at all.
-    """
-
-    kind = "EXPRESSION_FUNCTION_QUALNAME_REF"
-
-    __slots__ = ("function_body",)
-
-    def __init__(self, function_body, source_ref):
-        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
-
-        self.function_body = function_body
-
-    def finalize(self):
-        del self.parent
-        del self.function_body
-
-    def computeExpressionRaw(self, trace_collection):
-        result = makeConstantReplacementNode(
-            node=self, constant=self.function_body.getFunctionQualname()
-        )
-
-        return (
-            result,
-            "new_constant",
-            "Executed '__qualname__' resolution to '%s'."
-            % self.function_body.getFunctionQualname(),
-        )
-
-    def getCompileTimeConstant(self):
-        return self.function_body.getFunctionQualname()

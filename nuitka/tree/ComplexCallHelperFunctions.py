@@ -51,6 +51,7 @@ from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
     StatementRaiseException,
 )
+from nuitka.nodes.FunctionAttributeNodes import ExpressionFunctionErrorStr
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
@@ -152,23 +153,35 @@ def getCallableNameDescBody():
 
     called_variable = result.getVariableForAssignment(variable_name="called")
 
+    if python_version < 390:
+        function_name = makeBinaryOperationNode(
+            operator="Add",
+            left=_makeNameAttributeLookup(
+                node=ExpressionVariableRef(
+                    variable=called_variable, source_ref=internal_source_ref
+                ),
+                attribute_name="__name__",
+            ),
+            right=makeConstantRefNode(
+                constant="()",
+                source_ref=internal_source_ref,
+                user_provided=True,
+            ),
+            source_ref=internal_source_ref,
+        )
+    else:
+        # TODO: Make it usable for pre-Python 3.9 too.
+        function_name = ExpressionFunctionErrorStr(
+            value=ExpressionVariableRef(
+                variable=called_variable, source_ref=internal_source_ref
+            ),
+            source_ref=internal_source_ref,
+        )
+
     functions_case = makeStatementsSequenceFromStatement(
         statement=(
             StatementReturn(
-                expression=makeBinaryOperationNode(
-                    operator="Add",
-                    right=makeConstantRefNode(
-                        constant="()",
-                        source_ref=internal_source_ref,
-                        user_provided=True,
-                    ),
-                    left=_makeNameAttributeLookup(
-                        ExpressionVariableRef(
-                            variable=called_variable, source_ref=internal_source_ref
-                        )
-                    ),
-                    source_ref=internal_source_ref,
-                ),
+                expression=function_name,
                 source_ref=internal_source_ref,
             )
         )
@@ -650,39 +663,45 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
 
 
 def _makeRaiseNoStringItem(called_variable):
+    if python_version < 390:
+        raise_arg = makeBinaryOperationNode(
+            operator="Mod",
+            left=makeConstantRefNode(
+                constant="%s keywords must be strings",
+                source_ref=internal_source_ref,
+                user_provided=True,
+            ),
+            right=ExpressionFunctionCall(
+                function=ExpressionFunctionCreation(
+                    function_ref=ExpressionFunctionRef(
+                        function_body=getCallableNameDescBody(),
+                        source_ref=internal_source_ref,
+                    ),
+                    defaults=(),
+                    kw_defaults=None,
+                    annotations=None,
+                    source_ref=internal_source_ref,
+                ),
+                values=(
+                    ExpressionVariableRef(
+                        variable=called_variable, source_ref=internal_source_ref
+                    ),
+                ),
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        )
+    else:
+        raise_arg = makeConstantRefNode(
+            constant="keywords must be strings",
+            source_ref=internal_source_ref,
+            user_provided=True,
+        )
+
     return StatementRaiseException(
         exception_type=ExpressionBuiltinMakeException(
             exception_name="TypeError",
-            args=(
-                makeBinaryOperationNode(
-                    operator="Mod",
-                    left=makeConstantRefNode(
-                        constant="""\
-%s keywords must be strings""",
-                        source_ref=internal_source_ref,
-                        user_provided=True,
-                    ),
-                    right=ExpressionFunctionCall(
-                        function=ExpressionFunctionCreation(
-                            function_ref=ExpressionFunctionRef(
-                                function_body=getCallableNameDescBody(),
-                                source_ref=internal_source_ref,
-                            ),
-                            defaults=(),
-                            kw_defaults=None,
-                            annotations=None,
-                            source_ref=internal_source_ref,
-                        ),
-                        values=(
-                            ExpressionVariableRef(
-                                variable=called_variable, source_ref=internal_source_ref
-                            ),
-                        ),
-                        source_ref=internal_source_ref,
-                    ),
-                    source_ref=internal_source_ref,
-                ),
-            ),
+            args=(raise_arg,),
             source_ref=internal_source_ref,
         ),
         exception_value=None,

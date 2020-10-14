@@ -62,10 +62,10 @@ from nuitka.nodes.DictionaryNodes import (
     StatementDictOperationRemove,
     StatementDictOperationUpdate,
 )
+from nuitka.nodes.FunctionAttributeNodes import ExpressionFunctionQualnameRef
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
-    ExpressionFunctionQualnameRef,
     ExpressionFunctionRef,
 )
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
