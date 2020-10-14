@@ -73,6 +73,16 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
         return self.attribute_name
 
     def setAttributeName(self, attribute_name):
+        """Update the attribute name looked up.
+
+        Attribute lookups are affected by privacy rules during tree building, they get
+        assigned the original attribute first, and only later update when the class
+        name is known.
+
+        TODO: Do this while building the tree initially, we should be able to tell the
+        class and function parents to trigger this.
+        """
+
         self.attribute_name = attribute_name
 
     def computeStatement(self, trace_collection):
@@ -169,18 +179,18 @@ class ExpressionAttributeLookup(ExpressionChildHavingBase):
         self.attribute_name = attribute_name
 
     def getDetails(self):
-        return {"attribute_name": self.getAttributeName()}
+        return {"attribute_name": self.attribute_name}
 
     def computeExpression(self, trace_collection):
         return self.subnode_expression.computeExpressionAttribute(
             lookup_node=self,
-            attribute_name=self.getAttributeName(),
+            attribute_name=self.attribute_name,
             trace_collection=trace_collection,
         )
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseExceptionAttributeLookup(
-            exception_type=exception_type, attribute_name=self.getAttributeName()
+            exception_type=exception_type, attribute_name=self.attribute_name
         )
 
     @staticmethod
@@ -204,7 +214,7 @@ class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
     def computeExpression(self, trace_collection):
         return self.subnode_expression.computeExpressionAttributeSpecial(
             lookup_node=self,
-            attribute_name=self.getAttributeName(),
+            attribute_name=self.attribute_name,
             trace_collection=trace_collection,
         )
 

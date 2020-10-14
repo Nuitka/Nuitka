@@ -217,13 +217,13 @@ class StatementExpressionOnly(StatementChildHavingBase):
         StatementChildHavingBase.__init__(self, value=expression, source_ref=source_ref)
 
     def mayHaveSideEffects(self):
-        return self.getExpression().mayHaveSideEffects()
+        return self.subnode_expression.mayHaveSideEffects()
 
     def mayRaiseException(self, exception_type):
-        return self.getExpression().mayRaiseException(exception_type)
+        return self.subnode_expression.mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        expression = trace_collection.onExpression(expression=self.getExpression())
+        expression = trace_collection.onExpression(expression=self.subnode_expression)
 
         if expression.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -240,6 +240,9 @@ class StatementExpressionOnly(StatementChildHavingBase):
     @staticmethod
     def getStatementNiceName():
         return "expression only statement"
+
+    def getDetailsForDisplay(self):
+        return {"expression": self.subnode_expression.kind}
 
 
 class StatementPreserveFrameException(StatementBase):
