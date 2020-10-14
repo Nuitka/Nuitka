@@ -755,7 +755,11 @@ static void formatErrorNoArgumentAllowed(struct Nuitka_FunctionObject const *fun
 }
 
 static void formatErrorMultipleValuesGiven(struct Nuitka_FunctionObject const *function, Py_ssize_t index) {
+#if PYTHON_VERSION < 390
     char const *function_name = Nuitka_String_AsString(function->m_name);
+#else
+    char const *function_name = Nuitka_String_AsString(function->m_qualname);
+#endif
 
     PyErr_Format(PyExc_TypeError,
 #if PYTHON_VERSION < 300
@@ -981,6 +985,15 @@ static void formatErrorTooFewKwOnlyArguments(struct Nuitka_FunctionObject const 
 }
 #endif
 
+static void formatErrorKeywordsMustBeString(struct Nuitka_FunctionObject const *function) {
+#if PYTHON_VERSION < 390
+    char const *function_name = Nuitka_String_AsString(function->m_name);
+    PyErr_Format(PyExc_TypeError, "%s() keywords must be strings", function_name);
+#else
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "keywords must be strings");
+#endif
+}
+
 #if PYTHON_VERSION < 300
 static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw)
 #else
@@ -1007,7 +1020,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
         if (unlikely(!PyUnicode_Check(key)))
 #endif
         {
-            PyErr_Format(PyExc_TypeError, "%s() keywords must be strings", Nuitka_String_AsString(function->m_name));
+            formatErrorKeywordsMustBeString(function);
             return -1;
         }
 
@@ -1114,9 +1127,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
             if (entry->me_value != NULL) {
 
                 if (unlikely(!PyString_Check(entry->me_key) && !PyUnicode_Check(entry->me_key))) {
-                    PyErr_Format(PyExc_TypeError, "%s() keywords must be strings",
-                                 Nuitka_String_AsString(function->m_name));
-
+                    formatErrorKeywordsMustBeString(function);
                     return false;
                 }
 
@@ -1157,9 +1168,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
                 PyDictKeyEntry *entry = &DK_ENTRIES(split_copy->ma_keys)[i];
 #endif
                 if ((entry->me_key != NULL) && unlikely(!PyUnicode_Check(entry->me_key))) {
-                    PyErr_Format(PyExc_TypeError, "%s() keywords must be strings",
-                                 Nuitka_String_AsString(function->m_name));
-
+                    formatErrorKeywordsMustBeString(function);
                     return false;
                 }
 
@@ -1189,9 +1198,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
 
                 if (value != NULL) {
                     if (unlikely(!PyUnicode_Check(entry->me_key))) {
-                        PyErr_Format(PyExc_TypeError, "%s() keywords must be strings",
-                                     Nuitka_String_AsString(function->m_name));
-
+                        formatErrorKeywordsMustBeString(function);
                         return false;
                     }
 
@@ -2019,7 +2026,7 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
         PyObject *key = kw_names[ppos];
 
         if (unlikely(!PyUnicode_Check(key))) {
-            PyErr_Format(PyExc_TypeError, "%s() keywords must be strings", Nuitka_String_AsString(function->m_name));
+            formatErrorKeywordsMustBeString(function);
             return -1;
         }
 
@@ -2107,8 +2114,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY38(struct Nuitka_FunctionObject const 
         PyObject *key = kw_names[i];
 
         if (unlikely(!PyUnicode_Check(key))) {
-            PyErr_Format(PyExc_TypeError, "%s() keywords must be strings", Nuitka_String_AsString(function->m_name));
-
+            formatErrorKeywordsMustBeString(function);
             return false;
         }
 
