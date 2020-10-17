@@ -26,10 +26,11 @@ There will be a method "computeExpressionSlice" to aid predicting them.
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
-from .ConstantRefNodes import ExpressionConstantNoneRef
+from .ConstantRefNodes import ExpressionConstantNoneRef, makeConstantRefNode
 from .ExpressionBases import (
+    ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
-    ExpressionSpecBasedComputationMixin,
+    ExpressionSpecBasedComputationNoRaiseMixin,
 )
 from .NodeBases import (
     SideEffectsFromChildrenMixin,
@@ -39,6 +40,7 @@ from .NodeMakingHelpers import (
     convertNoneConstantToNone,
     makeStatementExpressionOnlyReplacementNode,
     makeStatementOnlyNodesFromExpressions,
+    wrapExpressionWithSideEffects,
 )
 from .shapes.BuiltinTypeShapes import tshape_slice
 
@@ -232,6 +234,15 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
 
 
 def makeExpressionBuiltinSlice(start, stop, step, source_ref):
+    if start is None and stop is None and step is None:
+        # Avoid going through dynamic nodes for [:] syntax.
+        return makeConstantRefNode(
+            constant=slice(None, None, None), source_ref=source_ref
+        )
+
+    if start is None and step is None:
+        return ExpressionBuiltinSlice1(stop=stop, source_ref=source_ref)
+
     if start is None:
         start = ExpressionConstantNoneRef(source_ref=source_ref)
     if stop is None:
@@ -239,10 +250,10 @@ def makeExpressionBuiltinSlice(start, stop, step, source_ref):
 
     if step is None:
         return ExpressionBuiltinSlice2(start=start, stop=stop, source_ref=source_ref)
-    else:
-        return ExpressionBuiltinSlice3(
-            start=start, stop=stop, step=step, source_ref=source_ref
-        )
+
+    return ExpressionBuiltinSlice3(
+        start=start, stop=stop, step=step, source_ref=source_ref
+    )
 
 
 class ExpressionBuiltinSliceMixin(SideEffectsFromChildrenMixin):
@@ -265,7 +276,7 @@ class ExpressionBuiltinSliceMixin(SideEffectsFromChildrenMixin):
 
 class ExpressionBuiltinSlice3(
     ExpressionBuiltinSliceMixin,
-    ExpressionSpecBasedComputationMixin,
+    ExpressionSpecBasedComputationNoRaiseMixin,
     ExpressionChildrenHavingBase,
 ):
     kind = "EXPRESSION_BUILTIN_SLICE3"
@@ -280,6 +291,24 @@ class ExpressionBuiltinSlice3(
         )
 
     def computeExpression(self, trace_collection):
+        if (
+            self.subnode_step.isExpressionConstantNoneRef()
+            or self.subnode_step.getIndexValue() == 1
+        ):
+            return trace_collection.computedExpressionResult(
+                wrapExpressionWithSideEffects(
+                    old_node=self,
+                    new_node=ExpressionBuiltinSlice2(
+                        start=self.subnode_start,
+                        stop=self.subnode_stop,
+                        source_ref=self.source_ref,
+                    ),
+                    side_effects=self.subnode_step.extractSideEffects(),
+                ),
+                "new_expression",
+                "Reduce 3 argument slice object creation to two argument form.",
+            )
+
         return self.computeBuiltinSpec(
             trace_collection=trace_collection,
             given_values=(self.subnode_start, self.subnode_stop, self.subnode_step),
@@ -295,7 +324,7 @@ class ExpressionBuiltinSlice3(
 
 class ExpressionBuiltinSlice2(
     ExpressionBuiltinSliceMixin,
-    ExpressionSpecBasedComputationMixin,
+    ExpressionSpecBasedComputationNoRaiseMixin,
     ExpressionChildrenHavingBase,
 ):
     kind = "EXPRESSION_BUILTIN_SLICE2"
@@ -310,6 +339,19 @@ class ExpressionBuiltinSlice2(
         )
 
     def computeExpression(self, trace_collection):
+        if self.subnode_start.isExpressionConstantNoneRef():
+            return trace_collection.computedExpressionResult(
+                wrapExpressionWithSideEffects(
+                    old_node=self,
+                    new_node=ExpressionBuiltinSlice1(
+                        stop=self.subnode_stop, source_ref=self.source_ref
+                    ),
+                    side_effects=self.subnode_start.extractSideEffects(),
+                ),
+                "new_expression",
+                "Reduce 2 argument slice object creation to single argument form.",
+            )
+
         return self.computeBuiltinSpec(
             trace_collection=trace_collection,
             given_values=(self.subnode_start, self.subnode_stop),
@@ -319,3 +361,29 @@ class ExpressionBuiltinSlice2(
         return self.subnode_start.mayRaiseException(
             exception_type
         ) or self.subnode_stop.mayRaiseException(exception_type)
+
+
+class ExpressionBuiltinSlice1(
+    ExpressionBuiltinSliceMixin,
+    ExpressionSpecBasedComputationNoRaiseMixin,
+    ExpressionChildHavingBase,
+):
+    kind = "EXPRESSION_BUILTIN_SLICE1"
+
+    named_child = "stop"
+
+    def __init__(self, stop, source_ref):
+        ExpressionChildHavingBase.__init__(
+            self,
+            value=stop,
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        return self.computeBuiltinSpec(
+            trace_collection=trace_collection,
+            given_values=(self.subnode_stop,),
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_stop.mayRaiseException(exception_type)

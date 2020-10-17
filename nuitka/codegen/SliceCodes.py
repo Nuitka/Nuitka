@@ -334,6 +334,33 @@ def generateBuiltinSlice2Code(to_name, expression, emit, context):
         context.addCleanupTempName(result_name)
 
 
+def generateBuiltinSlice1Code(to_name, expression, emit, context):
+    (upper_name,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "sliceobj_value", expression, emit, context
+    ) as result_name:
+        emit(
+            "%s = MAKE_SLICEOBJ1(%s);"
+            % (
+                result_name,
+                upper_name if upper_name is not None else "Py_None",
+            )
+        )
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_name=upper_name,
+            needs_check=False,  # Note: Cannot fail
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
 def _getSliceLookupCode(to_name, source_name, lower_name, upper_name, emit, context):
     emit(
         "%s = LOOKUP_SLICE(%s, %s, %s);"

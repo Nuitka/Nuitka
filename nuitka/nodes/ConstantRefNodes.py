@@ -213,12 +213,6 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         else:
             return None
 
-    def getIndexValue(self):
-        if self.isIndexConstant():
-            return int(self.constant)
-        else:
-            return None
-
     def isIterableConstant(self):
         # This is expected to be overloaded by child classes.
         assert False, self
@@ -389,6 +383,10 @@ class ExpressionConstantTrueRef(ExpressionConstantBoolRefBase):
 
         return True
 
+    @staticmethod
+    def getIndexValue():
+        return 1
+
 
 class ExpressionConstantFalseRef(ExpressionConstantBoolRefBase):
     kind = "EXPRESSION_CONSTANT_FALSE_REF"
@@ -405,6 +403,10 @@ class ExpressionConstantFalseRef(ExpressionConstantBoolRefBase):
         """ Return known truth value. """
 
         return False
+
+    @staticmethod
+    def getIndexValue():
+        return 0
 
 
 class ExpressionConstantEllipsisRef(ExpressionConstantUntrackedRefBase):
@@ -876,6 +878,9 @@ class ExpressionConstantIntRef(ExpressionConstantUntrackedRefBase):
     def isIndexConstant():
         return True
 
+    def getIndexValue(self):
+        return self.constant
+
     @staticmethod
     def isIterableConstant():
         return False
@@ -914,6 +919,11 @@ class ExpressionConstantLongRef(ExpressionConstantRefBase):
     @staticmethod
     def isIndexConstant():
         return True
+
+    def getIndexValue(self):
+        # Use the int value if possible, otherwise that remains a long, which is
+        # also OK, but often unnecessary.
+        return int(self.constant)
 
     @staticmethod
     def isIterableConstant():
