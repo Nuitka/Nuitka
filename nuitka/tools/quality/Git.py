@@ -24,6 +24,7 @@ Original author: Jesse Hallett <jesse@sitr.us>
 """
 
 
+import os
 import re
 import subprocess
 
@@ -102,6 +103,8 @@ def updateFileIndex(diff_entry, new_object_hash):
 
 def updateWorkingFile(path, orig_object_hash, new_object_hash):
     patch = check_output(["git", "diff", orig_object_hash, new_object_hash])
+
+    path = path.replace(os.path.sep, "/")
 
     # Substitute object hashes in patch header with path to working tree file
     patch_b = patch.replace(orig_object_hash.encode(), path.encode()).replace(
