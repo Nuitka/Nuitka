@@ -31,6 +31,7 @@ from nuitka.PythonVersions import (
     getTargetPythonDLLPath,
     python_version,
 )
+from nuitka.Tracing import postprocessing_logger
 from nuitka.utils.FileOperations import getFileContents
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
@@ -38,6 +39,8 @@ from nuitka.utils.SharedLibraries import (
 )
 from nuitka.utils.Utils import getOS, isWin32Windows
 from nuitka.utils.WindowsResources import (
+    RT_GROUP_ICON,
+    RT_ICON,
     RT_MANIFEST,
     RT_RCDATA,
     addResourceToFile,
@@ -46,6 +49,8 @@ from nuitka.utils.WindowsResources import (
 
 
 def executePostProcessing():
+    # These is a bunch of stuff to consider, pylint: disable=too-many-branches
+
     result_filename = OutputDirectories.getResultFullpath()
 
     if not os.path.exists(result_filename):
@@ -61,7 +66,7 @@ def executePostProcessing():
             copyResourcesFromFileToFile(
                 sys.executable,
                 target_filename=result_filename,
-                resource_kind=RT_MANIFEST,
+                resource_kinds=(RT_MANIFEST,),
             )
 
         assert os.path.exists(result_filename)
@@ -76,6 +81,25 @@ def executePostProcessing():
             res_name=3,
             lang_id=0,
         )
+
+        # Attach icons from template file if given.
+        template_exe = Options.getWindowsIconExecutablePath()
+        if template_exe is not None:
+            res_copied = copyResourcesFromFileToFile(
+                template_exe,
+                target_filename=result_filename,
+                resource_kinds=(RT_ICON, RT_GROUP_ICON),
+            )
+
+            if res_copied == 0:
+                postprocessing_logger.warning(
+                    "The specified icon template executable %r didn't contain anything to copy."
+                    % template_exe
+                )
+            else:
+                postprocessing_logger.warning(
+                    "Copied %d icon resources from %r." % (res_copied, template_exe)
+                )
 
     # On macOS, we update the executable path for searching the "libpython"
     # library.

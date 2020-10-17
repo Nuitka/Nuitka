@@ -39,11 +39,16 @@ RT_GROUP_ICON = 14
 RT_ICON = 3
 
 
-def getResourcesFromDLL(filename, resource_kind, with_data=False):
+def getResourcesFromDLL(filename, resource_kinds, with_data=False):
     """Get the resources of a specific kind from a Windows DLL.
 
+    Args:
+        filename - filename where the resources are taken from
+        resource_kinds - tuple of numeric values indicating types of resources
+        with_data - Return value includes data or only the name, lang pairs
+
     Returns:
-        List of resource names in the DLL.
+        List of resourcs in the DLL, see with_data which controls scope.
 
     """
     # Quite complex stuff, pylint: disable=too-many-locals
@@ -133,7 +138,8 @@ def getResourcesFromDLL(filename, resource_kind, with_data=False):
 
         return True
 
-    EnumResourceNames(hmodule, resource_kind, EnumResourceNameCallback(callback), 0)
+    for resource_kind in resource_kinds:
+        EnumResourceNames(hmodule, resource_kind, EnumResourceNameCallback(callback), 0)
 
     FreeLibrary(hmodule)
     return result
@@ -208,13 +214,13 @@ def deleteWindowsResources(filename, resource_kind, res_names):
     _closeFileWindowsResources(update_handle)
 
 
-def copyResourcesFromFileToFile(source_filename, target_filename, resource_kind):
+def copyResourcesFromFileToFile(source_filename, target_filename, resource_kinds):
     """Copy resources from one file to another.
 
     Args:
         source_filename - filename where the resources are taken from
         target_filename - filename where the resources are added to
-        resource_kind - numeric value indicating which type of resource
+        resource_kinds - tuple of numeric values indicating types of resources
 
     Returns:
         int - amount of resources copied, in case you want report
@@ -226,14 +232,14 @@ def copyResourcesFromFileToFile(source_filename, target_filename, resource_kind)
     """
 
     res_data = getResourcesFromDLL(
-        filename=source_filename, resource_kind=resource_kind, with_data=True
+        filename=source_filename, resource_kinds=resource_kinds, with_data=True
     )
 
     if res_data:
         update_handle = _openFileWindowsResources(target_filename)
 
-        for kind, res_name, lang_id, data in res_data:
-            assert kind == resource_kind
+        for resource_kind, res_name, lang_id, data in res_data:
+            assert resource_kind in resource_kinds
 
             lang_id = 0
 
