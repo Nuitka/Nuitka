@@ -725,12 +725,21 @@ When compiling for Windows, disable the console window. Defaults to off.""",
 )
 
 windows_group.add_option(
-    "--windows-icon",
-    action="store",
+    "--windows-icon-from-ico",
+    action="append",
     dest="icon_path",
     metavar="ICON_PATH",
+    default=[],
+    help="Add executable icon (Windows only at this time). Can be given multiple times.",
+)
+
+windows_group.add_option(
+    "--windows-icon-from-exe",
+    action="store",
+    dest="icon_exe_path",
+    metavar="ICON_EXE_PATH",
     default=None,
-    help="Add executable icon (Windows only).",
+    help="Copy executable icons from this existing executable (Windows only).",
 )
 
 parser.add_option_group(windows_group)

@@ -110,7 +110,7 @@ def getSxsFromDLL(filename, with_data=False):
     """
 
     return getResourcesFromDLL(
-        filename=filename, resource_kind=RT_MANIFEST, with_data=with_data
+        filename=filename, resource_kinds=(RT_MANIFEST,), with_data=with_data
     )
 
 

@@ -487,7 +487,11 @@ def runScons(main_module, quiet):
         options["clang_mode"] = "true"
 
     if Options.getIconPath():
-        options["icon_path"] = Options.getIconPath()
+        # TODO: Only temporary, until we don't use C compiler tools for this anymore.
+        if len(Options.getIconPath()) > 1:
+            general.warning("Only first icon paths currently used.")
+
+        options["icon_path"] = Options.getIconPath()[0]
 
     if Options.isProfile():
         options["profile_mode"] = "true"

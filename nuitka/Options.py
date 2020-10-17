@@ -37,7 +37,7 @@ is_fullcompat = None
 
 
 def parseArgs():
-    # singleton with many cases, pylint: disable=global-statement,too-many-branches
+    # singleton with many cases, pylint: disable=global-statement,too-many-branches,too-many-statements
     global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions()
@@ -134,13 +134,13 @@ mode where filenames are mandatory, and not for standalone where there is a
 sane default used inside the dist folder."""
         )
 
-    for icon_path in [getIconPath()]:
+    for icon_path in getIconPath():
         if icon_path is not None and not os.path.exists(icon_path):
-            sys.exit(
-                """\
-Error, icon path "%s" does not exist."""
-                % icon_path
-            )
+            sys.exit("""Error, icon path "%s" does not exist.""" % icon_path)
+
+    icon_exe_path = getWindowsIconExecutablePath()
+    if icon_exe_path is not None and not os.path.exists(icon_exe_path):
+        sys.exit("""Error, icon path "%s" does not exist.""" % icon_exe_path)
 
     is_debug = isDebug()
     is_nondebug = not is_debug
@@ -493,8 +493,13 @@ def isStandaloneMode():
 
 
 def getIconPath():
-    """*str*, value of "--windows-icon" """
+    """*list of str*, values of "--windows-icon-from-ico" """
     return options.icon_path
+
+
+def getWindowsIconExecutablePath():
+    """*str* or *None* if not given, value of "--windows-icon-from-exe" """
+    return options.icon_exe_path
 
 
 _python_flags = None
