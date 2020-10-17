@@ -620,18 +620,23 @@ def makeAbsoluteImportNode(module_name, source_ref):
     )
 
 
-def mangleName(variable_name, owner):
-    if not variable_name.startswith("__") or variable_name.endswith("__"):
-        return variable_name
+def mangleName(name, owner):
+    """Mangle names with leading "__" for usage in a class owner.
+
+    Notes: The is the private name handling for Python classes.
+    """
+
+    if not name.startswith("__") or name.endswith("__"):
+        return name
     else:
         # The mangling of function variable names depends on being inside a
         # class.
         class_container = owner.getContainingClassDictCreation()
 
         if class_container is None:
-            return variable_name
+            return name
         else:
-            return "_%s%s" % (class_container.getName().lstrip("_"), variable_name)
+            return "_%s%s" % (class_container.getName().lstrip("_"), name)
 
 
 def makeCallNode(called, *args, **kwargs):

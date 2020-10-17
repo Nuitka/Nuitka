@@ -72,19 +72,6 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
     def getAttributeName(self):
         return self.attribute_name
 
-    def setAttributeName(self, attribute_name):
-        """Update the attribute name looked up.
-
-        Attribute lookups are affected by privacy rules during tree building, they get
-        assigned the original attribute first, and only later update when the class
-        name is known.
-
-        TODO: Do this while building the tree initially, we should be able to tell the
-        class and function parents to trigger this.
-        """
-
-        self.attribute_name = attribute_name
-
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection=trace_collection
@@ -132,9 +119,6 @@ class StatementDelAttribute(StatementChildHavingBase):
     def getAttributeName(self):
         return self.attribute_name
 
-    def setAttributeName(self, attribute_name):
-        self.attribute_name = attribute_name
-
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection=trace_collection
@@ -174,9 +158,6 @@ class ExpressionAttributeLookup(ExpressionChildHavingBase):
 
     def getAttributeName(self):
         return self.attribute_name
-
-    def setAttributeName(self, attribute_name):
-        self.attribute_name = attribute_name
 
     def getDetails(self):
         return {"attribute_name": self.attribute_name}

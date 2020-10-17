@@ -44,7 +44,10 @@ from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantEllipsisRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
 from nuitka.nodes.NodeMakingHelpers import (
@@ -81,7 +84,6 @@ from .TreeHelpers import (
     buildAnnotationNode,
     buildNode,
     getKind,
-    makeConstantRefNode,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
@@ -137,7 +139,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
 
         return StatementAssignmentAttribute(
             expression=lookup_source,
-            attribute_name=attribute_name,
+            attribute_name=mangleName(attribute_name, provider),
             source=source,
             source_ref=source_ref,
         )
@@ -654,7 +656,7 @@ def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
 
         return StatementDelAttribute(
             expression=lookup_source,
-            attribute_name=attribute_name,
+            attribute_name=mangleName(attribute_name, provider),
             source_ref=source_ref,
         )
     elif kind == "Subscript":
@@ -1082,7 +1084,7 @@ def buildInplaceAssignNode(provider, node, source_ref):
         statements = _buildInplaceAssignAttributeNode(
             provider=provider,
             lookup_source=lookup_source,
-            attribute_name=attribute_name,
+            attribute_name=mangleName(attribute_name, provider),
             operator=operator,
             expression=expression,
             source_ref=source_ref,
