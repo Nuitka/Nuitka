@@ -134,13 +134,18 @@ mode where filenames are mandatory, and not for standalone where there is a
 sane default used inside the dist folder."""
         )
 
-    for icon_path in getIconPath():
-        if icon_path is not None and not os.path.exists(icon_path):
-            sys.exit("""Error, icon path "%s" does not exist.""" % icon_path)
+    for icon_path in getIconPaths():
+        if not os.path.exists(icon_path):
+            sys.exit("Error, icon path %r does not exist." % icon_path)
+
+        if getWindowsIconExecutablePath():
+            sys.exit(
+                "Error, can only use icons from template executable or from icon files, but not both."
+            )
 
     icon_exe_path = getWindowsIconExecutablePath()
     if icon_exe_path is not None and not os.path.exists(icon_exe_path):
-        sys.exit("""Error, icon path "%s" does not exist.""" % icon_exe_path)
+        sys.exit("Error, icon path %r does not exist." % icon_exe_path)
 
     is_debug = isDebug()
     is_nondebug = not is_debug
@@ -492,7 +497,7 @@ def isStandaloneMode():
     return options.is_standalone
 
 
-def getIconPath():
+def getIconPaths():
     """*list of str*, values of "--windows-icon-from-ico" """
     return options.icon_path
 

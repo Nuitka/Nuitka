@@ -19,6 +19,7 @@
 
 """
 
+import ctypes
 import os
 import shutil
 import stat
@@ -46,6 +47,108 @@ from nuitka.utils.WindowsResources import (
     addResourceToFile,
     copyResourcesFromFileToFile,
 )
+
+
+def addWindowsIconFromIcons():
+    # Complex stuff, pylint: disable=cell-var-from-loop,too-many-locals
+
+    class IconDirectoryHeader(ctypes.Structure):
+        _fields_ = [
+            ("reserved", ctypes.c_short),
+            ("type", ctypes.c_short),
+            ("count", ctypes.c_short),
+        ]
+
+    class IconDirectoryEntry(ctypes.Structure):
+        _fields_ = [
+            ("width", ctypes.c_char),
+            ("height", ctypes.c_char),
+            ("colors", ctypes.c_char),
+            ("reserved", ctypes.c_char),
+            ("planes", ctypes.c_short),
+            ("bit_count", ctypes.c_short),
+            ("image_size", ctypes.c_int),
+            ("image_offset", ctypes.c_int),
+        ]
+
+    class IconGroupDirectoryEntry(ctypes.Structure):
+        _fields_ = (
+            ("width", ctypes.c_char),
+            ("height", ctypes.c_char),
+            ("colors", ctypes.c_char),
+            ("reserved", ctypes.c_char),
+            ("planes", ctypes.c_short),
+            ("bit_count", ctypes.c_short),
+            ("image_size", ctypes.c_int),
+            ("id", ctypes.c_int),
+        )
+
+    icon_group = 1
+    image_id = 1
+    images = []
+
+    result_filename = OutputDirectories.getResultFullpath()
+
+    for icon_path in Options.getIconPaths():
+        with open(icon_path, "rb") as icon_file:
+
+            def readFromFile(c_struct):
+                result = c_struct()
+                chunk = icon_file.read(ctypes.sizeof(result))
+                ctypes.memmove(ctypes.byref(result), chunk, ctypes.sizeof(result))
+                return result
+
+            # Read header and icon entries.
+            header = readFromFile(IconDirectoryHeader)
+            icons = [readFromFile(IconDirectoryEntry) for icon in range(header.count)]
+
+            # Image data are to be scanned from places specified icon entries
+            for icon in icons:
+                icon_file.seek(icon.image_offset, 0)
+                images.append(icon_file.read(icon.image_size))
+
+        def toBytes(c_value):
+            result = (ctypes.c_char * ctypes.sizeof(c_value)).from_buffer_copy(c_value)
+            r = b"".join(result)
+            assert len(result) == ctypes.sizeof(c_value)
+            return r
+
+        parts = [toBytes(header)]
+
+        for icon in icons:
+            parts.append(
+                toBytes(
+                    IconGroupDirectoryEntry(
+                        width=icon.width,
+                        height=icon.height,
+                        colors=icon.colors,
+                        reserved=icon.reserved,
+                        planes=icon.planes,
+                        bit_count=icon.bit_count,
+                        image_size=icon.image_size,
+                        id=image_id,
+                    )
+                )
+            )
+
+            image_id += 1
+
+        addResourceToFile(
+            target_filename=result_filename,
+            data=b"".join(parts),
+            resource_kind=RT_GROUP_ICON,
+            lang_id=0,
+            res_name=icon_group,
+        )
+
+    for count, image in enumerate(images):
+        addResourceToFile(
+            target_filename=result_filename,
+            data=image,
+            resource_kind=RT_ICON,
+            lang_id=0,
+            res_name=count + 1,
+        )
 
 
 def executePostProcessing():
@@ -100,6 +203,8 @@ def executePostProcessing():
                 postprocessing_logger.warning(
                     "Copied %d icon resources from %r." % (res_copied, template_exe)
                 )
+        else:
+            addWindowsIconFromIcons()
 
     # On macOS, we update the executable path for searching the "libpython"
     # library.

@@ -266,10 +266,6 @@ def runScons(options, quiet):
                 options["result_exe"] = getExternalUsePath(
                     options["result_exe"], only_dirname=True
                 )
-            if "icon_path" in options:
-                options["icon_path"] = getExternalUsePath(
-                    options["icon_path"], only_dirname=True
-                )
         else:
             source_dir = None
 
