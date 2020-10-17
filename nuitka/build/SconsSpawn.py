@@ -22,7 +22,6 @@ progress, and gives warnings about things taking very long.
 """
 
 import os
-import re
 import subprocess
 import threading
 
@@ -115,12 +114,6 @@ def getWindowsSpawnFunction(module_mode, source_files):
 
         newargs = " ".join(removeTrailingSlashQuote(arg) for arg in args[1:])
         cmdline = cmd + " " + newargs
-
-        # Remove useless quoted include directories to "windres", which does not
-        # handle them properly in its command line parsing, while they are not
-        # used at all.
-        if cmd == "windres":
-            cmdline = re.sub('--include-dir ".*?"', "", cmdline)
 
         data, err, rv = runProcessMonitored(cmdline, env)
 
