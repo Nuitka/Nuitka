@@ -735,10 +735,20 @@ class ExpressionBase(NodeBase):
 
         return False
 
-    # TODO: The ought to be a type shape check for that too.
+    # TODO: There ought to be a type shape check for that too.
     @staticmethod
     def getIntegerValue():
         """ Node as integer value, if possible."""
+
+        return None
+
+    # TODO: There ought to be a type shape check for that too.
+    @staticmethod
+    def getIndexValue():
+        """Node as index value, if possible.
+
+        This should only work for int, bool, and long values, but e.g. not floats.
+        """
 
         return None
 
@@ -1274,15 +1284,26 @@ class ExpressionSpecBasedComputationMixin(object):
     def computeBuiltinSpec(self, trace_collection, given_values):
         assert self.builtin_spec is not None, self
 
-        for value in given_values:
-            if value is not None and not value.isCompileTimeConstant():
-                trace_collection.onExceptionRaiseExit(BaseException)
-
-                return self, None, None
-
         if not self.builtin_spec.isCompileTimeComputable(given_values):
             trace_collection.onExceptionRaiseExit(BaseException)
 
+            return self, None, None
+
+        return trace_collection.getCompileTimeComputationResult(
+            node=self,
+            computation=lambda: self.builtin_spec.simulateCall(given_values),
+            description="Built-in call to '%s' pre-computed."
+            % (self.builtin_spec.getName()),
+        )
+
+
+class ExpressionSpecBasedComputationNoRaiseMixin(object):
+    builtin_spec = None
+
+    def computeBuiltinSpec(self, trace_collection, given_values):
+        assert self.builtin_spec is not None, self
+
+        if not self.builtin_spec.isCompileTimeComputable(given_values):
             return self, None, None
 
         return trace_collection.getCompileTimeComputationResult(

@@ -557,7 +557,7 @@ class TraceCollectionBase(object):
         # Need to compute the replacement still.
         new_expression = expression.computeExpression(self)
 
-        if new_expression is not expression:
+        if new_expression[0] is not expression:
             # Signal intermediate result as well.
             self.signalChange(change_tags, expression.getSourceReference(), change_desc)
 

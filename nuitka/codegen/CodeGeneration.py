@@ -232,6 +232,7 @@ from .SetCodes import (
 )
 from .SliceCodes import (
     generateAssignmentSliceCode,
+    generateBuiltinSlice1Code,
     generateBuiltinSlice2Code,
     generateBuiltinSlice3Code,
     generateDelSliceCode,
@@ -486,6 +487,7 @@ setExpressionDispatchDict(
         "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL": generateAttributeLookupSpecialCode,
         "EXPRESSION_BUILTIN_SLICE3": generateBuiltinSlice3Code,
         "EXPRESSION_BUILTIN_SLICE2": generateBuiltinSlice2Code,
+        "EXPRESSION_BUILTIN_SLICE1": generateBuiltinSlice1Code,
         "EXPRESSION_BUILTIN_HASH": generateBuiltinHashCode,
         "EXPRESSION_BUILTIN_ID": generateBuiltinIdCode,
         "EXPRESSION_BUILTIN_COMPILE": generateBuiltinCompileCode,
