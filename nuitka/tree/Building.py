@@ -499,7 +499,7 @@ def buildStatementLoopBreak(provider, node, source_ref):
 def buildAttributeNode(provider, node, source_ref):
     return ExpressionAttributeLookup(
         expression=buildNode(provider, node.value, source_ref),
-        attribute_name=node.attr,
+        attribute_name=mangleName(node.attr, provider),
         source_ref=source_ref,
     )
 
