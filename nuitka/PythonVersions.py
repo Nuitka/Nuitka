@@ -104,7 +104,10 @@ def getComplexCallSequenceErrorTemplate():
             f(*None)
         except TypeError as e:
             result = (
-                e.args[0].replace("NoneType object", "%s").replace("NoneType", "%s")
+                e.args[0]
+                .replace("NoneType object", "%s")
+                .replace("NoneType", "%s")
+                .replace("None ", "%s ")
             )
             getComplexCallSequenceErrorTemplate.result = result
         else:

@@ -174,6 +174,11 @@ def getCallableNameDescBody():
         )
     )
 
+    if python_version >= 390:
+        result.setBody(functions_case)
+
+        return result
+
     no_branch = StatementReturn(
         expression=makeBinaryOperationNode(
             operator="Add",
