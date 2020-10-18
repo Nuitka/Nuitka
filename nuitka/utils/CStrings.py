@@ -25,12 +25,12 @@ import codecs
 import re
 
 
-def identifierEncode(c):
+def _identifierEncode(c):
     """Nuitka handler to encode unicode to ASCII identifiers for C compiler."""
     return "$%02x$" % ord(c.object[c.end - 1]), c.end
 
 
-codecs.register_error("c_identifier", identifierEncode)
+codecs.register_error("c_identifier", _identifierEncode)
 
 
 def _encodePythonStringToC(value):
