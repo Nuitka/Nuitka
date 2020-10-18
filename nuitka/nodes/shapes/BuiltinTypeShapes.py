@@ -248,7 +248,8 @@ olddiv_shapes_dict = olddiv_shapes_none
 mod_shapes_dict = mod_shapes_none
 divmod_shapes_dict = divmod_shapes_none
 pow_shapes_dict = pow_shapes_none
-bitor_shapes_dict = bitor_shapes_none
+bitor_shapes_dict = dict(bitor_shapes_none)
+ibitor_shapes_dict = dict(bitor_shapes_none)
 bitand_shapes_dict = bitand_shapes_none
 bitxor_shapes_dict = bitxor_shapes_none
 lshift_shapes_dict = lshift_shapes_none
@@ -934,6 +935,8 @@ class ShapeTypeDict(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
     rshift_shapes = rshift_shapes_dict
     matmult_shapes = matmult_shapes_dict
 
+    ibitor_shapes = ibitor_shapes_dict
+
     def getComparisonLtShape(self, right_shape):
         # Need to consider value shape for this
 
@@ -1586,6 +1589,10 @@ operation_result_strorunicode_noescape = (
 )
 operation_result_bytes_noescape = tshape_bytes, ControlFlowDescriptionNoEscape
 operation_result_bytearray_noescape = tshape_bytearray, ControlFlowDescriptionNoEscape
+
+operation_result_dict_noescape = tshape_dict, ControlFlowDescriptionNoEscape
+operation_result_dict_valueerror = tshape_dict, ControlFlowDescriptionValueErrorNoEscape
+
 
 operation_result_bool_elementbased = (
     tshape_bool,
@@ -3899,6 +3906,18 @@ bitand_shapes_strorunicode.update(
 bitxor_shapes_strorunicode.update(
     mergeStrOrUnicode(bitxor_shapes_str, bitxor_shapes_unicode)
 )
+
+if python_version >= 390:
+    bitor_shapes_dict[tshape_dict] = operation_result_dict_noescape
+
+    ibitor_shapes_dict[tshape_dict] = operation_result_dict_noescape
+    ibitor_shapes_dict[tshape_tuple] = operation_result_dict_valueerror
+    ibitor_shapes_dict[tshape_list] = operation_result_dict_valueerror
+    ibitor_shapes_dict[tshape_set] = operation_result_dict_valueerror
+    ibitor_shapes_dict[tshape_frozenset] = operation_result_dict_valueerror
+    ibitor_shapes_dict[tshape_str] = operation_result_dict_valueerror
+    ibitor_shapes_dict[tshape_bytes] = operation_result_dict_valueerror
+    ibitor_shapes_dict[tshape_bytearray] = operation_result_dict_valueerror
 
 
 class ShapeTypeBuiltinExceptionClass(ShapeBase):

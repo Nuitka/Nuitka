@@ -392,6 +392,32 @@ class ShapeBase(object):
 
             return operation_result_unknown
 
+    ibitor_shapes = {}
+
+    def getOperationInplaceBitOrShape(self, right_shape):
+        """Inplace bitor operation shape, for overload."""
+        if self.ibitor_shapes:
+            result = self.ibitor_shapes.get(right_shape)
+
+            if result is not None:
+                return result
+            else:
+                right_shape_type = type(right_shape)
+                if right_shape_type is ShapeLoopCompleteAlternative:
+                    return right_shape.getOperationBinaryBitOrLShape(self)
+
+                if right_shape_type is ShapeLoopInitialAlternative:
+                    return operation_result_unknown
+
+                onMissingOperation("IBitOr", self, right_shape)
+
+                return operation_result_unknown
+        else:
+            # By default, inplace add is the same as plain add, the
+            # only exception known right now is list, which extend
+            # from all iterables, but don't add with them.
+            return self.getOperationBinaryBitOrShape(right_shape)
+
     matmult_shapes = {}
 
     def getOperationBinaryMatMultShape(self, right_shape):

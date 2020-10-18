@@ -935,9 +935,18 @@ class ExpressionOperationInplaceBitOr(ExpressionOperationBinaryInplaceBase):
     operator = "IBitOr"
     simulator = PythonOperators.binary_operator_functions[operator]
 
-    @staticmethod
-    def _getOperationShape(left_shape, right_shape):
-        return left_shape.getOperationBinaryBitOrShape(right_shape)
+    # No inplace bitor special handling before 3.9
+    if python_version < 390:
+
+        @staticmethod
+        def _getOperationShape(left_shape, right_shape):
+            return left_shape.getOperationBinaryBitOrShape(right_shape)
+
+    else:
+
+        @staticmethod
+        def _getOperationShape(left_shape, right_shape):
+            return left_shape.getOperationInplaceBitOrShape(right_shape)
 
 
 class ExpressionOperationInplaceBitAnd(ExpressionOperationBinaryInplaceBase):
