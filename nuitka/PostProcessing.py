@@ -49,40 +49,59 @@ from nuitka.utils.WindowsResources import (
 )
 
 
+class IconDirectoryHeader(ctypes.Structure):
+    _fields_ = [
+        ("reserved", ctypes.c_short),
+        ("type", ctypes.c_short),
+        ("count", ctypes.c_short),
+    ]
+
+
+class IconDirectoryEntry(ctypes.Structure):
+    _fields_ = [
+        ("width", ctypes.c_char),
+        ("height", ctypes.c_char),
+        ("colors", ctypes.c_char),
+        ("reserved", ctypes.c_char),
+        ("planes", ctypes.c_short),
+        ("bit_count", ctypes.c_short),
+        ("image_size", ctypes.c_int),
+        ("image_offset", ctypes.c_int),
+    ]
+
+
+class IconGroupDirectoryEntry(ctypes.Structure):
+    _fields_ = (
+        ("width", ctypes.c_char),
+        ("height", ctypes.c_char),
+        ("colors", ctypes.c_char),
+        ("reserved", ctypes.c_char),
+        ("planes", ctypes.c_short),
+        ("bit_count", ctypes.c_short),
+        ("image_size", ctypes.c_int),
+        ("id", ctypes.c_int),
+    )
+
+
+def toBytes(c_value):
+    """ Convert ctypes structure to bytes for output. """
+
+    result = (ctypes.c_char * ctypes.sizeof(c_value)).from_buffer_copy(c_value)
+    r = b"".join(result)
+    assert len(result) == ctypes.sizeof(c_value)
+    return r
+
+
+def readFromFile(readable, c_struct):
+    """ Read ctypes structures from input. """
+
+    result = c_struct()
+    chunk = readable.read(ctypes.sizeof(result))
+    ctypes.memmove(ctypes.byref(result), chunk, ctypes.sizeof(result))
+    return result
+
+
 def addWindowsIconFromIcons():
-    # Complex stuff, pylint: disable=cell-var-from-loop,too-many-locals
-
-    class IconDirectoryHeader(ctypes.Structure):
-        _fields_ = [
-            ("reserved", ctypes.c_short),
-            ("type", ctypes.c_short),
-            ("count", ctypes.c_short),
-        ]
-
-    class IconDirectoryEntry(ctypes.Structure):
-        _fields_ = [
-            ("width", ctypes.c_char),
-            ("height", ctypes.c_char),
-            ("colors", ctypes.c_char),
-            ("reserved", ctypes.c_char),
-            ("planes", ctypes.c_short),
-            ("bit_count", ctypes.c_short),
-            ("image_size", ctypes.c_int),
-            ("image_offset", ctypes.c_int),
-        ]
-
-    class IconGroupDirectoryEntry(ctypes.Structure):
-        _fields_ = (
-            ("width", ctypes.c_char),
-            ("height", ctypes.c_char),
-            ("colors", ctypes.c_char),
-            ("reserved", ctypes.c_char),
-            ("planes", ctypes.c_short),
-            ("bit_count", ctypes.c_short),
-            ("image_size", ctypes.c_int),
-            ("id", ctypes.c_int),
-        )
-
     icon_group = 1
     image_id = 1
     images = []
@@ -91,27 +110,17 @@ def addWindowsIconFromIcons():
 
     for icon_path in Options.getIconPaths():
         with open(icon_path, "rb") as icon_file:
-
-            def readFromFile(c_struct):
-                result = c_struct()
-                chunk = icon_file.read(ctypes.sizeof(result))
-                ctypes.memmove(ctypes.byref(result), chunk, ctypes.sizeof(result))
-                return result
-
             # Read header and icon entries.
-            header = readFromFile(IconDirectoryHeader)
-            icons = [readFromFile(IconDirectoryEntry) for icon in range(header.count)]
+            header = readFromFile(icon_file, IconDirectoryHeader)
+            icons = [
+                readFromFile(icon_file, IconDirectoryEntry)
+                for icon in range(header.count)
+            ]
 
             # Image data are to be scanned from places specified icon entries
             for icon in icons:
                 icon_file.seek(icon.image_offset, 0)
                 images.append(icon_file.read(icon.image_size))
-
-        def toBytes(c_value):
-            result = (ctypes.c_char * ctypes.sizeof(c_value)).from_buffer_copy(c_value)
-            r = b"".join(result)
-            assert len(result) == ctypes.sizeof(c_value)
-            return r
 
         parts = [toBytes(header)]
 
