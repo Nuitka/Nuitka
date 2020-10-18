@@ -23,10 +23,6 @@
 
 from __future__ import print_function
 
-# Condition value not seen through, TODO: Might want to variate it, so
-# we cover more cases.
-cond = 8
-
 # Function to hide type because it is not seen through
 def forgetType(value):
     return value
@@ -43,7 +39,7 @@ def displayException(e):
 
 {% set operation_id = "I" + op_name + "_" + l_type + "_" + r_type %}
 
-def {{operation_id}}():
+def {{operation_id}}(cond):
     # First value, which we expect to be compile time computed.
     left = {{left_1}}
     right = {{right_1}}
@@ -116,7 +112,8 @@ def {{operation_id}}():
     else:
         print("{{operation_id}} runtime result:", left)
 
-{{operation_id}}()
+{{operation_id}}(0)
+{{operation_id}}(1)
 
 {% endfor %}
 {% endfor %}
