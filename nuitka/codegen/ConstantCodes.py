@@ -29,6 +29,7 @@ for a single module only.
 
 import ctypes
 import marshal
+import os
 import sys
 
 from nuitka import Options
@@ -311,9 +312,13 @@ def getConstantsDefinitionCode():
     sys_executable = None
 
     if not Options.shallMakeModule():
-        sys_executable = constant_accessor.getConstantCode(
-            None if Options.isStandaloneMode() else sys.executable
-        )
+        if Options.isStandaloneMode():
+            # The directory is added back at run time.
+            sys_executable = constant_accessor.getConstantCode(
+                os.path.basename(sys.executable)
+            )
+        else:
+            sys_executable = constant_accessor.getConstantCode(sys.executable)
 
     sys_prefix = None
     sys_base_prefix = None

@@ -39,15 +39,24 @@ PyObject *Nuitka_dunder_compiled_value = NULL;
 const unsigned char constant_bin[0];
 #endif
 
+#ifdef _NUITKA_STANDALONE
+extern PyObject *getStandaloneSysExecutablePath(PyObject *basename);
+#endif
+
 static void _createGlobalConstants(void) {
     // The empty name means global.
     loadConstantsBlob(&global_constants[0], "", %(global_constants_count)d);
 
 #if _NUITKA_EXE
-    /* Set the "sys.executable" path to the original CPython executable or None for standalone. */
+    /* Set the "sys.executable" path to the original CPython executable or point to inside the
+       distribution for standalone. */
     PySys_SetObject(
         (char *)"executable",
+#ifndef _NUITKA_STANDALONE
         %(sys_executable)s
+#else
+        getStandaloneSysExecutablePath(%(sys_executable)s)
+#endif
     );
 
 #ifndef _NUITKA_STANDALONE
