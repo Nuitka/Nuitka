@@ -1819,6 +1819,20 @@ static PyObject *getBinaryDirectoryObject() {
     return binary_directory;
 }
 
+#ifdef _NUITKA_STANDALONE
+// Helper function to create path.
+PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
+    PyObject *dir_name = PyObject_Unicode(getBinaryDirectoryObject());
+    char sep[2] = {SEP, 0};
+    PyObject *tmp = PyUnicode_Concat(dir_name, PyUnicode_FromString(sep));
+    Py_DECREF(dir_name);
+    PyObject *sys_executable = PyUnicode_Concat(tmp, PyObject_Unicode(basename));
+    Py_DECREF(tmp);
+
+    return sys_executable;
+}
+#endif
+
 #else
 
 #if defined(_WIN32)

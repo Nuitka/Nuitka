@@ -401,6 +401,11 @@ def extractClcacheLogFromOutput(data):
             _writeClcacheLog(match.group(1), "cache miss")
             return data
 
+        match = re.search(b"Real compiler returned code (\\d+)", clcache_line)
+        if match and match.group(1) != b"0":
+            _writeClcacheLog(match.group(1), "compile error")
+            return data
+
         match = re.search(b"Compiler source files: \\['(.*?)'\\]", clcache_line)
         if match:
             _writeClcacheLog(match.group(1), "cache miss")
