@@ -70,11 +70,22 @@ parser.add_option(
     dest="is_standalone",
     default=False,
     help="""\
-Enable standalone mode in build. This allows you to transfer the created binary
-to other machines without it relying on an existing Python installation. It
-implies these option: "--recurse-all". You may also want to use
-"--python-flag=no_site" to avoid the "site.py" module, which can save a lot
-of code dependencies. Defaults to off.""",
+Enable standalone mode for output. This allows you to transfer the created binary
+to other machines without it using an existing Python installation. This also
+means it will become big. It implies these option: "--recurse-all". You may also
+want to use "--python-flag=no_site" to avoid the "site.py" module, which can save
+a lot of code dependencies. Defaults to off.""",
+)
+
+parser.add_option(
+    "--onefile",
+    action="store_true",
+    dest="is_onefile",
+    default=False,
+    help="""\
+In case of standalone mode, enable single file mode. This means not a folder,
+but a compressed executable is created and used. Experimental at this time,
+and not supported on all OSes. Defaults to off.""",
 )
 
 

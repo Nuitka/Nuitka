@@ -22,7 +22,6 @@
 import ctypes
 import os
 import shutil
-import stat
 import sys
 
 from nuitka import Options, OutputDirectories
@@ -33,7 +32,10 @@ from nuitka.PythonVersions import (
     python_version,
 )
 from nuitka.Tracing import postprocessing_logger
-from nuitka.utils.FileOperations import getFileContents
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    removeFileExecutablePermission,
+)
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     callInstallNameToolAddRPath,
@@ -243,13 +245,7 @@ def executePostProcessing():
     # Modules should not be executable, but Scons creates them like it, fix
     # it up here.
     if not isWin32Windows() and Options.shallMakeModule():
-        old_stat = os.stat(result_filename)
-
-        mode = old_stat.st_mode
-        mode &= ~(stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-
-        if mode != old_stat.st_mode:
-            os.chmod(result_filename, mode)
+        removeFileExecutablePermission(result_filename)
 
     if isWin32Windows() and Options.shallMakeModule():
         candidate = os.path.join(

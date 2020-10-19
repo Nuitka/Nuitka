@@ -325,3 +325,10 @@ def getPythonInstallPathWindows(supported, decider=lambda x: True):
                                 return install_dir
 
                             seen.add(install_dir)
+
+
+def getNullOutput():
+    try:
+        return subprocess.NULLDEV
+    except AttributeError:
+        return open(os.devnull, "wb")

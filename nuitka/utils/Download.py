@@ -31,27 +31,30 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
 from nuitka.utils import Utils
 
 from .AppDirs import getAppDir
-from .FileOperations import deleteFile, makePath
+from .FileOperations import addFileExecutablePermission, deleteFile, makePath
 
 
 def getCachedDownload(
-    url, binary, is_arch_specific, message, reject, assume_yes_for_downloads
+    url, binary, is_arch_specific, specifity, message, reject, assume_yes_for_downloads
 ):
     # Many branches to deal with, pylint: disable=too-many-branches
 
     nuitka_app_dir = getAppDir()
 
+    nuitka_app_dir = os.path.join(nuitka_app_dir, binary.replace(".exe", ""))
+
     if is_arch_specific:
         nuitka_app_dir = os.path.join(nuitka_app_dir, Utils.getArchitecture())
 
-    nuitka_app_dir = os.path.join(nuitka_app_dir, binary.replace(".exe", ""))
+    if specifity:
+        nuitka_app_dir = os.path.join(nuitka_app_dir, specifity)
 
-    zip_path = os.path.join(nuitka_app_dir, os.path.basename(url))
+    download_path = os.path.join(nuitka_app_dir, os.path.basename(url))
     exe_path = os.path.join(nuitka_app_dir, binary)
 
     makePath(nuitka_app_dir)
 
-    if not os.path.isfile(zip_path) and not os.path.isfile(exe_path):
+    if not os.path.isfile(download_path) and not os.path.isfile(exe_path):
         if assume_yes_for_downloads:
             reply = "y"
         else:
@@ -77,20 +80,20 @@ Proceed and download? [Yes]/No """
             Tracing.general.info("Downloading '%s'" % url)
 
             try:
-                urlretrieve(url, zip_path)
+                urlretrieve(url, download_path)
             except Exception:  # Any kind of error, pylint: disable=broad-except
                 sys.exit(
                     "Failed to download '%s'. Contents should manually be extracted to '%s'."
-                    % (url, zip_path)
+                    % (url, download_path)
                 )
 
-    if not os.path.isfile(exe_path) and os.path.isfile(zip_path):
+    if not os.path.isfile(exe_path) and os.path.isfile(download_path):
         Tracing.general.info("Extracting to '%s'" % exe_path)
 
         import zipfile
 
         try:
-            zip_file = zipfile.ZipFile(zip_path)
+            zip_file = zipfile.ZipFile(download_path)
 
             for zip_info in zip_file.infolist():
                 if zip_info.filename[-1] == "/":
@@ -102,7 +105,7 @@ Proceed and download? [Yes]/No """
             Tracing.general.info("Problem with the downloaded zip file, deleting it.")
 
             deleteFile(binary, must_exist=False)
-            deleteFile(zip_path, must_exist=True)
+            deleteFile(download_path, must_exist=True)
 
             sys.exit("Error, need '%s' as extracted from '%s'." % (binary, url))
 
@@ -112,5 +115,7 @@ Proceed and download? [Yes]/No """
             sys.exit(reject)
 
         exe_path = None
+
+    addFileExecutablePermission(exe_path)
 
     return exe_path

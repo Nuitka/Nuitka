@@ -62,8 +62,8 @@ def getStandaloneDirectoryPath():
     )
 
 
-def getResultBasepath():
-    if Options.isStandaloneMode():
+def getResultBasepath(onefile=False):
+    if Options.isStandaloneMode() and not onefile:
         return os.path.join(
             getStandaloneDirectoryPath(),
             os.path.basename(getTreeFilenameWithSuffix(_main_module, "")),
@@ -74,10 +74,10 @@ def getResultBasepath():
         )
 
 
-def getResultFullpath():
+def getResultFullpath(onefile=False):
     """Get the final output binary result full path."""
 
-    result = getResultBasepath()
+    result = getResultBasepath(onefile=onefile)
 
     if Options.shallMakeModule():
         result += getSharedLibrarySuffix(preferred=True)
@@ -86,7 +86,7 @@ def getResultFullpath():
             result = Options.getOutputFilename()
         elif getOS() == "Windows":
             result += ".exe"
-        elif not Options.isStandaloneMode():
+        elif not Options.isStandaloneMode() or onefile:
             result += ".bin"
 
     return result

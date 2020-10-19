@@ -41,6 +41,7 @@ def getDependsExePath():
         url=depends_url,
         is_arch_specific=True,
         binary="depends.exe",
+        specifity="",  # Note: If there ever was an update, put version here.
         message="""\
 Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
 to analyze the dependencies of Python extension modules.""",

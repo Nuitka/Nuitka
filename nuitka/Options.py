@@ -497,6 +497,11 @@ def isStandaloneMode():
     return options.is_standalone
 
 
+def isOnefileMode():
+    """*bool* = "--standalone" """
+    return options.is_standalone and options.is_onefile
+
+
 def getIconPaths():
     """*list of str*, values of "--windows-icon-from-ico" """
     return options.icon_path

@@ -106,9 +106,11 @@ def _injectCcache(
                     break
 
         if ccache_binary is None:
+            url = "https://github.com/ccache/ccache/releases/download/v3.7.12/ccache-3.7.12-windows-32.zip"
             ccache_binary = getCachedDownload(
-                url="https://github.com/ccache/ccache/releases/download/v3.7.12/ccache-3.7.12-windows-32.zip",
+                url=url,
                 is_arch_specific=False,
+                specifity=url.rsplit("/", 2)[1],
                 binary="ccache.exe",
                 message="Nuitka will make use of ccache to speed up repeated compilation.",
                 reject=None,

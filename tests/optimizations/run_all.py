@@ -210,6 +210,7 @@ def main():
                 os.environ["PYTHON"],
                 os.path.abspath(os.path.join("..", "..", "bin", "nuitka")),
                 "--xml",
+                "--quiet",
                 "--module",
                 filename,
             ]

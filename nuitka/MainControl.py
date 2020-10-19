@@ -65,6 +65,7 @@ from . import ModuleRegistry, Options, OutputDirectories, TreeXML
 from .build import SconsInterface
 from .codegen import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
+from .freezer.Onefile import packDistFolderToOnefile
 from .freezer.Standalone import copyUsedDLLs
 from .optimizations import Optimization
 from .tree import Building
@@ -617,7 +618,11 @@ def executeModule(tree, clean_path):
 def compileTree(main_module):
     source_dir = OutputDirectories.getSourceDirectoryPath()
 
+    general.info("Completed Python level compilation and optimization.")
+
     if not Options.shallOnlyExecCCompilerCall():
+        general.info("Generating C source code for backend compiler.")
+
         if Options.isShowProgress() or Options.isShowMemory():
             general.info(
                 "Total memory usage before generating C code: {memory}:".format(
@@ -661,9 +666,13 @@ def compileTree(main_module):
     if Options.shallNotDoExecCCompilerCall():
         return True, {}
 
+    general.info("Running data composer tool for optimal constant value handling.")
+
     # TODO: On Windows, we could run this in parallel to Scons, on Linux we need it
     # for linking.
     runDataComposer(source_dir)
+
+    general.info("Running C level backend compilation via Scons.")
 
     # Run the Scons to build things.
     result, options = runScons(main_module=main_module, quiet=not Options.isShowScons())
@@ -710,6 +719,9 @@ def main():
 
     # Main has to fulfill many options, leading to many branches and statements
     # to deal with them.  pylint: disable=too-many-branches
+
+    general.info("Starting Python compilation.")
+
     filename = Options.getPositionalArgs()[0]
 
     # Inform the importing layer about the main script directory, so it can use
@@ -762,6 +774,9 @@ def main():
 
             copyDataFiles(dist_dir=dist_dir)
 
+            if Options.isOnefileMode():
+                packDistFolderToOnefile(dist_dir, binary_filename)
+
             Plugins.onStandaloneDistributionFinished(dist_dir)
 
         # Remove the source directory (now build directory too) if asked to.
@@ -802,6 +817,11 @@ __name__ = ...
                         )
                     }
                 )
+
+        general.info(
+            "Sucessfully created %r."
+            % OutputDirectories.getResultFullpath(onefile=Options.isOnefileMode())
+        )
 
         # Execute the module immediately if option was given.
         if Options.shallExecuteImmediately():

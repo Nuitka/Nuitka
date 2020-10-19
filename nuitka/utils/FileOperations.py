@@ -24,6 +24,7 @@ stuff. It will also frequently add sorting for determism.
 
 import os
 import shutil
+import stat
 import tempfile
 import time
 from contextlib import contextmanager
@@ -328,6 +329,26 @@ def withMadeWritableFileMode(filename):
     with withPreserveFileMode(filename):
         os.chmod(filename, int("644", 8))
         yield
+
+
+def removeFileExecutablePermission(filename):
+    old_stat = os.stat(filename)
+
+    mode = old_stat.st_mode
+    mode &= ~(stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+    if mode != old_stat.st_mode:
+        os.chmod(filename, mode)
+
+
+def addFileExecutablePermission(filename):
+    old_stat = os.stat(filename)
+
+    mode = old_stat.st_mode
+    mode |= stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+
+    if mode != old_stat.st_mode:
+        os.chmod(filename, mode)
 
 
 def renameFile(source_filename, dest_filename):
