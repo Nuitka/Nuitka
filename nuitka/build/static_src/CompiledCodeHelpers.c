@@ -29,6 +29,7 @@
 
 #include "HelpersBuiltin.c"
 #include "HelpersClasses.c"
+#include "HelpersDictionaries.c"
 #include "HelpersExceptions.c"
 #include "HelpersHeapStorage.c"
 #include "HelpersImport.c"

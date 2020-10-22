@@ -292,6 +292,7 @@ extern PyObject *BUILTIN_BYTEARRAY3(PyObject *string, PyObject *encoding, PyObje
 
 // For built-in hash() functionality.
 extern PyObject *BUILTIN_HASH(PyObject *value);
+extern Py_hash_t HASH_VALUE(PyObject *value);
 
 // For built-in sum() functionality.
 extern PyObject *BUILTIN_SUM1(PyObject *sequence);

@@ -232,19 +232,20 @@ Subscript del to dictionary lowered to dictionary del."""
         tags = None
         message = None
 
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
-
         if self.variable_trace.hasShapeDictionaryExact():
-            lookup_node = ExpressionDictOperationGet(
-                dict_arg=self,
-                key=subscript,
-                source_ref=lookup_node.getSourceReference(),
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionDictOperationGet(
+                    dict_arg=self,
+                    key=subscript,
+                    source_ref=lookup_node.getSourceReference(),
+                ),
+                change_tags="new_expression",
+                change_desc="""\
+Subscript look-up to dictionary lowered to dictionary look-up.""",
             )
 
-            tags = "new_expression"
-            message = """\
-Subscript look-up to dictionary lowered to dictionary look-up."""
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
 
         # Any exception might be raised.
         if lookup_node.mayRaiseException(BaseException):

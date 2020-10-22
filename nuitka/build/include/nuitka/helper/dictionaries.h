@@ -227,35 +227,8 @@ NUITKA_MAY_BE_UNUSED static bool DICT_REMOVE_ITEM(PyObject *dict, PyObject *key)
     return true;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *DICT_GET_ITEM(PyObject *dict, PyObject *key) {
-    CHECK_OBJECT(dict);
-    assert(PyDict_CheckExact(dict));
-
-    CHECK_OBJECT(key);
-
-    PyObject *result = PyDict_GetItem(dict, key);
-
-    if (result == NULL) {
-        if (unlikely(PyErr_Occurred())) {
-            return NULL;
-        }
-
-        /* Wrap all kinds of tuples, because normalization will later unwrap
-         * it, but then that changes the key for the KeyError, which is not
-         * welcome. The check is inexact, as the unwrapping one is too.
-         */
-        if (PyTuple_Check(key)) {
-            PyObject *tuple = PyTuple_Pack(1, key);
-            SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyExc_KeyError, tuple);
-        } else {
-            SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_KeyError, key);
-        }
-        return NULL;
-    } else {
-        Py_INCREF(result);
-        return result;
-    }
-}
+// Get dict lookup for a key, similar to PyDict_GetItemWithError
+extern PyObject *DICT_GET_ITEM(PyObject *dict, PyObject *key);
 
 // Convert to dictionary, helper for built-in "dict" mainly.
 NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT(PyObject *seq_obj, PyObject *dict_obj) {

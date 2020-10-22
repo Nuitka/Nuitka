@@ -46,7 +46,6 @@ from .IterationHandles import (
     ConstantSetAndDictIterationHandle,
 )
 from .NodeMakingHelpers import (
-    getComputationResult,
     makeRaiseExceptionReplacementExpression,
     wrapExpressionWithSideEffects,
 )
@@ -234,14 +233,9 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         # Note, this is overloaded for all the others.
         assert not self.isIterableConstant()
 
-        # An exception will be raised in this case.
-        trace_collection.onExceptionRaiseExit(TypeError)
+        # TODO: Raise static exception.
 
-        return getComputationResult(
-            node=iter_node,
-            computation=lambda: iter_node.simulator(self.constant),
-            description="Iteration of non-iterable constant.",
-        )
+        return iter_node, None, None
 
 
 class ExpressionConstantRefBase(ExpressionConstantUntrackedRefBase):

@@ -64,8 +64,6 @@ void _initSlotCompare() {
     Py_DECREF(r);
 }
 
-#define RICHCOMPARE(t) (PyType_HasFeature((t), Py_TPFLAGS_HAVE_RICHCOMPARE) ? (t)->tp_richcompare : NULL)
-
 static inline int adjust_tp_compare(int c) {
     if (ERROR_OCCURRED()) {
         return -2;
@@ -146,10 +144,6 @@ static int try_3way_compare(PyObject *a, PyObject *b) {
     Py_DECREF(b);
     return 2;
 }
-
-#else
-
-#define RICHCOMPARE(t) ((t)->tp_richcompare)
 
 #endif
 

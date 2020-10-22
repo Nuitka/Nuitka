@@ -244,6 +244,12 @@ extern PyThreadState *_PyThreadState_Current;
 #define Py_LeaveRecursiveCall()
 #endif
 
+#if PYTHON_VERSION < 300
+#define RICHCOMPARE(t) (PyType_HasFeature((t), Py_TPFLAGS_HAVE_RICHCOMPARE) ? (t)->tp_richcompare : NULL)
+#else
+#define RICHCOMPARE(t) ((t)->tp_richcompare)
+#endif
+
 // Generated.
 // TODO: Move generated ones to separate file.
 #ifdef __IDE_ONLY__

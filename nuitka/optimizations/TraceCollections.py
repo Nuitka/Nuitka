@@ -485,7 +485,7 @@ class TraceCollectionBase(object):
         # Now compute this expression, allowing it to replace itself with
         # something else as part of a local peep hole optimization.
         r = expression.computeExpressionRaw(trace_collection=self)
-        assert type(r) is tuple, expression
+        assert type(r) is tuple, (expression, expression.getVisitableNodes(), r)
 
         new_node, change_tags, change_desc = r
 

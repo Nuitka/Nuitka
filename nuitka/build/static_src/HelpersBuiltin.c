@@ -400,18 +400,63 @@ PyObject *BUILTIN_HEX(PyObject *value) {
  *
  **/
 
-PyObject *BUILTIN_HASH(PyObject *value) {
-    Py_hash_t hash = PyObject_Hash(value);
+static void SET_HASH_NOT_IMPLEMENTED_ERROR(PyObject *value) {
+    // TODO: Use our own formating code.
 
-    if (unlikely(hash == -1)) {
-        return NULL;
+    PyErr_Format(PyExc_TypeError, "unhashable type: '%s'", Py_TYPE(value)->tp_name);
+}
+
+#if PYTHON_VERSION < 300
+// Helper to make hash from pointer value, compatible with CPython.
+static long Nuitka_HashFromPointer(void *p) {
+    size_t y = (size_t)p;
+    y = (y >> 4) | (y << (8 * SIZEOF_VOID_P - 4));
+    long x = (long)y;
+    if (unlikely(x == -1)) {
+        x = -2;
+    }
+    return x;
+}
+#endif
+
+PyObject *BUILTIN_HASH(PyObject *value) {
+    PyTypeObject *type = Py_TYPE(value);
+
+    if (likely(type->tp_hash != NULL)) {
+        Py_hash_t hash = (*type->tp_hash)(value);
+
+        if (unlikely(hash == -1)) {
+            return NULL;
+        }
+
+#if PYTHON_VERSION < 300
+        return PyInt_FromLong(hash);
+#else
+        return PyLong_FromSsize_t(hash);
+#endif
     }
 
 #if PYTHON_VERSION < 300
-    return PyInt_FromLong(hash);
-#else
-    return PyLong_FromSsize_t(hash);
+    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+        Py_hash_t hash = Nuitka_HashFromPointer(value);
+        return PyInt_FromLong(hash);
+    }
 #endif
+
+    SET_HASH_NOT_IMPLEMENTED_ERROR(value);
+    return NULL;
+}
+
+Py_hash_t HASH_VALUE(PyObject *value) {
+    PyTypeObject *type = Py_TYPE(value);
+
+    if (likely(type->tp_hash != NULL)) {
+        Py_hash_t hash = (*type->tp_hash)(value);
+        return hash;
+    }
+
+    SET_HASH_NOT_IMPLEMENTED_ERROR(value);
+    return -1;
 }
 
 /** The "bytearray" built-in.
