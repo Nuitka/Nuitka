@@ -230,6 +230,9 @@ NUITKA_MAY_BE_UNUSED static bool DICT_REMOVE_ITEM(PyObject *dict, PyObject *key)
 // Get dict lookup for a key, similar to PyDict_GetItemWithError
 extern PyObject *DICT_GET_ITEM(PyObject *dict, PyObject *key);
 
+// Get dict lookup for a key, similar to PyDict_Contains
+extern int DICT_HAS_ITEM(PyObject *dict, PyObject *key);
+
 // Convert to dictionary, helper for built-in "dict" mainly.
 NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT(PyObject *seq_obj, PyObject *dict_obj) {
     PyObject *result = PyDict_New();

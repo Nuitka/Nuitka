@@ -490,49 +490,63 @@ class StatementDictOperationUpdate(StatementChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionDictOperationIn(ExpressionChildrenHavingBase):
+class ExpressionDictOperationInNotInUncertainBase(ExpressionChildrenHavingBase):
+    # Follows the reversed nature of "in", with the dictionary on the right
+    # side of things.
+    named_children = ("key", "dict")
+
+    __slots__ = ("known_hashable_key",)
+
+    getDict = ExpressionChildrenHavingBase.childGetter("dict")
+    getKey = ExpressionChildrenHavingBase.childGetter("key")
+
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, key, dict_arg, source_ref):
+        assert dict_arg is not None
+        assert key is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
+        )
+
+        self.known_hashable_key = None
+
+    def computeExpression(self, trace_collection):
+        if self.known_hashable_key is None:
+            self.known_hashable_key = self.subnode_key.isKnownToBeHashable()
+
+            # TODO: Generate unhashable exception here.
+            if self.known_hashable_key is False:
+                pass
+
+        if self.mayRaiseException(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_key.mayRaiseException(exception_type)
+            or self.subnode_dict.mayRaiseException(exception_type)
+            or self.known_hashable_key is not True
+        )
+
+    def mayHaveSideEffects(self):
+        return self.mayRaiseException(BaseException)
+
+    def extractSideEffects(self):
+        if self.known_hashable_key is not True:
+            return (self,)
+        else:
+            return (
+                self.subnode_key.extractSideEffects()
+                + self.subnode_value.extractSideEffects()
+            )
+
+
+class ExpressionDictOperationIn(ExpressionDictOperationInNotInUncertainBase):
     kind = "EXPRESSION_DICT_OPERATION_IN"
 
-    # Follow the reversed nature of "in", with the dictionary on the right
-    # side of things.
-    named_children = ("key", "dict")
-    getDict = ExpressionChildrenHavingBase.childGetter("dict")
-    getKey = ExpressionChildrenHavingBase.childGetter("key")
 
-    @calledWithBuiltinArgumentNamesDecorator
-    def __init__(self, key, dict_arg, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
-        )
-
-    def computeExpression(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return self, None, None
-
-
-class ExpressionDictOperationNotIn(ExpressionChildrenHavingBase):
+class ExpressionDictOperationNotIn(ExpressionDictOperationInNotInUncertainBase):
     kind = "EXPRESSION_DICT_OPERATION_NOT_IN"
-
-    # Follow the reversed nature of "in", with the dictionary on the right
-    # side of things.
-    named_children = ("key", "dict")
-    getDict = ExpressionChildrenHavingBase.childGetter("dict")
-    getKey = ExpressionChildrenHavingBase.childGetter("key")
-
-    @calledWithBuiltinArgumentNamesDecorator
-    def __init__(self, key, dict_arg, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
-        )
-
-    def computeExpression(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return self, None, None

@@ -134,3 +134,77 @@ PyObject *DICT_GET_ITEM(PyObject *dict, PyObject *key) {
 
 #endif
 }
+
+int DICT_HAS_ITEM(PyObject *dict, PyObject *key) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_CheckExact(dict));
+
+    CHECK_OBJECT(key);
+
+    Py_hash_t hash;
+
+// This variant is uncertain about the hashing.
+#if PYTHON_VERSION < 300
+    if (!PyString_CheckExact(key) || (hash = ((PyStringObject *)key)->ob_shash) == -1) {
+        hash = HASH_VALUE(key);
+        if (unlikely(hash == -1)) {
+            return -1;
+        }
+    }
+
+    PyDictObject *dict_object = (PyDictObject *)dict;
+    PyDictEntry *entry = (dict_object->ma_lookup)(dict_object, key, hash);
+
+    if (unlikely(entry == NULL || entry->me_value == NULL)) {
+        if (unlikely(ERROR_OCCURRED())) {
+            return -1;
+        }
+
+        return 0;
+    }
+
+    return 1;
+#else
+    if (!PyUnicode_CheckExact(key) || (hash = ((PyASCIIObject *)key)->hash) == -1) {
+        hash = HASH_VALUE(key);
+        if (unlikely(hash == -1)) {
+            return -1;
+        }
+    }
+
+    PyDictObject *dict_object = (PyDictObject *)dict;
+
+#if PYTHON_VERSION < 360
+    PyObject **value_addr;
+    PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
+
+    if (unlikely(entry == NULL || *value_addr == NULL)) {
+        if (unlikely(ERROR_OCCURRED())) {
+            return -1;
+        }
+
+        return 0;
+    }
+
+    return 1
+#else
+#if PYTHON_VERSION < 370
+    PyObject **value_addr;
+    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &value_addr, NULL);
+
+#else
+    PyObject *value;
+    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &value);
+#endif
+
+    if (unlikely(ix < 0)) {
+        if (unlikely(ERROR_OCCURRED())) {
+            return -1;
+        }
+
+        return 0;
+    }
+#endif
+        return 1;
+#endif
+}
