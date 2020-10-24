@@ -448,15 +448,13 @@ repeated compilations much faster, even if things are not yet not perfect, i.e.
 changes to the program can cause many C files to change, requiring a new
 compilation instead of using the cached result.
 
-On Windows, with gcc Nuitka supports using ``ccache.exe`` which can e.g. be
-obtained from Anaconda, using ``conda install ccache`` which installs a binary,
-that you can reference even if you are using CPython otherwise. This is the
-easiest way to install ccache.
+On Windows, with gcc Nuitka supports using ``ccache.exe`` which it will offer
+to download from an official source and it automatically. This is the
+recommended way of using it on Windows, as other versions can e.g. hang.
 
 Nuitka will pick up ``ccache`` if it's in found in system ``PATH``, and it will
-be possible to provide if by setting ``NUITKA_CCACHE_BINARY`` to the full path
-of the binary, e.g. from ``$CONDA/bin/ccache.exe``. When using Anaconda, it
-will be picked up automatically.
+also be possible to provide if by setting ``NUITKA_CCACHE_BINARY`` to the full
+path of the binary, this is for use in CI systems.
 
 For the Visual Studio compilers, you are just one ``pip install clcache``
 command away. To make Nuitka use those, set ``NUITKA_CLCACHE_BINARY`` to the
