@@ -679,10 +679,9 @@ PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name) {
 
             Py_INCREF(dict);
 
-            PyObject *called_object = PyDict_GetItem(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
 
             if (called_object != NULL) {
-                Py_INCREF(called_object);
                 Py_XDECREF(descr);
                 Py_DECREF(dict);
 
@@ -890,10 +889,9 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyO
 
             Py_INCREF(dict);
 
-            PyObject *called_object = PyDict_GetItem(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
 
             if (called_object != NULL) {
-                Py_INCREF(called_object);
                 Py_XDECREF(descr);
                 Py_DECREF(dict);
 

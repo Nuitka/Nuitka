@@ -257,7 +257,7 @@ static PyObject *resolveParentModuleName(PyObject *module, PyObject *name, int l
         return NULL;
     }
 
-    PyObject *package = PyDict_GetItem(globals, const_str_plain___package__);
+    PyObject *package = DICT_GET_ITEM0(globals, const_str_plain___package__);
 
     if (unlikely(package == NULL && ERROR_OCCURRED())) {
         return NULL;
@@ -267,7 +267,7 @@ static PyObject *resolveParentModuleName(PyObject *module, PyObject *name, int l
         package = NULL;
     }
 
-    PyObject *spec = PyDict_GetItem(globals, const_str_plain___spec__);
+    PyObject *spec = DICT_GET_ITEM0(globals, const_str_plain___spec__);
 
     if (unlikely(spec == NULL && ERROR_OCCURRED())) {
         return NULL;
@@ -321,7 +321,7 @@ static PyObject *resolveParentModuleName(PyObject *module, PyObject *name, int l
             return NULL;
         }
 
-        package = PyDict_GetItem(globals, const_str_plain___name__);
+        package = DICT_GET_ITEM0(globals, const_str_plain___name__);
 
         if (unlikely(package == NULL && !ERROR_OCCURRED())) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_KeyError, "'__name__' not in globals");
@@ -334,11 +334,7 @@ static PyObject *resolveParentModuleName(PyObject *module, PyObject *name, int l
         }
 
         // Detect package from __path__ presence.
-        if (PyDict_GetItem(globals, const_str_plain___path__) == NULL) {
-            if (unlikely(ERROR_OCCURRED())) {
-                return NULL;
-            }
-
+        if (DICT_HAS_ITEM(globals, const_str_plain___path__) == 1) {
             Py_ssize_t dot = PyUnicode_FindChar(package, '.', 0, PyUnicode_GET_LENGTH(package), -1);
 
             if (unlikely(dot == -2)) {

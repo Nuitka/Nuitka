@@ -175,10 +175,9 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
 
             Py_INCREF(dict);
 
-            PyObject *result = PyDict_GetItem(dict, attr_name);
+            PyObject *result = DICT_GET_ITEM1(dict, attr_name);
 
             if (result != NULL) {
-                Py_INCREF(result);
                 Py_XDECREF(descr);
                 Py_DECREF(dict);
 
@@ -296,10 +295,9 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
 
             Py_INCREF(dict);
 
-            PyObject *result = PyDict_GetItem(dict, const_str_plain___dict__);
+            PyObject *result = DICT_GET_ITEM1(dict, const_str_plain___dict__);
 
             if (result != NULL) {
-                Py_INCREF(result);
                 Py_XDECREF(descr);
                 Py_DECREF(dict);
 
@@ -415,10 +413,9 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
 
             Py_INCREF(dict);
 
-            PyObject *result = PyDict_GetItem(dict, const_str_plain___class__);
+            PyObject *result = DICT_GET_ITEM1(dict, const_str_plain___class__);
 
             if (result != NULL) {
-                Py_INCREF(result);
                 Py_XDECREF(descr);
                 Py_DECREF(dict);
 

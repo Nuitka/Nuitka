@@ -396,10 +396,9 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
 
             Py_INCREF(dict);
 
-            PyObject *called_object = PyDict_GetItem(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
 
             if (called_object != NULL) {
-                Py_INCREF(called_object);
                 Py_XDECREF(descr);
                 Py_DECREF(dict);
 

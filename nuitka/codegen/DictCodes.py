@@ -235,7 +235,9 @@ def generateDictOperationGetCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "dict_value", expression, emit, context
     ) as value_name:
-        emit("%s = DICT_GET_ITEM(%s, %s);" % (value_name, dict_name, key_name))
+        emit(
+            "%s = DICT_GET_ITEM_WITH_ERROR(%s, %s);" % (value_name, dict_name, key_name)
+        )
 
         getErrorExitCode(
             check_name=value_name,

@@ -194,7 +194,7 @@ PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals) {
     }
 
     // Set the __builtins__ in globals, it is expected to be present.
-    if (PyDict_GetItem(globals, const_str_plain___builtins__) == NULL) {
+    if (PyDict_Check(globals) && DICT_HAS_ITEM(globals, const_str_plain___builtins__) == 0) {
         if (PyDict_SetItem(globals, const_str_plain___builtins__, (PyObject *)builtin_module) != 0) {
             return NULL;
         }
@@ -447,7 +447,7 @@ PyObject *BUILTIN_HASH(PyObject *value) {
     return NULL;
 }
 
-Py_hash_t HASH_VALUE(PyObject *value) {
+Py_hash_t HASH_VALUE_WITH_ERROR(PyObject *value) {
     PyTypeObject *type = Py_TYPE(value);
 
     if (likely(type->tp_hash != NULL)) {
@@ -455,7 +455,36 @@ Py_hash_t HASH_VALUE(PyObject *value) {
         return hash;
     }
 
+#if PYTHON_VERSION < 300
+    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+        return Nuitka_HashFromPointer(value);
+    }
+#endif
+
     SET_HASH_NOT_IMPLEMENTED_ERROR(value);
+    return -1;
+}
+
+Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyObject *value) {
+    PyTypeObject *type = Py_TYPE(value);
+
+    if (likely(type->tp_hash != NULL)) {
+        Py_hash_t hash = (*type->tp_hash)(value);
+
+        if (unlikely(hash == -1)) {
+            CLEAR_ERROR_OCCURRED();
+        }
+
+        return hash;
+    }
+
+#if PYTHON_VERSION < 300
+    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+        return Nuitka_HashFromPointer(value);
+    }
+#endif
+
+    CLEAR_ERROR_OCCURRED();
     return -1;
 }
 

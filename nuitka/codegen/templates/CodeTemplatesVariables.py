@@ -171,7 +171,7 @@ template_read_mvar_unclear = """\
 """
 
 template_read_locals_dict_with_fallback = """\
-%(to_name)s = PyDict_GetItem(%(locals_dict)s, %(var_name)s);
+%(to_name)s = DICT_GET_ITEM0(%(locals_dict)s, %(var_name)s);
 
 if (%(to_name)s == NULL) {
 %(fallback)s
@@ -179,7 +179,7 @@ if (%(to_name)s == NULL) {
 """
 
 template_read_locals_dict_without_fallback = """\
-%(to_name)s = PyDict_GetItem(%(locals_dict)s, %(var_name)s);
+%(to_name)s = DICT_GET_ITEM0(%(locals_dict)s, %(var_name)s);
 """
 
 

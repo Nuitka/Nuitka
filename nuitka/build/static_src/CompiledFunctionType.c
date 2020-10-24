@@ -390,16 +390,14 @@ static PyObject *Nuitka_Function_get_module(struct Nuitka_FunctionObject *object
 
     // The __dict__ might overrule this.
     if (object->m_dict) {
-        result = PyDict_GetItem(object->m_dict, const_str_plain___module__);
+        result = DICT_GET_ITEM1(object->m_dict, const_str_plain___module__);
 
         if (result != NULL) {
-            Py_INCREF(result);
             return result;
         }
     }
 
-    result = MODULE_NAME(object->m_module);
-    Py_INCREF(result);
+    result = MODULE_NAME1(object->m_module);
     return result;
 }
 
@@ -1251,13 +1249,12 @@ static Py_ssize_t handleKeywordArgsWithStarDict(struct Nuitka_FunctionObject con
     for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
         PyObject *arg_name = varnames[i];
 
-        PyObject *kw_arg_value = PyDict_GetItem(python_pars[dict_star_index], arg_name);
+        PyObject *kw_arg_value = DICT_GET_ITEM1(python_pars[dict_star_index], arg_name);
 
         if (kw_arg_value != NULL) {
             assert(python_pars[i] == NULL);
 
             python_pars[i] = kw_arg_value;
-            Py_INCREF(kw_arg_value);
 
             PyDict_DelItem(python_pars[dict_star_index], arg_name);
 
@@ -1681,13 +1678,11 @@ bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyObject **
             PyObject *arg_name = function->m_varnames[i];
 
             if (function->m_kwdefaults != NULL) {
-                python_pars[i] = PyDict_GetItem(function->m_kwdefaults, arg_name);
+                python_pars[i] = DICT_GET_ITEM1(function->m_kwdefaults, arg_name);
             }
 
-            if (python_pars[i] == NULL) {
+            if (unlikely(python_pars[i] == NULL)) {
                 kw_only_error = true;
-            } else {
-                Py_INCREF(python_pars[i]);
             }
         }
     }
@@ -1736,13 +1731,11 @@ bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function, PyObj
             PyObject *arg_name = function->m_varnames[i];
 
             if (function->m_kwdefaults != NULL) {
-                python_pars[i] = PyDict_GetItem(function->m_kwdefaults, arg_name);
+                python_pars[i] = DICT_GET_ITEM1(function->m_kwdefaults, arg_name);
             }
 
-            if (python_pars[i] == NULL) {
+            if (unlikely(python_pars[i] == NULL)) {
                 kw_only_error = true;
-            } else {
-                Py_INCREF(python_pars[i]);
             }
         }
     }
@@ -1838,13 +1831,11 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
             PyObject *arg_name = function->m_varnames[i];
 
             if (function->m_kwdefaults != NULL) {
-                python_pars[i] = PyDict_GetItem(function->m_kwdefaults, arg_name);
+                python_pars[i] = DICT_GET_ITEM1(function->m_kwdefaults, arg_name);
             }
 
-            if (python_pars[i] == NULL) {
+            if (unlikely(python_pars[i] == NULL)) {
                 kw_only_error = true;
-            } else {
-                Py_INCREF(python_pars[i]);
             }
         }
     }
@@ -1906,13 +1897,11 @@ PyObject *Nuitka_CallMethodFunctionNoArgs(struct Nuitka_FunctionObject const *fu
             PyObject *arg_name = function->m_varnames[i];
 
             if (function->m_kwdefaults != NULL) {
-                python_pars[i] = PyDict_GetItem(function->m_kwdefaults, arg_name);
+                python_pars[i] = DICT_GET_ITEM1(function->m_kwdefaults, arg_name);
             }
 
-            if (python_pars[i] == NULL) {
+            if (unlikely(python_pars[i] == NULL)) {
                 kw_only_error = true;
-            } else {
-                Py_INCREF(python_pars[i]);
             }
         }
     }
@@ -1964,13 +1953,11 @@ PyObject *Nuitka_CallMethodFunctionPosArgs(struct Nuitka_FunctionObject const *f
             PyObject *arg_name = function->m_varnames[i];
 
             if (function->m_kwdefaults != NULL) {
-                python_pars[i] = PyDict_GetItem(function->m_kwdefaults, arg_name);
+                python_pars[i] = DICT_GET_ITEM1(function->m_kwdefaults, arg_name);
             }
 
-            if (python_pars[i] == NULL) {
+            if (unlikely(python_pars[i] == NULL)) {
                 kw_only_error = true;
-            } else {
-                Py_INCREF(python_pars[i]);
             }
         }
     }
@@ -2149,13 +2136,12 @@ static Py_ssize_t handleVectorcallKeywordArgsWithStarDict(struct Nuitka_Function
     for (Py_ssize_t i = 0; i < keywords_count; i++) {
         PyObject *arg_name = varnames[i];
 
-        PyObject *kw_arg_value = PyDict_GetItem(python_pars[dict_star_index], arg_name);
+        PyObject *kw_arg_value = DICT_GET_ITEM1(python_pars[dict_star_index], arg_name);
 
         if (kw_arg_value != NULL) {
             assert(python_pars[i] == NULL);
 
             python_pars[i] = kw_arg_value;
-            Py_INCREF(kw_arg_value);
 
             PyDict_DelItem(python_pars[dict_star_index], arg_name);
 
@@ -2225,13 +2211,11 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
             PyObject *arg_name = function->m_varnames[i];
 
             if (function->m_kwdefaults != NULL) {
-                python_pars[i] = PyDict_GetItem(function->m_kwdefaults, arg_name);
+                python_pars[i] = DICT_GET_ITEM1(function->m_kwdefaults, arg_name);
             }
 
-            if (python_pars[i] == NULL) {
+            if (unlikely(python_pars[i] == NULL)) {
                 kw_only_error = true;
-            } else {
-                Py_INCREF(python_pars[i]);
             }
         }
     }

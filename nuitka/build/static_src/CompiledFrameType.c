@@ -607,7 +607,7 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
             return NULL;
         }
 
-        PyDict_SetItem(frame->f_locals, const_str_plain___module__, MODULE_NAME(module));
+        PyDict_SetItem(frame->f_locals, const_str_plain___module__, MODULE_NAME0(module));
     }
 
 #if PYTHON_VERSION < 340

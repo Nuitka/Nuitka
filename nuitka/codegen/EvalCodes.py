@@ -42,7 +42,7 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
 
             if is_dict:
                 emit(
-                    "%s = PyDict_GetItem(%s, %s);" % (value_name, locals_name, key_name)
+                    "%s = DICT_GET_ITEM0(%s, %s);" % (value_name, locals_name, key_name)
                 )
             else:
                 emit(

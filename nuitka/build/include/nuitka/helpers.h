@@ -292,7 +292,8 @@ extern PyObject *BUILTIN_BYTEARRAY3(PyObject *string, PyObject *encoding, PyObje
 
 // For built-in hash() functionality.
 extern PyObject *BUILTIN_HASH(PyObject *value);
-extern Py_hash_t HASH_VALUE(PyObject *value);
+extern Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyObject *value);
+extern Py_hash_t HASH_VALUE_WITH_ERROR(PyObject *value);
 
 // For built-in sum() functionality.
 extern PyObject *BUILTIN_SUM1(PyObject *sequence);
@@ -374,11 +375,18 @@ extern void _initSlotCompare(void);
 extern PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases);
 #endif
 
-NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME(PyObject *module) {
+NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME1(PyObject *module) {
     assert(PyModule_Check(module));
     PyObject *module_dict = ((PyModuleObject *)module)->md_dict;
 
-    return PyDict_GetItem(module_dict, const_str_plain___name__);
+    return DICT_GET_ITEM1(module_dict, const_str_plain___name__);
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyObject *module) {
+    assert(PyModule_Check(module));
+    PyObject *module_dict = ((PyModuleObject *)module)->md_dict;
+
+    return DICT_GET_ITEM0(module_dict, const_str_plain___name__);
 }
 
 // Get the binary directory was wide characters.
