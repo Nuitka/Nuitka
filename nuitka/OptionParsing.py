@@ -753,6 +753,27 @@ windows_group.add_option(
     help="Copy executable icons from this existing executable (Windows only).",
 )
 
+windows_group.add_option(
+    "--windows-uac-admin",
+    action="store_true",
+    dest="windows_uac_admin",
+    metavar="WINDOWS_UAC_ADMIN",
+    default=False,
+    help="Request Windows User Control, to grant admin rights on execution. (Windows only). Defaults to off.",
+)
+
+windows_group.add_option(
+    "--windows-uac-uiaccess",
+    action="store_true",
+    dest="windows_uac_uiaccess",
+    metavar="WINDOWS_UAC_UIACCESS",
+    default=False,
+    help="""\
+Request Windows User Control, to enforce running from a few folders only, remote
+desktop access. (Windows only). Defaults to off.""",
+)
+
+
 parser.add_option_group(windows_group)
 
 plugin_group = OptionGroup(parser, "Plugin control")

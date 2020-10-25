@@ -44,10 +44,11 @@ from nuitka.utils.Utils import getOS, isWin32Windows
 from nuitka.utils.WindowsResources import (
     RT_GROUP_ICON,
     RT_ICON,
-    RT_MANIFEST,
     RT_RCDATA,
     addResourceToFile,
     copyResourcesFromFileToFile,
+    getDefaultWindowsExecutableManifest,
+    getWindowsExecutableManifest,
 )
 
 
@@ -173,17 +174,36 @@ def executePostProcessing():
         )
 
     if isWin32Windows():
-        # Copy the Windows manifest from the CPython binary to the created
-        # executable, so it finds "MSCRT.DLL". This is needed for Python2
-        # only, for Python3 newer MSVC doesn't hide the C runtime.
-        if python_version < 300 and not Options.shallMakeModule():
-            copyResourcesFromFileToFile(
-                sys.executable,
-                target_filename=result_filename,
-                resource_kinds=(RT_MANIFEST,),
-            )
+        needs_manifest = False
+        manifest = None
 
-        assert os.path.exists(result_filename)
+        if not Options.shallMakeModule():
+            if python_version < 300:
+                # Copy the Windows manifest from the CPython binary to the created
+                # executable, so it finds "MSCRT.DLL". This is needed for Python2
+                # only, for Python3 newer MSVC doesn't hide the C runtime.
+                manifest = getWindowsExecutableManifest(sys.executable)
+
+                if manifest is not None:
+                    needs_manifest = True
+
+        if (
+            Options.shallAskForWindowsAdminRights()
+            or Options.shallAskForWindowsUIAccessRights()
+        ):
+            needs_manifest = True
+
+            if manifest is None:
+                manifest = getDefaultWindowsExecutableManifest()
+
+            if Options.shallAskForWindowsAdminRights():
+                manifest.addUacAdmin()
+
+            if Options.shallAskForWindowsUIAccessRights():
+                manifest.addUacUiAccess()
+
+        if needs_manifest:
+            manifest.addResourceToFile(result_filename)
 
         source_dir = OutputDirectories.getSourceDirectoryPath()
 

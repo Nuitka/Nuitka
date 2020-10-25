@@ -512,6 +512,16 @@ def getWindowsIconExecutablePath():
     return options.icon_exe_path
 
 
+def shallAskForWindowsAdminRights():
+    """*bool*, value of "--windows-uac-admin" or --windows-uac-uiaccess """
+    return options.windows_uac_admin
+
+
+def shallAskForWindowsUIAccessRights():
+    """*bool*, value of "--windows-uac-uiaccess" """
+    return options.windows_uac_uiaccess
+
+
 _python_flags = None
 
 

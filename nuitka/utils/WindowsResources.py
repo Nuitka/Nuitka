@@ -29,6 +29,8 @@ multiple resources proved to be not possible.
 
 """
 
+from nuitka import TreeXML
+
 # SxS manifest files resource kind
 RT_MANIFEST = 24
 # Data resource kind
@@ -241,6 +243,7 @@ def copyResourcesFromFileToFile(source_filename, target_filename, resource_kinds
         for resource_kind, res_name, lang_id, data in res_data:
             assert resource_kind in resource_kinds
 
+            # Not seeing the point at this time really, but seems to cause troubles otherwise.
             lang_id = 0
 
             _updateWindowsResource(
@@ -258,3 +261,83 @@ def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name):
     _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, data)
 
     _closeFileWindowsResources(update_handle)
+
+
+class WindowsExecutableManifest(object):
+    def __init__(self, template):
+        self.tree = TreeXML.fromString(template)
+
+    def addResourceToFile(self, filename):
+        addResourceToFile(
+            target_filename=filename,
+            data=TreeXML.toBytes(self.tree),
+            resource_kind=RT_MANIFEST,
+            res_name=1,
+            lang_id=0,
+        )
+
+    def addUacAdmin(self):
+        """ Add indication, the binary should request admin rights. """
+        self._getRequestedExecutionLevelNode().attrib["level"] = "requireAdministrator"
+
+    def addUacUiAccess(self):
+        """ Add indication, the binary be allowed for remote desktop. """
+        self._getRequestedExecutionLevelNode().attrib["uiAccess"] = "true"
+
+    def _getTrustInfoNode(self):
+        # To lazy to figure out proper usage of namespaces, this is good enough for now.
+        for child in self.tree:
+            if child.tag == "{urn:schemas-microsoft-com:asm.v3}trustInfo":
+                return child
+
+    def _getTrustInfoSecurityNode(self):
+        return self._getTrustInfoNode()[0]
+
+    def _getRequestedPrivilegesNode(self):
+        # To lazy to figure out proper usage of namespaces, this is good enough for now.
+        for child in self._getTrustInfoSecurityNode():
+            if child.tag == "{urn:schemas-microsoft-com:asm.v3}requestedPrivileges":
+                return child
+
+    def _getRequestedExecutionLevelNode(self):
+        # To lazy to figure out proper usage of namespaces, this is good enough for now.
+        for child in self._getRequestedPrivilegesNode():
+            if child.tag == "{urn:schemas-microsoft-com:asm.v3}requestedExecutionLevel":
+                return child
+
+
+def getWindowsExecutableManifest(filename):
+    manifests_data = getResourcesFromDLL(
+        filename=filename, resource_kinds=(RT_MANIFEST,), with_data=True
+    )
+
+    if manifests_data:
+        return WindowsExecutableManifest(manifests_data[0][-1])
+    else:
+        return None
+
+
+def _getDefaultWindowsExecutableTrustInfo():
+    return """\
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+"""
+
+
+def getDefaultWindowsExecutableManifest():
+    template = (
+        """\
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity type="win32" name="Mini" version="1.0.0.0"/>
+  %s
+</assembly>
+"""
+        % _getDefaultWindowsExecutableTrustInfo()
+    )
+
+    return WindowsExecutableManifest(template)

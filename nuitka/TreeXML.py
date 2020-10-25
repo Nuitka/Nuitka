@@ -22,7 +22,6 @@ XML tree to ASCII or output it.
 """
 
 from nuitka.__past__ import StringIO
-from nuitka.PythonVersions import python_version
 
 from . import Tracing
 
@@ -84,10 +83,14 @@ except ImportError:
     xml_writer = None
 
 
-def toString(tree):
-    result = xml_tostring(tree)
+def toBytes(tree):
+    return xml_tostring(tree)
 
-    if python_version >= 300:
+
+def toString(tree):
+    result = toBytes(tree)
+
+    if str is not bytes:
         result = result.decode("utf-8")
 
     return result
