@@ -3,7 +3,7 @@
 appdirs == 1.4.3
 
 # Scons is the backend building tool to turn C files to binaries.
-scons == 3.0.4
+scons == 3.1.2
 
-# PEFile is needed by Windows internal dependency walker
-pefile == 2019.4.18
+# PEFile is needed on Windows internal dependency walker
+# pefile == 2019.4.18
