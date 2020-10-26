@@ -37,7 +37,7 @@ from .WindowsResources import (
 )
 
 
-def localDLLFromFilesystem(name, paths):
+def locateDLLFromFilesystem(name, paths):
     for path in paths:
         for root, _dirs, files in os.walk(path):
             if name in files:
@@ -71,7 +71,7 @@ def locateDLL(dll_name):
             return dll_name
 
     if isAlpineLinux():
-        return localDLLFromFilesystem(
+        return locateDLLFromFilesystem(
             name=dll_name, paths=["/lib", "/usr/lib", "/usr/local/lib"]
         )
 
