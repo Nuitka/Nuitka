@@ -147,6 +147,22 @@ sane default used inside the dist folder."""
     if icon_exe_path is not None and not os.path.exists(icon_exe_path):
         sys.exit("Error, icon path %r does not exist." % icon_exe_path)
 
+    try:
+        file_version = getWindowsFileVersion()
+    except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
+        sys.exit("Error, file version must be a tuple of up to 4 integer values.")
+
+    try:
+        product_version = getWindowsProductVersion()
+    except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
+        sys.exit("Error, product version must be a tuple of up to 4 integer values.")
+
+    if file_version or product_version or getWindowsVersionInfoStrings():
+        if not (file_version or product_version) and getWindowsCompanyName():
+            sys.exit(
+                "Error, company name and file or product version when any version information is given."
+            )
+
     is_debug = isDebug()
     is_nondebug = not is_debug
     is_fullcompat = isFullCompat()
@@ -520,6 +536,54 @@ def shallAskForWindowsAdminRights():
 def shallAskForWindowsUIAccessRights():
     """*bool*, value of "--windows-uac-uiaccess" """
     return options.windows_uac_uiaccess
+
+
+def getWindowsVersionInfoStrings():
+    """*dict of str*, values of ."""
+
+    result = {}
+
+    company_name = getWindowsCompanyName()
+    if company_name is not None:
+        result["CompanyName"] = company_name
+
+    if options.windows_file_description:
+        result["FileDescription"] = options.windows_file_description
+
+    return result
+
+
+def _parseWindowsVersionNumber(value):
+    if value is not None:
+        parts = value.split(".")
+
+        assert len(parts) <= 4
+
+        while len(parts) < 4:
+            parts.append("0")
+
+        r = tuple(int(d) for d in parts)
+        assert min(r) >= 0
+        assert max(r) < 2 ** 16
+        return r
+
+    else:
+        return None
+
+
+def getWindowsProductVersion():
+    """*tuple of 4 ints* or None --windows-product-version """
+    return _parseWindowsVersionNumber(options.windows_product_version)
+
+
+def getWindowsFileVersion():
+    """*tuple of 4 ints* or None --windows-file-version """
+    return _parseWindowsVersionNumber(options.windows_file_version)
+
+
+def getWindowsCompanyName():
+    """*str* name of the company to use """
+    return options.windows_company_name
 
 
 _python_flags = None

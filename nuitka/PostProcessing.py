@@ -46,6 +46,8 @@ from nuitka.utils.WindowsResources import (
     RT_ICON,
     RT_RCDATA,
     addResourceToFile,
+    addVersionInfoResource,
+    convertStructureToBytes,
     copyResourcesFromFileToFile,
     getDefaultWindowsExecutableManifest,
     getWindowsExecutableManifest,
@@ -86,15 +88,6 @@ class IconGroupDirectoryEntry(ctypes.Structure):
     )
 
 
-def toBytes(c_value):
-    """ Convert ctypes structure to bytes for output. """
-
-    result = (ctypes.c_char * ctypes.sizeof(c_value)).from_buffer_copy(c_value)
-    r = b"".join(result)
-    assert len(result) == ctypes.sizeof(c_value)
-    return r
-
-
 def readFromFile(readable, c_struct):
     """ Read ctypes structures from input. """
 
@@ -125,11 +118,11 @@ def addWindowsIconFromIcons():
                 icon_file.seek(icon.image_offset, 0)
                 images.append(icon_file.read(icon.image_size))
 
-        parts = [toBytes(header)]
+        parts = [convertStructureToBytes(header)]
 
         for icon in icons:
             parts.append(
-                toBytes(
+                convertStructureToBytes(
                     IconGroupDirectoryEntry(
                         width=icon.width,
                         height=icon.height,
@@ -164,7 +157,7 @@ def addWindowsIconFromIcons():
 
 
 def executePostProcessing():
-    # These is a bunch of stuff to consider, pylint: disable=too-many-branches
+    # These is a bunch of stuff to consider, pylint: disable=too-many-branches,too-many-statements
 
     result_filename = OutputDirectories.getResultFullpath()
 
@@ -174,10 +167,10 @@ def executePostProcessing():
         )
 
     if isWin32Windows():
-        needs_manifest = False
-        manifest = None
-
         if not Options.shallMakeModule():
+            needs_manifest = False
+            manifest = None
+
             if python_version < 300:
                 # Copy the Windows manifest from the CPython binary to the created
                 # executable, so it finds "MSCRT.DLL". This is needed for Python2
@@ -187,23 +180,37 @@ def executePostProcessing():
                 if manifest is not None:
                     needs_manifest = True
 
+            if (
+                Options.shallAskForWindowsAdminRights()
+                or Options.shallAskForWindowsUIAccessRights()
+            ):
+                needs_manifest = True
+
+                if manifest is None:
+                    manifest = getDefaultWindowsExecutableManifest()
+
+                if Options.shallAskForWindowsAdminRights():
+                    manifest.addUacAdmin()
+
+                if Options.shallAskForWindowsUIAccessRights():
+                    manifest.addUacUiAccess()
+
+            if needs_manifest:
+                manifest.addResourceToFile(result_filename)
+
         if (
-            Options.shallAskForWindowsAdminRights()
-            or Options.shallAskForWindowsUIAccessRights()
+            Options.getWindowsVersionInfoStrings()
+            or Options.getWindowsProductVersion()
+            or Options.getWindowsFileVersion()
         ):
-            needs_manifest = True
-
-            if manifest is None:
-                manifest = getDefaultWindowsExecutableManifest()
-
-            if Options.shallAskForWindowsAdminRights():
-                manifest.addUacAdmin()
-
-            if Options.shallAskForWindowsUIAccessRights():
-                manifest.addUacUiAccess()
-
-        if needs_manifest:
-            manifest.addResourceToFile(result_filename)
+            addVersionInfoResource(
+                string_values=Options.getWindowsVersionInfoStrings(),
+                product_version=Options.getWindowsProductVersion(),
+                file_version=Options.getWindowsFileVersion(),
+                file_date=(0, 0),
+                is_exe=not Options.shallMakeModule(),
+                result_filename=result_filename,
+            )
 
         source_dir = OutputDirectories.getSourceDirectoryPath()
 

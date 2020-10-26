@@ -29,10 +29,16 @@ multiple resources proved to be not possible.
 
 """
 
+import ctypes
+import os
+import struct
+
 from nuitka import TreeXML
 
 # SxS manifest files resource kind
 RT_MANIFEST = 24
+# Version info
+RT_VERSION = 16
 # Data resource kind
 RT_RCDATA = 10
 # Icon group resource kind
@@ -55,7 +61,7 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
     """
     # Quite complex stuff, pylint: disable=too-many-locals
 
-    import ctypes.wintypes
+    import ctypes.wintypes  # Not really redefined, but extended, pylint: disable=redefined-outer-name
 
     if type(filename) is str and str is not bytes:
         LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExW
@@ -148,8 +154,6 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
 
 
 def _openFileWindowsResources(filename):
-    import ctypes
-
     if type(filename) is str and str is not bytes:
         BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceW
         BeginUpdateResource.argtypes = [ctypes.wintypes.LPCWSTR, ctypes.wintypes.BOOL]
@@ -168,8 +172,6 @@ def _openFileWindowsResources(filename):
 
 
 def _closeFileWindowsResources(update_handle):
-    import ctypes
-
     EndUpdateResource = ctypes.windll.kernel32.EndUpdateResourceA
     EndUpdateResource.argtypes = [ctypes.wintypes.HANDLE, ctypes.wintypes.BOOL]
     EndUpdateResource.restype = ctypes.wintypes.BOOL
@@ -181,8 +183,6 @@ def _closeFileWindowsResources(update_handle):
 
 
 def _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, data):
-    import ctypes
-
     if data is None:
         size = 0
     else:
@@ -341,3 +341,271 @@ def getDefaultWindowsExecutableManifest():
     )
 
     return WindowsExecutableManifest(template)
+
+
+class VsFixedFileInfoStructure(ctypes.Structure):
+    _fields_ = [
+        ("dwSignature", ctypes.c_uint32),  # 0xFEEF04BD
+        ("dwStructVersion", ctypes.c_uint32),
+        ("dwFileVersionMS", ctypes.c_uint32),
+        ("dwFileVersionLS", ctypes.c_uint32),
+        ("dwProductVersionMS", ctypes.c_uint32),
+        ("dwProductVersionLS", ctypes.c_uint32),
+        ("dwFileFlagsMask", ctypes.c_uint32),
+        ("dwFileFlags", ctypes.c_uint32),
+        ("dwFileOS", ctypes.c_uint32),
+        ("dwFileType", ctypes.c_uint32),
+        ("dwFileSubtype", ctypes.c_uint32),
+        ("dwFileDateMS", ctypes.c_uint32),
+        ("dwFileDateLS", ctypes.c_uint32),
+    ]
+
+
+def convertStructureToBytes(c_value):
+    """ Convert ctypes structure to bytes for output. """
+
+    result = (ctypes.c_char * ctypes.sizeof(c_value)).from_buffer_copy(c_value)
+    r = b"".join(result)
+    assert len(result) == ctypes.sizeof(c_value)
+    return r
+
+
+def _makeVersionInfoStructure(product_version, file_version, file_date, is_exe):
+    return VsFixedFileInfoStructure(
+        dwSignature=0xFEEF04BD,
+        dwFileVersionMS=file_version[0] << 16 | (file_version[1] & 0xFFFF),
+        dwFileVersionLS=file_version[2] << 16 | (file_version[3] & 0xFFFF),
+        dwProductVersionMS=product_version[0] << 16 | (product_version[1] & 0xFFFF),
+        dwProductVersionLS=product_version[2] << 16 | (product_version[3] & 0xFFFF),
+        dwFileFlagsMask=0x3F,
+        dwFileFlags=0,  # TODO: Could be interesting VS_FF_DEBUG and VS_FF_PRERELEASE.
+        dwFileOS=4,  # NT or higher, hasn't been changed in a long time.
+        dwFileType=1 if is_exe else 2,  #
+        dwFileSubtype=0,  # Not applicable for DLL or EXE, only drivers use this.
+        dwFileDateMS=file_date[0],
+        dwFileDateLS=file_date[1],
+    )
+
+
+def _getVersionString(value):
+    """Encodes string for version information string tables.
+
+    Arguments:
+        value - string to encode
+
+    Returns:
+        bytes - value encoded as utf-16le
+    """
+    return value.encode("utf-16le")
+
+
+class VersionResourceHeader(ctypes.Structure):
+    _fields_ = [
+        ("full_length", ctypes.c_short),
+        ("item_size", ctypes.c_short),
+        ("type", ctypes.c_short),
+    ]
+
+
+def _makeVersionStringEntry(key, value):
+    key_data = _getVersionString(key)
+    value_data = _getVersionString(value)
+
+    value_size = len(value_data) + 2
+    key_size = 6 + len(key_data) + 2
+
+    pad = b"\0\0" if key_size % 4 else b""
+    full_size = key_size + len(pad) + value_size
+
+    header_data = convertStructureToBytes(
+        VersionResourceHeader(
+            full_length=full_size,
+            item_size=value_size,
+            type=1,
+        )
+    )
+
+    return header_data + key_data + b"\0\0" + pad + value_data + b"\0\0"
+
+
+def _makeVersionStringTable(values):
+    block_name = _getVersionString("000004b0")
+    size = 6 + len(block_name) + 2
+    pad = b"\0\0" if size % 4 else b""
+
+    parts = []
+    for key, value in values.items():
+        chunk = _makeVersionStringEntry(key, value)
+
+        if len(chunk) % 4:
+            chunk += b"\0\0"
+
+        parts.append(chunk)
+
+    block_data = b"".join(parts)
+    size += len(block_data)
+
+    header_data = convertStructureToBytes(
+        VersionResourceHeader(
+            full_length=size,
+            item_size=0,
+            type=1,
+        )
+    )
+
+    return header_data + block_name + b"\0\0" + pad + block_data
+
+
+def _makeVersionStringBlock(values):
+    block_name = _getVersionString("StringFileInfo")
+    size = 6 + len(block_name) + 2
+    pad = b"\0\0" if size % 4 else b""
+
+    block_data = _makeVersionStringTable(values)
+
+    size = size + len(pad) + len(block_data)
+
+    header_data = convertStructureToBytes(
+        VersionResourceHeader(
+            full_length=size,
+            item_size=0,
+            type=1,
+        )
+    )
+
+    return header_data + block_name + b"\0\0" + pad + block_data
+
+
+def _makeVarFileInfoStruct():
+    block_name = _getVersionString("Translation")
+    size = 6 + len(block_name) + 2
+    pad = b"\0\0" if size % 4 else b""
+
+    values = [0, 1200]  # Language and code page
+    block_data = struct.pack("hh", *values)
+
+    block_size = len(block_data)
+    size += len(pad) + block_size
+
+    header_data = convertStructureToBytes(
+        VersionResourceHeader(
+            full_length=size,
+            item_size=block_size,
+            type=0,
+        )
+    )
+
+    return header_data + block_name + b"\0\0" + pad + block_data
+
+
+def _makeVarFileInfoBlock():
+    block_name = _getVersionString("VarFileInfo")
+    size = 6 + len(block_name) + 2
+    pad = b"\0\0" if size % 4 else b""
+    block_data = _makeVarFileInfoStruct()
+    size += len(pad) + len(block_data)
+
+    header_data = convertStructureToBytes(
+        VersionResourceHeader(
+            full_length=size,
+            item_size=0,
+            type=1,
+        )
+    )
+
+    return header_data + block_name + b"\0\0" + pad + block_data
+
+
+def makeVersionInfoResource(
+    string_values, product_version, file_version, file_date, is_exe
+):
+
+    # Every item has name and gets padded.
+    block_name = _getVersionString("VS_VERSION_INFO")
+    size = 6 + len(block_name) + 2
+    pad1 = b"\0\0" if size % 4 else b""
+
+    # First create the static C structure data
+    version_info = _makeVersionInfoStructure(
+        product_version=product_version,
+        file_version=file_version,
+        file_date=file_date,
+        is_exe=is_exe,
+    )
+
+    version_data = convertStructureToBytes(version_info)
+    version_size = len(version_data)
+
+    size += len(pad1) + version_size
+    pad2 = b"\0\0" if size % 4 else b""
+
+    block_data = _makeVersionStringBlock(string_values) + _makeVarFileInfoBlock()
+
+    size += len(pad2) + len(block_data)
+
+    header_data = convertStructureToBytes(
+        VersionResourceHeader(
+            full_length=size,
+            item_size=version_size,
+            type=0,
+        )
+    )
+
+    return header_data + block_name + b"\0\0" + pad1 + version_data + pad2 + block_data
+
+
+def addVersionInfoResource(
+    string_values,
+    product_version,
+    file_version,
+    file_date,
+    is_exe,
+    result_filename,
+):
+    if product_version is None:
+        product_version = file_version
+    if file_version is None:
+        file_version = product_version
+
+    assert product_version
+    assert file_version
+    assert "CompanyName" in string_values
+
+    if "FileDescription" not in string_values:
+        string_values["FileDescription"] = "Description"
+
+    if "ProductVersion" not in string_values:
+        string_values["ProductVersion"] = ".".join(str(d) for d in product_version)
+
+    if "FileVersion" not in string_values:
+        string_values["FileVersion"] = ".".join(str(d) for d in file_version)
+
+    if "OriginalFilename" not in string_values:
+        string_values["OriginalFilename"] = os.path.basename(result_filename)
+
+    if "InternalName" not in string_values:
+        string_values["InternalName"] = string_values["OriginalFilename"].rsplit(
+            ".", 1
+        )[0]
+
+    if "ProductName" not in string_values:
+        string_values["ProductName"] = string_values["InternalName"]
+
+    if "FileDescription" not in string_values:
+        string_values["FileDescription"] = string_values["OriginalFilename"]
+
+    ver_info = makeVersionInfoResource(
+        string_values=string_values,
+        product_version=product_version,
+        file_version=file_version,
+        file_date=file_date,
+        is_exe=is_exe,
+    )
+
+    addResourceToFile(
+        target_filename=result_filename,
+        data=ver_info,
+        resource_kind=RT_VERSION,
+        res_name=1,
+        lang_id=0,
+    )

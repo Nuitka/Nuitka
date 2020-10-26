@@ -773,6 +773,58 @@ Request Windows User Control, to enforce running from a few folders only, remote
 desktop access. (Windows only). Defaults to off.""",
 )
 
+windows_group.add_option(
+    "--windows-file-version",
+    action="store",
+    dest="windows_file_version",
+    metavar="WINDOWS_FILE_VERSION",
+    default=None,
+    help="""\
+File version to use in Windows Version information. Must be a sequence of
+up to 4 numbers, nothing else allowed.
+One of file or product version is required, when a version resource needs to be
+added, e.g. to specify product name, or company name. Defaults to unused.""",
+)
+
+windows_group.add_option(
+    "--windows-product-version",
+    action="store",
+    dest="windows_product_version",
+    metavar="WINDOWS_PRODUCT_VERSION",
+    default=None,
+    help="""\
+Product version to use in Windows Version information. Must be a sequence of
+up to 4 numbers, nothing else allowed.
+One of file or product version is required, when a version resource needs to be
+added, e.g. to specify product name, or company name. Defaults to unused.""",
+)
+
+windows_group.add_option(
+    "--windows-company-name",
+    action="store",
+    dest="windows_company_name",
+    metavar="WINDOWS_COMPANY_NAME",
+    default=None,
+    help="""\
+Name of the company to use in Windows Version information.
+
+One of file or product version is required, when a version resource needs to be
+added, e.g. to specify product name, or company name. Defaults to unused.""",
+)
+
+windows_group.add_option(
+    "--windows-file-description",
+    action="store",
+    dest="windows_file_description",
+    metavar="WINDOWS_FILE_DESCRIPTION",
+    default=None,
+    help="""\
+Description of the file use in Windows Version information.
+
+One of file or product version is required, when a version resource needs to be
+added, e.g. to specify product name, or company name. Defaults to nonsense.""",
+)
+
 
 parser.add_option_group(windows_group)
 
