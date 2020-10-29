@@ -66,8 +66,9 @@ def extractDocFromBody(node):
             doc = body[0].value.s
             body = body[1:]
         elif getKind(body[0].value) == "Constant":  # python3.8
-            doc = body[0].value.value
-            body = body[1:]
+            if body[0].value.value is not Ellipsis:
+                doc = body[0].value.value
+                body = body[1:]
 
         if "no_docstrings" in Options.getPythonFlags():
             doc = None
