@@ -42,8 +42,16 @@ from nuitka.Constants import (
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
 from .IterationHandles import (
-    ConstantIndexableIterationHandle,
-    ConstantSetAndDictIterationHandle,
+    ConstantBytearrayIterationHandle,
+    ConstantBytesIterationHandle,
+    ConstantDictIterationHandle,
+    ConstantFrozensetIterationHandle,
+    ConstantListIterationHandle,
+    ConstantRangeIterationHandle,
+    ConstantSetIterationHandle,
+    ConstantStrIterationHandle,
+    ConstantTupleIterationHandle,
+    ConstantUnicodeIterationHandle,
 )
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpression,
@@ -135,11 +143,9 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
     def getCompileTimeConstant(self):
         return self.constant
 
-    def getIterationHandle(self):
-        if self.isIterableConstant():
-            return ConstantIndexableIterationHandle(self)
-        else:
-            return None
+    @staticmethod
+    def getIterationHandle():
+        return None
 
     def isMutable(self):
         # This is expected to be overloaded by child classes.
@@ -460,9 +466,6 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
     def hasShapeDictionaryExact():
         return True
 
-    def getIterationHandle(self):
-        return ConstantSetAndDictIterationHandle(self)
-
     @staticmethod
     def isMutable():
         return True
@@ -474,6 +477,9 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
     @staticmethod
     def isIterableConstant():
         return True
+
+    def getIterationHandle(self):
+        return ConstantDictIterationHandle(self)
 
     def getIterationLength(self):
         return len(self.constant)
@@ -584,6 +590,9 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     def isIterableConstant():
         return True
 
+    def getIterationHandle(self):
+        return ConstantTupleIterationHandle(self)
+
     def getIterationLength(self):
         return len(self.constant)
 
@@ -662,6 +671,9 @@ class ExpressionConstantListRef(ExpressionConstantRefBase):
     def isIterableConstant():
         return True
 
+    def getIterationHandle(self):
+        return ConstantListIterationHandle(self)
+
     def getIterationLength(self):
         return len(self.constant)
 
@@ -725,12 +737,12 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
     def isKnownToBeHashable():
         return False
 
-    def getIterationHandle(self):
-        return ConstantSetAndDictIterationHandle(self)
-
     @staticmethod
     def isIterableConstant():
         return True
+
+    def getIterationHandle(self):
+        return ConstantSetIterationHandle(self)
 
     def getIterationLength(self):
         return len(self.constant)
@@ -798,6 +810,9 @@ class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
     @staticmethod
     def isIterableConstant():
         return True
+
+    def getIterationHandle(self):
+        return ConstantFrozensetIterationHandle(self)
 
     def getIterationLength(self):
         return len(self.constant)
@@ -954,6 +969,9 @@ class ExpressionConstantStrRef(ExpressionConstantRefBase):
     def isIterableConstant():
         return True
 
+    def getIterationHandle(self):
+        return ConstantStrIterationHandle(self)
+
     def getIterationLength(self):
         return len(self.constant)
 
@@ -998,6 +1016,9 @@ class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
     def isIterableConstant():
         return True
 
+    def getIterationHandle(self):
+        return ConstantUnicodeIterationHandle(self)
+
     def getIterationLength(self):
         return len(self.constant)
 
@@ -1034,6 +1055,9 @@ class ExpressionConstantBytesRef(ExpressionConstantRefBase):
     def isIterableConstant():
         return True
 
+    def getIterationHandle(self):
+        return ConstantBytesIterationHandle(self)
+
     def getIterationLength(self):
         return len(self.constant)
 
@@ -1069,6 +1093,9 @@ class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
     @staticmethod
     def isIterableConstant():
         return True
+
+    def getIterationHandle(self):
+        return ConstantBytearrayIterationHandle(self)
 
     def getIterationLength(self):
         return len(self.constant)
@@ -1216,6 +1243,9 @@ class ExpressionConstantXrangeRef(ExpressionConstantUntrackedRefBase):
     @staticmethod
     def isIterableConstant():
         return True
+
+    def getIterationHandle(self):
+        return ConstantRangeIterationHandle(self)
 
     def getIterationLength(self):
         return len(self.constant)
