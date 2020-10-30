@@ -27,6 +27,8 @@ jobs:
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v2
