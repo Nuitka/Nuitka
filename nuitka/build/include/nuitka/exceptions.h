@@ -556,12 +556,24 @@ NUITKA_MAY_BE_UNUSED static inline void ADD_EXCEPTION_CONTEXT(PyObject **excepti
 
 */
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(void) {
-    PyObject *error = GET_ERROR_OCCURRED();
+    PyThreadState *tstate = PyThreadState_GET();
 
-    if (error == NULL) {
+    if (tstate->curexc_type == NULL) {
         return true;
-    } else if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_StopIteration)) {
-        CLEAR_ERROR_OCCURRED();
+    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate->curexc_type, PyExc_StopIteration)) {
+        // Clear the exception first, we know it doesn't have side effects.
+        Py_DECREF(tstate->curexc_type);
+        tstate->curexc_type = NULL;
+
+        PyObject *old_value = tstate->curexc_value;
+        PyObject *old_tb = tstate->curexc_traceback;
+
+        tstate->curexc_value = NULL;
+        tstate->curexc_traceback = NULL;
+
+        Py_XDECREF(old_value);
+        Py_XDECREF(old_tb);
+
         return true;
     } else {
         return false;
@@ -575,12 +587,24 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(void) {
 
 */
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(void) {
-    PyObject *error = GET_ERROR_OCCURRED();
+    PyThreadState *tstate = PyThreadState_GET();
 
-    if (error == NULL) {
+    if (tstate->curexc_type == NULL) {
         return true;
-    } else if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_KeyError)) {
-        CLEAR_ERROR_OCCURRED();
+    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate->curexc_type, PyExc_KeyError)) {
+        // Clear the exception first, we know it doesn't have side effects.
+        Py_DECREF(tstate->curexc_type);
+        tstate->curexc_type = NULL;
+
+        PyObject *old_value = tstate->curexc_value;
+        PyObject *old_tb = tstate->curexc_traceback;
+
+        tstate->curexc_value = NULL;
+        tstate->curexc_traceback = NULL;
+
+        Py_XDECREF(old_value);
+        Py_XDECREF(old_tb);
+
         return true;
     } else {
         return false;
