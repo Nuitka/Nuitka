@@ -135,6 +135,18 @@ def makePath(path):
             os.makedirs(path)
 
 
+def _getRealPathWindows(path):
+    # Slow, because we are using an external process, we it's only for standalone and Python2,
+    # which is slow already.
+    import subprocess
+
+    result = subprocess.check_output(
+        """powershell "Get-Item '%s' | Select-Object -ExpandProperty Target" """ % path
+    )
+
+    return os.path.join(os.path.dirname(path), result.rstrip("\r\n"))
+
+
 def listDir(path):
     """Give a sorted listing of a path.
 
@@ -154,12 +166,14 @@ def listDir(path):
         symlinks to directories on Windows, that a naive "os.listdir"
         won't do by default.
     """
+    real_path = os.path.realpath(path)
+
+    # Attempt to resolve Windows symlinks on Python2
+    if os.name == "nt" and not os.path.isdir(real_path):
+        real_path = _getRealPathWindows(path)
 
     return sorted(
-        [
-            (os.path.join(path, filename), filename)
-            for filename in os.listdir(os.path.realpath(path))
-        ]
+        [(os.path.join(path, filename), filename) for filename in os.listdir(real_path)]
     )
 
 
