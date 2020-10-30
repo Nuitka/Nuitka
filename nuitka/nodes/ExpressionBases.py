@@ -535,6 +535,9 @@ class ExpressionBase(NodeBase):
         return iter_node, None, None
 
     def computeExpressionNext1(self, next_node, trace_collection):
+        # TODO: This is only true for a few value types, use type shape to tell if
+        # it might escape or raise.
+
         self.onContentEscapes(trace_collection)
 
         # Any code could be run, note that.
@@ -543,7 +546,7 @@ class ExpressionBase(NodeBase):
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        return next_node, None, None
+        return False, (next_node, None, None)
 
     def computeExpressionAsyncIter(self, iter_node, trace_collection):
         self.onContentEscapes(trace_collection)

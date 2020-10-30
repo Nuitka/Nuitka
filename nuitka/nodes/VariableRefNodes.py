@@ -570,6 +570,8 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
         return self, None, None
 
     def computeExpressionNext1(self, next_node, trace_collection):
+        may_not_raise = False
+
         if self.variable_trace.isAssignTrace():
             value = self.variable_trace.getAssignNode().subnode_source
 
@@ -582,18 +584,19 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
                     current_index is not None
                     # TODO: Change to iteration handles.
                     and value.isKnownToBeIterableAtMin(current_index + 1)
-                    and value.canPredictIterationValues()
                 ):
+                    may_not_raise = True
 
-                    # TODO: Make use of this, pylint: disable=W0125
-                    candidate = value.getIterationValue(current_index)
+                    # TODO: Make use of this
+                    # candidate = value.getIterationValue(current_index)
 
-                    if False:
-                        return (
-                            candidate,
-                            "new_expression",
-                            "Predicted 'next' value from iteration.",
-                        )
+                    # if False:
+                    # and value.canPredictIterationValues()
+                    #    return (
+                    #        candidate,
+                    #        "new_expression",
+                    #        "Predicted 'next' value from iteration.",
+                    #    )
             else:
                 # TODO: Could ask it about exception predictability for that case
                 # or warn about it at least.
@@ -608,7 +611,7 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        return next_node, None, None
+        return may_not_raise, (next_node, None, None)
 
     def onContentEscapes(self, trace_collection):
         trace_collection.onVariableContentEscapes(self.variable)

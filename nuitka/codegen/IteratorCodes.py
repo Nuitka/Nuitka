@@ -112,14 +112,18 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
         to_name=value_name, expression=expression.getValue(), emit=emit, context=context
     )
 
-    count = expression.getCount()
-
     with withObjectCodeTemporaryAssignment(
         to_name, "unpack_value", expression, emit, context
     ) as result_name:
+        needs_check = expression.mayRaiseExceptionOperation()
 
-        if python_version < 350:
-            emit("%s = UNPACK_NEXT(%s, %s);" % (result_name, value_name, count - 1))
+        if not needs_check:
+            emit("%s = UNPACK_NEXT_INFALLIBLE(%s);" % (result_name, value_name))
+        elif python_version < 350:
+            emit(
+                "%s = UNPACK_NEXT(%s, %s);"
+                % (result_name, value_name, expression.getCount() - 1)
+            )
         else:
             starred = expression.getStarred()
             expected = expression.getExpected()
@@ -130,7 +134,7 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
                     result_name,
                     "_STARRED" if starred else "",
                     value_name,
-                    count - 1,
+                    expression.getCount() - 1,
                     expected,
                 )
             )
@@ -139,6 +143,7 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
             check_name=result_name,
             release_name=value_name,
             quick_exception="StopIteration",
+            needs_check=needs_check,
             emit=emit,
             context=context,
         )

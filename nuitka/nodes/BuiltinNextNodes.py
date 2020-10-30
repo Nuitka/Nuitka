@@ -35,9 +35,22 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
             self, value=value, source_ref=source_ref
         )
 
+        self.may_not_raise = False
+
     def computeExpression(self, trace_collection):
-        return self.getValue().computeExpressionNext1(
+        self.may_not_raise, result = self.subnode_value.computeExpressionNext1(
             next_node=self, trace_collection=trace_collection
+        )
+
+        return result
+
+    def mayRaiseExceptionOperation(self):
+        return not self.may_not_raise
+
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_value.mayRaiseException(exception_type)
+            or self.mayRaiseExceptionOperation()
         )
 
 

@@ -160,13 +160,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT(PyObject *iterator) {
     PyObject *result = (*iternext)(iterator);
 
 #if PYTHON_VERSION < 300
+    // TODO: This is used for different purposes, some of which do not benefit from this
+    // should be split into two different forms.
     if (result == NULL) {
-        PyObject *error = GET_ERROR_OCCURRED();
-        if (error) {
-            if (likely(EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_StopIteration))) {
-                CLEAR_ERROR_OCCURRED();
-            }
-        }
+        CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED();
     }
 #endif
 
@@ -214,25 +211,27 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2(PyObject *iterator, PyObject
     PyObject *result = (*Py_TYPE(iterator)->tp_iternext)(iterator);
 
     if (unlikely(result == NULL)) {
-        PyObject *error = GET_ERROR_OCCURRED();
+        bool stop_iteration_error = CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED();
 
-        if (error != NULL) {
-            if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_StopIteration)) {
-                DROP_ERROR_OCCURRED();
-
-                Py_INCREF(default_value);
-                return default_value;
-            } else {
-                return NULL;
-            }
-        } else {
-            Py_INCREF(default_value);
-            return default_value;
+        if (unlikely(stop_iteration_error == false)) {
+            return NULL;
         }
-    } else {
-        CHECK_OBJECT(result);
+
+        Py_INCREF(default_value);
+        return default_value;
     }
 
+    CHECK_OBJECT(result);
+    return result;
+}
+
+// For cases, where no exception raising is needed, because we know it at compile time.
+NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT_INFALLIBLE(PyObject *iterator) {
+    CHECK_OBJECT(iterator);
+    assert(HAS_ITERNEXT(iterator));
+
+    PyObject *result = (*Py_TYPE(iterator)->tp_iternext)(iterator);
+    CHECK_OBJECT(result);
     return result;
 }
 
@@ -275,6 +274,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT(PyObject *iterator, int seq_si
 }
 
 #if PYTHON_VERSION >= 350
+// Different error message for starred unpacks
 NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT_STARRED(PyObject *iterator, int seq_size_so_far, int expected) {
     CHECK_OBJECT(iterator);
     assert(HAS_ITERNEXT(iterator));
