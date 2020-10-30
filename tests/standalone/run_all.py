@@ -182,11 +182,16 @@ def main():
             extra_flags.append("ignore_warnings")
 
         if filename == "NumpyUsing.py":
+            extra_flags.append("plugin_enable:numpy")
+
             # TODO: Disabled for now.
             reportSkip("numpy.test not fully working yet", ".", filename)
             continue
 
-            # extra_flags.append("plugin_enable:data-files")
+        if filename == "PandasUsing.py":
+            extra_flags.append("plugin_enable:numpy")
+            extra_flags.append("plugin_disable:pylint-warnings")
+
         if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
 
