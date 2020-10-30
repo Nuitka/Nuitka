@@ -354,6 +354,7 @@ blacklisted_tools = (
     "p4",
     "m4",
     "ml",
+    "icc",
     "sccs",
     "rcs",
     "cvs",
