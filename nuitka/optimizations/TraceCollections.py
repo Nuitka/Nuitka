@@ -700,7 +700,7 @@ class TraceCollectionBase(object):
         return new_node, change_tags, message
 
     def getIteratorNextCount(self, iter_node):
-        return self.value_states.get(iter_node, None)
+        return self.value_states.get(iter_node)
 
     def initIteratorValue(self, iter_node):
         # TODO: More complex state information will be needed eventually.
