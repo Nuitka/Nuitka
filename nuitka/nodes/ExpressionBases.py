@@ -1327,7 +1327,7 @@ class ExpressionBuiltinSingleArgBase(
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
 
         if value is None:
             return self.computeBuiltinSpec(

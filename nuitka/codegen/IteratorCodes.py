@@ -223,11 +223,13 @@ def generateBuiltinNext2Code(to_name, expression, emit, context):
 
 
 def generateBuiltinIter1Code(to_name, expression, emit, context):
+    may_raise = expression.mayRaiseExceptionOperation()
+
     generateCAPIObjectCode(
         to_name=to_name,
-        capi="MAKE_ITERATOR",
+        capi="MAKE_ITERATOR" if may_raise else "MAKE_ITERATOR_INFALLIBLE",
         arg_desc=(("iter_arg", expression.getValue()),),
-        may_raise=expression.mayRaiseException(BaseException),
+        may_raise=may_raise,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -236,11 +238,13 @@ def generateBuiltinIter1Code(to_name, expression, emit, context):
 
 
 def generateBuiltinIterForUnpackCode(to_name, expression, emit, context):
+    may_raise = expression.mayRaiseExceptionOperation()
+
     generateCAPIObjectCode(
         to_name=to_name,
-        capi="MAKE_UNPACK_ITERATOR",
+        capi="MAKE_UNPACK_ITERATOR" if may_raise else "MAKE_ITERATOR_INFALLIBLE",
         arg_desc=(("iter_arg", expression.getValue()),),
-        may_raise=expression.mayRaiseException(BaseException),
+        may_raise=may_raise,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,

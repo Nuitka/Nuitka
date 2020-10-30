@@ -46,7 +46,8 @@ NUITKA_MAY_BE_UNUSED static inline bool HAS_ITERNEXT(PyObject *value) {
 #endif
 }
 
-// Stolen from CPython implementation, so we can access it.
+// Taken from CPython implementation, so we can access and create it, needs to match
+// their definition exactly.
 typedef struct {
     PyObject_HEAD
 #if PYTHON_VERSION < 340
@@ -57,7 +58,41 @@ typedef struct {
     PyObject *it_seq;
 } seqiterobject;
 
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR_INFALLIBLE(PyObject *iterated) {
+    CHECK_OBJECT(iterated);
+
+#if PYTHON_VERSION < 300
+    getiterfunc tp_iter = NULL;
+    if (PyType_HasFeature(Py_TYPE(iterated), Py_TPFLAGS_HAVE_ITER)) {
+        tp_iter = Py_TYPE(iterated)->tp_iter;
+    }
+#else
+    getiterfunc tp_iter = Py_TYPE(iterated)->tp_iter;
+#endif
+    if (tp_iter) {
+        PyObject *result = (*tp_iter)(iterated);
+        CHECK_OBJECT(result);
+        assert(HAS_ITERNEXT(result));
+
+        return result;
+    } else {
+        assert(PySequence_Check(iterated));
+
+        seqiterobject *result = PyObject_GC_New(seqiterobject, &PySeqIter_Type);
+        assert(result);
+
+        result->it_index = 0;
+        Py_INCREF(iterated);
+        result->it_seq = iterated;
+
+        Nuitka_GC_Track(result);
+
+        return (PyObject *)result;
+    }
+}
+
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR(PyObject *iterated) {
+    CHECK_OBJECT(iterated);
 
 #if PYTHON_VERSION < 300
     getiterfunc tp_iter = NULL;
@@ -103,6 +138,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR(PyObject *iterated) {
 #if PYTHON_VERSION >= 370
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_UNPACK_ITERATOR(PyObject *iterated) {
+    CHECK_OBJECT(iterated);
 
     getiterfunc tp_iter = Py_TYPE(iterated)->tp_iter;
 
