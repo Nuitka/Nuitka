@@ -60,6 +60,7 @@ from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
     getSubDirectories,
+    haveSameFileContents,
     isPathBelow,
     listDir,
     makePath,
@@ -1443,11 +1444,8 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
                     % (dll_name, dll_filename1, dll_filename2)
                 )
 
-            # Check that if a DLL has the same name, if it's identical,
-            # happens at least for OSC and Fedora 20.
-            import filecmp
-
-            if filecmp.cmp(dll_filename1, dll_filename2):
+            # Check that if a DLL has the same name, if it's identical, then it's easy.
+            if haveSameFileContents(dll_filename1, dll_filename2):
                 del used_dlls[dll_filename2]
                 removed_dlls.add(dll_filename2)
 

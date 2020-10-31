@@ -89,6 +89,13 @@ def areSamePaths(path1, path2):
     return path1 == path2
 
 
+def haveSameFileContents(path1, path2):
+    # Local import, to avoid this for normal use cases.
+    import filecmp
+
+    return filecmp.cmp(path1, path2)
+
+
 def relpath(path, start="."):
     """Make it a relative path, if possible.
 
