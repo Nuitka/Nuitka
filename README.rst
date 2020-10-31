@@ -95,7 +95,7 @@ Requirements
      script name and the binary name do not ever collide, so we can safely do
      an overwrite without destroying the original source file.
 
-  .. admonition:: It **has to** be CPython, Anaconda or Miniconda Python.
+  .. admonition:: It **has to** be CPython, Anaconda Python.
 
      You need the standard Python implementation, called "CPython", to execute
      Nuitka, because it is closely tied to implementation details of it.
@@ -104,7 +104,7 @@ Requirements
      need to copy the ``PythonXX.DLL`` alongside it, something Nuitka does
      automatically.
 
-  .. admonition:: It **has to** be CPython, Anaconda or Miniconda Python.
+  .. admonition:: It **cannot be** from Windows app store
 
      It is known that Windows app store Python definitely does not work, it's
      checked against. And on macOS "pyenv" likely does **not** work.
