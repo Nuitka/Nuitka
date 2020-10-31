@@ -626,16 +626,17 @@ b) To make it find Visual Studio without registry execute from Start Menu
    the 'Visual Studio Command Prompt' or "vcvarsall.bat". That will add
    Visual Studio to the "PATH". And it then will be detected.
 
-c) Install MinGW64 to "C:\\MinGW64" or "\\MinGW", where then it is automatically
-   detected or add it to PATH before executing Nuitka. But be sure to pick the
-   proper variant (32/64 bits, your Python arch is %r), or else cryptic errors
-   will be shown.
+c) Install MinGW64 to "C:\\MinGW64" or "\\MinGW64", where then it is
+   automatically detected or manually add it to PATH before executing
+   Nuitka. But be sure to pick the proper variant (32/64 bits, your
+   Python arch is %r), or else cryptic errors will be shown.
 
-Normal MinGW will not work! MinGW64 does not mean 64 bits, just better
+Normal MinGW will not work! MinGW64 does *not* mean 64 bits, just better
 Windows compatibility.
 Cygwin based gcc will not work.
 MSYS2 based gcc will not work.
-clang-cl will only work if MSVC already worked.
+
+Note: The clang-cl will only work if MSVC already works for you.
 """
             % (sys.exec_prefix, target_arch)
         )

@@ -73,7 +73,10 @@ def extractDocFromBody(node):
             doc = body[0].value.s
             body = body[1:]
         elif getKind(body[0].value) == "Constant":  # python3.8
-            doc = body[0].value.value
+            # Only strings should be used, but all other constants can immediately be ignored,
+            # it seems that e.g. Ellipsis is common.
+            if type(body[0].value.value) is str:
+                doc = body[0].value.value
             body = body[1:]
 
         if "no_docstrings" in Options.getPythonFlags():
