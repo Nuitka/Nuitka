@@ -95,16 +95,16 @@ if (%(exception_tb)s == NULL) {
 // Attaches locals to frame if any.
 %(attach_locals)s
 
-// Release cached frame.
+// Release cached frame if used for exception.
 if (%(frame_identifier)s == %(frame_cache_identifier)s) {
 #if _DEBUG_REFCOUNTS
     count_active_frame_cache_instances -= 1;
     count_released_frame_cache_instances += 1;
 #endif
 
-    Py_DECREF(%(frame_identifier)s);
+    Py_DECREF(%(frame_cache_identifier)s);
+    %(frame_cache_identifier)s = NULL;
 }
-%(frame_cache_identifier)s = NULL;
 
 assertFrameObject(%(frame_identifier)s);
 
@@ -261,16 +261,16 @@ if (!EXCEPTION_MATCH_GENERATOR(%(exception_type)s)) {
 
 %(attach_locals)s
 
-    // Release cached frame.
+    // Release cached frame if used for exception.
     if (%(frame_identifier)s == %(frame_cache_identifier)s) {
 #if _DEBUG_REFCOUNTS
         count_active_frame_cache_instances -= 1;
         count_released_frame_cache_instances += 1;
 #endif
 
-        Py_DECREF(%(frame_identifier)s);
+        Py_DECREF(%(frame_cache_identifier)s);
+        %(frame_cache_identifier)s = NULL;
     }
-    %(frame_cache_identifier)s = NULL;
 
     assertFrameObject(%(frame_identifier)s);
 }
