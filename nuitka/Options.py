@@ -375,6 +375,11 @@ def shallUseStaticLibPython():
         Currently only Anaconda on non-Windows can do this.
     """
 
+    if Utils.isWin32Windows() and os.path.exists(
+        os.path.join(sys.prefix, "etc/config.site")
+    ):
+        return True
+
     # For Anaconda default to trying static lib python library, which
     # normally is just not available or if it is even unusable.
     return (
