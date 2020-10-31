@@ -1394,6 +1394,16 @@ libraries that need to be removed."""
         assert retcode == 0, filename
 
 
+# These DLLs are run time DLLs from Microsoft, and packages will depend on different
+# ones, but it will be OK to use the latest one.
+ms_runtime_dlls = (
+    "msvcp140_1.dll",
+    "msvcp140.dll",
+    "vcruntime140_1.dll",
+    "concrt140.dll",
+)
+
+
 def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
     # This is terribly complex, because we check the list of used DLLs
     # trying to avoid duplicates, and detecting errors with them not
@@ -1411,6 +1421,7 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
     )
 
     removed_dlls = set()
+    warned_about = set()
 
     # Fist make checks and remove some.
     for dll_filename1, sources1 in tuple(iterItems(used_dlls)):
@@ -1470,14 +1481,18 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
                     solved = False
 
                 if solved:
-                    general.warning(
-                        "Ignoring conflicting DLLs for '%s' and using newest file version."
-                        % dll_name
-                    )
+                    if dll_name not in warned_about and dll_name not in ms_runtime_dlls:
+                        warned_about.add(dll_name)
+
+                        inclusion_logger.warning(
+                            "Conflicting DLLs for '%s' in your installation, newest file version used, hoping for the best."
+                            % dll_name
+                        )
+
                     continue
 
-            # So we have conflicting DLLs, in which case we do not proceed.
-            general.warning(
+            # So we have conflicting DLLs, in which case we do report the fact.
+            inclusion_logger.warning(
                 """\
 Ignoring non-identical DLLs for '%s'.
 %s used by:
