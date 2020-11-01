@@ -1060,7 +1060,7 @@ static bool set_bases(PyClassObject *klass, PyObject *value) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__bases__ must be a tuple object");
         return false;
     } else {
-        Py_ssize_t n = PyTuple_Size(value);
+        Py_ssize_t n = PyTuple_GET_SIZE(value);
 
         for (Py_ssize_t i = 0; i < n; i++) {
             PyObject *base = PyTuple_GET_ITEM(value, i);

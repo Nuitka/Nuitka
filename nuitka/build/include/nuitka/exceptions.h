@@ -508,7 +508,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL(PyObject *exception_
     /* Note: Exact matching tuples seems to needed, despite using GET_ITEM later
        on, this probably cannot be overloaded that deep. */
     if (PyTuple_Check(exception_checked)) {
-        Py_ssize_t length = PyTuple_Size(exception_checked);
+        Py_ssize_t length = PyTuple_GET_SIZE(exception_checked);
 
         for (Py_ssize_t i = 0; i < length; i += 1) {
             PyObject *element = PyTuple_GET_ITEM(exception_checked, i);

@@ -287,7 +287,7 @@ static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *object, Py
     }
 
     if (object->m_defaults != Py_None &&
-        (value == Py_None || PyTuple_Size(object->m_defaults) != PyTuple_Size(value))) {
+        (value == Py_None || PyTuple_GET_SIZE(object->m_defaults) != PyTuple_GET_SIZE(value))) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes");
         return -1;
     }
@@ -654,7 +654,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
         defaults = Py_None;
     }
     CHECK_OBJECT(defaults);
-    assert(defaults == Py_None || (PyTuple_Check(defaults) && PyTuple_Size(defaults) > 0));
+    assert(defaults == Py_None || (PyTuple_Check(defaults) && PyTuple_GET_SIZE(defaults) > 0));
     result->m_defaults = defaults;
 
     onUpdatedDefaultsValue(result);

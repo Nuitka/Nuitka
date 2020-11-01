@@ -33,10 +33,12 @@ PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name) {
     PyObject *result = GET_STRING_DICT_VALUE((PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name);
 
     if (result == NULL) {
-        Py_ssize_t base_count = PyTuple_Size(klass->cl_bases);
+        assert(PyTuple_Check(klass->cl_bases));
+
+        Py_ssize_t base_count = PyTuple_GET_SIZE(klass->cl_bases);
 
         for (Py_ssize_t i = 0; i < base_count; i++) {
-            result = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)PyTuple_GetItem(klass->cl_bases, i), attr_name);
+            result = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)PyTuple_GET_ITEM(klass->cl_bases, i), attr_name);
 
             if (result != NULL) {
                 break;

@@ -73,7 +73,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_
 
 #if PYTHON_VERSION < 300
     // Next, repeatedly, replace a tuple exception with its first item
-    while (PyTuple_Check(*exception_type) && PyTuple_Size(*exception_type) > 0) {
+    while (PyTuple_Check(*exception_type) && PyTuple_GET_SIZE(*exception_type) > 0) {
         PyObject *tmp = *exception_type;
         *exception_type = PyTuple_GET_ITEM(*exception_type, 0);
         Py_INCREF(*exception_type);
@@ -229,7 +229,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_VALUE(PyObject **exception
     *exception_tb = NULL;
 
     // Non-empty tuple exceptions are the first element.
-    while (unlikely(PyTuple_Check(*exception_type) && PyTuple_Size(*exception_type) > 0)) {
+    while (unlikely(PyTuple_Check(*exception_type) && PyTuple_GET_SIZE(*exception_type) > 0)) {
         *exception_type = PyTuple_GET_ITEM(*exception_type, 0);
     }
 
@@ -287,7 +287,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_IMPLICIT(PyObject **exception_t
     *exception_tb = NULL;
 
     // Non-empty tuple exceptions are the first element.
-    while (unlikely(PyTuple_Check(*exception_type) && PyTuple_Size(*exception_type) > 0)) {
+    while (unlikely(PyTuple_Check(*exception_type) && PyTuple_GET_SIZE(*exception_type) > 0)) {
         *exception_type = PyTuple_GET_ITEM(*exception_type, 0);
     }
 
@@ -338,7 +338,7 @@ NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION_WITH_TRACEBACK(PyObject 
     }
 
     // Non-empty tuple exceptions are the first element.
-    while (unlikely(PyTuple_Check(*exception_type) && PyTuple_Size(*exception_type) > 0)) {
+    while (unlikely(PyTuple_Check(*exception_type) && PyTuple_GET_SIZE(*exception_type) > 0)) {
         *exception_type = PyTuple_GET_ITEM(*exception_type, 0);
     }
 
