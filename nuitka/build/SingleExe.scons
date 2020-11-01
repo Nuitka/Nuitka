@@ -48,8 +48,15 @@ import subprocess
 
 import SCons  # pylint: disable=import-error
 import SCons.Tool.gcc  # pylint: disable=import-error
-
 from nuitka.Tracing import my_print, scons_logger
+from SCons.Script import (  # pylint: disable=import-error
+    CacheDir,
+    Decider,
+    Default,
+    Environment,
+    File,
+    GetOption,
+)
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
@@ -953,8 +960,9 @@ if trace_mode:
 if standalone_mode:
     env.Append(CPPDEFINES=["_NUITKA_STANDALONE"])
 
-    if "linux" in sys.platform:
-        env.Append(LIBS=["dl"])
+# We need "dl" in accelerated mode.
+if "linux" in sys.platform:
+    env.Append(LIBS=["dl"])
 
 if not msvc_mode:
     env.Append(LIBS=["m"])
