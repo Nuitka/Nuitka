@@ -407,6 +407,12 @@ extern void setEarlyFrozenModulesFileAttribute(void);
  */
 extern PyObject *MAKE_RELATIVE_PATH(PyObject *relative);
 
+/* For concatenating two elemented path, typically a dirname and a filename.
+
+   We do this in a lot of helper code, and this is shared functionality.
+*/
+extern PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename);
+
 #include <nuitka/threading.h>
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject **elements, Py_ssize_t size) {

@@ -1663,6 +1663,24 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
 #include <sys/sysctl.h>
 #endif
 
+PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
+    static PyObject *sep_object = NULL;
+
+    if (sep_object == NULL) {
+        static char const sep[2] = {SEP, 0};
+        sep_object = Nuitka_String_FromString(sep);
+    }
+
+    // Avoid string APIs, so str, unicode doesn't matter for input.
+    PyObject *result = PyNumber_Add(dirname, sep_object);
+    CHECK_OBJECT(result);
+
+    result = PyNumber_InPlaceAdd(result, filename);
+    CHECK_OBJECT(result);
+
+    return result;
+}
+
 #if defined(_NUITKA_EXE)
 
 #ifndef _WIN32
@@ -1823,12 +1841,8 @@ static PyObject *getBinaryDirectoryObject() {
 #ifdef _NUITKA_STANDALONE
 // Helper function to create path.
 PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
-    PyObject *dir_name = PyObject_Unicode(getBinaryDirectoryObject());
-    char sep[2] = {SEP, 0};
-    PyObject *tmp = PyUnicode_Concat(dir_name, PyUnicode_FromString(sep));
-    Py_DECREF(dir_name);
-    PyObject *sys_executable = PyUnicode_Concat(tmp, PyObject_Unicode(basename));
-    Py_DECREF(tmp);
+    PyObject *dir_name = getBinaryDirectoryObject();
+    PyObject *sys_executable = JOIN_PATH2(dir_name, basename);
 
     return sys_executable;
 }
@@ -1950,16 +1964,7 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
 #endif
     }
 
-    char sep[2] = {SEP, 0};
-
-    PyObject *result = PyNumber_Add(our_path_object, Nuitka_String_FromString(sep));
-    CHECK_OBJECT(result);
-
-    result = PyNumber_InPlaceAdd(result, relative);
-
-    CHECK_OBJECT(result);
-
-    return result;
+    return JOIN_PATH2(our_path_object, relative);
 }
 
 #ifdef _NUITKA_EXE
