@@ -20,6 +20,7 @@
 """
 
 import os
+import shutil
 import signal
 import sys
 
@@ -154,3 +155,45 @@ def addClangClPathFromMSVC(env, target_arch, show_scons_mode):
     else:
         if show_scons_mode:
             scons_logger.info("No Clang component for MSVC found." % clang_dir)
+
+
+def isGccName(cc_name):
+    return "gcc" in cc_name or "g++" in cc_name or "gnu-cc" in cc_name
+
+
+def cheapCopyFile(src, dst):
+    dirname = os.path.dirname(dst)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+    if win_target:
+        # Windows has symlinks these days, but they do not integrate well
+        # with Python2 at least. So make a copy in any case.
+        if os.path.exists(dst):
+            os.unlink(dst)
+        shutil.copy(src, dst)
+    else:
+        # Relative paths work badly for links. Creating them relative is
+        # not worth the effort.
+        src = os.path.abspath(src)
+
+        try:
+            link_target = os.readlink(dst)
+
+            # If it's already a proper link, do nothing then.
+            if link_target == src:
+                return
+
+            os.unlink(dst)
+        except OSError as _e:
+            # Broken links work like that, remove them, so we can replace
+            # them.
+            try:
+                os.unlink(dst)
+            except OSError:
+                pass
+
+        try:
+            os.symlink(src, dst)
+        except OSError:
+            shutil.copy(src, dst)
