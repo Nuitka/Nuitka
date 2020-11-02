@@ -255,10 +255,10 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    res_name = context.getIntResName()
+    res_name = context.getBoolResName()
 
     emit(
-        "%s = PyObject_HasAttr(%s, %s);"
+        "%s = HAS_ATTR_BOOL(%s, %s);"
         % (
             res_name,
             source_name,
@@ -269,7 +269,7 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
     getReleaseCode(release_name=source_name, emit=emit, context=context)
 
     to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name=to_name, condition="%s != 0" % res_name, emit=emit
+        to_name=to_name, condition=res_name, emit=emit
     )
 
 

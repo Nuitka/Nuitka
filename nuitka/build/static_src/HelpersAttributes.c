@@ -175,19 +175,19 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
         if (dict != NULL) {
             CHECK_OBJECT(dict);
 
+            // TODO: If this is an exact dict, we don't have to hold a reference, is it?
             Py_INCREF(dict);
 
             PyObject *result = DICT_GET_ITEM1(dict, attr_name);
 
+            Py_DECREF(dict);
+
             if (result != NULL) {
                 Py_XDECREF(descr);
-                Py_DECREF(dict);
 
                 CHECK_OBJECT(result);
                 return result;
             }
-
-            Py_DECREF(dict);
         }
 
         if (func != NULL) {
@@ -512,6 +512,161 @@ int BUILTIN_HASATTR_BOOL(PyObject *source, PyObject *attr_name) {
     Py_DECREF(value);
 
     return 1;
+}
+
+bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
+    CHECK_OBJECT(source);
+    CHECK_OBJECT(attr_name);
+
+    PyTypeObject *type = Py_TYPE(source);
+
+    if (type->tp_getattro == PyObject_GenericGetAttr) {
+        // Unfortunately this is required, although of cause rarely necessary.
+        if (unlikely(type->tp_dict == NULL)) {
+            if (unlikely(PyType_Ready(type) < 0)) {
+                DROP_ERROR_OCCURRED();
+
+                return false;
+            }
+        }
+
+        PyObject *descr = _PyType_Lookup(type, attr_name);
+        descrgetfunc func = NULL;
+
+        if (descr != NULL) {
+            Py_INCREF(descr);
+
+#if PYTHON_VERSION < 300
+            if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
+#endif
+                func = Py_TYPE(descr)->tp_descr_get;
+
+                if (func != NULL && PyDescr_IsData(descr)) {
+                    PyObject *result = func(descr, source, (PyObject *)type);
+                    Py_DECREF(descr);
+
+                    if (result) {
+                        CHECK_OBJECT(result);
+
+                        Py_DECREF(result);
+                        return true;
+                    }
+
+                    DROP_ERROR_OCCURRED();
+                }
+#if PYTHON_VERSION < 300
+            }
+#endif
+        }
+
+        Py_ssize_t dictoffset = type->tp_dictoffset;
+        PyObject *dict = NULL;
+
+        if (dictoffset != 0) {
+            // Negative dictionary offsets have special meaning.
+            if (dictoffset < 0) {
+                Py_ssize_t tsize;
+                size_t size;
+
+                tsize = ((PyVarObject *)source)->ob_size;
+                if (tsize < 0) {
+                    tsize = -tsize;
+                }
+                size = _PyObject_VAR_SIZE(type, tsize);
+
+                dictoffset += (long)size;
+            }
+
+            PyObject **dictptr = (PyObject **)((char *)source + dictoffset);
+            dict = *dictptr;
+        }
+
+        if (dict != NULL) {
+            CHECK_OBJECT(dict);
+
+            // TODO: If this is an exact dict, we don't have to hold a reference, is it?
+            Py_INCREF(dict);
+
+            PyObject *result = DICT_GET_ITEM1(dict, attr_name);
+
+            Py_DECREF(dict);
+
+            if (result != NULL) {
+                Py_XDECREF(descr);
+
+                CHECK_OBJECT(result);
+
+                Py_DECREF(result);
+                return true;
+            }
+        }
+
+        if (func != NULL) {
+            PyObject *result = func(descr, source, (PyObject *)type);
+            Py_DECREF(descr);
+
+            if (result != NULL) {
+                CHECK_OBJECT(result);
+
+                Py_DECREF(result);
+                return true;
+            }
+
+            DROP_ERROR_OCCURRED();
+        }
+
+        if (descr != NULL) {
+            CHECK_OBJECT(descr);
+
+            Py_DECREF(descr);
+            return true;
+        }
+
+        return false;
+    }
+#if PYTHON_VERSION < 300
+    else if (type->tp_getattro == PyInstance_Type.tp_getattro) {
+        PyObject *result = LOOKUP_INSTANCE(source, attr_name);
+
+        if (result == NULL) {
+            DROP_ERROR_OCCURRED();
+
+            return false;
+        }
+
+        CHECK_OBJECT(result);
+
+        Py_DECREF(result);
+        return true;
+    }
+#endif
+    else if (type->tp_getattro != NULL) {
+        PyObject *result = (*type->tp_getattro)(source, attr_name);
+
+        if (result == NULL) {
+            DROP_ERROR_OCCURRED();
+
+            return false;
+        }
+
+        CHECK_OBJECT(result);
+        Py_DECREF(result);
+        return true;
+    } else if (type->tp_getattr != NULL) {
+        PyObject *result = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
+
+        if (result == NULL) {
+            DROP_ERROR_OCCURRED();
+
+            return false;
+        }
+
+        CHECK_OBJECT(result);
+        Py_DECREF(result);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 #if PYTHON_VERSION < 300

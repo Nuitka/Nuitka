@@ -805,7 +805,7 @@ static void _fixupSpecAttribute(PyObject *module) {
     PyObject *spec_value = LOOKUP_ATTRIBUTE(module, const_str_plain___spec__);
 
     if (spec_value && spec_value != Py_None) {
-        if (PyObject_HasAttr(spec_value, const_str_plain__initializing)) {
+        if (HAS_ATTR_BOOL(spec_value, const_str_plain__initializing)) {
             SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_False);
         }
     }
@@ -1599,8 +1599,8 @@ void setEarlyFrozenModulesFileAttribute(void) {
 
     while (PyDict_Next(sys_modules, &ppos, &key, &value)) {
         if (key != NULL && value != NULL && PyModule_Check(value)) {
-            if (PyObject_HasAttr(value, const_str_plain___file__)) {
-                bool is_package = PyObject_HasAttr(value, const_str_plain___path__) == 1;
+            if (HAS_ATTR_BOOL(value, const_str_plain___file__)) {
+                bool is_package = HAS_ATTR_BOOL(value, const_str_plain___path__);
 
                 PyObject *file_value = MAKE_RELATIVE_PATH_FROM_NAME(Nuitka_String_AsString(key), is_package);
                 PyObject_SetAttr(value, const_str_plain___file__, file_value);
