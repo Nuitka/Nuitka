@@ -110,12 +110,12 @@ Proceed and download? [Yes]/No """
             sys.exit("Error, need '%s' as extracted from '%s'." % (binary, url))
 
     # Check success here.
-    if not os.path.isfile(exe_path):
+    if os.path.isfile(exe_path):
+        addFileExecutablePermission(exe_path)
+    else:
         if reject:
             sys.exit(reject)
 
         exe_path = None
-
-    addFileExecutablePermission(exe_path)
 
     return exe_path
