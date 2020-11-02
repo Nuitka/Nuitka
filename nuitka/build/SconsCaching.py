@@ -105,7 +105,7 @@ def _injectCcache(
 
                     break
 
-        if ccache_binary is None:
+        if ccache_binary is None and os.name == "nt":
             url = "https://github.com/ccache/ccache/releases/download/v3.7.12/ccache-3.7.12-windows-32.zip"
             ccache_binary = getCachedDownload(
                 url=url,
