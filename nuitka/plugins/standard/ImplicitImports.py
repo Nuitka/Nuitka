@@ -1214,7 +1214,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             for item in self._getImportsByFullname(module_name, package_dir):
                 if item not in result:
                     result.add(item)
-                    checkImportsRecursive(item[0], package_dir)
+                    checkImportsRecursive(item, package_dir)
 
         checkImportsRecursive(full_name, package_dir)
 
