@@ -70,7 +70,7 @@ def makeInternalHelperFunctionBody(name, parameters, inline_const_args=False):
     else:
         node_class = ExpressionFunctionBody
 
-    return node_class(
+    result = node_class(
         provider=getInternalModule(),
         name=name,
         code_object=None,
@@ -80,3 +80,8 @@ def makeInternalHelperFunctionBody(name, parameters, inline_const_args=False):
         auto_release=None,
         source_ref=internal_source_ref,
     )
+
+    for variable in parameters.getAllVariables():
+        result.removeVariableReleases(variable)
+
+    return result
