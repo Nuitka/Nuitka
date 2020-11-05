@@ -247,6 +247,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         "weasyprint": (_getSubDirectoryFiles, "css", False),
         "xarray": (_getSubDirectoryFiles, "static", False),
         "eventlet": (_getPackageFiles, ("dns",), False),  # copy other package source
+        "gooey": (_getSubDirectoryFiles, ("languages", "images"), False),
     }
 
     generated_data_files = {
