@@ -21,15 +21,19 @@
 
 import os
 import shutil
+import struct
 import subprocess
 import sys
 
-from nuitka.Options import assumeYesForDownloads, getIconPaths
+from nuitka.Options import assumeYesForDownloads, getIconPaths, getJobLimit
 from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
 from nuitka.Tracing import general, postprocessing_logger
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import getNullOutput
-from nuitka.utils.FileOperations import addFileExecutablePermission
+from nuitka.utils.FileOperations import (
+    addFileExecutablePermission,
+    getFileList,
+)
 from nuitka.utils.Utils import getArchitecture, getOS
 
 
@@ -38,6 +42,8 @@ def packDistFolderToOnefile(dist_dir, binary_filename):
 
     if getOS() == "Linux":
         packDistFolderToOnefileLinux(dist_dir, binary_filename)
+    elif getOS() == "Windows":
+        packDistFolderToOnefileWindows(dist_dir)
     else:
         general.warning("Onefile mode is not yet available on '%s'." % getOS())
 
@@ -152,3 +158,49 @@ Categories=Utility;"""
     postprocessing_logger.info("Completed onefile execution.")
 
     assert result == 0, result
+
+
+def packDistFolderToOnefileWindows(dist_dir):
+
+    general.warning("Onefile mode is not yet working on '%s'." % getOS())
+
+    try:
+        from zstd import ZSTD_compress  # pylint: disable=I0021,import-error
+    except ImportError:
+        return
+
+    # First need to create the binary, then append to it. For now, create as empty
+    # then append
+
+    postprocessing_logger.info(
+        "Creating single file from dist folder, this may take a while."
+    )
+
+    onefile_output_filename = getResultFullpath(onefile=True)
+
+    with open(onefile_output_filename, "wb"):
+        pass
+
+    with open(onefile_output_filename, "ab") as output_file:
+        start_pos = output_file.tell()
+
+        output_file.write(b"KAY")
+
+        for filename_full in getFileList(dist_dir):
+            filename_relative = os.path.relpath(dist_dir, filename_full)
+
+            if type(filename_relative) is not bytes:
+                output_file.write(filename_relative.encode("utf8") + b"0")
+            else:
+                output_file.write(filename_relative + b"0")
+
+            with open(filename_full, "rb") as input_file:
+                compressed = ZSTD_compress(input_file.read(), -1, getJobLimit())
+
+                output_file.write(struct.pack("q", len(compressed)))
+
+                output_file.write(compressed)
+
+        end_pos = output_file.tell()
+
+        output_file.write(struct.pack("q", end_pos - start_pos))
