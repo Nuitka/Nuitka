@@ -66,6 +66,10 @@ def parseArgs():
 
         options.show_inclusion = True
 
+    # Onefile implies standalone build.
+    if options.is_onefile:
+        options.is_standalone = True
+
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the
     # standard library.
@@ -520,7 +524,7 @@ def isStandaloneMode():
 
 def isOnefileMode():
     """*bool* = "--standalone" """
-    return options.is_standalone and options.is_onefile
+    return options.is_onefile
 
 
 def getIconPaths():
