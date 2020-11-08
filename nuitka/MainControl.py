@@ -756,29 +756,6 @@ def main():
 
         executePostProcessing()
 
-        if Options.isStandaloneMode():
-            binary_filename = options["result_exe"]
-
-            setMainEntryPoint(binary_filename)
-
-            dist_dir = OutputDirectories.getStandaloneDirectoryPath()
-
-            for module in ModuleRegistry.getDoneModules():
-                addIncludedEntryPoints(Plugins.considerExtraDlls(dist_dir, module))
-
-            copyUsedDLLs(
-                source_dir=OutputDirectories.getSourceDirectoryPath(),
-                dist_dir=dist_dir,
-                standalone_entry_points=getStandardEntryPoints(),
-            )
-
-            copyDataFiles(dist_dir=dist_dir)
-
-            if Options.isOnefileMode():
-                packDistFolderToOnefile(dist_dir, binary_filename)
-
-            Plugins.onStandaloneDistributionFinished(dist_dir)
-
         # Remove the source directory (now build directory too) if asked to.
         if Options.isRemoveBuildDir():
             removeDirectory(
@@ -817,6 +794,29 @@ __name__ = ...
                         )
                     }
                 )
+
+        if Options.isStandaloneMode():
+            binary_filename = options["result_exe"]
+
+            setMainEntryPoint(binary_filename)
+
+            dist_dir = OutputDirectories.getStandaloneDirectoryPath()
+
+            for module in ModuleRegistry.getDoneModules():
+                addIncludedEntryPoints(Plugins.considerExtraDlls(dist_dir, module))
+
+            copyUsedDLLs(
+                source_dir=OutputDirectories.getSourceDirectoryPath(),
+                dist_dir=dist_dir,
+                standalone_entry_points=getStandardEntryPoints(),
+            )
+
+            copyDataFiles(dist_dir=dist_dir)
+
+            Plugins.onStandaloneDistributionFinished(dist_dir)
+
+            if Options.isOnefileMode():
+                packDistFolderToOnefile(dist_dir, binary_filename)
 
         general.info(
             "Sucessfully created %r."
