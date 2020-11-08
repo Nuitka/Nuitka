@@ -50,7 +50,6 @@ from nuitka.PythonVersions import (
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
-from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import (
     deleteFile,
     hasFilenameExtension,
@@ -413,9 +412,6 @@ def runScons(main_module, quiet):
     # pylint: disable=too-many-branches,too-many-statements
 
     options = {
-        "name": os.path.basename(
-            OutputDirectories.getTreeFilenameWithSuffix(main_module, "")
-        ),
         "result_name": OutputDirectories.getResultBasepath(),
         "source_dir": OutputDirectories.getSourceDirectoryPath(),
         "debug_mode": _asBoolStr(Options.is_debug),
@@ -429,7 +425,6 @@ def runScons(main_module, quiet):
         "target_arch": Utils.getArchitecture(),
         "python_prefix": sys.prefix,
         "nuitka_src": SconsInterface.getSconsDataPath(),
-        "nuitka_cache": getCacheDir(),
         "module_count": "%d"
         % (
             1

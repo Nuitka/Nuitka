@@ -249,8 +249,8 @@ def executePASS1():
         copyTree(scons_inline_copy_path, os.path.join("nuitka", "build", "inline_copy"))
 
     shutil.copyfile(
-        os.path.join(base_dir, "nuitka", "build", "SingleExe.scons"),
-        os.path.join("nuitka", "build", "SingleExe.scons"),
+        os.path.join(base_dir, "nuitka", "build", "Backend.scons"),
+        os.path.join("nuitka", "build", "Backend.scons"),
     )
     copyTree(
         os.path.join(base_dir, "nuitka", "build", "static_src"),

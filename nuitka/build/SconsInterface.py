@@ -217,7 +217,7 @@ def _buildSconsCommand(quiet, options):
     scons_command += [
         # The scons file
         "-f",
-        getExternalUsePath(os.path.join(getSconsDataPath(), "SingleExe.scons")),
+        getExternalUsePath(os.path.join(getSconsDataPath(), "Backend.scons")),
         # Parallel compilation.
         "--jobs",
         str(Options.getJobLimit()),

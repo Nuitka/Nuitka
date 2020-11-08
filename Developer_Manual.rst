@@ -1006,10 +1006,6 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
   The icon to use for Windows programs if given.
 
-* ``nuitka_cache``
-
-  The cache directory to use. We put e.g. creating linker libraries for MinGW64
-  there.
 
 
 Locating Modules and Packages

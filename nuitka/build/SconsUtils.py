@@ -27,6 +27,55 @@ import sys
 from nuitka.Tracing import scons_logger
 
 
+def initScons():
+    # Avoid localized outputs.
+    os.environ["LANG"] = "C"
+
+
+scons_arguments = {}
+
+
+def setArguments(arguments):
+    """ Decode command line arguments. """
+
+    arg_encoding = arguments.get("argument_encoding")
+
+    for key, value in arguments.items():
+        if arg_encoding is not None:
+            value = decodeData(value)
+        scons_arguments[key] = value
+
+
+def getArgumentRequired(name):
+    """ Helper for string options without default value. """
+    return scons_arguments[name]
+
+
+def getArgumentDefaulted(name, default):
+    """ Helper for string options with default value. """
+    return scons_arguments.get(name, default)
+
+
+def getArgumentBool(option_name, default=None):
+    """ Small helper for boolean mode flags."""
+    if default is None:
+        value = scons_arguments[option_name]
+    else:
+        value = scons_arguments.get(option_name, "True" if default else "False")
+
+    return value.lower() in ("yes", "true", "1")
+
+
+def getArgumentList(option_name, default=None):
+    """ Small helper for list mode options, default should be command separated str."""
+    if default is None:
+        value = scons_arguments[option_name]
+    else:
+        value = scons_arguments.get(option_name, default)
+
+    return value.split(",")
+
+
 def decodeData(data):
     """Our own decode tries to workaround MSVC misbehavior."""
     try:
