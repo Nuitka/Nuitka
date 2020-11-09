@@ -44,11 +44,17 @@ def setMainModule(main_module):
     _main_module = main_module
 
 
-def getSourceDirectoryPath():
+def getSourceDirectoryPath(onefile=False):
     """Return path inside the build directory."""
 
+    # Distinct build folders for oneline mode.
+    if onefile:
+        suffix = ".onefile-build"
+    else:
+        suffix = ".build"
+
     result = Options.getOutputPath(
-        path=os.path.basename(getTreeFilenameWithSuffix(_main_module, ".build"))
+        path=os.path.basename(getTreeFilenameWithSuffix(_main_module, suffix))
     )
 
     makePath(result)

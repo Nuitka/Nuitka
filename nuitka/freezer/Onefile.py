@@ -25,8 +25,11 @@ import struct
 import subprocess
 import sys
 
+from nuitka import Options, OutputDirectories
+from nuitka.build import SconsInterface
 from nuitka.Options import assumeYesForDownloads, getIconPaths, getJobLimit
 from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
+from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import general, postprocessing_logger
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import getNullOutput
@@ -160,14 +163,99 @@ Categories=Utility;"""
     assert result == 0, result
 
 
-def packDistFolderToOnefileWindows(dist_dir):
+def _runOnefileScons(quiet):
+    # Scons gets transported many details, that we express as variables, and
+    # have checks for them, leading to many branches and statements,
+    # pylint: disable=too-many-branches
 
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
+    SconsInterface.cleanSconsDirectory(source_dir)
+
+    asBoolStr = SconsInterface.asBoolStr
+
+    options = {
+        "result_name": OutputDirectories.getResultBasepath(onefile=True),
+        "result_exe": OutputDirectories.getResultFullpath(onefile=True),
+        "source_dir": source_dir,
+        "debug_mode": asBoolStr(Options.is_debug),
+        "unstripped_mode": asBoolStr(Options.isUnstripped()),
+        "experimental": ",".join(Options.getExperimentalIndications()),
+        "trace_mode": asBoolStr(Options.shallTraceExecution()),
+        "target_arch": getArchitecture(),
+        "python_prefix": sys.prefix,
+        "nuitka_src": SconsInterface.getSconsDataPath(),
+    }
+
+    # Ask Scons to cache on Windows, except where the directory is thrown
+    # away. On non-Windows you can should use ccache instead.
+    if not Options.isRemoveBuildDir() and getOS() == "Windows":
+        options["cache_mode"] = "true"
+
+    if Options.isLto():
+        options["lto_mode"] = "true"
+
+    if Options.shallDisableConsoleWindow():
+        options["win_disable_console"] = "true"
+
+    if Options.isShowScons():
+        options["show_scons"] = "true"
+
+    if Options.isMingw64():
+        options["mingw_mode"] = "true"
+
+    if Options.getMsvcVersion():
+        msvc_version = Options.getMsvcVersion()
+
+        msvc_version = msvc_version.replace("exp", "Exp")
+        if "." not in msvc_version:
+            msvc_version += ".0"
+
+        options["msvc_version"] = msvc_version
+
+    if getOS() == "Windows":
+        options["noelf_mode"] = "true"
+
+    if Options.isClang():
+        options["clang_mode"] = "true"
+
+    cpp_defines = Plugins.getPreprocessorSymbols()
+    if cpp_defines:
+        options["cpp_defines"] = ",".join(
+            "%s%s%s" % (key, "=" if value else "", value or "")
+            for key, value in cpp_defines.items()
+        )
+
+    link_libraries = Plugins.getExtraLinkLibraries()
+    if link_libraries:
+        options["link_libraries"] = ",".join(link_libraries)
+
+    if Options.shallRunInDebugger():
+        options["full_names"] = "true"
+
+    if Options.assumeYesForDownloads():
+        options["assume_yes_for_downloads"] = "true"
+
+    result = SconsInterface.runScons(
+        options=options, quiet=quiet, scons_filename="WindowsOnefile.scons"
+    )
+
+    # Exit if compilation failed.
+    if not result:
+        sys.exit("Error, one file bootstrap build for Windows failed.")
+
+
+def packDistFolderToOnefileWindows(dist_dir):
     general.warning("Onefile mode is not yet working on '%s'." % getOS())
 
     try:
         from zstd import ZSTD_compress  # pylint: disable=I0021,import-error
+
+        compress = 1 if Options.isExperimental("zstd") else 0
     except ImportError:
-        return
+        general.warning(
+            "Onefile mode cannot compress without 'zstd' module on '%s'." % getOS()
+        )
+        compress = 0
 
     # First need to create the binary, then append to it. For now, create as empty
     # then append
@@ -181,26 +269,37 @@ def packDistFolderToOnefileWindows(dist_dir):
     with open(onefile_output_filename, "wb"):
         pass
 
+    _runOnefileScons(False)
+
     with open(onefile_output_filename, "ab") as output_file:
         start_pos = output_file.tell()
 
-        output_file.write(b"KAY")
+        output_file.write(b"KA")
+
+        if compress:
+            output_file.write(b"Y")
+        else:
+            output_file.write(b"X")
 
         for filename_full in getFileList(dist_dir):
-            filename_relative = os.path.relpath(dist_dir, filename_full)
+            filename_relative = os.path.relpath(filename_full, dist_dir)
 
             if type(filename_relative) is not bytes:
-                output_file.write(filename_relative.encode("utf8") + b"0")
+                output_file.write(filename_relative.encode("utf8") + b"\0")
             else:
-                output_file.write(filename_relative + b"0")
+                output_file.write(filename_relative + b"\0")
 
             with open(filename_full, "rb") as input_file:
-                compressed = ZSTD_compress(input_file.read(), -1, getJobLimit())
+                if compress and Options.isExperimental("zstd"):
+                    compressed = ZSTD_compress(input_file.read(), 9, getJobLimit())
+                else:
+                    compressed = input_file.read()
 
                 output_file.write(struct.pack("q", len(compressed)))
 
                 output_file.write(compressed)
 
-        end_pos = output_file.tell()
+        # Terminator empty filename.
+        output_file.write(b"\0")
 
-        output_file.write(struct.pack("q", end_pos - start_pos))
+        output_file.write(struct.pack("q", start_pos))

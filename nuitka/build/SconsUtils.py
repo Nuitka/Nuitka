@@ -19,6 +19,8 @@
 
 """
 
+from __future__ import print_function
+
 import os
 import shutil
 import signal
@@ -157,6 +159,26 @@ def addToPATH(env, dirname, prefix):
     setEnvironmentVariable(env, "PATH", os.pathsep.join(path_value))
 
 
+def writeSconsReport(source_dir, env, gcc_mode, clang_mode, msvc_mode):
+    with open(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
+        # We are friends to get at this debug info, pylint: disable=protected-access
+        for key, value in sorted(env._dict.items()):
+            if type(value) is not str:
+                continue
+
+            if key.startswith(("_", "CONFIGURE")):
+                continue
+
+            if key in ("MSVSSCONS", "BUILD_DIR"):
+                continue
+
+            print(key + "=" + value, file=report_file)
+
+        print("gcc_mode=%s" % gcc_mode, file=report_file)
+        print("clang_mode=%s" % clang_mode, file=report_file)
+        print("msvc_mode=%s" % msvc_mode, file=report_file)
+
+
 scons_report = None
 
 
@@ -246,3 +268,10 @@ def cheapCopyFile(src, dst):
             os.symlink(src, dst)
         except OSError:
             shutil.copy(src, dst)
+
+
+def makeCLiteral(value):
+    value = value.replace("\\", r"\\")
+    value = value.replace('"', r"\"")
+
+    return '"' + value + '"'

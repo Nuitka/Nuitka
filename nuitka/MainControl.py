@@ -50,13 +50,7 @@ from nuitka.PythonVersions import (
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
-from nuitka.utils.FileOperations import (
-    deleteFile,
-    hasFilenameExtension,
-    listDir,
-    makePath,
-    removeDirectory,
-)
+from nuitka.utils.FileOperations import deleteFile, makePath, removeDirectory
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -93,7 +87,7 @@ def createNodeTree(filename):
     source_dir = OutputDirectories.getSourceDirectoryPath()
 
     if not Options.shallOnlyExecCCompilerCall():
-        cleanSourceDirectory(source_dir)
+        SconsInterface.cleanSconsDirectory(source_dir)
 
     # Prepare the ".dist" directory, throwing away what was there before.
     if Options.isStandaloneMode():
@@ -159,46 +153,6 @@ def createNodeTree(filename):
 def dumpTreeXML(tree):
     xml_root = tree.asXml()
     TreeXML.dump(xml_root)
-
-
-def cleanSourceDirectory(source_dir):
-    extensions = (
-        ".bin",
-        ".c",
-        ".cpp",
-        ".exp",
-        ".h",
-        ".lib",
-        ".manifest",
-        ".o",
-        ".obj",
-        ".os",
-        ".rc",
-        ".res",
-        ".S",
-        ".txt",
-        ".const",
-    )
-
-    def check(path):
-        if hasFilenameExtension(path, extensions):
-            deleteFile(path, must_exist=True)
-
-    if os.path.isdir(source_dir):
-        for path, _filename in listDir(source_dir):
-            check(path)
-
-        static_dir = os.path.join(source_dir, "static_src")
-
-        if os.path.exists(static_dir):
-            for path, _filename in listDir(static_dir):
-                check(path)
-
-        plugins_dir = os.path.join(source_dir, "plugins")
-
-        if os.path.exists(plugins_dir):
-            for path, _filename in listDir(plugins_dir):
-                check(path)
 
 
 def pickSourceFilenames(source_dir, modules):
@@ -402,25 +356,23 @@ def makeSourceDirectory(main_module):
         )
 
 
-def _asBoolStr(value):
-    return "true" if value else "false"
-
-
-def runScons(main_module, quiet):
+def runSconsBackend(quiet):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
     # pylint: disable=too-many-branches,too-many-statements
 
+    asBoolStr = SconsInterface.asBoolStr
+
     options = {
-        "result_name": OutputDirectories.getResultBasepath(),
+        "result_name": OutputDirectories.getResultBasepath(onefile=False),
         "source_dir": OutputDirectories.getSourceDirectoryPath(),
-        "debug_mode": _asBoolStr(Options.is_debug),
-        "python_debug": _asBoolStr(Options.isPythonDebug()),
-        "unstripped_mode": _asBoolStr(Options.isUnstripped()),
-        "module_mode": _asBoolStr(Options.shallMakeModule()),
-        "full_compat": _asBoolStr(Options.isFullCompat()),
+        "debug_mode": asBoolStr(Options.is_debug),
+        "python_debug": asBoolStr(Options.isPythonDebug()),
+        "unstripped_mode": asBoolStr(Options.isUnstripped()),
+        "module_mode": asBoolStr(Options.shallMakeModule()),
+        "full_compat": asBoolStr(Options.isFullCompat()),
         "experimental": ",".join(Options.getExperimentalIndications()),
-        "trace_mode": _asBoolStr(Options.shallTraceExecution()),
+        "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "python_version": python_version_str,
         "target_arch": Utils.getArchitecture(),
         "python_prefix": sys.prefix,
@@ -442,19 +394,19 @@ def runScons(main_module, quiet):
         options["cache_mode"] = "true"
 
     if Options.isLto():
-        options["lto_mode"] = "true"
+        options["lto_mode"] = asBoolStr(True)
 
     if Options.shallUseStaticLibPython():
-        options["static_libpython"] = "true"
+        options["static_libpython"] = asBoolStr(True)
 
     if Options.shallDisableConsoleWindow():
-        options["win_disable_console"] = "true"
+        options["win_disable_console"] = asBoolStr(True)
 
     if Options.isStandaloneMode():
-        options["standalone_mode"] = "true"
+        options["standalone_mode"] = asBoolStr(True)
 
     if Options.shallTreatUninstalledPython():
-        options["uninstalled_python"] = "true"
+        options["uninstalled_python"] = asBoolStr(True)
 
     if ModuleRegistry.getUncompiledTechnicalModules():
         options["frozen_modules"] = str(
@@ -462,10 +414,10 @@ def runScons(main_module, quiet):
         )
 
     if Options.isShowScons():
-        options["show_scons"] = "true"
+        options["show_scons"] = asBoolStr(True)
 
     if Options.isMingw64():
-        options["mingw_mode"] = "true"
+        options["mingw_mode"] = asBoolStr(True)
 
     if Options.getMsvcVersion():
         msvc_version = Options.getMsvcVersion()
@@ -477,43 +429,43 @@ def runScons(main_module, quiet):
         options["msvc_version"] = msvc_version
 
     if Utils.getOS() == "Windows":
-        options["noelf_mode"] = "true"
+        options["noelf_mode"] = asBoolStr(True)
 
     if Options.isClang():
-        options["clang_mode"] = "true"
+        options["clang_mode"] = asBoolStr(True)
 
     if Options.isProfile():
-        options["profile_mode"] = "true"
+        options["profile_mode"] = asBoolStr(True)
 
     if "no_warnings" in getPythonFlags():
-        options["no_python_warnings"] = "true"
+        options["no_python_warnings"] = asBoolStr(True)
 
     if "no_asserts" in getPythonFlags():
-        options["python_sysflag_optimize"] = "true"
+        options["python_sysflag_optimize"] = asBoolStr(True)
 
     if python_version < 300 and sys.flags.py3k_warning:
-        options["python_sysflag_py3k_warning"] = "true"
+        options["python_sysflag_py3k_warning"] = asBoolStr(True)
 
     if python_version < 300 and (sys.flags.division_warning or sys.flags.py3k_warning):
-        options["python_sysflag_division_warning"] = "true"
+        options["python_sysflag_division_warning"] = asBoolStr(True)
 
     if sys.flags.bytes_warning:
-        options["python_sysflag_bytes_warning"] = "true"
+        options["python_sysflag_bytes_warning"] = asBoolStr(True)
 
     if int(os.environ.get("NUITKA_SITE_FLAG", "no_site" in Options.getPythonFlags())):
-        options["python_sysflag_no_site"] = "true"
+        options["python_sysflag_no_site"] = asBoolStr(True)
 
     if "trace_imports" in Options.getPythonFlags():
-        options["python_sysflag_verbose"] = "true"
+        options["python_sysflag_verbose"] = asBoolStr(True)
 
     if "no_randomization" in Options.getPythonFlags():
-        options["python_sysflag_no_randomization"] = "true"
+        options["python_sysflag_no_randomization"] = asBoolStr(True)
 
     if python_version < 300 and sys.flags.unicode:
-        options["python_sysflag_unicode"] = "true"
+        options["python_sysflag_unicode"] = asBoolStr(True)
 
     if python_version >= 370 and sys.flags.utf8_mode:
-        options["python_sysflag_utf8"] = "true"
+        options["python_sysflag_utf8"] = asBoolStr(True)
 
     abiflags = getPythonABI()
     if abiflags:
@@ -534,12 +486,17 @@ def runScons(main_module, quiet):
         options["module_suffix"] = getSharedLibrarySuffix(preferred=True)
 
     if Options.shallRunInDebugger():
-        options["full_names"] = "true"
+        options["full_names"] = asBoolStr(True)
 
     if Options.assumeYesForDownloads():
-        options["assume_yes_for_downloads"] = "true"
+        options["assume_yes_for_downloads"] = asBoolStr(True)
 
-    return SconsInterface.runScons(options, quiet), options
+    return (
+        SconsInterface.runScons(
+            options=options, quiet=quiet, scons_filename="Backend.scons"
+        ),
+        options,
+    )
 
 
 def writeSourceCode(filename, source_code):
@@ -670,7 +627,7 @@ def compileTree(main_module):
     general.info("Running C level backend compilation via Scons.")
 
     # Run the Scons to build things.
-    result, options = runScons(main_module=main_module, quiet=not Options.isShowScons())
+    result, options = runSconsBackend(quiet=not Options.isShowScons())
 
     return result, options
 
@@ -827,6 +784,8 @@ __name__ = ...
                 )
             else:
                 executeMain(
-                    binary_filename=OutputDirectories.getResultFullpath(),
+                    binary_filename=OutputDirectories.getResultFullpath(
+                        onefile=Options.isOnefileMode()
+                    ),
                     clean_path=Options.shallClearPythonPathEnvironment(),
                 )

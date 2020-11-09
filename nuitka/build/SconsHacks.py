@@ -205,3 +205,22 @@ def getEnhancedToolDetect(show_scons_mode):  # pylint: disable=redefined-outer-n
     SCons.Tool.gcc.detect_version = myDetectVersion
 
     return myDetect
+
+
+def makeGccUseLinkerFile(source_dir, source_files, env):
+    tmp_linker_filename = os.path.join(source_dir, "@link_input.txt")
+
+    env["LINKCOM"] = env["LINKCOM"].replace(
+        "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
+    )
+
+    with open(tmp_linker_filename, "w") as tmpfile:
+        for filename in source_files:
+            filename = ".".join(filename.split(".")[:-1]) + ".o"
+
+            if os.name == "nt":
+                filename = filename.replace(os.path.sep, "/")
+
+            tmpfile.write('"%s"\n' % filename)
+
+        tmpfile.write(env.subst("$SOURCES"))

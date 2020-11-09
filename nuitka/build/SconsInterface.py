@@ -34,8 +34,11 @@ from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
 from nuitka.utils.FileOperations import (
+    deleteFile,
     getExternalUsePath,
     getWindowsShortPathName,
+    hasFilenameExtension,
+    listDir,
 )
 
 from .SconsCaching import checkCachingSuccess
@@ -202,7 +205,7 @@ def _setupSconsEnvironment():
     del os.environ["NUITKA_PACKAGE_DIR"]
 
 
-def _buildSconsCommand(quiet, options):
+def _buildSconsCommand(quiet, options, scons_filename):
     """Build the scons command to run.
 
     The options are a dictionary to be passed to scons as a command line,
@@ -217,7 +220,7 @@ def _buildSconsCommand(quiet, options):
     scons_command += [
         # The scons file
         "-f",
-        getExternalUsePath(os.path.join(getSconsDataPath(), "Backend.scons")),
+        getExternalUsePath(os.path.join(getSconsDataPath(), scons_filename)),
         # Parallel compilation.
         "--jobs",
         str(Options.getJobLimit()),
@@ -248,7 +251,7 @@ def _buildSconsCommand(quiet, options):
     return scons_command
 
 
-def runScons(options, quiet):
+def runScons(options, quiet, scons_filename):
     with _setupSconsEnvironment():
         if Options.shallCompileWithoutBuildDirectory():
             # Make sure we become non-local, by changing all paths to be
@@ -269,7 +272,9 @@ def runScons(options, quiet):
         else:
             source_dir = None
 
-        scons_command = _buildSconsCommand(quiet, options)
+        scons_command = _buildSconsCommand(
+            quiet=quiet, options=options, scons_filename=scons_filename
+        )
 
         if Options.isShowScons():
             Tracing.printLine("Scons command:", " ".join(scons_command))
@@ -286,3 +291,51 @@ def runScons(options, quiet):
             checkCachingSuccess(source_dir or options["source_dir"])
 
         return result == 0
+
+
+def asBoolStr(value):
+    """ Encode booleans for transfer via command line. """
+
+    return "true" if value else "false"
+
+
+def cleanSconsDirectory(source_dir):
+    """ Clean scons build directory. """
+
+    extensions = (
+        ".bin",
+        ".c",
+        ".cpp",
+        ".exp",
+        ".h",
+        ".lib",
+        ".manifest",
+        ".o",
+        ".obj",
+        ".os",
+        ".rc",
+        ".res",
+        ".S",
+        ".txt",
+        ".const",
+    )
+
+    def check(path):
+        if hasFilenameExtension(path, extensions):
+            deleteFile(path, must_exist=True)
+
+    if os.path.isdir(source_dir):
+        for path, _filename in listDir(source_dir):
+            check(path)
+
+        static_dir = os.path.join(source_dir, "static_src")
+
+        if os.path.exists(static_dir):
+            for path, _filename in listDir(static_dir):
+                check(path)
+
+        plugins_dir = os.path.join(source_dir, "plugins")
+
+        if os.path.exists(plugins_dir):
+            for path, _filename in listDir(plugins_dir):
+                check(path)
