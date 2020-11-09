@@ -597,12 +597,11 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 
     if (unlikely(hDLL == NULL)) {
         char buffer[1024];
-        unsigned int error_code;
 
         char error_message[1024];
         int size;
 
-        error_code = GetLastError();
+        unsigned int error_code = GetLastError();
 
         size = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, error_code, 0,
                              (LPTSTR)error_message, sizeof(error_message), NULL);
