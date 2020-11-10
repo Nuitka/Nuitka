@@ -31,8 +31,8 @@ import os
 import re
 import subprocess
 
-import SCons.Tool.gcc  # pylint: disable=import-error
-from SCons.Script import Environment  # pylint: disable=import-error
+import SCons.Tool.gcc  # pylint: disable=I0021,import-error
+from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
 from nuitka.Tracing import my_print
 
@@ -43,6 +43,8 @@ v_cache = {}
 
 # Prevent these programs from being found, avoiding the burden of tool init.
 blacklisted_tools = (
+    "g++",
+    "c++",
     "f95",
     "f90",
     "f77",
@@ -88,7 +90,7 @@ def myDetectVersion(env, cc):
     cc = env.subst(cc)
     if not cc:
         return None
-    if found_gcc and cc == "g++":
+    if "++" in os.path.basename(cc):
         return None
 
     version = None
@@ -141,56 +143,14 @@ def myDetectVersion(env, cc):
     return version
 
 
-found_gcc = False
-
-
 def myDetect(self, progs):
-    # cache these, pylint: disable=global-statement
-    global found_gcc
-
-    # Don't even search a C++ compiler if we found a suitable C11 compiler.
-    if found_gcc and ("g++" in progs or "c++" in progs):
-        return None
-
-    # Don't consider Fortran, tar, D, we don't need it.
+    # Don't consider Fortran, tar, D, c++, we don't need it. We do manual
+    # fallback
     for blacklisted_tool in blacklisted_tools:
         if blacklisted_tool in progs:
             return None
 
-    # For RHEL and EPEL to work, smuggle these names in.
-    if "g++" in progs and os.name != "nt":
-        progs += ["g++44", "eg++"]
-
-    result = orig_detect(self, progs)
-
-    # Special considerations for gcc.
-    if result in ("gcc", "cc"):
-        if not found_gcc:
-            gcc_version = myDetectVersion(self, result)
-
-            # Ignore gcc before gcc version 5, no C11 support. We will find the
-            # C++ compiler of it though.
-            if gcc_version < (5,):
-                gcc_version = None
-
-                progs = [
-                    "gcc-6.5",
-                    "gcc-6.3",
-                    "gcc-6.1",
-                    "gcc-5.5",
-                    "gcc-5.3",
-                    "gcc-5.1",
-                ]
-
-                result = orig_detect(self, progs)
-
-                if result is not None:
-                    gcc_version = myDetectVersion(self, result)
-
-            if result is not None:
-                found_gcc = True
-
-    return result
+    return orig_detect(self, progs)
 
 
 # The original value will be used in our form.

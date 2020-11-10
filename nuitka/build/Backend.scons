@@ -433,6 +433,33 @@ clang mode will piggy back it.
 msvc_mode = win_target and not gcc_mode
 mingw_mode = win_target and gcc_mode
 
+if gcc_mode and not clang_mode:
+    gcc_version = myDetectVersion(env, the_compiler)
+
+    if gcc_version is None and "++" in the_cc_name:
+        sys.exit(
+            """\
+Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
+"""
+            % the_cc_name
+        )
+
+    if gcc_version is not None and gcc_version < (5,):
+        # Switch to g++ from gcc then if possible, when C11 mode is false.
+        the_gpp_compiler = os.path.join(
+            os.path.dirname(the_compiler),
+            os.path.basename(the_compiler).replace("gcc", "g++"),
+        )
+
+        if getExecutablePath(the_gpp_compiler, env=env):
+            the_compiler = the_gpp_compiler
+            the_cc_name = the_cc_name.replace("gcc", "g++")
+        else:
+            sys.exit(
+                "Error, you gcc is too old for C11 support, and no related g++ to workaround that is found."
+            )
+
+
 if the_compiler is None or getExecutablePath(the_compiler, env=env) is None:
     if win_target:
         sys.exit(
@@ -473,21 +500,10 @@ elif mingw_mode:
     c11_mode = True
 elif clang_mode:
     c11_mode = True
-elif gcc_mode:
+elif gcc_mode and gcc_version >= (5,):
     c11_mode = True
 else:
     c11_mode = False
-
-if not c11_mode and gcc_mode:
-    # Switch to g++ from gcc then if possible, when C11 mode is false.
-    the_gpp_compiler = os.path.join(
-        os.path.dirname(the_compiler),
-        os.path.basename(the_compiler).replace("gcc", "g++"),
-    )
-
-    if getExecutablePath(the_gpp_compiler, env=env):
-        the_compiler = the_gpp_compiler
-        the_cc_name = the_cc_name.replace("gcc", "g++")
 
 if show_scons_mode:
     my_print("Scons: Using C11 mode:", c11_mode)
@@ -560,11 +576,7 @@ if "clang" in the_cc_name:
         env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
 # Support details for real g++, not clang++.
-if gcc_mode and "clang" not in the_cc_name:
-    # Don't export anything by default, this should create smaller executables.
-
-    gcc_version = myDetectVersion(env, the_compiler)
-
+if gcc_mode and not clang_mode:
     # Enforce the minimum version, selecting a potentially existing g++-4.5
     # binary if it's not high enough. This is esp. useful under Debian which
     # allows all compiler to exist next to each other and where g++ might not be

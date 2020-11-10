@@ -417,7 +417,7 @@ class Plugins(object):
                     # We order per plugin, but from the plugins, lets just take a dict
                     # and achieve determism by ordering the defines by name.
                     for key, value in sorted(value.items()):
-                        # False alarm, pylint: disable=unsupported-assignment-operation
+                        # False alarm, pylint: disable=I0021,unsupported-assignment-operation
                         cls.preprocessor_symbols[key] = value
 
         return cls.preprocessor_symbols
