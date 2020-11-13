@@ -556,6 +556,10 @@ def getWindowsVersionInfoStrings():
     if company_name is not None:
         result["CompanyName"] = company_name
 
+    product_name = getWindowsProductName()
+    if product_name is not None:
+        result["ProductName"] = product_name
+
     if options.windows_file_description:
         result["FileDescription"] = options.windows_file_description
 

@@ -774,6 +774,31 @@ desktop access. (Windows only). Defaults to off.""",
 )
 
 windows_group.add_option(
+    "--windows-company-name",
+    action="store",
+    dest="windows_company_name",
+    metavar="WINDOWS_COMPANY_NAME",
+    default=None,
+    help="""\
+Name of the company to use in Windows Version information.
+
+One of file or product version is required, when a version resource needs to be
+added, e.g. to specify product name, or company name. Defaults to unused.""",
+)
+
+windows_group.add_option(
+    "--windows-product-name",
+    action="store",
+    dest="windows_product_name",
+    metavar="WINDOWS_PRODUCT_NAME",
+    default=None,
+    help="""\
+Name of the product to use in Windows Version information. Defaults to base
+filename of the binary.""",
+)
+
+
+windows_group.add_option(
     "--windows-file-version",
     action="store",
     dest="windows_file_version",
@@ -795,19 +820,6 @@ windows_group.add_option(
     help="""\
 Product version to use in Windows Version information. Must be a sequence of
 up to 4 numbers, nothing else allowed.
-One of file or product version is required, when a version resource needs to be
-added, e.g. to specify product name, or company name. Defaults to unused.""",
-)
-
-windows_group.add_option(
-    "--windows-company-name",
-    action="store",
-    dest="windows_company_name",
-    metavar="WINDOWS_COMPANY_NAME",
-    default=None,
-    help="""\
-Name of the company to use in Windows Version information.
-
 One of file or product version is required, when a version resource needs to be
 added, e.g. to specify product name, or company name. Defaults to unused.""",
 )
