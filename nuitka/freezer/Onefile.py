@@ -30,14 +30,21 @@ from nuitka.build import SconsInterface
 from nuitka.Options import assumeYesForDownloads, getIconPaths, getJobLimit
 from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
 from nuitka.plugins.Plugins import Plugins
+from nuitka.PostProcessing import version_resources
 from nuitka.Tracing import general, postprocessing_logger
 from nuitka.utils.Download import getCachedDownload
-from nuitka.utils.Execution import getNullOutput
+from nuitka.utils.Execution import getNullOutput, withEnvironmentVarsOverriden
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
     getFileList,
 )
 from nuitka.utils.Utils import getArchitecture, getOS
+from nuitka.utils.WindowsResources import (
+    RT_GROUP_ICON,
+    RT_ICON,
+    RT_VERSION,
+    copyResourcesFromFileToFile,
+)
 
 
 def packDistFolderToOnefile(dist_dir, binary_filename):
@@ -235,30 +242,48 @@ def _runOnefileScons(quiet):
     if Options.assumeYesForDownloads():
         options["assume_yes_for_downloads"] = "true"
 
-    result = SconsInterface.runScons(
-        options=options, quiet=quiet, scons_filename="WindowsOnefile.scons"
-    )
+    # Merge version information if necessary, to avoid collisions, or deep nesting
+    # in file system.
+    product_version = version_resources["ProductVersion"]
+    file_version = version_resources["FileVersion"]
+
+    if product_version != file_version:
+        effective_version = "%s-%s" % (product_version, file_version)
+    else:
+        effective_version = file_version
+
+    onefile_env_values = {
+        "ONEFILE_COMPANY": version_resources["CompanyName"],
+        "ONEFILE_PRODUCT": version_resources["ProductName"],
+        "ONEFILE_VERSION": effective_version,
+    }
+
+    with withEnvironmentVarsOverriden(onefile_env_values):
+        result = SconsInterface.runScons(
+            options=options, quiet=quiet, scons_filename="WindowsOnefile.scons"
+        )
 
     # Exit if compilation failed.
     if not result:
         sys.exit("Error, one file bootstrap build for Windows failed.")
 
 
+def _pickCompressor():
+    if Options.isExperimental("zstd"):
+        try:
+            from zstd import ZSTD_compress  # pylint: disable=I0021,import-error
+        except ImportError:
+            general.warning(
+                "Onefile mode cannot compress without 'zstd' module on '%s'." % getOS()
+            )
+        else:
+            return b"Y", lambda data: ZSTD_compress(data, 9, getJobLimit())
+    else:
+        return b"X", lambda data: data
+
+
 def packDistFolderToOnefileWindows(dist_dir):
-    general.warning("Onefile mode is not yet working on '%s'." % getOS())
-
-    try:
-        from zstd import ZSTD_compress  # pylint: disable=I0021,import-error
-
-        compress = 1 if Options.isExperimental("zstd") else 0
-    except ImportError:
-        general.warning(
-            "Onefile mode cannot compress without 'zstd' module on '%s'." % getOS()
-        )
-        compress = 0
-
-    # First need to create the binary, then append to it. For now, create as empty
-    # then append
+    general.warning("Onefile mode is experimental on '%s'." % getOS())
 
     postprocessing_logger.info(
         "Creating single file from dist folder, this may take a while."
@@ -266,40 +291,48 @@ def packDistFolderToOnefileWindows(dist_dir):
 
     onefile_output_filename = getResultFullpath(onefile=True)
 
-    with open(onefile_output_filename, "wb"):
-        pass
+    # First need to create the bootstrap binary for unpacking.
+    _runOnefileScons(quiet=not Options.isShowScons())
 
-    _runOnefileScons(False)
+    # Make sure to copy the resources from the created binary to the bootstrap binary, these
+    # are icons and version information.
+    copyResourcesFromFileToFile(
+        source_filename=getResultFullpath(onefile=False),
+        target_filename=onefile_output_filename,
+        resource_kinds=(RT_ICON, RT_GROUP_ICON, RT_VERSION),
+    )
+
+    # Now need to append to payload it, potentially compressing it.
+    compression_indicator, compressor = _pickCompressor()
 
     with open(onefile_output_filename, "ab") as output_file:
+        # Seeking to end of file seems necessary on Python2 at least, maybe it's
+        # just that tell reports wrong value initially.
+        output_file.seek(0, 2)
+
         start_pos = output_file.tell()
 
-        output_file.write(b"KA")
+        output_file.write(b"KA" + compression_indicator)
 
-        if compress:
-            output_file.write(b"Y")
-        else:
-            output_file.write(b"X")
+        # Move the binary to start immediately to the start position
+        start_binary = getResultFullpath(onefile=False)
+        file_list = getFileList(dist_dir)
+        file_list.remove(start_binary)
+        file_list.insert(0, start_binary)
 
-        for filename_full in getFileList(dist_dir):
+        for filename_full in file_list:
             filename_relative = os.path.relpath(filename_full, dist_dir)
+            filename_encoded = filename_relative.encode("utf-16le") + b"\0\0"
 
-            if type(filename_relative) is not bytes:
-                output_file.write(filename_relative.encode("utf8") + b"\0")
-            else:
-                output_file.write(filename_relative + b"\0")
+            output_file.write(filename_encoded)
 
             with open(filename_full, "rb") as input_file:
-                if compress and Options.isExperimental("zstd"):
-                    compressed = ZSTD_compress(input_file.read(), 9, getJobLimit())
-                else:
-                    compressed = input_file.read()
+                compressed = compressor(input_file.read())
 
-                output_file.write(struct.pack("q", len(compressed)))
-
+                output_file.write(struct.pack("Q", len(compressed)))
                 output_file.write(compressed)
 
-        # Terminator empty filename.
-        output_file.write(b"\0")
+        # Using empty filename as a terminator.
+        output_file.write(b"\0\0")
 
-        output_file.write(struct.pack("q", start_pos))
+        output_file.write(struct.pack("Q", start_pos))

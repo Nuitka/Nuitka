@@ -156,6 +156,9 @@ def addWindowsIconFromIcons():
         )
 
 
+version_resources = {}
+
+
 def executePostProcessing():
     # These is a bunch of stuff to consider, pylint: disable=too-many-branches,too-many-statements
 
@@ -203,13 +206,15 @@ def executePostProcessing():
             or Options.getWindowsProductVersion()
             or Options.getWindowsFileVersion()
         ):
-            addVersionInfoResource(
-                string_values=Options.getWindowsVersionInfoStrings(),
-                product_version=Options.getWindowsProductVersion(),
-                file_version=Options.getWindowsFileVersion(),
-                file_date=(0, 0),
-                is_exe=not Options.shallMakeModule(),
-                result_filename=result_filename,
+            version_resources.update(
+                addVersionInfoResource(
+                    string_values=Options.getWindowsVersionInfoStrings(),
+                    product_version=Options.getWindowsProductVersion(),
+                    file_version=Options.getWindowsFileVersion(),
+                    file_date=(0, 0),
+                    is_exe=not Options.shallMakeModule(),
+                    result_filename=result_filename,
+                )
             )
 
         source_dir = OutputDirectories.getSourceDirectoryPath()

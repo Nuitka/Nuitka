@@ -609,3 +609,5 @@ def addVersionInfoResource(
         res_name=1,
         lang_id=0,
     )
+
+    return string_values

@@ -201,6 +201,8 @@ def withEnvironmentPathAdded(env_var_name, *paths):
 
 @contextmanager
 def withEnvironmentVarOverriden(env_var_name, value):
+    """ Change an enviroment and restore it after context. """
+
     if env_var_name in os.environ:
         old_value = os.environ[env_var_name]
     else:
@@ -218,6 +220,34 @@ def withEnvironmentVarOverriden(env_var_name, value):
             del os.environ[env_var_name]
     else:
         os.environ[env_var_name] = old_value
+
+
+@contextmanager
+def withEnvironmentVarsOverriden(mapping):
+    """ Change multiple enviroment variables and restore them after context. """
+
+    old_values = {}
+
+    for env_var_name, value in mapping.items():
+
+        if env_var_name in os.environ:
+            old_values[env_var_name] = os.environ[env_var_name]
+        else:
+            old_values[env_var_name] = None
+
+        if value is not None:
+            os.environ[env_var_name] = value
+        elif old_values[env_var_name] is not None:
+            del os.environ[env_var_name]
+
+    yield
+
+    for env_var_name, value in mapping.items():
+        if old_values[env_var_name] is None:
+            if value is not None:
+                del os.environ[env_var_name]
+        else:
+            os.environ[env_var_name] = old_values[env_var_name]
 
 
 def wrapCommandForDebuggerForExec(*args):

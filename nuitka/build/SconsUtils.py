@@ -285,3 +285,16 @@ def createDefinitionsFile(source_dir, filename, definitions):
                 f.write("#define %s %s\n" % (key, value))
             else:
                 f.write("#define %s %s\n" % (key, makeCLiteral(value)))
+
+
+def getMsvcVersionString(env):
+    import SCons.Tool.MSCommon.vc  # pylint: disable=import-error
+
+    return SCons.Tool.MSCommon.vc.get_default_version(env)
+
+
+def getMsvcVersion(env):
+    value = getMsvcVersionString(env)
+
+    value = value.replace("exp", "")
+    return float(value)

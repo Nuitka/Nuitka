@@ -164,8 +164,13 @@ sane default used inside the dist folder."""
     if file_version or product_version or getWindowsVersionInfoStrings():
         if not (file_version or product_version) and getWindowsCompanyName():
             sys.exit(
-                "Error, company name and file or product version when any version information is given."
+                "Error, company name and file or product version need to be given when any version information is given."
             )
+
+    if isOnefileMode() and os.name == "nt" and not getWindowsCompanyName():
+        sys.exit(
+            "Error, onefile on Windows requires company name and file or product version to be given."
+        )
 
     is_debug = isDebug()
     is_nondebug = not is_debug
@@ -597,6 +602,11 @@ def getWindowsFileVersion():
 def getWindowsCompanyName():
     """*str* name of the company to use """
     return options.windows_company_name
+
+
+def getWindowsProductName():
+    """*str* name of the product to use """
+    return options.windows_product_name
 
 
 _python_flags = None
