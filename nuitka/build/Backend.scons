@@ -70,6 +70,7 @@ from .SconsUtils import (
     addToPATH,
     changeKeyboardInteruptToErrorExit,
     cheapCopyFile,
+    createDefinitionsFile,
     decodeData,
     getArgumentBool,
     getArgumentDefaulted,
@@ -78,7 +79,6 @@ from .SconsUtils import (
     getExecutablePath,
     initScons,
     isGccName,
-    makeCLiteral,
     setArguments,
     writeSconsReport,
 )
@@ -793,55 +793,6 @@ if "linux" in sys.platform:
 if not msvc_mode:
     env.Append(LIBS=["m"])
 
-if no_python_warnings:
-    env.Append(CPPDEFINES=["_NUITKA_NO_PYTHON_WARNINGS"])
-
-if python_version < "3":
-    env.Append(
-        CPPDEFINES=[
-            "_NUITKA_SYSFLAG_PY3K_WARNING=%d"
-            % (1 if python_sysflag_py3k_warning else 0)
-        ]
-    )
-
-    env.Append(
-        CPPDEFINES=[
-            "_NUITKA_SYSFLAG_DIVISION_WARNING=%d"
-            % (1 if python_sysflag_division_warning else 0)
-        ]
-    )
-
-    env.Append(
-        CPPDEFINES=["_NUITKA_SYSFLAG_UNICODE=%d" % (1 if python_sysflag_unicode else 0)]
-    )
-
-env.Append(
-    CPPDEFINES=[
-        "_NUITKA_SYSFLAG_BYTES_WARNING=%d" % (1 if python_sysflag_bytes_warning else 0)
-    ]
-)
-
-env.Append(
-    CPPDEFINES=["_NUITKA_SYSFLAG_NO_SITE=%d" % (1 if python_sysflag_no_site else 0)]
-)
-
-env.Append(
-    CPPDEFINES=["_NUITKA_SYSFLAG_VERBOSE=%d" % (1 if python_sysflag_verbose else 0)]
-)
-
-env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_UTF8=%d" % (1 if python_sysflag_utf8 else 0)])
-
-env.Append(
-    CPPDEFINES=["_NUITKA_SYSFLAG_OPTIMIZE=%d" % (1 if python_sysflag_optimize else 0)]
-)
-
-env.Append(
-    CPPDEFINES=[
-        "_NUITKA_SYSFLAG_NO_RANDOMIZATION=%d"
-        % (1 if python_sysflag_no_randomization else 0)
-    ]
-)
-
 if win_target:
     # For MinGW and cross compilation, we need to tell the subsystem
     # to target as well as to automatically import everything used.
@@ -1487,24 +1438,56 @@ if os.path.exists(target[0].abspath):
 if show_scons_mode:
     my_print("Scons: Told to run compilation on %d CPUs." % job_count)
 
-build_definitions = {}
-
-if uninstalled_python:
-    if win_target:
-        build_definitions["DLL_EXTRA_PATH"] = os.path.dirname(getWindowsPythonDLLPath())
-
-    build_definitions["PYTHON_HOME_PATH"] = python_prefix
-
 
 def createBuildDefinitionsFile():
-    build_definitions_filename = os.path.join(source_dir, "build_definitions.h")
+    build_definitions = {}
 
-    with open(build_definitions_filename, "w") as f:
-        for key, value in sorted(build_definitions.items()):
-            f.write("#define %s %s\n" % (key, makeCLiteral(value)))
+    if uninstalled_python:
+        if win_target:
+            build_definitions["DLL_EXTRA_PATH"] = os.path.dirname(
+                getWindowsPythonDLLPath()
+            )
+
+        build_definitions["PYTHON_HOME_PATH"] = python_prefix
+
+    build_definitions["NO_PYTHON_WARNINGS"] = 1 if no_python_warnings else 0
+
+    if python_version < "3":
+        build_definitions["SYSFLAG_PY3K_WARNING"] = (
+            1 if python_sysflag_py3k_warning else 0
+        )
+
+        build_definitions["SYSFLAG_DIVISION_WARNING"] = (
+            1 if python_sysflag_division_warning else 0
+        )
+
+        build_definitions["SYSFLAG_UNICODE"] = 1 if python_sysflag_unicode else 0
+
+    build_definitions["SYSFLAG_BYTES_WARNING"] = (
+        1 if python_sysflag_bytes_warning else 0
+    )
+
+    build_definitions["SYSFLAG_NO_SITE"] = 1 if python_sysflag_no_site else 0
+
+    build_definitions["SYSFLAG_VERBOSE"] = 1 if python_sysflag_verbose else 0
+
+    build_definitions["SYSFLAG_UTF8"] = 1 if python_sysflag_utf8 else 0
+
+    build_definitions["SYSFLAG_OPTIMIZE"] = 1 if python_sysflag_optimize else 0
+
+    build_definitions["SYSFLAG_NO_RANDOMIZATION"] = (
+        1 if python_sysflag_no_randomization else 0
+    )
+
+    createDefinitionsFile(source_dir, "build_definitions.h", build_definitions)
 
 
 createBuildDefinitionsFile()
+
+# The meta path based loader might want to respect that, so it does verbose traces in module
+# mode, mostly for debugging purposes only.
+if module_mode and python_sysflag_verbose:
+    env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_VERBOSE=1"])
 
 if show_scons_mode:
     my_print("Scons: Launching target:", target)

@@ -179,14 +179,11 @@ def writeSconsReport(source_dir, env, gcc_mode, clang_mode, msvc_mode):
         print("msvc_mode=%s" % msvc_mode, file=report_file)
 
 
-scons_report = None
+scons_reports = {}
 
 
 def readSconsReport(source_dir):
-    # singleton, pylint: disable=global-statement
-    global scons_report
-
-    if scons_report is None:
+    if source_dir not in scons_reports:
         scons_report = {}
 
         for line in open(os.path.join(source_dir, "scons-report.txt")):
@@ -197,7 +194,9 @@ def readSconsReport(source_dir):
 
             scons_report[key] = value
 
-    return scons_report
+        scons_reports[source_dir] = scons_report
+
+    return scons_reports[source_dir]
 
 
 def getSconsReportValue(source_dir, key):
@@ -275,3 +274,14 @@ def makeCLiteral(value):
     value = value.replace('"', r"\"")
 
     return '"' + value + '"'
+
+
+def createDefinitionsFile(source_dir, filename, definitions):
+    build_definitions_filename = os.path.join(source_dir, filename)
+
+    with open(build_definitions_filename, "w") as f:
+        for key, value in sorted(definitions.items()):
+            if type(value) is int:
+                f.write("#define %s %s\n" % (key, value))
+            else:
+                f.write("#define %s %s\n" % (key, makeCLiteral(value)))
