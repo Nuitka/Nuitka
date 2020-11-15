@@ -50,7 +50,12 @@ from nuitka.PythonVersions import (
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
-from nuitka.utils.FileOperations import deleteFile, makePath, removeDirectory
+from nuitka.utils.FileOperations import (
+    deleteFile,
+    getDirectoryRealPath,
+    makePath,
+    removeDirectory,
+)
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -375,7 +380,7 @@ def runSconsBackend(quiet):
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "python_version": python_version_str,
         "target_arch": Utils.getArchitecture(),
-        "python_prefix": sys.prefix,
+        "python_prefix": getDirectoryRealPath(sys.prefix),
         "nuitka_src": SconsInterface.getSconsDataPath(),
         "module_count": "%d"
         % (

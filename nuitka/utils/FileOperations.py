@@ -154,6 +154,28 @@ def _getRealPathWindows(path):
     return os.path.join(os.path.dirname(path), result.rstrip("\r\n"))
 
 
+def getDirectoryRealPath(path):
+    """Get os.path.realpath with Python2 and Windows symlink workaround applied.
+
+    Args:
+        path: path to get realpath of
+
+    Returns:
+        path with symlinks resolved
+
+    Notes:
+        Workaround for Windows symlink is applied.
+
+    """
+    path = os.path.realpath(path)
+
+    # Attempt to resolve Windows symlinks on Python2
+    if os.name == "nt" and not os.path.isdir(path):
+        path = _getRealPathWindows(path)
+
+    return path
+
+
 def listDir(path):
     """Give a sorted listing of a path.
 
@@ -173,11 +195,7 @@ def listDir(path):
         symlinks to directories on Windows, that a naive "os.listdir"
         won't do by default.
     """
-    real_path = os.path.realpath(path)
-
-    # Attempt to resolve Windows symlinks on Python2
-    if os.name == "nt" and not os.path.isdir(real_path):
-        real_path = _getRealPathWindows(path)
+    real_path = getDirectoryRealPath(path)
 
     return sorted(
         [(os.path.join(path, filename), filename) for filename in os.listdir(real_path)]
