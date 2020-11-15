@@ -74,6 +74,13 @@ static void createModuleConstants(void) {
     constants_created = true;
 }
 
+/* For multiprocessing, we want to be able to initialize the __main__ constants. */
+#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED && %(is_main_module)s
+void createMainModuleConstants(void) {
+    createModuleConstants();
+}
+#endif
+
 /* Function to verify module private constants for non-corruption. */
 #ifndef __NUITKA_NO_ASSERT__
 void checkModuleConstants_%(module_identifier)s(void) {
@@ -273,6 +280,10 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
 
     // Modules might be imported repeatedly, which is to be ignored.
     if (_init_done) {
+#ifdef _NUITKA_TRACE
+        PRINT_STRING("%(module_name)s: Skipping module init, already done.\n");
+#endif
+
         return module_%(module_identifier)s;
     } else {
         _init_done = true;
