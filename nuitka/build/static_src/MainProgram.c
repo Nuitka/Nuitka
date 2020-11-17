@@ -455,6 +455,13 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TRACE("main(): Calling createGlobalConstants().");
     createGlobalConstants();
 
+    /* Complex call helpers need "__main__" constants, even if we only
+     * go into "__parents__main__" module as a start point.
+     */
+#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
+    createMainModuleConstants();
+#endif
+
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinOriginalValues().");
     _initBuiltinOriginalValues();
 

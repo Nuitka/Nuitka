@@ -340,6 +340,11 @@ extern void createGlobalConstants(void);
 extern void checkGlobalConstants(void);
 #endif
 
+#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
+// Call this to initialize __main__ constants in slave processes on Windows.
+extern void createMainModuleConstants(void);
+#endif
+
 // Unstreaming constants from a blob.
 #include "nuitka/constants_blob.h"
 
