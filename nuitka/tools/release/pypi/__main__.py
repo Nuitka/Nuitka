@@ -66,7 +66,7 @@ def main():
     print("Creating documentation.")
     createReleaseDocumentation()
     print("Creating source distribution.")
-    assert os.system("python setup.py sdist") == 0
+    assert os.system("umask 0022 && chmod -R a+rX . && python setup.py sdist") == 0
 
     print("Creating a virtualenv for quick test:")
     with withVirtualenv("check_nuitka") as venv:
