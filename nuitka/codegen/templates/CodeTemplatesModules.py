@@ -253,6 +253,7 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
 #endif
         module_%(module_identifier)s,
         doc,
+        NULL,
         0
     );
 
