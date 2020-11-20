@@ -90,7 +90,7 @@ def runProcessMonitored(cmdline, env):
 
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
-def getWindowsSpawnFunction(module_mode, source_files):
+def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
     def spawnWindowsCommand(
         sh, escape, cmd, args, env
     ):  # pylint: disable=unused-argument
@@ -117,15 +117,7 @@ def getWindowsSpawnFunction(module_mode, source_files):
 
         data, err, rv = runProcessMonitored(cmdline, env)
 
-        if cmd == "rc":
-            data = data[data.find(b"reserved.\r") + 13 :]
-
-            data = b"\n".join(
-                line
-                for line in data.split(b"\n")
-                if b"identifier truncated to" not in line
-            )
-        elif cmd == "link":
+        if cmd == "link":
             if module_mode:
                 data = b"\r\n".join(
                     line
@@ -134,6 +126,13 @@ def getWindowsSpawnFunction(module_mode, source_files):
                     # On localized compilers, the message to ignore is not as clear.
                     if not (module_mode and b".exp" in line)
                 )
+
+            # The linker will say generating code at the end, due to localization
+            # we don't know.
+            if lto_mode:
+                if len(data.split(b"\r\n")) == 2:
+                    data = b""
+
         elif cmd == "cl" or os.path.basename(cmd).lower() == "clcache.exe":
             # Remove clcache debug output if present:
             data = extractClcacheLogFromOutput(data)
@@ -154,7 +153,8 @@ def getWindowsSpawnFunction(module_mode, source_files):
             )
 
         if data.rstrip():
-            if not decodeData:
+            if data:
+                my_print("Unexpected output from this command:", style="yellow")
                 my_print(cmdline, style="yellow")
 
             if str is not bytes:

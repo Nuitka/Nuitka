@@ -627,7 +627,7 @@ c_compiler_group.add_option(
     dest="lto",
     default=False,
     help="""\
-Use link time optimizations if available and usable (gcc 4.6 and higher).
+Use link time optimizations if available and usable (MSVC or gcc 4.6 and higher).
 Defaults to off.""",
 )
 
