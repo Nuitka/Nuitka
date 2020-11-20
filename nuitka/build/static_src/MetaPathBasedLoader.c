@@ -329,7 +329,7 @@ static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_mo
 
     // Accept that it might be deleted.
     if (parent_path == NULL || !PyList_Check(parent_path)) {
-        return NULL;
+        return false;
     }
 
     PyObject *candidates = PyList_New(0);
