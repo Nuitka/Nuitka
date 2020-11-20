@@ -72,6 +72,8 @@ blacklist = (
     "joined_strings.py",
     # Incredible amount of memory in C compiler for test code
     "test_spin.py",
+    # Uses outside modules up the chain
+    "cheshire_tomography.py",
 )
 
 nosyntax_errors = (
