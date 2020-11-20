@@ -147,6 +147,10 @@ print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else 
     return _python_version
 
 
+def getPythonArch():
+    return _python_arch
+
+
 def getPythonVendor():
     return _python_vendor
 
