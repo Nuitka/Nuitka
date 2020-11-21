@@ -288,7 +288,7 @@ def createDefinitionsFile(source_dir, filename, definitions):
 
 
 def getMsvcVersionString(env):
-    import SCons.Tool.MSCommon.vc  # pylint: disable=import-error
+    import SCons.Tool.MSCommon.vc  # pylint: disable=I0021,import-error
 
     return SCons.Tool.MSCommon.vc.get_default_version(env)
 

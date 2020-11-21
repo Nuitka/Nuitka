@@ -920,13 +920,15 @@ not satisfied!"""
     )
 
 
-python_header_path = _detectPythonHeaderPath()
-env.Append(CPPPATH=[python_header_path])
+env.Append(CPPPATH=[_detectPythonHeaderPath()])
 
-# To support self built Python on Windows, need to also add the "PC" directory,
+# To support self-built Python on Windows, need to also add the "PC" directory,
 # that a normal install won't have.
 if os.name == "nt":
-    env.Append(CPPPATH=[os.path.join(python_prefix, "PC")])
+    python_header_path = os.path.join(python_prefix, "PC")
+
+    if os.path.exists(python_header_path):
+        env.Append(CPPPATH=[python_header_path])
 
 
 def getWindowsPythonDLLPath():
