@@ -28,7 +28,12 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import hasActivePlugin
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.utils import Execution
-from nuitka.utils.FileOperations import getFileList, listDir, makePath
+from nuitka.utils.FileOperations import (
+    getFileList,
+    listDir,
+    makePath,
+    putTextFileContents,
+)
 from nuitka.utils.Utils import isWin32Windows
 
 
@@ -147,10 +152,9 @@ def copyMplDataFiles(module, dist_dir):
         # get the string from interpreted mode and insert it in matplotlibrc
         new_lines.append("backend: %s" % backend)
 
-    matplotlibrc = os.path.join(dist_dir, prefix, "matplotlibrc")
-    outfile = open(matplotlibrc, "w")
-    outfile.write("\n".join(new_lines))
-    outfile.close()
+    matplotlibrc_filename = os.path.join(dist_dir, prefix, "matplotlibrc")
+
+    putTextFileContents(filename=matplotlibrc_filename, contents=new_lines)
 
 
 class NumpyPlugin(NuitkaPluginBase):

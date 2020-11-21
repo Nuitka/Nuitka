@@ -64,6 +64,7 @@ from nuitka.utils.FileOperations import (
     isPathBelow,
     listDir,
     makePath,
+    putTextFileContents,
     withFileLock,
 )
 from nuitka.utils.ModuleNames import ModuleName
@@ -1052,9 +1053,7 @@ SxS
     deleteFile(dwp_filename, must_exist=True)
 
     if update_cache:
-        with open(cache_filename, "w") as cache_file:
-            for dll_filename in result:
-                print(dll_filename, file=cache_file)
+        putTextFileContents(filename=cache_filename, contents=result)
 
     return result
 

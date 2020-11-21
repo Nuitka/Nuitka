@@ -22,6 +22,8 @@ stuff. It will also frequently add sorting for determism.
 
 """
 
+from __future__ import print_function
+
 import os
 import shutil
 import stat
@@ -29,6 +31,9 @@ import tempfile
 import time
 from contextlib import contextmanager
 
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    basestring,
+)
 from nuitka.Tracing import my_print
 
 from .ThreadedExecutor import RLock, getThreadIdent
@@ -354,6 +359,36 @@ def getFileContents(filename, mode="r", encoding=None):
         else:
             with open(filename, mode) as f:
                 return f.read()
+
+
+def putTextFileContents(filename, contents, encoding=None):
+    """Write a text file from given contents.
+
+    Args:
+        filename: str with the file to be created
+        contents: str or iterable of strings with what should be written into the file
+        encoding: optional encoding to used when writing the file
+
+    Returns:
+        None
+    """
+
+    def _writeContents(output_file):
+        if isinstance(contents, basestring):
+            print(contents, file=output_file)
+        else:
+            for line in contents:
+                print(line, file=output_file)
+
+    with withFileLock("writing file %s" % filename):
+        if encoding is not None:
+            import codecs
+
+            with codecs.open(filename, "w", encoding=encoding) as output_file:
+                _writeContents(output_file)
+        else:
+            with open(filename, "w") as output_file:
+                _writeContents(output_file)
 
 
 @contextmanager
