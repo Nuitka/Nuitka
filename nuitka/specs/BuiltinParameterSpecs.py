@@ -497,11 +497,11 @@ builtin_reversed_spec = BuiltinParameterSpecNoKeywords(
 
 if python_version < 300:
     builtin_enumerate_spec = BuiltinParameterSpec(
-        "enumerate", ("sequence",), default_count=0
+        "enumerate", ("sequence", "start"), default_count=1
     )
 else:
     builtin_enumerate_spec = BuiltinParameterSpec(
-        "enumerate", ("iterable",), default_count=0
+        "enumerate", ("iterable", "start"), default_count=1
     )
 
 
