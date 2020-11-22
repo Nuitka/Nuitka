@@ -369,7 +369,7 @@ gcc_mode = isGccName(the_cc_name) or clang_mode
 if clangcl_mode and gcc_mode:
     sys.exit(
         """\
-Error, you cannot combine a gcc C compiler with clang on Windows with Nuita
+Error, you cannot combine a gcc C compiler with clang on Windows with Nuitka
 yet. So far it was found to be only slower than pure MinGW64. If you want
 to use it, you need to install Visual Studio, and use it instead, then the
 clang mode will piggy back it.
