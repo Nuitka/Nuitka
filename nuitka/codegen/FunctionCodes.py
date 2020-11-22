@@ -736,8 +736,8 @@ def generateFunctionCallCode(to_name, expression, emit, context):
     argument_values = expression.getArgumentValues()
 
     arg_names = []
-    for count, arg_value in enumerate(argument_values):
-        arg_name = context.allocateTempName("dircall_arg%d" % (count + 1))
+    for count, arg_value in enumerate(argument_values, 1):
+        arg_name = context.allocateTempName("dircall_arg%d" % count)
 
         generateExpressionCode(
             to_name=arg_name, expression=arg_value, emit=emit, context=context

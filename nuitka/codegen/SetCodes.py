@@ -88,8 +88,8 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
 
         element_names = []
 
-        for count, element in enumerate(elements):
-            element_name = context.allocateTempName("set_element_%d" % (count + 1))
+        for count, element in enumerate(elements, 1):
+            element_name = context.allocateTempName("set_element_%d" % count)
             element_names.append(element_name)
 
             generateExpressionCode(

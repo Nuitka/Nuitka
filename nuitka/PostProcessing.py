@@ -146,13 +146,13 @@ def addWindowsIconFromIcons():
             res_name=icon_group,
         )
 
-    for count, image in enumerate(images):
+    for count, image in enumerate(images, 1):
         addResourceToFile(
             target_filename=result_filename,
             data=image,
             resource_kind=RT_ICON,
             lang_id=0,
-            res_name=count + 1,
+            res_name=count,
         )
 
 
