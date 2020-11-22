@@ -414,6 +414,7 @@ def makeModuleFrame(module, statements, source_ref):
             co_name=code_name,
             co_kind="Module",
             co_varnames=(),
+            co_freevars=(),
             co_argcount=0,
             co_posonlyargcount=0,
             co_kwonlyargcount=0,

@@ -274,6 +274,8 @@ extern PyObject **global_constants;
 #define const_float_minus_1_0 global_constants[9]
 // ''
 #define const_str_empty global_constants[10]
+// b''
+#define const_bytes_empty global_constants[10]
 // '__module__'
 #define const_str_plain___module__ global_constants[11]
 // '__class__'

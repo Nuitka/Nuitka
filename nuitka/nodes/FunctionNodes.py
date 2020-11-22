@@ -213,6 +213,8 @@ class ExpressionFunctionBodyBase(
 
         self.taken.remove(variable)
 
+        self.code_object.removeFreeVarname(variable.getName())
+
     def demoteClosureVariable(self, variable):
         assert variable.isLocalVariable()
 

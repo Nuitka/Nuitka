@@ -635,8 +635,9 @@ struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObject *mod
     return MAKE_FRAME(code, module, false, locals_size);
 }
 
+// This is the backend of MAKE_CODEOBJ macro.
 PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name, PyObject *argnames,
-                             int arg_count
+                             PyObject *freevars, int arg_count
 #if PYTHON_VERSION >= 300
                              ,
                              int kw_only_count
@@ -650,8 +651,18 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     assert(Nuitka_String_CheckExact(filename));
     CHECK_OBJECT(function_name);
     assert(Nuitka_String_CheckExact(function_name));
+
+    if (argnames == NULL) {
+        argnames = const_tuple_empty;
+    }
     CHECK_OBJECT(argnames);
     assert(PyTuple_Check(argnames));
+
+    if (freevars == NULL) {
+        freevars = const_tuple_empty;
+    }
+    CHECK_OBJECT(freevars);
+    assert(PyTuple_Check(freevars));
 
     // The PyCode_New has funny code that interns, mutating the tuple that owns
     // it. Really serious non-immutable shit. We have triggered that changes
@@ -688,7 +699,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
                                                      const_tuple_empty, // consts (we are not going to be compatible)
                                                      const_tuple_empty, // names (we are not going to be compatible)
                                                      argnames,          // varnames (we are not going to be compatible)
-                                                     const_tuple_empty, // freevars (we are not going to be compatible)
+                                                     freevars,          // freevars
                                                      const_tuple_empty, // cellvars (we are not going to be compatible)
                                                      filename,          // filename
                                                      function_name,     // name

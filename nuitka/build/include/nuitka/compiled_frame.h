@@ -25,20 +25,24 @@ extern struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObje
 // Create a code object for the given filename and function name
 
 #if PYTHON_VERSION < 300
-#define MAKE_CODEOBJECT(filename, line, flags, function_name, argnames, arg_count, kw_only_count, pos_only_count)      \
-    makeCodeObject(filename, line, flags, function_name, argnames, arg_count)
+#define MAKE_CODEOBJECT(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count,            \
+                        pos_only_count)                                                                                \
+    makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
-                                    PyObject *argnames, int arg_count);
+                                    PyObject *argnames, PyObject *freevars, int arg_count);
 #elif PYTHON_VERSION < 380
-#define MAKE_CODEOBJECT(filename, line, flags, function_name, argnames, arg_count, kw_only_count, pos_only_count)      \
-    makeCodeObject(filename, line, flags, function_name, argnames, arg_count, kw_only_count)
+#define MAKE_CODEOBJECT(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count,            \
+                        pos_only_count)                                                                                \
+    makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
-                                    PyObject *argnames, int arg_count, int kw_only_count);
+                                    PyObject *argnames, PyObject *freevars, int arg_count, int kw_only_count);
 #else
-#define MAKE_CODEOBJECT(filename, line, flags, function_name, argnames, arg_count, kw_only_count, pos_only_count)      \
-    makeCodeObject(filename, line, flags, function_name, argnames, arg_count, kw_only_count, pos_only_count)
+#define MAKE_CODEOBJECT(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count,            \
+                        pos_only_count)                                                                                \
+    makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count, pos_only_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
-                                    PyObject *argnames, int arg_count, int kw_only_count, int pos_only_count);
+                                    PyObject *argnames, PyObject *freevars, int arg_count, int kw_only_count,
+                                    int pos_only_count);
 #endif
 
 extern PyTypeObject Nuitka_Frame_Type;

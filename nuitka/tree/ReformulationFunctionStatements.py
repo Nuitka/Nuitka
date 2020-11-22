@@ -714,6 +714,7 @@ def buildFunctionWithParsing(
         co_name=name,
         co_kind=function_kind,
         co_varnames=parameters.getParameterNames(),
+        co_freevars=(),
         co_argcount=parameters.getArgumentCount(),
         co_posonlyargcount=parameters.getPosOnlyParameterCount(),
         co_kwonlyargcount=parameters.getKwOnlyParameterCount(),

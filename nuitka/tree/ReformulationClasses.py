@@ -88,6 +88,7 @@ def buildClassNode2(provider, node, source_ref):
         co_name=node.name,
         co_kind="Class",
         co_varnames=(),
+        co_freevars=(),
         co_argcount=0,
         co_posonlyargcount=0,
         co_kwonlyargcount=0,

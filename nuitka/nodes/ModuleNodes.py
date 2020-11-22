@@ -263,6 +263,10 @@ class CompiledPythonModule(
             self.module_dict_name, "module_dict", self
         )
 
+    @staticmethod
+    def isCompiledPythonModule():
+        return True
+
     def getDetails(self):
         return {
             "filename": self.source_ref.getFilename(),
@@ -349,10 +353,6 @@ class CompiledPythonModule(
                     graph.add_edge(node_names[previous], node_name)
 
         return graph
-
-    @staticmethod
-    def isCompiledPythonModule():
-        return True
 
     def getSourceCode(self):
         if self.source_code is not None:
