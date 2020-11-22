@@ -95,7 +95,7 @@ def getNumpyCoreBinaries(module):
     return binaries
 
 
-def getMatplotlibRc():
+def getMatplotlibInfo():
     """Determine the filename of matplotlibrc and the default backend.
 
     Notes:
@@ -104,18 +104,20 @@ def getMatplotlibRc():
     """
     cmd = """\
 from __future__ import print_function
-from matplotlib import matplotlib_fname, get_backend
+from matplotlib import matplotlib_fname, get_backend, __version__
 print(matplotlib_fname())
 print(get_backend())
+print(__version__)
 """
 
     feedback = Execution.check_output([sys.executable, "-c", cmd])
 
     if str is not bytes:  # ensure str in Py3 and up
-        feedback = feedback.decode()
+        feedback = feedback.decode("utf8")
+
     feedback = feedback.replace("\r", "")
-    matplotlibrc, backend = feedback.splitlines()
-    return matplotlibrc, backend
+    matplotlibrc_filename, backend, matplotlib_version = feedback.splitlines()
+    return matplotlibrc_filename, backend, matplotlib_version
 
 
 def copyMplDataFiles(module, dist_dir):
@@ -125,7 +127,7 @@ def copyMplDataFiles(module, dist_dir):
     if not os.path.isdir(data_dir):
         sys.exit("mpl-data missing: matplotlib installation is broken")
 
-    matplotlibrc, backend = getMatplotlibRc()  # get matplotlibrc, backend
+    matplotlibrc, backend, matplotlib_version = getMatplotlibInfo()
 
     prefix = os.path.join("matplotlib", "mpl-data")
     for item in getFileList(data_dir):  # copy data files to dist folder
@@ -137,19 +139,27 @@ def copyMplDataFiles(module, dist_dir):
         shutil.copyfile(item, tar_file)
 
     old_lines = open(matplotlibrc).read().splitlines()  # old config file lines
-    new_lines = ["# modified by Nuitka plugin 'numpy'"]  # new config file lines
+    new_lines = []  # new config file lines
+
     found = False  # checks whether backend definition encountered
     for line in old_lines:
-        line = line.strip()  # omit meaningless lines
-        if line.startswith("#") or line == "":
-            continue
-        new_lines.append(line)
-        if line.startswith(("backend ", "backend:")):
-            found = True  # old config file has a backend definition
-            new_lines.append("# backend definition copied from installation")
+        line = line.strip()
 
-    if not found:
-        # get the string from interpreted mode and insert it in matplotlibrc
+        if line == "":
+            continue
+
+        # omit meaningless lines
+        if line.startswith("#") and matplotlib_version < "3":
+            continue
+
+        new_lines.append(line)
+
+        if line.startswith(("backend ", "backend:")):
+            # old config file has a backend definition
+            found = True
+
+    if not found and matplotlib_version < "3":
+        # Set the backend, so even if it was run time determined, we now enforce it.
         new_lines.append("backend: %s" % backend)
 
     matplotlibrc_filename = os.path.join(dist_dir, prefix, "matplotlibrc")
