@@ -118,6 +118,9 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
         data, err, rv = runProcessMonitored(cmdline, env)
 
         if cmd == "link":
+            # Training newline in some cases, esp. LTO it seems.
+            data = data.rstrip()
+
             if module_mode:
                 data = b"\r\n".join(
                     line
