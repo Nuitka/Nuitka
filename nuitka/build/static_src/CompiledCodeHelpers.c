@@ -1741,6 +1741,25 @@ char const *getBinaryDirectoryHostEncoded() {
 }
 #endif
 
+#if defined(_WIN32)
+// Replacement for RemoveFileSpecW, slightly smaller.
+static void stripFilenameW(wchar_t *path) {
+    wchar_t *last_slash = NULL;
+
+    while (*path != 0) {
+        if (*path == L'\\') {
+            last_slash = path;
+        }
+
+        path++;
+    }
+
+    if (last_slash != NULL) {
+        *last_slash = 0;
+    }
+}
+#endif
+
 wchar_t const *getBinaryDirectoryWideChars() {
     static wchar_t binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
@@ -1752,7 +1771,7 @@ wchar_t const *getBinaryDirectoryWideChars() {
         DWORD res = GetModuleFileNameW(NULL, binary_directory, sizeof(binary_directory));
         assert(res != 0);
 
-        PathRemoveFileSpecW(binary_directory);
+        stripFilenameW(binary_directory);
 
         // Query length of result first.
         DWORD length = GetShortPathNameW(binary_directory, NULL, 0);
@@ -1867,6 +1886,25 @@ static HMODULE getDllModuleHandle() {
 }
 #endif
 
+#if defined(_WIN32)
+// Replacement for RemoveFileSpecA, slightly smaller.
+static void stripFilenameA(char *path) {
+    char *last_slash = NULL;
+
+    while (*path != 0) {
+        if (*path == '\\') {
+            last_slash = path;
+        }
+
+        path++;
+    }
+
+    if (last_slash != NULL) {
+        *last_slash = 0;
+    }
+}
+#endif
+
 static char const *getDllDirectory() {
 #if defined(_WIN32)
     static char path[MAXPATHLEN + 1];
@@ -1885,7 +1923,8 @@ static char const *getDllDirectory() {
     int res = GetModuleFileNameA(getDllModuleHandle(), path, MAXPATHLEN + 1);
     assert(res != 0);
 #endif
-    PathRemoveFileSpec(path);
+
+    stripFilenameA(path);
 
     return path;
 

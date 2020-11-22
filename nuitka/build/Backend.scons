@@ -787,9 +787,6 @@ if win_target:
     if win_disable_console:
         env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
-    # This is used for "PathRemoveFileSpec" used in Windows code.
-    env.Append(LIBS=["Shlwapi"])
-
     if msvc_mode:
         # This is used for "GetCommandLineW" used in Windows code for Python3.
         if python_version >= "3":
