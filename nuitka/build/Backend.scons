@@ -59,6 +59,7 @@ from SCons.Script import (  # pylint: disable=import-error
 from nuitka.Tracing import my_print, scons_logger
 
 from .SconsCaching import enableCcache, enableClcache
+from .SconsCompilerSettings import enableC11Settings
 from .SconsHacks import (
     getEnhancedToolDetect,
     makeGccUseLinkerFile,
@@ -493,19 +494,15 @@ Note: The clang-cl will only work if MSVC already works for you.
     else:
         sys.exit("Error, cannot locate suitable C compiler.")
 
-# Do we use C11 for source files, or C++.
-if clangcl_mode:
-    c11_mode = True
-elif msvc_mode:
-    c11_mode = False
-elif mingw_mode:
-    c11_mode = True
-elif clang_mode:
-    c11_mode = True
-elif gcc_mode and gcc_version >= (5,):
-    c11_mode = True
-else:
-    c11_mode = False
+# Do we use C11 for source files, or pretend to be C++ as a workaround.
+c11_mode = enableC11Settings(
+    env=env,
+    clangcl_mode=clangcl_mode,
+    msvc_mode=msvc_mode,
+    clang_mode=clang_mode,
+    gcc_mode=gcc_mode,
+    gcc_version=gcc_version,
+)
 
 if show_scons_mode:
     my_print("Scons: Using C11 mode:", c11_mode)
@@ -542,10 +539,6 @@ if gcc_mode:
     if not win_target:
         env.Append(CCFLAGS=["-fvisibility=hidden"])
         env.Append(CXXFLAGS=["-fvisibility-inlines-hidden"])
-
-    # Make it clear that we want C11.
-    if c11_mode:
-        env.Append(CCFLAGS=["-std=c11"])
 
     # Make it clear how to handle integer overflows, namely by wrapping around
     # to negative values.
