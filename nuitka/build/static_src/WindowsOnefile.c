@@ -25,6 +25,11 @@
 #include <assert.h>
 #include <stdio.h>
 
+/* Type bool */
+#ifndef __cplusplus
+#include "stdbool.h"
+#endif
+
 #include <Shlobj.h>
 #include <windows.h>
 
