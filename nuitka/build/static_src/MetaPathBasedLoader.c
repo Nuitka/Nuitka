@@ -625,7 +625,13 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 
     entrypoint_t entrypoint = (entrypoint_t)GetProcAddress(hDLL, entry_function_name);
 #else
+#if PYTHON_VERSION < 390
     int dlopenflags = PyThreadState_GET()->interp->dlopenflags;
+#else
+    // This code would work for all versions, but we are avoiding it where possible.
+    PyObject *dlopenflags_object = CALL_FUNCTION_NO_ARGS(PySys_GetObject("getdlopenflags"));
+    int dlopenflags = PyInt_AsLong(dlopenflags_object);
+#endif
 
     if (isVerbose()) {
         PySys_WriteStderr("import %s # dlopen(\"%s\", %x);\n", full_name, filename, dlopenflags);
