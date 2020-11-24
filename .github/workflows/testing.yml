@@ -24,6 +24,7 @@ jobs:
             - '3.6'
             - '3.7'
             - '3.8'
+            - '3.9'
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
       - uses: actions/checkout@v2
@@ -74,6 +75,7 @@ jobs:
             - '3.6'
             - '3.7'
             - '3.8'
+            - '3.9'
     name: macOS Python ${{ matrix.python_version }}
     steps:
       - uses: actions/checkout@v2
@@ -120,7 +122,8 @@ jobs:
             - '3.5'
             - '3.6'
             - '3.7'
-#            - '3.8'
+            - '3.8'
+            - '3.9'
     name: Windows Python ${{ matrix.python_version }}
     steps:
       - uses: actions/checkout@v2
