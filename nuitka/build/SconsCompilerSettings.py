@@ -19,8 +19,23 @@
 
 """
 
+from nuitka.utils.Download import getCachedDownload
+
 
 def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_mode, gcc_version):
+    """Decide if C11 mode can be used and enable the C compile flags for it.
+
+    Args:
+        clangcl_mode - clangcl.exe is used
+        msvc_mode - bool MSVC is used
+        clang_mode - bool clang is used
+        gcc_mode - bool gcc is used
+        gcc_version - bool version of gcc used if gcc_mode is true
+
+    Returns:
+        bool - c11_mode flag
+    """
+
     if clangcl_mode:
         c11_mode = True
     elif msvc_mode:
@@ -39,3 +54,27 @@ def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_mode, gcc_ve
             env.Append(CCFLAGS=["/std:c11"])
 
     return c11_mode
+
+
+def getDownloadedGccPath(target_arch, assume_yes_for_downloads):
+    # Large URLs, pylint: disable=line-too-long
+
+    if target_arch == "x86_64":
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/10.2.0-11.0.0-9.0.0-r3/winlibs-x86_64-posix-seh-gcc-10.2.0-mingw-w64-8.0.0-r3.zip"
+        binary = r"mingw64\bin\gcc.exe"
+    else:
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/10.2.0-11.0.0-9.0.0-r3/winlibs-i686-posix-dwarf-gcc-10.2.0-mingw-w64-8.0.0-r3.zip"
+        binary = r"mingw32\bin\gcc.exe"
+
+    gcc_binary = getCachedDownload(
+        url=url,
+        is_arch_specific=True,
+        specifity=url.rsplit("/", 2)[1],
+        binary=binary,
+        flatten=False,
+        message="Nuitka will use gcc from MinGW64 of winlibs to compile on Windows.",
+        reject="Only this specific gcc is supported with Nuitka.",
+        assume_yes_for_downloads=assume_yes_for_downloads,
+    )
+
+    return gcc_binary

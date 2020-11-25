@@ -26,6 +26,7 @@ import shutil
 import signal
 import sys
 
+from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.Tracing import scons_logger
 
 
@@ -149,6 +150,10 @@ def setEnvironmentVariable(env, key, value):
 
 
 def addToPATH(env, dirname, prefix):
+    # Otherwise subprocess will complain in Python2
+    if str is bytes and type(dirname) is unicode:
+        dirname = dirname.encode("utf8")
+
     path_value = os.environ["PATH"].split(os.pathsep)
 
     if prefix:

@@ -74,6 +74,7 @@ def getAppImageToolPath():
         url=appimagetool_url,
         is_arch_specific=True,
         binary=appimagetool_url.rsplit("/", 1)[1],
+        flatten=True,
         specifity=appimagetool_url.rsplit("/", 2)[1],
         message="""\
 Nuitka will make use of AppImage (https://appimage.org/) tool

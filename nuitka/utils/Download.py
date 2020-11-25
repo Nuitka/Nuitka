@@ -35,13 +35,22 @@ from .FileOperations import addFileExecutablePermission, deleteFile, makePath
 
 
 def getCachedDownload(
-    url, binary, is_arch_specific, specifity, message, reject, assume_yes_for_downloads
+    url,
+    binary,
+    flatten,
+    is_arch_specific,
+    specifity,
+    message,
+    reject,
+    assume_yes_for_downloads,
 ):
     # Many branches to deal with, pylint: disable=too-many-branches
 
     nuitka_app_dir = getAppDir()
 
-    nuitka_app_dir = os.path.join(nuitka_app_dir, binary.replace(".exe", ""))
+    nuitka_app_dir = os.path.join(
+        nuitka_app_dir, os.path.basename(binary).replace(".exe", "")
+    )
 
     if is_arch_specific:
         nuitka_app_dir = os.path.join(nuitka_app_dir, Utils.getArchitecture())
@@ -77,7 +86,7 @@ Proceed and download? [Yes]/No """
             if reject is not None:
                 sys.exit(reject)
         else:
-            Tracing.general.info("Downloading '%s'" % url)
+            Tracing.general.info("Downloading '%s'." % url)
 
             try:
                 urlretrieve(url, download_path)
@@ -98,7 +107,10 @@ Proceed and download? [Yes]/No """
             for zip_info in zip_file.infolist():
                 if zip_info.filename[-1] == "/":
                     continue
-                zip_info.filename = os.path.basename(zip_info.filename)
+
+                if flatten:
+                    zip_info.filename = os.path.basename(zip_info.filename)
+
                 zip_file.extract(zip_info, nuitka_app_dir)
 
         except Exception:  # Catching anything zip throws, pylint: disable=broad-except
@@ -109,7 +121,7 @@ Proceed and download? [Yes]/No """
 
             sys.exit("Error, need '%s' as extracted from '%s'." % (binary, url))
 
-    # Check success here.
+    # Check success here, and make sure it's executable.
     if os.path.isfile(exe_path):
         addFileExecutablePermission(exe_path)
     else:

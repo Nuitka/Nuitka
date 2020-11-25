@@ -59,7 +59,7 @@ from SCons.Script import (  # pylint: disable=import-error
 from nuitka.Tracing import my_print, scons_logger
 
 from .SconsCaching import enableCcache, enableClcache
-from .SconsCompilerSettings import enableC11Settings
+from .SconsCompilerSettings import enableC11Settings, getDownloadedGccPath
 from .SconsHacks import (
     getEnhancedToolDetect,
     makeGccUseLinkerFile,
@@ -360,24 +360,24 @@ def getCompilerTools():
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(tools=getCompilerTools())
 
-# On Windows, in case MSVC was not found and not previously forced, retry with
-# it and use that instead then as a fallback. Using both tools in one call
-# seems to not work in terms of fallback when both exist.
+# On Windows, in case MSVC was not found and not previously forced, use the
+# winlibs MinGW64 as a download, and use it as a fallback.
 if win_target and getExecutablePath(env["CC"], env=env) is None:
-
     # This will succeed to find "gcc.exe" when conda install m2w64-gcc has
     # been done.
-    anaconda_mingw_dir = os.path.join(python_prefix, r"Library\mingw-w64\bin")
 
-    if os.path.isdir(anaconda_mingw_dir):
-        os.environ["PATH"] = os.pathsep.join(
-            [anaconda_mingw_dir] + os.environ["PATH"].split(os.pathsep)
-        )
+    env = createEnvironment(tools=["mingw"])
 
-        env = createEnvironment(tools=["mingw"])
+    env["CC"] = getDownloadedGccPath(
+        target_arch=target_arch, assume_yes_for_downloads=assume_yes_for_downloads
+    )
+    addToPATH(env, os.path.dirname(env["CC"]), prefix=True)
 
-        if show_scons_mode:
-            my_print("Standard CC not found, attempting installed CondaCC")
+    mingw_mode = True
+    using_our_mingw = True
+else:
+    using_our_mingw = False
+
 
 if show_scons_mode:
     my_print("Scons: Initial CC:", env.get("CC", None))
@@ -1201,7 +1201,7 @@ def getCompilerArch():
     return _compiler_arch
 
 
-if win_target:
+if win_target and not using_our_mingw:
     # Check most common user error related to MinGW64. People install 32 and
     # 64 variants and do not consider that MinGW64 could be 32 bits too.
 
