@@ -19,6 +19,7 @@
     "files.associations": {
         "*.tac": "python",
         "*.scons": "python",
+        "*.sco": "python",
         "*.h": "c",
         "*.c": "c",
         "typeinfo": "c"
