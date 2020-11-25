@@ -34,7 +34,7 @@ from nuitka.utils.FileOperations import (
     makePath,
     putTextFileContents,
 )
-from nuitka.utils.Utils import isWin32Windows
+from nuitka.utils.Utils import getOS, isWin32Windows
 
 
 def getNumpyCoreBinaries(module):
@@ -95,7 +95,7 @@ def getNumpyCoreBinaries(module):
     return binaries
 
 
-def getMatplotlibInfo():
+def _getMatplotlibInfo():
     """Determine the filename of matplotlibrc and the default backend.
 
     Notes:
@@ -104,9 +104,10 @@ def getMatplotlibInfo():
     """
     cmd = """\
 from __future__ import print_function
-from matplotlib import matplotlib_fname, get_backend, __version__
+from matplotlib import matplotlib_fname, get_backend, _get_data_path, __version__
 print(matplotlib_fname())
 print(get_backend())
+print(_get_data_path())
 print(__version__)
 """
 
@@ -116,27 +117,32 @@ print(__version__)
         feedback = feedback.decode("utf8")
 
     feedback = feedback.replace("\r", "")
-    matplotlibrc_filename, backend, matplotlib_version = feedback.splitlines()
-    return matplotlibrc_filename, backend, matplotlib_version
+    (
+        matplotlibrc_filename,
+        backend,
+        data_path,
+        matplotlib_version,
+    ) = feedback.splitlines()
+    return matplotlibrc_filename, backend, data_path, matplotlib_version
 
 
-def copyMplDataFiles(module, dist_dir):
+def copyMplDataFiles(data_dir, dist_dir):
     """ Write matplotlib data files ('mpl-data')."""
 
-    data_dir = os.path.join(module.getCompileTimeDirectory(), "mpl-data")  # must exist
+    matplotlibrc, backend, data_dir, matplotlib_version = _getMatplotlibInfo()
     if not os.path.isdir(data_dir):
         sys.exit("mpl-data missing: matplotlib installation is broken")
 
-    matplotlibrc, backend, matplotlib_version = getMatplotlibInfo()
+    for fullname in getFileList(data_dir):  # copy data files to dist folder
+        filename = os.path.relpath(fullname, data_dir)
 
-    prefix = os.path.join("matplotlib", "mpl-data")
-    for item in getFileList(data_dir):  # copy data files to dist folder
-        if item.endswith("matplotlibrc"):  # handle config separately
+        if filename.endswith("matplotlibrc"):  # handle config separately
             continue
-        idx = item.find(prefix)  # need string starting with 'matplotlib/mpl-data'
-        tar_file = os.path.join(dist_dir, item[idx:])
-        makePath(os.path.dirname(tar_file))  # create intermediate folders
-        shutil.copyfile(item, tar_file)
+
+        target_filename = os.path.join(dist_dir, "mpl-data", filename)
+
+        makePath(os.path.dirname(target_filename))  # create intermediate folders
+        shutil.copyfile(fullname, target_filename)
 
     old_lines = open(matplotlibrc).read().splitlines()  # old config file lines
     new_lines = []  # new config file lines
@@ -162,7 +168,7 @@ def copyMplDataFiles(module, dist_dir):
         # Set the backend, so even if it was run time determined, we now enforce it.
         new_lines.append("backend: %s" % backend)
 
-    matplotlibrc_filename = os.path.join(dist_dir, prefix, "matplotlibrc")
+    matplotlibrc_filename = os.path.join(dist_dir, "mpl-data", "matplotlibrc")
 
     putTextFileContents(filename=matplotlibrc_filename, contents=new_lines)
 
@@ -373,6 +379,32 @@ Should matplotlib not be be included with numpy, Default is %default.""",
 
             if module_name == "matplotlib.backends.backend_agg":
                 return True, "Needed as standard backend"
+
+    def createPreModuleLoadCode(self, module):
+        """Method called when a module is being imported.
+
+        Notes:
+            If full name equals "matplotlib" we insert code to set the
+            environment variable that Debian versions of matplotlib
+            use.
+
+        Args:
+            module: the module object
+        Returns:
+            Code to insert and descriptive text (tuple), or (None, None).
+        """
+
+        if not self.matplotlib or module.getFullName() != "matplotlib":
+            return None, None  # not for us
+
+        code = """\
+import os
+os.environ["MATPLOTLIBDATA"] = os.path.join(__nuitka_binary_dir, "mpl-data")
+"""
+        return (
+            code,
+            "Setting 'MATPLOTLIBDATA' environment variable for matplotlib to find package data.",
+        )
 
 
 class NumpyPluginDetector(NuitkaPluginBase):
