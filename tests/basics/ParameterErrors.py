@@ -189,7 +189,7 @@ try:
 except TypeError as e:
     print(repr(e))
 
-print("Complex call with both invalid star list and star arguments:")
+print("Complex calls with both invalid star list and star arguments:")
 
 try:
     a = 1
@@ -197,7 +197,8 @@ try:
 
     functionWithDefaults(1, c=3, *a, **b)
 except TypeError as e:
-    print(repr(e))
+    # Workaround Python 3.9 shortcoming
+    print(repr(e).replace("Value", "__main__.functionWithDefaults() argument"))
 
 try:
     a = 1
@@ -205,7 +206,8 @@ try:
 
     functionWithDefaults(1, *a, **b)
 except TypeError as e:
-    print(repr(e))
+    # Workaround Python 3.9 shortcoming
+    print(repr(e).replace("Value", "__main__.functionWithDefaults() argument"))
 
 try:
     a = 1
