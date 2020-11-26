@@ -902,6 +902,11 @@ def main():
     else:
         my_print("Cannot execute tests with Python 3.8, disabled or not installed.")
 
+    if checkExecutableCommand("python3.9"):
+        execute_tests("python3.9-nodebug", "python3.9", "")
+    else:
+        my_print("Cannot execute tests with Python 3.9, disabled or not installed.")
+
     if options.coverage:
         publishCoverageData()
 
