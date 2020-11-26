@@ -46,6 +46,7 @@ import re
 import subprocess
 
 import SCons  # pylint: disable=import-error
+from nuitka.Tracing import my_print, scons_logger
 from SCons.Script import (  # pylint: disable=import-error
     ARGUMENTS,
     CacheDir,
@@ -55,8 +56,6 @@ from SCons.Script import (  # pylint: disable=import-error
     File,
     GetOption,
 )
-
-from nuitka.Tracing import my_print, scons_logger
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import enableC11Settings, getDownloadedGccPath
@@ -72,12 +71,13 @@ from .SconsUtils import (
     changeKeyboardInteruptToErrorExit,
     cheapCopyFile,
     createDefinitionsFile,
-    decodeData,
+    decideArchMismatch,
     getArgumentBool,
     getArgumentDefaulted,
     getArgumentList,
     getArgumentRequired,
     getExecutablePath,
+    getLinkerArch,
     getMsvcVersion,
     getMsvcVersionString,
     initScons,
@@ -267,38 +267,17 @@ if "CC" in os.environ:
     if os.path.isdir(os.environ["CC"]):
         sys.exit("Error, the CC variable must point to file, not directory.")
 
-    cc_dirname = os.path.dirname(os.environ["CC"])
+    if os.path.sep in os.environ["CC"]:
+        cc_dirname = os.path.dirname(os.environ["CC"])
+        if os.path.isdir(cc_dirname):
+            addToPATH(None, cc_dirname, prefix=True)
 
     if win_target and isGccName(os.path.basename(os.environ["CC"])):
         if show_scons_mode:
             my_print("Scons: Environment CC seems to be a gcc, enable mingw_mode.")
         mingw_mode = True
 
-    if os.path.isdir(cc_dirname):
-        addToPATH(None, cc_dirname, prefix=True)
-
     printCompilerVersionOutput("CC=%r" % os.environ["CC"])
-
-if "CXX" in os.environ:
-    os.environ["CXX"] = os.path.normpath(os.environ["CXX"])
-
-    if os.path.isdir(os.environ["CXX"]):
-        sys.exit("Error, the CXX variable must point to file, not directory.")
-
-    cxx_dirname = os.path.dirname(os.environ["CXX"])
-
-    if win_target and isGccName(os.path.basename(os.environ["CXX"])):
-        if show_scons_mode:
-            my_print("Scons: Environment CXX seems to be a gcc, enable mingw_mode.")
-        mingw_mode = True
-
-    if os.path.isdir(cxx_dirname):
-        os.environ["PATH"] = os.pathsep.join(
-            [cxx_dirname] + os.environ["PATH"].split(os.pathsep)
-        )
-
-    printCompilerVersionOutput("CXX=%r" % os.environ["CXX"])
-
 
 # Patch the compiler detection.
 
@@ -362,28 +341,49 @@ env = createEnvironment(tools=getCompilerTools())
 
 # On Windows, in case MSVC was not found and not previously forced, use the
 # winlibs MinGW64 as a download, and use it as a fallback.
-if win_target and getExecutablePath(env["CC"], env=env) is None:
-    # This will succeed to find "gcc.exe" when conda install m2w64-gcc has
-    # been done.
+compiler_path = getExecutablePath(env["CC"], env=env)
 
-    env = createEnvironment(tools=["mingw"])
+if win_target:
+    # Drop wrong arch compiler, most often found by scans. There might be wrong gcc or cl on the PATH.
+    if compiler_path is not None:
+        the_cc_name = os.path.basename(compiler_path)
 
-    env["CC"] = getDownloadedGccPath(
-        target_arch=target_arch, assume_yes_for_downloads=assume_yes_for_downloads
-    )
-    addToPATH(env, os.path.dirname(env["CC"]), prefix=True)
+        decision, linker_arch, compiler_arch = decideArchMismatch(
+            target_arch=target_arch,
+            mingw_mode=isGccName(the_cc_name),
+            msvc_mode=not isGccName(the_cc_name),
+            the_cc_name=the_cc_name,
+            compiler_path=compiler_path,
+        )
 
-    mingw_mode = True
-    using_our_mingw = True
-else:
-    using_our_mingw = False
+        if decision:
+            # This will trigger using it to use our own gcc in branch below.
+            compiler_path = None
 
+            scons_logger.info(
+                "Mismatch between Python binary ('%s' -> '%s') and C compiler ('%s' -> '%s') arches, ignored!"
+                % (
+                    os.environ["NUITKA_PYTHON_EXE_PATH"],
+                    linker_arch,
+                    compiler_path,
+                    compiler_arch,
+                )
+            )
+
+    if compiler_path is None:
+        # This will succeed to find "gcc.exe" when conda install m2w64-gcc has
+        # been done.
+
+        env = createEnvironment(tools=["mingw"])
+
+        env["CC"] = getDownloadedGccPath(
+            target_arch=target_arch, assume_yes_for_downloads=assume_yes_for_downloads
+        )
+        addToPATH(env, os.path.dirname(env["CC"]), prefix=True)
 
 if show_scons_mode:
     my_print("Scons: Initial CC:", env.get("CC", None))
     my_print("Scons: Initial CCVERSION:", env.get("CCVERSION", None))
-    my_print("Scons: Initial CXX:", env.get("CXX", None))
-    my_print("Scons: Initial CXXVERSION:", env.get("CXXVERSION", None))
 
 if "CC" in os.environ:
     # If the environment variable CC is set, use that.
@@ -407,8 +407,9 @@ elif clang_mode:
     env["CCVERSION"] = None
 
 
-the_compiler = env["CC"] or env["CXX"]
+the_compiler = env["CC"]
 the_cc_name = os.path.normcase(os.path.basename(the_compiler))
+
 
 scons_logger.info("Backend C compiler: %s (%s)." % (the_compiler, the_cc_name))
 
@@ -1097,122 +1098,27 @@ if macosx_target and not module_mode:
     env.Append(LINKFLAGS=["-headerpad_max_install_names"])
 
 
-def _getBinaryArch(binary):
-    if "linux" in sys.platform or mingw_mode:
-        assert os.path.exists(binary), binary
-
-        command = ["objdump", "-f", binary]
-
-        if show_scons_mode:
-            my_print("Scons: Detecting arch with :", command)
-
-        try:
-            proc = subprocess.Popen(
-                command,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                shell=False,
-            )
-        except OSError:
-            return None
-
-        data, _err = proc.communicate()
-        rv = proc.wait()
-
-        if rv != 0:
-            return None
-
-        if str is not bytes:
-            data = decodeData(data)
-
-        for line in data.splitlines():
-            if " file format " in line:
-                return line.split(" file format ")[-1]
-    else:
-        # TODO: Missing for macOS, FreeBSD, other Linux
-        return None
-
-
-_linker_arch_determined = False
-_linker_arch = None
-
-
-def getLinkerArch():
-    # Singleton, pylint: disable=global-statement
-    global _linker_arch_determined, _linker_arch
-
-    if not _linker_arch_determined:
-        if win_target:
-            if target_arch == "x86_64":
-                _linker_arch = "pei-x86-64"
-            else:
-                _linker_arch = "pei-i386"
-        else:
-            _linker_arch = _getBinaryArch(os.environ["NUITKA_PYTHON_EXE_PATH"])
-
-        _linker_arch_determined = True
-
-    return _linker_arch
-
-
-_compiler_arch_determined = False
-_compiler_arch = None
-
-
-def getCompilerArch():
-    if mingw_mode:
-        # Singleton, pylint: disable=global-statement
-        global _compiler_arch_determined, _compiler_arch
-
-        if not _compiler_arch_determined:
-            _compiler_arch = _getBinaryArch(getExecutablePath(the_compiler, env=env))
-            _compiler_arch_determined = True
-    elif msvc_mode:
-        cmdline = [getExecutablePath(the_compiler, env=env)]
-
-        if "-cl" in the_cc_name:
-            cmdline.append("--version")
-
-        proc = subprocess.Popen(
-            cmdline,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=False,
-        )
-
-        # The cl.exe without further args will give error output indicating
-        # arch, while clang outputs in stdout.
-        stdout, stderr = proc.communicate()
-        _rv = proc.wait()
-
-        if b"x86" in stderr or b"i686" in stdout:
-            _compiler_arch = "pei-i386"
-        elif b"x64" in stderr or b"x86_64" in stdout:
-            _compiler_arch = "pei-x86-64"
-        else:
-            assert False, (stdout, stderr)
-
-        _compiler_arch_determined = True
-    else:
-        assert False, the_compiler
-
-    return _compiler_arch
-
-
-if win_target and not using_our_mingw:
+if win_target:
     # Check most common user error related to MinGW64. People install 32 and
     # 64 variants and do not consider that MinGW64 could be 32 bits too.
 
-    if getLinkerArch() != getCompilerArch():
+    compiler_path = getExecutablePath(the_compiler, env=env)
+
+    decision, linker_arch, compiler_arch = decideArchMismatch(
+        target_arch=target_arch,
+        mingw_mode=mingw_mode,
+        msvc_mode=msvc_mode,
+        the_cc_name=the_cc_name,
+        compiler_path=compiler_path,
+    )
+    if decision:
         sys.exit(
             "Error, mismatch between Python binary ('%s' -> '%s') and C compiler ('%s' -> '%s') arches."
             % (
                 os.environ["NUITKA_PYTHON_EXE_PATH"],
-                getLinkerArch(),
-                getExecutablePath(the_compiler, env=env),
-                getCompilerArch(),
+                linker_arch,
+                compiler_path,
+                compiler_arch,
             )
         )
 
@@ -1221,7 +1127,10 @@ constants_bin_filename = os.path.join(source_dir, "__constants.bin")
 
 if win_target:
     resource_mode = "win_resource"
-elif gcc_mode and getLinkerArch() is not None:
+elif (
+    gcc_mode
+    and getLinkerArch(target_arch=target_arch, mingw_mode=mingw_mode) is not None
+):
     resource_mode = "linker"
 else:
     resource_mode = "code"
@@ -1241,7 +1150,7 @@ elif resource_mode == "linker":
             "-Wl,binary",
             "-Wl,%s" % constants_bin_filename,
             "-Wl,-b",
-            "-Wl,%s" % getLinkerArch(),
+            "-Wl,%s" % getLinkerArch(target_arch=target_arch, mingw_mode=mingw_mode),
             "-Wl,-defsym",
             "-Wl,%sconstant_bin=_binary_%s___constants_bin_start"
             % (

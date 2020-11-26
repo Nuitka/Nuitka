@@ -24,6 +24,7 @@ from __future__ import print_function
 import os
 import shutil
 import signal
+import subprocess
 import sys
 
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
@@ -303,3 +304,113 @@ def getMsvcVersion(env):
 
     value = value.replace("exp", "")
     return float(value)
+
+
+def _getBinaryArch(binary, mingw_mode):
+    if "linux" in sys.platform or mingw_mode:
+        assert os.path.exists(binary), binary
+
+        command = ["objdump", "-f", binary]
+
+        try:
+            proc = subprocess.Popen(
+                command,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                shell=False,
+            )
+        except OSError:
+            return None
+
+        data, _err = proc.communicate()
+        rv = proc.wait()
+
+        if rv != 0:
+            return None
+
+        if str is not bytes:
+            data = decodeData(data)
+
+        for line in data.splitlines():
+            if " file format " in line:
+                return line.split(" file format ")[-1]
+    else:
+        # TODO: Missing for macOS, FreeBSD, other Linux
+        return None
+
+
+_linker_arch_determined = False
+_linker_arch = None
+
+
+def getLinkerArch(target_arch, mingw_mode):
+    # Singleton, pylint: disable=global-statement
+    global _linker_arch_determined, _linker_arch
+
+    if not _linker_arch_determined:
+        if win_target:
+            if target_arch == "x86_64":
+                _linker_arch = "pei-x86-64"
+            else:
+                _linker_arch = "pei-i386"
+        else:
+            _linker_arch = _getBinaryArch(
+                binary=os.environ["NUITKA_PYTHON_EXE_PATH"], mingw_mode=mingw_mode
+            )
+
+        _linker_arch_determined = True
+
+    return _linker_arch
+
+
+_compiler_arch = {}
+
+
+def getCompilerArch(mingw_mode, msvc_mode, the_cc_name, compiler_path):
+    if mingw_mode:
+        if compiler_path not in _compiler_arch:
+            _compiler_arch[compiler_path] = _getBinaryArch(
+                binary=compiler_path, mingw_mode=mingw_mode
+            )
+    elif msvc_mode:
+        cmdline = [compiler_path]
+
+        if "-cl" in the_cc_name:
+            cmdline.append("--version")
+
+        proc = subprocess.Popen(
+            cmdline,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+        )
+
+        # The cl.exe without further args will give error output indicating
+        # arch, while clang outputs in stdout.
+        stdout, stderr = proc.communicate()
+        _rv = proc.wait()
+
+        if b"x86" in stderr or b"i686" in stdout:
+            _compiler_arch[compiler_path] = "pei-i386"
+        elif b"x64" in stderr or b"x86_64" in stdout:
+            _compiler_arch[compiler_path] = "pei-x86-64"
+        else:
+            assert False, (stdout, stderr)
+    else:
+        assert False, compiler_path
+
+    return _compiler_arch[compiler_path]
+
+
+def decideArchMismatch(target_arch, mingw_mode, msvc_mode, the_cc_name, compiler_path):
+    linker_arch = getLinkerArch(target_arch=target_arch, mingw_mode=mingw_mode)
+    compiler_arch = getCompilerArch(
+        mingw_mode=mingw_mode,
+        msvc_mode=msvc_mode,
+        the_cc_name=the_cc_name,
+        compiler_path=compiler_path,
+    )
+
+    return linker_arch != compiler_arch, linker_arch, compiler_arch
