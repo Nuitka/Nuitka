@@ -49,7 +49,7 @@ def generateAssignmentAttributeCode(statement, emit, context):
 
     old_source_ref = context.setCurrentSourceCodeReference(
         value.getSourceReference()
-        if Options.isFullCompat()
+        if Options.is_fullcompat
         else statement.getSourceReference()
     )
 
@@ -85,7 +85,7 @@ def generateDelAttributeCode(statement, emit, context):
 
     old_source_ref = context.setCurrentSourceCodeReference(
         statement.subnode_expression.getSourceReference()
-        if Options.isFullCompat()
+        if Options.is_fullcompat
         else statement.getSourceReference()
     )
 

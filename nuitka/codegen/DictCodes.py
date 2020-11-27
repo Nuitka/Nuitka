@@ -371,7 +371,7 @@ def generateDictOperationRemoveCode(statement, emit, context):
 
     old_source_ref = context.setCurrentSourceCodeReference(
         statement.getKey().getSourceReference()
-        if Options.isFullCompat()
+        if Options.is_fullcompat
         else statement.getSourceReference()
     )
 

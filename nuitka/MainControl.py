@@ -376,7 +376,7 @@ def runSconsBackend(quiet):
         "python_debug": asBoolStr(Options.isPythonDebug()),
         "unstripped_mode": asBoolStr(Options.isUnstripped()),
         "module_mode": asBoolStr(Options.shallMakeModule()),
-        "full_compat": asBoolStr(Options.isFullCompat()),
+        "full_compat": asBoolStr(Options.is_fullcompat),
         "experimental": ",".join(Options.getExperimentalIndications()),
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "python_version": python_version_str,
@@ -639,7 +639,7 @@ def handleSyntaxError(e):
     # versions he wants, tell him about the potential version problem.
     error_message = SyntaxErrors.formatOutput(e)
 
-    if not Options.isFullCompat():
+    if not Options.is_fullcompat:
         if python_version < 300:
             suggested_python_version_str = getSupportedPythonVersions()[-1]
         else:

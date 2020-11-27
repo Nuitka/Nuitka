@@ -264,7 +264,7 @@ def generateExecCode(statement, emit, context):
     getConstantAccess(
         to_name=filename_name,
         constant="<string>"
-        if Options.isFullCompat()
+        if Options.is_fullcompat
         else "<string at %s>" % source_ref.getAsString(),
         emit=emit,
         context=context,
@@ -278,7 +278,7 @@ def generateExecCode(statement, emit, context):
 
     old_source_ref = context.setCurrentSourceCodeReference(
         locals_arg.getSourceReference()
-        if Options.isFullCompat()
+        if Options.is_fullcompat
         else statement.getSourceReference()
     )
 

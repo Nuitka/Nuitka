@@ -179,7 +179,7 @@ def generateAssignmentSliceCode(statement, emit, context):
 
         old_source_ref = context.setCurrentSourceCodeReference(
             value.getSourceReference()
-            if Options.isFullCompat()
+            if Options.is_fullcompat
             else statement.getSourceReference()
         )
 
@@ -203,7 +203,7 @@ def generateAssignmentSliceCode(statement, emit, context):
 
         old_source_ref = context.setCurrentSourceCodeReference(
             value.getSourceReference()
-            if Options.isFullCompat()
+            if Options.is_fullcompat
             else statement.getSourceReference()
         )
 
@@ -239,7 +239,7 @@ def generateDelSliceCode(statement, emit, context):
 
         old_source_ref = context.setCurrentSourceCodeReference(
             (upper or lower or statement).getSourceReference()
-            if Options.isFullCompat()
+            if Options.is_fullcompat
             else statement.getSourceReference()
         )
 
@@ -262,7 +262,7 @@ def generateDelSliceCode(statement, emit, context):
 
         old_source_ref = context.setCurrentSourceCodeReference(
             (upper or lower or target).getSourceReference()
-            if Options.isFullCompat()
+            if Options.is_fullcompat
             else statement.getSourceReference()
         )
 

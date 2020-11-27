@@ -400,7 +400,7 @@ def buildAnnotationNode(provider, node, source_ref):
 def makeModuleFrame(module, statements, source_ref):
     assert module.isCompiledPythonModule()
 
-    if Options.isFullCompat():
+    if Options.is_fullcompat:
         code_name = "<module>"
     else:
         if module.isMainModule():
