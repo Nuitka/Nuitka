@@ -108,3 +108,6 @@ NUITKA_MAY_BE_UNUSED static bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject 
     }
 
 #endif
+
+extern bool LIST_EXTEND(PyObject *list, PyObject *other);
+extern bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other);

@@ -15,7 +15,7 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-/* This helpers is used to work with dictionaries..
+/* This helpers is used to work with dictionaries.
 
 */
 

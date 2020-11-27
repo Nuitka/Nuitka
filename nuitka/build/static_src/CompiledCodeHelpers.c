@@ -2070,6 +2070,7 @@ void _initSlotIternext() {
 
 #include "HelpersDeepcopy.c"
 
+#include "HelperLists.c"
 #include "HelpersAttributes.c"
 
 #include "HelpersOperationBinaryAdd.c"

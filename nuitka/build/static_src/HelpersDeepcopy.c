@@ -385,5 +385,11 @@ void CHECK_OBJECT_DEEP(PyObject *value) {
 
             CHECK_OBJECT_DEEP(element);
         }
+    } else if (PyList_Check(value)) {
+        for (Py_ssize_t i = 0, size = PyList_GET_SIZE(value); i < size; i++) {
+            PyObject *element = PyList_GET_ITEM(value, i);
+
+            CHECK_OBJECT_DEEP(element);
+        }
     }
 }

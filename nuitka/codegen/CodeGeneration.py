@@ -617,6 +617,7 @@ setExpressionDispatchDict(
         "EXPRESSION_IMPORT_MODULE_NAME_HARD": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORT_NAME": generateImportNameCode,
         "EXPRESSION_LIST_OPERATION_EXTEND": generateListOperationExtendCode,
+        "EXPRESSION_LIST_OPERATION_EXTEND_FOR_UNPACK": generateListOperationExtendCode,
         "EXPRESSION_LIST_OPERATION_POP": generateListOperationPopCode,
         "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF": generateModuleAttributeFileCode,
         "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF": generateModuleAttributeCode,

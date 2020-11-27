@@ -107,22 +107,39 @@ def generateListOperationExtendCode(to_name, expression, emit, context):
 
     emit("assert(PyList_Check(%s));" % list_arg_name)
 
+    # These give different error messages.
+    is_unpack = expression.isExpressionListOperationExtendForUnpack()
+
+    res_name = context.getBoolResName()
+
+    emit(
+        "%s = %s(%s, %s);"
+        % (
+            res_name,
+            "LIST_EXTEND_FOR_UNPACK" if is_unpack else "LIST_EXTEND",
+            list_arg_name,
+            value_arg_name,
+        )
+    )
+
+    getErrorExitBoolCode(
+        condition="%s == false" % res_name,
+        release_names=(list_arg_name, value_arg_name),
+        emit=emit,
+        context=context,
+    )
+
+    # TODO: This is also in SetCode, and should be common for statement only
+    # operations that return None in Python, but only in case of non-error
     with withObjectCodeTemporaryAssignment(
         to_name, "list_extend_result", expression, emit, context
     ) as result_name:
-        emit(
-            "%s = _PyList_Extend((PyListObject *)%s, %s);"
-            % (result_name, list_arg_name, value_arg_name)
-        )
+        emit("%s = Py_None;" % result_name)
 
-        getErrorExitCode(
-            check_name=result_name,
-            release_names=(list_arg_name, value_arg_name),
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(result_name)
+        # This conversion will not use it, and since it is borrowed, debug mode
+        # would otherwise complain.
+        if to_name.c_type == "nuitka_void":
+            result_name.maybe_unused = True
 
 
 def generateListOperationPopCode(to_name, expression, emit, context):

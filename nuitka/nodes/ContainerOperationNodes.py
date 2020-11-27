@@ -71,6 +71,10 @@ class ExpressionListOperationExtend(ExpressionChildrenHavingBase):
         return self, None, None
 
 
+class ExpressionListOperationExtendForUnpack(ExpressionListOperationExtend):
+    kind = "EXPRESSION_LIST_OPERATION_EXTEND_FOR_UNPACK"
+
+
 class ExpressionListOperationPop(ExpressionChildHavingBase):
     kind = "EXPRESSION_LIST_OPERATION_POP"
 
