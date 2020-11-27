@@ -44,6 +44,7 @@ from nuitka.nodes.ContainerMakingNodes import (
 )
 from nuitka.nodes.ContainerOperationNodes import (
     ExpressionListOperationExtend,
+    ExpressionListOperationExtendForUnpack,
     ExpressionSetOperationUpdate,
 )
 from nuitka.nodes.FunctionNodes import (
@@ -162,6 +163,11 @@ def getListUnpackingHelper():
     tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
     tmp_item_variable = result.allocateTempVariable(temp_scope, "keys")
 
+    if python_version < 390:
+        list_operation_extend = ExpressionListOperationExtend
+    else:
+        list_operation_extend = ExpressionListOperationExtendForUnpack
+
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
             tried=StatementAssignmentVariable(
@@ -179,7 +185,7 @@ def getListUnpackingHelper():
             source_ref=internal_source_ref,
         ),
         StatementExpressionOnly(
-            expression=ExpressionListOperationExtend(
+            expression=list_operation_extend(
                 list_arg=ExpressionTempVariableRef(
                     variable=tmp_result_variable, source_ref=internal_source_ref
                 ),
