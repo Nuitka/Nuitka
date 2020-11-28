@@ -43,11 +43,13 @@ def updateDebianChangelog(old_version, new_version, distribution):
 
         with open("Changelog.rst") as f:
             changelog = f.read()
-        if "(Draft)" not in changelog.splitlines()[0]:
+        if "(Draft)" not in changelog.splitlines()[1]:
             title = "Nuitka Release " + new_version[:-3] + " (Draft)"
 
             with open("Changelog.rst", "w") as changelog_file:
-                changelog_file.write(title + "\n" + ("=" * len(title) + "\n\n"))
+                marker = "#" * (len(title) + 2)
+
+                changelog_file.write(marker + "\n " + title + "\n" + marker + "\n\n")
                 changelog_file.write("This release is not done yet.\n\n\n")
                 changelog_file.write(changelog)
 
