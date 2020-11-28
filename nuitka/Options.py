@@ -172,9 +172,9 @@ sane default used inside the dist folder."""
             "Error, onefile on Windows requires company name and file or product version to be given."
         )
 
-    is_debug = isDebug()
+    is_debug = _isDebug()
     is_nondebug = not is_debug
-    is_fullcompat = isFullCompat()
+    is_fullcompat = _isFullCompat()
 
 
 def isVerbose():
@@ -314,7 +314,7 @@ def assumeYesForDownloads():
     return options is not None and options.assume_yes_for_downloads
 
 
-def isDebug():
+def _isDebug():
     """*bool* = "--debug" or "--debugger" """
     return options is not None and (options.debug or options.debugger)
 
@@ -453,8 +453,13 @@ def shallDisableConsoleWindow():
     return options.win_disable_console
 
 
-def isFullCompat():
-    """*bool* = "--full-compat" """
+def _isFullCompat():
+    """*bool* = "--full-compat"
+
+    Notes:
+        Code should should use "Options.is_fullcompat" instead, this
+        is only used to initialize that value.
+    """
     return options is not None and not options.improved
 
 
