@@ -475,7 +475,8 @@ def msvc_setup_env(env):
     if version is None:
         warn_msg = "No version of Visual Studio compiler found - C/C++ " \
                    "compilers most likely not set correctly"
-        SCons.Warnings.warn(SCons.Warnings.VisualCMissingWarning, warn_msg)
+        # Nuitka: Useless warning for us.
+        # SCons.Warnings.warn(SCons.Warnings.VisualCMissingWarning, warn_msg)
         return None
     debug('msvc_setup_env: using specified MSVC version %s\n' % repr(version))
 
@@ -512,4 +513,3 @@ def msvc_exists(version=None):
     if version is None:
         return len(vcs) > 0
     return version in vcs
-
