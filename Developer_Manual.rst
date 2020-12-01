@@ -4252,15 +4252,6 @@ Prongs of Action
 In this chapter, we keep track of prongs of action currently ongoing. This can
 get detailed and shows things we strive for.
 
-
-C types
--------
-
-The ultimate goal is of course to get C types to be used instead of the Python
-object type in as many places as possible. Currently stuck on how to reflect
-the types intermediate expressions towards code generation.
-
-
 Builtin optimization
 --------------------
 
@@ -4318,18 +4309,25 @@ Ignoring the locks cannot be good. But what updates that thread state pointer
 ever without a thread change, and is this what abiflags are about in this
 context, are there some that allow us to ignore the locks.
 
-Test Runners
-------------
+An important bit would be to use a thread state once acquired for as much
+as possible, currently exception helpers do not accept it as an argument,
+but that ought to become an option, that way saving and restoring an
+exception will be much faster, not to mention checking and dropping non
+interesting, or rewriting exceptions.
 
-Proper support for running tests against compiled packages. This is mostly
-done and needs documentation only.
+Onefile compression on Windows
+------------------------------
 
-Distutils Integration
----------------------
+We need to add compression on that platform too. This should use zstd and
+probably just needs integration into our build. The Python side already
+is capable of producing compressed payload.
 
-Proper target to build a wheel with Nuitka compiled stuff in there. This is
-mostly done and needs testing and documentation only.
+Caching of Python level compilation
+-----------------------------------
 
+While the C compilation result is already cached with ccache and friends now,
+we need to also cover our bases and save the resulting node tree of potential
+expensive optimization on the module level.
 
 Updates for this Manual
 =======================
