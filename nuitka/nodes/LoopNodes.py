@@ -114,6 +114,7 @@ class StatementLoop(StatementChildHavingBase):
 
     def _computeLoopBody(self, trace_collection):
         # Rather complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+        # print("Enter loop body", self.source_ref)
 
         loop_body = self.getLoopBody()
         if loop_body is None:
@@ -171,6 +172,9 @@ class StatementLoop(StatementChildHavingBase):
                     self.loop_resume[loop_variable]
                     != self.loop_previous_resume[loop_variable]
                 ):
+                    # print("incomplete", self.source_ref, loop_variable, ":",
+                    # self.loop_previous_resume[loop_variable], "<->", self.loop_resume[loop_variable])
+
                     incomplete = True
 
                     if incomplete_variables is None:
@@ -178,6 +182,8 @@ class StatementLoop(StatementChildHavingBase):
 
                     incomplete_variables.add(loop_variable)
                 else:
+                    # print("complete", self.source_ref, loop_variable, ":",
+                    # self.loop_previous_resume[loop_variable], "<->", self.loop_resume[loop_variable])
                     incomplete = False
 
             # Mark the variable as loop usage before executing it.
