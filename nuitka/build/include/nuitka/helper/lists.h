@@ -111,3 +111,7 @@ NUITKA_MAY_BE_UNUSED static bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject 
 
 extern bool LIST_EXTEND(PyObject *list, PyObject *other);
 extern bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other);
+
+// Like PyList_Append, but we get to specify the transfer of refcount ownership.
+extern bool LIST_APPEND1(PyObject *target, PyObject *item);
+extern bool LIST_APPEND0(PyObject *target, PyObject *item);

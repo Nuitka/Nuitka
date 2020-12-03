@@ -309,7 +309,7 @@ static PyObject *getImportingSuffixesByPriority(int kind) {
             PyObject *module_kind = PyTuple_GET_ITEM(PyList_GET_ITEM(suffix_list, i), 2);
 
             if (PyInt_AsLong(module_kind) == kind) {
-                PyList_Append(result, PyTuple_GET_ITEM(PyList_GET_ITEM(suffix_list, i), 0));
+                LIST_APPEND0(result, PyTuple_GET_ITEM(PyList_GET_ITEM(suffix_list, i), 0));
             }
         }
     }
@@ -359,7 +359,7 @@ static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_mo
 
                 if (strncmp(filename_str, module_relname_str, strlen(module_relname_str)) == 0 &&
                     filename_str[strlen(module_relname_str)] == '.') {
-                    PyList_Append(candidates, PyTuple_Pack(2, path_element, filename));
+                    LIST_APPEND1(candidates, PyTuple_Pack(2, path_element, filename));
                 }
             }
         }
@@ -1084,8 +1084,7 @@ static PyObject *_path_unfreezer_iter_modules(struct Nuitka_LoaderObject *self, 
         PyTuple_SET_ITEM(r, 0, name);
         PyTuple_SET_ITEM0(r, 1, BOOL_FROM((current->flags & NUITKA_PACKAGE_FLAG) != 0));
 
-        PyList_Append(result, r);
-        Py_DECREF(r);
+        LIST_APPEND1(result, r);
 
         current++;
     }

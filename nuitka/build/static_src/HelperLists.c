@@ -196,3 +196,47 @@ bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other) {
     return false;
 }
 #endif
+
+bool LIST_APPEND1(PyObject *target, PyObject *item) {
+    CHECK_OBJECT(target);
+    assert(PyList_Check(target));
+
+    CHECK_OBJECT(item);
+
+    PyListObject *list = (PyListObject *)target;
+
+    Py_ssize_t cur_size = PyList_GET_SIZE(list);
+
+    // Overflow is not really realistic, so we only assert against it.
+    assert(cur_size <= PY_SSIZE_T_MAX);
+
+    if (LIST_RESIZE(list, cur_size + 1) == false) {
+        return false;
+    }
+
+    PyList_SET_ITEM(list, cur_size, item);
+
+    return true;
+}
+
+bool LIST_APPEND0(PyObject *target, PyObject *item) {
+    CHECK_OBJECT(target);
+    assert(PyList_Check(target));
+
+    CHECK_OBJECT(item);
+
+    PyListObject *list = (PyListObject *)target;
+
+    Py_ssize_t cur_size = PyList_GET_SIZE(list);
+
+    // Overflow is not really realistic, so we only assert against it.
+    assert(cur_size <= PY_SSIZE_T_MAX);
+
+    if (LIST_RESIZE(list, cur_size + 1) == false) {
+        return false;
+    }
+
+    PyList_SET_ITEM0(list, cur_size, item);
+
+    return true;
+}

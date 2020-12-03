@@ -87,13 +87,19 @@ def generateListOperationAppendCode(statement, emit, context):
 
     context.setCurrentSourceCodeReference(statement.getSourceReference())
 
-    res_name = context.getIntResName()
+    res_name = context.getBoolResName()
 
     emit("assert(PyList_Check(%s));" % list_arg_name)
-    emit("%s = PyList_Append(%s, %s);" % (res_name, list_arg_name, value_arg_name))
 
+    if context.needsCleanup(value_arg_name):
+        emit("%s = LIST_APPEND1(%s, %s);" % (res_name, list_arg_name, value_arg_name))
+        context.removeCleanupTempName(value_arg_name)
+    else:
+        emit("%s = LIST_APPEND0(%s, %s);" % (res_name, list_arg_name, value_arg_name))
+
+    # TODO: Only really MemoryError, which we often ignore.
     getErrorExitBoolCode(
-        condition="%s == -1" % res_name,
+        condition="%s == false" % res_name,
         release_names=(list_arg_name, value_arg_name),
         emit=emit,
         context=context,
