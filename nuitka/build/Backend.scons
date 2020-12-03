@@ -46,7 +46,6 @@ import re
 import subprocess
 
 import SCons  # pylint: disable=import-error
-from nuitka.Tracing import my_print, scons_logger
 from SCons.Script import (  # pylint: disable=import-error
     ARGUMENTS,
     CacheDir,
@@ -56,6 +55,8 @@ from SCons.Script import (  # pylint: disable=import-error
     File,
     GetOption,
 )
+
+from nuitka.Tracing import my_print, scons_logger
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import enableC11Settings, getDownloadedGccPath
@@ -746,6 +747,9 @@ if debug_mode:
         # Disable warnings, that CPython headers already show.
         if python_version >= "3.4":
             env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
+
+        if python_version >= "3.9":
+            env.Append(CCFLAGS=["/wd4996"])
 
 if full_compat_mode:
     env.Append(CPPDEFINES=["_NUITKA_FULL_COMPAT"])
