@@ -8,7 +8,16 @@ This release is not done yet.
  Bug Fixes
 ***********
 
--  Fix, the frame caching could leam memory when using caching for
+-  Fix, was memory leaking arguments of all complex call helper
+   functions. Fixed in 0.6.9.6 already.
+
+-  Plugins: Fix, the dill-compat code needs to follow API change. Fixed
+   in 0.6.9.7 already.
+
+-  Windows: Fixup for multiprocessing module and complex call helpers
+   that could crash the program. Fixed in 0.6.9.7 already.
+
+-  Fix, the frame caching could leak memory when using caching for
    functions and generators used in multiple threads.
 
 -  Python3: Fix, importing an extension module below a compiled module
@@ -24,9 +33,29 @@ This release is not done yet.
    and Scons were having issues, added a workaround to resolve it even
    on Python2.
 
-- Compatibility: Added support for ``co_freevars`` in code objects, e.g.
-  newer matplotlib needs this.
+-  Compatibility: Added support for ``co_freevars`` in code objects, e.g.
+   newer matplotlib needs this.
 
+-  Standalone: Add needed data files for gooey. Fixed in 0.6.9.4 already.
+
+-  Scons: Fix, was not respecting ``--quiet`` option when running Scons.
+   Fixed in 0.6.9.3 already.
+
+-  Scons: Fix, wasn't automatically detecting Scons from promised paths.
+   Fixed in 0.6.9.2 already.
+
+-  Scons: Fix, the clcache output parsing wasn't robust enough. Fixed in
+   0.6.9.1 already.
+
+-  Python3.8: Ignore all non-strings provided in doc-string fashion, they
+   are not to be considered.
+
+-  Fix, ``getattr``, ``setattr`` and ``hasattr`` could not be used in
+   finally clauses anymore. Fixed in 0.6.9.1 already.
+
+-  Windows: For Python3 enhanced compatibility for Windows no console mode,
+   they need a ``sys.stdin`` or else e.g. ``input`` will not be compatible
+   and raise ``RuntimeError``.
 
 **************
  New Features
@@ -109,7 +138,7 @@ This release is not done yet.
    rather than doing cases locally, adding a C type for ``bool``.
 
 -  Use common code for C code handling const ``None`` return only, to
-   cases where there is any constant value returned, avoid code
+   cases where there is any immutable constant value returned, avoid code
    generation for this common case. Currently mutable constants are not
    handled, this may be added in the future.
 
@@ -216,6 +245,12 @@ This release is not done yet.
    place e.g. used ``PyTuple_Size``, and one was in a performance critical
    part, e.g. in code that used when compiled functions as called as a
    method.
+
+-  Added optimized variant for ``_PyList_Extend`` for slightly faster
+   unpacking code.
+
+-  Added optimized variant for ``PyList_Append`` for faster list
+   contractions code.
 
 -  Avoid using ``RemoveFileSpec`` and instead provide our own code for that
    task, slightly reducing file size and avoiding to use the ``Shlapi``
