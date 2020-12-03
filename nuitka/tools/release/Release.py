@@ -91,9 +91,10 @@ def getBranchCategory(branch_name):
 
 def checkNuitkaChangelog():
     with open("Changelog.rst") as f:
-        first_line = f.readline()
+        _first_line = f.readline()
+        second_line = f.readline()
 
-    if "(Draft)" in first_line:
+    if "(Draft)" in second_line:
         return "draft"
     else:
         return "final"
