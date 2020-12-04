@@ -34,7 +34,7 @@
 #include <windows.h>
 
 #ifndef MAX_PATH
-// TODO: Immitate definition of this from CPython headers.
+// TODO: Imitate definition of this from CPython headers.
 #define MAX_PATH 1024
 #endif
 

@@ -201,7 +201,7 @@ def withEnvironmentPathAdded(env_var_name, *paths):
 
 @contextmanager
 def withEnvironmentVarOverriden(env_var_name, value):
-    """ Change an enviroment and restore it after context. """
+    """ Change an environment and restore it after context. """
 
     if env_var_name in os.environ:
         old_value = os.environ[env_var_name]
@@ -224,7 +224,7 @@ def withEnvironmentVarOverriden(env_var_name, value):
 
 @contextmanager
 def withEnvironmentVarsOverriden(mapping):
-    """ Change multiple enviroment variables and restore them after context. """
+    """ Change multiple environment variables and restore them after context. """
 
     old_values = {}
 

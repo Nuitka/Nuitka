@@ -771,7 +771,7 @@ __name__ = ...
                 packDistFolderToOnefile(dist_dir, binary_filename)
 
         general.info(
-            "Sucessfully created %r."
+            "Successfully created %r."
             % OutputDirectories.getResultFullpath(onefile=Options.isOnefileMode())
         )
 

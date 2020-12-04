@@ -401,7 +401,7 @@ PyObject *BUILTIN_HEX(PyObject *value) {
  **/
 
 static void SET_HASH_NOT_IMPLEMENTED_ERROR(PyObject *value) {
-    // TODO: Use our own formating code.
+    // TODO: Use our own formatting code.
 
     PyErr_Format(PyExc_TypeError, "unhashable type: '%s'", Py_TYPE(value)->tp_name);
 }

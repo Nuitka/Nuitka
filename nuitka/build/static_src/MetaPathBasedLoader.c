@@ -366,7 +366,7 @@ static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_mo
     }
 
 #if 0
-    PRINT_STRING("CANIDATES:");
+    PRINT_STRING("CANDIDATES:");
     PRINT_STRING(Nuitka_String_AsString(module_name));
     PRINT_STRING(module_relname_str);
     PRINT_ITEM(candidates);
