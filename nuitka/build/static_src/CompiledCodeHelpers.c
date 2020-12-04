@@ -33,6 +33,7 @@
 #include "HelpersExceptions.c"
 #include "HelpersHeapStorage.c"
 #include "HelpersImport.c"
+#include "HelpersRaising.c"
 #include "HelpersStrings.c"
 
 void copyStringSafe(char *buffer, char const *source, size_t buffer_size) {
