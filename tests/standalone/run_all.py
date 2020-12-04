@@ -133,7 +133,15 @@ def main():
             my_print("Skipping", filename)
             continue
 
-        extra_flags = ["expect_success", "standalone", "remove_output"]
+        extra_flags = [
+            "expect_success",
+            "standalone",
+            "remove_output",
+            # Cache the CPython results for re-use, they will normally not change.
+            "cpython_cache",
+            # To understand what is slow.
+            "timing",
+        ]
 
         # skip each test if their respective requirements are not met
         requirements_met, error_message = checkRequirements(filename)
