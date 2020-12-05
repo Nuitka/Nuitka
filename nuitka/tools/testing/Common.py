@@ -33,7 +33,7 @@ from contextlib import contextmanager
 from optparse import OptionGroup, OptionParser
 
 from nuitka.freezer.DependsExe import getDependsExePath
-from nuitka.Tracing import my_print
+from nuitka.Tracing import OurLogger, my_print
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_output, withEnvironmentVarOverriden
 from nuitka.utils.FileOperations import (
@@ -1495,3 +1495,6 @@ def someGenerator():
 def someGeneratorRaising():
     yield 1
     raise TypeError(2)
+
+
+test_logger = OurLogger("", base_style="blue")

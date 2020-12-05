@@ -177,7 +177,8 @@ class OurLogger(object):
 
     def info(self, message, style=None):
         if not is_quiet:
-            message = "%s:INFO: %s" % (self.name, message)
+            if self.name:
+                message = "%s:INFO: %s" % (self.name, message)
 
             style = style or self.base_style
             self.my_print(message, style=style)

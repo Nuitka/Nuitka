@@ -52,12 +52,13 @@ from nuitka.tools.testing.Common import (
     getPythonVendor,
     getRuntimeTraceOfLoadedFiles,
     hasModule,
-    my_print,
     reportSkip,
     setup,
+    test_logger,
 )
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.FileOperations import areSamePaths, removeDirectory
+from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import getOS
 
 
@@ -102,7 +103,7 @@ def displayError(dirname, filename):
 
     filename = filename[:-3] + ".dist"
 
-    my_print("Listing of dist folder '%s':" % filename)
+    test_logger.info("Listing of dist folder '%s':" % filename)
 
     if os.name == "nt":
         command = "dir /b /s /a:-D %s" % filename
@@ -130,7 +131,7 @@ def main():
         active = search_mode.consider(dirname=None, filename=filename)
 
         if not active:
-            my_print("Skipping", filename)
+            test_logger.info("Skipping %s" % filename)
             continue
 
         extra_flags = [
@@ -232,7 +233,9 @@ def main():
                 # For the plug-in not used information.
                 extra_flags.append("ignore_warnings")
 
-        my_print("Consider output of recursively compiled program:", filename)
+        test_logger.info(
+            "Consider output of standalone mode compiled program: %s" % filename
+        )
 
         # First compare so we know the program behaves identical.
         compareWithCPython(
@@ -281,7 +284,7 @@ def main():
                 found_glibc_libs.append(dist_filename)
 
         if found_glibc_libs:
-            my_print(
+            test_logger.warning(
                 "Should not ship glibc libraries with the standalone executable (found %s)"
                 % found_glibc_libs
             )
@@ -292,7 +295,10 @@ def main():
         )
 
         # Then use "strace" on the result.
-        loaded_filenames = getRuntimeTraceOfLoadedFiles(binary_filename)
+        with TimerReport(
+            "Determining run time loaded files took %.2f", logger=test_logger
+        ):
+            loaded_filenames = getRuntimeTraceOfLoadedFiles(binary_filename)
 
         current_dir = os.path.normpath(os.getcwd())
         current_dir = os.path.normcase(current_dir)
@@ -614,23 +620,23 @@ def main():
             if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
                 continue
 
-            my_print("Should not access '%s'." % loaded_filename)
+            test_logger.warning("Should not access '%s'." % loaded_filename)
             illegal_access = True
 
         if illegal_access:
             if os.name != "nt":
-                my_print("Listing of dist folder:")
+                test_logger.info("Listing of dist folder:")
                 os.system("ls -Rla %s" % filename[:-3] + ".dist")
 
-                my_print("Inclusion log:")
+                test_logger.info("Inclusion log:")
                 os.system("cat %s" % filename[:-3] + ".py.inclusion.log")
 
                 # Run with traces to help debugging, specifically in CI environment.
                 if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
-                    my_print("dtruss:")
+                    test_logger.info("dtruss:")
                     os.system("sudo dtruss %s" % binary_filename)
                 else:
-                    my_print("strace:")
+                    test_logger.info("strace:")
                     os.system("strace -s4096 -e file %s" % binary_filename)
 
             search_mode.onErrorDetected(1)
