@@ -619,13 +619,15 @@ def lateActivatePlugin(plugin_name, option_values):
 
 
 def _addPluginCommandLineOptions(parser, plugin_class):
-    option_group = OptionGroup(parser, "Plugin %s" % plugin_class.plugin_name)
-    plugin_class.addPluginCommandLineOptions(option_group)
+    if plugin_class.plugin_name not in plugin_options:
+        option_group = OptionGroup(parser, "Plugin %s" % plugin_class.plugin_name)
+        plugin_class.addPluginCommandLineOptions(option_group)
 
-    if option_group.option_list:
-        parser.add_option_group(option_group)
-        plugin_options[plugin_class.plugin_name] = option_group.option_list
-
+        if option_group.option_list:
+            parser.add_option_group(option_group)
+            plugin_options[plugin_class.plugin_name] = option_group.option_list
+        else:
+            plugin_options[plugin_class.plugin_name] = ()
 
 def addPluginCommandLineOptions(parser, plugin_names):
     """Add option group for the plugin to the parser.
