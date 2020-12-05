@@ -53,18 +53,16 @@ Requirements
 
   * The ``clang`` compiler on macOS X or FreeBSD.
 
-  * The MinGW64 [#]_ C11 compiler on Windows, ideally the one based on gcc
-    6 or higher. The Anaconda compilers [#]_ are suitable too, even if you
-    use CPython, they are the easiest installation method.
+  * The MinGW64 C11 compiler on Windows, ideally the one based on gcc
+    8 or higher. It will be automatically downloaded if not found.
 
   * Visual Studio 2019 or higher on Windows [#]_, older versions may work
     but are not officially supported. Configure to use the English language
     pack for best results (Nuitka filters away garbage outputs, but only
     for that language).
 
-  * On Windows the ``clang-cl`` compiler on Windows can be used if provided if
-    you use the ``CC`` environment variable to point to it, *and* you also have
-    MSVC installed.
+  * On Windows the ``clang-cl`` compiler on Windows can be used if provided
+    by the Visual Studion installer.
 
 
 - Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8
@@ -130,31 +128,6 @@ Requirements
        language standard is very overlapping with C11, it is then used instead
        where the C compiler is too old. Nuitka used to require a C++ compiler
        in the past, but it changed.
-
-.. [#] Download MinGW64 from here http://mingw-w64.org/ using "MingW-W64-builds"
-       links and choose 64 or 32 bits matching your Python from
-
-       Use both MinGW64 and 64 bits Python if you have the choice of which
-       Python to use. Install it to ``C:\MinGW64`` or ``\MinGW64`` (same disk
-       root as Nuitka running) to find it automatically. Also, when prompted,
-       use ``posix`` for threads and ``dwarf`` for exception model, although
-       these currently do not matter at all.
-
-.. [#] Installation of matching MinGW64 if you use an Anaconda or Miniconda
-       installation.
-
-       Execute ``<path_to_Anaconda>\Scripts\conda install m2w64-gcc libpython``
-       and then before you run Nuitka do ``setenv
-       CC=<path_to_Anaconda>\Library\mingw-w64\bin\gcc.exe`` and then its use
-       will be forced.
-
-       Nuitka running through Anaconda Python also uses it automatically, if you
-       run it like this ``<path_to_Anaconda>\python -m nuitka ...``. But if MSVC
-       is already installed, you will have to provide ``--mingw64`` or else that
-       will be preferred.
-
-       Due to Anaconda performance issues, this command may run really long even
-       on a fresh install of Anaconda.
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
@@ -235,34 +208,14 @@ if you have any of the parts, just skip it.
 Setup
 -----
 
-Install the C compiler
-++++++++++++++++++++++
-
- - Download and install mingw64 with online installer from
-   `Sourceforce MinGW64 <https://sourceforge.net/projects/mingw-w64/files/mingw-w64/>`_
-
-   - For Architecture: choose ``x86_64`` (64 bits Python, recommended) or ``i686``
-     matching your Python installation, otherwise you will get errors about mismatch
-     at compile time.
-
- - Select destination folder to ``C:\\MinGW64``.
-
- - Verify using command  ``C:\\MinGW64\\mingw64\\bin\\gcc.exe --version``.
-
- - Set a environment variable pointing to ``gcc.exe``.
-
-   ``CC=C:\\MinGW64\\mingw64\\bin\\gcc.exe`` if 64 bit version
-
-   ``CC=C:\\MinGW64\\mingw32\\bin\\gcc.exe`` if 32 bit version
-
-Install Python (64 Bits)
-++++++++++++++++++++++++
+Install Python
+++++++++++++++
 
  - Download and install from
    `https://www.python.org/downloads/windows <https://www.python.org/downloads/windows>`_
 
  - Select one of ``Windows x86-64 web-based installer`` (64 bits Python, recommended) or
-   ``x86 executable`` (32 bits Python) installer
+   ``x86 executable`` (32 bits Python) installer.
 
  - Verify using command ``python --version``.
 
@@ -270,7 +223,7 @@ Install Nuitka
 ++++++++++++++
 
  - ``python -m pip install nuitka``
- - or if you use anaconda: ``conda install -c conda-forge nuitka``
+ - or if you use Anaconda: ``conda install -c conda-forge nuitka``
  - Verify using command ``python -m nuitka --version``
 
 Write some code and test
@@ -312,6 +265,12 @@ Build it using
 
    python -m nuitka --mingw64 hello.py
 
+.. note::
+
+   This will prompt you to download a C caching tool (to speed up repeated
+   compilation of generated C code) and a MinGW64 based C compiler. Say yes to
+   those.
+
 If you like to have full output add ``--show-progress`` and  ``--show-scons``.
 
 Run it
@@ -325,6 +284,10 @@ Distribute
 To distribute, build with ``--standalone`` option, which will not output a
 single executable, but a whole folder. Copy the resulting ``hello.dist`` folder
 to the other machine and run it.
+
+You may also try ``--onefile`` which does create a single file, but it is still
+experimental at this stage and wants more options specified from you, while not
+allowing you easily to add missing files yet.
 
 
 Use Cases
@@ -425,7 +388,7 @@ Dynamic ``sys.path``
 If your script modifies ``sys.path`` to e.g. insert directories with source
 code relative to it, Nuitka will currently not be able to see those. However,
 if you set the ``PYTHONPATH`` to the resulting value, you will be able to
-compile it
+compile it.
 
 Tips
 ====
@@ -433,8 +396,9 @@ Tips
 Python command line flags
 -------------------------
 
-For passing things like ``-O`` or ``-S`` to your program, there is a command
-line option name ``--python-flag=`` which makes Nuitka emulate these options.
+For passing things like ``-O`` or ``-S`` to Python, to your compiled program,
+there is a command line option name ``--python-flag=`` which makes Nuitka
+emulate these options.
 
 The most important ones are supported, more can certainly be added.
 
