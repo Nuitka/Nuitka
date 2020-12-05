@@ -52,7 +52,7 @@ NUITKA_MAY_BE_UNUSED static bool LIST_RESIZE(PyListObject *list, Py_ssize_t news
     if (newsize == 0) {
         new_allocated = 0;
     } else {
-        new_allocated = (size_t)newsize + (newsize >> 3) + (newsize < 9 ? 3 : 6);
+        new_allocated = (size_t)(newsize + (newsize >> 3) + (newsize < 9 ? 3 : 6));
     }
 
     size_t num_allocated_bytes = new_allocated * sizeof(PyObject *);
