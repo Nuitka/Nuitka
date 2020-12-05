@@ -2,7 +2,8 @@
  Nuitka Release 0.6.10 (Draft)
 ###############################
 
-This release is not done yet.
+This release comes with many new features, e.g. onefile support, as well as
+many new optimization and bug fixes.
 
 ***********
  Bug Fixes
@@ -355,6 +356,25 @@ This release is not done yet.
 -  Make it more clear in the documentation that Microsoft Appstore
    Python is not supported.
 
+*********
+ Summary
+*********
+
+This is the big release in terms of scalability. The optimization in this
+release mostly focused on getting things that cause increased compile times
+sorted out. A very important fix avoids loop optimization to leak into global
+passes of all modules unnecessarily, but just as important, generated code now
+is much better for the C compiler to consume in observed problematic cases.
+
+Other optimization came from supporting Python 3.9 and things come across
+during the implementation of that feature, e.g. to be able to make differences
+with unpacking error messages, we provide more code to handle it ourselves, and
+to manually optimize how to interact with e.g. ``list`` objects.
+
+All in all, this release should be taken as a major cleanup, resolving many
+technical debts of Nuitka and preparing more optimization to come.
+
+
 ######################
  Nuitka Release 0.6.9
 ######################
@@ -367,6 +387,16 @@ many changes to be necessary.
 There are also many general improvements and performance work for
 tracing and loops, but the full potential of this will not be unlocked
 with this release yet.
+
+More optimization changes are geared towards reducing Nuitka frontend compile
+time, which could also be a lot in some cases, ending up specializing more
+constant nodes and how they expose themselves to optimization.
+
+For Windows, the automatic download of ``ccache`` and a matching MinGW64 if
+none was found, is a new step, that should lower the barrier of entry for
+people who have no clue what a C compiler is. More changes are bound to come in
+this field with future releases, e.g. making a minimum version requirement for
+gcc on Windows that excludes unfit C compilers.
 
 ***********
  Bug Fixes
