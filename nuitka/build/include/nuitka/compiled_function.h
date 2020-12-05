@@ -111,6 +111,12 @@ extern struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_co
                                                          Py_ssize_t closure_given);
 #endif
 
+extern void Nuitka_Function_EnableConstReturnTrue(struct Nuitka_FunctionObject *function);
+
+extern void Nuitka_Function_EnableConstReturnFalse(struct Nuitka_FunctionObject *function);
+
+extern void Nuitka_Function_EnableConstReturnGeneric(struct Nuitka_FunctionObject *function, PyObject *value);
+
 static inline bool Nuitka_Function_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Function_Type; }
 
 static inline PyObject *Nuitka_Function_GetName(PyObject *object) {

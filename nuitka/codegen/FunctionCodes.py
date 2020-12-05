@@ -165,9 +165,13 @@ def getFunctionMakerCode(
         if constant_return_value is None:
             # Default value, spare the code for common case.
             constant_return_code = ""
+        elif constant_return_value is True:
+            constant_return_code = "Nuitka_Function_EnableConstReturnTrue(result);"
+        elif constant_return_value is False:
+            constant_return_code = "Nuitka_Function_EnableConstReturnFalse(result);"
         else:
             constant_return_code = (
-                "result->m_constant_return_value = %s;"
+                "Nuitka_Function_EnableConstReturnGeneric(result, %s);"
                 % context.getConstantCode(constant_return_value)
             )
     else:

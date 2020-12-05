@@ -586,10 +586,53 @@ void _initCompiledFunctionType(void) {
 #endif
 }
 
-// Shared implementation for empty functions. When a function body is empty, but
+// Shared implementations for empty functions. When a function body is empty, but
 // still needs to exist, e.g. overloaded functions, this is saving the effort to
 // produce one.
-static PyObject *_Nuitka_FunctionEmptyCodeImpl(struct Nuitka_FunctionObject const *function, PyObject **python_pars) {
+static PyObject *_Nuitka_FunctionEmptyCodeNoneImpl(struct Nuitka_FunctionObject const *function,
+                                                   PyObject **python_pars) {
+    Py_ssize_t arg_count = function->m_args_overall_count;
+
+    for (Py_ssize_t i = 0; i < arg_count; i++) {
+        Py_DECREF(python_pars[i]);
+    }
+
+    PyObject *result = Py_None;
+
+    Py_INCREF(result);
+    return result;
+}
+
+static PyObject *_Nuitka_FunctionEmptyCodeTrueImpl(struct Nuitka_FunctionObject const *function,
+                                                   PyObject **python_pars) {
+    Py_ssize_t arg_count = function->m_args_overall_count;
+
+    for (Py_ssize_t i = 0; i < arg_count; i++) {
+        Py_DECREF(python_pars[i]);
+    }
+
+    PyObject *result = Py_True;
+
+    Py_INCREF(result);
+    return result;
+}
+
+static PyObject *_Nuitka_FunctionEmptyCodeFalseImpl(struct Nuitka_FunctionObject const *function,
+                                                    PyObject **python_pars) {
+    Py_ssize_t arg_count = function->m_args_overall_count;
+
+    for (Py_ssize_t i = 0; i < arg_count; i++) {
+        Py_DECREF(python_pars[i]);
+    }
+
+    PyObject *result = Py_False;
+
+    Py_INCREF(result);
+    return result;
+}
+
+static PyObject *_Nuitka_FunctionEmptyCodeGenericImpl(struct Nuitka_FunctionObject const *function,
+                                                      PyObject **python_pars) {
     Py_ssize_t arg_count = function->m_args_overall_count;
 
     for (Py_ssize_t i = 0; i < arg_count; i++) {
@@ -600,6 +643,21 @@ static PyObject *_Nuitka_FunctionEmptyCodeImpl(struct Nuitka_FunctionObject cons
 
     Py_INCREF(result);
     return result;
+}
+
+void Nuitka_Function_EnableConstReturnTrue(struct Nuitka_FunctionObject *function) {
+    function->m_constant_return_value = Py_True;
+    function->m_c_code = _Nuitka_FunctionEmptyCodeTrueImpl;
+}
+
+void Nuitka_Function_EnableConstReturnFalse(struct Nuitka_FunctionObject *function) {
+    function->m_constant_return_value = Py_False;
+    function->m_c_code = _Nuitka_FunctionEmptyCodeFalseImpl;
+}
+
+void Nuitka_Function_EnableConstReturnGeneric(struct Nuitka_FunctionObject *function, PyObject *value) {
+    function->m_constant_return_value = value;
+    function->m_c_code = _Nuitka_FunctionEmptyCodeGenericImpl;
 }
 
 #if PYTHON_VERSION >= 380
@@ -629,9 +687,11 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 
     if (c_code != NULL) {
         result->m_c_code = c_code;
+#ifndef __NUITKA_NO_ASSERT__
         result->m_constant_return_value = NULL;
+#endif
     } else {
-        result->m_c_code = _Nuitka_FunctionEmptyCodeImpl;
+        result->m_c_code = _Nuitka_FunctionEmptyCodeNoneImpl;
         result->m_constant_return_value = Py_None;
     }
 
