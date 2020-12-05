@@ -20,23 +20,25 @@
 
 module_var = None
 
-def calledRepeatedly():
-    # We measure making a local function that will remain unused.
-    closure_var = module_var
+def calledRepeatedly(x):
+    # Force a local frame for now
+    module_var
 
 # construct_begin
     def empty():
-        return closure_var
+        return x
 
 # construct_alternative
-    empty = 1
+    def empty():
+        return module_var
+
 # construct_end
 
-    return empty, closure_var
+    return empty, x
 
 
 import itertools
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    calledRepeatedly(x)
 
 print("OK.")

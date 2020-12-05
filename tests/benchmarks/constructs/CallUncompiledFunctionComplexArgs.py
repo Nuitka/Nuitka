@@ -33,11 +33,15 @@ def calledRepeatedly():
     # being optimized separately.
     args = a
 
+    python_f = python_func
+
 # construct_begin
-    python_func(3, *a)
+    python_f(3, *a)
 # construct_alternative
     pass
 # construct_end
+
+    return python_f
 
 import itertools
 for x in itertools.repeat(None, 50000):

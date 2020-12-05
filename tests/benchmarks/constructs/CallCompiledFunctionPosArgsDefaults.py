@@ -23,15 +23,19 @@ def compiled_func(a = 1,b = 2,c = 3,d = 4,e = 5,f = 6):
     return a, b, c, d, e, f
 
 def calledRepeatedly():
-    # This is supposed to make a call to a non-compiled function, which is
+    # This is supposed to make a call to a compiled function, which is
     # being optimized separately.
+    compiled_f = compiled_func
+
 # construct_begin
-    compiled_func()
-    compiled_func()
-    compiled_func()
+    compiled_f()
+    compiled_f()
+    compiled_f()
 # construct_alternative
     pass
 # construct_end
+
+    return compiled_f
 
 import itertools
 for x in itertools.repeat(None, 50000):

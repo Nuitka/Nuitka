@@ -33,15 +33,19 @@ def calledRepeatedly():
     e = getUnknownValue()
     f = getUnknownValue()
 
-    # This is supposed to make a call to a non-compiled function, which is
+    compiled_f = compiled_func
+
+    # This is supposed to make a call to a compiled function, which is
     # being optimized separately.
 # construct_begin
-    compiled_func(a, b, c, d, e, f)
-    compiled_func(a, c, b, d, e, f)
-    compiled_func(a, b, c, d, f, e)
+    compiled_f(a, b, c, d, e, f)
+    compiled_f(a, c, b, d, e, f)
+    compiled_f(a, b, c, d, f, e)
 # construct_alternative
     pass
 # construct_end
+
+    return compiled_f
 
 import itertools
 for x in itertools.repeat(None, 50000):

@@ -20,15 +20,15 @@
 
 from __future__ import print_function
 
-count = 0
+module_var = None
 
 def raisy():
-    global count
-    count += 1
-
     raise TypeError
 
-def calledRepeatedly():
+def calledRepeatedly(raisy):
+    # Force a frame for now
+    module_var
+
 # construct_begin
     try:
         raisy()
@@ -40,11 +40,6 @@ def calledRepeatedly():
 
 import itertools
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    calledRepeatedly(raisy)
 
-# construct_begin
-assert count == 50000
-# construct_alternative
-assert count == 0
-# construct_end
 print("OK.")
