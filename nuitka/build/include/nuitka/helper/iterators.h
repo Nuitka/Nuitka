@@ -195,13 +195,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT(PyObject *iterator) {
 
     PyObject *result = (*iternext)(iterator);
 
-#if PYTHON_VERSION < 300
-    // TODO: This is used for different purposes, some of which do not benefit from this
-    // should be split into two different forms.
-    if (result == NULL) {
-        CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED();
-    }
-#endif
+    CHECK_OBJECT_X(result);
 
     return result;
 }
