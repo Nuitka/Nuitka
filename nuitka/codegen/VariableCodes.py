@@ -122,13 +122,19 @@ def getVariableReferenceCode(
             # doesn't change things.
 
             emit(
-                "%(value_name)s = %(helper_code)s(moduledict_%(module_identifier)s, %(var_name)s);"
+                """\
+%(value_name)s = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(var_name)s);
+
+if (unlikely(%(value_name)s == NULL)) {
+    %(value_name)s = %(helper_code)s(%(var_name)s);
+}
+"""
                 % {
-                    "helper_code": "GET_MODULE_VARIABLE_VALUE_IN_FUNCTION"
+                    "helper_code": "GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION"
                     if python_version < 340
                     and not owner.isCompiledPythonModule()
                     and not owner.isExpressionClassBody()
-                    else "GET_MODULE_VARIABLE_VALUE",
+                    else "GET_MODULE_VARIABLE_VALUE_FALLBACK",
                     "module_identifier": context.getModuleCodeName(),
                     "value_name": value_name,
                     "var_name": context.getConstantCode(constant=variable.getName()),

@@ -51,8 +51,8 @@ extern PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_na
 #endif
 
 extern PyObject *LOOKUP_MODULE_VALUE(PyDictObject *module_dict, PyObject *var_name);
-extern PyObject *GET_MODULE_VARIABLE_VALUE(PyDictObject *module_dict, PyObject *variable_name);
+extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK(PyObject *variable_name);
 #if PYTHON_VERSION < 340
-extern PyObject *GET_MODULE_VARIABLE_VALUE_IN_FUNCTION(PyDictObject *module_dict, PyObject *variable_name);
+extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION(PyObject *variable_name);
 #endif
 #endif
