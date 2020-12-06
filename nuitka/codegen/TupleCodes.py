@@ -64,11 +64,27 @@ def getTupleCreationCode(to_name, elements, emit, context):
     else:
         element_name = context.allocateTempName("tuple_element")
 
-        needs_exception_exit = any(
-            element.mayRaiseException(BaseException) for element in elements
-        )
+        def generateElementCode(element):
+            generateExpressionCode(
+                to_name=element_name, expression=element, emit=emit, context=context
+            )
+
+            # Use helper that makes sure we provide a reference.
+            if context.needsCleanup(element_name):
+                context.removeCleanupTempName(element_name)
+                helper_code = "PyTuple_SET_ITEM"
+            else:
+                helper_code = "PyTuple_SET_ITEM0"
+
+            return helper_code
+
+        helper_code = generateElementCode(elements[0])
 
         emit("%s = PyTuple_New(%d);" % (to_name, len(elements)))
+
+        needs_exception_exit = any(
+            element.mayRaiseException(BaseException) for element in elements[1:]
+        )
 
         with withCleanupFinally(
             "tuple_build", to_name, needs_exception_exit, emit, context
@@ -76,16 +92,8 @@ def getTupleCreationCode(to_name, elements, emit, context):
             emit = guarded_emit.emit
 
             for count, element in enumerate(elements):
-                generateExpressionCode(
-                    to_name=element_name, expression=element, emit=emit, context=context
-                )
-
-                # Use helper that makes sure we provide a reference.
-                if context.needsCleanup(element_name):
-                    context.removeCleanupTempName(element_name)
-                    helper_code = "PyTuple_SET_ITEM"
-                else:
-                    helper_code = "PyTuple_SET_ITEM0"
+                if count > 0:
+                    helper_code = generateElementCode(element)
 
                 emit("%s(%s, %d, %s);" % (helper_code, to_name, count, element_name))
 

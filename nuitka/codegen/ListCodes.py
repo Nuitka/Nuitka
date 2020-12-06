@@ -35,15 +35,31 @@ def generateListCreationCode(to_name, expression, emit, context):
     elements = expression.subnode_elements
     assert elements
 
-    element_name = context.allocateTempName("list_element")
-
     with withObjectCodeTemporaryAssignment(
         to_name, "list_result", expression, emit, context
     ) as result_name:
+        element_name = context.allocateTempName("list_element")
+
+        def generateElementCode(element):
+            generateExpressionCode(
+                to_name=element_name, expression=element, emit=emit, context=context
+            )
+
+            # Use helper that makes sure we provide a reference.
+            if context.needsCleanup(element_name):
+                context.removeCleanupTempName(element_name)
+                helper_code = "PyList_SET_ITEM"
+            else:
+                helper_code = "PyList_SET_ITEM0"
+
+            return helper_code
+
+        helper_code = generateElementCode(elements[0])
+
         emit("%s = PyList_New(%d);" % (result_name, len(elements)))
 
         needs_exception_exit = any(
-            element.mayRaiseException(BaseException) for element in elements
+            element.mayRaiseException(BaseException) for element in elements[1:]
         )
 
         with withCleanupFinally(
@@ -52,16 +68,8 @@ def generateListCreationCode(to_name, expression, emit, context):
             emit = guarded_emit.emit
 
             for count, element in enumerate(elements):
-                generateExpressionCode(
-                    to_name=element_name, expression=element, emit=emit, context=context
-                )
-
-                # Use helper that makes sure we provide a reference.
-                if context.needsCleanup(element_name):
-                    context.removeCleanupTempName(element_name)
-                    helper_code = "PyList_SET_ITEM"
-                else:
-                    helper_code = "PyList_SET_ITEM0"
+                if count > 0:
+                    helper_code = generateElementCode(element)
 
                 emit(
                     "%s(%s, %d, %s);" % (helper_code, result_name, count, element_name)
