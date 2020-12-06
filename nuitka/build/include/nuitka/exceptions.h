@@ -611,24 +611,6 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(void) {
     }
 }
 
-NUITKA_MAY_BE_UNUSED static inline void FORMAT_TYPE_ERROR1(PyObject **exception_type, PyObject **exception_value,
-                                                           char const *format, char const *arg) {
-    *exception_type = PyExc_TypeError;
-    Py_INCREF(*exception_type);
-
-    *exception_value = Nuitka_String_FromFormat(format, arg);
-    CHECK_OBJECT(*exception_value);
-}
-
-NUITKA_MAY_BE_UNUSED static inline void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exception_value,
-                                                           char const *format, char const *arg1, char const *arg2) {
-    *exception_type = PyExc_TypeError;
-    Py_INCREF(*exception_type);
-
-    *exception_value = Nuitka_String_FromFormat(format, arg1, arg2);
-    CHECK_OBJECT(*exception_value);
-}
-
 // Format a NameError exception for a variable name.
 extern void FORMAT_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name);
 

@@ -25,6 +25,24 @@
 #include "nuitka/prelude.h"
 #endif
 
+static void FORMAT_TYPE_ERROR1(PyObject **exception_type, PyObject **exception_value, char const *format,
+                               char const *arg) {
+    *exception_type = PyExc_TypeError;
+    Py_INCREF(*exception_type);
+
+    *exception_value = Nuitka_String_FromFormat(format, arg);
+    CHECK_OBJECT(*exception_value);
+}
+
+static void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exception_value, char const *format,
+                               char const *arg1, char const *arg2) {
+    *exception_type = PyExc_TypeError;
+    Py_INCREF(*exception_type);
+
+    *exception_value = Nuitka_String_FromFormat(format, arg1, arg2);
+    CHECK_OBJECT(*exception_value);
+}
+
 #if PYTHON_VERSION < 266
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must be classes or instances, not %s"
 #elif PYTHON_VERSION < 300
@@ -183,6 +201,7 @@ void RAISE_EXCEPTION_WITH_CAUSE(PyObject **exception_type, PyObject **exception_
                            Py_TYPE(*exception_type)->tp_name);
 
         Py_DECREF(old_exception_type);
+
         return;
     }
 }
