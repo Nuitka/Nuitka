@@ -588,15 +588,21 @@ version (>= 5.3)."""
 
     # For LTO mode, the version requirement is even higher, so try that too.
     if lto_mode and gcc_version < (4, 6):
-        sys.exit(
+        scons_logger.warning(
             """\
 The gcc compiler %s (version %s) doesn't have the sufficient \
-version for lto mode (>= 4.6)."""
+version for lto mode (>= 4.6). Disabled."""
             % (env["CXX"], env["CXXVERSION"])
         )
 
+        lto_mode = False
+
     if lto_mode and mingw_mode:
-        sys.exit("""The gcc compiler on Windows, doesn't currently support lto mode.""")
+        scons_logger.warning(
+            """The gcc compiler on Windows, doesn't currently support lto mode. Disabled."""
+        )
+
+        lto_mode = False
 
     # For gcc 4.6 there are some new interesting functions.
     if gcc_version >= (4, 6):
