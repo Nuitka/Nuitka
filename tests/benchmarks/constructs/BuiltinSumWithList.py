@@ -22,13 +22,14 @@ empty = ()
 
 value = list(range(10))
 
-def calledRepeatedly():
-    # We measure making a generator iterator step or not.
-    x = value
+def calledRepeatedly(iterable, empty):
+    # Force frame
+    value
 
-    # This should abort.
+    # We measure making a list iterator step or not.
+
 # construct_begin
-    y = sum(x)
+    y = sum(iterable)
 # construct_alternative
     y = sum(empty)
 # construct_end
@@ -37,6 +38,6 @@ def calledRepeatedly():
 
 import itertools
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    calledRepeatedly(value, empty)
 
 print("OK.")

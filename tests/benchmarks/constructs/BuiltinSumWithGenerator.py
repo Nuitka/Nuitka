@@ -20,21 +20,22 @@
 
 empty = ()
 
-def calledRepeatedly():
-    # We measure making a generator iterator step or not.
-    gen = (x for x in range(1000))
+def calledRepeatedly(iterable, empty):
+    # Force frame
+    itertools
 
-    # This should abort.
+    # We measure making a generator iterator step or not.
+
 # construct_begin
-    y = sum(gen)
+    y = sum(iterable)
 # construct_alternative
-    y = gen
+    y = sum(empty)
 # construct_end
 
-    return y, gen
+    return y
 
 import itertools
 for x in itertools.repeat(None, 500):
-    calledRepeatedly()
+    calledRepeatedly((x for x in range(1000)), empty)
 
 print("OK.")

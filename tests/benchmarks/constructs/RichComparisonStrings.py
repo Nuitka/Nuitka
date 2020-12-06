@@ -23,13 +23,20 @@ module_value2 = "2000"
 import sys
 loop_count = 50000 if len(sys.argv) < 2 else int(sys.argv[1])
 
-import itertools
-for x in itertools.repeat(None, loop_count):
-# construct_begin
-    module_value1 == module_value2
-# construct_alternative
+def calledRepeatedly(value1, value2):
+    # Force frame and eliminate forward propagation (currently).
     module_value1
-    module_value2
+
+# construct_begin
+    if value1 == value2:
+        return
 # construct_end
+
+    return value1, value2
+
+
+import itertools
+for x in itertools.repeat(None, 50000):
+    calledRepeatedly(module_value1, module_value2)
 
 print("OK.")

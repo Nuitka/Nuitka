@@ -19,26 +19,26 @@
 #
 module_value1 = 1000
 
-def calledRepeatedly():
+def calledRepeatedly(list_value1):
     # Force frame and eliminate forward propagation (currently).
     module_value1
 
 # construct_begin
     l = [
-        module_value1,
-        module_value1,
-        module_value1,
-        module_value1,
-        module_value1
+        list_value1,
+        list_value1,
+        list_value1,
+        list_value1,
+        list_value1
     ]
 # construct_alternative
     l = 1
 # construct_end
 
-    return l
+    return l, list_value1
 
 import itertools
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    calledRepeatedly(module_value1)
 
 print("OK.")
