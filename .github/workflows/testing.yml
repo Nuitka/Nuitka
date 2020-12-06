@@ -152,4 +152,4 @@ jobs:
         run: |
           python -m nuitka --version
           env | sort
-          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads --mingw64
+          python ./tests/run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads --mingw64

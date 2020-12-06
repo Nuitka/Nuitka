@@ -352,6 +352,15 @@ Make a coverage analysis, that does not really check. Default is %default.""",
     )
 
     parser.add_option(
+        "--no-debug",
+        action="store_false",
+        dest="debug",
+        default=True,
+        help="""\
+Make a coverage analysis, that does not really check. Default is %default.""",
+    )
+
+    parser.add_option(
         "--assume-yes-for-downloads",
         action="store_true",
         dest="assume_yes_for_downloads",
@@ -852,15 +861,16 @@ def main():
         or checkExecutableCommand("python3.9")
     )
 
-    if checkExecutableCommand("python2.6"):
-        execute_tests("python2.6-debug", "python2.6", "--debug")
-    else:
-        my_print("Cannot execute tests with Python 2.6, disabled or not installed.")
+    if options.debug:
+        if checkExecutableCommand("python2.6"):
+            execute_tests("python2.6-debug", "python2.6", "--debug")
+        else:
+            my_print("Cannot execute tests with Python 2.6, disabled or not installed.")
 
-    if checkExecutableCommand("python2.7"):
-        execute_tests("python2.7-debug", "python2.7", "--debug")
-    else:
-        my_print("Cannot execute tests with Python 2.7, disabled or not installed.")
+        if checkExecutableCommand("python2.7"):
+            execute_tests("python2.7-debug", "python2.7", "--debug")
+        else:
+            my_print("Cannot execute tests with Python 2.7, disabled or not installed.")
 
     if checkExecutableCommand("python2.6"):
         execute_tests("python2.6-nodebug", "python2.6", "")
