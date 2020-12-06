@@ -629,6 +629,7 @@ def _addPluginCommandLineOptions(parser, plugin_class):
         else:
             plugin_options[plugin_class.plugin_name] = ()
 
+
 def addPluginCommandLineOptions(parser, plugin_names):
     """Add option group for the plugin to the parser.
 
