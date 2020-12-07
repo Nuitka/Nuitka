@@ -75,19 +75,20 @@
 #include <malloc.h>
 #endif
 
-/* An idea I first saw used with Cython, hint the compiler about branches
- * that are more or less likely to be taken. And hint the compiler about
- * things that we assume to be normally true. If other compilers can do
- * similar, I would be grateful for instructions.
+#include "hedley.h"
+
+/* Use annotations for branch prediction. They still make sense as the L1
+ * cache space is saved.
  */
 
-#ifdef __GNUC__
-#define likely(x) __builtin_expect(!!(x), 1)
-#define unlikely(x) __builtin_expect(!!(x), 0)
-#else
-#define likely(x) (x)
-#define unlikely(x) (x)
-#endif
+#define likely(x) HEDLEY_LIKELY(x)
+#define unlikely(x) HEDLEY_UNLIKELY(x)
+
+/* A way to indicate that a specific function won't return, so the C compiler
+ * can create better code.
+ */
+
+#define NUITKA_NO_RETURN HEDLEY_NO_RETURN
 
 /* A way to not give warnings about things that are declared, but might not
  * be used like in-line helper functions in headers or static per module
@@ -99,17 +100,6 @@
 #define NUITKA_MAY_BE_UNUSED
 #endif
 
-/* A way to indicate that a specific function won't return, so the C compiler
- * can create better code.
- */
-#ifdef __GNUC__
-#define NUITKA_NO_RETURN __attribute__((__noreturn__))
-#elif defined(_MSC_VER)
-#define NUITKA_NO_RETURN __declspec(noreturn)
-#else
-#define NUITKA_NO_RETURN
-#endif
-
 /* This is used to indicate code control flows we know cannot happen. */
 #ifndef __NUITKA_NO_ASSERT__
 #define NUITKA_CANNOT_GET_HERE(NAME)                                                                                   \
@@ -118,12 +108,6 @@
     abort();
 #else
 #define NUITKA_CANNOT_GET_HERE(NAME) abort();
-#endif
-
-#ifdef __GNUC__
-#define NUITKA_FORCE_INLINE __attribute__((always_inline))
-#else
-#define NUITKA_FORCE_INLINE
 #endif
 
 /* Python3 removed PyInt instead of renaming PyLong, and PyObject_Str instead
