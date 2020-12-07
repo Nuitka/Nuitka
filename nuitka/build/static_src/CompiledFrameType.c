@@ -46,7 +46,7 @@ static PyMemberDef Nuitka_Frame_memberlist[] = {
     {(char *)"f_lasti", T_INT, OFF(f_lasti), READONLY | RESTRICTED},
     {NULL}};
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 
 static PyObject *Nuitka_Frame_get_exc_traceback(struct Nuitka_FrameObject *frame) {
     PyObject *result = frame->m_frame.f_exc_traceback;
@@ -222,7 +222,7 @@ static int Nuitka_Frame_settrace(PyFrameObject *frame, PyObject *v, void *closur
     return -1;
 }
 
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
 static PyObject *Nuitka_Frame_gettracelines(PyFrameObject *frame, void *closure) {
     PyObject *result = Py_False;
     Py_INCREF(result);
@@ -251,13 +251,13 @@ static PyGetSetDef Nuitka_Frame_getsetlist[] = {
     {(char *)"f_locals", (getter)Nuitka_Frame_getlocals, NULL, NULL},
     {(char *)"f_lineno", (getter)Nuitka_Frame_getlineno, NULL, NULL},
     {(char *)"f_trace", (getter)Nuitka_Frame_gettrace, (setter)Nuitka_Frame_settrace, NULL},
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     {(char *)"f_restricted", (getter)Nuitka_Frame_get_restricted, NULL, NULL},
     {(char *)"f_exc_traceback", (getter)Nuitka_Frame_get_exc_traceback, (setter)Nuitka_Frame_set_exc_traceback, NULL},
     {(char *)"f_exc_type", (getter)Nuitka_Frame_get_exc_type, (setter)Nuitka_Frame_set_exc_type, NULL},
     {(char *)"f_exc_value", (getter)Nuitka_Frame_get_exc_value, (setter)Nuitka_Frame_set_exc_value, NULL},
 #endif
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
     {(char *)"f_trace_lines", (getter)Nuitka_Frame_gettracelines, (setter)Nuitka_Frame_settracelines, NULL},
     {(char *)"f_trace_opcodes", (getter)Nuitka_Frame_gettraceopcodes, (setter)Nuitka_Frame_settraceopcodes, NULL},
 #endif
@@ -265,12 +265,12 @@ static PyGetSetDef Nuitka_Frame_getsetlist[] = {
 
 // tp_repr slot, decide how a function shall be output
 static PyObject *Nuitka_Frame_tp_repr(struct Nuitka_FrameObject *nuitka_frame) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     return PyString_FromFormat(
 #else
     return PyUnicode_FromFormat(
 #endif
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
         "<compiled_frame at %p, file %R, line %d, code %S>", nuitka_frame, nuitka_frame->m_frame.f_code->co_filename,
         nuitka_frame->m_frame.f_lineno, nuitka_frame->m_frame.f_code->co_name
 #elif _DEBUG_FRAME || _DEBUG_REFRAME || _DEBUG_EXCEPTIONS
@@ -358,7 +358,7 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     Py_DECREF(frame->f_globals);
     Py_XDECREF(frame->f_locals);
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     Py_XDECREF(frame->f_exc_type);
     Py_XDECREF(frame->f_exc_value);
     Py_XDECREF(frame->f_exc_traceback);
@@ -384,7 +384,7 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
     Py_VISIT(frame->m_frame.f_globals);
     // Py_VISIT(frame->f_locals);
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     Py_VISIT(frame->m_frame.f_exc_type);
     Py_VISIT(frame->m_frame.f_exc_value);
     Py_VISIT(frame->m_frame.f_exc_traceback);
@@ -435,7 +435,7 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
     return 0;
 }
 
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
 
 static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
     if (frame->m_frame.f_executing) {
@@ -444,7 +444,7 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
         return NULL;
     }
 
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
     // For frames that are closed, we also need to close the generator.
     if (frame->m_frame.f_gen != NULL) {
         Py_INCREF(frame);
@@ -460,7 +460,7 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
 
             close_exception = !_Nuitka_Generator_close(generator);
         }
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
         else if (Nuitka_Coroutine_Check(frame->m_frame.f_gen)) {
             struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)frame->m_frame.f_gen;
             frame->m_frame.f_gen = NULL;
@@ -468,7 +468,7 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
             close_exception = !_Nuitka_Coroutine_close(coroutine);
         }
 #endif
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
         else if (Nuitka_Asyncgen_Check(frame->m_frame.f_gen)) {
             struct Nuitka_AsyncgenObject *asyncgen = (struct Nuitka_AsyncgenObject *)frame->m_frame.f_gen;
             frame->m_frame.f_gen = NULL;
@@ -504,7 +504,7 @@ static PyObject *Nuitka_Frame_sizeof(struct Nuitka_FrameObject *frame) {
 }
 
 static PyMethodDef Nuitka_Frame_methods[] = {
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
     {"clear", (PyCFunction)Nuitka_Frame_clear, METH_NOARGS, "F.clear(): clear most references held by the frame"},
 #endif
     {"__sizeof__", (PyCFunction)Nuitka_Frame_sizeof, METH_NOARGS, "F.__sizeof__() -> size of F in memory, in bytes"},
@@ -576,7 +576,7 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
 
     frame->f_trace = Py_None;
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     frame->f_exc_type = NULL;
     frame->f_exc_value = NULL;
     frame->f_exc_traceback = NULL;
@@ -610,7 +610,7 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
         PyDict_SetItem(frame->f_locals, const_str_plain___module__, MODULE_NAME0(module));
     }
 
-#if PYTHON_VERSION < 340
+#if PYTHON_VERSION < 0x340
     frame->f_tstate = PyThreadState_GET();
 #endif
 
@@ -618,7 +618,7 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
     frame->f_lineno = code->co_firstlineno;
     frame->f_iblock = 0;
 
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
     frame->f_gen = NULL;
     frame->f_executing = 0;
 #endif
@@ -638,11 +638,11 @@ struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObject *mod
 // This is the backend of MAKE_CODEOBJ macro.
 PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name, PyObject *argnames,
                              PyObject *freevars, int arg_count
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
                              ,
                              int kw_only_count
 #endif
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
                              ,
                              int pos_only_count
 #endif
@@ -671,7 +671,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     Py_hash_t hash = DEEP_HASH(argnames);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyObject *code = const_str_empty;
     PyObject *lnotab = const_str_empty;
 #else
@@ -681,13 +681,13 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 
     // Not using PyCode_NewEmpty, it doesn't given us much beyond this
     // and is not available for Python2.
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
     PyCodeObject *result = PyCode_NewWithPosOnlyArgs(arg_count, // argcount
 #else
     PyCodeObject *result = PyCode_New(arg_count, // argcount
 #endif
-#if PYTHON_VERSION >= 300
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION >= 0x380
                                                      pos_only_count, // kw-only count
 #endif
                                                      kw_only_count, // kw-only count

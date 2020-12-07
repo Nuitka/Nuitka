@@ -61,7 +61,7 @@ Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case."""
 
 def main():
     # Complex stuff, even more should become common code though.
-    _python_version = setup(needs_io_encoding=True)
+    setup(needs_io_encoding=True)
 
     search_mode = createSearchMode()
 

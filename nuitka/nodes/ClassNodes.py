@@ -47,7 +47,7 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBa
         self.doc = doc
 
         # Force creation with proper type.
-        if python_version >= 300:
+        if python_version >= 0x300:
             locals_kind = "python3_class"
         else:
             locals_kind = "python2_class"
@@ -96,7 +96,7 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBa
         # they provide "__class__" but nothing else.
 
         if variable_name == "__class__":
-            if python_version < 300:
+            if python_version < 0x300:
                 return self.provider.getVariableForClosure("__class__")
             else:
                 return ExpressionOutlineFunctionBase.getVariableForClosure(

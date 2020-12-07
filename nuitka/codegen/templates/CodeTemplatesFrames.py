@@ -184,7 +184,7 @@ if (isFrameUnusable(%(frame_cache_identifier)s)) {
 Py_INCREF(%(context_identifier)s->m_frame);
 assert(Py_REFCNT(%(context_identifier)s->m_frame) == 2); // Frame stack
 
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
 %(context_identifier)s->m_frame->m_frame.f_gen = (PyObject *)%(context_identifier)s;
 #endif
 
@@ -199,7 +199,7 @@ Py_INCREF(%(context_identifier)s->m_frame);
 
 Nuitka_Frame_MarkAsExecuting(%(context_identifier)s->m_frame);
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 // Accept currently existing exception as the one to publish again when we
 // yield or yield from.
 {
@@ -221,7 +221,7 @@ Nuitka_Frame_MarkAsExecuting(%(context_identifier)s->m_frame);
 
 Nuitka_Frame_MarkAsNotExecuting(%(context_identifier)s->m_frame);
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
 Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
 Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
@@ -237,7 +237,7 @@ goto %(no_exception_exit)s;
 template_frame_guard_generator_return_handler = """\
 %(frame_return_exit)s:;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
 Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
 Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
@@ -275,7 +275,7 @@ if (!EXCEPTION_MATCH_GENERATOR(%(exception_type)s)) {
     assertFrameObject(%(frame_identifier)s);
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
 Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
 Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));

@@ -101,7 +101,7 @@ def getUncompiledNonTechnicalModules():
 
 
 def _normalizeModuleFilename(filename):
-    if python_version >= 300:
+    if python_version >= 0x300:
         filename = filename.replace("__pycache__", "")
 
         suffix = ".cpython-%d.pyc" % (python_version // 10)

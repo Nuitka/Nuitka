@@ -147,7 +147,7 @@ def createPython3NamespacePath(package, module_relpath, source_ref):
             called=ExpressionImportName(
                 module=makeAbsoluteImportNode(
                     module_name="_frozen_importlib"
-                    if python_version < 350
+                    if python_version < 0x350
                     else "_frozen_importlib_external",
                     source_ref=source_ref,
                 ),
@@ -179,7 +179,7 @@ def createNamespacePackage(module_name, is_top, module_relpath):
         source_ref=source_ref,
     )
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         statement = createPython3NamespacePath(
             package=package, module_relpath=module_relpath, source_ref=source_ref
         )

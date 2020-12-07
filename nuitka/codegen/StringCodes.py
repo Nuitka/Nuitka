@@ -76,7 +76,7 @@ def generateBuiltinUnicodeCode(to_name, expression, emit, context):
             capi="PyObject_Unicode",
             arg_desc=(
                 (
-                    "str_arg" if python_version < 300 else "unicode_arg",
+                    "str_arg" if python_version < 0x300 else "unicode_arg",
                     expression.getValue(),
                 ),
             ),
@@ -105,7 +105,7 @@ def generateBuiltinUnicodeCode(to_name, expression, emit, context):
 
 
 def generateBuiltinStrCode(to_name, expression, emit, context):
-    if python_version < 300:
+    if python_version < 0x300:
         generateCAPIObjectCode(
             to_name=to_name,
             capi="PyObject_Str",

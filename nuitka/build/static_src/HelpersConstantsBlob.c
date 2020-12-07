@@ -60,7 +60,7 @@ struct ValueCache {
     value_compare comparator;
 };
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #define INT_START_SIZE (512)
 static struct ValueCache int_cache;
 #endif
@@ -71,12 +71,12 @@ static struct ValueCache long_cache;
 #define FLOAT_START_SIZE (512)
 static struct ValueCache float_cache;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 #define BYTES_START_SIZE (512)
 static struct ValueCache bytes_cache;
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #define UNICODE_START_SIZE (512)
 static struct ValueCache unicode_cache;
 #endif
@@ -96,7 +96,7 @@ static struct ValueCache set_cache;
 #define FROZENSET_START_SIZE (64)
 static struct ValueCache frozenset_cache;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static bool compareIntValues(PyIntObject *a, PyIntObject *b) { return a->ob_ival == b->ob_ival; }
 #endif
 
@@ -107,7 +107,7 @@ static bool compareFloatValues(PyFloatObject *a, PyFloatObject *b) {
     return memcmp(&a->ob_fval, &b->ob_fval, sizeof(b->ob_fval)) == 0;
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 static bool compareBytesValues(PyBytesObject *a, PyBytesObject *b) {
     if (Py_SIZE(a) != Py_SIZE(b)) {
         return false;
@@ -145,7 +145,7 @@ static bool _compareSetItems(PyObject *a, PyObject *b) {
     Py_ssize_t pos1 = 0, pos2 = 0;
     PyObject *key1, *key2;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // Same sized set, simply check if values are identical. Other reductions should
     // make it identical, or else this won't have the effect intended.
     while (_PySet_Next(a, &pos1, &key1)) {
@@ -229,7 +229,7 @@ static void initCaches(void) {
         return;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     int_cache.values = (PyObject **)malloc(sizeof(PyObject *) * INT_START_SIZE);
     int_cache.used = 0;
     int_cache.size = INT_START_SIZE;
@@ -246,14 +246,14 @@ static void initCaches(void) {
     float_cache.size = FLOAT_START_SIZE;
     float_cache.comparator = (value_compare)compareFloatValues;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     bytes_cache.values = (PyObject **)malloc(sizeof(PyObject *) * BYTES_START_SIZE);
     bytes_cache.used = 0;
     bytes_cache.size = BYTES_START_SIZE;
     bytes_cache.comparator = (value_compare)compareBytesValues;
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     unicode_cache.values = (PyObject **)malloc(sizeof(PyObject *) * UNICODE_START_SIZE);
     unicode_cache.used = 0;
     unicode_cache.size = UNICODE_START_SIZE;
@@ -375,7 +375,7 @@ static PyObject *_unpackAnonValue(unsigned char anon_index) {
     case 6:
         return (PyObject *)&PyCode_Type;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     case 7:
         return (PyObject *)&PyFile_Type;
     case 8:
@@ -518,7 +518,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             break;
         }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         case 'i': {
             // TODO: Use fixed sizes for small values, e.g. byte sized.
             long value = unpackValueLong(&data);
@@ -613,7 +613,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             break;
         }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         case 'a':
 #endif
         case 'c': {
@@ -623,7 +623,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *b = PyBytes_FromString((const char *)data);
             data += PyBytes_GET_SIZE(b) + 1;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             if (c == 'a') {
                 PyString_InternInPlace(&b);
             }
@@ -642,7 +642,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *b = PyBytes_FromStringAndSize((const char *)data, 1);
             data += 1;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             PyString_InternInPlace(&b);
 #else
             insertToValueCache(&bytes_cache, &b);
@@ -659,7 +659,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *u = PyUnicode_FromStringAndSize((const char *)data, 1);
             data += 1;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
             PyUnicode_InternInPlace(&u);
 #else
             insertToValueCache(&unicode_cache, &u);
@@ -682,7 +682,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *b = PyBytes_FromStringAndSize((const char *)data, size);
             data += size;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
             insertToValueCache(&bytes_cache, &b);
 #endif
 
@@ -706,19 +706,19 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             break;
         }
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         case 'a': // Python3 attributes
 #endif
         case 'u': { // Python2 unicode, Python3 str, zero terminated.
             size_t size = strlen((const char *)data);
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
 #else
             PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
 #endif
             data += size + 1;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
             if (c == 'a') {
                 PyUnicode_InternInPlace(&u);
             }
@@ -734,14 +734,14 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         case 'v': {
             int size = unpackValueInt(&data);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
 #else
             PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
 #endif
             data += size;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             insertToValueCache(&unicode_cache, &u);
 #endif
 
@@ -782,7 +782,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         }
         case ';': {
             // (x)range objects
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             int start = unpackValueInt(&data);
             int stop = unpackValueInt(&data);
             int step = unpackValueInt(&data);

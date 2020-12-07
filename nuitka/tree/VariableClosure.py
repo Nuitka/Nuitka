@@ -304,11 +304,11 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             if node.getVariable().getOwner() != node.getParentVariableProvider():
                 node.getParentVariableProvider().addClosureVariable(node.getVariable())
         elif node.isExpressionGeneratorObjectBody():
-            if python_version >= 300:
+            if python_version >= 0x300:
                 self._handleNonLocal(node)
 
             # Only Python3.4 or later allows for generators to have qualname.
-            if python_version >= 340:
+            if python_version >= 0x340:
                 self._handleQualnameSetup(node)
         elif node.isExpressionCoroutineObjectBody():
             self._handleNonLocal(node)
@@ -319,20 +319,20 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             self._handleQualnameSetup(node)
         elif node.isExpressionClassBody():
-            if python_version >= 300:
+            if python_version >= 0x300:
                 self._handleNonLocal(node)
 
             # Python3.4 allows for class declarations to be made global, even
             # after they were declared, so we need to fix this up.
-            if python_version >= 340:
+            if python_version >= 0x340:
                 self._handleQualnameSetup(node)
         elif node.isExpressionFunctionBody():
-            if python_version >= 300:
+            if python_version >= 0x300:
                 self._handleNonLocal(node)
 
             # Python 3.4 allows for class declarations to be made global, even
             # after they were declared, so we need to fix this up.
-            if python_version >= 340:
+            if python_version >= 0x340:
                 self._handleQualnameSetup(node)
         # Check if continue and break are properly in loops. If not, raise a
         # syntax error.
@@ -374,7 +374,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
         variable = provider.getVariableForReference(variable_name=variable_name)
 
         # Need to catch functions with "exec" and closure variables not allowed.
-        if python_version < 300 and provider.isExpressionFunctionBodyBase():
+        if python_version < 0x300 and provider.isExpressionFunctionBodyBase():
             was_taken = provider.hasTakenVariable(variable_name)
 
             if not was_taken and variable.getOwner() is not provider:
@@ -444,7 +444,7 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
     """
 
     def onEnterNode(self, node):
-        if python_version < 300 and node.isStatementDelVariable():
+        if python_version < 0x300 and node.isStatementDelVariable():
             variable = node.getVariable()
 
             if not variable.isModuleVariable() and isSharedAmongScopes(variable):

@@ -129,7 +129,7 @@ def generateBuiltinOpenCode(to_name, expression, emit, context):
         ("open_buffering", expression.getBuffering()),
     )
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         arg_desc += (
             ("open_encoding", expression.getEncoding()),
             ("open_errors", expression.getErrors()),

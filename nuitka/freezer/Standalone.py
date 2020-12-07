@@ -224,7 +224,7 @@ def _detectImports(command, user_provided, technical):
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # Print statements for stuff to show, the modules loaded.
-    if python_version >= 300:
+    if python_version >= 0x300:
         command += (
             '\nprint("\\n".join(sorted("import " + module.__name__ + " # sourcefile " + '
             'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and '
@@ -251,7 +251,7 @@ def _detectImports(command, user_provided, technical):
     tmp_file, tmp_filename = tempfile.mkstemp()
 
     try:
-        if python_version >= 300:
+        if python_version >= 0x300:
             command = command.encode("utf8")
         os.write(tmp_file, command)
         os.close(tmp_file)
@@ -286,7 +286,7 @@ def _detectImports(command, user_provided, technical):
             module_name = parts[0].split(b" ", 2)[1]
             origin = parts[1].split()[0]
 
-            if python_version >= 300:
+            if python_version >= 0x300:
                 module_name = module_name.decode("utf-8")
 
             module_name = ModuleName(module_name)
@@ -295,7 +295,7 @@ def _detectImports(command, user_provided, technical):
                 # This is a ".pyc" file that was imported, even before we have a
                 # chance to do anything, we need to preserve it.
                 filename = parts[1][len(b"precompiled from ") :]
-                if python_version >= 300:
+                if python_version >= 0x300:
                     filename = filename.decode("utf-8")
 
                 # Do not leave standard library when freezing.
@@ -305,7 +305,7 @@ def _detectImports(command, user_provided, technical):
                 detections.append((module_name, 3, "precompiled", filename))
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile ") :]
-                if python_version >= 300:
+                if python_version >= 0x300:
                     filename = filename.decode("utf-8")
 
                 # Do not leave standard library when freezing.
@@ -318,7 +318,7 @@ def _detectImports(command, user_provided, technical):
                     # Python3 started lying in "__name__" for the "_decimal"
                     # calls itself "decimal", which then is wrong and also
                     # clashes with "decimal" proper
-                    if python_version >= 300:
+                    if python_version >= 0x300:
                         if module_name == "decimal":
                             module_name = ModuleName("_decimal")
 
@@ -327,7 +327,7 @@ def _detectImports(command, user_provided, technical):
                 # Shared library in early load, happens on RPM based systems and
                 # or self compiled Python installations.
                 filename = parts[1][len(b"dynamically loaded from ") :]
-                if python_version >= 300:
+                if python_version >= 0x300:
                     filename = filename.decode("utf-8")
 
                 # Do not leave standard library when freezing.
@@ -431,13 +431,13 @@ def scanStandardLibraryPath(stdlib_dir):
             if "test_utils.py" in filenames:
                 filenames.remove("test_utils.py")
 
-        if python_version >= 340 and Utils.isWin32Windows():
+        if python_version >= 0x340 and Utils.isWin32Windows():
             if import_path == "multiprocessing":
                 filenames.remove("popen_fork.py")
                 filenames.remove("popen_forkserver.py")
                 filenames.remove("popen_spawn_posix.py")
 
-        if python_version >= 300 and Utils.isPosixWindows():
+        if python_version >= 0x300 and Utils.isPosixWindows():
             if import_path == "curses":
                 filenames.remove("has_key.py")
 
@@ -453,7 +453,7 @@ def scanStandardLibraryPath(stdlib_dir):
                 else:
                     yield import_path + "." + module_name
 
-        if python_version >= 300:
+        if python_version >= 0x300:
             if "__pycache__" in dirs:
                 dirs.remove("__pycache__")
 
@@ -484,7 +484,7 @@ def _detectEarlyImports():
     import_code += ";import locale;"
 
     # For Python3 we patch inspect without knowing if it is used.
-    if python_version >= 300:
+    if python_version >= 0x300:
         import_code += "import inspect;"
 
     result = _detectImports(command=import_code, user_provided=False, technical=True)
@@ -621,7 +621,7 @@ def _detectBinaryPathDLLsPosix(dll_filename):
             if not filename:
                 continue
 
-            if python_version >= 300:
+            if python_version >= 0x300:
                 filename = filename.decode("utf-8")
 
             # Sometimes might use stuff not found or supplied by ldd itself.
@@ -717,7 +717,7 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename, keep_unresolved):
                 stop = True
                 break
         if not stop:
-            if python_version >= 300:
+            if python_version >= 0x300:
                 filename = filename.decode("utf-8")
 
             # print("adding", filename)
@@ -773,7 +773,7 @@ def _detectBinaryRPathsMacOS(original_dir, binary_filename):
     for i, o in enumerate(lines):
         if o.endswith(b"cmd LC_RPATH"):
             line = lines[i + 2]
-            if python_version >= 300:
+            if python_version >= 0x300:
                 line = line.decode("utf-8")
 
             line = line.split("path ")[1]
@@ -1554,7 +1554,7 @@ different from
         for _original_path, dll_filename in dll_map:
             removeSharedLibraryRPATH(os.path.join(dist_dir, dll_filename))
     elif Utils.isWin32Windows():
-        if python_version < 300:
+        if python_version < 0x300:
             # For Win32, we might have to remove SXS paths
             for standalone_entry_point in standalone_entry_points[1:]:
                 removeSxsFromDLL(standalone_entry_point.dest_path)

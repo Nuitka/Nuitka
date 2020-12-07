@@ -135,7 +135,8 @@ compileLibraryTest(
     search_mode=search_mode,
     stage_dir=os.path.join(
         tmp_dir,
-        "compile_library_%s-%s-%s" % (python_version, python_arch, python_vendor),
+        "compile_library_%s-%s-%s"
+        % (".".join(python_version), python_arch, python_vendor),
     ),
     decide=decide,
     action=action,

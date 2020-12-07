@@ -55,7 +55,7 @@ def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]
 
     # TODO: Give up on decimal versions already.
-    return big * 100 + major * 10 + min(9, minor)
+    return big * 256 + major * 16 + min(15, minor)
 
 
 python_version = _getPythonVersion()
@@ -64,22 +64,12 @@ python_version_full_str = ".".join(str(s) for s in sys.version_info[0:3])
 python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
 
 
-def isAtLeastSubVersion(version):
-    if version < 280 <= python_version < 300:
-        return True
-
-    if version // 10 != python_version // 10:
-        return False
-
-    return python_version >= version
-
-
 def getErrorMessageExecWithNestedFunction():
     """Error message of the concrete Python in case an exec occurs in a
     function that takes a closure variable.
     """
 
-    assert python_version < 300
+    assert python_version < 0x300
 
     # Need to use "exec" to detect the syntax error, pylint: disable=W0122
 
@@ -136,7 +126,7 @@ def needsSetLiteralReverseInsertion():
 
 
 def needsDuplicateArgumentColOffset():
-    if python_version < 353:
+    if python_version < 0x353:
         return False
     else:
         return True

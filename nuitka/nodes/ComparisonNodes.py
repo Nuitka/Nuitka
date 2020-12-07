@@ -441,7 +441,7 @@ class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
         return PythonOperators.all_comparison_functions[self.comparator]
 
     def mayRaiseExceptionComparison(self):
-        if python_version < 300:
+        if python_version < 0x300:
             return False
 
         # TODO: Add shape for exceptions.

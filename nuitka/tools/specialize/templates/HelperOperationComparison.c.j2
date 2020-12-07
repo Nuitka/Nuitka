@@ -31,7 +31,7 @@
 {% if left != right or left.type_name == "object" %}
 {# CPython2 treats integer values with fast path. #}
 {% if left.type_name == "object" == right.type_name %}
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if ({{left.getIntCheckExpression("operand1")}} && {{right.getIntCheckExpression("operand2")}}) {
         return COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_INT_INT(operand1, operand2);
     }
@@ -50,7 +50,7 @@
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return {{target.getExceptionResultIndicatorValue()}};
     }
@@ -63,7 +63,7 @@
     PyTypeObject *type1 = {{left.getTypeValueExpression("operand1")}};
     PyTypeObject *type2 = {{right.getTypeValueExpression("operand2")}};
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if ({{left.getTypeIdenticalCheckExpression(right, "type1", "type2")}}
           && !{{left.getMostSpecificType(right).getInstanceCheckCode("operand1")}}

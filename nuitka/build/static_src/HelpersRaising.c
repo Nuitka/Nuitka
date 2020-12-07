@@ -34,7 +34,7 @@ static void FORMAT_TYPE_ERROR1(PyObject **exception_type, PyObject **exception_v
     CHECK_OBJECT(*exception_value);
 }
 
-#if PYTHON_VERSION >= 270
+#if PYTHON_VERSION >= 0x270
 static void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exception_value, char const *format,
                                char const *arg1, char const *arg2) {
     *exception_type = PyExc_TypeError;
@@ -45,9 +45,9 @@ static void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exception_v
 }
 #endif
 
-#if PYTHON_VERSION < 266
+#if PYTHON_VERSION < 0x266
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must be classes or instances, not %s"
-#elif PYTHON_VERSION < 300
+#elif PYTHON_VERSION < 0x300
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must be old-style classes or derived from BaseException, not %s"
 #else
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must derive from BaseException"
@@ -58,7 +58,7 @@ void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_type, PyObject **exception_v
     *exception_value = NULL;
     *exception_tb = NULL;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // Next, repeatedly, replace a tuple exception with its first item
     while (PyTuple_Check(*exception_type) && PyTuple_GET_SIZE(*exception_type) > 0) {
         PyObject *tmp = *exception_type;
@@ -70,7 +70,7 @@ void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_type, PyObject **exception_v
 
     if (PyExceptionClass_Check(*exception_type)) {
         NORMALIZE_EXCEPTION(exception_type, exception_value, exception_tb);
-#if PYTHON_VERSION >= 270
+#if PYTHON_VERSION >= 0x270
         if (unlikely(!PyExceptionInstance_Check(*exception_value))) {
             PyObject *old_exception_type = *exception_type;
             PyObject *old_exception_value = *exception_value;
@@ -86,7 +86,7 @@ void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_type, PyObject **exception_v
         }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         CHAIN_EXCEPTION(*exception_value);
 #endif
         return;
@@ -95,7 +95,7 @@ void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_type, PyObject **exception_v
         *exception_type = PyExceptionInstance_Class(*exception_type);
         Py_INCREF(*exception_type);
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         CHAIN_EXCEPTION(*exception_value);
 
         // Note: Cannot be assigned here.
@@ -116,7 +116,7 @@ void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_type, PyObject **exception_v
     }
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 void RAISE_EXCEPTION_WITH_CAUSE(PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_tb,
                                 PyObject *exception_cause) {
     CHECK_OBJECT(*exception_type);
@@ -222,7 +222,7 @@ void RAISE_EXCEPTION_WITH_VALUE(PyObject **exception_type, PyObject **exception_
 
     if (PyExceptionClass_Check(*exception_type)) {
         NORMALIZE_EXCEPTION(exception_type, exception_value, exception_tb);
-#if PYTHON_VERSION >= 270
+#if PYTHON_VERSION >= 0x270
         if (unlikely(!PyExceptionInstance_Check(*exception_value))) {
             PyObject *old_exception_type = *exception_type;
             PyObject *old_exception_value = *exception_type;
@@ -278,14 +278,14 @@ void RAISE_EXCEPTION_IMPLICIT(PyObject **exception_type, PyObject **exception_va
     }
 
     if (PyExceptionClass_Check(*exception_type)) {
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
         NORMALIZE_EXCEPTION(exception_type, exception_value, exception_tb);
         CHAIN_EXCEPTION(*exception_value);
 #endif
 
         return;
     } else if (PyExceptionInstance_Check(*exception_type)) {
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
         CHAIN_EXCEPTION(*exception_value);
 #endif
 
@@ -304,7 +304,7 @@ void RAISE_EXCEPTION_IMPLICIT(PyObject **exception_type, PyObject **exception_va
 
         Py_DECREF(old_exception_type);
 
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
         CHAIN_EXCEPTION(*exception_value);
 #endif
 
@@ -329,7 +329,7 @@ void RAISE_EXCEPTION_WITH_TRACEBACK(PyObject **exception_type, PyObject **except
 
     if (PyExceptionClass_Check(*exception_type)) {
         NORMALIZE_EXCEPTION(exception_type, exception_value, exception_tb);
-#if PYTHON_VERSION >= 270
+#if PYTHON_VERSION >= 0x270
         if (unlikely(!PyExceptionInstance_Check(*exception_value))) {
             PyObject *old_exception_type = *exception_type;
             PyObject *old_exception_value = *exception_value;
@@ -389,7 +389,7 @@ bool RERAISE_EXCEPTION(PyObject **exception_type, PyObject **exception_value, Py
     CHECK_OBJECT(*exception_type);
 
     if (*exception_type == Py_None) {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         Py_DECREF(*exception_type);
 
         Py_INCREF(PyExc_RuntimeError);

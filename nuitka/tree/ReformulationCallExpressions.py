@@ -71,7 +71,7 @@ from .TreeHelpers import (
 def buildCallNode(provider, node, source_ref):
     called = buildNode(provider, node.func, source_ref)
 
-    if python_version >= 350:
+    if python_version >= 0x350:
         list_star_arg = None
         dict_star_arg = None
 
@@ -82,13 +82,13 @@ def buildCallNode(provider, node, source_ref):
     # new unpacking code.
     for node_arg in node.args[:-1]:
         if getKind(node_arg) == "Starred":
-            assert python_version >= 350
+            assert python_version >= 0x350
             list_star_arg = buildListUnpacking(provider, node.args, source_ref)
             positional_args = []
             break
     else:
         if node.args and getKind(node.args[-1]) == "Starred":
-            assert python_version >= 350
+            assert python_version >= 0x350
 
             list_star_arg = buildNode(provider, node.args[-1].value, source_ref)
             positional_args = buildNodeList(provider, node.args[:-1], source_ref)
@@ -102,7 +102,7 @@ def buildCallNode(provider, node, source_ref):
 
     for keyword in node.keywords[:-1]:
         if keyword.arg is None:
-            assert python_version >= 350
+            assert python_version >= 0x350
 
             outline_body = ExpressionOutlineBody(
                 provider=provider, name="dict_unpacking_call", source_ref=source_ref
@@ -169,7 +169,7 @@ def buildCallNode(provider, node, source_ref):
     # new unpacking code.
 
     if node.keywords and node.keywords[-1].arg is None:
-        assert python_version >= 350
+        assert python_version >= 0x350
 
         dict_star_arg = buildNode(provider, node.keywords[-1].value, source_ref)
         keywords = node.keywords[:-1]
@@ -184,7 +184,7 @@ def buildCallNode(provider, node, source_ref):
         )
         values.append(buildNode(provider, keyword.value, source_ref))
 
-    if python_version < 350:
+    if python_version < 0x350:
         list_star_arg = buildNode(provider, node.starargs, source_ref, True)
         dict_star_arg = buildNode(provider, node.kwargs, source_ref, True)
 
@@ -221,7 +221,7 @@ def _makeCallNode(
         )
 
         # Bug compatible line numbers before Python 3.8
-        if python_version < 380:
+        if python_version < 0x380:
             if values:
                 result.setCompatibleSourceReference(
                     source_ref=values[-1].getCompatibleSourceReference()
@@ -272,7 +272,7 @@ def _makeCallNode(
             )
 
         # Order of evaluation changed in Python3.5.
-        if python_version >= 350 and list_star_arg is not None:
+        if python_version >= 0x350 and list_star_arg is not None:
             helper_args.append(list_star_arg)
 
         if keys:
@@ -285,7 +285,7 @@ def _makeCallNode(
             )
 
         # Order of evaluation changed in Python3.5.
-        if python_version < 350 and list_star_arg is not None:
+        if python_version < 0x350 and list_star_arg is not None:
             helper_args.append(list_star_arg)
 
         if dict_star_arg is not None:
@@ -306,7 +306,7 @@ def _makeCallNode(
         )
 
         # Bug compatible line numbers before Python 3.8
-        if python_version < 380:
+        if python_version < 0x380:
             result.setCompatibleSourceReference(
                 source_ref=helper_args[-1].getCompatibleSourceReference()
             )

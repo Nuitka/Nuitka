@@ -28,7 +28,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 
 static cmpfunc default_tp_compare;
 
@@ -149,7 +149,7 @@ static int try_3way_compare(PyObject *a, PyObject *b) {
 
 static inline bool IS_SANE_TYPE(PyTypeObject *type) {
     return
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         type == &PyString_Type || type == &PyInt_Type ||
 #endif
         type == &PyLong_Type || type == &PyList_Type || type == &PyTuple_Type;

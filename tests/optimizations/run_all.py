@@ -199,7 +199,7 @@ def main():
 
         if active:
             # Apply 2to3 conversion if necessary.
-            if python_version.startswith("3"):
+            if python_version >= (3,):
                 filename, changed = convertUsing2to3(filename)
             else:
                 changed = False

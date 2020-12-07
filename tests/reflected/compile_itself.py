@@ -427,7 +427,7 @@ def executePASS5():
 
 
 def main():
-    _python_version = setup(needs_io_encoding=True)
+    setup(needs_io_encoding=True)
 
     executePASS1()
     executePASS2()

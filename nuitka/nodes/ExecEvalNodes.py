@@ -58,7 +58,7 @@ class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
 
 
 # Note: Python3 only so far.
-if python_version >= 300:
+if python_version >= 0x300:
 
     class ExpressionBuiltinExec(ExpressionBuiltinEval):
         kind = "EXPRESSION_BUILTIN_EXEC"
@@ -98,7 +98,7 @@ Replaced built-in exec call to exec statement in early closure context.""",
 
 
 # Note: Python2 only
-if python_version < 300:
+if python_version < 0x300:
 
     class ExpressionBuiltinExecfile(ExpressionBuiltinEval):
         kind = "EXPRESSION_BUILTIN_EXECFILE"

@@ -124,9 +124,9 @@ def detectFunctionBodyKind(nodes, start_value=None):
 
         if node_class is ast.Yield:
             indications.add("Generator")
-        elif python_version >= 300 and node_class is ast.YieldFrom:
+        elif python_version >= 0x300 and node_class is ast.YieldFrom:
             indications.add("Generator")
-        elif python_version >= 350 and node_class in (ast.Await, ast.AsyncWith):
+        elif python_version >= 0x350 and node_class in (ast.Await, ast.AsyncWith):
             indications.add("Coroutine")
 
         # Recurse to children, but do not cross scope boundary doing so.
@@ -146,7 +146,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                 else:
                     assert False, (name, field, ast.dump(node))
         elif node_class in (ast.FunctionDef, ast.Lambda) or (
-            python_version >= 350 and node_class is ast.AsyncFunctionDef
+            python_version >= 0x350 and node_class is ast.AsyncFunctionDef
         ):
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body"):
@@ -158,7 +158,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                     for child in field.defaults:
                         _check(child)
 
-                    if python_version >= 300:
+                    if python_version >= 0x300:
                         for child in node.args.kw_defaults:
                             if child is not None:
                                 _check(child)
@@ -180,7 +180,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                 if name == "name":
                     pass
                 elif name in ("body", "comparators", "elt"):
-                    if python_version >= 370:
+                    if python_version >= 0x370:
                         _checkCoroutine(field)
                 elif name == "generators":
                     _check(field[0].iter)
@@ -188,7 +188,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                     # New syntax in 3.7 allows these to be present in functions not
                     # declared with "async def", so we need to check them, but
                     # only if top level.
-                    if python_version >= 370 and node in nodes:
+                    if python_version >= 0x370 and node in nodes:
                         for gen in field:
                             if gen.is_async:
                                 indications.add("Coroutine")
@@ -198,7 +198,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                                 break
                 else:
                     assert False, (name, field, ast.dump(node))
-        elif node_class is ast.ListComp and python_version >= 300:
+        elif node_class is ast.ListComp and python_version >= 0x300:
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body", "comparators"):
                     pass
@@ -208,7 +208,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                     _check(field)
                 else:
                     assert False, (name, field, ast.dump(node))
-        elif python_version >= 270 and node_class is ast.SetComp:
+        elif python_version >= 0x270 and node_class is ast.SetComp:
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body", "comparators", "elt"):
                     pass
@@ -216,7 +216,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                     _check(field[0].iter)
                 else:
                     assert False, (name, field, ast.dump(node))
-        elif python_version >= 270 and node_class is ast.DictComp:
+        elif python_version >= 0x270 and node_class is ast.DictComp:
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body", "comparators", "key", "value"):
                     pass
@@ -224,7 +224,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                     _check(field[0].iter)
                 else:
                     assert False, (name, field, ast.dump(node))
-        elif python_version >= 370 and node_class is ast.comprehension:
+        elif python_version >= 0x370 and node_class is ast.comprehension:
             for name, field in ast.iter_fields(node):
                 if name in ("name", "target"):
                     pass
@@ -241,9 +241,9 @@ def detectFunctionBodyKind(nodes, start_value=None):
                 else:
                     assert False, (name, field, ast.dump(node))
         elif node_class is ast.Name:
-            if python_version >= 300 and node.id == "super":
+            if python_version >= 0x300 and node.id == "super":
                 flags.add("has_super")
-        elif python_version < 300 and node_class is ast.Exec:
+        elif python_version < 0x300 and node_class is ast.Exec:
             flags.add("has_exec")
 
             if node.globals is None:
@@ -251,7 +251,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
 
             for child in ast.iter_child_nodes(node):
                 _check(child)
-        elif python_version < 300 and node_class is ast.ImportFrom:
+        elif python_version < 0x300 and node_class is ast.ImportFrom:
             for import_desc in node.names:
                 if import_desc.name[0] == "*":
                     flags.add("has_exec")
@@ -358,7 +358,7 @@ _host_node = None
 
 def buildAnnotationNode(provider, node, source_ref):
     if (
-        python_version >= 370
+        python_version >= 0x370
         and provider.getParentModule().getFutureSpec().isFutureAnnotations()
     ):
 

@@ -46,7 +46,7 @@ from nuitka.utils.FileOperations import copyTree
 
 
 def main():
-    _python_version = setup()
+    setup()
 
     os.chdir("subject")
 

@@ -103,7 +103,7 @@ class StatementsFrameBase(StatementsSequence):
         return self.guard_mode
 
     def needsExceptionFramePreservation(self):
-        if python_version < 300:
+        if python_version < 0x300:
             return self.guard_mode != "generator"
         else:
             return True
@@ -150,7 +150,7 @@ class StatementsFrameBase(StatementsSequence):
         self.code_object.setFlagIsOptimizedValue(is_optimized)
 
         new_locals = not provider.isCompiledPythonModule() and (
-            python_version < 340
+            python_version < 0x340
             or (not provider.isExpressionClassBody() and not provider.isUnoptimized())
         )
 

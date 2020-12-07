@@ -44,7 +44,7 @@ class ExpressionBuiltinOpenMixin(object):
         return self, None, None
 
 
-if python_version < 300:
+if python_version < 0x300:
 
     class ExpressionBuiltinOpen(
         ExpressionBuiltinOpenMixin, ExpressionChildrenHavingBase

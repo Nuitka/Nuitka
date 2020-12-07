@@ -81,7 +81,7 @@ static PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char 
 
 NUITKA_DEFINE_BUILTIN(compile)
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags,
                        PyObject *dont_inherit)
 #else
@@ -118,7 +118,7 @@ PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mod
         PyDict_SetItemString(kw_args, "dont_inherit", dont_inherit);
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (optimize != NULL) {
         if (kw_args == NULL)
             kw_args = PyDict_New();
@@ -140,7 +140,7 @@ PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mod
  * Helper used to deal with exec statement
  */
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 
 bool EXEC_FILE_ARG_HANDLING(PyObject **prog, PyObject **name) {
     CHECK_OBJECT(*prog);
@@ -200,7 +200,7 @@ PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals) {
         }
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyObject *result = PyEval_EvalCode((PyCodeObject *)code, globals, locals);
 #else
     PyObject *result = PyEval_EvalCode(code, globals, locals);
@@ -222,7 +222,7 @@ PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals) {
 
 NUITKA_DEFINE_BUILTIN(open);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering) {
     NUITKA_ASSIGN_BUILTIN(open);
 
@@ -270,7 +270,7 @@ PyObject *BUILTIN_CLASSMETHOD(PyObject *value) {
     return CALL_FUNCTION_WITH_SINGLE_ARG(NUITKA_ACCESS_BUILTIN(classmethod), value);
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 
 /** The "bytes" built-in.
  *
@@ -319,7 +319,7 @@ PyObject *BUILTIN_BIN(PyObject *value) {
  **/
 
 PyObject *BUILTIN_OCT(PyObject *value) {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     PyObject *result = PyNumber_ToBase(value, 8);
 
     if (unlikely(result == NULL)) {
@@ -360,7 +360,7 @@ PyObject *BUILTIN_OCT(PyObject *value) {
  **/
 
 PyObject *BUILTIN_HEX(PyObject *value) {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     PyObject *result = PyNumber_ToBase(value, 16);
 
     if (unlikely(result == NULL)) {
@@ -406,7 +406,7 @@ static void SET_HASH_NOT_IMPLEMENTED_ERROR(PyObject *value) {
     PyErr_Format(PyExc_TypeError, "unhashable type: '%s'", Py_TYPE(value)->tp_name);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 // Helper to make hash from pointer value, compatible with CPython.
 static long Nuitka_HashFromPointer(void *p) {
     size_t y = (size_t)p;
@@ -429,14 +429,14 @@ PyObject *BUILTIN_HASH(PyObject *value) {
             return NULL;
         }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         return PyInt_FromLong(hash);
 #else
         return PyLong_FromSsize_t(hash);
 #endif
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
         Py_hash_t hash = Nuitka_HashFromPointer(value);
         return PyInt_FromLong(hash);
@@ -455,7 +455,7 @@ Py_hash_t HASH_VALUE_WITH_ERROR(PyObject *value) {
         return hash;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
         return Nuitka_HashFromPointer(value);
     }
@@ -478,7 +478,7 @@ Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyObject *value) {
         return hash;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
         return Nuitka_HashFromPointer(value);
     }
@@ -599,7 +599,7 @@ PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, 
 
     if (likely(PyType_IsSubtype(type, &PyType_Type))) {
         if (
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             PyType_HasFeature(type, Py_TPFLAGS_HAVE_CLASS) &&
 #endif
             type->tp_init != NULL) {
@@ -717,7 +717,7 @@ PyObject *BUILTIN_CALLABLE(PyObject *value) {
  **/
 
 PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *default_value) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyUnicode_Check(attribute)) {
         attribute = _PyUnicode_AsDefaultEncodedString(attribute, NULL);
 
@@ -769,7 +769,7 @@ PyObject *BUILTIN_SETATTR(PyObject *object, PyObject *attribute, PyObject *value
 }
 
 PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
-#if PYTHON_VERSION < 340
+#if PYTHON_VERSION < 0x340
     long base_int = PyInt_AsLong(base);
 #else
     Py_ssize_t base_int = PyNumber_AsSsize_t(base, NULL);
@@ -779,12 +779,12 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
         PyObject *error = GET_ERROR_OCCURRED();
 
         if (likely(error)) {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
             if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_OverflowError)) {
                 PyErr_Format(PyExc_ValueError,
-#if PYTHON_VERSION < 324
+#if PYTHON_VERSION < 0x324
                              "int() arg 2 must be >= 2 and <= 36"
-#elif PYTHON_VERSION < 364
+#elif PYTHON_VERSION < 0x364
                              "int() base must be >= 2 and <= 36"
 #else
                              "int() base must be >= 2 and <= 36, or 0"
@@ -796,12 +796,12 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
         }
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (unlikely((base_int != 0 && base_int < 2) || base_int > 36)) {
         PyErr_Format(PyExc_ValueError,
-#if PYTHON_VERSION < 324
+#if PYTHON_VERSION < 0x324
                      "int() arg 2 must be >= 2 and <= 36"
-#elif PYTHON_VERSION < 364
+#elif PYTHON_VERSION < 0x364
                      "int() base must be >= 2 and <= 36"
 #else
                      "int() base must be >= 2 and <= 36, or 0"
@@ -812,7 +812,7 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
     }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(!Nuitka_String_Check(value) && !PyUnicode_Check(value))) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "int() can't convert non-string with explicit base");
         return NULL;
@@ -863,7 +863,7 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
 #endif
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 // Note: Python3 uses TO_INT2 function.
 PyObject *BUILTIN_LONG2(PyObject *value, PyObject *base) {
     long base_int = PyInt_AsLong(base);

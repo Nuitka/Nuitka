@@ -30,7 +30,7 @@ extern PyObject *BUILTIN_XRANGE1(PyObject *high);
 extern PyObject *BUILTIN_XRANGE2(PyObject *low, PyObject *high);
 extern PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step);
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 
 /* Python3 range objects */
 struct _rangeobject3 {

@@ -31,7 +31,7 @@ from .ExpressionBases import ExpressionChildHavingBase
 
 
 class ExpressionYieldBase(ExpressionChildHavingBase):
-    if python_version >= 300:
+    if python_version >= 0x300:
         __slots__ = ("exception_preserving",)
     else:
         __slots__ = ()
@@ -39,10 +39,10 @@ class ExpressionYieldBase(ExpressionChildHavingBase):
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-        if python_version >= 300:
+        if python_version >= 0x300:
             self.exception_preserving = False
 
-    if python_version >= 300:
+    if python_version >= 0x300:
 
         def markAsExceptionPreserving(self):
             self.exception_preserving = True

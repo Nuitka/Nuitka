@@ -125,7 +125,7 @@ constant_builtin_types = (
     NoneType,
 )
 
-if python_version >= 300:
+if python_version >= 0x300:
     constant_builtin_types += (bytes,)
 else:
     constant_builtin_types += (

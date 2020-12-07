@@ -96,7 +96,7 @@ Removed useless 'format' on '%s' value."""
 class ExpressionBuiltinAscii(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_ASCII"
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         builtin_spec = BuiltinParameterSpecs.builtin_ascii_spec
 
     @staticmethod

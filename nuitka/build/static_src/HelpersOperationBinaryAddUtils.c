@@ -27,7 +27,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 
 static PyObject *SLOT_sq_concat_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -91,7 +91,7 @@ static PyObject *SLOT_sq_concat_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObj
     return UNICODE_CONCAT(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static nuitka_bool SLOT_sq_concat_NBOOL_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -113,7 +113,7 @@ static PyObject *SLOT_sq_concat_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObje
     return x;
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static PyObject *SLOT_sq_concat_OBJECT_STR_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));

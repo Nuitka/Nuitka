@@ -103,10 +103,10 @@ def main():
     global operations
     global candidates
 
-    if python_version >= "3.5":
+    if python_version >= (3, 5):
         operations += (("MatMult", "@"),)
 
-    if python_version < "3":
+    if python_version < (3,):
         candidates += (("long", "17L", "-9L"),)
         candidates += (("unicode", "u'lala'", "u'lele'"),)
     else:

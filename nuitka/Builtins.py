@@ -47,7 +47,7 @@ def _getBuiltinExceptionNames():
     exceptions = OrderedDict()
 
     # Hide Python3 changes for built-in exception names
-    if python_version < 300:
+    if python_version < 0x300:
         import exceptions as builtin_exceptions
 
         for key in sorted(dir(builtin_exceptions)):
@@ -84,7 +84,7 @@ assert "BaseException" in builtin_exception_names
 assert "Exception" in builtin_exception_names
 assert "NotImplemented" in builtin_exception_names
 
-assert "StopAsyncIteration" in builtin_exception_names or python_version < 350
+assert "StopAsyncIteration" in builtin_exception_names or python_version < 0x350
 
 
 def _getBuiltinNames():
@@ -180,7 +180,7 @@ def _getAnonBuiltins():
     anon_names["code"] = type(_getAnonBuiltins.__code__)
     anon_codes["code"] = "&PyCode_Type"
 
-    if python_version < 300:
+    if python_version < 0x300:
         # There are only there for Python2,
         # pylint: disable=I0021,no-name-in-module
         from types import ClassType, InstanceType, MethodType

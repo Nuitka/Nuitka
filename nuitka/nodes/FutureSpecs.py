@@ -27,10 +27,10 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 # These defaults have changed with Python versions.
-_future_division_default = python_version >= 300
-_future_absolute_import_default = python_version >= 300
-_future_generator_stop_default = python_version >= 370
-_future_annotations_default = python_version >= 400
+_future_division_default = python_version >= 0x300
+_future_absolute_import_default = python_version >= 0x300
+_future_generator_stop_default = python_version >= 0x370
+_future_annotations_default = python_version >= 0x400
 
 
 class FutureSpec(object):
@@ -117,25 +117,25 @@ class FutureSpec(object):
 
         result = []
 
-        if python_version < 300 and self.future_division:
+        if python_version < 0x300 and self.future_division:
             result.append("CO_FUTURE_DIVISION")
 
         if self.unicode_literals:
             result.append("CO_FUTURE_UNICODE_LITERALS")
 
-        if python_version < 300 and self.absolute_import:
+        if python_version < 0x300 and self.absolute_import:
             result.append("CO_FUTURE_ABSOLUTE_IMPORT")
 
-        if python_version < 300 and self.future_print:
+        if python_version < 0x300 and self.future_print:
             result.append("CO_FUTURE_PRINT_FUNCTION")
 
-        if python_version >= 300 and self.barry_bdfl:
+        if python_version >= 0x300 and self.barry_bdfl:
             result.append("CO_FUTURE_BARRY_AS_BDFL")
 
-        if 350 <= python_version < 370 and self.generator_stop:
+        if 0x350 <= python_version < 0x370 and self.generator_stop:
             result.append("CO_FUTURE_GENERATOR_STOP")
 
-        if python_version >= 370 and self.future_annotations:
+        if python_version >= 0x370 and self.future_annotations:
             result.append("CO_FUTURE_ANNOTATIONS")
 
         return tuple(result)

@@ -242,12 +242,12 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
     struct Nuitka_FunctionObject *result = Nuitka_Function_New(
         functable_%(module_identifier)s[offset],
         code_object->co_name,
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         NULL, // TODO: Not transferring qualname yet
 #endif
         code_object,
         defaults,
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         NULL, // kwdefaults are done on the outside currently
         NULL, // TODO: Not transferring annotations
 #endif
@@ -276,7 +276,7 @@ NUITKA_MAY_BE_UNUSED static char const *module_full_name = "%(module_name)s";
 PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *module_entry) {
     module_%(module_identifier)s = module;
 
-#if defined(_NUITKA_EXE) || PYTHON_VERSION >= 300
+#if defined(_NUITKA_EXE) || PYTHON_VERSION >= 0x300
     static bool _init_done = false;
 
     // Modules might be imported repeatedly, which is to be ignored.
@@ -312,10 +312,10 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
     _initCompiledMethodType();
     _initCompiledFrameType();
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     _initSlotCompare();
 #endif
-#if PYTHON_VERSION >= 270
+#if PYTHON_VERSION >= 0x270
     _initSlotIternext();
 #endif
 
@@ -328,7 +328,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
 #endif
     setupMetaPathBasedLoader();
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     patchInspectModule();
 #endif
 
@@ -396,7 +396,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         );
 #else
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
         char const *module_name_cstr = PyString_AS_STRING(module_name);
 
@@ -441,11 +441,11 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__, value);
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, (PyObject *)&Nuitka_Loader_Type);
 #endif
 
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
 // Set the "__spec__" value
 
 #if %(is_main_module)s
@@ -486,7 +486,7 @@ template_module_external_entry_point = r"""
 /* Visibility definitions to make the DLL entry point exported */
 #if defined(__GNUC__)
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility("default")))
 
 #else
@@ -506,13 +506,13 @@ template_module_external_entry_point = r"""
 /* The name of the entry point for DLLs changed between CPython versions, and
  * this is here to hide that.
  */
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION init##name(void)
 #else
 #define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION PyInit_##name(void)
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 static struct PyModuleDef mdef_%(module_identifier)s = {
     PyModuleDef_HEAD_INIT,
     NULL,                /* m_name, filled later */
@@ -536,7 +536,7 @@ MOD_INIT_DECL(%(module_identifier)s) {
         module_full_name = _Py_PackageContext;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyObject *module = Py_InitModule4(
         module_full_name,        // Module Name
         NULL,                    // No methods initially, all are added
@@ -556,7 +556,7 @@ MOD_INIT_DECL(%(module_identifier)s) {
     assert(res != false);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     modulecode_%(module_identifier)s(module, NULL);
 #else
     PyObject *result = modulecode_%(module_identifier)s(module, NULL);

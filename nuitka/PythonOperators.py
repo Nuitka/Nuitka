@@ -55,12 +55,12 @@ binary_operator_functions = {
 }
 
 # Python 2 only operator
-if python_version < 300:
+if python_version < 0x300:
     binary_operator_functions["OldDiv"] = operator.div
     binary_operator_functions["IOldDiv"] = operator.idiv
 
 # Python 3.5 only operator
-if python_version >= 350:
+if python_version >= 0x350:
     binary_operator_functions["MatMult"] = operator.matmul
     binary_operator_functions["IMatMult"] = operator.imatmul
 
@@ -111,7 +111,7 @@ all_comparison_functions.update(other_comparison_functions)
 
 
 def matchException(left, right):
-    if python_version >= 300:
+    if python_version >= 0x300:
         if type(right) is tuple:
             for element in right:
                 if not isinstance(BaseException, element):

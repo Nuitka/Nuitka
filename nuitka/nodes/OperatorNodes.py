@@ -420,7 +420,7 @@ class ExpressionOperationBinaryFloorDiv(ExpressionOperationBinaryBase):
         return left_shape.getOperationBinaryFloorDivShape(right_shape)
 
 
-if python_version < 300:
+if python_version < 0x300:
 
     class ExpressionOperationBinaryOldDiv(ExpressionOperationBinaryBase):
         kind = "EXPRESSION_OPERATION_BINARY_OLD_DIV"
@@ -537,7 +537,7 @@ class ExpressionOperationBinaryBitXor(ExpressionOperationBinaryBase):
         return left_shape.getOperationBinaryBitXorShape(right_shape)
 
 
-if python_version >= 350:
+if python_version >= 0x350:
 
     class ExpressionOperationBinaryMatMult(
         ExpressionOperationMultMixin, ExpressionOperationBinaryBase
@@ -568,10 +568,10 @@ _operator2binary_operation_nodeclass = {
     "BitXor": ExpressionOperationBinaryBitXor,
 }
 
-if python_version < 300:
+if python_version < 0x300:
     _operator2binary_operation_nodeclass["OldDiv"] = ExpressionOperationBinaryOldDiv
 
-if python_version >= 350:
+if python_version >= 0x350:
     _operator2binary_operation_nodeclass["MatMult"] = ExpressionOperationBinaryMatMult
 
 
@@ -861,7 +861,7 @@ class ExpressionOperationInplaceFloorDiv(ExpressionOperationBinaryInplaceBase):
         return left_shape.getOperationBinaryFloorDivShape(right_shape)
 
 
-if python_version < 300:
+if python_version < 0x300:
 
     class ExpressionOperationInplaceOldDiv(ExpressionOperationBinaryInplaceBase):
         kind = "EXPRESSION_OPERATION_INPLACE_OLD_DIV"
@@ -936,7 +936,7 @@ class ExpressionOperationInplaceBitOr(ExpressionOperationBinaryInplaceBase):
     simulator = PythonOperators.binary_operator_functions[operator]
 
     # No inplace bitor special handling before 3.9
-    if python_version < 390:
+    if python_version < 0x390:
 
         @staticmethod
         def _getOperationShape(left_shape, right_shape):
@@ -971,7 +971,7 @@ class ExpressionOperationInplaceBitXor(ExpressionOperationBinaryInplaceBase):
         return left_shape.getOperationBinaryBitXorShape(right_shape)
 
 
-if python_version >= 350:
+if python_version >= 0x350:
 
     class ExpressionOperationInplaceMatMult(ExpressionOperationBinaryInplaceBase):
         kind = "EXPRESSION_OPERATION_INPLACE_MAT_MULT"
@@ -999,10 +999,10 @@ _operator2binary_inplace_nodeclass = {
     "IBitXor": ExpressionOperationInplaceBitXor,
 }
 
-if python_version < 300:
+if python_version < 0x300:
     _operator2binary_inplace_nodeclass["IOldDiv"] = ExpressionOperationInplaceOldDiv
 
-if python_version >= 350:
+if python_version >= 0x350:
     _operator2binary_inplace_nodeclass["IMatMult"] = ExpressionOperationInplaceMatMult
 
 

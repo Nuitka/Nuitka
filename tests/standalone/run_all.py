@@ -115,7 +115,7 @@ def displayError(dirname, filename):
 
 def main():
     # Complex stuff, even more should become common code though.
-    # pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     python_version = setup(needs_io_encoding=True)
 
@@ -157,7 +157,7 @@ def main():
 
         if "Idna" in filename:
             # For the warnings of Python2.
-            if python_version.startswith("2"):
+            if python_version < (3,):
                 extra_flags.append("ignore_stderr")
 
         if filename == "CtypesUsing.py":
@@ -166,7 +166,7 @@ def main():
         if filename == "GtkUsing.py":
             # Don't test on platforms not supported by current Debian testing, and
             # which should be considered irrelevant by now.
-            if python_version.startswith("2.6"):
+            if python_version < (2, 7):
                 reportSkip("irrelevant Python version", ".", filename)
                 continue
 
@@ -222,7 +222,9 @@ def main():
             extra_flags.append("ignore_warnings")
 
         if filename.startswith(("PySide", "PyQt")):
-            if python_version.startswith("2.6"):
+            # Don't test on platforms not supported by current Debian testing, and
+            # which should be considered irrelevant by now.
+            if python_version < (2, 7):
                 reportSkip("irrelevant Python version", ".", filename)
                 continue
 
@@ -533,33 +535,27 @@ def main():
             if loaded_filename.startswith("/var/cache/"):
                 continue
 
+            lib_prefix_dir = "/usr/lib/python%d.%s" % (
+                python_version[0],
+                python_version[1],
+            )
+
             # PySide accesses its directory.
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/PySide"
-            ):
+            if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/PySide"):
                 continue
 
             # GTK accesses package directories only.
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/gtk-2.0/gtk"
+            if loaded_filename == os.path.join(
+                lib_prefix_dir, "dist-packages/gtk-2.0/gtk"
             ):
                 continue
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/glib"
+            if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/glib"):
+                continue
+            if loaded_filename == os.path.join(
+                lib_prefix_dir, "dist-packages/gtk-2.0/gio"
             ):
                 continue
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/gtk-2.0/gio"
-            ):
-                continue
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/gobject"
-            ):
+            if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/gobject"):
                 continue
 
             # PyQt5 seems to do this, but won't use contents then.

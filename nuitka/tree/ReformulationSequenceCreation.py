@@ -87,10 +87,10 @@ def _raiseStarredSyntaxError(element, source_ref):
 
 
 def buildTupleCreationNode(provider, node, source_ref):
-    if python_version >= 300:
+    if python_version >= 0x300:
         for element in node.elts:
             if getKind(element) == "Starred":
-                if python_version < 350:
+                if python_version < 0x350:
                     _raiseStarredSyntaxError(element, source_ref)
                 else:
                     return buildTupleUnpacking(
@@ -105,10 +105,10 @@ def buildTupleCreationNode(provider, node, source_ref):
 
 
 def buildListCreationNode(provider, node, source_ref):
-    if python_version >= 300:
+    if python_version >= 0x300:
         for element in node.elts:
             if getKind(element) == "Starred":
-                if python_version < 350:
+                if python_version < 0x350:
                     _raiseStarredSyntaxError(element, source_ref)
                 else:
                     return buildListUnpacking(
@@ -123,10 +123,10 @@ def buildListCreationNode(provider, node, source_ref):
 
 
 def buildSetCreationNode(provider, node, source_ref):
-    if python_version >= 300:
+    if python_version >= 0x300:
         for element in node.elts:
             if getKind(element) == "Starred":
-                if python_version < 350:
+                if python_version < 0x350:
                     _raiseStarredSyntaxError(element, source_ref)
                 else:
                     return _buildSetUnpacking(
@@ -163,7 +163,7 @@ def getListUnpackingHelper():
     tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
     tmp_item_variable = result.allocateTempVariable(temp_scope, "keys")
 
-    if python_version < 390:
+    if python_version < 0x390:
         list_operation_extend = ExpressionListOperationExtend
     else:
         list_operation_extend = ExpressionListOperationExtendForUnpack

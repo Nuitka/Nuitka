@@ -157,7 +157,7 @@ def _makeTryExceptSingleHandlerNode(
         )
     )
 
-    if python_version >= 300 and public_exc:
+    if python_version >= 0x300 and public_exc:
         handling = (
             makeTryFinallyStatement(
                 provider=provider,
@@ -233,7 +233,7 @@ def buildTryExceptionNode(provider, node, source_ref):
                     provider=provider, nodes=exception_block, source_ref=source_ref
                 )
             ]
-        elif python_version < 300:
+        elif python_version < 0x300:
             statements = [
                 buildAssignmentStatements(
                     provider=provider,
@@ -335,7 +335,7 @@ def buildTryExceptionNode(provider, node, source_ref):
         # For Python3, we need not publish at all, if all we do is to revert
         # that immediately. For Python2, the publish may release previously
         # published exception, which has side effects potentially.
-        if python_version < 300:
+        if python_version < 0x300:
             exception_handling = StatementsSequence(
                 statements=(
                     StatementPreserveFrameException(
@@ -347,7 +347,7 @@ def buildTryExceptionNode(provider, node, source_ref):
                 source_ref=source_ref.atInternal(),
             )
     else:
-        if python_version < 300:
+        if python_version < 0x300:
             exception_handling.setStatements(
                 (
                     StatementPreserveFrameException(

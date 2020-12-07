@@ -84,7 +84,7 @@ def main():
             my_print("Consider distutils example:", filename)
 
             py3_only_examples = ("example_3", "nested_namespaces")
-            if python_version < "3" and filename in py3_only_examples:
+            if python_version < (3,) and filename in py3_only_examples:
                 reportSkip("Skipped, only relevant for Python3", ".", filename)
                 continue
 

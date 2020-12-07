@@ -149,7 +149,7 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
     def generatePairCode(pair):
         # Strange as it is, CPython 3.5 and before evaluated the key/value pairs
         # strictly in order, but for each pair, the value first.
-        if python_version < 350:
+        if python_version < 0x350:
             generateValueCode(dict_value_name, pair)
             generateKeyCode(dict_key_name, pair)
         else:

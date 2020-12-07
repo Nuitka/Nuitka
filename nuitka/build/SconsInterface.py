@@ -112,7 +112,7 @@ def _getPythonForSconsExePath():
     if python_exe is not None:
         return python_exe
 
-    if python_version < 300 or python_version >= 350:
+    if python_version < 0x300 or python_version >= 0x350:
         return sys.executable
     elif Utils.getOS() == "Windows":
         python_exe = _getPythonSconsExePathWindows()
@@ -157,7 +157,7 @@ def _setupSconsEnvironment():
     """
 
     # For Python2, avoid unicode working directory.
-    if Utils.isWin32Windows() and python_version < 300:
+    if Utils.isWin32Windows() and python_version < 0x300:
         if os.getcwd() != os.getcwdu():
             os.chdir(getWindowsShortPathName(os.getcwdu()))
 
@@ -171,7 +171,7 @@ def _setupSconsEnvironment():
     # Remove environment variables that can only harm if we have to switch
     # major Python versions, these cannot help Python2 to execute scons, this
     # is a bit of noise, but helpful.
-    if python_version >= 300:
+    if python_version >= 0x300:
         if "PYTHONPATH" in os.environ:
             old_pythonpath = os.environ["PYTHONPATH"]
             del os.environ["PYTHONPATH"]
@@ -190,7 +190,7 @@ def _setupSconsEnvironment():
 
     yield
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         if old_pythonpath is not None:
             os.environ["PYTHONPATH"] = old_pythonpath
 

@@ -32,12 +32,12 @@ static PyObject *%(function_maker_identifier)s(%(function_creation_args)s) {
     struct Nuitka_FunctionObject *result = Nuitka_Function_New(
         %(function_impl_identifier)s,
         %(function_name_obj)s,
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         %(function_qualname_obj)s,
 #endif
         %(code_identifier)s,
         %(defaults)s,
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         %(kw_defaults)s,
         %(annotations)s,
 #endif

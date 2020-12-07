@@ -36,7 +36,7 @@ void FORMAT_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, Py
     CHECK_OBJECT(*exception_value);
 }
 
-#if PYTHON_VERSION < 340
+#if PYTHON_VERSION < 0x340
 void FORMAT_GLOBAL_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name) {
     *exception_type = PyExc_NameError;
     Py_INCREF(*exception_type);

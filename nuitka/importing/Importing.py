@@ -89,7 +89,7 @@ def isPackageDir(dirname):
         "." not in os.path.basename(dirname)
         and os.path.isdir(dirname)
         and (
-            python_version >= 300
+            python_version >= 0x300
             or os.path.isfile(os.path.join(dirname, "__init__.py"))
             or isPreloadedPackagePath(dirname)
         )
@@ -387,7 +387,7 @@ def _findModuleInPath2(module_name, search_path):
                     )
                     found = True
 
-            if not found and python_version >= 300:
+            if not found and python_version >= 0x300:
                 candidates.add(
                     ImportScanFinding(
                         found_in=entry,

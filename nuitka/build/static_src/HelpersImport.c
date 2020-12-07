@@ -168,7 +168,7 @@ bool IMPORT_MODULE_STAR(PyObject *target, bool is_module, PyObject *module) {
             break;
         }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         if (unlikely(PyString_Check(item) == false && PyUnicode_Check(item) == false))
 #else
         if (unlikely(PyUnicode_Check(item) == false))
@@ -217,7 +217,7 @@ PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name) {
 
     if (unlikely(result == NULL)) {
         if (EXCEPTION_MATCH_BOOL_SINGLE(GET_ERROR_OCCURRED(), PyExc_AttributeError)) {
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
             PyObject *filename = PyModule_GetFilenameObject(module);
             if (filename == NULL) {
                 filename = PyUnicode_FromString("unknown location");
@@ -233,7 +233,7 @@ PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name) {
             Py_DECREF(filename);
             Py_DECREF(name);
 
-#elif PYTHON_VERSION >= 340 || !defined(_NUITKA_FULL_COMPAT)
+#elif PYTHON_VERSION >= 0x340 || !defined(_NUITKA_FULL_COMPAT)
             PyErr_Format(PyExc_ImportError, "cannot import name '%s'", Nuitka_String_AsString(import_name));
 #else
             PyErr_Format(PyExc_ImportError, "cannot import name %s", Nuitka_String_AsString(import_name));
@@ -246,7 +246,7 @@ PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name) {
     return result;
 }
 
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
 
 static PyObject *resolveParentModuleName(PyObject *module, PyObject *name, int level) {
     PyObject *globals = PyModule_GetDict(module);

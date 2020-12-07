@@ -67,9 +67,9 @@ def importFileAsModule(filename):
     Returns:
         Imported Python module with code from the filename.
     """
-    if python_version < 300:
+    if python_version < 0x300:
         return importFilePy2(filename)
-    elif python_version < 350:
+    elif python_version < 0x350:
         return _importFilePy3OldWay(filename)
     else:
         return _importFilePy3NewWay(filename)
@@ -84,7 +84,7 @@ def getSharedLibrarySuffixes():
     global _shared_library_suffixes
 
     if _shared_library_suffixes is None:
-        if python_version < 300:
+        if python_version < 0x300:
             import imp
 
             _shared_library_suffixes = []
@@ -103,7 +103,7 @@ def getSharedLibrarySuffixes():
 
 
 def getSharedLibrarySuffix(preferred):
-    if preferred and python_version >= 300:
+    if preferred and python_version >= 0x300:
         return getSharedLibrarySuffixes()[0]
 
     result = None

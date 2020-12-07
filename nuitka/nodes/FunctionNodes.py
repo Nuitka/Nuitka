@@ -102,11 +102,11 @@ class ExpressionFunctionBodyBase(
 
         # Python3.4: Might be overridden by global statement on the class name.
         # TODO: Make this class only code.
-        if python_version >= 340:
+        if python_version >= 0x340:
             self.qualname_provider = provider
 
         # Non-local declarations.
-        if python_version >= 300:
+        if python_version >= 0x300:
             self.non_local_declarations = None
 
     @staticmethod
@@ -274,7 +274,7 @@ class ExpressionFunctionBodyBase(
             # that instead of merely a variable, to be assigned, we need to replace with locals
             # dict access.
             if (
-                python_version < 300
+                python_version < 0x300
                 and not entry_point.isExpressionClassBody()
                 and not entry_point.isPythonMainModule()
                 and result.isModuleVariable()
@@ -342,7 +342,7 @@ class ExpressionFunctionBodyBase(
 
         function_name = self.getFunctionName()
 
-        if python_version < 340:
+        if python_version < 0x340:
             provider = self.getParentVariableProvider()
         else:
             provider = self.qualname_provider
@@ -510,7 +510,7 @@ class ExpressionFunctionBody(
         "body": checkStatementsSequenceOrNone
     }
 
-    if python_version >= 340:
+    if python_version >= 0x340:
         qualname_setup = None
 
     def __init__(
@@ -736,7 +736,7 @@ class ExpressionFunctionCreation(
     # all kinds go last.
 
     # A bug of CPython3.x not fixed before version 3.4, see bugs.python.org/issue16967
-    kw_defaults_before_defaults = python_version < 340
+    kw_defaults_before_defaults = python_version < 0x340
 
     if kw_defaults_before_defaults:
         named_children = ("kw_defaults", "defaults", "annotations", "function_ref")

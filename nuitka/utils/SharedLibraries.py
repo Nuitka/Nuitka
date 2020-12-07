@@ -89,7 +89,7 @@ def locateDLL(dll_name):
         assert b" (" in left, line
         left = left[: left.rfind(b" (")]
 
-        if python_version >= 300:
+        if python_version >= 0x300:
             left = left.decode(sys.getfilesystemencoding())
             right = right.decode(sys.getfilesystemencoding())
 

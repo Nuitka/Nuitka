@@ -34,7 +34,7 @@ PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key) {
     Py_hash_t hash;
 
 // This variant is uncertain about the hashing.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (!PyString_CheckExact(key) || (hash = ((PyStringObject *)key)->ob_shash) == -1) {
         hash = HASH_VALUE_WITHOUT_ERROR(key);
 
@@ -63,7 +63,7 @@ PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key) {
 
     PyDictObject *dict_object = (PyDictObject *)dict;
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
     PyObject **value_addr;
     PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
 
@@ -71,7 +71,7 @@ PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key) {
         return NULL;
     }
 #else
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     PyObject **value_addr;
     Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &value_addr, NULL);
 
@@ -85,7 +85,7 @@ PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key) {
     }
 #endif
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
@@ -107,7 +107,7 @@ PyObject *DICT_GET_ITEM1(PyObject *dict, PyObject *key) {
     Py_hash_t hash;
 
 // This variant is uncertain about the hashing.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (!PyString_CheckExact(key) || (hash = ((PyStringObject *)key)->ob_shash) == -1) {
         hash = HASH_VALUE_WITHOUT_ERROR(key);
 
@@ -137,7 +137,7 @@ PyObject *DICT_GET_ITEM1(PyObject *dict, PyObject *key) {
 
     PyDictObject *dict_object = (PyDictObject *)dict;
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
     PyObject **value_addr;
     PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
 
@@ -145,7 +145,7 @@ PyObject *DICT_GET_ITEM1(PyObject *dict, PyObject *key) {
         return NULL;
     }
 #else
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     PyObject **value_addr;
     Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &value_addr, NULL);
 
@@ -159,7 +159,7 @@ PyObject *DICT_GET_ITEM1(PyObject *dict, PyObject *key) {
     }
 #endif
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
@@ -203,7 +203,7 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
     Py_hash_t hash;
 
 // This variant is uncertain about the hashing.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (!PyString_CheckExact(key) || (hash = ((PyStringObject *)key)->ob_shash) == -1) {
         hash = HASH_VALUE_WITH_ERROR(key);
         if (unlikely(hash == -1)) {
@@ -237,7 +237,7 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
 
     PyDictObject *dict_object = (PyDictObject *)dict;
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
     PyObject **value_addr;
     PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
 
@@ -251,7 +251,7 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
         return NULL;
     }
 #else
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     PyObject **value_addr;
     Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &value_addr, NULL);
 
@@ -271,7 +271,7 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
     }
 #endif
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
@@ -301,7 +301,7 @@ int DICT_HAS_ITEM(PyObject *dict, PyObject *key) {
     Py_hash_t hash;
 
 // This variant is uncertain about the hashing.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (!PyString_CheckExact(key) || (hash = ((PyStringObject *)key)->ob_shash) == -1) {
         hash = HASH_VALUE_WITH_ERROR(key);
         if (unlikely(hash == -1)) {
@@ -331,7 +331,7 @@ int DICT_HAS_ITEM(PyObject *dict, PyObject *key) {
 
     PyDictObject *dict_object = (PyDictObject *)dict;
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
     PyObject **value_addr;
     PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
 
@@ -345,7 +345,7 @@ int DICT_HAS_ITEM(PyObject *dict, PyObject *key) {
 
     return 1;
 #else
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     PyObject **value_addr;
     Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &value_addr, NULL);
 

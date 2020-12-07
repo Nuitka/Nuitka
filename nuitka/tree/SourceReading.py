@@ -113,7 +113,7 @@ see http://python.org/dev/peps/pep-0263/ for details"""
 
 
 def readSourceCodeFromFilename(module_name, source_filename):
-    if python_version < 300:
+    if python_version < 0x300:
         source_code = _readSourceCodeFromFilename2(source_filename)
     else:
         source_code = _readSourceCodeFromFilename3(source_filename)
@@ -145,25 +145,25 @@ def checkPythonVersionFromCode(source_code):
 
         # Not sure if we should do that.
         if basename == "python":
-            result = python_version < 300
+            result = python_version < 0x300
         elif basename == "python3":
             result = python_version > 300
         elif basename == "python2":
-            result = python_version < 300
+            result = python_version < 0x300
         elif basename == "python2.7":
-            result = python_version < 300
+            result = python_version < 0x300
         elif basename == "python2.6":
-            result = python_version < 270
+            result = python_version < 0x270
         elif basename == "python3.2":
-            result = 330 > python_version >= 300
+            result = 330 > python_version >= 0x300
         elif basename == "python3.3":
-            result = 340 > python_version >= 330
+            result = 340 > python_version >= 0x330
         elif basename == "python3.4":
-            result = 350 > python_version >= 340
+            result = 350 > python_version >= 0x340
         elif basename == "python3.5":
-            result = 360 > python_version >= 350
+            result = 360 > python_version >= 0x350
         elif basename == "python3.6":
-            result = 370 > python_version >= 360
+            result = 370 > python_version >= 0x360
         else:
             result = None
 

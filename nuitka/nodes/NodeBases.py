@@ -760,7 +760,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         del self.temp_variables[variable.getName()]
 
     def allocatePreserverId(self):
-        if python_version >= 300:
+        if python_version >= 0x300:
             self.preserver_id += 1
 
         return self.preserver_id

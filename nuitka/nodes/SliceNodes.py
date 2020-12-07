@@ -53,7 +53,7 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
     getUpper = StatementChildrenHavingBase.childGetter("upper")
 
     def __init__(self, expression, lower, upper, source, source_ref):
-        assert python_version < 300
+        assert python_version < 0x300
 
         StatementChildrenHavingBase.__init__(
             self,
@@ -209,7 +209,7 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
     checkers = {"upper": convertNoneConstantToNone, "lower": convertNoneConstantToNone}
 
     def __init__(self, expression, lower, upper, source_ref):
-        assert python_version < 300
+        assert python_version < 0x300
 
         ExpressionChildrenHavingBase.__init__(
             self,

@@ -108,7 +108,7 @@ Insist on PyLint to be installed. Default is %default.""",
     blacklist = []
 
     # Avoid checking the Python2 runner along with the one for Python3, it has name collisions.
-    if python_version >= 300:
+    if python_version >= 0x300:
         blacklist.append("nuitka")
 
     filenames = list(scanTargets(positional_args, (".py",), blacklist))

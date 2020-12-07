@@ -36,7 +36,7 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
     )
 
     # This is used for Python3 only.
-    assert python_version >= 300
+    assert python_version >= 0x300
 
     arg_names = [metaclass_name, bases_name]
 

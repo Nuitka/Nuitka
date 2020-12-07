@@ -27,7 +27,7 @@
 
 PyObject *DEEP_COPY(PyObject *value) {
     if (PyDict_Check(value)) {
-#if PYTHON_VERSION < 330
+#if PYTHON_VERSION < 0x330
         // For Python3, this can be done much faster in the same way as it is
         // done in parameter parsing.
 
@@ -69,7 +69,7 @@ PyObject *DEEP_COPY(PyObject *value) {
 
             Nuitka_GC_Track(result);
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
             Py_ssize_t size = mp->ma_keys->dk_size;
 #else
             Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
@@ -88,13 +88,13 @@ PyObject *DEEP_COPY(PyObject *value) {
 
             PyDictObject *mp = (PyDictObject *)value;
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
             Py_ssize_t size = mp->ma_keys->dk_size;
 #else
             Py_ssize_t size = mp->ma_keys->dk_nentries;
 #endif
             for (Py_ssize_t i = 0; i < size; i++) {
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
                 PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
 #else
                 PyDictKeyEntry *entry = &DK_ENTRIES(mp->ma_keys)[i];
@@ -137,11 +137,11 @@ PyObject *DEEP_COPY(PyObject *value) {
         // Sets cannot contain unhashable types, so they must be immutable.
         return PyFrozenSet_New(value);
     } else if (
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         PyString_Check(value) ||
 #endif
         PyUnicode_Check(value) ||
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         PyInt_Check(value) ||
 #endif
         PyLong_Check(value) || value == Py_None || PyBool_Check(value) || PyFloat_Check(value) ||
@@ -273,7 +273,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
 
         FETCH_ERROR_OCCURRED_UNTRACED(&exception_type, &exception_value, &exception_tb);
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         char const *s = (char const *)PyUnicode_DATA(value);
         Py_ssize_t size = PyUnicode_GET_LENGTH(value) * PyUnicode_KIND(value);
 
@@ -291,7 +291,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
 
         return result;
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (PyString_Check(value)) {
         Py_hash_t result = DEEP_HASH((PyObject *)Py_TYPE(value));
 
@@ -356,7 +356,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
 
         return result;
     } else if (
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         PyInt_Check(value) ||
 #endif
         PyBool_Check(value) || PyRange_Check(value) || PySlice_Check(value) || PyCFunction_Check(value)) {

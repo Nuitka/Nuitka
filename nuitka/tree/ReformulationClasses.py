@@ -394,7 +394,7 @@ def buildClassNode(provider, node, source_ref):
 
     # Python2 and Python3 are similar, but fundamentally different, so handle
     # them in dedicated code.
-    if python_version < 300:
+    if python_version < 0x300:
         return buildClassNode2(provider, node, source_ref)
     else:
         return buildClassNode3(provider, node, source_ref)

@@ -115,7 +115,7 @@ def getGeneratorObjectCode(
     if needs_generator_return:
         generator_exit += template_generator_return_exit % {
             "return_value": context.getReturnValueName()
-            if python_version >= 300
+            if python_version >= 0x300
             else None
         }
 

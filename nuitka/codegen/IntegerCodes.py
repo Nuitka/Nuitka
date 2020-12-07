@@ -31,7 +31,7 @@ from .PythonAPICodes import generateCAPIObjectCode
 
 
 def generateBuiltinLong1Code(to_name, expression, emit, context):
-    assert python_version < 300
+    assert python_version < 0x300
 
     value = expression.getValue()
 
@@ -49,7 +49,7 @@ def generateBuiltinLong1Code(to_name, expression, emit, context):
 
 
 def generateBuiltinLong2Code(to_name, expression, emit, context):
-    assert python_version < 300
+    assert python_version < 0x300
 
     value_name, base_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context

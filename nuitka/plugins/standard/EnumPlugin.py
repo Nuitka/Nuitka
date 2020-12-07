@@ -33,7 +33,7 @@ class NuitkaPluginEnumWorkarounds(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        return python_version < 300
+        return python_version < 0x300
 
     @staticmethod
     def isAlwaysEnabled():

@@ -52,7 +52,7 @@ def buildAssertNode(provider, node, source_ref):
     if "no_asserts" in getPythonFlags():
         return None
 
-    if exception_value is not None and python_version > 272:
+    if exception_value is not None and python_version >= 0x272:
         exception_value = makeExpressionMakeTuple(
             elements=(exception_value,), source_ref=source_ref
         )

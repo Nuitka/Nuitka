@@ -142,7 +142,7 @@ Monkey patching "multiprocessing" for compiled methods.""",
         # CPython does. Using the "__import__" built-in to not spoil
         # or use the module namespace. The forking module was split up
         # into multiple modules in Python 3.4.
-        if python_version >= 340:
+        if python_version >= 0x340:
             source_code += """
 __import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
 __import__("multiprocessing.spawn").spawn.freeze_support()"""

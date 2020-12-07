@@ -233,7 +233,7 @@ Determined iteration end check to be always true.""",
                         statement=self,
                         exception_type="ValueError",
                         exception_value="too many values to unpack"
-                        if python_version < 300
+                        if python_version < 0x300
                         else "too many values to unpack (expected %d)"
                         % self.getCount(),
                     )

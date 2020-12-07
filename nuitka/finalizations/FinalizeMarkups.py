@@ -129,10 +129,10 @@ class FinalizeMarkups(FinalizationVisitorBase):
                     # TODO: This might be bad.
                     assign_source.unmarkAsInplaceSuspect()
 
-        if python_version < 300 and node.isStatementPublishException():
+        if python_version < 0x300 and node.isStatementPublishException():
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()
 
-        if python_version >= 300:
+        if python_version >= 0x300:
             if (
                 node.isExpressionYield()
                 or node.isExpressionYieldFrom()

@@ -325,7 +325,7 @@ class TypeDescBase(getMetaClassBase("Type")):
             or right.getTypeName2() != right.getTypeName3()
         ):
             return """\
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
@@ -373,9 +373,9 @@ return %s;""" % (
         ):
             # TODO: The message for Python2, can it be triggered at all for non-objects?
             return """\
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 PyErr_Format(PyExc_TypeError, "unorderable types: %(left_type2)s() %(operator)s %(right_type2)s()"%(args)s);
-#elif PYTHON_VERSION < 360
+#elif PYTHON_VERSION < 0x360
 PyErr_Format(PyExc_TypeError, "unorderable types: %(left_type3)s() %(operator)s %(right_type3)s()"%(args)s);
 #else
 PyErr_Format(PyExc_TypeError, "'%(operator)s' not supported between instances of '%(left_type3)s' and '%(right_type3)s'"%(args)s);
@@ -391,7 +391,7 @@ return %(return_value)s;""" % {
             }
         else:
             return """\
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
 PyErr_Format(PyExc_TypeError, "unorderable types: %(left_type)s() %(operator)s %(right_type)s()"%(args)s);
 #else
 PyErr_Format(PyExc_TypeError, "'%(operator)s' not supported between instances of '%(left_type)s' and '%(right_type)s'"%(args)s);
@@ -792,7 +792,7 @@ class ConcreteTypeBase(TypeDescBase):
         return """\
 CHECK_OBJECT(%(operand)s);
 assert(%(type_name)s_CheckExact(%(operand)s));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 assert(%(is_newstyle)sNEW_STYLE_NUMBER(%(operand)s));
 #endif""" % {
             "operand": operand,
@@ -831,7 +831,7 @@ class IntDesc(ConcreteTypeBase):
     type_name = "int"
     type_desc = "Python2 'int'"
 
-    python_requirement = "PYTHON_VERSION < 300"
+    python_requirement = "PYTHON_VERSION < 0x300"
 
     @classmethod
     def getTypeValueExpression(cls, operand):
@@ -878,7 +878,7 @@ class StrDesc(ConcreteTypeBase):
     type_name = "str"
     type_desc = "Python2 'str'"
 
-    python_requirement = "PYTHON_VERSION < 300"
+    python_requirement = "PYTHON_VERSION < 0x300"
 
     @classmethod
     def getTypeValueExpression(cls, operand):
@@ -1073,7 +1073,7 @@ class BytesDesc(ConcreteTypeBase):
     type_name = "bytes"
     type_desc = "Python3 'bytes'"
 
-    python_requirement = "PYTHON_VERSION >= 300"
+    python_requirement = "PYTHON_VERSION >= 0x300"
 
     @classmethod
     def getTypeValueExpression(cls, operand):

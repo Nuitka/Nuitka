@@ -46,7 +46,7 @@ PyObject *BUILTIN_CHR(PyObject *value) {
     long x = PyInt_AsLong(value);
 
     if (unlikely(x == -1 && ERROR_OCCURRED())) {
-#if PYTHON_VERSION < 300 && defined(_NUITKA_FULL_COMPAT)
+#if PYTHON_VERSION < 0x300 && defined(_NUITKA_FULL_COMPAT)
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "an integer is required");
 #else
         PyErr_Format(PyExc_TypeError, "an integer is required (got type %s)", Py_TYPE(value)->tp_name);
@@ -54,7 +54,7 @@ PyObject *BUILTIN_CHR(PyObject *value) {
         return NULL;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(x < 0 || x >= 256)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "chr() arg not in range(256)");
         return NULL;
@@ -108,7 +108,7 @@ PyObject *BUILTIN_ORD(PyObject *value) {
             return NULL;
         }
     } else if (PyUnicode_Check(value)) {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         if (unlikely(PyUnicode_READY(value) == -1)) {
             return NULL;
         }
@@ -119,7 +119,7 @@ PyObject *BUILTIN_ORD(PyObject *value) {
 #endif
 
         if (likely(size == 1)) {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
             result = (long)(PyUnicode_READ_CHAR(value, 0));
 #else
             result = (long)(*PyUnicode_AS_UNICODE(value));
@@ -139,7 +139,7 @@ PyObject *BUILTIN_ORD(PyObject *value) {
     return PyInt_FromLong(result);
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 
 #define _PyUnicode_UTF8_LENGTH(op) (((PyCompactUnicodeObject *)(op))->utf8_length)
 #define PyUnicode_UTF8_LENGTH(op)                                                                                      \
@@ -308,7 +308,7 @@ static PyObject *_NuitkaUnicode_resize_copy(PyObject *unicode, Py_ssize_t length
 }
 
 // We use older form code, make some backward compatible defines available.
-#if PYTHON_VERSION >= 390
+#if PYTHON_VERSION >= 0x390
 
 #ifdef Py_REF_DEBUG
 #define _Py_DEC_REFTOTAL _Py_RefTotal--;

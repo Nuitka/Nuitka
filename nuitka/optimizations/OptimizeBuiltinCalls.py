@@ -177,7 +177,7 @@ def dir_extractor(node):
 
         # For Python3, keys doesn't really return values, but instead a handle
         # only, but we want it to be a list.
-        if python_version >= 300:
+        if python_version >= 0x300:
             result = ExpressionBuiltinList(value=result, source_ref=source_ref)
 
         return result
@@ -294,7 +294,7 @@ def sum_extractor(node):
             expression=node,
             exception=TypeError(
                 "sum expected at least 1 arguments, got 0"
-                if python_version < 380
+                if python_version < 0x380
                 else "sum() takes at least 1 positional argument (0 given)"
             ),
         )
@@ -414,7 +414,7 @@ def repr_extractor(node):
     )
 
 
-if python_version >= 300:
+if python_version >= 0x300:
 
     def ascii_extractor(node):
         return BuiltinParameterSpecs.extractBuiltinArgs(
@@ -612,7 +612,7 @@ def str_extractor(node):
     )
 
 
-if python_version < 300:
+if python_version < 0x300:
 
     def unicode_extractor(node):
         return BuiltinParameterSpecs.extractBuiltinArgs(
@@ -687,7 +687,7 @@ def int_extractor(node):
     )
 
 
-if python_version < 300:
+if python_version < 0x300:
     from nuitka.nodes.BuiltinIntegerNodes import (
         ExpressionBuiltinLong1,
         ExpressionBuiltinLong2,
@@ -739,7 +739,7 @@ def locals_extractor(node):
     )
 
 
-if python_version < 300:
+if python_version < 0x300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExecfile
 
     def execfile_extractor(node):
@@ -856,7 +856,7 @@ def eval_extractor(node):
 
         strip_choice = makeConstantRefNode(constant=(" \t",), source_ref=source_ref)
 
-        if python_version >= 300:
+        if python_version >= 0x300:
             strip_choice = ExpressionConditional(
                 condition=ExpressionComparisonIs(
                     left=ExpressionBuiltinType1(
@@ -900,7 +900,7 @@ def eval_extractor(node):
             ExpressionBuiltinAnonymousRef(builtin_name="code", source_ref=source_ref)
         ]
 
-        if python_version >= 270:
+        if python_version >= 0x270:
             acceptable_builtin_types.append(
                 makeExpressionBuiltinTypeRef(
                     builtin_name="memoryview", source_ref=source_ref
@@ -967,7 +967,7 @@ def eval_extractor(node):
     )
 
 
-if python_version >= 300:
+if python_version >= 0x300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 
     def exec_extractor(node):
@@ -1073,7 +1073,7 @@ def open_extractor(node):
 def super_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator
     def wrapSuperBuiltin(type_arg, object_arg, source_ref):
-        if type_arg is None and python_version >= 300:
+        if type_arg is None and python_version >= 0x300:
             if provider.isCompiledPythonModule():
                 return makeRaiseExceptionReplacementExpression(
                     expression=node,
@@ -1105,7 +1105,7 @@ def super_extractor(node):
                 return makeRaiseExceptionReplacementExpression(
                     expression=node,
                     exception_type="SystemError"
-                    if python_version < 331
+                    if python_version < 0x331
                     else "RuntimeError",
                     exception_value="super(): __class__ cell not found",
                 )
@@ -1139,7 +1139,7 @@ def super_extractor(node):
                         return makeRaiseExceptionReplacementExpression(
                             expression=node,
                             exception_type="SystemError"
-                            if python_version < 300
+                            if python_version < 0x300
                             else "RuntimeError",
                             exception_value="super(): __class__ cell not found",
                         )
@@ -1370,7 +1370,7 @@ _dispatch_dict = {
     "divmod": divmod_extractor,
 }
 
-if python_version < 300:
+if python_version < 0x300:
     # These are not in Python3
     _dispatch_dict["long"] = long_extractor
     _dispatch_dict["unicode"] = unicode_extractor

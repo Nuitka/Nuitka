@@ -95,12 +95,12 @@ class PythonModuleBase(NodeBase):
                 module_name=package_name,
                 parent_package=None,
                 level=1,
-                warn=python_version < 300,
+                warn=python_version < 0x300,
             )
 
             # TODO: Temporary, if we can't find the package for Python3.3 that
             # is semi-OK, maybe.
-            if python_version >= 300 and not package_filename:
+            if python_version >= 0x300 and not package_filename:
                 return ()
 
             if package_name == "uniconvertor.app.modules":

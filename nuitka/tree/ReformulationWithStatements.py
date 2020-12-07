@@ -73,7 +73,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     # Many details, pylint: disable=too-many-locals
     with_source = buildNode(provider, context_expr, source_ref)
 
-    if python_version < 380 and Options.is_fullcompat:
+    if python_version < 0x380 and Options.is_fullcompat:
         source_ref = with_source.getCompatibleSourceReference()
 
     temp_scope = provider.allocateTempScope("with")
@@ -116,7 +116,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         while deepest.getVisitableNodes():
             deepest = deepest.getVisitableNodes()[-1]
 
-        if python_version < 370:
+        if python_version < 0x370:
             body_lineno = deepest.getCompatibleSourceReference().getLineNumber()
         else:
             body_lineno = deepest.getSourceReference().getLineNumber()
@@ -127,7 +127,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
 
     # The "__enter__" and "__exit__" were normal attribute lookups under
     # CPython2.6, but that changed with CPython2.7.
-    if python_version < 270:
+    if python_version < 0x270:
         attribute_lookup_class = ExpressionAttributeLookup
     else:
         attribute_lookup_class = ExpressionAttributeLookupSpecial
@@ -213,7 +213,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         ),
     ]
 
-    if python_version >= 360 and sync:
+    if python_version >= 0x360 and sync:
         attribute_assignments.reverse()
 
     statements += attribute_assignments
@@ -255,7 +255,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
                     ),
                     source_ref=source_ref,
                 ),
-                public_exc=python_version >= 270,
+                public_exc=python_version >= 0x270,
                 source_ref=source_ref,
             ),
             final=makeStatementConditional(

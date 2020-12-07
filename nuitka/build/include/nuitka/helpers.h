@@ -107,7 +107,7 @@ static inline PyObject *Nuitka_Generator_GetName(PyObject *object);
 NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT(PyObject *value) {
     PyObject *result;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyString_CheckExact(value)) {
         result = PyFloat_FromString(value, NULL);
     }
@@ -143,7 +143,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *enc
     } else if (Nuitka_String_Check(encoding)) {
         encoding_str = Nuitka_String_AsString_Unchecked(encoding);
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (PyUnicode_Check(encoding)) {
         PyObject *uarg2 = _PyUnicode_AsDefaultEncodedString(encoding, NULL);
         CHECK_OBJECT(uarg2);
@@ -163,7 +163,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *enc
     } else if (Nuitka_String_Check(errors)) {
         errors_str = Nuitka_String_AsString_Unchecked(errors);
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (PyUnicode_Check(errors)) {
         PyObject *uarg3 = _PyUnicode_AsDefaultEncodedString(errors, NULL);
         CHECK_OBJECT(uarg3);
@@ -217,7 +217,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyObject *source) {
 #include "helper/operations.h"
 
 // Compile source code given, pretending the file name was given.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 extern PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags,
                               PyObject *dont_inherit);
 #else
@@ -225,12 +225,12 @@ extern PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObje
                               PyObject *dont_inherit, PyObject *optimize);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 extern bool EXEC_FILE_ARG_HANDLING(PyObject **prog, PyObject **name);
 #endif
 
 // For quicker built-in open() functionality.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 extern PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering);
 #else
 extern PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering, PyObject *encoding,
@@ -303,7 +303,7 @@ extern PyObject *BUILTIN_SUM2(PyObject *sequence, PyObject *start);
 extern PyObject *BUILTIN_ABS(PyObject *o);
 
 // For built-in bytes() functionality.
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 extern PyObject *BUILTIN_BYTES1(PyObject *value);
 extern PyObject *BUILTIN_BYTES3(PyObject *value, PyObject *encoding, PyObject *errors);
 #endif
@@ -323,7 +323,7 @@ extern PyObject *BUILTIN_CLASSMETHOD(PyObject *function);
 // For built-in "int()" functionality with 2 arguments.
 extern PyObject *BUILTIN_INT2(PyObject *value, PyObject *base);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 // For built-in "long()" functionality with 2 arguments.
 extern PyObject *BUILTIN_LONG2(PyObject *value, PyObject *base);
 #endif
@@ -358,7 +358,7 @@ extern void setupMetaPathBasedLoader(void);
 extern void patchBuiltinModule(void);
 
 /* Replace inspect functions with ones that handle compiles types too. */
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 extern void patchInspectModule(void);
 #endif
 
@@ -370,12 +370,12 @@ extern void patchTypeComparison(void);
 // to be slightly faster for exception control flows.
 extern void patchTracebackDealloc(void);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 // Initialize value for "tp_compare" default.
 extern void _initSlotCompare(void);
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 // Select the metaclass from specified one and given bases.
 extern PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases);
 #endif
@@ -397,7 +397,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyObject *module) {
 // Get the binary directory was wide characters.
 extern wchar_t const *getBinaryDirectoryWideChars();
 
-#if !defined(_WIN32) || PYTHON_VERSION < 300
+#if !defined(_WIN32) || PYTHON_VERSION < 0x300
 // Get the binary directory, translated to native path
 extern char const *getBinaryDirectoryHostEncoded();
 #endif

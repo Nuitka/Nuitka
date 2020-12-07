@@ -395,7 +395,7 @@ def makeExpressionBuiltinLocals(locals_scope, source_ref):
             return ExpressionBuiltinLocalsRef(
                 locals_scope=locals_scope, source_ref=source_ref
             )
-        elif python_version >= 300 or locals_scope.isUnoptimizedFunctionScope():
+        elif python_version >= 0x300 or locals_scope.isUnoptimizedFunctionScope():
             assert locals_scope.isFunctionScope(), locals_scope
 
             return ExpressionBuiltinLocalsUpdated(

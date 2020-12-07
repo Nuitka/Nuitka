@@ -29,7 +29,7 @@
 static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object, PyObject *klass) {
     assert(Nuitka_Function_Check(function));
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (object == NULL || object == Py_None) {
         Py_INCREF(function);
         return function;
@@ -41,13 +41,13 @@ static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object,
 
 // tp_repr slot, decide how compiled function shall be output to "repr" built-in
 static PyObject *Nuitka_Function_tp_repr(struct Nuitka_FunctionObject *function) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     return PyString_FromFormat(
 #else
     return PyUnicode_FromFormat(
 #endif
         "<compiled_function %s at %p>",
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         Nuitka_String_AsString(function->m_name),
 #else
         Nuitka_String_AsString(function->m_qualname),
@@ -126,7 +126,7 @@ static PyObject *Nuitka_Function_get_name(struct Nuitka_FunctionObject *object) 
 }
 
 static int Nuitka_Function_set_name(struct Nuitka_FunctionObject *object, PyObject *value) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(value == NULL || PyString_Check(value) == 0))
 #else
     if (unlikely(value == NULL || PyUnicode_Check(value) == 0))
@@ -144,7 +144,7 @@ static int Nuitka_Function_set_name(struct Nuitka_FunctionObject *object, PyObje
     return 0;
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 static PyObject *Nuitka_Function_get_qualname(struct Nuitka_FunctionObject *object) {
     PyObject *result = object->m_qualname;
     Py_INCREF(result);
@@ -244,7 +244,7 @@ static PyObject *Nuitka_Function_get_closure(struct Nuitka_FunctionObject *objec
 
 static int Nuitka_Function_set_closure(struct Nuitka_FunctionObject *object, PyObject *value) {
     SET_CURRENT_EXCEPTION_TYPE0_STR(
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         PyExc_TypeError,
 #else
         PyExc_AttributeError,
@@ -303,7 +303,7 @@ static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *object, Py
     return 0;
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 static PyObject *Nuitka_Function_get_kwdefaults(struct Nuitka_FunctionObject *object) {
     PyObject *result = object->m_kwdefaults;
 
@@ -402,39 +402,39 @@ static PyObject *Nuitka_Function_get_module(struct Nuitka_FunctionObject *object
 }
 
 static PyGetSetDef Nuitka_Function_getset[] = {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     {(char *)"__qualname__", (getter)Nuitka_Function_get_qualname, (setter)Nuitka_Function_set_qualname, NULL},
 #endif
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     {(char *)"func_name", (getter)Nuitka_Function_get_name, (setter)Nuitka_Function_set_name, NULL},
 #endif
     {(char *)"__name__", (getter)Nuitka_Function_get_name, (setter)Nuitka_Function_set_name, NULL},
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     {(char *)"func_doc", (getter)Nuitka_Function_get_doc, (setter)Nuitka_Function_set_doc, NULL},
 #endif
     {(char *)"__doc__", (getter)Nuitka_Function_get_doc, (setter)Nuitka_Function_set_doc, NULL},
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     {(char *)"func_dict", (getter)Nuitka_Function_get_dict, (setter)Nuitka_Function_set_dict, NULL},
 #endif
     {(char *)"__dict__", (getter)Nuitka_Function_get_dict, (setter)Nuitka_Function_set_dict, NULL},
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     {(char *)"func_code", (getter)Nuitka_Function_get_code, (setter)Nuitka_Function_set_code, NULL},
 #endif
     {(char *)"__code__", (getter)Nuitka_Function_get_code, (setter)Nuitka_Function_set_code, NULL},
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     {(char *)"func_defaults", (getter)Nuitka_Function_get_defaults, (setter)Nuitka_Function_set_defaults, NULL},
 #endif
     {(char *)"__defaults__", (getter)Nuitka_Function_get_defaults, (setter)Nuitka_Function_set_defaults, NULL},
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     {(char *)"func_globals", (getter)Nuitka_Function_get_globals, (setter)Nuitka_Function_set_globals, NULL},
 #endif
     {(char *)"__closure__", (getter)Nuitka_Function_get_closure, (setter)Nuitka_Function_set_closure, NULL},
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     {(char *)"func_closure", (getter)Nuitka_Function_get_closure, (setter)Nuitka_Function_set_closure, NULL},
 #endif
     {(char *)"__globals__", (getter)Nuitka_Function_get_globals, (setter)Nuitka_Function_set_globals, NULL},
     {(char *)"__module__", (getter)Nuitka_Function_get_module, (setter)Nuitka_Function_set_module, NULL},
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     {(char *)"__kwdefaults__", (getter)Nuitka_Function_get_kwdefaults, (setter)Nuitka_Function_set_kwdefaults, NULL},
     {(char *)"__annotations__", (getter)Nuitka_Function_get_annotations, (setter)Nuitka_Function_set_annotations, NULL},
 
@@ -444,7 +444,7 @@ static PyGetSetDef Nuitka_Function_getset[] = {
 static PyObject *Nuitka_Function_reduce(struct Nuitka_FunctionObject *function) {
     PyObject *result;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     result = function->m_name;
 #else
     result = function->m_qualname;
@@ -474,7 +474,7 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
     }
 
     Py_DECREF(function->m_name);
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     Py_DECREF(function->m_qualname);
 #endif
 
@@ -484,7 +484,7 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
 
     Py_XDECREF(function->m_doc);
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     Py_XDECREF(function->m_kwdefaults);
     Py_XDECREF(function->m_annotations);
 #endif
@@ -517,7 +517,7 @@ PyTypeObject Nuitka_Function_Type = {
     sizeof(struct Nuitka_FunctionObject),               /* tp_basicsize */
     sizeof(struct Nuitka_CellObject *),                 /* tp_itemsize */
     (destructor)Nuitka_Function_tp_dealloc,             /* tp_dealloc */
-#if PYTHON_VERSION < 380
+#if PYTHON_VERSION < 0x380
     0, /* tp_print */
 #else
     offsetof(struct Nuitka_FunctionObject, m_vectorcall), /* tp_vectorcall_offset */
@@ -536,10 +536,10 @@ PyTypeObject Nuitka_Function_Type = {
     0,                                    /* tp_setattro */
     0,                                    /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT |
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         Py_TPFLAGS_HAVE_WEAKREFS |
 #endif
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
         _Py_TPFLAGS_HAVE_VECTORCALL | Py_TPFLAGS_METHOD_DESCRIPTOR |
 #endif
         Py_TPFLAGS_HAVE_GC,                             /* tp_flags */
@@ -570,7 +570,7 @@ PyTypeObject Nuitka_Function_Type = {
     0,                                                  /* tp_weaklist */
     0,                                                  /* tp_del */
     0                                                   /* tp_version_tag */
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
     ,
     0 /* tp_finalizer */
 #endif
@@ -660,13 +660,13 @@ void Nuitka_Function_EnableConstReturnGeneric(struct Nuitka_FunctionObject *func
     function->m_c_code = _Nuitka_FunctionEmptyCodeGenericImpl;
 }
 
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
 static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *function, PyObject *const *stack,
                                                size_t nargsf, PyObject *kwnames);
 #endif
 
 // Make a function with closure.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name, PyCodeObject *code_object,
                                                   PyObject *defaults, PyObject *module, PyObject *doc,
                                                   struct Nuitka_CellObject **closure, Py_ssize_t closure_given)
@@ -698,7 +698,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     Py_INCREF(name);
     result->m_name = name;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     // The "qualname" defaults to NULL for most compact C code.
     if (qualname == NULL) {
         qualname = name;
@@ -719,7 +719,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 
     onUpdatedDefaultsValue(result);
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     assert(kwdefaults == NULL || (PyDict_Check(kwdefaults) && DICT_SIZE(kwdefaults) > 0));
     result->m_kwdefaults = kwdefaults;
 
@@ -730,10 +730,10 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     result->m_code_object = code_object;
     result->m_args_positional_count = code_object->co_argcount;
     result->m_args_keywords_count = result->m_args_positional_count;
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     result->m_args_keywords_count += code_object->co_kwonlyargcount;
 #endif
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
     result->m_args_pos_only_count = code_object->co_posonlyargcount;
 #endif
 
@@ -741,7 +741,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
                                    ((code_object->co_flags & CO_VARKEYWORDS) ? 1 : 0);
 
     result->m_args_simple = (code_object->co_flags & (CO_VARARGS | CO_VARKEYWORDS)) == 0;
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (code_object->co_kwonlyargcount > 0) {
         result->m_args_simple = false;
     }
@@ -776,7 +776,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     static long Nuitka_Function_counter = 0;
     result->m_counter = Nuitka_Function_counter++;
 
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
     result->m_vectorcall = (vectorcallfunc)Nuitka_Function_tp_vectorcall;
 #endif
 
@@ -788,13 +788,13 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 }
 
 static void formatErrorNoArgumentAllowed(struct Nuitka_FunctionObject const *function,
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
                                          PyObject *kw,
 #endif
                                          Py_ssize_t given) {
     char const *function_name = Nuitka_String_AsString(function->m_name);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "%s() takes no arguments (%zd given)", function_name, given);
 #else
     if (kw == NULL) {
@@ -813,14 +813,14 @@ static void formatErrorNoArgumentAllowed(struct Nuitka_FunctionObject const *fun
 }
 
 static void formatErrorMultipleValuesGiven(struct Nuitka_FunctionObject const *function, Py_ssize_t index) {
-#if PYTHON_VERSION < 390
+#if PYTHON_VERSION < 0x390
     char const *function_name = Nuitka_String_AsString(function->m_name);
 #else
     char const *function_name = Nuitka_String_AsString(function->m_qualname);
 #endif
 
     PyErr_Format(PyExc_TypeError,
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
                  "%s() got multiple values for keyword argument '%s'",
 #else
                  "%s() got multiple values for argument '%s'",
@@ -828,9 +828,9 @@ static void formatErrorMultipleValuesGiven(struct Nuitka_FunctionObject const *f
                  function_name, Nuitka_String_AsString(function->m_varnames[index]));
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static void formatErrorTooFewArguments(struct Nuitka_FunctionObject const *function,
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
                                        Py_ssize_t kw_size,
 #endif
                                        Py_ssize_t given) {
@@ -841,7 +841,7 @@ static void formatErrorTooFewArguments(struct Nuitka_FunctionObject const *funct
         (function->m_defaults != Py_None || function->m_args_star_list_index != -1) ? "at least" : "exactly";
     char const *plural = required_parameter_count == 1 ? "" : "s";
 
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
     if (kw_size > 0) {
         PyErr_Format(PyExc_TypeError, "%s() takes %s %zd non-keyword argument%s (%zd given)", function_name, violation,
                      required_parameter_count, plural, given - function->m_defaults_given);
@@ -925,12 +925,12 @@ static void formatErrorTooFewArguments(struct Nuitka_FunctionObject const *funct
 #endif
 
 static void formatErrorTooManyArguments(struct Nuitka_FunctionObject const *function, Py_ssize_t given
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
                                         ,
                                         Py_ssize_t kw_size
 
 #endif
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
                                         ,
                                         Py_ssize_t kw_only
 #endif
@@ -938,15 +938,15 @@ static void formatErrorTooManyArguments(struct Nuitka_FunctionObject const *func
     Py_ssize_t top_level_parameter_count = function->m_args_positional_count;
 
     char const *function_name = Nuitka_String_AsString(function->m_name);
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     char const *violation = function->m_defaults != Py_None ? "at most" : "exactly";
 #endif
     char const *plural = top_level_parameter_count == 1 ? "" : "s";
 
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
     PyErr_Format(PyExc_TypeError, "%s() takes %s %zd %sargument%s (%zd given)", function_name, violation,
                  top_level_parameter_count, kw_size > 0 ? "non-keyword " : "", plural, given);
-#elif PYTHON_VERSION < 300
+#elif PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "%s() takes %s %zd argument%s (%zd given)", function_name, violation,
                  top_level_parameter_count, plural, given);
 #else
@@ -971,7 +971,7 @@ static void formatErrorTooManyArguments(struct Nuitka_FunctionObject const *func
 #endif
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 static void formatErrorTooFewKwOnlyArguments(struct Nuitka_FunctionObject const *function, PyObject **kw_vars) {
     char const *function_name = Nuitka_String_AsString(function->m_name);
 
@@ -1044,7 +1044,7 @@ static void formatErrorTooFewKwOnlyArguments(struct Nuitka_FunctionObject const 
 #endif
 
 static void formatErrorKeywordsMustBeString(struct Nuitka_FunctionObject const *function) {
-#if PYTHON_VERSION < 390
+#if PYTHON_VERSION < 0x390
     char const *function_name = Nuitka_String_AsString(function->m_name);
     PyErr_Format(PyExc_TypeError, "%s() keywords must be strings", function_name);
 #else
@@ -1052,7 +1052,7 @@ static void formatErrorKeywordsMustBeString(struct Nuitka_FunctionObject const *
 #endif
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw)
 #else
 static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
@@ -1061,7 +1061,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
 {
     Py_ssize_t keywords_count = function->m_args_keywords_count;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     Py_ssize_t keyword_after_index = function->m_args_positional_count;
 #endif
 
@@ -1072,7 +1072,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
     PyObject *key, *value;
 
     while (PyDict_Next(kw, &ppos, &key, &value)) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         if (unlikely(!PyString_Check(key) && !PyUnicode_Check(key)))
 #else
         if (unlikely(!PyUnicode_Check(key)))
@@ -1087,7 +1087,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
         Py_INCREF(key);
         Py_INCREF(value);
 
-#if PYTHON_VERSION < 380
+#if PYTHON_VERSION < 0x380
         Py_ssize_t kw_arg_start = 0;
 #else
         Py_ssize_t kw_arg_start = function->m_args_pos_only_count;
@@ -1098,7 +1098,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
                 assert(python_pars[i] == NULL);
                 python_pars[i] = value;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
                 if (i >= keyword_after_index) {
                     *kw_only_found += 1;
                 }
@@ -1117,7 +1117,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
                     assert(python_pars[i] == NULL);
                     python_pars[i] = value;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
                     if (i >= keyword_after_index) {
                         *kw_only_found += 1;
                     }
@@ -1176,7 +1176,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
     if (kw == NULL) {
         python_pars[star_dict_index] = PyDict_New();
     } else if (((PyDictObject *)kw)->ma_used > 0) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         python_pars[star_dict_index] = _PyDict_NewPresized(((PyDictObject *)kw)->ma_used);
 
         for (int i = 0; i <= ((PyDictObject *)kw)->ma_mask; i++) {
@@ -1214,13 +1214,13 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
 
             Nuitka_GC_Track(split_copy);
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
             Py_ssize_t size = mp->ma_keys->dk_size;
 #else
             Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
 #endif
             for (Py_ssize_t i = 0; i < size; i++) {
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
                 PyDictKeyEntry *entry = &split_copy->ma_keys->dk_entries[i];
 #else
                 PyDictKeyEntry *entry = &DK_ENTRIES(split_copy->ma_keys)[i];
@@ -1240,13 +1240,13 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
 
             PyDictObject *mp = (PyDictObject *)kw;
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
             Py_ssize_t size = mp->ma_keys->dk_size;
 #else
             Py_ssize_t size = mp->ma_keys->dk_nentries;
 #endif
             for (Py_ssize_t i = 0; i < size; i++) {
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
                 PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
 #else
                 PyDictKeyEntry *entry = &DK_ENTRIES(mp->ma_keys)[i];
@@ -1276,7 +1276,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
     return true;
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static Py_ssize_t handleKeywordArgsWithStarDict(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
                                                 PyObject *kw)
 #else
@@ -1292,7 +1292,7 @@ static Py_ssize_t handleKeywordArgsWithStarDict(struct Nuitka_FunctionObject con
 
     Py_ssize_t kw_found = 0;
     Py_ssize_t keywords_count = function->m_args_keywords_count;
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     Py_ssize_t keyword_after_index = function->m_args_positional_count;
 #endif
 
@@ -1300,7 +1300,7 @@ static Py_ssize_t handleKeywordArgsWithStarDict(struct Nuitka_FunctionObject con
 
     PyObject **varnames = function->m_varnames;
 
-#if PYTHON_VERSION < 380
+#if PYTHON_VERSION < 0x380
     Py_ssize_t kw_arg_start = 0;
 #else
     Py_ssize_t kw_arg_start = function->m_args_pos_only_count;
@@ -1320,7 +1320,7 @@ static Py_ssize_t handleKeywordArgsWithStarDict(struct Nuitka_FunctionObject con
 
             kw_found += 1;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
             if (i >= keyword_after_index) {
                 *kw_only_found += 1;
             }
@@ -1381,10 +1381,10 @@ static bool _handleArgumentsPlainOnly(struct Nuitka_FunctionObject const *functi
     // For Python3.3 it's done only later, when more knowledge has
     // been gained. TODO: Could be done this way for improved mode
     // on all versions.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (function->m_args_star_list_index == -1) {
         if (unlikely(args_size > arg_count)) {
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
             formatErrorTooManyArguments(function, args_size, 0);
 #else
             formatErrorTooManyArguments(function, args_size);
@@ -1394,17 +1394,17 @@ static bool _handleArgumentsPlainOnly(struct Nuitka_FunctionObject const *functi
     }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     bool parameter_error = false;
 #endif
 
     Py_ssize_t defaults_given = function->m_defaults_given;
 
     if (args_size + defaults_given < arg_count) {
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
         formatErrorTooFewArguments(function, 0, args_size);
         return false;
-#elif PYTHON_VERSION < 300
+#elif PYTHON_VERSION < 0x300
         formatErrorTooFewArguments(function, args_size);
         return false;
 #else
@@ -1422,7 +1422,7 @@ static bool _handleArgumentsPlainOnly(struct Nuitka_FunctionObject const *functi
         Py_INCREF(python_pars[i]);
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (parameter_error == false) {
 #endif
         PyObject *source = function->m_defaults;
@@ -1434,11 +1434,11 @@ static bool _handleArgumentsPlainOnly(struct Nuitka_FunctionObject const *functi
             python_pars[i] = PyTuple_GET_ITEM(source, defaults_given + i - arg_count);
             Py_INCREF(python_pars[i]);
         }
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (unlikely(parameter_error)) {
         formatErrorTooFewArguments(function, python_pars);
         return false;
@@ -1489,10 +1489,10 @@ static bool handleMethodArgumentsPlainOnly(struct Nuitka_FunctionObject const *f
     // For Python3.3 it's done only later, when more knowledge has
     // been gained. TODO: Could be done this way for improved mode
     // on all versions.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (function->m_args_star_list_index == -1) {
         if (unlikely(args_size + 1 > arg_count)) {
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
             formatErrorTooManyArguments(function, args_size + 1, 0);
 #else
             formatErrorTooManyArguments(function, args_size + 1);
@@ -1502,16 +1502,16 @@ static bool handleMethodArgumentsPlainOnly(struct Nuitka_FunctionObject const *f
     }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     bool parameter_error = false;
 #endif
     Py_ssize_t defaults_given = function->m_defaults_given;
 
     if (args_size + 1 + defaults_given < arg_count) {
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
         formatErrorTooFewArguments(function, 0, args_size + 1);
         return false;
-#elif PYTHON_VERSION < 300
+#elif PYTHON_VERSION < 0x300
         formatErrorTooFewArguments(function, args_size + 1);
         return false;
 #else
@@ -1529,7 +1529,7 @@ static bool handleMethodArgumentsPlainOnly(struct Nuitka_FunctionObject const *f
         Py_INCREF(python_pars[i + 1]);
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (parameter_error == false) {
 #endif
         for (Py_ssize_t i = args_size + 1; i < arg_count; i++) {
@@ -1539,11 +1539,11 @@ static bool handleMethodArgumentsPlainOnly(struct Nuitka_FunctionObject const *f
             python_pars[i] = PyTuple_GET_ITEM(function->m_defaults, defaults_given + i - arg_count);
             Py_INCREF(python_pars[i]);
         }
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (unlikely(parameter_error)) {
         formatErrorTooFewArguments(function, python_pars);
         return false;
@@ -1565,10 +1565,10 @@ static bool handleMethodArgumentsPlainOnly(struct Nuitka_FunctionObject const *f
     return true;
 }
 
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
 static bool _handleArgumentsPlain(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
                                   PyObject *const *args, Py_ssize_t args_size, Py_ssize_t kw_found, Py_ssize_t kw_size)
-#elif PYTHON_VERSION < 300
+#elif PYTHON_VERSION < 0x300
 static bool _handleArgumentsPlain(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
                                   PyObject *const *args, Py_ssize_t args_size, Py_ssize_t kw_found)
 #else
@@ -1583,10 +1583,10 @@ static bool _handleArgumentsPlain(struct Nuitka_FunctionObject const *function, 
     // For Python3.3 it's done only later, when more knowledge has
     // been gained. TODO: Could be done this way for improved mode
     // on all versions.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (function->m_args_star_list_index == -1) {
         if (unlikely(args_size > arg_count)) {
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
             formatErrorTooManyArguments(function, args_size, kw_size);
 #else
             formatErrorTooManyArguments(function, args_size + kw_found);
@@ -1596,7 +1596,7 @@ static bool _handleArgumentsPlain(struct Nuitka_FunctionObject const *function, 
     }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     bool parameter_error = false;
 #endif
 
@@ -1621,10 +1621,10 @@ static bool _handleArgumentsPlain(struct Nuitka_FunctionObject const *function, 
                     python_pars[i] = PyTuple_GET_ITEM(function->m_defaults, defaults_given + i - arg_count);
                     Py_INCREF(python_pars[i]);
                 } else {
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
                     formatErrorTooFewArguments(function, kw_size, args_size + kw_found);
                     return false;
-#elif PYTHON_VERSION < 300
+#elif PYTHON_VERSION < 0x300
                     formatErrorTooFewArguments(function, args_size + kw_found);
                     return false;
 #else
@@ -1638,10 +1638,10 @@ static bool _handleArgumentsPlain(struct Nuitka_FunctionObject const *function, 
         Py_ssize_t defaults_given = function->m_defaults_given;
 
         if (defaults_given < arg_count - usable) {
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
             formatErrorTooFewArguments(function, kw_size, args_size + kw_found);
             return false;
-#elif PYTHON_VERSION < 300
+#elif PYTHON_VERSION < 0x300
             formatErrorTooFewArguments(function, args_size + kw_found);
             return false;
 #else
@@ -1656,7 +1656,7 @@ static bool _handleArgumentsPlain(struct Nuitka_FunctionObject const *function, 
             Py_INCREF(python_pars[i]);
         }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         if (parameter_error == false) {
 #endif
             for (Py_ssize_t i = usable; i < arg_count; i++) {
@@ -1666,12 +1666,12 @@ static bool _handleArgumentsPlain(struct Nuitka_FunctionObject const *function, 
                 python_pars[i] = PyTuple_GET_ITEM(function->m_defaults, defaults_given + i - arg_count);
                 Py_INCREF(python_pars[i]);
             }
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         }
 #endif
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (unlikely(parameter_error)) {
         formatErrorTooFewArguments(function, python_pars);
         return false;
@@ -1708,12 +1708,12 @@ bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyObject **
 
     Py_ssize_t arg_count = function->m_args_positional_count;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     bool kw_only_error;
 #endif
 
     if (unlikely(arg_count == 0 && function->m_args_simple && args_size != 0)) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         formatErrorNoArgumentAllowed(function, args_size);
 #else
         formatErrorNoArgumentAllowed(function, NULL, args_size);
@@ -1728,7 +1728,7 @@ bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyObject **
         goto error_exit;
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 
     // For Python3.3 the keyword only errors are all reported at once.
     kw_only_error = false;
@@ -1771,7 +1771,7 @@ bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function, PyObj
                              PyObject **args, Py_ssize_t args_size) {
     bool result;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     bool kw_only_error;
 #endif
 
@@ -1781,7 +1781,7 @@ bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function, PyObj
         goto error_exit;
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 
     // For Python3 the keyword only errors are all reported at once.
     kw_only_error = false;
@@ -1825,7 +1825,7 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
     Py_ssize_t kw_size = kw ? DICT_SIZE(kw) : 0;
     Py_ssize_t kw_found;
     bool result;
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     Py_ssize_t kw_only_found;
     bool kw_only_error;
 #endif
@@ -1835,7 +1835,7 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
     assert(kw == NULL || PyDict_CheckExact(kw));
 
     if (unlikely(arg_count == 0 && function->m_args_simple && args_size + kw_size > 0)) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         formatErrorNoArgumentAllowed(function, args_size + kw_size);
 #else
         formatErrorNoArgumentAllowed(function, kw_size > 0 ? kw : NULL, args_size);
@@ -1844,11 +1844,11 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
         goto error_exit;
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     kw_only_found = 0;
 #endif
     if (function->m_args_star_dict_index != -1) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         kw_found = handleKeywordArgsWithStarDict(function, python_pars, kw);
 #else
         kw_found = handleKeywordArgsWithStarDict(function, python_pars, &kw_only_found, kw);
@@ -1859,7 +1859,7 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
     } else if (kw == NULL || DICT_SIZE(kw) == 0) {
         kw_found = 0;
     } else {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         kw_found = handleKeywordArgs(function, python_pars, kw);
 #else
         kw_found = handleKeywordArgs(function, python_pars, &kw_only_found, kw);
@@ -1869,9 +1869,9 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
         }
     }
 
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
     result = _handleArgumentsPlain(function, python_pars, args, args_size, kw_found, kw_size);
-#elif PYTHON_VERSION < 300
+#elif PYTHON_VERSION < 0x300
     result = _handleArgumentsPlain(function, python_pars, args, args_size, kw_found);
 #else
     result = _handleArgumentsPlain(function, python_pars, args, args_size, kw_found, kw_only_found);
@@ -1881,7 +1881,7 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
         goto error_exit;
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 
     // For Python3.3 the keyword only errors are all reported at once.
     kw_only_error = false;
@@ -1940,7 +1940,7 @@ PyObject *Nuitka_CallMethodFunctionNoArgs(struct Nuitka_FunctionObject const *fu
 
     bool result = handleMethodArgumentsPlainOnly(function, python_pars, object, NULL, 0);
     // For Python3.3 the keyword only errors are all reported at once.
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     bool kw_only_error;
 #endif
 
@@ -1948,7 +1948,7 @@ PyObject *Nuitka_CallMethodFunctionNoArgs(struct Nuitka_FunctionObject const *fu
         goto error_exit;
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 
     kw_only_error = false;
 
@@ -1997,7 +1997,7 @@ PyObject *Nuitka_CallMethodFunctionPosArgs(struct Nuitka_FunctionObject const *f
 
     bool result = handleMethodArgumentsPlainOnly(function, python_pars, object, args, args_size);
     // For Python3.3 the keyword only errors are all reported at once.
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     bool kw_only_error;
 #endif
 
@@ -2005,7 +2005,7 @@ PyObject *Nuitka_CallMethodFunctionPosArgs(struct Nuitka_FunctionObject const *f
         goto error_exit;
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     kw_only_error = false;
 
     for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
@@ -2056,7 +2056,7 @@ PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(struct Nuitka_FunctionObject co
     return Nuitka_CallFunctionPosArgsKwArgs(function, new_args, args_size + 1, kw);
 }
 
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
 
 static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
                                               Py_ssize_t *kw_only_found, PyObject *const *kw_names,

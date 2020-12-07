@@ -452,10 +452,12 @@ def runSconsBackend(quiet):
     if "no_asserts" in getPythonFlags():
         options["python_sysflag_optimize"] = asBoolStr(True)
 
-    if python_version < 300 and sys.flags.py3k_warning:
+    if python_version < 0x300 and sys.flags.py3k_warning:
         options["python_sysflag_py3k_warning"] = asBoolStr(True)
 
-    if python_version < 300 and (sys.flags.division_warning or sys.flags.py3k_warning):
+    if python_version < 0x300 and (
+        sys.flags.division_warning or sys.flags.py3k_warning
+    ):
         options["python_sysflag_division_warning"] = asBoolStr(True)
 
     if sys.flags.bytes_warning:
@@ -470,10 +472,10 @@ def runSconsBackend(quiet):
     if "no_randomization" in Options.getPythonFlags():
         options["python_sysflag_no_randomization"] = asBoolStr(True)
 
-    if python_version < 300 and sys.flags.unicode:
+    if python_version < 0x300 and sys.flags.unicode:
         options["python_sysflag_unicode"] = asBoolStr(True)
 
-    if python_version >= 370 and sys.flags.utf8_mode:
+    if python_version >= 0x370 and sys.flags.utf8_mode:
         options["python_sysflag_utf8"] = asBoolStr(True)
 
     abiflags = getPythonABI()
@@ -643,7 +645,7 @@ def handleSyntaxError(e):
     error_message = SyntaxErrors.formatOutput(e)
 
     if not Options.is_fullcompat:
-        if python_version < 300:
+        if python_version < 0x300:
             suggested_python_version_str = getSupportedPythonVersions()[-1]
         else:
             suggested_python_version_str = "2.7"

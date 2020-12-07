@@ -68,7 +68,7 @@ class ExpressionKeyValuePair(
     kind = "EXPRESSION_KEY_VALUE_PAIR"
 
     # They changed the order of evaluation with 3.5 to what you normally would expect.
-    if python_version < 350:
+    if python_version < 0x350:
         named_children = ("value", "key")
     else:
         named_children = ("key", "value")
@@ -117,7 +117,7 @@ class ExpressionKeyValuePair(
                 ),
             )
 
-        if python_version < 350:
+        if python_version < 0x350:
             return self.subnode_value.extractSideEffects() + key_part
         else:
             return key_part + self.subnode_value.extractSideEffects()

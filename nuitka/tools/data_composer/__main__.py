@@ -265,7 +265,7 @@ def _writeConstantValue(output, constant_value):
     elif constant_type is bytearray:
         output.write(b"B" + struct.pack("i", len(constant_value)))
 
-        if python_version < 270:
+        if python_version < 0x270:
             constant_value = constant_value.decode("latin1")
         output.write(constant_value)
     elif constant_type is BuiltinAnonValue:

@@ -67,7 +67,7 @@ def callExec(args):
 def getExecutablePath(filename):
     """ Find an execute in PATH environment. """
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         return shutil.which(filename)
     else:
         # Append ".exe" suffix  on Windows if not already present.
@@ -328,7 +328,7 @@ def getPythonInstallPathWindows(supported, decider=lambda x: True):
             seen.add(install_dir)
 
     # Windows only code, pylint: disable=I0021,import-error,undefined-variable
-    if python_version < 300:
+    if python_version < 0x300:
         import _winreg as winreg  # pylint: disable=I0021,import-error,no-name-in-module
     else:
         import winreg  # pylint: disable=I0021,import-error,no-name-in-module

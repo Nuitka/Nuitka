@@ -30,6 +30,7 @@ from nuitka.PythonVersions import (
     getPythonABI,
     getTargetPythonDLLPath,
     python_version,
+    python_version_str,
 )
 from nuitka.Tracing import postprocessing_logger
 from nuitka.utils.FileOperations import (
@@ -160,7 +161,7 @@ version_resources = {}
 
 
 def executePostProcessing():
-    # These is a bunch of stuff to consider, pylint: disable=too-many-branches,too-many-statements
+    # These is a bunch of stuff to consider, pylint: disable=too-many-branches
 
     result_filename = OutputDirectories.getResultFullpath()
 
@@ -174,7 +175,7 @@ def executePostProcessing():
             needs_manifest = False
             manifest = None
 
-            if python_version < 300:
+            if python_version < 0x300:
                 # Copy the Windows manifest from the CPython binary to the created
                 # executable, so it finds "MSCRT.DLL". This is needed for Python2
                 # only, for Python3 newer MSVC doesn't hide the C runtime.
@@ -256,7 +257,6 @@ def executePostProcessing():
         and not Options.shallMakeModule()
         and not Options.shallUseStaticLibPython()
     ):
-        python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
         python_abi_version = python_version_str + getPythonABI()
         python_dll_filename = "libpython" + python_abi_version + ".dylib"
         python_lib_path = os.path.join(sys.prefix, "lib")

@@ -83,7 +83,7 @@ class ExpressionGeneratorObjectBody(
 ):
     kind = "EXPRESSION_GENERATOR_OBJECT_BODY"
 
-    if python_version >= 340:
+    if python_version >= 0x340:
         qualname_setup = None
 
     def __init__(self, provider, name, code_object, flags, auto_release, source_ref):

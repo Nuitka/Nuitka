@@ -53,7 +53,7 @@ static PyObject *%(generator_maker_identifier)s(%(generator_creation_args)s) {
         %(function_identifier)s_context,
         %(generator_module)s,
         %(generator_name_obj)s,
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
         %(generator_qualname_obj)s,
 #endif
         %(code_identifier)s,
@@ -74,7 +74,7 @@ template_make_empty_generator = """\
 %(to_name)s = Nuitka_Generator_NewEmpty(
     %(generator_module)s,
     %(generator_name_obj)s,
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
     %(generator_qualname_obj)s,
 #endif
     %(code_identifier)s,
@@ -108,7 +108,7 @@ template_generator_return_exit = """\
     return NULL;
 
     function_return_exit:
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     generator->m_returned = %(return_value)s;
 #endif
 

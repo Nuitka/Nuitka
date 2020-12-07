@@ -23,7 +23,7 @@
 // Another cornerstone of the integration into CPython. Try to behave as well as
 // normal asyncgen objects do or even better.
 
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
 
 // The Nuitka_AsyncgenObject is the storage associated with a compiled
 // async generator object instance of which there can be many for each code.
@@ -47,7 +47,7 @@ struct Nuitka_AsyncgenObject {
     // When an asyncgen is awaiting, this flag is set.
     int m_awaiting;
 
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
     // When an asyncgen is running, this is set
     int m_running_async;
 #endif
@@ -66,7 +66,7 @@ struct Nuitka_AsyncgenObject {
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
     _PyErr_StackItem m_exc_state;
 #endif
 
@@ -127,7 +127,7 @@ static inline void SAVE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyncge
     CHECK_OBJECT_X(saved_exception_value);
     CHECK_OBJECT_X(saved_exception_traceback);
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
     EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
     EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
@@ -146,7 +146,7 @@ static inline void SAVE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyncge
     CHECK_OBJECT_X(EXC_VALUE(thread_state));
     CHECK_OBJECT_X(EXC_TRACEBACK(thread_state));
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     thread_state->frame->f_exc_type = saved_exception_type;
     thread_state->frame->f_exc_value = saved_exception_value;
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
@@ -175,7 +175,7 @@ static inline void RESTORE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyn
     CHECK_OBJECT_X(saved_exception_value);
     CHECK_OBJECT_X(saved_exception_traceback);
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
     EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
     EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;

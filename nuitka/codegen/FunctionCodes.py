@@ -115,9 +115,9 @@ def getFunctionQualnameObj(owner, context):
     """
 
     if owner.isExpressionFunctionBody():
-        min_version = 300
+        min_version = 0x300
     else:
-        min_version = 350
+        min_version = 0x350
 
     if python_version < min_version:
         return "NULL"

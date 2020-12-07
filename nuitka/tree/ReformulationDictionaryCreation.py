@@ -80,7 +80,7 @@ from .TreeHelpers import (
 
 
 def buildDictionaryNode(provider, node, source_ref):
-    if python_version >= 350:
+    if python_version >= 0x350:
         for key in node.keys:
             if key is None:
                 return buildDictionaryUnpacking(

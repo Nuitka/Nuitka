@@ -119,7 +119,7 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
 
         if not needs_check:
             emit("%s = UNPACK_NEXT_INFALLIBLE(%s);" % (result_name, value_name))
-        elif python_version < 350:
+        elif python_version < 0x350:
             emit(
                 "%s = UNPACK_NEXT(%s, %s);"
                 % (result_name, value_name, expression.getCount() - 1)
@@ -195,7 +195,7 @@ def generateUnpackCheckCode(statement, emit, context):
             "exception_tb": exception_tb,
             "too_many_values_error": context.getConstantCode(
                 "too many values to unpack"
-                if python_version < 300
+                if python_version < 0x300
                 else "too many values to unpack (expected %d)" % statement.getCount()
             ),
         }

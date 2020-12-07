@@ -75,6 +75,7 @@ def main():
     from nuitka.PythonVersions import (
         getSupportedPythonVersions,
         python_version_str,
+        python_version,
     )
 
     if sys.flags.no_site == 0:
@@ -99,7 +100,7 @@ def main():
         # libraries.
         args = [sys.executable, sys.executable]
 
-        if python_version_str >= "3.7" and sys.flags.utf8_mode:
+        if python_version >= 0x370 and sys.flags.utf8_mode:
             args += ["-X", "utf8"]
 
         args += ["-S", our_filename]

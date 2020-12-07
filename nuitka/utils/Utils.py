@@ -103,7 +103,7 @@ def encodeNonAscii(var_name):
     For Python3, unicode identifiers can be used, but these are not
     possible in C, so we need to replace them.
     """
-    if python_version < 300:
+    if python_version < 0x300:
         return var_name
     else:
         # Using a escaping here, because that makes it safe in terms of not

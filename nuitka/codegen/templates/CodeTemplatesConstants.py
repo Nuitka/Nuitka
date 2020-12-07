@@ -73,7 +73,7 @@ static void _createGlobalConstants(void) {
     );
 
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     /* Set the "sys.base_prefix" path to the original one. */
     PySys_SetObject(
         (char *)"base_prefix",
@@ -138,7 +138,7 @@ void checkGlobalConstants(void) {
 
 void createGlobalConstants(void) {
     if (_sentinel_value == NULL) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         _sentinel_value = PyCObject_FromVoidPtr(NULL, NULL);
 #else
         // The NULL value is not allowed for a capsule, so use something else.

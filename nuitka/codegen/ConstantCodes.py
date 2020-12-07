@@ -333,7 +333,7 @@ def getConstantsDefinitionCode():
         sys_prefix = constant_accessor.getConstantCode(sys.prefix)
         sys_exec_prefix = constant_accessor.getConstantCode(sys.exec_prefix)
 
-        if python_version >= 300:
+        if python_version >= 0x300:
             sys_base_prefix = constant_accessor.getConstantCode(sys.base_prefix)
             sys_base_exec_prefix = constant_accessor.getConstantCode(
                 sys.base_exec_prefix

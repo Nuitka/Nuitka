@@ -96,7 +96,7 @@ def main():
         my_print("TEST_CASE_HASH='%s'" % hashlib.md5(f.read()).hexdigest())
 
     needs_2to3 = (
-        python_version.startswith("3")
+        python_version >= (3,)
         and not test_case.endswith("32.py")
         and not test_case.endswith("33.py")
     )

@@ -96,7 +96,7 @@ def _decideSlicing(lower, upper):
 
 
 def generateSliceLookupCode(to_name, expression, emit, context):
-    assert python_version < 300
+    assert python_version < 0x300
 
     lower = expression.getLower()
     upper = expression.getUpper()
@@ -153,7 +153,7 @@ def generateSliceLookupCode(to_name, expression, emit, context):
 
 
 def generateAssignmentSliceCode(statement, emit, context):
-    assert python_version < 300
+    assert python_version < 0x300
 
     lookup_source = statement.subnode_expression
     lower = statement.getLower()
@@ -220,7 +220,7 @@ def generateAssignmentSliceCode(statement, emit, context):
 
 
 def generateDelSliceCode(statement, emit, context):
-    assert python_version < 300
+    assert python_version < 0x300
 
     target = statement.subnode_expression
     lower = statement.getLower()

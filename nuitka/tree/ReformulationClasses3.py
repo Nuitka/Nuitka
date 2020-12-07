@@ -233,7 +233,7 @@ def buildClassNode3(provider, node, source_ref):
     # The "__qualname__" attribute is new in Python3.
     qualname = class_creation_function.getFunctionQualname()
 
-    if python_version < 340:
+    if python_version < 0x340:
         qualname_ref = makeConstantRefNode(
             constant=qualname, source_ref=source_ref, user_provided=True
         )
@@ -251,10 +251,10 @@ def buildClassNode3(provider, node, source_ref):
         )
     )
 
-    if python_version >= 340:
+    if python_version >= 0x340:
         qualname_assign = statements[-1]
 
-    if python_version >= 360 and class_creation_function.needsAnnotationsDictionary():
+    if python_version >= 0x360 and class_creation_function.needsAnnotationsDictionary():
         statements.append(
             StatementLocalsDictOperationSet(
                 locals_scope=locals_scope,
@@ -271,7 +271,7 @@ def buildClassNode3(provider, node, source_ref):
     if node.bases:
         tmp_bases = provider.allocateTempVariable(temp_scope=temp_scope, name="bases")
 
-        if python_version >= 370:
+        if python_version >= 0x370:
             tmp_bases_orig = provider.allocateTempVariable(
                 temp_scope=temp_scope, name="bases_orig"
             )
@@ -284,7 +284,7 @@ def buildClassNode3(provider, node, source_ref):
         def makeBasesRef():
             return makeConstantRefNode(constant=(), source_ref=source_ref)
 
-    if python_version >= 370 and node.bases:
+    if python_version >= 0x370 and node.bases:
         statements.append(
             makeStatementConditional(
                 condition=makeComparisonExpression(
@@ -382,7 +382,7 @@ def buildClassNode3(provider, node, source_ref):
     if node.bases:
         statements.append(
             StatementAssignmentVariable(
-                variable=tmp_bases if python_version < 370 else tmp_bases_orig,
+                variable=tmp_bases if python_version < 0x370 else tmp_bases_orig,
                 source=_buildBasesTupleCreationNode(
                     provider=provider, elements=node.bases, source_ref=source_ref
                 ),
@@ -390,7 +390,7 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-        if python_version >= 370:
+        if python_version >= 0x370:
             bases_conversion = ExpressionFunctionCall(
                 function=ExpressionFunctionCreation(
                     function_ref=ExpressionFunctionRef(
@@ -461,7 +461,7 @@ def buildClassNode3(provider, node, source_ref):
 
         # Might become empty behind our back during conversion, therefore make the
         # check at run time for 3.7 or higher.
-        if python_version >= 370:
+        if python_version >= 0x370:
             unspecified_metaclass_expression = ExpressionConditional(
                 condition=ExpressionTempVariableRef(
                     variable=tmp_bases, source_ref=source_ref
@@ -504,7 +504,7 @@ def buildClassNode3(provider, node, source_ref):
         source_ref=source_ref,
     )
 
-    if python_version >= 364:
+    if python_version >= 0x364:
         call_prepare = makeStatementsSequenceFromStatements(
             call_prepare,
             makeStatementConditional(
@@ -632,13 +632,13 @@ def buildClassNode3(provider, node, source_ref):
         ),
     )
 
-    if python_version >= 340:
+    if python_version >= 0x340:
         class_creation_function.qualname_setup = node.name, qualname_assign
 
     final = [tmp_class_decl_dict, tmp_metaclass, tmp_prepared]
     if node.bases:
         final.insert(0, tmp_bases)
-        if python_version >= 370:
+        if python_version >= 0x370:
             final.insert(0, tmp_bases_orig)
 
     return makeTryFinallyStatement(

@@ -50,7 +50,7 @@ extern PyCodeObject *codeobj_main;
 /* For later use in "Py_GetArgcArgv" */
 static char **orig_argv;
 static int orig_argc;
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 static wchar_t **argv_unicode;
 #endif
 
@@ -60,7 +60,7 @@ static wchar_t **argv_unicode;
 extern void copyFrozenModulesTo(struct _frozen *destination);
 
 // The original frozen modules list.
-#if PYTHON_VERSION < 340
+#if PYTHON_VERSION < 0x340
 static struct _frozen *old_frozen = NULL;
 #else
 static struct _frozen const *old_frozen = NULL;
@@ -102,7 +102,7 @@ static void prepareStandaloneEnvironment() {
     SetDllDirectoryW(getBinaryDirectoryWideChars());
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     char *binary_directory = (char *)getBinaryDirectoryHostEncoded();
     NUITKA_PRINTF_TRACE("Binary dir is %s\n", binary_directory);
 
@@ -116,7 +116,7 @@ static void prepareStandaloneEnvironment() {
 #endif
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #define PY_FORMAT_GETPATH_RESULT "%s"
 #else
 #define PY_FORMAT_GETPATH_RESULT "%ls"
@@ -124,7 +124,7 @@ static void prepareStandaloneEnvironment() {
 
 static void restoreStandaloneEnvironment() {
     /* Make sure to use the optimal value for standalone mode only. */
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PySys_SetPath((char *)getBinaryDirectoryHostEncoded());
     NUITKA_PRINTF_TRACE("Final PySys_GetPath is 's'.\n", PySys_GetPath());
 #else
@@ -145,7 +145,7 @@ extern void _initCompiledFrameType();
 #include <locale.h>
 
 // Types of command line arguments are different between Python2/3.
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 typedef wchar_t **argv_type_t;
 static argv_type_t convertCommandLineParameters(int argc, char **argv) {
 #if _WIN32
@@ -164,9 +164,9 @@ static argv_type_t convertCommandLineParameters(int argc, char **argv) {
     setlocale(LC_ALL, "");
 
     for (int i = 0; i < argc; i++) {
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
         argv_copy[i] = Py_DecodeLocale(argv[i], NULL);
-#elif defined(__APPLE__) && PYTHON_VERSION >= 320
+#elif defined(__APPLE__) && PYTHON_VERSION >= 0x320
         argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
 #else
         argv_copy[i] = _Py_char2wchar(argv[i], NULL);
@@ -215,7 +215,7 @@ static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
            install and exit here too.
          */
         for (int i = 1; i < argc; i++) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i + 1 < argc))
 #else
             // TODO: Should simply use wide char literal
@@ -227,7 +227,7 @@ static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
             }
 
 #ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             if ((strcmp(argv[i], "install")) == 0 && (i + 1 < argc))
 #else
             if ((wcscmp(argv[i], L"install")) == 0 && (i + 1 < argc))
@@ -247,7 +247,7 @@ static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
     }
 }
 
-#if defined(_WIN32) && PYTHON_VERSION >= 300 && SYSFLAG_NO_RANDOMIZATION == 1
+#if defined(_WIN32) && PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
 static void setenv(char const *name, char const *value, int overwrite) {
     assert(overwrite);
 
@@ -268,7 +268,7 @@ static void PRINT_REFCOUNTS() {
 
     PRINT_FORMAT("Compiled Coroutines AIter Wrappers: %d | %d | %d\n", count_active_Nuitka_AIterWrapper_Type,
                  count_allocated_Nuitka_AIterWrapper_Type, count_released_Nuitka_AIterWrapper_Type);
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
     PRINT_FORMAT("Compiled Asyncgen: %d | %d | %d\n", count_active_Nuitka_Asyncgen_Type,
                  count_allocated_Nuitka_Asyncgen_Type, count_released_Nuitka_Asyncgen_Type);
     PRINT_FORMAT("Compiled Asyncgen Wrappers: %d | %d | %d\n", count_active_Nuitka_AsyncgenValueWrapper_Type,
@@ -337,7 +337,7 @@ int main(int argc, char **argv) {
     prepareStandaloneEnvironment();
 #else
 
-#if PYTHON_VERSION >= 350 && defined(DLL_EXTRA_PATH)
+#if PYTHON_VERSION >= 0x350 && defined(DLL_EXTRA_PATH)
     NUITKA_PRINT_TRACE("main(): Prepare DLL extra path.");
     SetDllDirectory(DLL_EXTRA_PATH);
 #endif
@@ -346,7 +346,7 @@ int main(int argc, char **argv) {
 
     /* Initialize CPython library environment. */
     Py_DebugFlag = 0;
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     Py_Py3kWarningFlag = SYSFLAG_PY3K_WARNING;
     Py_DivisionWarningFlag = SYSFLAG_DIVISION_WARNING;
     Py_UnicodeFlag = SYSFLAG_UNICODE;
@@ -362,12 +362,12 @@ int main(int argc, char **argv) {
     Py_BytesWarningFlag = SYSFLAG_BYTES_WARNING;
 #if SYSFLAG_NO_RANDOMIZATION == 1
     Py_HashRandomizationFlag = 0;
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // For Python2 this is all it takes to have static hashes.
     _PyRandom_Init();
 #endif
 #endif
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
     Py_UTF8Mode = SYSFLAG_UTF8;
 #endif
 
@@ -382,14 +382,14 @@ int main(int argc, char **argv) {
 
     /* Initial command line handling only. */
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     NUITKA_PRINT_TRACE("main(): Calling convertCommandLineParameters.");
     argv_unicode = convertCommandLineParameters(argc, argv);
 #endif
 
     NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     setCommandLineParameters(argc, argv, true);
 #else
     setCommandLineParameters(argc, argv_unicode, true);
@@ -397,7 +397,7 @@ int main(int argc, char **argv) {
 
     /* For Python installations that need the home set, we inject it back here. */
 #if defined(PYTHON_HOME_PATH)
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     NUITKA_PRINT_TRACE("main(): Prepare run environment '" PYTHON_HOME_PATH "'.");
     Py_SetPythonHome(PYTHON_HOME_PATH);
 #else
@@ -408,7 +408,7 @@ int main(int argc, char **argv) {
 #endif
 #endif
 
-#if PYTHON_VERSION >= 300 && SYSFLAG_NO_RANDOMIZATION == 1
+#if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
     char const *old_env = getenv("PYTHONHASHSEED");
     setenv("PYTHONHASHSEED", "0", 1);
 #endif
@@ -416,7 +416,7 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TRACE("main(): Calling Py_Initialize to initialize interpreter.");
     Py_Initialize();
 
-#if PYTHON_VERSION >= 300 && SYSFLAG_NO_RANDOMIZATION == 1
+#if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
     if (old_env) {
         setenv("PYTHONHASHSEED", old_env, 1);
 
@@ -451,7 +451,7 @@ int main(int argc, char **argv) {
     /* Set the command line parameters for run time usage. */
     NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     setCommandLineParameters(argc, argv, false);
 #else
     setCommandLineParameters(argc, argv_unicode, false);
@@ -481,7 +481,7 @@ int main(int argc, char **argv) {
      * Debian for Python 3.3, more uses may exist.
      */
 #if SYSFLAG_NO_SITE == 0
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyStructSequence_SET_ITEM(PySys_GetObject((char *)"flags"), 9, const_int_0);
 #else
     PyStructSequence_SetItem(PySys_GetObject("flags"), 6, const_int_0);
@@ -495,10 +495,10 @@ int main(int argc, char **argv) {
     _initCompiledMethodType();
     _initCompiledFrameType();
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     _initSlotCompare();
 #endif
-#if PYTHON_VERSION >= 270
+#if PYTHON_VERSION >= 0x270
     _initSlotIternext();
 #endif
 
@@ -525,7 +525,7 @@ int main(int argc, char **argv) {
     /* On Windows, we support disabling the console via linker flag, but now
        need to provide the NUL standard file handles manually in this case. */
 
-#if defined(_NUITKA_WINMAIN_ENTRY_POINT) && PYTHON_VERSION >= 300
+#if defined(_NUITKA_WINMAIN_ENTRY_POINT) && PYTHON_VERSION >= 0x300
     {
         PyObject *filename = Nuitka_String_FromString("NUL:");
 
@@ -568,7 +568,7 @@ int main(int argc, char **argv) {
     /* Disable CPython warnings if requested to. */
 #if NO_PYTHON_WARNINGS
     {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         wchar_t ignore[] = L"ignore";
 #else
         char ignore[] = "ignore";
@@ -576,7 +576,7 @@ int main(int argc, char **argv) {
 
         PySys_AddWarnOption(ignore);
 
-#if PYTHON_VERSION >= 342 && defined(_NUITKA_FULL_COMPAT)
+#if PYTHON_VERSION >= 0x342 && defined(_NUITKA_FULL_COMPAT)
         // For full compatibility bump the warnings registry version,
         // otherwise modules "__warningsregistry__" will mismatch.
         PyObject *warnings_module = PyImport_ImportModule("warnings");
@@ -587,7 +587,7 @@ int main(int argc, char **argv) {
     }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     NUITKA_PRINT_TRACE("main(): Calling patchInspectModule().");
     patchInspectModule();
 #endif
@@ -637,7 +637,7 @@ int main(int argc, char **argv) {
     int exit_code;
 
     if (ERROR_OCCURRED()) {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         /* Remove the frozen importlib traceback part, which would not be compatible. */
         PyThreadState *thread_state = PyThreadState_GET();
 
@@ -682,7 +682,7 @@ int main(int argc, char **argv) {
 extern "C" {
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 #if defined(__GNUC__)
 __attribute__((weak))
 __attribute__((visibility("default")))

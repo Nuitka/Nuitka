@@ -31,7 +31,7 @@ static void Nuitka_Cell_tp_dealloc(struct Nuitka_CellObject *cell) {
     releaseToFreeList(free_list_cells, cell, MAX_CELL_FREE_LIST_COUNT);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static int Nuitka_Cell_tp_compare(struct Nuitka_CellObject *cell_a, struct Nuitka_CellObject *cell_b) {
     /* Empty cells compare specifically different. */
     if (cell_a->ob_ref == NULL) {
@@ -103,14 +103,14 @@ static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
 
 static PyObject *Nuitka_Cell_tp_repr(struct Nuitka_CellObject *cell) {
     if (cell->ob_ref == NULL) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         return PyString_FromFormat(
 #else
         return PyUnicode_FromFormat(
 #endif
             "<compiled_cell at %p: empty>", cell);
     } else {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         return PyString_FromFormat(
 #else
         return PyUnicode_FromFormat(
@@ -141,7 +141,7 @@ static PyObject *Nuitka_Cell_get_contents(struct Nuitka_CellObject *cell, void *
     return cell->ob_ref;
 }
 
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
 static int Nuitka_Cell_set_contents(struct Nuitka_CellObject *cell, PyObject *value) {
     PyObject *old = cell->ob_ref;
     cell->ob_ref = value;
@@ -154,7 +154,7 @@ static int Nuitka_Cell_set_contents(struct Nuitka_CellObject *cell, PyObject *va
 #endif
 
 static PyGetSetDef Nuitka_Cell_getsetlist[] = {
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     {(char *)"cell_contents", (getter)Nuitka_Cell_get_contents, NULL, NULL},
 #else
     {(char *)"cell_contents", (getter)Nuitka_Cell_get_contents, (setter)Nuitka_Cell_set_contents, NULL},
@@ -169,7 +169,7 @@ PyTypeObject Nuitka_Cell_Type = {
     0,                                  /* tp_print */
     0,                                  /* tp_getattr */
     0,                                  /* tp_setattr */
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     (cmpfunc)Nuitka_Cell_tp_compare, /* tp_compare */
 #else
     0,                          /* tp_reserved */
@@ -188,7 +188,7 @@ PyTypeObject Nuitka_Cell_Type = {
     0,                                       /* tp_doc */
     (traverseproc)Nuitka_Cell_tp_traverse,   /* tp_traverse */
     (inquiry)Nuitka_Cell_tp_clear,           /* tp_clear */
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     0, /* tp_richcompare */
 #else
     Nuitka_Cell_tp_richcompare, /* tp_richcompare */

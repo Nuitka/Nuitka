@@ -48,7 +48,7 @@ from nuitka.tools.testing.Common import (
 
 
 def main():
-    _python_version = setup(suite="basics", needs_io_encoding=True)
+    setup(suite="basics", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 

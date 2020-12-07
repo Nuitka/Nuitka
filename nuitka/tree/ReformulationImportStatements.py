@@ -112,7 +112,7 @@ def _enableFutureFeature(node, object_name, source_ref):
         future_spec.enableFutureDivision()
     elif object_name == "print_function":
         future_spec.enableFuturePrint()
-    elif object_name == "barry_as_FLUFL" and python_version >= 300:
+    elif object_name == "barry_as_FLUFL" and python_version >= 0x300:
         future_spec.enableBarry()
     elif object_name == "generator_stop":
         future_spec.enableGeneratorStop()
@@ -121,7 +121,7 @@ def _enableFutureFeature(node, object_name, source_ref):
     elif object_name in ("nested_scopes", "generators", "with_statement"):
         # These are enabled in all cases already.
         pass
-    elif object_name == "annotations" and python_version >= 370:
+    elif object_name == "annotations" and python_version >= 0x370:
         future_spec.enableFutureAnnotations()
     else:
         raiseSyntaxError(
@@ -180,7 +180,7 @@ def buildImportFromNode(provider, node, source_ref):
         # Python3 made it so that these can only occur on the module level,
         # so this a syntax error if not there. For Python2 it is OK to
         # occur everywhere though.
-        if not provider.isCompiledPythonModule() and python_version >= 300:
+        if not provider.isCompiledPythonModule() and python_version >= 0x300:
             raiseSyntaxError(
                 "import * only allowed at module level",
                 source_ref.atColumnNumber(node.col_offset),

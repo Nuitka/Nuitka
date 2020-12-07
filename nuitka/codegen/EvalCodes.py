@@ -165,7 +165,7 @@ def _getBuiltinCompileCode(
     emit,
     context,
 ):
-    if python_version < 300:
+    if python_version < 0x300:
         args = (source_name, filename_name, mode_name, flags_name, dont_inherit_name)
     else:
         args = (
@@ -351,7 +351,7 @@ def _generateEvalCode(to_name, node, emit, context):
     )
 
     if node.isExpressionBuiltinEval() or (
-        python_version >= 300 and node.isExpressionBuiltinExec()
+        python_version >= 0x300 and node.isExpressionBuiltinExec()
     ):
         filename = "<string>"
     else:
@@ -381,7 +381,7 @@ def generateEvalCode(to_name, expression, emit, context):
 
 
 def generateExecfileCode(to_name, expression, emit, context):
-    assert python_version < 300
+    assert python_version < 0x300
 
     with withObjectCodeTemporaryAssignment(
         to_name, "execfile_result", expression, emit, context

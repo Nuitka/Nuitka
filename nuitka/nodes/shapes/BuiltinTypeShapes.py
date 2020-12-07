@@ -162,7 +162,7 @@ add_shapes_complex = {}
 sub_shapes_complex = {}
 mult_shapes_complex = {}
 
-if python_version < 300:
+if python_version < 0x300:
     floordiv_shapes_complex = {}
 else:
     floordiv_shapes_complex = floordiv_shapes_none
@@ -381,7 +381,7 @@ class ShapeTypeNoneType(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     rshift_shapes = rshift_shapes_none
     matmult_shapes = matmult_shapes_none
 
-    if python_version < 300:
+    if python_version < 0x300:
 
         def getComparisonLtShape(self, right_shape):
             if right_shape is tshape_unknown:
@@ -478,7 +478,7 @@ class ShapeTypeInt(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
     def getTypeName():
         return "int"
 
-    helper_code = "INT" if python_version < 300 else "LONG"
+    helper_code = "INT" if python_version < 0x300 else "LONG"
 
     add_shapes = add_shapes_int
     sub_shapes = sub_shapes_int
@@ -521,7 +521,7 @@ class ShapeTypeInt(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
 
 tshape_int = ShapeTypeInt()
 
-if python_version < 300:
+if python_version < 0x300:
 
     class ShapeTypeLong(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
         typical_value = long(7)  # pylint: disable=I0021,undefined-variable
@@ -530,7 +530,7 @@ if python_version < 300:
         def getTypeName():
             return "long"
 
-        helper_code = "LONG" if python_version < 300 else "INVALID"
+        helper_code = "LONG" if python_version < 0x300 else "INVALID"
 
         add_shapes = add_shapes_long
         sub_shapes = sub_shapes_long
@@ -761,7 +761,7 @@ class TypeShapeTupleIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase)
 
     @staticmethod
     def getTypeName():
-        return "tupleiterator" if python_version < 300 else "tuple_iterator"
+        return "tupleiterator" if python_version < 0x300 else "tuple_iterator"
 
 
 tshape_tuple_iterator = TypeShapeTupleIterator()
@@ -807,7 +807,7 @@ class ShapeTypeList(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
             return operation_result_bool_elementbased
 
         if right_shape is tshape_xrange:
-            if python_version < 300:
+            if python_version < 0x300:
                 return operation_result_bool_elementbased
             else:
                 # TODO: Actually unorderable, but this requires making a
@@ -825,7 +825,7 @@ class ShapeTypeListIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
 
     @staticmethod
     def getTypeName():
-        return "listiterator" if python_version < 300 else "list_iterator"
+        return "listiterator" if python_version < 0x300 else "list_iterator"
 
 
 tshape_list_iterator = ShapeTypeListIterator()
@@ -871,7 +871,7 @@ class ShapeTypeSetIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
 
     @staticmethod
     def getTypeName():
-        return "setiterator" if python_version < 300 else "set_iterator"
+        return "setiterator" if python_version < 0x300 else "set_iterator"
 
 
 tshape_set_iterator = ShapeTypeSetIterator()
@@ -953,7 +953,9 @@ class ShapeTypeDictIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
 
     @staticmethod
     def getTypeName():
-        return "dictionary-keyiterator" if python_version < 300 else "dictkey_iterator"
+        return (
+            "dictionary-keyiterator" if python_version < 0x300 else "dictkey_iterator"
+        )
 
 
 tshape_dict_iterator = ShapeTypeDictIterator()
@@ -966,7 +968,7 @@ class ShapeTypeStr(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     def getTypeName():
         return "str"
 
-    helper_code = "STR" if python_version < 300 else "UNICODE"
+    helper_code = "STR" if python_version < 0x300 else "UNICODE"
 
     # Not a container, but has these.
     @staticmethod
@@ -1033,7 +1035,7 @@ class ShapeTypeStr(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
             return operation_result_unknown
 
         if right_shape is tshape_bytearray:
-            if python_version < 300:
+            if python_version < 0x300:
                 return operation_result_bool_noescape
             else:
                 return operation_result_unknown
@@ -1056,13 +1058,13 @@ class ShapeTypeStrIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
 
     @staticmethod
     def getTypeName():
-        return "iterator" if python_version < 300 else "str_iterator"
+        return "iterator" if python_version < 0x300 else "str_iterator"
 
 
 tshape_str_iterator = ShapeTypeStrIterator()
 
 
-if python_version < 300:
+if python_version < 0x300:
 
     class ShapeTypeUnicode(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
         typical_value = u"a"
@@ -1160,7 +1162,7 @@ else:
     tshape_unicode_derived = tshape_str_derived
 
 
-if python_version < 300:
+if python_version < 0x300:
 
     class ShapeTypeStrOrUnicode(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
         @staticmethod
@@ -1216,7 +1218,7 @@ else:
     tshape_str_or_unicode = tshape_str
 
 
-if python_version >= 300:
+if python_version >= 0x300:
 
     class ShapeTypeBytes(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
         typical_value = b"b"
@@ -1348,7 +1350,7 @@ class ShapeTypeBytearray(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeB
             return operation_result_bool_noescape
 
         if right_shape is tshape_str:
-            if python_version < 300:
+            if python_version < 0x300:
                 return operation_result_bool_noescape
             else:
                 # TODO: Exception actually for static optimization.
@@ -1404,13 +1406,13 @@ tshape_slice = ShapeTypeSlice()
 class ShapeTypeXrange(ShapeContainerImmutableMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = (
         xrange(1)  # pylint: disable=I0021,undefined-variable
-        if python_version < 300
+        if python_version < 0x300
         else range(1)
     )
 
     @staticmethod
     def getTypeName():
-        return "xrange" if python_version < 300 else "range"
+        return "xrange" if python_version < 0x300 else "range"
 
     @staticmethod
     def getShapeIter():
@@ -1422,7 +1424,7 @@ class ShapeTypeXrange(ShapeContainerImmutableMixin, ShapeNotNumberMixin, ShapeBa
 
         # TODO: Maybe split in two shapes, they are quite different in the
         # end when it comes to operations.
-        if python_version < 300:
+        if python_version < 0x300:
             # Need to consider value shape for this.
             if right_shape in (tshape_list, tshape_tuple):
                 return operation_result_bool_elementbased
@@ -1445,7 +1447,7 @@ class ShapeTypeXrangeIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase
 
     @staticmethod
     def getTypeName():
-        return "rangeiterator" if python_version < 300 else "range_iterator"
+        return "rangeiterator" if python_version < 0x300 else "range_iterator"
 
 
 tshape_xrange_iterator = ShapeTypeXrangeIterator()
@@ -1946,7 +1948,7 @@ mod_shapes_bool.update(
         tshape_bool: operation_result_zerodiv_int,
         tshape_float: operation_result_zerodiv_float,
         tshape_complex: operation_result_zerodiv_complex
-        if python_version < 300
+        if python_version < 0x300
         else operation_result_unsupported_mod,
         # Unsupported:
         tshape_str: operation_result_unsupported_mod,
@@ -2283,7 +2285,7 @@ mod_shapes_int.update(
         tshape_bool: operation_result_zerodiv_int,
         tshape_float: operation_result_zerodiv_float,
         tshape_complex: operation_result_zerodiv_complex
-        if python_version < 300
+        if python_version < 0x300
         else operation_result_unsupported_mod,
         # Unsupported:
         tshape_str: operation_result_unsupported_mod,
@@ -2587,7 +2589,7 @@ mod_shapes_long.update(
         tshape_bool: operation_result_zerodiv_long,
         tshape_float: operation_result_zerodiv_float,
         tshape_complex: operation_result_zerodiv_complex
-        if python_version < 300
+        if python_version < 0x300
         else operation_result_unsupported_mod,
         # Unsupported:
         tshape_str: operation_result_unsupported_mod,
@@ -3066,7 +3068,7 @@ truediv_shapes_complex.update(
     }
 )
 
-if python_version < 300:
+if python_version < 0x300:
     floordiv_shapes_complex.update(
         {
             # Standard
@@ -3477,7 +3479,7 @@ add_shapes_str.update(
         tshape_str: operation_result_str_noescape,
         tshape_bytes: operation_result_unsupported_add,
         tshape_bytearray: operation_result_bytearray_noescape
-        if python_version < 300
+        if python_version < 0x300
         else operation_result_unsupported_add,
         tshape_unicode: operation_result_unicode_noescape,
         tshape_tuple: operation_result_unsupported_add,
@@ -3617,7 +3619,7 @@ mult_shapes_bytes.update(
     }
 )
 
-if python_version < 350:
+if python_version < 0x350:
     operation_result_350_bytes_mod_noescape = operation_result_unsupported_mod
 else:
     operation_result_350_bytes_mod_noescape = operation_result_bytes_formaterror
@@ -3667,7 +3669,7 @@ add_shapes_bytearray.update(
         tshape_float: operation_result_unsupported_add,
         # Sequence repeat is not allowed
         tshape_str: operation_result_bytearray_noescape
-        if python_version < 300
+        if python_version < 0x300
         else operation_result_unsupported_add,
         tshape_bytes: operation_result_bytearray_noescape,
         tshape_bytearray: operation_result_bytearray_noescape,
@@ -3715,7 +3717,7 @@ mult_shapes_bytearray.update(
     }
 )
 
-if python_version < 350:
+if python_version < 0x350:
     operation_result_350_bytearray_mod_noescape = operation_result_unsupported_mod
 else:
     operation_result_350_bytearray_mod_noescape = operation_result_bytearray_formaterror
@@ -3907,7 +3909,7 @@ bitxor_shapes_strorunicode.update(
     mergeStrOrUnicode(bitxor_shapes_str, bitxor_shapes_unicode)
 )
 
-if python_version >= 390:
+if python_version >= 0x390:
     bitor_shapes_dict[tshape_dict] = operation_result_dict_noescape
 
     ibitor_shapes_dict[tshape_dict] = operation_result_dict_noescape

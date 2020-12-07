@@ -128,7 +128,7 @@ class ExpressionBuiltinInt2(ExpressionBuiltinIntLong2Base):
         return tshape_int_or_long
 
 
-if python_version < 300:
+if python_version < 0x300:
 
     class ExpressionBuiltinLong1(ExpressionChildHavingBase):
         kind = "EXPRESSION_BUILTIN_LONG1"

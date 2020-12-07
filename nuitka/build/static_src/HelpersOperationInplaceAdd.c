@@ -35,23 +35,23 @@
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static inline bool _BINARY_OPERATION_ADD_INT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (1 && 1) {
 
         PyObject *result;
@@ -59,12 +59,12 @@ static inline bool _BINARY_OPERATION_ADD_INT_INT_INPLACE(PyObject **operand1, Py
 
         CHECK_OBJECT(op1);
         assert(PyInt_CheckExact(op1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(op1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -137,7 +137,7 @@ bool BINARY_OPERATION_ADD_INT_INT_INPLACE(PyObject **operand1, PyObject *operand
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static inline bool _BINARY_OPERATION_ADD_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -145,11 +145,11 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_INT_INPLACE(PyObject **operand1,
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(*operand1) && 1) {
 
         PyObject *result;
@@ -157,12 +157,12 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_INT_INPLACE(PyObject **operand1,
 
         CHECK_OBJECT(op1);
         assert(PyInt_CheckExact(op1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(op1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -235,19 +235,19 @@ bool BINARY_OPERATION_ADD_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *oper
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static inline bool _BINARY_OPERATION_ADD_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (1 && PyInt_CheckExact(operand2)) {
 
         PyObject *result;
@@ -255,12 +255,12 @@ static inline bool _BINARY_OPERATION_ADD_INT_OBJECT_INPLACE(PyObject **operand1,
 
         CHECK_OBJECT(op1);
         assert(PyInt_CheckExact(op1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(op1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -339,12 +339,12 @@ static inline bool _BINARY_OPERATION_ADD_LONG_LONG_INPLACE(PyObject **operand1, 
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -380,7 +380,7 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE(PyObject **operand1
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -415,7 +415,7 @@ static inline bool _BINARY_OPERATION_ADD_LONG_OBJECT_INPLACE(PyObject **operand1
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -451,12 +451,12 @@ static inline bool _BINARY_OPERATION_ADD_FLOAT_FLOAT_INPLACE(PyObject **operand1
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -497,7 +497,7 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_FLOAT_INPLACE(PyObject **operand
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -537,7 +537,7 @@ static inline bool _BINARY_OPERATION_ADD_FLOAT_OBJECT_INPLACE(PyObject **operand
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -572,33 +572,33 @@ bool BINARY_OPERATION_ADD_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *op
     return _BINARY_OPERATION_ADD_FLOAT_OBJECT_INPLACE(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
 static inline bool _BINARY_OPERATION_ADD_STR_STR_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyString_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyString_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         if (1 && !PyString_CHECK_INTERNED(*operand1) && 1) {
             return STRING_ADD_INPLACE(operand1, operand2);
         }
 #endif
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // Python2 strings are to be treated differently, fall back to Python API here.
     if (1 && 1) {
         PyString_Concat(operand1, operand2);
@@ -627,7 +627,7 @@ bool BINARY_OPERATION_ADD_STR_STR_INPLACE(PyObject **operand1, PyObject *operand
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
 static inline bool _BINARY_OPERATION_ADD_OBJECT_STR_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -635,21 +635,21 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_STR_INPLACE(PyObject **operand1,
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyString_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         if (PyString_CheckExact(*operand1) && !PyString_CHECK_INTERNED(*operand1) && 1) {
             return STRING_ADD_INPLACE(operand1, operand2);
         }
 #endif
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // Python2 strings are to be treated differently, fall back to Python API here.
     if (PyString_CheckExact(*operand1) && 1) {
         PyString_Concat(operand1, operand2);
@@ -678,14 +678,14 @@ bool BINARY_OPERATION_ADD_OBJECT_STR_INPLACE(PyObject **operand1, PyObject *oper
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
 static inline bool _BINARY_OPERATION_ADD_STR_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyString_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -693,14 +693,14 @@ static inline bool _BINARY_OPERATION_ADD_STR_OBJECT_INPLACE(PyObject **operand1,
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         if (1 && !PyString_CHECK_INTERNED(*operand1) && PyString_CheckExact(operand2)) {
             return STRING_ADD_INPLACE(operand1, operand2);
         }
 #endif
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // Python2 strings are to be treated differently, fall back to Python API here.
     if (1 && PyString_CheckExact(operand2)) {
         PyString_Concat(operand1, operand2);
@@ -745,7 +745,7 @@ static inline bool _BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE(PyObject **oper
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         if (1 && !PyUnicode_CHECK_INTERNED(*operand1) && 1) {
             return UNICODE_ADD_INCREMENTAL(operand1, operand2);
         }
@@ -799,7 +799,7 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE(PyObject **opera
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         if (PyUnicode_CheckExact(*operand1) && !PyUnicode_CHECK_INTERNED(*operand1) && 1) {
             return UNICODE_ADD_INCREMENTAL(operand1, operand2);
         }
@@ -853,7 +853,7 @@ static inline bool _BINARY_OPERATION_ADD_UNICODE_OBJECT_INPLACE(PyObject **opera
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         if (1 && !PyUnicode_CHECK_INTERNED(*operand1) && PyUnicode_CheckExact(operand2)) {
             return UNICODE_ADD_INCREMENTAL(operand1, operand2);
         }
@@ -894,19 +894,19 @@ bool BINARY_OPERATION_ADD_UNICODE_OBJECT_INPLACE(PyObject **operand1, PyObject *
     return _BINARY_OPERATION_ADD_UNICODE_OBJECT_INPLACE(operand1, operand2);
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
 static inline bool _BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyBytes_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyBytes_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -914,7 +914,7 @@ static inline bool _BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE(PyObject **operand1
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         if (1 && 1) {
             return BYTES_ADD_INCREMENTAL(operand1, operand2);
         }
@@ -942,7 +942,7 @@ bool BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE(PyObject **operand1, PyObject *ope
 }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
 static inline bool _BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -950,7 +950,7 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE(PyObject **operand
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyBytes_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -958,7 +958,7 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE(PyObject **operand
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         if (PyBytes_CheckExact(*operand1) && 1) {
             return BYTES_ADD_INCREMENTAL(operand1, operand2);
         }
@@ -986,14 +986,14 @@ bool BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE(PyObject **operand1, PyObject *op
 }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
 static inline bool _BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyBytes_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -1002,7 +1002,7 @@ static inline bool _BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE(PyObject **operand
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         if (1 && PyBytes_CheckExact(operand2)) {
             return BYTES_ADD_INCREMENTAL(operand1, operand2);
         }
@@ -1036,12 +1036,12 @@ static inline bool _BINARY_OPERATION_ADD_TUPLE_TUPLE_INPLACE(PyObject **operand1
 
     CHECK_OBJECT(*operand1);
     assert(PyTuple_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1090,7 +1090,7 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_TUPLE_INPLACE(PyObject **operand
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1138,7 +1138,7 @@ static inline bool _BINARY_OPERATION_ADD_TUPLE_OBJECT_INPLACE(PyObject **operand
 
     CHECK_OBJECT(*operand1);
     assert(PyTuple_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -1187,12 +1187,12 @@ static inline bool _BINARY_OPERATION_ADD_LIST_LIST_INPLACE(PyObject **operand1, 
 
     CHECK_OBJECT(*operand1);
     assert(PyList_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1245,7 +1245,7 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_LIST_INPLACE(PyObject **operand1
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1297,7 +1297,7 @@ static inline bool _BINARY_OPERATION_ADD_LIST_OBJECT_INPLACE(PyObject **operand1
 
     CHECK_OBJECT(*operand1);
     assert(PyList_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -1344,19 +1344,19 @@ bool BINARY_OPERATION_ADD_LIST_OBJECT_INPLACE(PyObject **operand1, PyObject *ope
     return _BINARY_OPERATION_ADD_LIST_OBJECT_INPLACE(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _BINARY_OPERATION_ADD_INT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1386,19 +1386,19 @@ bool BINARY_OPERATION_ADD_INT_LONG_INPLACE(PyObject **operand1, PyObject *operan
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
 static inline bool _BINARY_OPERATION_ADD_INT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1433,19 +1433,19 @@ bool BINARY_OPERATION_ADD_INT_FLOAT_INPLACE(PyObject **operand1, PyObject *opera
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static inline bool _BINARY_OPERATION_ADD_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1481,12 +1481,12 @@ static inline bool _BINARY_OPERATION_ADD_LONG_FLOAT_INPLACE(PyObject **operand1,
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1520,19 +1520,19 @@ bool BINARY_OPERATION_ADD_LONG_FLOAT_INPLACE(PyObject **operand1, PyObject *oper
     return _BINARY_OPERATION_ADD_LONG_FLOAT_INPLACE(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 static inline bool _BINARY_OPERATION_ADD_FLOAT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1573,12 +1573,12 @@ static inline bool _BINARY_OPERATION_ADD_FLOAT_LONG_INPLACE(PyObject **operand1,
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1612,14 +1612,14 @@ bool BINARY_OPERATION_ADD_FLOAT_LONG_INPLACE(PyObject **operand1, PyObject *oper
     return _BINARY_OPERATION_ADD_FLOAT_LONG_INPLACE(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "UNICODE" to Python2 'unicode', Python3 'str'. */
 static inline bool _BINARY_OPERATION_ADD_STR_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyString_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -1652,7 +1652,7 @@ bool BINARY_OPERATION_ADD_STR_UNICODE_INPLACE(PyObject **operand1, PyObject *ope
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "STR" to Python2 'str'. */
 static inline bool _BINARY_OPERATION_ADD_UNICODE_STR_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -1662,7 +1662,7 @@ static inline bool _BINARY_OPERATION_ADD_UNICODE_STR_INPLACE(PyObject **operand1
     assert(NEW_STYLE_NUMBER(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyString_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1699,7 +1699,7 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyObject **operan
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(*operand1) && PyInt_CheckExact(operand2)) {
 
         PyObject *result;
@@ -1707,12 +1707,12 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyObject **operan
 
         CHECK_OBJECT(op1);
         assert(PyInt_CheckExact(op1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(op1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1762,20 +1762,20 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyObject **operan
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         if (PyString_CheckExact(*operand1) && !PyString_CHECK_INTERNED(*operand1) && PyString_CheckExact(operand2)) {
             return STRING_ADD_INPLACE(operand1, operand2);
         }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         if (PyUnicode_CheckExact(*operand1) && !PyUnicode_CHECK_INTERNED(*operand1) && PyUnicode_CheckExact(operand2)) {
             return UNICODE_ADD_INCREMENTAL(operand1, operand2);
         }
 #endif
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // Python2 strings are to be treated differently, fall back to Python API here.
     if (PyString_CheckExact(*operand1) && PyString_CheckExact(operand2)) {
         PyString_Concat(operand1, operand2);
@@ -1823,12 +1823,12 @@ static inline bool _BINARY_OPERATION_ADD_LIST_TUPLE_INPLACE(PyObject **operand1,
 
     CHECK_OBJECT(*operand1);
     assert(PyList_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 

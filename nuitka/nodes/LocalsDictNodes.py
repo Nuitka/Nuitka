@@ -183,7 +183,7 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
         return call_node, None, None
 
     def mayRaiseException(self, exception_type):
-        if python_version < 300 or self.locals_scope.getTypeShape() is tshape_dict:
+        if python_version < 0x300 or self.locals_scope.getTypeShape() is tshape_dict:
             return False
 
         return self.subnode_fallback.mayRaiseException(exception_type)
@@ -329,7 +329,7 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
     __slots__ = ("variable", "variable_version", "variable_trace", "locals_scope")
 
     # TODO: Specialize for Python3 maybe to save attribute for Python2.
-    may_raise_set = python_version >= 300
+    may_raise_set = python_version >= 0x300
 
     def __init__(self, locals_scope, variable_name, value, source_ref):
         assert type(variable_name) is str
@@ -431,7 +431,7 @@ class StatementLocalsDictOperationDel(StatementBase):
     )
 
     # TODO: Specialize for Python3 maybe to save attribute for Python2.
-    may_raise_del = python_version >= 300
+    may_raise_del = python_version >= 0x300
 
     def __init__(self, locals_scope, variable_name, tolerant, source_ref):
         assert type(variable_name) is str

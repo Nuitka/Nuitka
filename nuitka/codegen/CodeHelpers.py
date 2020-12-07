@@ -201,7 +201,7 @@ def _generateStatementSequenceCode(statement_sequence, emit, context):
             statement_repr = repr(statement)
             source_repr = source_ref.getAsString()
 
-            if python_version >= 300:
+            if python_version >= 0x300:
                 statement_repr = statement_repr.encode("utf8")
                 source_repr = source_repr.encode("utf8")
 

@@ -305,7 +305,7 @@ def buildRaiseNode(provider, node, source_ref):
     # Raise statements. Under Python2 they may have type, value and traceback
     # attached, for Python3, you can only give type (actually value) and cause.
 
-    if python_version < 300:
+    if python_version < 0x300:
         exception_type = buildNode(provider, node.type, source_ref, allow_none=True)
         exception_value = buildNode(provider, node.inst, source_ref, allow_none=True)
         exception_trace = buildNode(provider, node.tback, source_ref, allow_none=True)
@@ -372,7 +372,10 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
             if variable_name in parameters.getParameterNames():
                 SyntaxErrors.raiseSyntaxError(
                     "name '%s' is %s and global"
-                    % (variable_name, "local" if python_version < 300 else "parameter"),
+                    % (
+                        variable_name,
+                        "local" if python_version < 0x300 else "parameter",
+                    ),
                     source_ref.atColumnNumber(node.col_offset),
                 )
 
@@ -404,7 +407,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         assert closure_variable.isModuleVariable()
 
         if (
-            python_version < 340
+            python_version < 0x340
             and provider.isExpressionClassBody()
             and closure_variable.getName() == "__class__"
         ):
@@ -481,7 +484,7 @@ def buildStatementLoopContinue(node, source_ref):
 
     # Python forbids this, although technically it's probably not much of
     # an issue.
-    if getBuildContext() == "finally" and python_version < 380:
+    if getBuildContext() == "finally" and python_version < 0x380:
         SyntaxErrors.raiseSyntaxError(
             "'continue' not supported inside 'finally' clause", source_ref
         )
@@ -513,7 +516,7 @@ def buildReturnNode(provider, node, source_ref):
     expression = buildNode(provider, node.value, source_ref, allow_none=True)
 
     if provider.isExpressionGeneratorObjectBody():
-        if expression is not None and python_version < 300:
+        if expression is not None and python_version < 0x300:
             SyntaxErrors.raiseSyntaxError(
                 "'return' with argument inside generator",
                 source_ref.atColumnNumber(node.col_offset),
@@ -747,7 +750,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
     body, doc = extractDocFromBody(body)
 
-    if is_module and is_main and python_version >= 360:
+    if is_module and is_main and python_version >= 0x360:
         provider.markAsNeedsAnnotationsDictionary()
 
     result = buildStatementsNode(provider=provider, nodes=body, source_ref=source_ref)
@@ -811,7 +814,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 createImporterCacheAssignment(provider, internal_source_ref)
             )
 
-        if python_version >= 340 and not is_main:
+        if python_version >= 0x340 and not is_main:
             statements += (
                 StatementAssignmentAttribute(
                     expression=ExpressionModuleAttributeSpecRef(
@@ -853,7 +856,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                     )
                 )
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         statements.append(
             StatementAssignmentVariableName(
                 provider=provider,
@@ -863,7 +866,9 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
         )
 
-    needs__initializing__ = not provider.isMainModule() and 300 <= python_version < 340
+    needs__initializing__ = (
+        not provider.isMainModule() and 0x300 <= python_version < 0x340
+    )
 
     if needs__initializing__:
         # Set "__initializing__" at the beginning to True

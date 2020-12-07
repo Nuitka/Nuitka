@@ -377,12 +377,12 @@ def matchCall(
         assign(arg, value)
 
     # Python3 does this check earlier.
-    if python_version >= 300 and not star_dict_arg:
+    if python_version >= 0x300 and not star_dict_arg:
         for pair in pairs:
             try:
                 arg_index = (args + kw_only_args).index(pair[0])
             except ValueError:
-                if improved or python_version >= 370:
+                if improved or python_version >= 0x370:
                     message = "'%s' is an invalid keyword argument for %s()" % (
                         pair[0],
                         func_name,
@@ -516,7 +516,7 @@ def matchCall(
                 )
 
             if num_required == 1:
-                arg_desc = "1 argument" if python_version < 350 else "one argument"
+                arg_desc = "1 argument" if python_version < 0x350 else "one argument"
             else:
                 arg_desc = "%d arguments" % num_required
 
@@ -537,7 +537,7 @@ def matchCall(
                 "%s expected %s%s, got %d"
                 % (
                     func_name,
-                    ("at least " if python_version < 300 else "")
+                    ("at least " if python_version < 0x300 else "")
                     if num_defaults > 0
                     else "exactly ",
                     "%d arguments" % num_required,

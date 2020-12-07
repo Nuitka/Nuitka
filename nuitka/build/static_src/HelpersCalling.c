@@ -26,7 +26,7 @@ PyObject *callPythonFunction(PyObject *func, PyObject **args, int count) {
     PyObject *globals = PyFunction_GET_GLOBALS(func);
     PyObject *argdefs = PyFunction_GET_DEFAULTS(func);
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     PyObject *kwdefs = PyFunction_GET_KW_DEFAULTS(func);
 
     if (kwdefs == NULL && argdefs == NULL && co->co_argcount == count &&
@@ -69,7 +69,7 @@ PyObject *callPythonFunction(PyObject *func, PyObject **args, int count) {
     }
 
     PyObject *result = PyEval_EvalCodeEx(
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         (PyObject *)co,
 #else
         co, // code object
@@ -82,7 +82,7 @@ PyObject *callPythonFunction(PyObject *func, PyObject **args, int count) {
         0,            // kwcount
         defaults,     // defaults
         num_defaults, // defcount
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         kwdefs,
 #endif
         PyFunction_GET_CLOSURE(func));
@@ -95,7 +95,7 @@ static PyObject *_fast_function_noargs(PyObject *func) {
     PyObject *globals = PyFunction_GET_GLOBALS(func);
     PyObject *argdefs = PyFunction_GET_DEFAULTS(func);
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     PyObject *kwdefs = PyFunction_GET_KW_DEFAULTS(func);
 
     if (kwdefs == NULL && argdefs == NULL && co->co_argcount == 0 &&
@@ -133,7 +133,7 @@ static PyObject *_fast_function_noargs(PyObject *func) {
     }
 
     PyObject *result = PyEval_EvalCodeEx(
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         (PyObject *)co,
 #else
         co, // code object
@@ -146,7 +146,7 @@ static PyObject *_fast_function_noargs(PyObject *func) {
         0,            // kwcount
         defaults,     // defaults
         num_defaults, // defcount
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         kwdefs,
 #endif
         PyFunction_GET_CLOSURE(func));
@@ -459,7 +459,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
             }
 #endif
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
@@ -469,7 +469,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
                 result = (*(_PyCFunctionFast)method)(self, &PyTuple_GET_ITEM(pos_args, 0), 1, NULL);
                 ;
 #else
@@ -523,7 +523,7 @@ PyObject *CALL_METHOD_WITH_POSARGS(PyObject *source, PyObject *attribute, PyObje
     CHECK_OBJECT(attribute);
     CHECK_OBJECT(positional_args);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyInstance_Check(source)) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
@@ -635,7 +635,7 @@ PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name) {
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
 #endif
                 func = Py_TYPE(descr)->tp_descr_get;
@@ -648,7 +648,7 @@ PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name) {
                     Py_DECREF(called_object);
                     return result;
                 }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             }
 #endif
         }
@@ -722,7 +722,7 @@ PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name) {
             return result;
         }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
                      PyString_AS_STRING(attr_name));
 #else
@@ -730,7 +730,7 @@ PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name) {
 #endif
         return NULL;
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
@@ -844,7 +844,7 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyO
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
 #endif
                 func = Py_TYPE(descr)->tp_descr_get;
@@ -857,7 +857,7 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyO
                     Py_DECREF(called_object);
                     return result;
                 }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             }
 #endif
         }
@@ -933,7 +933,7 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyO
             return result;
         }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
                      PyString_AS_STRING(attr_name));
 #else
@@ -941,7 +941,7 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyO
 #endif
         return NULL;
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 

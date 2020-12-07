@@ -404,7 +404,7 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotInt() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="int() argument must be a string or a number, not '%s'"
-                if python_version < 300
+                if python_version < 0x300
                 else "int() argument must be a string, a bytes-like object or a number, not '%s'",
                 operation="int",
                 original_node=int_node,
@@ -448,7 +448,7 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotFloat() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "float() argument must be a string or a number"
-                if Options.is_fullcompat and python_version < 300
+                if Options.is_fullcompat and python_version < 0x300
                 else "float() argument must be a string or a number, not '%s'",
                 operation="long",
                 original_node=float_node,
@@ -496,7 +496,7 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotComplex() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "complex() argument must be a string or a number"
-                if Options.is_fullcompat and python_version < 300
+                if Options.is_fullcompat and python_version < 0x300
                 else "complex() argument must be a string or a number, not '%s'",
                 operation="complex",
                 original_node=complex_node,

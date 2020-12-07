@@ -158,7 +158,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
         # For Python3 there is no slicing operation, this is always done
         # with subscript using a slice object. For Python2, it is only done
         # if no "step" is provided.
-        use_sliceobj = python_version >= 300
+        use_sliceobj = python_version >= 0x300
 
         if use_sliceobj:
             return StatementAssignmentSubscript(
@@ -202,7 +202,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
                 if starred_index is not None:
                     raiseSyntaxError(
                         "two starred expressions in assignment"
-                        if python_version < 390
+                        if python_version < 0x390
                         else "multiple starred expressions in assignment",
                         source_ref.atColumnNumber(0),
                     )
@@ -312,7 +312,7 @@ not enough values to unpack (expected at least %d, got %%d)"""
                 ),
             )
 
-        if python_version >= 370:
+        if python_version >= 0x370:
             iter_creation_class = ExpressionBuiltinIterForUnpack
         else:
             iter_creation_class = ExpressionBuiltinIter1
@@ -474,7 +474,7 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
                     ExpressionConstantEllipsisRef(source_ref=source_ref),
                 ),
             )
-        elif python_version >= 390:
+        elif python_version >= 0x390:
             return (
                 "Subscript",
                 (
@@ -613,7 +613,7 @@ def buildAnnAssignNode(provider, node, source_ref):
             # mostly useless to support having this as a closure taken name after a
             # __del__ on annotations, we might do this except in full compat mode. It
             # will produce only noise for all annotations in classes otherwise.
-            if python_version < 370:
+            if python_version < 0x370:
                 ref_class = ExpressionVariableLocalNameRef
             else:
                 ref_class = ExpressionVariableNameRef
@@ -670,7 +670,7 @@ def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
     elif kind == "Slice":
         lookup_source, lower, upper = detail
 
-        use_sliceobj = python_version >= 300
+        use_sliceobj = python_version >= 0x300
 
         if use_sliceobj:
             return StatementDelSubscript(
@@ -955,7 +955,7 @@ def _buildInplaceAssignSliceNode(
 
         upper_ref1 = upper_ref2 = None
 
-    use_sliceobj = python_version >= 300
+    use_sliceobj = python_version >= 0x300
 
     # Second assign the in-place result over the original value.
     if use_sliceobj:

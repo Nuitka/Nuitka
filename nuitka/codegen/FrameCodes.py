@@ -446,7 +446,7 @@ def getFrameGuardLightCode(
 def generateFramePreserveExceptionCode(statement, emit, context):
     emit("// Preserve existing published exception.")
 
-    if python_version < 300:
+    if python_version < 0x300:
         emit(
             "PRESERVE_FRAME_EXCEPTION(%(frame_identifier)s);"
             % {"frame_identifier": context.getFrameHandle()}
@@ -482,7 +482,7 @@ Py_XINCREF(%(exception_preserved_tb)s);
 def generateFrameRestoreExceptionCode(statement, emit, context):
     emit("// Restore previous exception.")
 
-    if python_version < 300:
+    if python_version < 0x300:
         emit(
             "RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);"
             % {"frame_identifier": context.getFrameHandle()}

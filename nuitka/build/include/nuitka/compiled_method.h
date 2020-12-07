@@ -40,7 +40,7 @@ struct Nuitka_MethodObject {
     PyObject *m_object;
     PyObject *m_class;
 
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
     vectorcallfunc m_vectorcall;
 #endif
 };

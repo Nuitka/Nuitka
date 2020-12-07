@@ -90,19 +90,19 @@ def main():
         ]
 
         # After Python3 those have been made to work.
-        if python_version < "3.5":
+        if python_version < (3, 5):
             expected_errors.append("cyclic_imports")
 
         # Allowed with Python3, packages need no more "__init__.py"
-        if python_version < "3":
+        if python_version < (3,):
             expected_errors.append("package_missing_init")
 
         # Allowed with Python3.5 only:
-        if python_version < "3.5":
+        if python_version < (3, 5):
             expected_errors.append("package_init_issue")
 
         # Allowed with Python3, name imports can be module imports
-        if python_version < "3":
+        if python_version < (3,):
             expected_errors.append("named_imports")
 
         if filename not in expected_errors:
@@ -151,7 +151,7 @@ def main():
                 extra_options + " --include-package=some_package"
             )
         elif filename == "reimport_main_dynamic":
-            if python_version < "3":
+            if python_version < (3,):
                 os.environ[
                     "NUITKA_EXTRA_OPTIONS"
                 ] = extra_options + " --include-plugin-directory=%s" % (
@@ -169,7 +169,7 @@ def main():
             if os.name == "nt":
                 extra_flags.append("plugin_enable:multiprocessing")
 
-            elif sys.platform == "darwin" and python_version >= "3.8":
+            elif sys.platform == "darwin" and python_version >= (3, 8):
                 reportSkip("Hangs for unknown reasons", ".", filename)
                 continue
         else:

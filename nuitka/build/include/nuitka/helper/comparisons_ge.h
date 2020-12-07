@@ -33,47 +33,47 @@ extern bool RICH_COMPARE_GE_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern nuitka_bool RICH_COMPARE_GE_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 extern PyObject *RICH_COMPARE_GE_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 extern bool RICH_COMPARE_GE_CBOOL_INT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 extern nuitka_bool RICH_COMPARE_GE_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 extern PyObject *RICH_COMPARE_GE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 extern bool RICH_COMPARE_GE_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 extern nuitka_bool RICH_COMPARE_GE_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 extern PyObject *RICH_COMPARE_GE_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 extern bool RICH_COMPARE_GE_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 extern nuitka_bool RICH_COMPARE_GE_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2);
 #endif

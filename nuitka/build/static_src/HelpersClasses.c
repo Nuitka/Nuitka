@@ -28,7 +28,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases) {
     CHECK_OBJECT(metaclass);
     CHECK_OBJECT(bases);

@@ -66,7 +66,7 @@ class ExpressionBuiltinRangeMixin(object):
             if child.getIntegerValue() is None:
                 return True
 
-            if python_version >= 270 and child.isExpressionConstantFloatRef():
+            if python_version >= 0x270 and child.isExpressionConstantFloatRef():
                 return True
 
         return False
@@ -80,7 +80,7 @@ class ExpressionBuiltinRangeMixin(object):
             if child.getIntegerValue() is None:
                 return True
 
-            if python_version >= 270 and child.isExpressionConstantFloatRef():
+            if python_version >= 0x270 and child.isExpressionConstantFloatRef():
                 return True
 
         step = self.getStep()
@@ -109,7 +109,7 @@ class ExpressionBuiltinRangeMixin(object):
         )
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        assert python_version < 300
+        assert python_version < 0x300
 
         iteration_length = self.getIterationLength()
 
@@ -158,7 +158,7 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeMixin, ExpressionChildHaving
 
     def __init__(self, low, source_ref):
         assert low is not None
-        assert python_version < 300
+        assert python_version < 0x300
 
         ExpressionChildHavingBase.__init__(self, value=low, source_ref=source_ref)
 
@@ -218,7 +218,7 @@ class ExpressionBuiltinRange2(
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
 
     def computeExpression(self, trace_collection):
-        assert python_version < 300
+        assert python_version < 0x300
 
         low = self.getLow()
         high = self.getHigh()
@@ -290,7 +290,7 @@ class ExpressionBuiltinRange3(
     getStep = ExpressionChildrenHavingBase.childGetter("step")
 
     def __init__(self, low, high, step, source_ref):
-        assert python_version < 300
+        assert python_version < 0x300
 
         ExpressionChildrenHavingBase.__init__(
             self, values={"low": low, "high": high, "step": step}, source_ref=source_ref

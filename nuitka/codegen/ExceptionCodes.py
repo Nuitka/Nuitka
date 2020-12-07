@@ -79,7 +79,7 @@ def generateExceptionCaughtValueCode(to_name, expression, emit, context):
         if keeper_variables[1] is None:
             emit("%s = EXC_VALUE(PyThreadState_GET());" % (value_name,))
         else:
-            if python_version >= 270:
+            if python_version >= 0x270:
                 emit("%s = %s;" % (value_name, keeper_variables[1]))
             else:
                 emit(
@@ -202,7 +202,7 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
                 context=context,
             )
 
-        if expression.getExceptionName() == "ImportError" and python_version >= 300:
+        if expression.getExceptionName() == "ImportError" and python_version >= 0x300:
             from .PythonAPICodes import getReferenceExportCode
 
             import_error_name_expression = expression.getImportErrorName()
