@@ -21,6 +21,8 @@ Format SyntaxError/IndentationError exception for output, as well as
 raise it for the given source code reference.
 """
 
+from nuitka.PythonVersions import python_version
+
 
 def formatOutput(e):
     if len(e.args) > 1:
@@ -44,7 +46,9 @@ def formatOutput(e):
     if hasattr(e, "msg"):
         reason = e.msg
 
-    if colno is not None:
+    if colno is not None and (
+        not e.__class__ is IndentationError or python_version < 390
+    ):
         colno = colno - len(message) + len(message.lstrip())
 
         return """\

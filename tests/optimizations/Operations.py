@@ -96,4 +96,3 @@ def inplaceOperationDivison():
     x = 2
     x /= 2
     return x
-

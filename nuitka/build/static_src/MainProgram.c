@@ -24,7 +24,19 @@
 
 #include "nuitka/prelude.h"
 
+#ifndef __IDE_ONLY__
+// Generated during build with optional defines.
 #include "build_definitions.h"
+#else
+// For the IDE to know these exist.
+#define SYSFLAG_PY3K_WARNING 0
+#define SYSFLAG_DIVISION_WARNING 0
+#define SYSFLAG_UNICODE 0
+#define SYSFLAG_OPTIMIZE 0
+#define SYSFLAG_NO_SITE 0
+#define SYSFLAG_VERBOSE 0
+#define SYSFLAG_BYTES_WARNING 0
+#endif
 
 #include <osdefs.h>
 #include <structseq.h>
@@ -181,7 +193,12 @@ extern void SvcLaunchService();
 DWORD WINAPI SvcStartPython(LPVOID lpParam) {
     IMPORT_EMBEDDED_MODULE("__main__");
 
-    return 0;
+    // TODO: Log exception and call ReportSvcStatus
+    if (ERROR_OCCURRED()) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 #endif
 
@@ -230,7 +247,7 @@ static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
     }
 }
 
-#if defined(_WIN32) && PYTHON_VERSION >= 300 && _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
+#if defined(_WIN32) && PYTHON_VERSION >= 300 && SYSFLAG_NO_RANDOMIZATION == 1
 static void setenv(char const *name, char const *value, int overwrite) {
     assert(overwrite);
 
@@ -330,20 +347,20 @@ int main(int argc, char **argv) {
     /* Initialize CPython library environment. */
     Py_DebugFlag = 0;
 #if PYTHON_VERSION < 300
-    Py_Py3kWarningFlag = _NUITKA_SYSFLAG_PY3K_WARNING;
-    Py_DivisionWarningFlag = _NUITKA_SYSFLAG_DIVISION_WARNING;
-    Py_UnicodeFlag = _NUITKA_SYSFLAG_UNICODE;
+    Py_Py3kWarningFlag = SYSFLAG_PY3K_WARNING;
+    Py_DivisionWarningFlag = SYSFLAG_DIVISION_WARNING;
+    Py_UnicodeFlag = SYSFLAG_UNICODE;
     Py_TabcheckFlag = 0;
 #endif
     Py_InspectFlag = 0;
     Py_InteractiveFlag = 0;
-    Py_OptimizeFlag = _NUITKA_SYSFLAG_OPTIMIZE;
+    Py_OptimizeFlag = SYSFLAG_OPTIMIZE;
     Py_DontWriteBytecodeFlag = 0;
-    Py_NoUserSiteDirectory = _NUITKA_SYSFLAG_NO_SITE;
+    Py_NoUserSiteDirectory = SYSFLAG_NO_SITE;
     Py_IgnoreEnvironmentFlag = 0;
-    Py_VerboseFlag = _NUITKA_SYSFLAG_VERBOSE;
-    Py_BytesWarningFlag = _NUITKA_SYSFLAG_BYTES_WARNING;
-#if _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
+    Py_VerboseFlag = SYSFLAG_VERBOSE;
+    Py_BytesWarningFlag = SYSFLAG_BYTES_WARNING;
+#if SYSFLAG_NO_RANDOMIZATION == 1
     Py_HashRandomizationFlag = 0;
 #if PYTHON_VERSION < 300
     // For Python2 this is all it takes to have static hashes.
@@ -351,7 +368,7 @@ int main(int argc, char **argv) {
 #endif
 #endif
 #if PYTHON_VERSION >= 370
-    Py_UTF8Mode = _NUITKA_SYSFLAG_UTF8;
+    Py_UTF8Mode = SYSFLAG_UTF8;
 #endif
 
     /* This suppresses warnings from getpath.c */
@@ -391,7 +408,7 @@ int main(int argc, char **argv) {
 #endif
 #endif
 
-#if PYTHON_VERSION >= 300 && _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
+#if PYTHON_VERSION >= 300 && SYSFLAG_NO_RANDOMIZATION == 1
     char const *old_env = getenv("PYTHONHASHSEED");
     setenv("PYTHONHASHSEED", "0", 1);
 #endif
@@ -399,7 +416,7 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TRACE("main(): Calling Py_Initialize to initialize interpreter.");
     Py_Initialize();
 
-#if PYTHON_VERSION >= 300 && _NUITKA_SYSFLAG_NO_RANDOMIZATION == 1
+#if PYTHON_VERSION >= 300 && SYSFLAG_NO_RANDOMIZATION == 1
     if (old_env) {
         setenv("PYTHONHASHSEED", old_env, 1);
 
@@ -429,7 +446,7 @@ int main(int argc, char **argv) {
     /* Lie about it, believe it or not, there are "site" files, that check
      * against later imports, see below.
      */
-    Py_NoSiteFlag = _NUITKA_SYSFLAG_NO_SITE;
+    Py_NoSiteFlag = SYSFLAG_NO_SITE;
 
     /* Set the command line parameters for run time usage. */
     NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
@@ -463,7 +480,7 @@ int main(int argc, char **argv) {
     /* Revert the wrong "sys.flags" value, it's used by "site" on at least
      * Debian for Python 3.3, more uses may exist.
      */
-#if _NUITKA_SYSFLAG_NO_SITE == 0
+#if SYSFLAG_NO_SITE == 0
 #if PYTHON_VERSION < 300
     PyStructSequence_SET_ITEM(PySys_GetObject((char *)"flags"), 9, const_int_0);
 #else
@@ -549,7 +566,7 @@ int main(int argc, char **argv) {
     _PyWarnings_Init();
 
     /* Disable CPython warnings if requested to. */
-#if _NUITKA_NO_PYTHON_WARNINGS
+#if NO_PYTHON_WARNINGS
     {
 #if PYTHON_VERSION >= 300
         wchar_t ignore[] = L"ignore";

@@ -22,6 +22,7 @@ source code comments with developer manual sections.
 
 """
 
+from nuitka import Options
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ReturnNodes import (
     ExpressionReturnedValueRef,
@@ -34,7 +35,6 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence,
 )
 from nuitka.nodes.TryNodes import StatementTry
-from nuitka.Options import isDebug
 from nuitka.PythonVersions import python_version
 
 from .TreeHelpers import (
@@ -106,7 +106,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False
 
     # TODO: Currently it's not possible anymore to get at XML for all codes
     # during the building phase. So this error catcher cannot work currently.
-    if False and isDebug():
+    if False and Options.is_debug:
         _checkCloning(final, provider)
 
     def getFinal():

@@ -32,12 +32,13 @@ from .FileOperations import withMadeWritableFileMode
 from .Utils import getArchitecture, getOS, isAlpineLinux, isWin32Windows
 from .WindowsResources import (
     RT_MANIFEST,
+    VsFixedFileInfoStructure,
     deleteWindowsResources,
     getResourcesFromDLL,
 )
 
 
-def localDLLFromFilesystem(name, paths):
+def locateDLLFromFilesystem(name, paths):
     for path in paths:
         for root, _dirs, files in os.walk(path):
             if name in files:
@@ -71,7 +72,7 @@ def locateDLL(dll_name):
             return dll_name
 
     if isAlpineLinux():
-        return localDLLFromFilesystem(
+        return locateDLLFromFilesystem(
             name=dll_name, paths=["/lib", "/usr/lib", "/usr/local/lib"]
         )
 
@@ -110,7 +111,7 @@ def getSxsFromDLL(filename, with_data=False):
     """
 
     return getResourcesFromDLL(
-        filename=filename, resource_kind=RT_MANIFEST, with_data=with_data
+        filename=filename, resource_kinds=(RT_MANIFEST,), with_data=with_data
     )
 
 
@@ -190,23 +191,6 @@ def getWindowsDLLVersion(filename):
         ctypes.POINTER(ctypes.c_uint32),
     ]
     VerQueryValueA.restype = ctypes.wintypes.BOOL
-
-    class VsFixedFileInfoStructure(ctypes.Structure):
-        _fields_ = [
-            ("dwSignature", ctypes.c_uint32),  # 0xFEEF04BD
-            ("dwStructVersion", ctypes.c_uint32),
-            ("dwFileVersionMS", ctypes.c_uint32),
-            ("dwFileVersionLS", ctypes.c_uint32),
-            ("dwProductVersionMS", ctypes.c_uint32),
-            ("dwProductVersionLS", ctypes.c_uint32),
-            ("dwFileFlagsMask", ctypes.c_uint32),
-            ("dwFileFlags", ctypes.c_uint32),
-            ("dwFileOS", ctypes.c_uint32),
-            ("dwFileType", ctypes.c_uint32),
-            ("dwFileSubtype", ctypes.c_uint32),
-            ("dwFileDateMS", ctypes.c_uint32),
-            ("dwFileDateLS", ctypes.c_uint32),
-        ]
 
     file_info = ctypes.POINTER(VsFixedFileInfoStructure)()
     uLen = ctypes.c_uint32(ctypes.sizeof(file_info))

@@ -116,8 +116,27 @@ class StatementsFrameBase(StatementsSequence):
         provider = self.getParentVariableProvider()
 
         if not provider.isCompiledPythonModule():
+            if (
+                provider.isExpressionGeneratorObjectBody()
+                or provider.isExpressionCoroutineObjectBody()
+                or provider.isExpressionAsyncgenObjectBody()
+            ):
+                closure_provider = provider.getParentVariableProvider()
+            else:
+                closure_provider = provider
+
+            if closure_provider.isExpressionFunctionBody():
+                closure_variables = closure_provider.getClosureVariables()
+            else:
+                closure_variables = ()
+
             self.code_object.updateLocalNames(
-                [variable.getName() for variable in provider.getLocalVariables()]
+                [variable.getName() for variable in provider.getLocalVariables()],
+                [
+                    variable.getName()
+                    for variable in closure_variables
+                    if variable.getOwner() is not closure_provider
+                ],
             )
 
         entry_point = provider.getEntryPoint()
@@ -136,23 +155,6 @@ class StatementsFrameBase(StatementsSequence):
         )
 
         self.code_object.setFlagNewLocalsValue(new_locals)
-
-        if (
-            provider.isExpressionGeneratorObjectBody()
-            or provider.isExpressionCoroutineObjectBody()
-            or provider.isExpressionAsyncgenObjectBody()
-        ):
-            closure_provider = provider.getParentVariableProvider()
-        else:
-            closure_provider = provider
-
-        has_closure = (
-            closure_provider.isExpressionFunctionBody()
-            and closure_provider.getClosureVariables() != ()
-            and not closure_provider.isExpressionClassBody()
-        )
-
-        self.code_object.setFlagHasClosureValue(has_closure)
 
     def markAsFrameExceptionPreserving(self):
         self.needs_frame_exception_preserve = True
@@ -203,7 +205,7 @@ class StatementsFrameBase(StatementsSequence):
         if not new_statements:
             trace_collection.signalChange(
                 "new_statements",
-                self.getSourceReference(),
+                self.source_ref,
                 "Removed empty frame object of '%s'."
                 % self.code_object.getCodeObjectName(),
             )
@@ -243,7 +245,7 @@ class StatementsFrameBase(StatementsSequence):
             else:
                 trace_collection.signalChange(
                     "new_statements",
-                    self.getSourceReference(),
+                    self.source_ref,
                     "Removed useless frame object of '%s'."
                     % self.code_object.getCodeObjectName(),
                 )

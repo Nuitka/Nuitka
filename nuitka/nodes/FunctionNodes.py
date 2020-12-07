@@ -42,7 +42,6 @@ from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 from .Checkers import checkStatementsSequenceOrNone
 from .CodeObjectSpecs import CodeObjectSpec
 from .ExpressionBases import (
-    CompileTimeConstantExpressionBase,
     ExpressionBase,
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
@@ -59,10 +58,10 @@ from .NodeBases import (
     SideEffectsFromChildrenMixin,
 )
 from .NodeMakingHelpers import (
-    makeConstantReplacementNode,
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
 )
+from .shapes.BuiltinTypeShapes import tshape_function
 
 
 class MaybeLocalVariableUsage(Exception):
@@ -213,6 +212,8 @@ class ExpressionFunctionBodyBase(
         self.locals_scope.unregisterClosureVariable(variable)
 
         self.taken.remove(variable)
+
+        self.code_object.removeFreeVarname(variable.getName())
 
     def demoteClosureVariable(self, variable):
         assert variable.isLocalVariable()
@@ -488,6 +489,16 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             if variable in self.auto_release
         )
 
+    @staticmethod
+    def getConstantReturnValue():
+        """Special function that checks if code generation allows to use common C code.
+
+        Notes:
+            This is only done for standard functions.
+
+        """
+        return False, False
+
 
 class ExpressionFunctionBody(
     MarkUnoptimizedFunctionIndicatorMixin, ExpressionFunctionEntryPointBase
@@ -646,11 +657,14 @@ class ExpressionFunctionBody(
 
         assert False, self
 
-    def isCompileTimeConstant(self):
-        # TODO: It's actually pretty much compile time accessible maybe.
+    @staticmethod
+    def isCompileTimeConstant():
+        # TODO: It's actually pretty much compile time accessible maybe, but that
+        # would require extra effort.
         return False
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         # The function definition has no side effects, calculating the defaults
         # would be, but that is done outside of this.
         return False
@@ -666,6 +680,29 @@ class ExpressionFunctionBody(
     def needsExceptionReturnValue(self):
         return self.return_exception
 
+    def getConstantReturnValue(self):
+        """Special function that checks if code generation allows to use common C code."""
+        body = self.getBody()
+
+        if body is None:
+            return True, None
+
+        first_statement = body.getStatements()[0]
+
+        if first_statement.isStatementReturn():
+            return_value = first_statement.getExpression()
+
+            # TODO: For mutable constants, we could also have something, but it would require an indicator
+            # flag to make a deep copy.
+            if return_value.isCompileTimeConstant() and not return_value.isMutable():
+                constant_value = return_value.getCompileTimeConstant()
+
+                return True, constant_value
+            else:
+                return False, False
+        else:
+            return False, False
+
 
 class ExpressionFunctionPureBody(ExpressionFunctionBody):
     kind = "EXPRESSION_FUNCTION_PURE_BODY"
@@ -674,12 +711,12 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
         return 0
 
 
-def convertNoneConstantOrEmptyDictToNone(node):
+def _convertNoneConstantOrEmptyDictToNone(node):
     if node is None:
         return None
-    elif node.isExpressionConstantRef() and node.getConstant() is None:
+    elif node.isExpressionConstantNoneRef():
         return None
-    elif node.isExpressionConstantRef() and node.getConstant() == {}:
+    elif node.isExpressionConstantDictEmptyRef():
         return None
     else:
         return node
@@ -710,7 +747,7 @@ class ExpressionFunctionCreation(
     getKwDefaults = ExpressionChildrenHavingBase.childGetter("kw_defaults")
     getAnnotations = ExpressionChildrenHavingBase.childGetter("annotations")
 
-    checkers = {"kw_defaults": convertNoneConstantOrEmptyDictToNone}
+    checkers = {"kw_defaults": _convertNoneConstantOrEmptyDictToNone}
 
     def __init__(self, function_ref, defaults, kw_defaults, annotations, source_ref):
         assert kw_defaults is None or kw_defaults.isExpression()
@@ -732,6 +769,10 @@ class ExpressionFunctionCreation(
 
     def getName(self):
         return self.getFunctionRef().getName()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_function
 
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
@@ -771,19 +812,15 @@ class ExpressionFunctionCreation(
         # TODO: Until we have something to re-order the keyword arguments, we
         # need to skip this. For the immediate need, we avoid this complexity,
         # as a re-ordering will be needed.
-        if call_kw is not None and (
-            not call_kw.isExpressionConstantRef() or call_kw.getConstant() != {}
-        ):
-            return call_node, None, None
-
-        if call_kw is not None:
+        if call_kw is not None and not call_kw.isExpressionConstantDictEmptyRef():
             return call_node, None, None
 
         if call_args is None:
             args_tuple = ()
         else:
             assert (
-                call_args.isExpressionConstantRef() or call_args.isExpressionMakeTuple()
+                call_args.isExpressionConstantTupleRef()
+                or call_args.isExpressionMakeTuple()
             )
 
             args_tuple = call_args.getIterationValues()
@@ -918,11 +955,13 @@ class ExpressionFunctionRef(ExpressionBase):
         # TODO: Function collection may now know something.
         return self, None, None
 
-    def mayHaveSideEffects(self):
-        # Using a function has no side effects.
+    @staticmethod
+    def mayHaveSideEffects():
+        # Using a function has no side effects, the use might, but this is not it.
         return False
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
 
@@ -1011,41 +1050,3 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
 
     def getClosureVariableVersions(self):
         return self.variable_closure_traces
-
-
-class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
-    """Node for value __qualname__ of class.
-
-    Notes:
-        This is for Python 3.4 and higher only, where classes calculate the __qualname__
-        value at runtime, then it's determined dynamically, while 3.3 set it more
-        statically, and Python2 didn't have this feature at all.
-    """
-
-    kind = "EXPRESSION_FUNCTION_QUALNAME_REF"
-
-    __slots__ = ("function_body",)
-
-    def __init__(self, function_body, source_ref):
-        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
-
-        self.function_body = function_body
-
-    def finalize(self):
-        del self.parent
-        del self.function_body
-
-    def computeExpressionRaw(self, trace_collection):
-        result = makeConstantReplacementNode(
-            node=self, constant=self.function_body.getFunctionQualname()
-        )
-
-        return (
-            result,
-            "new_constant",
-            "Executed '__qualname__' resolution to '%s'."
-            % self.function_body.getFunctionQualname(),
-        )
-
-    def getCompileTimeConstant(self):
-        return self.function_body.getFunctionQualname()

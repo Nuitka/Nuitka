@@ -37,7 +37,7 @@ is_fullcompat = None
 
 
 def parseArgs():
-    # singleton with many cases, pylint: disable=global-statement,too-many-branches
+    # singleton with many cases, pylint: disable=global-statement,too-many-branches,too-many-statements
     global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions()
@@ -65,6 +65,10 @@ def parseArgs():
         )
 
         options.show_inclusion = True
+
+    # Onefile implies standalone build.
+    if options.is_onefile:
+        options.is_standalone = True
 
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the
@@ -121,7 +125,7 @@ Error, '--nofollow-import-to' takes only module names, not directory path '%s'."
 
     scons_python = getPythonPathForScons()
 
-    if scons_python is not None and not os.path.exists(scons_python):
+    if scons_python is not None and not os.path.isfile(scons_python):
         sys.exit("Error, no such Python binary '%s'." % scons_python)
 
     if options.output_filename is not None and (
@@ -134,17 +138,43 @@ mode where filenames are mandatory, and not for standalone where there is a
 sane default used inside the dist folder."""
         )
 
-    for icon_path in [getIconPath()]:
-        if icon_path is not None and not os.path.exists(icon_path):
+    for icon_path in getIconPaths():
+        if not os.path.exists(icon_path):
+            sys.exit("Error, icon path %r does not exist." % icon_path)
+
+        if getWindowsIconExecutablePath():
             sys.exit(
-                """\
-Error, icon path "%s" does not exist."""
-                % icon_path
+                "Error, can only use icons from template executable or from icon files, but not both."
             )
 
-    is_debug = isDebug()
+    icon_exe_path = getWindowsIconExecutablePath()
+    if icon_exe_path is not None and not os.path.exists(icon_exe_path):
+        sys.exit("Error, icon path %r does not exist." % icon_exe_path)
+
+    try:
+        file_version = getWindowsFileVersion()
+    except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
+        sys.exit("Error, file version must be a tuple of up to 4 integer values.")
+
+    try:
+        product_version = getWindowsProductVersion()
+    except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
+        sys.exit("Error, product version must be a tuple of up to 4 integer values.")
+
+    if file_version or product_version or getWindowsVersionInfoStrings():
+        if not (file_version or product_version) and getWindowsCompanyName():
+            sys.exit(
+                "Error, company name and file or product version need to be given when any version information is given."
+            )
+
+    if isOnefileMode() and os.name == "nt" and not getWindowsCompanyName():
+        sys.exit(
+            "Error, onefile on Windows requires company name and file or product version to be given."
+        )
+
+    is_debug = _isDebug()
     is_nondebug = not is_debug
-    is_fullcompat = isFullCompat()
+    is_fullcompat = _isFullCompat()
 
 
 def isVerbose():
@@ -281,10 +311,10 @@ def shallWarnUnusualCode():
 
 def assumeYesForDownloads():
     """*bool* = "--assume-yes-for-downloads" """
-    return options.assume_yes_for_downloads
+    return options is not None and options.assume_yes_for_downloads
 
 
-def isDebug():
+def _isDebug():
     """*bool* = "--debug" or "--debugger" """
     return options is not None and (options.debug or options.debugger)
 
@@ -351,10 +381,15 @@ def shallUseStaticLibPython():
     """*bool* = derived from `sys.prefix` and `os.name`
 
     Notes:
-        Currently only AnaConda on non-Windows can do this.
+        Currently only Anaconda on non-Windows can do this.
     """
 
-    # For AnaConda default to trying static lib python library, which
+    if Utils.isWin32Windows() and os.path.exists(
+        os.path.join(sys.prefix, "etc/config.site")
+    ):
+        return True
+
+    # For Anaconda default to trying static lib python library, which
     # normally is just not available or if it is even unusable.
     return (
         os.path.exists(os.path.join(sys.prefix, "conda-meta"))
@@ -374,7 +409,7 @@ def shallTreatUninstalledPython():
         a Python runtime available.
 
         Most often uninstalled Python versions are self compiled or
-        from AnaConda.
+        from Anaconda.
     """
 
     if shallMakeModule() or isStandaloneMode():
@@ -418,8 +453,13 @@ def shallDisableConsoleWindow():
     return options.win_disable_console
 
 
-def isFullCompat():
-    """*bool* = "--full-compat" """
+def _isFullCompat():
+    """*bool* = "--full-compat"
+
+    Notes:
+        Code should should use "Options.is_fullcompat" instead, this
+        is only used to initialize that value.
+    """
     return options is not None and not options.improved
 
 
@@ -492,9 +532,86 @@ def isStandaloneMode():
     return options.is_standalone
 
 
-def getIconPath():
-    """*str*, value of "--windows-icon" """
+def isOnefileMode():
+    """*bool* = "--standalone" """
+    return options.is_onefile
+
+
+def getIconPaths():
+    """*list of str*, values of "--windows-icon-from-ico" """
     return options.icon_path
+
+
+def getWindowsIconExecutablePath():
+    """*str* or *None* if not given, value of "--windows-icon-from-exe" """
+    return options.icon_exe_path
+
+
+def shallAskForWindowsAdminRights():
+    """*bool*, value of "--windows-uac-admin" or --windows-uac-uiaccess """
+    return options.windows_uac_admin
+
+
+def shallAskForWindowsUIAccessRights():
+    """*bool*, value of "--windows-uac-uiaccess" """
+    return options.windows_uac_uiaccess
+
+
+def getWindowsVersionInfoStrings():
+    """*dict of str*, values of ."""
+
+    result = {}
+
+    company_name = getWindowsCompanyName()
+    if company_name is not None:
+        result["CompanyName"] = company_name
+
+    product_name = getWindowsProductName()
+    if product_name is not None:
+        result["ProductName"] = product_name
+
+    if options.windows_file_description:
+        result["FileDescription"] = options.windows_file_description
+
+    return result
+
+
+def _parseWindowsVersionNumber(value):
+    if value is not None:
+        parts = value.split(".")
+
+        assert len(parts) <= 4
+
+        while len(parts) < 4:
+            parts.append("0")
+
+        r = tuple(int(d) for d in parts)
+        assert min(r) >= 0
+        assert max(r) < 2 ** 16
+        return r
+
+    else:
+        return None
+
+
+def getWindowsProductVersion():
+    """*tuple of 4 ints* or None --windows-product-version """
+    return _parseWindowsVersionNumber(options.windows_product_version)
+
+
+def getWindowsFileVersion():
+    """*tuple of 4 ints* or None --windows-file-version """
+    return _parseWindowsVersionNumber(options.windows_file_version)
+
+
+def getWindowsCompanyName():
+    """*str* name of the company to use """
+    return options.windows_company_name
+
+
+def getWindowsProductName():
+    """*str* name of the product to use """
+    return options.windows_product_name
 
 
 _python_flags = None

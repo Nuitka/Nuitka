@@ -170,7 +170,7 @@ class TempMixin(object):
 
         # For finally handlers of Python3, which have conditions on assign and
         # use, the NULL init is needed.
-        debug = Options.isDebug() and python_version >= 300
+        debug = Options.is_debug and python_version >= 300
 
         if debug:
             keeper_obj_init = "NULL"
@@ -213,7 +213,7 @@ class TempMixin(object):
         # use.
         if preserver_id not in self.preserver_variable_declaration:
 
-            debug = Options.isDebug() and python_version >= 300
+            debug = Options.is_debug and python_version >= 300
 
             if debug:
                 preserver_obj_init = "NULL"
@@ -293,7 +293,7 @@ CodeObjectHandle = collections.namedtuple(
         "line_number",
         "future_flags",
         "co_new_locals",
-        "has_closure",
+        "co_freevars",
         "is_optimized",
     ),
 )
@@ -314,6 +314,7 @@ class CodeObjectsMixin(object):
             line_number=code_object.getLineNumber(),
             co_varnames=code_object.getVarNames(),
             co_argcount=code_object.getArgumentCount(),
+            co_freevars=code_object.getFreeVarNames(),
             co_posonlyargcount=code_object.getPosOnlyParameterCount(),
             co_kwonlyargcount=code_object.getKwOnlyParameterCount(),
             co_kind=code_object.getCodeObjectKind(),
@@ -321,7 +322,6 @@ class CodeObjectsMixin(object):
             co_new_locals=code_object.getFlagNewLocalsValue(),
             co_has_starlist=code_object.hasStarListArg(),
             co_has_stardict=code_object.hasStarDictArg(),
-            has_closure=code_object.getFlagHasClosureValue(),
             future_flags=code_object.getFutureSpec().asFlags(),
         )
 

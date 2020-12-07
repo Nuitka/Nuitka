@@ -89,7 +89,8 @@ class ExpressionBuiltinTuple(ExpressionBuiltinContainerBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_tuple_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_tuple
 
 
@@ -98,7 +99,8 @@ class ExpressionBuiltinList(ExpressionBuiltinContainerBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_list_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_list
 
 
@@ -107,7 +109,8 @@ class ExpressionBuiltinSet(ExpressionBuiltinContainerBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_set_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_set
 
 
@@ -116,7 +119,8 @@ class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_frozenset_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_frozenset
 
 
@@ -129,7 +133,8 @@ class ExpressionBuiltinFloat(ExpressionChildHavingBase):
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         # TODO: Depending on input type shape, we should improve this.
         return tshape_float_derived
 
@@ -148,28 +153,26 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
     builtin_spec = BuiltinParameterSpecs.builtin_bool_spec
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
 
-        if value is not None:
-            truth_value = self.getValue().getTruthValue()
+        truth_value = value.getTruthValue()
 
-            if truth_value is not None:
-                result = wrapExpressionWithNodeSideEffects(
-                    new_node=makeConstantReplacementNode(
-                        constant=truth_value, node=self
-                    ),
-                    old_node=self.getValue(),
-                )
+        if truth_value is not None:
+            result = wrapExpressionWithNodeSideEffects(
+                new_node=makeConstantReplacementNode(constant=truth_value, node=self),
+                old_node=value,
+            )
 
-                return (
-                    result,
-                    "new_constant",
-                    "Predicted truth value of built-in bool argument",
-                )
+            return (
+                result,
+                "new_constant",
+                "Predicted truth value of built-in bool argument",
+            )
 
         return ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         # Note: Not allowed to subclass bool.
         return tshape_bool
 
@@ -234,7 +237,8 @@ class ExpressionBuiltinStrP2(ExpressionBuiltinTypeBase):
 
         return new_node, change_tags, change_desc
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str_derived
 
 
@@ -245,7 +249,8 @@ class ExpressionBuiltinUnicodeP2(ExpressionBuiltinUnicodeBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_unicode_p2_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_unicode_derived
 
 
@@ -256,7 +261,8 @@ class ExpressionBuiltinStrP3(ExpressionBuiltinUnicodeBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_str_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str_derived
 
 
@@ -265,7 +271,8 @@ class ExpressionBuiltinBytes3(ExpressionBuiltinUnicodeBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_bytes_p3_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bytes
 
 
@@ -278,7 +285,8 @@ class ExpressionBuiltinBytes1(ExpressionChildHavingBase):
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         # TODO: Depending on input type shape, we should improve this.
         return tshape_bytes_derived
 
@@ -299,7 +307,8 @@ class ExpressionBuiltinBytearray1(ExpressionBuiltinTypeBase):
     def __init__(self, value, source_ref):
         ExpressionBuiltinTypeBase.__init__(self, value=value, source_ref=source_ref)
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bytearray
 
 
@@ -325,5 +334,6 @@ class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
 
         return self, None, None
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bytearray

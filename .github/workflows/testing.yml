@@ -15,18 +15,19 @@ on:
 
 jobs:
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     strategy:
       matrix:
         python_version:
             - '2.7'
-            - '3.5'
-            - '3.6'
             - '3.7'
             - '3.8'
+            - '3.9'
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v2
@@ -42,6 +43,11 @@ jobs:
         run:
           pip install .
 
+      - name: Verbose scons output in compilation
+        run: |
+          python -m nuitka --module --show-scons --run tests/basics/Empty.py
+          python -m nuitka --show-scons --run tests/basics/Empty.py
+
       - name: Run Nuitka test suite
         run: |
           python -m nuitka --version
@@ -51,7 +57,7 @@ jobs:
       - name: PyLint on Nuitka source code
         run: |
           ./bin/check-nuitka-with-pylint
-        if: matrix.python_version >= '3.7' || matrix.python_version == '2.7'
+        if: matrix.python_version == '3.7' || matrix.python_version == '2.7'
 
       - name: RestLint on Nuitka source code
         run: |
@@ -69,9 +75,9 @@ jobs:
       matrix:
         python_version:
             - '2.7'
-            - '3.6'
             - '3.7'
             - '3.8'
+            - '3.9'
     name: macOS Python ${{ matrix.python_version }}
     steps:
       - uses: actions/checkout@v2
@@ -115,10 +121,9 @@ jobs:
       matrix:
         python_version:
             - '2.7'
-            - '3.5'
-            - '3.6'
             - '3.7'
-#            - '3.8'
+            - '3.8'
+            - '3.9'
     name: Windows Python ${{ matrix.python_version }}
     steps:
       - uses: actions/checkout@v2
@@ -127,11 +132,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python_version }}
-
-      - name: Install MinGW using Conda
-        shell: bash
-        run: |
-          $CONDA/Scripts/conda install m2w64-gcc libpython ccache
 
       - name: Install Nuitka dependencies
         run: |
@@ -144,16 +144,12 @@ jobs:
       - name: Verbose scons output in compilation
         shell: bash
         run: |
-          export CC=$CONDA/Library/mingw-w64/bin/gcc.exe
-
-          python -m nuitka --module --show-scons --run tests/basics/Empty.py
-          python -m nuitka --show-scons --run tests/basics/Empty.py
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads --mingw64 tests/basics/Empty.py
+          python -m nuitka --show-scons --run --mingw64 tests/basics/Empty.py
 
       - name: Run Nuitka test suite
         shell: bash
         run: |
-          export CC=$CONDA/Library/mingw-w64/bin/gcc.exe
-
           python -m nuitka --version
           env | sort
-          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
+          python ./tests/run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads --mingw64

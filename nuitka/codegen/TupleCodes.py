@@ -22,6 +22,7 @@
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateExpressionCode,
+    withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
 from .ConstantCodes import getConstantAccess
@@ -46,7 +47,7 @@ def generateTupleCreationCode(to_name, expression, emit, context):
 
         getTupleCreationCode(
             to_name=value_name,
-            elements=expression.getElements(),
+            elements=expression.subnode_elements,
             emit=emit,
             context=context,
         )
@@ -56,29 +57,45 @@ def getTupleCreationCode(to_name, elements, emit, context):
     if _areConstants(elements):
         getConstantAccess(
             to_name=to_name,
-            constant=tuple(element.getConstant() for element in elements),
+            constant=tuple(element.getCompileTimeConstant() for element in elements),
             emit=emit,
             context=context,
         )
     else:
         element_name = context.allocateTempName("tuple_element")
 
-        for count, element in enumerate(elements):
+        def generateElementCode(element):
             generateExpressionCode(
                 to_name=element_name, expression=element, emit=emit, context=context
             )
 
-            if count == 0:
-                emit("%s = PyTuple_New(%d);" % (to_name, len(elements)))
-
-                context.addCleanupTempName(to_name)
-
-            if not context.needsCleanup(element_name):
-                emit("Py_INCREF(%s);" % element_name)
-            else:
+            # Use helper that makes sure we provide a reference.
+            if context.needsCleanup(element_name):
                 context.removeCleanupTempName(element_name)
+                helper_code = "PyTuple_SET_ITEM"
+            else:
+                helper_code = "PyTuple_SET_ITEM0"
 
-            emit("PyTuple_SET_ITEM(%s, %d, %s);" % (to_name, count, element_name))
+            return helper_code
+
+        helper_code = generateElementCode(elements[0])
+
+        emit("%s = PyTuple_New(%d);" % (to_name, len(elements)))
+
+        needs_exception_exit = any(
+            element.mayRaiseException(BaseException) for element in elements[1:]
+        )
+
+        with withCleanupFinally(
+            "tuple_build", to_name, needs_exception_exit, emit, context
+        ) as guarded_emit:
+            emit = guarded_emit.emit
+
+            for count, element in enumerate(elements):
+                if count > 0:
+                    helper_code = generateElementCode(element)
+
+                emit("%s(%s, %d, %s);" % (helper_code, to_name, count, element_name))
 
 
 def generateBuiltinTupleCode(to_name, expression, emit, context):

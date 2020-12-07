@@ -24,21 +24,17 @@ to assign to it.
 
 from nuitka import Options
 
-from .CTypeBases import CTypeBase
+from .CTypeBases import CTypeBase, CTypeNotReferenceCountedMixin
 
 # This is going to not use arguments very commonly. For now disable
 # the warning all around, specialize one done, pylint: disable=unused-argument
 
 
-class CTypeVoid(CTypeBase):
+class CTypeVoid(CTypeNotReferenceCountedMixin, CTypeBase):
     c_type = "nuitka_void"
 
     # Return value only obviously.
     helper_code = "NVOID"
-
-    @classmethod
-    def emitTruthCheckCode(cls, to_name, value_name, needs_check, emit, context):
-        assert False
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
@@ -46,8 +42,12 @@ class CTypeVoid(CTypeBase):
         assert False
 
     @classmethod
-    def emitValueAssertionCode(cls, value_name, emit, context):
+    def emitValueAssertionCode(cls, value_name, emit):
         assert False
+
+    @classmethod
+    def emitReinitCode(cls, value_name, emit):
+        emit("%s = NUITKA_VOID_OK;" % value_name)
 
     @classmethod
     def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
@@ -64,10 +64,6 @@ class CTypeVoid(CTypeBase):
 
     @classmethod
     def getInitValue(cls, init_from):
-        assert False
-
-    @classmethod
-    def getReleaseCode(cls, variable_code_name, needs_check, emit):
         assert False
 
     @classmethod

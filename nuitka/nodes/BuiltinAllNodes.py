@@ -98,7 +98,8 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
 
         return self, None, None
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         """returns type shape of the 'all' node"""
         return tshape_bool
 

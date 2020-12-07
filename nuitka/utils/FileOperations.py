@@ -22,12 +22,18 @@ stuff. It will also frequently add sorting for determism.
 
 """
 
+from __future__ import print_function
+
 import os
 import shutil
+import stat
 import tempfile
 import time
 from contextlib import contextmanager
 
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    basestring,
+)
 from nuitka.Tracing import my_print
 
 from .ThreadedExecutor import RLock, getThreadIdent
@@ -88,6 +94,13 @@ def areSamePaths(path1, path2):
     return path1 == path2
 
 
+def haveSameFileContents(path1, path2):
+    # Local import, to avoid this for normal use cases.
+    import filecmp
+
+    return filecmp.cmp(path1, path2)
+
+
 def relpath(path, start="."):
     """Make it a relative path, if possible.
 
@@ -134,6 +147,40 @@ def makePath(path):
             os.makedirs(path)
 
 
+def _getRealPathWindows(path):
+    # Slow, because we are using an external process, we it's only for standalone and Python2,
+    # which is slow already.
+    import subprocess
+
+    result = subprocess.check_output(
+        """powershell "Get-Item '%s' | Select-Object -ExpandProperty Target" """ % path
+    )
+
+    return os.path.join(os.path.dirname(path), result.rstrip("\r\n"))
+
+
+def getDirectoryRealPath(path):
+    """Get os.path.realpath with Python2 and Windows symlink workaround applied.
+
+    Args:
+        path: path to get realpath of
+
+    Returns:
+        path with symlinks resolved
+
+    Notes:
+        Workaround for Windows symlink is applied.
+
+    """
+    path = os.path.realpath(path)
+
+    # Attempt to resolve Windows symlinks on Python2
+    if os.name == "nt" and not os.path.isdir(path):
+        path = _getRealPathWindows(path)
+
+    return path
+
+
 def listDir(path):
     """Give a sorted listing of a path.
 
@@ -153,12 +200,10 @@ def listDir(path):
         symlinks to directories on Windows, that a naive "os.listdir"
         won't do by default.
     """
+    real_path = getDirectoryRealPath(path)
 
     return sorted(
-        [
-            (os.path.join(path, filename), filename)
-            for filename in os.listdir(os.path.realpath(path))
-        ]
+        [(os.path.join(path, filename), filename) for filename in os.listdir(real_path)]
     )
 
 
@@ -316,6 +361,36 @@ def getFileContents(filename, mode="r", encoding=None):
                 return f.read()
 
 
+def putTextFileContents(filename, contents, encoding=None):
+    """Write a text file from given contents.
+
+    Args:
+        filename: str with the file to be created
+        contents: str or iterable of strings with what should be written into the file
+        encoding: optional encoding to used when writing the file
+
+    Returns:
+        None
+    """
+
+    def _writeContents(output_file):
+        if isinstance(contents, basestring):
+            print(contents, file=output_file)
+        else:
+            for line in contents:
+                print(line, file=output_file)
+
+    with withFileLock("writing file %s" % filename):
+        if encoding is not None:
+            import codecs
+
+            with codecs.open(filename, "w", encoding=encoding) as output_file:
+                _writeContents(output_file)
+        else:
+            with open(filename, "w") as output_file:
+                _writeContents(output_file)
+
+
 @contextmanager
 def withPreserveFileMode(filename):
     old_mode = os.stat(filename).st_mode
@@ -328,6 +403,26 @@ def withMadeWritableFileMode(filename):
     with withPreserveFileMode(filename):
         os.chmod(filename, int("644", 8))
         yield
+
+
+def removeFileExecutablePermission(filename):
+    old_stat = os.stat(filename)
+
+    mode = old_stat.st_mode
+    mode &= ~(stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+    if mode != old_stat.st_mode:
+        os.chmod(filename, mode)
+
+
+def addFileExecutablePermission(filename):
+    old_stat = os.stat(filename)
+
+    mode = old_stat.st_mode
+    mode |= stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+
+    if mode != old_stat.st_mode:
+        os.chmod(filename, mode)
 
 
 def renameFile(source_filename, dest_filename):

@@ -390,8 +390,10 @@ class Plugins(object):
 
         return "compiled"
 
-    @staticmethod
-    def getPreprocessorSymbols():
+    preprocessor_symbols = None
+
+    @classmethod
+    def getPreprocessorSymbols(cls):
         """Let plugins provide C defines to be used in compilation.
 
         Notes:
@@ -402,20 +404,23 @@ class Plugins(object):
             OrderedDict(), where None value indicates no define value,
             i.e. "-Dkey=value" vs. "-Dkey"
         """
-        result = OrderedDict()
 
-        for plugin in getActivePlugins():
-            value = plugin.getPreprocessorSymbols()
+        if cls.preprocessor_symbols is None:
+            cls.preprocessor_symbols = OrderedDict()
 
-            if value is not None:
-                assert type(value) is dict
+            for plugin in getActivePlugins():
+                value = plugin.getPreprocessorSymbols()
 
-                # We order per plugin, but from the plugins, lets just take a dict
-                # and achieve determism by ordering the defines by name.
-                for key, value in sorted(value.items()):
-                    result[key] = value
+                if value is not None:
+                    assert type(value) is dict, value
 
-        return result
+                    # We order per plugin, but from the plugins, lets just take a dict
+                    # and achieve determism by ordering the defines by name.
+                    for key, value in sorted(value.items()):
+                        # False alarm, pylint: disable=I0021,unsupported-assignment-operation
+                        cls.preprocessor_symbols[key] = value
+
+        return cls.preprocessor_symbols
 
     @staticmethod
     def getExtraCodeFiles():
@@ -435,21 +440,24 @@ class Plugins(object):
 
         return result
 
-    @staticmethod
-    def getExtraLinkLibraries():
-        result = OrderedSet()
+    extra_link_libraries = None
 
-        for plugin in getActivePlugins():
-            value = plugin.getExtraLinkLibraries()
+    @classmethod
+    def getExtraLinkLibraries(cls):
+        if cls.extra_link_libraries is None:
+            cls.extra_link_libraries = OrderedSet()
 
-            if value is not None:
-                if isinstance(value, basestring):
-                    result.add(value)
-                else:
-                    for library_name in value:
-                        result.add(library_name)
+            for plugin in getActivePlugins():
+                value = plugin.getExtraLinkLibraries()
 
-        return result
+                if value is not None:
+                    if isinstance(value, basestring):
+                        cls.extra_link_libraries.add(value)
+                    else:
+                        for library_name in value:
+                            cls.extra_link_libraries.add(library_name)
+
+        return cls.extra_link_libraries
 
 
 def listPlugins():
@@ -611,12 +619,15 @@ def lateActivatePlugin(plugin_name, option_values):
 
 
 def _addPluginCommandLineOptions(parser, plugin_class):
-    option_group = OptionGroup(parser, "Plugin %s" % plugin_class.plugin_name)
-    plugin_class.addPluginCommandLineOptions(option_group)
+    if plugin_class.plugin_name not in plugin_options:
+        option_group = OptionGroup(parser, "Plugin %s" % plugin_class.plugin_name)
+        plugin_class.addPluginCommandLineOptions(option_group)
 
-    if option_group.option_list:
-        parser.add_option_group(option_group)
-        plugin_options[plugin_class.plugin_name] = option_group.option_list
+        if option_group.option_list:
+            parser.add_option_group(option_group)
+            plugin_options[plugin_class.plugin_name] = option_group.option_list
+        else:
+            plugin_options[plugin_class.plugin_name] = ()
 
 
 def addPluginCommandLineOptions(parser, plugin_names):

@@ -10,12 +10,6 @@ matrix:
       env: PYTHON=python2.7
       cache: ccache
     - os: linux
-      python: 3.4
-      dist: xenial
-      sudo: required
-      env: PYTHON=python3.4
-      cache: ccache
-    - os: linux
       python: 3.5
       dist: xenial
       sudo: required

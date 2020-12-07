@@ -60,9 +60,11 @@ from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
     getSubDirectories,
+    haveSameFileContents,
     isPathBelow,
     listDir,
     makePath,
+    putTextFileContents,
     withFileLock,
 )
 from nuitka.utils.ModuleNames import ModuleName
@@ -1051,9 +1053,7 @@ SxS
     deleteFile(dwp_filename, must_exist=True)
 
     if update_cache:
-        with open(cache_filename, "w") as cache_file:
-            for dll_filename in result:
-                print(dll_filename, file=cache_file)
+        putTextFileContents(filename=cache_filename, contents=result)
 
     return result
 
@@ -1393,6 +1393,16 @@ libraries that need to be removed."""
         assert retcode == 0, filename
 
 
+# These DLLs are run time DLLs from Microsoft, and packages will depend on different
+# ones, but it will be OK to use the latest one.
+ms_runtime_dlls = (
+    "msvcp140_1.dll",
+    "msvcp140.dll",
+    "vcruntime140_1.dll",
+    "concrt140.dll",
+)
+
+
 def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
     # This is terribly complex, because we check the list of used DLLs
     # trying to avoid duplicates, and detecting errors with them not
@@ -1410,6 +1420,7 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
     )
 
     removed_dlls = set()
+    warned_about = set()
 
     # Fist make checks and remove some.
     for dll_filename1, sources1 in tuple(iterItems(used_dlls)):
@@ -1443,11 +1454,8 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
                     % (dll_name, dll_filename1, dll_filename2)
                 )
 
-            # Check that if a DLL has the same name, if it's identical,
-            # happens at least for OSC and Fedora 20.
-            import filecmp
-
-            if filecmp.cmp(dll_filename1, dll_filename2):
+            # Check that if a DLL has the same name, if it's identical, then it's easy.
+            if haveSameFileContents(dll_filename1, dll_filename2):
                 del used_dlls[dll_filename2]
                 removed_dlls.add(dll_filename2)
 
@@ -1472,14 +1480,18 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
                     solved = False
 
                 if solved:
-                    general.warning(
-                        "Ignoring conflicting DLLs for '%s' and using newest file version."
-                        % dll_name
-                    )
+                    if dll_name not in warned_about and dll_name not in ms_runtime_dlls:
+                        warned_about.add(dll_name)
+
+                        inclusion_logger.warning(
+                            "Conflicting DLLs for '%s' in your installation, newest file version used, hoping for the best."
+                            % dll_name
+                        )
+
                     continue
 
-            # So we have conflicting DLLs, in which case we do not proceed.
-            general.warning(
+            # So we have conflicting DLLs, in which case we do report the fact.
+            inclusion_logger.warning(
                 """\
 Ignoring non-identical DLLs for '%s'.
 %s used by:

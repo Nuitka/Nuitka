@@ -181,7 +181,7 @@ static bool compareFrozensetValues(PyObject *a, PyObject *b) {
     }
 
     // Shortcut for frozensets, they are known to be hashable.
-    if (PyObject_Hash(a) != PyObject_Hash(b)) {
+    if (HASH_VALUE_WITHOUT_ERROR(a) != HASH_VALUE_WITHOUT_ERROR(b)) {
         return false;
     }
 

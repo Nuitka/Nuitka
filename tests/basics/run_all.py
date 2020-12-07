@@ -67,6 +67,8 @@ def main():
             "original_file",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
+            # To understand what is slow.
+            "timing",
             # We annotate some tests, use that to lower warnings.
             "plugin_enable:pylint-warnings",
         ]

@@ -60,7 +60,10 @@ class ExpressionModuleAttributeBase(ExpressionBase):
     def getVariable(self):
         return self.variable
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
+        # These attributes can be expected to be present.
+
         return False
 
 
@@ -82,7 +85,7 @@ class ExpressionModuleAttributeFileRef(ExpressionModuleAttributeBase):
         if Options.getFileReferenceMode() != "runtime":
             result = makeConstantRefNode(
                 constant=self.variable.getModule().getRunTimeFilename(),
-                source_ref=self.getSourceReference(),
+                source_ref=self.source_ref,
             )
 
             return result, "new_expression", "Using original '__file__' value."
@@ -106,7 +109,7 @@ class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
         if not Options.shallMakeModule():
             result = makeConstantRefNode(
                 constant=self.variable.getModule().getFullName().asString(),
-                source_ref=self.getSourceReference(),
+                source_ref=self.source_ref,
             )
 
             return result, "new_expression", "Using constant '__name__' value."
@@ -211,10 +214,12 @@ class ExpressionNuitkaLoaderCreation(ExpressionBase):
         # Nothing can be done here.
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         # Never raises an exception.
         return False
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         # No effect really by itself.
         return False

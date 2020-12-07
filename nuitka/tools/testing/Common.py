@@ -32,8 +32,9 @@ import tempfile
 from contextlib import contextmanager
 from optparse import OptionGroup, OptionParser
 
-from nuitka.Tracing import my_print
-from nuitka.utils.AppDirs import getAppDir, getCacheDir
+from nuitka.freezer.DependsExe import getDependsExePath
+from nuitka.Tracing import OurLogger, my_print
+from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_output, withEnvironmentVarOverriden
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
@@ -146,6 +147,10 @@ print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else 
     return _python_version
 
 
+def getPythonArch():
+    return _python_arch
+
+
 def getPythonVendor():
     return _python_vendor
 
@@ -249,7 +254,7 @@ def decideFilenameVersionSkip(filename):
     """
 
     # This will make many decisions with immediate returns.
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     assert type(filename) is str
     assert type(_python_version) is str
@@ -301,18 +306,16 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("38.py") and _python_version < "3.8":
         return False
 
+    # Skip tests that require Python 3.9 at least.
+    if filename.endswith("39.py") and _python_version < "3.9":
+        return False
+
     return True
 
 
 def decideNeeds2to3(filename):
-    return (
-        _python_version.startswith("3")
-        and not filename.endswith("32.py")
-        and not filename.endswith("33.py")
-        and not filename.endswith("35.py")
-        and not filename.endswith("36.py")
-        and not filename.endswith("37.py")
-        and not filename.endswith("38.py")
+    return _python_version.startswith("3") and not filename.endswith(
+        ("32.py", "33.py", "34.py", "35.py", "36.py", "37.py", "38.py", "39.py")
     )
 
 
@@ -451,20 +454,6 @@ def hasDebugPython():
 
     # Otherwise no.
     return False
-
-
-def getDependsExePath():
-    if "APPDATA" not in os.environ:
-        sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
-
-    nuitka_app_dir = getAppDir()
-
-    depends_dir = os.path.join(nuitka_app_dir, _python_arch)
-    depends_exe = os.path.join(depends_dir, "depends.exe")
-
-    assert os.path.exists(depends_exe), depends_exe
-
-    return depends_exe
 
 
 def isExecutableCommand(command):
@@ -641,15 +630,13 @@ Error, needs 'strace' on your system to scan used libraries."""
                 continue
 
             dll_filename = line[line.find("]") + 2 :].rstrip()
-            assert os.path.isfile(dll_filename), dll_filename
+            dll_filename = os.path.normcase(dll_filename)
+
+            assert os.path.isfile(dll_filename), repr(dll_filename)
 
             # The executable itself is of course exempted.
-            if os.path.normcase(dll_filename) == os.path.normcase(
-                os.path.abspath(path)
-            ):
+            if dll_filename == os.path.normcase(os.path.abspath(path)):
                 continue
-
-            dll_filename = os.path.normcase(dll_filename)
 
             result.append(dll_filename)
 
@@ -1508,3 +1495,6 @@ def someGenerator():
 def someGeneratorRaising():
     yield 1
     raise TypeError(2)
+
+
+test_logger = OurLogger("", base_style="blue")

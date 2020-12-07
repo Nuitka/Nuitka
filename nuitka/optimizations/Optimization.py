@@ -24,13 +24,19 @@ make others possible.
 
 
 import inspect
-from logging import info
 
 from nuitka import ModuleRegistry, Options, Variables
 from nuitka.importing import ImportCache
 from nuitka.nodes.LocalsScopes import LocalsDictHandle, getLocalsDictHandles
 from nuitka.plugins.Plugins import Plugins
-from nuitka.Tracing import optimization_logger, printLine, recursion_logger
+from nuitka.Tracing import (
+    general,
+    memory_logger,
+    optimization_logger,
+    printLine,
+    progress_logger,
+    recursion_logger,
+)
 from nuitka.utils import MemoryUsage
 
 from . import Graphs, TraceCollections
@@ -81,7 +87,7 @@ TraceCollections.signalChange = signalChange
 
 def optimizeCompiledPythonModule(module):
     if _progress:
-        info(
+        progress_logger.info(
             "Doing module local optimizations for '{module_name}'.".format(
                 module_name=module.getFullName()
             )
@@ -96,9 +102,10 @@ def optimizeCompiledPythonModule(module):
         tag_set.clear()
 
         try:
+            # print("Compute module")
             module.computeModule()
         except BaseException:
-            info("Interrupted while working on '%s'." % module)
+            general.info("Interrupted while working on '%s'." % module)
             raise
 
         Graphs.onModuleOptimizationStep(module)
@@ -110,7 +117,18 @@ def optimizeCompiledPythonModule(module):
 
             break
         else:
+            if _progress:
+                progress_logger.info("Finished with the module.")
             break
+
+        if _progress:
+            if "new_code" in tag_set:
+                tag_set.remove("new_code")
+
+            progress_logger.info(
+                "Not finished with the module due to following change kinds: %s"
+                % ",".join(sorted(tag_set))
+            )
 
         # Otherwise we did stuff, so note that for return value.
         touched = True
@@ -118,7 +136,7 @@ def optimizeCompiledPythonModule(module):
     if _progress and Options.isShowMemory():
         memory_watch.finish()
 
-        info(
+        memory_logger.info(
             "Memory usage changed during optimization of '%s': %s"
             % (module.getFullName(), memory_watch.asStr())
         )
@@ -131,7 +149,7 @@ def optimizeCompiledPythonModule(module):
 def optimizeUncompiledPythonModule(module):
     full_name = module.getFullName()
     if _progress:
-        info(
+        progress_logger.info(
             "Doing module dependency considerations for '{module_name}':".format(
                 module_name=full_name
             )
@@ -473,13 +491,14 @@ after that.""".format(
         module_name=current_module.getFullName(),
         remaining=ModuleRegistry.remainingCount(),
     )
+    progress_logger.info(output)
 
     if Options.isShowMemory():
-        output += "Memory usage {memory}:".format(
+        output = "Memory usage {memory}:".format(
             memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
         )
 
-    info(output)
+        memory_logger.info(output)
 
 
 def restoreFromXML(text):
@@ -493,19 +512,13 @@ def restoreFromXML(text):
     return module
 
 
-def makeOptimizationPass(initial_pass):
+def makeOptimizationPass():
     """Make a single pass for optimization, indication potential completion."""
     # Controls complex optimization, pylint: disable=too-many-branches
 
     finished = True
 
     ModuleRegistry.startTraversal()
-
-    if _progress:
-        if initial_pass:
-            info("Initial optimization pass.")
-        else:
-            info("Next global optimization pass.")
 
     while True:
         current_module = ModuleRegistry.nextModule()
@@ -607,12 +620,15 @@ def optimize(output_filename):
 
     # First pass.
     if _progress:
-        info("PASS 1:")
+        progress_logger.info("PASS 1:")
 
-    makeOptimizationPass(initial_pass=True)
+    makeOptimizationPass()
     Variables.complete = True
 
-    finished = makeOptimizationPass(initial_pass=False)
+    if _progress:
+        progress_logger.info("PASS 2:")
+
+    finished = makeOptimizationPass()
 
     if Options.isExperimental("check_xml_persistence"):
         _checkXMLPersistence()
@@ -626,11 +642,14 @@ def optimize(output_filename):
         ):
             demoteCompiledModuleToBytecode(module)
 
-    if _progress:
-        info("PASS 2 ... :")
-
+    pass_count = 2
     # Second, "endless" pass.
     while not finished:
-        finished = makeOptimizationPass(initial_pass=False)
+        pass_count += 1
+
+        if _progress:
+            progress_logger.info("PASS %d:" % pass_count)
+
+        finished = makeOptimizationPass()
 
     Graphs.endGraph(output_filename)

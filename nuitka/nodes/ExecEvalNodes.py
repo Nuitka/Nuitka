@@ -82,7 +82,7 @@ if python_version >= 300:
                     source_code=self.getSourceCode(),
                     globals_arg=self.getGlobals(),
                     locals_arg=self.getLocals(),
-                    source_ref=self.getSourceReference(),
+                    source_ref=self.source_ref,
                 )
 
                 del self.parent
@@ -124,7 +124,7 @@ if python_version < 300:
                     source_code=self.getSourceCode(),
                     globals_arg=self.getGlobals(),
                     locals_arg=self.getLocals(),
-                    source_ref=self.getSourceReference(),
+                    source_ref=self.source_ref,
                 )
 
                 del self.parent
@@ -278,7 +278,8 @@ class StatementLocalsDictSync(StatementChildHavingBase):
 
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
 

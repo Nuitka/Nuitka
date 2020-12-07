@@ -44,11 +44,17 @@ def setMainModule(main_module):
     _main_module = main_module
 
 
-def getSourceDirectoryPath():
+def getSourceDirectoryPath(onefile=False):
     """Return path inside the build directory."""
 
+    # Distinct build folders for oneline mode.
+    if onefile:
+        suffix = ".onefile-build"
+    else:
+        suffix = ".build"
+
     result = Options.getOutputPath(
-        path=os.path.basename(getTreeFilenameWithSuffix(_main_module, ".build"))
+        path=os.path.basename(getTreeFilenameWithSuffix(_main_module, suffix))
     )
 
     makePath(result)
@@ -62,8 +68,8 @@ def getStandaloneDirectoryPath():
     )
 
 
-def getResultBasepath():
-    if Options.isStandaloneMode():
+def getResultBasepath(onefile=False):
+    if Options.isStandaloneMode() and not onefile:
         return os.path.join(
             getStandaloneDirectoryPath(),
             os.path.basename(getTreeFilenameWithSuffix(_main_module, "")),
@@ -74,10 +80,10 @@ def getResultBasepath():
         )
 
 
-def getResultFullpath():
+def getResultFullpath(onefile=False):
     """Get the final output binary result full path."""
 
-    result = getResultBasepath()
+    result = getResultBasepath(onefile=onefile)
 
     if Options.shallMakeModule():
         result += getSharedLibrarySuffix(preferred=True)
@@ -86,7 +92,7 @@ def getResultFullpath():
             result = Options.getOutputFilename()
         elif getOS() == "Windows":
             result += ".exe"
-        elif not Options.isStandaloneMode():
+        elif not Options.isStandaloneMode() or onefile:
             result += ".bin"
 
     return result

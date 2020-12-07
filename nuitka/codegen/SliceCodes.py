@@ -23,7 +23,6 @@ are also created here, and can be used for indexing.
 """
 
 from nuitka import Options
-from nuitka.Constants import isNumberConstant
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
@@ -41,22 +40,24 @@ from .IndexCodes import (
 )
 
 
+def _isSmallNumberConstant(node):
+    if node.isNumberConstant():
+        value = node.getCompileTimeConstant()
+        return abs(int(value)) < 2 ** 63 - 1
+    else:
+        return False
+
+
 def _generateSliceRangeIdentifier(lower, upper, scope, emit, context):
     lower_name = context.allocateTempName(scope + "slicedel_index_lower", "Py_ssize_t")
     upper_name = context.allocateTempName(scope + "_index_upper", "Py_ssize_t")
 
-    def isSmallNumberConstant(node):
-        value = node.getConstant()
-
-        if isNumberConstant(value):
-            return abs(int(value)) < 2 ** 63 - 1
-        else:
-            return False
-
     if lower is None:
         getMinIndexCode(to_name=lower_name, emit=emit)
-    elif lower.isExpressionConstantRef() and isSmallNumberConstant(lower):
-        getIndexValueCode(to_name=lower_name, value=int(lower.getConstant()), emit=emit)
+    elif lower.isExpressionConstantRef() and _isSmallNumberConstant(lower):
+        getIndexValueCode(
+            to_name=lower_name, value=int(lower.getCompileTimeConstant()), emit=emit
+        )
     else:
         value_name = context.allocateTempName(scope + "_lower_index_value")
 
@@ -70,8 +71,10 @@ def _generateSliceRangeIdentifier(lower, upper, scope, emit, context):
 
     if upper is None:
         getMaxIndexCode(to_name=upper_name, emit=emit)
-    elif upper.isExpressionConstantRef() and isSmallNumberConstant(upper):
-        getIndexValueCode(to_name=upper_name, value=int(upper.getConstant()), emit=emit)
+    elif upper.isExpressionConstantRef() and _isSmallNumberConstant(upper):
+        getIndexValueCode(
+            to_name=upper_name, value=int(upper.getCompileTimeConstant()), emit=emit
+        )
     else:
         value_name = context.allocateTempName(scope + "_upper_index_value")
 
@@ -176,7 +179,7 @@ def generateAssignmentSliceCode(statement, emit, context):
 
         old_source_ref = context.setCurrentSourceCodeReference(
             value.getSourceReference()
-            if Options.isFullCompat()
+            if Options.is_fullcompat
             else statement.getSourceReference()
         )
 
@@ -200,7 +203,7 @@ def generateAssignmentSliceCode(statement, emit, context):
 
         old_source_ref = context.setCurrentSourceCodeReference(
             value.getSourceReference()
-            if Options.isFullCompat()
+            if Options.is_fullcompat
             else statement.getSourceReference()
         )
 
@@ -236,7 +239,7 @@ def generateDelSliceCode(statement, emit, context):
 
         old_source_ref = context.setCurrentSourceCodeReference(
             (upper or lower or statement).getSourceReference()
-            if Options.isFullCompat()
+            if Options.is_fullcompat
             else statement.getSourceReference()
         )
 
@@ -259,7 +262,7 @@ def generateDelSliceCode(statement, emit, context):
 
         old_source_ref = context.setCurrentSourceCodeReference(
             (upper or lower or target).getSourceReference()
-            if Options.isFullCompat()
+            if Options.is_fullcompat
             else statement.getSourceReference()
         )
 
@@ -274,7 +277,7 @@ def generateDelSliceCode(statement, emit, context):
         context.setCurrentSourceCodeReference(old_source_ref)
 
 
-def generateBuiltinSliceCode(to_name, expression, emit, context):
+def generateBuiltinSlice3Code(to_name, expression, emit, context):
     lower_name, upper_name, step_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
@@ -295,6 +298,61 @@ def generateBuiltinSliceCode(to_name, expression, emit, context):
         getErrorExitCode(
             check_name=result_name,
             release_names=(lower_name, upper_name, step_name),
+            needs_check=False,  # Note: Cannot fail
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateBuiltinSlice2Code(to_name, expression, emit, context):
+    lower_name, upper_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "sliceobj_value", expression, emit, context
+    ) as result_name:
+        emit(
+            "%s = MAKE_SLICEOBJ2(%s, %s);"
+            % (
+                result_name,
+                lower_name if lower_name is not None else "Py_None",
+                upper_name if upper_name is not None else "Py_None",
+            )
+        )
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_names=(lower_name, upper_name),
+            needs_check=False,  # Note: Cannot fail
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateBuiltinSlice1Code(to_name, expression, emit, context):
+    (upper_name,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "sliceobj_value", expression, emit, context
+    ) as result_name:
+        emit(
+            "%s = MAKE_SLICEOBJ1(%s);"
+            % (
+                result_name,
+                upper_name if upper_name is not None else "Py_None",
+            )
+        )
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_name=upper_name,
             needs_check=False,  # Note: Cannot fail
             emit=emit,
             context=context,

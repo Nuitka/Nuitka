@@ -30,6 +30,9 @@ extern PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source);
 // For built-in "hasattr" functionality.
 extern int BUILTIN_HASATTR_BOOL(PyObject *source, PyObject *attr_name);
 
+// Check for an attribute, cannot raise an exception.
+extern bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name);
+
 // Set an attribute except for attribute slots below.
 extern bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value);
 
@@ -47,4 +50,9 @@ extern PyObject *LOOKUP_SPECIAL(PyObject *source, PyObject *attr_name);
 extern PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name);
 #endif
 
+extern PyObject *LOOKUP_MODULE_VALUE(PyDictObject *module_dict, PyObject *var_name);
+extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK(PyObject *variable_name);
+#if PYTHON_VERSION < 340
+extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION(PyObject *variable_name);
+#endif
 #endif

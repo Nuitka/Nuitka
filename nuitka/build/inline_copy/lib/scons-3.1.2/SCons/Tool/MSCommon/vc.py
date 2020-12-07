@@ -604,7 +604,7 @@ def reset_installed_vcs():
 # within the same scons run. Windows builds on the CI system were split
 # into chunks to get around single-build time limits.
 # With VS2019 it got even slower and an optional persistent cache file
-# was introduced. The cache now also stores only the parsed vars, 
+# was introduced. The cache now also stores only the parsed vars,
 # not the entire output of running the batch file - saves a bit
 # of time not parsing every time.
 
@@ -646,7 +646,7 @@ def script_env(script, args=None):
                     return data
 
             cache_data = convert(cache_data)
- 
+
     return cache_data
 
 def get_default_version(env):
@@ -795,7 +795,9 @@ def msvc_setup_env(env):
     if version is None:
         warn_msg = "No version of Visual Studio compiler found - C/C++ " \
                    "compilers most likely not set correctly"
-        SCons.Warnings.warn(SCons.Warnings.VisualCMissingWarning, warn_msg)
+
+        # Nuitka: Useless warning for us.
+        # SCons.Warnings.warn(SCons.Warnings.VisualCMissingWarning, warn_msg)
         return None
     debug('msvc_setup_env: using specified MSVC version %s' % repr(version))
 
@@ -819,7 +821,8 @@ def msvc_setup_env(env):
         debug('MSVC_USE_SCRIPT set to False')
         warn_msg = "MSVC_USE_SCRIPT set to False, assuming environment " \
                    "set correctly."
-        SCons.Warnings.warn(SCons.Warnings.VisualCMissingWarning, warn_msg)
+        # Nuitka: We use this on purpose.
+        # SCons.Warnings.warn(SCons.Warnings.VisualCMissingWarning, warn_msg)
         return None
 
     for k, v in d.items():

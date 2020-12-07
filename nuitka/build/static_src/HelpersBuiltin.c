@@ -194,7 +194,7 @@ PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals) {
     }
 
     // Set the __builtins__ in globals, it is expected to be present.
-    if (PyDict_GetItem(globals, const_str_plain___builtins__) == NULL) {
+    if (PyDict_Check(globals) && DICT_HAS_ITEM(globals, const_str_plain___builtins__) == 0) {
         if (PyDict_SetItem(globals, const_str_plain___builtins__, (PyObject *)builtin_module) != 0) {
             return NULL;
         }
@@ -228,7 +228,7 @@ PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering)
 
     PyObject *args[] = {file_name, mode, buffering};
 
-    char const *arg_names[] = {"file_name", "mode", "buffering"};
+    char const *arg_names[] = {"name", "mode", "buffering"};
 
     return CALL_BUILTIN_KW_ARGS(NUITKA_ACCESS_BUILTIN(open), args, arg_names, 3);
 }
@@ -239,7 +239,7 @@ PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering,
 
     PyObject *args[] = {file_name, mode, buffering, encoding, errors, newline, closefd, opener};
 
-    char const *arg_names[] = {"file_name", "mode", "buffering", "encoding", "errors", "newline", "closefd", "opener"};
+    char const *arg_names[] = {"file", "mode", "buffering", "encoding", "errors", "newline", "closefd", "opener"};
 
     return CALL_BUILTIN_KW_ARGS(NUITKA_ACCESS_BUILTIN(open), args, arg_names, 8);
 }
@@ -400,18 +400,92 @@ PyObject *BUILTIN_HEX(PyObject *value) {
  *
  **/
 
-PyObject *BUILTIN_HASH(PyObject *value) {
-    Py_hash_t hash = PyObject_Hash(value);
+static void SET_HASH_NOT_IMPLEMENTED_ERROR(PyObject *value) {
+    // TODO: Use our own formatting code.
 
-    if (unlikely(hash == -1)) {
-        return NULL;
+    PyErr_Format(PyExc_TypeError, "unhashable type: '%s'", Py_TYPE(value)->tp_name);
+}
+
+#if PYTHON_VERSION < 300
+// Helper to make hash from pointer value, compatible with CPython.
+static long Nuitka_HashFromPointer(void *p) {
+    size_t y = (size_t)p;
+    y = (y >> 4) | (y << (8 * SIZEOF_VOID_P - 4));
+    long x = (long)y;
+    if (unlikely(x == -1)) {
+        x = -2;
+    }
+    return x;
+}
+#endif
+
+PyObject *BUILTIN_HASH(PyObject *value) {
+    PyTypeObject *type = Py_TYPE(value);
+
+    if (likely(type->tp_hash != NULL)) {
+        Py_hash_t hash = (*type->tp_hash)(value);
+
+        if (unlikely(hash == -1)) {
+            return NULL;
+        }
+
+#if PYTHON_VERSION < 300
+        return PyInt_FromLong(hash);
+#else
+        return PyLong_FromSsize_t(hash);
+#endif
     }
 
 #if PYTHON_VERSION < 300
-    return PyInt_FromLong(hash);
-#else
-    return PyLong_FromSsize_t(hash);
+    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+        Py_hash_t hash = Nuitka_HashFromPointer(value);
+        return PyInt_FromLong(hash);
+    }
 #endif
+
+    SET_HASH_NOT_IMPLEMENTED_ERROR(value);
+    return NULL;
+}
+
+Py_hash_t HASH_VALUE_WITH_ERROR(PyObject *value) {
+    PyTypeObject *type = Py_TYPE(value);
+
+    if (likely(type->tp_hash != NULL)) {
+        Py_hash_t hash = (*type->tp_hash)(value);
+        return hash;
+    }
+
+#if PYTHON_VERSION < 300
+    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+        return Nuitka_HashFromPointer(value);
+    }
+#endif
+
+    SET_HASH_NOT_IMPLEMENTED_ERROR(value);
+    return -1;
+}
+
+Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyObject *value) {
+    PyTypeObject *type = Py_TYPE(value);
+
+    if (likely(type->tp_hash != NULL)) {
+        Py_hash_t hash = (*type->tp_hash)(value);
+
+        if (unlikely(hash == -1)) {
+            CLEAR_ERROR_OCCURRED();
+        }
+
+        return hash;
+    }
+
+#if PYTHON_VERSION < 300
+    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+        return Nuitka_HashFromPointer(value);
+    }
+#endif
+
+    CLEAR_ERROR_OCCURRED();
+    return -1;
 }
 
 /** The "bytearray" built-in.

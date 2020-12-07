@@ -21,6 +21,7 @@ from nuitka.codegen.c_types.CTypePyObjectPtrs import CTypePyObjectPtr
 from nuitka.codegen.Reports import onMissingOperation
 
 from .ControlFlowDescriptions import ControlFlowDescriptionFullEscape
+from .ShapeMixins import ShapeIteratorMixin
 
 
 class ShapeBase(object):
@@ -91,6 +92,10 @@ class ShapeBase(object):
 
     @staticmethod
     def hasShapeSlotContains():
+        return None
+
+    @staticmethod
+    def hasShapeSlotHash():
         return None
 
     add_shapes = {}
@@ -387,6 +392,32 @@ class ShapeBase(object):
 
             return operation_result_unknown
 
+    ibitor_shapes = {}
+
+    def getOperationInplaceBitOrShape(self, right_shape):
+        """Inplace bitor operation shape, for overload."""
+        if self.ibitor_shapes:
+            result = self.ibitor_shapes.get(right_shape)
+
+            if result is not None:
+                return result
+            else:
+                right_shape_type = type(right_shape)
+                if right_shape_type is ShapeLoopCompleteAlternative:
+                    return right_shape.getOperationBinaryBitOrLShape(self)
+
+                if right_shape_type is ShapeLoopInitialAlternative:
+                    return operation_result_unknown
+
+                onMissingOperation("IBitOr", self, right_shape)
+
+                return operation_result_unknown
+        else:
+            # By default, inplace add is the same as plain add, the
+            # only exception known right now is list, which extend
+            # from all iterables, but don't add with them.
+            return self.getOperationBinaryBitOrShape(right_shape)
+
     matmult_shapes = {}
 
     def getOperationBinaryMatMultShape(self, right_shape):
@@ -557,7 +588,7 @@ class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
         self.predictor = predictor
 
 
-class ShapeIterator(ShapeBase):
+class ShapeIterator(ShapeBase, ShapeIteratorMixin):
     @staticmethod
     def hasShapeSlotBool():
         return None
@@ -579,20 +610,8 @@ class ShapeIterator(ShapeBase):
         return None
 
     @staticmethod
-    def hasShapeSlotIter():
-        return True
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return True
-
-    @staticmethod
     def getShapeIter():
         return tshape_iterator
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return True
 
 
 tshape_iterator = ShapeIterator()

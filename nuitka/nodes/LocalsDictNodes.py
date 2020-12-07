@@ -36,6 +36,7 @@ from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase, ExpressionChildHavingBase
 from .NodeBases import StatementBase, StatementChildHavingBase
+from .shapes.BuiltinTypeShapes import tshape_dict
 from .VariableRefNodes import ExpressionTempVariableRef
 
 
@@ -182,9 +183,10 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
         return call_node, None, None
 
     def mayRaiseException(self, exception_type):
-        return python_version >= 300 or self.subnode_fallback.mayRaiseException(
-            exception_type
-        )
+        if python_version < 300 or self.locals_scope.getTypeShape() is tshape_dict:
+            return False
+
+        return self.subnode_fallback.mayRaiseException(exception_type)
 
 
 # TODO: Why is this unused.
@@ -412,7 +414,8 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
             exception_type
         )
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals dictionary value set statement"
 
 
@@ -515,7 +518,8 @@ class StatementLocalsDictOperationDel(StatementBase):
     def mayRaiseException(self, exception_type):
         return self.may_raise_del and not self.tolerant
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals dictionary value del statement"
 
 
@@ -580,7 +584,8 @@ Forward propagating locals.""",
 
         return self, None, None
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals mapping init statement"
 
 
@@ -591,14 +596,18 @@ class StatementSetLocalsDictionary(StatementSetLocals):
         StatementSetLocals.__init__(
             self,
             locals_scope=locals_scope,
-            new_locals=ExpressionConstantDictEmptyRef(source_ref=source_ref),
+            new_locals=ExpressionConstantDictEmptyRef(
+                source_ref=source_ref, user_provided=True
+            ),
             source_ref=source_ref,
         )
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals dictionary init statement"
 
 
@@ -643,8 +652,10 @@ class StatementReleaseLocals(StatementBase):
     def getLocalsScope(self):
         return self.locals_scope
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals dictionary release statement"

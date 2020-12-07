@@ -57,6 +57,7 @@ struct Nuitka_FunctionObject {
     // Same as code_object->co_varnames
     PyObject **m_varnames;
 
+    // C implementation of the function
     function_impl_code m_c_code;
 
 #if PYTHON_VERSION >= 380
@@ -83,6 +84,9 @@ struct Nuitka_FunctionObject {
     PyObject *m_qualname;
 #endif
 
+    // Constant return value to use.
+    PyObject *m_constant_return_value;
+
     // A kind of uuid for the function object, used in comparisons.
     long m_counter;
 
@@ -106,6 +110,12 @@ extern struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_co
                                                          PyObject *doc, struct Nuitka_CellObject **closure,
                                                          Py_ssize_t closure_given);
 #endif
+
+extern void Nuitka_Function_EnableConstReturnTrue(struct Nuitka_FunctionObject *function);
+
+extern void Nuitka_Function_EnableConstReturnFalse(struct Nuitka_FunctionObject *function);
+
+extern void Nuitka_Function_EnableConstReturnGeneric(struct Nuitka_FunctionObject *function, PyObject *value);
 
 static inline bool Nuitka_Function_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Function_Type; }
 

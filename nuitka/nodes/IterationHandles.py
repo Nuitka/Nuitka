@@ -98,6 +98,7 @@ class ConstantIterationHandleBase(IterationHandleBase):
 
     def __init__(self, constant_node):
         assert constant_node.isIterableConstant()
+
         self.constant_node = constant_node
         self.iter = iter(self.constant_node.constant)
 
@@ -146,7 +147,6 @@ class ConstantIndexableIterationHandle(ConstantIterationHandleBase):
 
     def __init__(self, constant_node):
         ConstantIterationHandleBase.__init__(self, constant_node)
-        assert type(self.constant_node.constant) not in (set, dict)
 
     def getIterationValueWithIndex(self, value_index):
         """Tries to return constant value at the given index.
@@ -167,12 +167,51 @@ class ConstantIndexableIterationHandle(ConstantIterationHandleBase):
             return None
 
 
-class ConstantSetAndDictIterationHandle(ConstantIterationHandleBase):
+class ConstantTupleIterationHandle(ConstantIndexableIterationHandle):
+    pass
+
+
+class ConstantListIterationHandle(ConstantIndexableIterationHandle):
+    pass
+
+
+class ConstantStrIterationHandle(ConstantIndexableIterationHandle):
+    pass
+
+
+class ConstantUnicodeIterationHandle(ConstantIndexableIterationHandle):
+    pass
+
+
+class ConstantBytesIterationHandle(ConstantIndexableIterationHandle):
+    pass
+
+
+class ConstantBytearrayIterationHandle(ConstantIndexableIterationHandle):
+    pass
+
+
+class ConstantRangeIterationHandle(ConstantIndexableIterationHandle):
+    pass
+
+
+class ConstantSetAndDictIterationHandleBase(ConstantIterationHandleBase):
     """Class for the set and dictionary constants."""
 
     def __init__(self, constant_node):
         ConstantIterationHandleBase.__init__(self, constant_node)
-        assert type(self.constant_node.constant) in (set, dict)
+
+
+class ConstantSetIterationHandle(ConstantSetAndDictIterationHandleBase):
+    pass
+
+
+class ConstantFrozensetIterationHandle(ConstantSetAndDictIterationHandleBase):
+    pass
+
+
+class ConstantDictIterationHandle(ConstantSetAndDictIterationHandleBase):
+    pass
 
 
 class ListAndTupleContainerMakingIterationHandle(IterationHandleBase):
@@ -196,13 +235,12 @@ class ListAndTupleContainerMakingIterationHandle(IterationHandleBase):
         Sequential access of the expression
     """
 
-    def __init__(self, constant_list):
-        assert type(constant_list) in (list, tuple)
-        self.constant_list = constant_list
-        self.iter = iter(self.constant_list)
+    def __init__(self, elements):
+        self.elements = elements
+        self.iter = iter(self.elements)
 
     def __repr__(self):
-        return "<%s of %r>" % (self.__class__.__name__, self.constant_list)
+        return "<%s of %r>" % (self.__class__.__name__, self.elements)
 
     def getNextValueExpression(self):
         """Return the next iteration value or StopIteration exception
@@ -222,12 +260,12 @@ class ListAndTupleContainerMakingIterationHandle(IterationHandleBase):
             Index value of the element to be returned
         """
         try:
-            return self.constant_list[value_index]
+            return self.elements[value_index]
         except IndexError:
             return None
 
 
-class ConstantRangeIterationHandleBase(IterationHandleBase):
+class RangeIterationHandleBase(IterationHandleBase):
     """Iteration handle class for range nodes
 
     Attributes
@@ -294,11 +332,11 @@ class ConstantRangeIterationHandleBase(IterationHandleBase):
         return True
 
 
-class ConstantIterationHandleRange1(ConstantRangeIterationHandleBase):
+class IterationHandleRange1(RangeIterationHandleBase):
     """Iteration handle for range(low,)"""
 
     def __init__(self, low_value, source_ref):
-        ConstantRangeIterationHandleBase.__init__(
+        RangeIterationHandleBase.__init__(
             self, low_value, xrange(low_value), source_ref
         )
 
@@ -310,11 +348,11 @@ class ConstantIterationHandleRange1(ConstantRangeIterationHandleBase):
         return False
 
 
-class ConstantIterationHandleRange2(ConstantRangeIterationHandleBase):
+class IterationHandleRange2(RangeIterationHandleBase):
     """Iteration handle for ranges(low, high)"""
 
     def __init__(self, low_value, high_value, source_ref):
-        ConstantRangeIterationHandleBase.__init__(
+        RangeIterationHandleBase.__init__(
             self, low_value, xrange(low_value, high_value), source_ref
         )
 
@@ -324,11 +362,11 @@ class ConstantIterationHandleRange2(ConstantRangeIterationHandleBase):
         return max(0, self.high - self.low)
 
 
-class ConstantIterationHandleRange3(ConstantRangeIterationHandleBase):
+class IterationHandleRange3(RangeIterationHandleBase):
     """Iteration handle for ranges(low, high, step)"""
 
     def __init__(self, low_value, high_value, step_value, source_ref):
-        ConstantRangeIterationHandleBase.__init__(
+        RangeIterationHandleBase.__init__(
             self, low_value, xrange(low_value, high_value, step_value), source_ref
         )
         self.high = high_value

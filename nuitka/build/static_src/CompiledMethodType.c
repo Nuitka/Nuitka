@@ -278,7 +278,7 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
 #endif
 
 static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObject *args, PyObject *kw) {
-    Py_ssize_t arg_count = PyTuple_Size(args);
+    Py_ssize_t arg_count = PyTuple_GET_SIZE(args);
 
     if (method->m_object == NULL) {
         if (unlikely(arg_count < 1)) {

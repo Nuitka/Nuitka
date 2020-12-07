@@ -65,6 +65,7 @@ operations = (
     ("BitOr", "|"),
     ("BitXor", "^"),
     ("Divmod", "divmod"),
+    ("Subscript", "["),
 )
 
 # For typical constant values to use in operation tests.
@@ -87,6 +88,8 @@ candidates = (
 def makeOperatorUsage(operator, left, right):
     if operator == "divmod":
         return "divmod(%s, %s)" % (left, right)
+    elif operator == "[":
+        return "%s[%s]" % (left, right)
     else:
         return "%s %s %s" % (left, operator, right)
 
@@ -112,7 +115,9 @@ def main():
     template_context = {
         "operations": operations,
         "ioperations": tuple(
-            operation for operation in operations if operation[0] != "Divmod"
+            operation
+            for operation in operations
+            if operation[0] not in ("Divmod", "Subscript")
         ),
         "candidates": candidates,
         "makeOperatorUsage": makeOperatorUsage,

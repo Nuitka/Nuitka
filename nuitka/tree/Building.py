@@ -113,7 +113,7 @@ from nuitka.nodes.ReturnNodes import (
     StatementReturnNone,
     makeStatementReturnConstant,
 )
-from nuitka.nodes.SliceNodes import ExpressionBuiltinSlice
+from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
 from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
@@ -169,7 +169,11 @@ from .ReformulationNamespacePackages import (
     createPathAssignment,
 )
 from .ReformulationPrintStatements import buildPrintNode
-from .ReformulationSequenceCreation import buildSequenceCreationNode
+from .ReformulationSequenceCreation import (
+    buildListCreationNode,
+    buildSetCreationNode,
+    buildTupleCreationNode,
+)
 from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 from .ReformulationTryFinallyStatements import buildTryFinallyNode
@@ -469,7 +473,7 @@ def buildBytesNode(node, source_ref):
 
 
 def buildEllipsisNode(source_ref):
-    return ExpressionConstantEllipsisRef(source_ref=source_ref, user_provided=True)
+    return ExpressionConstantEllipsisRef(source_ref=source_ref)
 
 
 def buildStatementLoopContinue(node, source_ref):
@@ -495,7 +499,7 @@ def buildStatementLoopBreak(provider, node, source_ref):
 def buildAttributeNode(provider, node, source_ref):
     return ExpressionAttributeLookup(
         expression=buildNode(provider, node.value, source_ref),
-        attribute_name=node.attr,
+        attribute_name=mangleName(node.attr, provider),
         source_ref=source_ref,
     )
 
@@ -527,9 +531,7 @@ def buildReturnNode(provider, node, source_ref):
         or provider.isExpressionAsyncgenObjectBody()
     ):
         if expression is None:
-            expression = ExpressionConstantNoneRef(
-                source_ref=source_ref, user_provided=True
-            )
+            expression = ExpressionConstantNoneRef(source_ref=source_ref)
 
         return StatementGeneratorReturn(expression=expression, source_ref=source_ref)
     else:
@@ -653,7 +655,7 @@ def buildJoinedStrNode(provider, node, source_ref):
 
 def buildSliceNode(provider, node, source_ref):
     """Python3.9 or higher, slice notations."""
-    return ExpressionBuiltinSlice(
+    return makeExpressionBuiltinSlice(
         start=buildNode(provider, node.lower, source_ref, allow_none=True),
         stop=buildNode(provider, node.upper, source_ref, allow_none=True),
         step=buildNode(provider, node.step, source_ref, allow_none=True),
@@ -678,9 +680,9 @@ setBuildingDispatchers(
         "DictComp": buildDictContractionNode,
         "SetComp": buildSetContractionNode,
         "Dict": buildDictionaryNode,
-        "Set": buildSequenceCreationNode,
-        "Tuple": buildSequenceCreationNode,
-        "List": buildSequenceCreationNode,
+        "Set": buildSetCreationNode,
+        "Tuple": buildTupleCreationNode,
+        "List": buildListCreationNode,
         "Global": handleGlobalDeclarationNode,
         "Nonlocal": handleNonlocalDeclarationNode,
         "TryExcept": buildTryExceptionNode,
@@ -856,9 +858,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             StatementAssignmentVariableName(
                 provider=provider,
                 variable_name="__cached__",
-                source=ExpressionConstantNoneRef(
-                    source_ref=internal_source_ref, user_provided=True
-                ),
+                source=ExpressionConstantNoneRef(source_ref=internal_source_ref),
                 source_ref=internal_source_ref,
             )
         )

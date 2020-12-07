@@ -119,7 +119,11 @@ def checkVersion():
 # We like explicit None returns where the return value can be overloaded
 # to something else, or the function is used along others that do return
 # other things.
-
+#
+# ungrouped-imports
+# We let isort do its thing most of the time, and where not, it's good
+# enough for us to handle it manually.
+#
 # assignment-from-no-return
 # assignment-from-none
 # Overloaded functions are not detected, default value returns are all
@@ -132,7 +136,7 @@ def getOptions():
     default_pylint_options = """\
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
 --disable=I0011,I0012,no-init,bad-whitespace,bad-continuation,E1103,W0632,W1504,C0123,C0411,C0413,R0204,\
-similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
+similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none,ungrouped-imports
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no

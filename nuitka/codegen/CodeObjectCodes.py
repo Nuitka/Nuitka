@@ -72,7 +72,7 @@ def _getMakeCodeObjectArgs(code_object_handle, context):
     if code_object_handle.co_has_stardict:
         co_flags.append("CO_VARKEYWORDS")
 
-    if not code_object_handle.has_closure:
+    if not code_object_handle.co_freevars:
         co_flags.append("CO_NOFREE")
 
     co_flags.extend(code_object_handle.future_flags)
@@ -81,7 +81,12 @@ def _getMakeCodeObjectArgs(code_object_handle, context):
         code_object_handle.line_number,
         " | ".join(co_flags) or "0",
         context.getConstantCode(constant=code_object_handle.co_name),
-        context.getConstantCode(constant=code_object_handle.co_varnames),
+        context.getConstantCode(constant=code_object_handle.co_varnames)
+        if code_object_handle.co_varnames
+        else "NULL",
+        context.getConstantCode(constant=code_object_handle.co_freevars)
+        if code_object_handle.co_freevars
+        else "NULL",
         code_object_handle.co_argcount,
         code_object_handle.co_kwonlyargcount,
         code_object_handle.co_posonlyargcount,

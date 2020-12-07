@@ -70,11 +70,22 @@ parser.add_option(
     dest="is_standalone",
     default=False,
     help="""\
-Enable standalone mode in build. This allows you to transfer the created binary
-to other machines without it relying on an existing Python installation. It
-implies these option: "--recurse-all". You may also want to use
-"--python-flag=no_site" to avoid the "site.py" module, which can save a lot
-of code dependencies. Defaults to off.""",
+Enable standalone mode for output. This allows you to transfer the created binary
+to other machines without it using an existing Python installation. This also
+means it will become big. It implies these option: "--recurse-all". You may also
+want to use "--python-flag=no_site" to avoid the "site.py" module, which can save
+a lot of code dependencies. Defaults to off.""",
+)
+
+parser.add_option(
+    "--onefile",
+    action="store_true",
+    dest="is_onefile",
+    default=False,
+    help="""\
+In case of standalone mode, enable single file mode. This means not a folder,
+but a compressed executable is created and used. Experimental at this time,
+and not supported on all OSes. Defaults to off.""",
 )
 
 
@@ -616,7 +627,7 @@ c_compiler_group.add_option(
     dest="lto",
     default=False,
     help="""\
-Use link time optimizations if available and usable (gcc 4.6 and higher).
+Use link time optimizations if available and usable (MSVC or gcc 4.6 and higher).
 Defaults to off.""",
 )
 
@@ -725,13 +736,107 @@ When compiling for Windows, disable the console window. Defaults to off.""",
 )
 
 windows_group.add_option(
-    "--windows-icon",
-    action="store",
+    "--windows-icon-from-ico",
+    action="append",
     dest="icon_path",
     metavar="ICON_PATH",
-    default=None,
-    help="Add executable icon (Windows only).",
+    default=[],
+    help="Add executable icon (Windows only at this time). Can be given multiple times.",
 )
+
+windows_group.add_option(
+    "--windows-icon-from-exe",
+    action="store",
+    dest="icon_exe_path",
+    metavar="ICON_EXE_PATH",
+    default=None,
+    help="Copy executable icons from this existing executable (Windows only).",
+)
+
+windows_group.add_option(
+    "--windows-uac-admin",
+    action="store_true",
+    dest="windows_uac_admin",
+    metavar="WINDOWS_UAC_ADMIN",
+    default=False,
+    help="Request Windows User Control, to grant admin rights on execution. (Windows only). Defaults to off.",
+)
+
+windows_group.add_option(
+    "--windows-uac-uiaccess",
+    action="store_true",
+    dest="windows_uac_uiaccess",
+    metavar="WINDOWS_UAC_UIACCESS",
+    default=False,
+    help="""\
+Request Windows User Control, to enforce running from a few folders only, remote
+desktop access. (Windows only). Defaults to off.""",
+)
+
+windows_group.add_option(
+    "--windows-company-name",
+    action="store",
+    dest="windows_company_name",
+    metavar="WINDOWS_COMPANY_NAME",
+    default=None,
+    help="""\
+Name of the company to use in Windows Version information.
+
+One of file or product version is required, when a version resource needs to be
+added, e.g. to specify product name, or company name. Defaults to unused.""",
+)
+
+windows_group.add_option(
+    "--windows-product-name",
+    action="store",
+    dest="windows_product_name",
+    metavar="WINDOWS_PRODUCT_NAME",
+    default=None,
+    help="""\
+Name of the product to use in Windows Version information. Defaults to base
+filename of the binary.""",
+)
+
+
+windows_group.add_option(
+    "--windows-file-version",
+    action="store",
+    dest="windows_file_version",
+    metavar="WINDOWS_FILE_VERSION",
+    default=None,
+    help="""\
+File version to use in Windows Version information. Must be a sequence of
+up to 4 numbers, nothing else allowed.
+One of file or product version is required, when a version resource needs to be
+added, e.g. to specify product name, or company name. Defaults to unused.""",
+)
+
+windows_group.add_option(
+    "--windows-product-version",
+    action="store",
+    dest="windows_product_version",
+    metavar="WINDOWS_PRODUCT_VERSION",
+    default=None,
+    help="""\
+Product version to use in Windows Version information. Must be a sequence of
+up to 4 numbers, nothing else allowed.
+One of file or product version is required, when a version resource needs to be
+added, e.g. to specify product name, or company name. Defaults to unused.""",
+)
+
+windows_group.add_option(
+    "--windows-file-description",
+    action="store",
+    dest="windows_file_description",
+    metavar="WINDOWS_FILE_DESCRIPTION",
+    default=None,
+    help="""\
+Description of the file use in Windows Version information.
+
+One of file or product version is required, when a version resource needs to be
+added, e.g. to specify product name, or company name. Defaults to nonsense.""",
+)
+
 
 parser.add_option_group(windows_group)
 

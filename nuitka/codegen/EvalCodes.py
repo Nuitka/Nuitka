@@ -42,7 +42,7 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
 
             if is_dict:
                 emit(
-                    "%s = PyDict_GetItem(%s, %s);" % (value_name, locals_name, key_name)
+                    "%s = DICT_GET_ITEM0(%s, %s);" % (value_name, locals_name, key_name)
                 )
             else:
                 emit(
@@ -264,7 +264,7 @@ def generateExecCode(statement, emit, context):
     getConstantAccess(
         to_name=filename_name,
         constant="<string>"
-        if Options.isFullCompat()
+        if Options.is_fullcompat
         else "<string at %s>" % source_ref.getAsString(),
         emit=emit,
         context=context,
@@ -278,7 +278,7 @@ def generateExecCode(statement, emit, context):
 
     old_source_ref = context.setCurrentSourceCodeReference(
         locals_arg.getSourceReference()
-        if Options.isFullCompat()
+        if Options.is_fullcompat
         else statement.getSourceReference()
     )
 

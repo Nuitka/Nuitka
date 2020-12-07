@@ -72,9 +72,6 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
     def getAttributeName(self):
         return self.attribute_name
 
-    def setAttributeName(self, attribute_name):
-        self.attribute_name = attribute_name
-
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection=trace_collection
@@ -90,7 +87,8 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
             trace_collection=trace_collection,
         )
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "attribute assignment statement"
 
 
@@ -121,9 +119,6 @@ class StatementDelAttribute(StatementChildHavingBase):
     def getAttributeName(self):
         return self.attribute_name
 
-    def setAttributeName(self, attribute_name):
-        self.attribute_name = attribute_name
-
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection=trace_collection
@@ -138,7 +133,8 @@ class StatementDelAttribute(StatementChildHavingBase):
             trace_collection=trace_collection,
         )
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "attribute del statement"
 
 
@@ -163,25 +159,23 @@ class ExpressionAttributeLookup(ExpressionChildHavingBase):
     def getAttributeName(self):
         return self.attribute_name
 
-    def setAttributeName(self, attribute_name):
-        self.attribute_name = attribute_name
-
     def getDetails(self):
-        return {"attribute_name": self.getAttributeName()}
+        return {"attribute_name": self.attribute_name}
 
     def computeExpression(self, trace_collection):
         return self.subnode_expression.computeExpressionAttribute(
             lookup_node=self,
-            attribute_name=self.getAttributeName(),
+            attribute_name=self.attribute_name,
             trace_collection=trace_collection,
         )
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseExceptionAttributeLookup(
-            exception_type=exception_type, attribute_name=self.getAttributeName()
+            exception_type=exception_type, attribute_name=self.attribute_name
         )
 
-    def isKnownToBeIterable(self, count):
+    @staticmethod
+    def isKnownToBeIterable(count):
         # TODO: Could be known. We would need for computeExpressionAttribute to
         # either return a new node, or a decision maker.
         return None
@@ -201,7 +195,7 @@ class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
     def computeExpression(self, trace_collection):
         return self.subnode_expression.computeExpressionAttributeSpecial(
             lookup_node=self,
-            attribute_name=self.getAttributeName(),
+            attribute_name=self.attribute_name,
             trace_collection=trace_collection,
         )
 
@@ -233,7 +227,7 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
         default = self.getDefault()
 
         if default is None or not default.mayHaveSideEffects():
-            attribute = self.getAttribute()
+            attribute = self.subnode_name
 
             attribute_name = attribute.getStringValue()
 
@@ -391,7 +385,8 @@ class ExpressionAttributeCheck(ExpressionChildHavingBase):
 
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
     def getAttributeName(self):

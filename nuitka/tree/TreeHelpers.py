@@ -28,14 +28,10 @@ from nuitka import Constants, Options, Tracing
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionMakeList,
-    ExpressionMakeSetLiteral,
-    ExpressionMakeTuple,
-)
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from nuitka.nodes.DictionaryNodes import (
     ExpressionKeyValuePair,
-    ExpressionMakeDict,
+    makeExpressionMakeDict,
 )
 from nuitka.nodes.ExceptionNodes import StatementReraiseException
 from nuitka.nodes.FrameNodes import (
@@ -49,10 +45,7 @@ from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.PythonVersions import (
-    needsSetLiteralReverseInsertion,
-    python_version,
-)
+from nuitka.PythonVersions import python_version
 
 
 def dump(node):
@@ -407,7 +400,7 @@ def buildAnnotationNode(provider, node, source_ref):
 def makeModuleFrame(module, statements, source_ref):
     assert module.isCompiledPythonModule()
 
-    if Options.isFullCompat():
+    if Options.is_fullcompat:
         code_name = "<module>"
     else:
         if module.isMainModule():
@@ -421,6 +414,7 @@ def makeModuleFrame(module, statements, source_ref):
             co_name=code_name,
             co_kind="Module",
             co_varnames=(),
+            co_freevars=(),
             co_argcount=0,
             co_posonlyargcount=0,
             co_kwonlyargcount=0,
@@ -540,110 +534,6 @@ def makeStatementsSequenceFromStatements(*statements):
     )
 
 
-def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
-    # Sequence creation. Tries to avoid creations with only constant
-    # elements. Would be caught by optimization, but would be useless churn. For
-    # mutable constants we cannot do it though.
-
-    # Due to the many sequence types, there is a lot of cases here
-    # pylint: disable=too-many-branches
-
-    for element in elements:
-        if not element.isExpressionConstantRef():
-            constant = False
-            break
-    else:
-        constant = True
-
-    sequence_kind = sequence_kind.lower()
-
-    # Note: This would happen in optimization instead, but lets just do it
-    # immediately to save some time.
-    if constant:
-        if sequence_kind == "tuple":
-            const_type = tuple
-        elif sequence_kind == "list":
-            const_type = list
-        elif sequence_kind == "set":
-            const_type = set
-
-            if needsSetLiteralReverseInsertion():
-                elements = tuple(reversed(elements))
-        else:
-            assert False, sequence_kind
-
-        result = makeConstantRefNode(
-            constant=const_type(element.getConstant() for element in elements),
-            source_ref=source_ref,
-            user_provided=True,
-        )
-    else:
-        if sequence_kind == "tuple":
-            result = ExpressionMakeTuple(elements=elements, source_ref=source_ref)
-        elif sequence_kind == "list":
-            result = ExpressionMakeList(elements=elements, source_ref=source_ref)
-        elif sequence_kind == "set":
-            result = ExpressionMakeSetLiteral(elements=elements, source_ref=source_ref)
-        else:
-            assert False, sequence_kind
-
-    if elements:
-        result.setCompatibleSourceReference(
-            source_ref=elements[-1].getCompatibleSourceReference()
-        )
-
-    return result
-
-
-def makeDictCreationOrConstant(keys, values, source_ref):
-    # Create dictionary node. Tries to avoid it for constant values that are not
-    # mutable.
-
-    assert len(keys) == len(values)
-    for key, value in zip(keys, values):
-        if not key.isExpressionConstantRef() or not key.isKnownToBeHashable():
-            constant = False
-            break
-
-        if not value.isExpressionConstantRef():
-            constant = False
-            break
-    else:
-        constant = True
-
-    # Note: This would happen in optimization instead, but lets just do it
-    # immediately to save some time.
-    if constant:
-        # Unless told otherwise, create the dictionary in its full size, so
-        # that no growing occurs and the constant becomes as similar as possible
-        # before being marshaled.
-        result = makeConstantRefNode(
-            constant=Constants.createConstantDict(
-                keys=[key.getConstant() for key in keys],
-                values=[value.getConstant() for value in values],
-            ),
-            user_provided=True,
-            source_ref=source_ref,
-        )
-    else:
-        result = ExpressionMakeDict(
-            pairs=[
-                ExpressionKeyValuePair(
-                    key=key, value=value, source_ref=key.getSourceReference()
-                )
-                for key, value in zip(keys, values)
-            ],
-            source_ref=source_ref,
-        )
-
-    if values:
-        result.setCompatibleSourceReference(
-            source_ref=values[-1].getCompatibleSourceReference()
-        )
-
-    return result
-
-
 def makeDictCreationOrConstant2(keys, values, source_ref):
     # Create dictionary node. Tries to avoid it for constant values that are not
     # mutable. Keys are Python strings here.
@@ -664,13 +554,13 @@ def makeDictCreationOrConstant2(keys, values, source_ref):
         # before being marshaled.
         result = makeConstantRefNode(
             constant=Constants.createConstantDict(
-                keys=keys, values=[value.getConstant() for value in values]
+                keys=keys, values=[value.getCompileTimeConstant() for value in values]
             ),
             user_provided=True,
             source_ref=source_ref,
         )
     else:
-        result = ExpressionMakeDict(
+        result = makeExpressionMakeDict(
             pairs=[
                 ExpressionKeyValuePair(
                     key=makeConstantRefNode(
@@ -731,26 +621,31 @@ def makeAbsoluteImportNode(module_name, source_ref):
     )
 
 
-def mangleName(variable_name, owner):
-    if not variable_name.startswith("__") or variable_name.endswith("__"):
-        return variable_name
+def mangleName(name, owner):
+    """Mangle names with leading "__" for usage in a class owner.
+
+    Notes: The is the private name handling for Python classes.
+    """
+
+    if not name.startswith("__") or name.endswith("__"):
+        return name
     else:
         # The mangling of function variable names depends on being inside a
         # class.
         class_container = owner.getContainingClassDictCreation()
 
         if class_container is None:
-            return variable_name
+            return name
         else:
-            return "_%s%s" % (class_container.getName().lstrip("_"), variable_name)
+            return "_%s%s" % (class_container.getName().lstrip("_"), name)
 
 
 def makeCallNode(called, *args, **kwargs):
     source_ref = args[-1]
 
     if len(args) > 1:
-        args = makeSequenceCreationOrConstant(
-            sequence_kind="tuple", elements=args[:-1], source_ref=source_ref
+        args = makeExpressionMakeTupleOrConstant(
+            elements=args[:-1], user_provided=True, source_ref=source_ref
         )
     else:
         args = None

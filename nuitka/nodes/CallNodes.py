@@ -191,12 +191,9 @@ def makeExpressionCall(called, args, kw, source_ref):
     By avoiding the more complex classes, we can achieve that there is
     less work to do for analysis.
     """
-    has_kw = kw is not None and (
-        not kw.isExpressionConstantRef() or kw.getConstant() != {}
-    )
-    has_args = args is not None and (
-        not args.isExpressionConstantRef() or args.getConstant() != ()
-    )
+    has_kw = kw is not None and not kw.isExpressionConstantDictEmptyRef()
+
+    has_args = args is not None and not args.isExpressionConstantTupleEmptyRef()
 
     if has_kw:
         if has_args:

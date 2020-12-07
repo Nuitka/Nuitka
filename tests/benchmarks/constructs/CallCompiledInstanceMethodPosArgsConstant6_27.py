@@ -26,7 +26,7 @@ class C:
 def calledRepeatedly():
     inst = C()
 
-    # This is supposed to make a call to a non-compiled function, which is
+    # This is supposed to make a call to a compiled method, which is
     # being optimized separately.
 # construct_begin
     inst.compiled_method("some", "random", "values", "to", "check", "call")

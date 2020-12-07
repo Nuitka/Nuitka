@@ -20,9 +20,16 @@
 """
 
 import functools
+from abc import abstractmethod
 
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
+from .ConstantRefNodes import (
+    ExpressionConstantListEmptyRef,
+    ExpressionConstantSetEmptyRef,
+    ExpressionConstantTupleEmptyRef,
+    makeConstantRefNode,
+)
 from .ExpressionBases import ExpressionChildHavingBase
 from .IterationHandles import ListAndTupleContainerMakingIterationHandle
 from .NodeBases import SideEffectsFromChildrenMixin
@@ -38,10 +45,9 @@ class ExpressionMakeSequenceBase(
     SideEffectsFromChildrenMixin, ExpressionChildHavingBase
 ):
     named_child = "elements"
-    getElements = ExpressionChildHavingBase.childGetter("elements")
 
     def __init__(self, sequence_kind, elements, source_ref):
-        assert sequence_kind in ("TUPLE", "LIST", "SET"), sequence_kind
+        assert elements
 
         for element in elements:
             assert element.isExpression(), element
@@ -52,18 +58,16 @@ class ExpressionMakeSequenceBase(
             self, value=tuple(elements), source_ref=source_ref
         )
 
-    def isExpressionMakeSequence(self):
+    @staticmethod
+    def isExpressionMakeSequence():
         return True
 
-    def getSequenceKind(self):
-        return self.sequence_kind
-
+    @abstractmethod
     def getSimulator(self):
-        # Abstract method, pylint: disable=no-self-use
-        return None
+        """ The simulator for the container making, for overload. """
 
     def computeExpression(self, trace_collection):
-        elements = self.getElements()
+        elements = self.subnode_elements
 
         for count, element in enumerate(elements):
             if element.willRaiseException(BaseException):
@@ -80,7 +84,6 @@ class ExpressionMakeSequenceBase(
         simulator = self.getSimulator()
         assert simulator is not None
 
-        # The simulator is in fact callable if not None, pylint: disable=not-callable
         return getComputationResult(
             node=self,
             computation=lambda: simulator(
@@ -89,43 +92,47 @@ class ExpressionMakeSequenceBase(
             description="%s with constant arguments." % simulator.__name__.title(),
         )
 
-    def mayHaveSideEffectsBool(self):
+    @staticmethod
+    def mayHaveSideEffectsBool():
         return False
 
     def isKnownToBeIterable(self, count):
-        return count is None or count == len(self.getElements())
+        return count is None or count == len(self.subnode_elements)
 
     def isKnownToBeIterableAtMin(self, count):
-        return count <= len(self.getElements())
+        return count <= len(self.subnode_elements)
 
     def getIterationValue(self, count):
-        return self.getElements()[count]
+        return self.subnode_elements[count]
 
     def getIterationValueRange(self, start, stop):
-        return self.getElements()[start:stop]
+        return self.subnode_elements[start:stop]
 
     @staticmethod
     def canPredictIterationValues():
         return True
 
     def getIterationValues(self):
-        return self.getElements()
+        return self.subnode_elements
 
     def getIterationHandle(self):
-        return ListAndTupleContainerMakingIterationHandle(self.getElements())
+        return ListAndTupleContainerMakingIterationHandle(self.subnode_elements)
 
-    def getTruthValue(self):
-        return self.getIterationLength() > 0
+    @staticmethod
+    def getTruthValue():
+        return True
 
     def mayRaiseException(self, exception_type):
-        for element in self.getElements():
+        for element in self.subnode_elements:
             if element.mayRaiseException(exception_type):
                 return True
 
         return False
 
     def computeExpressionDrop(self, statement, trace_collection):
-        result = makeStatementOnlyNodesFromExpressions(expressions=self.getElements())
+        result = makeStatementOnlyNodesFromExpressions(
+            expressions=self.subnode_elements
+        )
 
         del self.parent
 
@@ -137,6 +144,37 @@ Removed sequence creation for unused sequence.""",
         )
 
 
+def makeExpressionMakeTuple(elements, source_ref):
+    if elements:
+        return ExpressionMakeTuple(elements, source_ref)
+    else:
+        # TODO: Get rid of user provided for empty tuple refs, makes no sense.
+        return ExpressionConstantTupleEmptyRef(
+            user_provided=False, source_ref=source_ref
+        )
+
+
+def makeExpressionMakeTupleOrConstant(elements, user_provided, source_ref):
+    for element in elements:
+        # TODO: Compile time constant ought to be the criterion.
+        if not element.isExpressionConstantRef():
+            result = makeExpressionMakeTuple(elements, source_ref)
+            break
+    else:
+        result = makeConstantRefNode(
+            constant=tuple(element.getCompileTimeConstant() for element in elements),
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
+
+    if elements:
+        result.setCompatibleSourceReference(
+            source_ref=elements[-1].getCompatibleSourceReference()
+        )
+
+    return result
+
+
 class ExpressionMakeTuple(ExpressionMakeSequenceBase):
     kind = "EXPRESSION_MAKE_TUPLE"
 
@@ -145,14 +183,49 @@ class ExpressionMakeTuple(ExpressionMakeSequenceBase):
             self, sequence_kind="TUPLE", elements=elements, source_ref=source_ref
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_tuple
 
-    def getSimulator(self):
+    @staticmethod
+    def getSimulator():
         return tuple
 
     def getIterationLength(self):
-        return len(self.getElements())
+        return len(self.subnode_elements)
+
+
+def makeExpressionMakeList(elements, source_ref):
+    if elements:
+        return ExpressionMakeList(elements, source_ref)
+    else:
+        # TODO: Get rid of user provided for empty list refs, makes no sense.
+        return ExpressionConstantListEmptyRef(
+            user_provided=False, source_ref=source_ref
+        )
+
+
+def makeExpressionMakeListOrConstant(elements, user_provided, source_ref):
+    assert type(elements) is list
+
+    for element in elements:
+        # TODO: Compile time constant ought to be the criterion.
+        if not element.isExpressionConstantRef():
+            result = makeExpressionMakeList(elements, source_ref)
+            break
+    else:
+        result = makeConstantRefNode(
+            constant=[element.getCompileTimeConstant() for element in elements],
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
+
+    if elements:
+        result.setCompatibleSourceReference(
+            source_ref=elements[-1].getCompatibleSourceReference()
+        )
+
+    return result
 
 
 class ExpressionMakeList(ExpressionMakeSequenceBase):
@@ -163,18 +236,20 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
             self, sequence_kind="LIST", elements=elements, source_ref=source_ref
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_list
 
-    def getSimulator(self):
+    @staticmethod
+    def getSimulator():
         return list
 
     def getIterationLength(self):
-        return len(self.getElements())
+        return len(self.subnode_elements)
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         result = ExpressionMakeTuple(
-            elements=self.getElements(), source_ref=self.source_ref
+            elements=self.subnode_elements, source_ref=self.source_ref
         )
 
         self.parent.replaceChild(self, result)
@@ -196,34 +271,30 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
             self, sequence_kind="SET", elements=elements, source_ref=source_ref
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_set
 
-    def getSimulator(self):
+    @staticmethod
+    def getSimulator():
         return set
 
     def getIterationLength(self):
-        element_count = len(self.getElements())
+        element_count = len(self.subnode_elements)
 
-        # Hashing may consume elements.
+        # Hashing and equality may consume elements of the produced set.
         if element_count >= 2:
             return None
         else:
             return element_count
 
-    def getIterationMinLength(self):
-        element_count = len(self.getElements())
-
-        if element_count == 0:
-            return 0
-        else:
-            return 1
-
-    def getIterationMaxLength(self):
-        return len(self.getElements())
+    @staticmethod
+    def getIterationMinLength():
+        # Hashing and equality may consume elements of the produced set.
+        return 1
 
     def mayRaiseException(self, exception_type):
-        for element in self.getElements():
+        for element in self.subnode_elements:
             if not element.isKnownToBeHashable():
                 return True
 
@@ -234,7 +305,7 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         result = ExpressionMakeTuple(
-            elements=self.getElements(), source_ref=self.source_ref
+            elements=self.subnode_elements, source_ref=self.source_ref
         )
 
         self.parent.replaceChild(self, result)
@@ -248,16 +319,53 @@ Iteration over set lowered to iteration over tuple.""",
         )
 
 
+needs_set_literal_reverse = needsSetLiteralReverseInsertion()
+
+
+def makeExpressionMakeSetLiteral(elements, source_ref):
+    if elements:
+        if needs_set_literal_reverse:
+            return ExpressionMakeSetLiteral(elements, source_ref)
+        else:
+            return ExpressionMakeSet(elements, source_ref)
+    else:
+        # TODO: Get rid of user provided for empty set refs, makes no sense.
+        return ExpressionConstantSetEmptyRef(user_provided=False, source_ref=source_ref)
+
+
+@functools.wraps(set)
+def reversed_set(value):
+    return set(reversed(tuple(value)))
+
+
+def makeExpressionMakeSetLiteralOrConstant(elements, user_provided, source_ref):
+    for element in elements:
+        # TODO: Compile time constant ought to be the criterion.
+        if not element.isExpressionConstantRef():
+            result = makeExpressionMakeSetLiteral(elements, source_ref)
+            break
+    else:
+        # Need to reverse now if needed.
+        if needs_set_literal_reverse:
+            elements = tuple(reversed(elements))
+
+        result = makeConstantRefNode(
+            constant=set(element.getCompileTimeConstant() for element in elements),
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
+
+    if elements:
+        result.setCompatibleSourceReference(
+            source_ref=elements[-1].getCompatibleSourceReference()
+        )
+
+    return result
+
+
 class ExpressionMakeSetLiteral(ExpressionMakeSet):
     kind = "EXPRESSION_MAKE_SET_LITERAL"
 
-    def getSimulator(self):
-        if needsSetLiteralReverseInsertion():
-
-            @functools.wraps(set)
-            def mySet(value):
-                return set(reversed(tuple(value)))
-
-            return mySet
-        else:
-            return set
+    @staticmethod
+    def getSimulator():
+        return reversed_set

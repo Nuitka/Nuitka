@@ -133,6 +133,7 @@ from .FrameCodes import (
 from .FunctionCodes import (
     generateFunctionCallCode,
     generateFunctionCreationCode,
+    generateFunctionErrorStrCode,
     generateFunctionOutlineCode,
     getExportScopeCode,
     getFunctionCode,
@@ -231,7 +232,9 @@ from .SetCodes import (
 )
 from .SliceCodes import (
     generateAssignmentSliceCode,
-    generateBuiltinSliceCode,
+    generateBuiltinSlice1Code,
+    generateBuiltinSlice2Code,
+    generateBuiltinSlice3Code,
     generateDelSliceCode,
     generateSliceLookupCode,
 )
@@ -424,8 +427,12 @@ def generateModuleCode(module, data_filename):
     function_body_codes = []
 
     for function_body in module.getUsedFunctions():
-        # Empty functions get no code.
-        if function_body.getBody() is None:
+        # Constant function returners get no code.
+        (
+            is_constant_returning,
+            _constant_return_value,
+        ) = function_body.getConstantReturnValue()
+        if is_constant_returning:
             continue
 
         function_code, function_decl = generateFunctionBodyCode(
@@ -478,7 +485,9 @@ setExpressionDispatchDict(
         "EXPRESSION_ATTRIBUTE_CHECK": generateAttributeCheckCode,
         "EXPRESSION_ATTRIBUTE_LOOKUP": generateAttributeLookupCode,
         "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL": generateAttributeLookupSpecialCode,
-        "EXPRESSION_BUILTIN_SLICE": generateBuiltinSliceCode,
+        "EXPRESSION_BUILTIN_SLICE3": generateBuiltinSlice3Code,
+        "EXPRESSION_BUILTIN_SLICE2": generateBuiltinSlice2Code,
+        "EXPRESSION_BUILTIN_SLICE1": generateBuiltinSlice1Code,
         "EXPRESSION_BUILTIN_HASH": generateBuiltinHashCode,
         "EXPRESSION_BUILTIN_ID": generateBuiltinIdCode,
         "EXPRESSION_BUILTIN_COMPILE": generateBuiltinCompileCode,
@@ -571,6 +580,7 @@ setExpressionDispatchDict(
         "EXPRESSION_CONSTANT_DICT_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TUPLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TUPLE_EMPTY_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TUPLE_MUTABLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_LIST_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_LIST_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SET_REF": generateConstantReferenceCode,
@@ -602,10 +612,12 @@ setExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_NOT_IN": generateDictOperationInCode,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
+        "EXPRESSION_FUNCTION_ERROR_STR": generateFunctionErrorStrCode,
         "EXPRESSION_IMPORT_MODULE_HARD": generateImportModuleHardCode,
         "EXPRESSION_IMPORT_MODULE_NAME_HARD": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORT_NAME": generateImportNameCode,
         "EXPRESSION_LIST_OPERATION_EXTEND": generateListOperationExtendCode,
+        "EXPRESSION_LIST_OPERATION_EXTEND_FOR_UNPACK": generateListOperationExtendCode,
         "EXPRESSION_LIST_OPERATION_POP": generateListOperationPopCode,
         "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF": generateModuleAttributeFileCode,
         "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF": generateModuleAttributeCode,

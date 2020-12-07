@@ -33,9 +33,9 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
 )
 from .IterationHandles import (
-    ConstantIterationHandleRange1,
-    ConstantIterationHandleRange2,
-    ConstantIterationHandleRange3,
+    IterationHandleRange1,
+    IterationHandleRange2,
+    IterationHandleRange3,
 )
 from .NodeMakingHelpers import makeConstantReplacementNode
 from .shapes.BuiltinTypeShapes import tshape_list, tshape_xrange
@@ -66,11 +66,7 @@ class ExpressionBuiltinRangeMixin(object):
             if child.getIntegerValue() is None:
                 return True
 
-            if (
-                python_version >= 270
-                and child.isExpressionConstantRef()
-                and type(child.getConstant()) is float
-            ):
+            if python_version >= 270 and child.isExpressionConstantFloatRef():
                 return True
 
         return False
@@ -84,11 +80,7 @@ class ExpressionBuiltinRangeMixin(object):
             if child.getIntegerValue() is None:
                 return True
 
-            if (
-                python_version >= 270
-                and child.isExpressionConstantRef()
-                and type(child.getConstant()) is float
-            ):
+            if python_version >= 270 and child.isExpressionConstantFloatRef():
                 return True
 
         step = self.getStep()
@@ -126,7 +118,7 @@ class ExpressionBuiltinRangeMixin(object):
                 low=self.getLow(),
                 high=self.getHigh(),
                 step=self.getStep(),
-                source_ref=self.getSourceReference(),
+                source_ref=self.source_ref,
             )
 
             self.parent.replaceChild(self, result)
@@ -190,7 +182,7 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeMixin, ExpressionChildHaving
         if low is None:
             return None
 
-        return ConstantIterationHandleRange1(low, self.source_ref)
+        return IterationHandleRange1(low, self.source_ref)
 
     def getIterationValue(self, element_index):
         length = self.getIterationLength()
@@ -260,7 +252,7 @@ class ExpressionBuiltinRange2(
         if high is None:
             return None
 
-        return ConstantIterationHandleRange2(low, high, self.source_ref)
+        return IterationHandleRange2(low, high, self.source_ref)
 
     def getIterationValue(self, element_index):
         low = self.getLow()
@@ -298,6 +290,8 @@ class ExpressionBuiltinRange3(
     getStep = ExpressionChildrenHavingBase.childGetter("step")
 
     def __init__(self, low, high, step, source_ref):
+        assert python_version < 300
+
         ExpressionChildrenHavingBase.__init__(
             self, values={"low": low, "high": high, "step": step}, source_ref=source_ref
         )
@@ -305,8 +299,6 @@ class ExpressionBuiltinRange3(
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
 
     def computeExpression(self, trace_collection):
-        assert python_version < 300
-
         low = self.getLow()
         high = self.getHigh()
         step = self.getStep()
@@ -376,7 +368,7 @@ class ExpressionBuiltinRange3(
         if step == 0:
             return None
 
-        return ConstantIterationHandleRange3(low, high, step, self.source_ref)
+        return IterationHandleRange3(low, high, step, self.source_ref)
 
     def getIterationValue(self, element_index):
         low = self.getLow().getIntegerValue()

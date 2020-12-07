@@ -200,7 +200,8 @@ class StatementsSequence(StatementChildHavingBase):
         else:
             return self
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "statements sequence"
 
 
@@ -216,13 +217,13 @@ class StatementExpressionOnly(StatementChildHavingBase):
         StatementChildHavingBase.__init__(self, value=expression, source_ref=source_ref)
 
     def mayHaveSideEffects(self):
-        return self.getExpression().mayHaveSideEffects()
+        return self.subnode_expression.mayHaveSideEffects()
 
     def mayRaiseException(self, exception_type):
-        return self.getExpression().mayRaiseException(exception_type)
+        return self.subnode_expression.mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        expression = trace_collection.onExpression(expression=self.getExpression())
+        expression = trace_collection.onExpression(expression=self.subnode_expression)
 
         if expression.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -236,8 +237,12 @@ class StatementExpressionOnly(StatementChildHavingBase):
 
         return self, None, None
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "expression only statement"
+
+    def getDetailsForDisplay(self):
+        return {"expression": self.subnode_expression.kind}
 
 
 class StatementPreserveFrameException(StatementBase):
@@ -272,10 +277,12 @@ class StatementPreserveFrameException(StatementBase):
                 "Removed frame preservation for generators.",
             )
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def needsFrame(self):
+    @staticmethod
+    def needsFrame():
         return True
 
 
@@ -301,7 +308,8 @@ class StatementRestoreFrameException(StatementBase):
     def computeStatement(self, trace_collection):
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
 
@@ -318,5 +326,6 @@ class StatementPublishException(StatementBase):
         # TODO: Determine the need for it.
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False

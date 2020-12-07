@@ -38,7 +38,7 @@ from nuitka.nodes.CallNodes import (
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.CoroutineNodes import (
     ExpressionAsyncWaitEnter,
     ExpressionAsyncWaitExit,
@@ -73,7 +73,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     # Many details, pylint: disable=too-many-locals
     with_source = buildNode(provider, context_expr, source_ref)
 
-    if python_version < 380 and Options.isFullCompat():
+    if python_version < 380 and Options.is_fullcompat:
         source_ref = with_source.getCompatibleSourceReference()
 
     temp_scope = provider.allocateTempScope("with")
@@ -147,7 +147,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         called=ExpressionTempVariableRef(
             variable=tmp_exit_variable, source_ref=with_exit_source_ref
         ),
-        args=ExpressionMakeTuple(
+        args=makeExpressionMakeTuple(
             elements=(
                 ExpressionCaughtExceptionTypeRef(source_ref=with_exit_source_ref),
                 ExpressionCaughtExceptionValueRef(source_ref=with_exit_source_ref),

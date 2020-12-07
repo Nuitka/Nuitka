@@ -37,7 +37,12 @@ class StatementReturn(StatementChildHavingBase):
     def __init__(self, expression, source_ref):
         StatementChildHavingBase.__init__(self, value=expression, source_ref=source_ref)
 
-    def isStatementAborting(self):
+    @staticmethod
+    def mayReturn():
+        return True
+
+    @staticmethod
+    def isStatementAborting():
         return True
 
     def mayRaiseException(self, exception_type):
@@ -94,10 +99,16 @@ class StatementReturnConstantBase(StatementBase):
     def isStatementReturn():
         return True
 
-    def isStatementAborting(self):
+    @staticmethod
+    def isStatementAborting():
         return True
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayReturn():
+        return True
+
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
     def computeStatement(self, trace_collection):
@@ -112,7 +123,8 @@ class StatementReturnConstantBase(StatementBase):
     def getExpression(self):
         return makeConstantReplacementNode(node=self, constant=self.getConstant())
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "return statement"
 
 
@@ -206,9 +218,11 @@ class ExpressionReturnedValueRef(ExpressionBase):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         # Referencing the expression type has no side effect
         return False
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False

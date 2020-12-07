@@ -33,6 +33,7 @@ class CodeObjectSpec(object):
         "co_kind",
         "co_varnames",
         "co_argcount",
+        "co_freevars",
         "co_posonlyargcount",
         "co_kwonlyargcount",
         "co_has_starlist",
@@ -41,7 +42,6 @@ class CodeObjectSpec(object):
         "line_number",
         "future_spec",
         "new_locals",
-        "has_closure",
         "is_optimized",
     )
 
@@ -51,6 +51,7 @@ class CodeObjectSpec(object):
         co_name,
         co_kind,
         co_varnames,
+        co_freevars,
         co_argcount,
         co_posonlyargcount,
         co_kwonlyargcount,
@@ -60,7 +61,6 @@ class CodeObjectSpec(object):
         co_lineno,
         future_spec,
         co_new_locals=None,
-        co_has_closure=None,
         co_is_optimized=None,
     ):
         # pylint: disable=I0021,too-many-locals
@@ -78,12 +78,19 @@ class CodeObjectSpec(object):
             else:
                 co_varnames = co_varnames.split(",")
 
+        if type(co_freevars) is str:
+            if co_freevars == "":
+                co_freevars = ()
+            else:
+                co_freevars = co_freevars.split(",")
+
         if type(co_has_starlist) is not bool:
             co_has_starlist = co_has_starlist != "False"
         if type(co_has_stardict) is not bool:
             co_has_stardict = co_has_stardict != "False"
 
         self.co_varnames = tuple(co_varnames)
+        self.co_freevars = tuple(co_freevars)
 
         self.co_argcount = int(co_argcount)
 
@@ -99,12 +106,9 @@ class CodeObjectSpec(object):
         if type(co_has_starlist) is not bool:
             co_new_locals = co_new_locals != "False"
         if type(co_has_starlist) is not bool:
-            co_has_closure = co_has_closure != "False"
-        if type(co_has_starlist) is not bool:
             co_is_optimized = co_is_optimized != "False"
 
         self.new_locals = co_new_locals
-        self.has_closure = co_has_closure
         self.is_optimized = co_is_optimized
 
     __del__ = counted_del()
@@ -121,6 +125,7 @@ class CodeObjectSpec(object):
             "co_name": self.co_name,
             "co_kind": self.co_kind,
             "co_varnames": ",".join(self.co_varnames),
+            "co_freevars": ",".join(self.co_freevars),
             "co_argcount": self.co_argcount,
             "co_posonlyargcount": self.co_posonlyargcount,
             "co_kwonlyargcount": self.co_kwonlyargcount,
@@ -129,7 +134,6 @@ class CodeObjectSpec(object):
             "co_filename": self.filename,
             "co_lineno": self.line_number,
             "co_new_locals": self.new_locals,
-            "co_has_closure": self.has_closure,
             "co_is_optimized": self.is_optimized,
             "code_flags": ",".join(self.future_spec.asFlags()),
         }
@@ -137,12 +141,25 @@ class CodeObjectSpec(object):
     def getCodeObjectKind(self):
         return self.co_kind
 
-    def updateLocalNames(self, local_names):
-        """Add detected local variables after closure has been decided."""
+    def updateLocalNames(self, local_names, freevar_names):
+        """Move detected local variables after closure has been decided."""
+
         self.co_varnames += tuple(
             local_name
             for local_name in local_names
             if local_name not in self.co_varnames
+            # TODO: This is actually a bug, but we have a hard time without it to know
+            # frame locals easily. We use this in compiled function run time, that all
+            # variables, including closure variables are found there. This would have to
+            # be cleaned up, for potentially little gain.
+            # if local_name not in freevar_names
+        )
+
+        self.co_freevars = tuple(freevar_names)
+
+    def removeFreeVarname(self, freevar_name):
+        self.co_freevars = tuple(
+            var_name for var_name in self.co_freevars if var_name != freevar_name
         )
 
     def setFlagIsOptimizedValue(self, value):
@@ -157,17 +174,14 @@ class CodeObjectSpec(object):
     def getFlagNewLocalsValue(self):
         return self.new_locals
 
-    def setFlagHasClosureValue(self, value):
-        self.has_closure = value
-
-    def getFlagHasClosureValue(self):
-        return self.has_closure
-
     def getFutureSpec(self):
         return self.future_spec
 
     def getVarNames(self):
         return self.co_varnames
+
+    def getFreeVarNames(self):
+        return self.co_freevars
 
     def getArgumentCount(self):
         return self.co_argcount

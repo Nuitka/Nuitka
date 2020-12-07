@@ -35,7 +35,7 @@ from nuitka.Errors import NuitkaPluginError
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Tracing import plugins_logger
-from nuitka.utils.FileOperations import relpath
+from nuitka.utils.FileOperations import putTextFileContents, relpath
 from nuitka.utils.ModuleNames import ModuleName
 
 pre_modules = {}
@@ -331,13 +331,12 @@ class NuitkaPluginBase(object):
         if mode == "bytecode":
             trigger_module.setSourceCode(code)
 
-        if Options.isDebug():
+        if Options.is_debug:
             source_path = os.path.join(
                 OutputDirectories.getSourceDirectoryPath(), module_name + ".py"
             )
 
-            with open(source_path, "w") as output:
-                output.write(code)
+            putTextFileContents(filename=source_path, contents=code)
 
         return trigger_module
 

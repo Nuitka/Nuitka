@@ -331,35 +331,6 @@ def getUnhashableConstant(constant):
         assert False, constant_type
 
 
-def isIterableConstant(constant):
-    return type(constant) in (
-        str,
-        unicode,
-        list,
-        tuple,
-        set,
-        frozenset,
-        dict,
-        xrange,
-        bytes,
-        bytearray,
-    )
-
-
-def getConstantIterationLength(constant):
-    assert isIterableConstant(constant)
-
-    return len(constant)
-
-
-def isNumberConstant(constant):
-    return type(constant) in (int, long, float, bool)
-
-
-def isIndexConstant(constant):
-    return type(constant) in (int, long, bool)
-
-
 def createConstantDict(keys, values):
     # Create it proper size immediately.
     constant_value = dict.fromkeys(keys, None)

@@ -76,9 +76,7 @@ def buildYieldNode(provider, node, source_ref):
         )
     else:
         return ExpressionYield(
-            expression=ExpressionConstantNoneRef(
-                source_ref=source_ref, user_provided=True
-            ),
+            expression=ExpressionConstantNoneRef(source_ref=source_ref),
             source_ref=source_ref,
         )
 

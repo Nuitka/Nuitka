@@ -43,16 +43,21 @@ sys.path.insert(
 import subprocess
 import tempfile
 
-from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
     checkCompilesNotWithCPython,
     compileLibraryTest,
     createSearchMode,
+    getPythonArch,
+    getPythonVendor,
     my_print,
     setup,
 )
+from nuitka.utils.Importing import getSharedLibrarySuffix
 
-setup(needs_io_encoding=True)
+python_version = setup(needs_io_encoding=True)
+python_vendor = getPythonVendor()
+python_arch = getPythonArch()
+
 search_mode = createSearchMode()
 
 tmp_dir = tempfile.gettempdir()
@@ -67,6 +72,8 @@ blacklist = (
     "joined_strings.py",
     # Incredible amount of memory in C compiler for test code
     "test_spin.py",
+    # Uses outside modules up the chain
+    "cheshire_tomography.py",
 )
 
 nosyntax_errors = (
@@ -116,12 +123,9 @@ def action(stage_dir, _root, path):
     else:
         my_print("OK")
 
-        if os.name == "nt":
-            suffix = "pyd"
-        else:
-            suffix = "so"
+        suffix = getSharedLibrarySuffix(preferred=True)
 
-        target_filename = os.path.basename(path).replace(".py", "." + suffix)
+        target_filename = os.path.basename(path)[:-3] + suffix
         target_filename = target_filename.replace("(", "").replace(")", "")
 
         os.unlink(os.path.join(stage_dir, target_filename))
@@ -129,7 +133,10 @@ def action(stage_dir, _root, path):
 
 compileLibraryTest(
     search_mode=search_mode,
-    stage_dir=os.path.join(tmp_dir, "compile_library_%s" % python_version),
+    stage_dir=os.path.join(
+        tmp_dir,
+        "compile_library_%s-%s-%s" % (python_version, python_arch, python_vendor),
+    ),
     decide=decide,
     action=action,
 )

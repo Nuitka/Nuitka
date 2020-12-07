@@ -46,47 +46,43 @@ class ExpressionBase(NodeBase):
     # TODO: Maybe we can do this only for debug mode.
     __slots__ = ("code_generated",)
 
-    def getTypeShape(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def getTypeShape():
         return tshape_unknown
 
     def getValueShape(self):
         return self
 
-    def isCompileTimeConstant(self):
+    @staticmethod
+    def isCompileTimeConstant():
         """Has a value that we can use at compile time.
 
         Yes or no. If it has such a value, simulations can be applied at
         compile time and e.g. operations or conditions, or even calls may
         be executed against it.
         """
-        # Virtual method, pylint: disable=no-self-use
         return False
 
-    def getTruthValue(self):
+    @staticmethod
+    def getTruthValue():
         """ Return known truth value. The "None" value indicates unknown. """
 
-        if self.isCompileTimeConstant():
-            return bool(self.getCompileTimeConstant())
-        else:
-            return None
+        return None
 
-    def isKnownToBeIterable(self, count):
+    @staticmethod
+    def isKnownToBeIterable(count):
         """Can be iterated at all (count is None) or exactly count times.
 
         Yes or no. If it can be iterated a known number of times, it may
         be asked to unpack itself.
         """
 
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
         return False
 
-    def isKnownToBeIterableAtMin(self, count):
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-        return False
-
-    def isKnownToBeIterableAtMax(self, count):
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def isKnownToBeIterableAtMin(count):
+        # Virtual method, pylint: disable=unused-argument
         return False
 
     def getIterationLength(self):
@@ -106,17 +102,9 @@ class ExpressionBase(NodeBase):
 
         return self.getIterationLength()
 
-    def getIterationMaxLength(self):
-        """Value that "len" or "PyObject_Size" would give at maximum, if known.
-
-        Otherwise it is "None" to indicate unknown.
-        """
-
-        return self.getIterationLength()
-
-    def getStringValue(self):
-        """ Node as string value, if possible."""
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def getStringValue():
+        """ Node as string value, if possible. """
         return None
 
     def getStrValue(self):
@@ -139,22 +127,24 @@ class ExpressionBase(NodeBase):
         from .TypeNodes import ExpressionBuiltinType1
 
         return ExpressionBuiltinType1(
-            value=self.makeClone(), source_ref=self.getSourceReference()
+            value=self.makeClone(), source_ref=self.source_ref
         )
 
     def getIterationHandle(self):
         # Virtual method, pylint: disable=no-self-use
         return None
 
-    def isKnownToBeHashable(self):
-        """ Is the value hashable, i.e. suitable for dictionary/set keying."""
+    @staticmethod
+    def isKnownToBeHashable():
+        """ Is the value hashable, i.e. suitable for dictionary/set key usage."""
 
-        # Virtual method, pylint: disable=no-self-use
         # Unknown by default.
         return None
 
-    def extractUnhashableNode(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def extractUnhashableNode():
+        """ Return the value that is not hashable, if isKnowtoBeHashable() returns False. """
+
         # Not available by default.
         return None
 
@@ -545,6 +535,9 @@ class ExpressionBase(NodeBase):
         return iter_node, None, None
 
     def computeExpressionNext1(self, next_node, trace_collection):
+        # TODO: This is only true for a few value types, use type shape to tell if
+        # it might escape or raise.
+
         self.onContentEscapes(trace_collection)
 
         # Any code could be run, note that.
@@ -553,7 +546,7 @@ class ExpressionBase(NodeBase):
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        return next_node, None, None
+        return False, (next_node, None, None)
 
     def computeExpressionAsyncIter(self, iter_node, trace_collection):
         self.onContentEscapes(trace_collection)
@@ -622,92 +615,104 @@ class ExpressionBase(NodeBase):
     def onContentEscapes(self, trace_collection):
         pass
 
-    def mayRaiseExceptionBool(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
         """ Unless we are told otherwise, everything may raise being checked. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-
+        # Virtual method, pylint: disable=unused-argument
         return True
 
-    def mayRaiseExceptionAbs(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionAbs(exception_type):
         """ Unless we are told otherwise, everything may raise in 'abs'. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionInt(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionInt(exception_type):
         """ Unless we are told otherwise, everything may raise in __int__. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionLong(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionLong(exception_type):
         """ Unless we are told otherwise, everything may raise in __long__. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionFloat(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionFloat(exception_type):
         """ Unless we are told otherwise, everything may raise in __float__. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionBytes(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionBytes(exception_type):
         """ Unless we are told otherwise, everything may raise in __bytes__. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionIn(self, exception_type, checked_value):
+    @staticmethod
+    def mayRaiseExceptionIn(exception_type, checked_value):
         """ Unless we are told otherwise, everything may raise being iterated. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
+    @staticmethod
+    def mayRaiseExceptionAttributeLookup(exception_type, attribute_name):
         """ Unless we are told otherwise, everything may raise for attribute access. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
+    @staticmethod
+    def mayRaiseExceptionAttributeLookupSpecial(exception_type, attribute_name):
         """ Unless we are told otherwise, everything may raise for attribute access. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeLookupObject(self, exception_type, attribute):
+    @staticmethod
+    def mayRaiseExceptionAttributeLookupObject(exception_type, attribute):
         """ Unless we are told otherwise, everything may raise for attribute access. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeCheck(self, exception_type, attribute_name):
+    @staticmethod
+    def mayRaiseExceptionAttributeCheck(exception_type, attribute_name):
         """ Unless we are told otherwise, everything may raise for attribute check. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeCheckObject(self, exception_type, attribute):
+    @staticmethod
+    def mayRaiseExceptionAttributeCheckObject(exception_type, attribute):
         """ Unless we are told otherwise, everything may raise for attribute check. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionImportName(self, exception_type, import_name):
+    @staticmethod
+    def mayRaiseExceptionImportName(exception_type, import_name):
         """ Unless we are told otherwise, everything may raise for name import. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
         return True
 
-    def mayHaveSideEffectsBool(self):
+    @staticmethod
+    def mayHaveSideEffectsBool():
         """ Unless we are told otherwise, everything may have a side effect for bool check. """
-        # Virtual method, pylint: disable=no-self-use
 
         return True
 
-    def mayHaveSideEffectsAbs(self):
+    @staticmethod
+    def mayHaveSideEffectsAbs():
         """ Unless we are told otherwise, everything may have a side effect for abs check. """
-        # Virtual method, pylint: disable=no-self-use
 
         # TODO: Bonus points for check type shapes that will be good
         # for abs, i.e. number shapes like Int, Long, Float, Complex.
@@ -727,26 +732,37 @@ class ExpressionBase(NodeBase):
         return self.getTypeShape().hasShapeSlotNext()
 
     # TODO: Maybe this is a shape slot thing.
-    def isIndexable(self):
+    @staticmethod
+    def isIndexable():
         """ Unless we are told otherwise, it's not indexable. """
-        # Virtual method, pylint: disable=no-self-use
 
         return False
 
-    # TODO: The ought to be a type shape check for that too.
-    def getIntegerValue(self):
+    # TODO: There ought to be a type shape check for that too.
+    @staticmethod
+    def getIntegerValue():
         """ Node as integer value, if possible."""
-        # Virtual method, pylint: disable=no-self-use
+
         return None
 
-    def getIntValue(self):
+    # TODO: There ought to be a type shape check for that too.
+    @staticmethod
+    def getIndexValue():
+        """Node as index value, if possible.
+
+        This should only work for int, bool, and long values, but e.g. not floats.
+        """
+
+        return None
+
+    @staticmethod
+    def getIntValue():
         """Value that "int" or "PyNumber_Int" (sp) would give, if known.
 
         Otherwise it is "None" to indicate unknown. Users must not
         forget to take side effects into account, when replacing a
         node with its string value.
         """
-        # Virtual method, pylint: disable=no-self-use
         return None
 
     def hasShapeDictionaryExact(self):
@@ -773,7 +789,8 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
 
         self.computed_attribute = None
 
-    def isCompileTimeConstant(self):
+    @staticmethod
+    def isCompileTimeConstant():
         """Has a value that we can use at compile time.
 
         Yes or no. If it has such a value, simulations can be applied at
@@ -781,6 +798,9 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         be executed against it.
         """
         return True
+
+    def getTruthValue(self):
+        return bool(self.getCompileTimeConstant())
 
     @abstractmethod
     def getCompileTimeConstant(self):
@@ -790,49 +810,47 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
 
         """
 
-    def isUserProvidedConstant(self):
-        """Return compile time constant.
+    @staticmethod
+    def isMutable():
+        """Return if compile time constant is mutable.
 
         Notes: Only useful after passing "isCompileTimeConstant()".
         """
-        # Virtual method, pylint: disable=no-self-use
         return False
 
-    def isMutable(self):
-        # Virtual method, pylint: disable=no-self-use
-        return False
-
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         # Virtual method overload
         return False
 
-    def mayHaveSideEffectsBool(self):
+    @staticmethod
+    def extractSideEffects():
+        # Constants have no side effects
+        return ()
+
+    @staticmethod
+    def mayHaveSideEffectsBool():
         # Virtual method overload
         return False
 
-    def mayRaiseException(self, exception_type):
-        # Virtual method overload
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayRaiseExceptionBool(self, exception_type):
-        # Virtual method overload
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
         return False
 
     def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
-        # Virtual method overload
-
         # We remember it from our computation.
         return not self.computed_attribute
 
     def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
-        # Virtual method overload
-
         # We remember it from our computation.
         return not self.computed_attribute
 
-    def mayRaiseExceptionAttributeCheck(self, exception_type, attribute_name):
-        # Virtual method overload
-
+    @staticmethod
+    def mayRaiseExceptionAttributeCheck(exception_type, attribute_name):
         # Checking attributes of compile time constants never raises.
         return False
 
@@ -1019,7 +1037,7 @@ Predicted '%s' on compiled time constant values."""
         trace_collection.signalChange(
             tags="new_constant",
             source_ref=self.source_ref,
-            message="Predicted compile time constant true value.",
+            message="Predicted compile time constant truth value.",
         )
 
 
@@ -1269,15 +1287,26 @@ class ExpressionSpecBasedComputationMixin(object):
     def computeBuiltinSpec(self, trace_collection, given_values):
         assert self.builtin_spec is not None, self
 
-        for value in given_values:
-            if value is not None and not value.isCompileTimeConstant():
-                trace_collection.onExceptionRaiseExit(BaseException)
-
-                return self, None, None
-
         if not self.builtin_spec.isCompileTimeComputable(given_values):
             trace_collection.onExceptionRaiseExit(BaseException)
 
+            return self, None, None
+
+        return trace_collection.getCompileTimeComputationResult(
+            node=self,
+            computation=lambda: self.builtin_spec.simulateCall(given_values),
+            description="Built-in call to '%s' pre-computed."
+            % (self.builtin_spec.getName()),
+        )
+
+
+class ExpressionSpecBasedComputationNoRaiseMixin(object):
+    builtin_spec = None
+
+    def computeBuiltinSpec(self, trace_collection, given_values):
+        assert self.builtin_spec is not None, self
+
+        if not self.builtin_spec.isCompileTimeComputable(given_values):
             return self, None, None
 
         return trace_collection.getCompileTimeComputationResult(
@@ -1298,7 +1327,7 @@ class ExpressionBuiltinSingleArgBase(
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
 
         if value is None:
             return self.computeBuiltinSpec(

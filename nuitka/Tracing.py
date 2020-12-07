@@ -177,7 +177,8 @@ class OurLogger(object):
 
     def info(self, message, style=None):
         if not is_quiet:
-            message = "%s:INFO: %s" % (self.name, message)
+            if self.name:
+                message = "%s:INFO: %s" % (self.name, message)
 
             style = style or self.base_style
             self.my_print(message, style=style)
@@ -217,8 +218,11 @@ general = OurLogger("Nuitka")
 codegen_missing = OurLogger("Nuitka-codegen-missing")
 plugins_logger = OurLogger("Nuitka-Plugins")
 recursion_logger = OurLogger("Nuitka-Recursion")
+progress_logger = OurLogger("Nuitka-Progress")
+memory_logger = OurLogger("Nuitka-Memory")
 dependencies_logger = OurLogger("Nuitka-Dependencies")
 optimization_logger = FileLogger("Nuitka-Optimization")
 codegen_logger = OurLogger("Nuitka-Codegen")
 inclusion_logger = FileLogger("Nuitka-Inclusion")
 scons_logger = OurLogger("Nuitka-Scons")
+postprocessing_logger = OurLogger("Nuitka-Postprocessing")

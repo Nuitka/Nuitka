@@ -18,13 +18,24 @@
 #ifndef __NUITKA_HELPER_SLICES_H__
 #define __NUITKA_HELPER_SLICES_H__
 
-// Note: Cannot fail
+// Note: Cannot these cannot fail, PySlice_New does not return errors.
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ3(PyObject *start, PyObject *stop, PyObject *step) {
     CHECK_OBJECT(start);
     CHECK_OBJECT(stop);
     CHECK_OBJECT(step);
 
     return PySlice_New(start, stop, step);
+}
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ2(PyObject *start, PyObject *stop) {
+    CHECK_OBJECT(start);
+    CHECK_OBJECT(stop);
+
+    return PySlice_New(start, stop, Py_None);
+}
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ1(PyObject *stop) {
+    CHECK_OBJECT(stop);
+
+    return PySlice_New(Py_None, stop, Py_None);
 }
 
 #if PYTHON_VERSION < 300

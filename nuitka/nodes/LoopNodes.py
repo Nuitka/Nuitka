@@ -23,7 +23,7 @@ to be very general, yet the node type for loop, becomes very simple.
 """
 
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
-from nuitka.tree.Extractions import getVariablesWritten
+from nuitka.tree.Extractions import getVariablesWrittenOrRead
 
 from .Checkers import checkStatementsSequenceOrNone
 from .NodeBases import StatementBase, StatementChildHavingBase
@@ -85,11 +85,13 @@ class StatementLoop(StatementChildHavingBase):
 
         return False
 
-    def mayBreak(self):
+    @staticmethod
+    def mayBreak():
         # The loop itself may never break another loop.
         return False
 
-    def mayContinue(self):
+    @staticmethod
+    def mayContinue():
         # The loop itself may never continue another loop.
         return False
 
@@ -101,7 +103,8 @@ class StatementLoop(StatementChildHavingBase):
         else:
             return not loop_body.mayBreak()
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         # Loops can only raise, if their body does, but they also issue the
         # async exceptions, so we must make them do it all the time.
         return True
@@ -111,6 +114,7 @@ class StatementLoop(StatementChildHavingBase):
 
     def _computeLoopBody(self, trace_collection):
         # Rather complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+        # print("Enter loop body", self.source_ref)
 
         loop_body = self.getLoopBody()
         if loop_body is None:
@@ -120,7 +124,7 @@ class StatementLoop(StatementChildHavingBase):
         # about that if we are in the first iteration, later we # will have more
         # precise knowledge.
         if self.loop_variables is None:
-            self.loop_variables = getVariablesWritten(loop_body)
+            self.loop_variables = getVariablesWrittenOrRead(loop_body)
 
             all_first_pass = True
         else:
@@ -168,6 +172,9 @@ class StatementLoop(StatementChildHavingBase):
                     self.loop_resume[loop_variable]
                     != self.loop_previous_resume[loop_variable]
                 ):
+                    # print("incomplete", self.source_ref, loop_variable, ":",
+                    # self.loop_previous_resume[loop_variable], "<->", self.loop_resume[loop_variable])
+
                     incomplete = True
 
                     if incomplete_variables is None:
@@ -175,6 +182,8 @@ class StatementLoop(StatementChildHavingBase):
 
                     incomplete_variables.add(loop_variable)
                 else:
+                    # print("complete", self.source_ref, loop_variable, ":",
+                    # self.loop_previous_resume[loop_variable], "<->", self.loop_resume[loop_variable])
                     incomplete = False
 
             # Mark the variable as loop usage before executing it.
@@ -374,7 +383,8 @@ Removed useless loop with immediate 'break' statement.""",
 
         return self, None, None
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "loop statement"
 
 
@@ -387,13 +397,16 @@ class StatementLoopContinue(StatementBase):
     def finalize(self):
         del self.parent
 
-    def isStatementAborting(self):
+    @staticmethod
+    def isStatementAborting():
         return True
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayContinue(self):
+    @staticmethod
+    def mayContinue():
         return True
 
     def computeStatement(self, trace_collection):
@@ -402,7 +415,8 @@ class StatementLoopContinue(StatementBase):
 
         return self, None, None
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "loop continue statement"
 
 
@@ -415,13 +429,16 @@ class StatementLoopBreak(StatementBase):
     def finalize(self):
         del self.parent
 
-    def isStatementAborting(self):
+    @staticmethod
+    def isStatementAborting():
         return True
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayBreak(self):
+    @staticmethod
+    def mayBreak():
         return True
 
     def computeStatement(self, trace_collection):
@@ -430,5 +447,6 @@ class StatementLoopBreak(StatementBase):
 
         return self, None, None
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "loop break statement"

@@ -52,7 +52,7 @@ NUITKA_MAY_BE_UNUSED static bool LIST_RESIZE(PyListObject *list, Py_ssize_t news
     if (newsize == 0) {
         new_allocated = 0;
     } else {
-        new_allocated = (size_t)newsize + (newsize >> 3) + (newsize < 9 ? 3 : 6);
+        new_allocated = (size_t)(newsize + (newsize >> 3) + (newsize < 9 ? 3 : 6));
     }
 
     size_t num_allocated_bytes = new_allocated * sizeof(PyObject *);
@@ -99,4 +99,19 @@ NUITKA_MAY_BE_UNUSED static bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject 
     return true;
 }
 
+// Like PyList_SET_ITEM but takes a reference to the item.
+#define PyList_SET_ITEM0(tuple, index, value)                                                                          \
+    {                                                                                                                  \
+        PyObject *tmp = value;                                                                                         \
+        Py_INCREF(tmp);                                                                                                \
+        PyList_SET_ITEM(tuple, index, tmp);                                                                            \
+    }
+
 #endif
+
+extern bool LIST_EXTEND(PyObject *list, PyObject *other);
+extern bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other);
+
+// Like PyList_Append, but we get to specify the transfer of refcount ownership.
+extern bool LIST_APPEND1(PyObject *target, PyObject *item);
+extern bool LIST_APPEND0(PyObject *target, PyObject *item);

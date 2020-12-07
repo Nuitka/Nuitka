@@ -25,6 +25,7 @@ from nuitka.Tracing import general
 
 from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateExpressionCode,
     generateStatementSequenceCode,
     withObjectCodeTemporaryAssignment,
@@ -36,7 +37,7 @@ from .Indentation import indented
 from .LabelCodes import getGotoCode, getLabelCode
 from .LineNumberCodes import emitErrorLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
-from .PythonAPICodes import getReferenceExportCode
+from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
 from .templates.CodeTemplatesFunction import (
     function_direct_body_template,
     template_function_body,
@@ -140,7 +141,7 @@ def getFunctionMakerCode(
     context,
 ):
     # We really need this many parameters here and functions have many details,
-    # that we express as variables
+    # that we express as variables, pylint: disable=too-many-locals
     function_creation_args = getFunctionCreationArgs(
         defaults_name=defaults_name,
         kw_defaults_name=kw_defaults_name,
@@ -153,12 +154,31 @@ def getFunctionMakerCode(
     else:
         function_doc = context.getConstantCode(constant=function_doc)
 
-    if function_body.getBody() is None:
+    (
+        is_constant_returning,
+        constant_return_value,
+    ) = function_body.getConstantReturnValue()
+
+    if is_constant_returning:
         function_impl_identifier = "NULL"
+
+        if constant_return_value is None:
+            # Default value, spare the code for common case.
+            constant_return_code = ""
+        elif constant_return_value is True:
+            constant_return_code = "Nuitka_Function_EnableConstReturnTrue(result);"
+        elif constant_return_value is False:
+            constant_return_code = "Nuitka_Function_EnableConstReturnFalse(result);"
+        else:
+            constant_return_code = (
+                "Nuitka_Function_EnableConstReturnGeneric(result, %s);"
+                % context.getConstantCode(constant_return_value)
+            )
     else:
         function_impl_identifier = _getFunctionEntryPointIdentifier(
             function_identifier=function_identifier
         )
+        constant_return_code = ""
 
     function_maker_identifier = _getFunctionMakerIdentifier(
         function_identifier=function_identifier
@@ -186,6 +206,7 @@ def getFunctionMakerCode(
         "closure_count": len(closure_variables),
         "closure_name": "closure" if closure_variables else "NULL",
         "module_identifier": module_identifier,
+        "constant_return_code": indented(constant_return_code),
     }
 
     # TODO: Make it optional.
@@ -210,10 +231,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
         if kw_defaults:
             kw_defaults_name = context.allocateTempName("kw_defaults")
 
-            assert (
-                not kw_defaults.isExpressionConstantRef()
-                or kw_defaults.getConstant() != {}
-            ), kw_defaults.getConstant()
+            assert not kw_defaults.isExpressionConstantDictEmptyRef(), kw_defaults
 
             generateExpressionCode(
                 to_name=kw_defaults_name,
@@ -722,8 +740,8 @@ def generateFunctionCallCode(to_name, expression, emit, context):
     argument_values = expression.getArgumentValues()
 
     arg_names = []
-    for count, arg_value in enumerate(argument_values):
-        arg_name = context.allocateTempName("dircall_arg%d" % (count + 1))
+    for count, arg_value in enumerate(argument_values, 1):
+        arg_name = context.allocateTempName("dircall_arg%d" % count)
 
         generateExpressionCode(
             to_name=arg_name, expression=arg_value, emit=emit, context=context
@@ -811,3 +829,16 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     context.setReturnTarget(old_return_target)
     context.setReturnReleaseMode(old_return_release_mode)
     context.setReturnValueName(old_return_value_name)
+
+
+def generateFunctionErrorStrCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="_PyObject_FunctionStr",
+        arg_desc=(("func_arg", expression.subnode_value),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )

@@ -112,6 +112,7 @@ from nuitka.nodes.ConditionalNodes import (
     makeStatementConditional,
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from nuitka.nodes.ExecEvalNodes import (
     ExpressionBuiltinCompile,
     ExpressionBuiltinEval,
@@ -136,7 +137,7 @@ from nuitka.nodes.OperatorNodes import (
 )
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.SliceNodes import ExpressionBuiltinSlice
+from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
     ExpressionBuiltinSuper,
@@ -154,7 +155,6 @@ from nuitka.tree.ReformulationTryFinallyStatements import (
 )
 from nuitka.tree.TreeHelpers import (
     makeCallNode,
-    makeSequenceCreationOrConstant,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
 )
@@ -654,10 +654,16 @@ else:
 
 
 def bool_extractor(node):
+    def makeBool0(source_ref):
+        # pylint: disable=unused-argument
+
+        return makeConstantReplacementNode(constant=bool(), node=node)
+
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
         builtin_class=ExpressionBuiltinBool,
         builtin_spec=BuiltinParameterSpecs.builtin_bool_spec,
+        empty_special_class=makeBool0,
     )
 
 
@@ -911,9 +917,9 @@ def eval_extractor(node):
                         instance=ExpressionTempVariableRef(
                             variable=source_variable, source_ref=source_ref
                         ),
-                        classes=makeSequenceCreationOrConstant(
-                            sequence_kind="tuple",
+                        classes=makeExpressionMakeTupleOrConstant(
                             elements=acceptable_builtin_types,
+                            user_provided=True,
                             source_ref=source_ref,
                         ),
                         source_ref=source_ref,
@@ -1238,7 +1244,7 @@ def slice_extractor(node):
             stop = start
             start = None
 
-        return ExpressionBuiltinSlice(
+        return makeExpressionBuiltinSlice(
             start=start, stop=stop, step=step, source_ref=source_ref
         )
 

@@ -102,7 +102,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
                 Py_INCREF(method->m_object);
 
                 for (Py_ssize_t i = 0; i < %(args_count)d; i++) {
-                    python_pars[i+1] = args[i];
+                    python_pars[i + 1] = args[i];
                     Py_INCREF(args[i]);
                 }
 
@@ -205,7 +205,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
             }
 #endif
 
-            PyObject *result = (*method)( self, args[0] );
+            PyObject *result = (*method)( self, args[0]);
 
 #ifdef _NUITKA_FULL_COMPAT
             Py_LeaveRecursiveCall();
@@ -396,10 +396,9 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
 
             Py_INCREF(dict);
 
-            PyObject *called_object = PyDict_GetItem(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
 
             if (called_object != NULL) {
-                Py_INCREF(called_object);
                 Py_XDECREF(descr);
                 Py_DECREF(dict);
 
@@ -532,8 +531,8 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
             PyErr_Format(
                 PyExc_AttributeError,
                 "%%s instance has no attribute '%%s'",
-                PyString_AS_STRING( source_instance->in_class->cl_name ),
-                PyString_AS_STRING( attr_name )
+                PyString_AS_STRING(source_instance->in_class->cl_name),
+                PyString_AS_STRING(attr_name)
             );
 
             return NULL;

@@ -46,7 +46,8 @@ NUITKA_MAY_BE_UNUSED static inline bool HAS_ITERNEXT(PyObject *value) {
 #endif
 }
 
-// Stolen from CPython implementation, so we can access it.
+// Taken from CPython implementation, so we can access and create it, needs to match
+// their definition exactly.
 typedef struct {
     PyObject_HEAD
 #if PYTHON_VERSION < 340
@@ -57,7 +58,41 @@ typedef struct {
     PyObject *it_seq;
 } seqiterobject;
 
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR_INFALLIBLE(PyObject *iterated) {
+    CHECK_OBJECT(iterated);
+
+#if PYTHON_VERSION < 300
+    getiterfunc tp_iter = NULL;
+    if (PyType_HasFeature(Py_TYPE(iterated), Py_TPFLAGS_HAVE_ITER)) {
+        tp_iter = Py_TYPE(iterated)->tp_iter;
+    }
+#else
+    getiterfunc tp_iter = Py_TYPE(iterated)->tp_iter;
+#endif
+    if (tp_iter) {
+        PyObject *result = (*tp_iter)(iterated);
+        CHECK_OBJECT(result);
+        assert(HAS_ITERNEXT(result));
+
+        return result;
+    } else {
+        assert(PySequence_Check(iterated));
+
+        seqiterobject *result = PyObject_GC_New(seqiterobject, &PySeqIter_Type);
+        assert(result);
+
+        result->it_index = 0;
+        Py_INCREF(iterated);
+        result->it_seq = iterated;
+
+        Nuitka_GC_Track(result);
+
+        return (PyObject *)result;
+    }
+}
+
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR(PyObject *iterated) {
+    CHECK_OBJECT(iterated);
 
 #if PYTHON_VERSION < 300
     getiterfunc tp_iter = NULL;
@@ -103,6 +138,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR(PyObject *iterated) {
 #if PYTHON_VERSION >= 370
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_UNPACK_ITERATOR(PyObject *iterated) {
+    CHECK_OBJECT(iterated);
 
     getiterfunc tp_iter = Py_TYPE(iterated)->tp_iter;
 
@@ -159,16 +195,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT(PyObject *iterator) {
 
     PyObject *result = (*iternext)(iterator);
 
-#if PYTHON_VERSION < 300
-    if (result == NULL) {
-        PyObject *error = GET_ERROR_OCCURRED();
-        if (error) {
-            if (likely(EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_StopIteration))) {
-                CLEAR_ERROR_OCCURRED();
-            }
-        }
-    }
-#endif
+    CHECK_OBJECT_X(result);
 
     return result;
 }
@@ -214,25 +241,27 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2(PyObject *iterator, PyObject
     PyObject *result = (*Py_TYPE(iterator)->tp_iternext)(iterator);
 
     if (unlikely(result == NULL)) {
-        PyObject *error = GET_ERROR_OCCURRED();
+        bool stop_iteration_error = CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED();
 
-        if (error != NULL) {
-            if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_StopIteration)) {
-                DROP_ERROR_OCCURRED();
-
-                Py_INCREF(default_value);
-                return default_value;
-            } else {
-                return NULL;
-            }
-        } else {
-            Py_INCREF(default_value);
-            return default_value;
+        if (unlikely(stop_iteration_error == false)) {
+            return NULL;
         }
-    } else {
-        CHECK_OBJECT(result);
+
+        Py_INCREF(default_value);
+        return default_value;
     }
 
+    CHECK_OBJECT(result);
+    return result;
+}
+
+// For cases, where no exception raising is needed, because we know it at compile time.
+NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT_INFALLIBLE(PyObject *iterator) {
+    CHECK_OBJECT(iterator);
+    assert(HAS_ITERNEXT(iterator));
+
+    PyObject *result = (*Py_TYPE(iterator)->tp_iternext)(iterator);
+    CHECK_OBJECT(result);
     return result;
 }
 
@@ -275,6 +304,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT(PyObject *iterator, int seq_si
 }
 
 #if PYTHON_VERSION >= 350
+// Different error message for starred unpacks
 NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT_STARRED(PyObject *iterator, int seq_size_so_far, int expected) {
     CHECK_OBJECT(iterator);
     assert(HAS_ITERNEXT(iterator));

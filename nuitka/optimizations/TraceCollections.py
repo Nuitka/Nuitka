@@ -32,7 +32,6 @@ from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.nodes.shapes.StandardShapes import tshape_uninit
-from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceLine
 from nuitka.utils.FileOperations import relpath
 from nuitka.utils.InstanceCounters import counted_del, counted_init
@@ -404,10 +403,7 @@ class TraceCollectionBase(object):
                 self.markActiveVariableAsEscaped(variable)
 
             elif variable.isLocalVariable():
-                if (
-                    python_version >= 300
-                    and variable.hasWritesOutsideOf(self.owner) is not False
-                ):
+                if variable.hasAccessesOutsideOf(self.owner) is not False:
                     self.markActiveVariableAsEscaped(variable)
 
     def removeAllKnowledge(self):
@@ -489,7 +485,7 @@ class TraceCollectionBase(object):
         # Now compute this expression, allowing it to replace itself with
         # something else as part of a local peep hole optimization.
         r = expression.computeExpressionRaw(trace_collection=self)
-        assert type(r) is tuple, expression
+        assert type(r) is tuple, (expression, expression.getVisitableNodes(), r)
 
         new_node, change_tags, change_desc = r
 
@@ -527,6 +523,15 @@ class TraceCollectionBase(object):
             raise
 
     def computedStatementResult(self, statement, change_tags, change_desc):
+        """Make sure the replacement statement is computed.
+
+        Use this when a replacement expression needs to be seen by the trace
+        collection and be computed, without causing any duplication, but where
+        otherwise there would be loss of annotated effects.
+
+        This may e.g. be true for nodes that need an initial run to know their
+        exception result and type shape.
+        """
         # Need to compute the replacement still.
         new_statement = statement.computeStatement(self)
 
@@ -537,6 +542,28 @@ class TraceCollectionBase(object):
             return new_statement
         else:
             return statement, change_tags, change_desc
+
+    def computedExpressionResult(self, expression, change_tags, change_desc):
+        """Make sure the replacement expression is computed.
+
+        Use this when a replacement expression needs to be seen by the trace
+        collection and be computed, without causing any duplication, but where
+        otherwise there would be loss of annotated effects.
+
+        This may e.g. be true for nodes that need an initial run to know their
+        exception result and type shape.
+        """
+
+        # Need to compute the replacement still.
+        new_expression = expression.computeExpression(self)
+
+        if new_expression[0] is not expression:
+            # Signal intermediate result as well.
+            self.signalChange(change_tags, expression.getSourceReference(), change_desc)
+
+            return new_expression
+        else:
+            return expression, change_tags, change_desc
 
     def mergeBranches(self, collection_yes, collection_no):
         """Merge two alternative branches into this trace.
@@ -673,7 +700,7 @@ class TraceCollectionBase(object):
         return new_node, change_tags, message
 
     def getIteratorNextCount(self, iter_node):
-        return self.value_states.get(iter_node, None)
+        return self.value_states.get(iter_node)
 
     def initIteratorValue(self, iter_node):
         # TODO: More complex state information will be needed eventually.

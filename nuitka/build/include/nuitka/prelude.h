@@ -244,6 +244,12 @@ extern PyThreadState *_PyThreadState_Current;
 #define Py_LeaveRecursiveCall()
 #endif
 
+#if PYTHON_VERSION < 300
+#define RICHCOMPARE(t) (PyType_HasFeature((t), Py_TPFLAGS_HAVE_RICHCOMPARE) ? (t)->tp_richcompare : NULL)
+#else
+#define RICHCOMPARE(t) ((t)->tp_richcompare)
+#endif
+
 // Generated.
 // TODO: Move generated ones to separate file.
 #ifdef __IDE_ONLY__
@@ -268,12 +274,16 @@ extern PyObject **global_constants;
 #define const_float_minus_1_0 global_constants[9]
 // ''
 #define const_str_empty global_constants[10]
+// b''
+#define const_bytes_empty global_constants[10]
 // '__module__'
 #define const_str_plain___module__ global_constants[11]
 // '__class__'
 #define const_str_plain___class__ global_constants[12]
 // '__name__'
 #define const_str_plain___name__ global_constants[13]
+// '__main__'
+#define const_str_plain___main__ global_constants[13]
 // '__package__'
 #define const_str_plain___package__ global_constants[14]
 // '__metaclass__'

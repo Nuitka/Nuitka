@@ -249,8 +249,8 @@ def executePASS1():
         copyTree(scons_inline_copy_path, os.path.join("nuitka", "build", "inline_copy"))
 
     shutil.copyfile(
-        os.path.join(base_dir, "nuitka", "build", "SingleExe.scons"),
-        os.path.join("nuitka", "build", "SingleExe.scons"),
+        os.path.join(base_dir, "nuitka", "build", "Backend.scons"),
+        os.path.join("nuitka", "build", "Backend.scons"),
     )
     copyTree(
         os.path.join(base_dir, "nuitka", "build", "static_src"),
@@ -437,9 +437,6 @@ def main():
     shutil.rmtree("nuitka")
 
     executePASS5()
-
-    os.unlink(os.path.join(tmp_dir, "nuitka" + exe_suffix))
-    os.rmdir(tmp_dir)
 
 
 if __name__ == "__main__":

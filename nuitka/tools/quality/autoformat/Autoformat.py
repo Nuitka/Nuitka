@@ -246,6 +246,8 @@ def _cleanupImportSortOrder(filename):
                 "-tc",  # Trailing commas
                 "-p",  # make sure nuitka is first party package in import sorting.
                 "nuitka",
+                "-o",
+                "SCons",
                 filename,
             ],
             stdout=devnull,

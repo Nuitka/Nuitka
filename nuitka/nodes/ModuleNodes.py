@@ -156,7 +156,7 @@ class PythonModuleBase(NodeBase):
             all.
 
         """
-        return os.path.abspath(self.getSourceReference().getFilename())
+        return os.path.abspath(self.source_ref.getFilename())
 
     def getCompileTimeDirectory(self):
         """The compile time directory for the module.
@@ -246,7 +246,12 @@ class CompiledPythonModule(
 
         self.variables = {}
 
+        # Functions that have been used.
         self.active_functions = OrderedSet()
+
+        # Functions that should be visited again.
+        self.visited_functions = set()
+
         self.cross_used_functions = OrderedSet()
 
         self.used_modules = OrderedSet()
@@ -262,6 +267,10 @@ class CompiledPythonModule(
         self.locals_scope = getLocalsDictHandle(
             self.module_dict_name, "module_dict", self
         )
+
+    @staticmethod
+    def isCompiledPythonModule():
+        return True
 
     def getDetails(self):
         return {
@@ -350,10 +359,6 @@ class CompiledPythonModule(
 
         return graph
 
-    @staticmethod
-    def isCompiledPythonModule():
-        return True
-
     def getSourceCode(self):
         if self.source_code is not None:
             return self.source_code
@@ -429,6 +434,9 @@ class CompiledPythonModule(
         self.used_modules = OrderedSet()
         self.active_functions = OrderedSet()
 
+    def restartTraversal(self):
+        self.visited_functions = set()
+
     def addUsedModule(self, key):
         self.used_modules.add(key)
 
@@ -446,9 +454,10 @@ class CompiledPythonModule(
             or function_body.isExpressionAsyncgenObjectBody()
         )
 
-        result = function_body not in self.active_functions
-        if result:
-            self.active_functions.add(function_body)
+        self.active_functions.add(function_body)
+
+        result = function_body not in self.visited_functions
+        self.visited_functions.add(function_body)
 
         return result
 
@@ -487,6 +496,8 @@ class CompiledPythonModule(
         return result.replace(")", "").replace("(", "")
 
     def computeModule(self):
+        self.restartTraversal()
+
         old_collection = self.trace_collection
 
         self.trace_collection = TraceCollectionModule(self)
@@ -787,7 +798,7 @@ class PythonShlibModule(PythonModuleBase):
         del self.used_modules
 
     def getFilename(self):
-        return self.getSourceReference().getFilename()
+        return self.source_ref.getFilename()
 
     def startTraversal(self):
         pass

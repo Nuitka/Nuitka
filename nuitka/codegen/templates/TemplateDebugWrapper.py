@@ -21,8 +21,8 @@ This wraps strings with a class derived from "str" that does more checks.
 """
 
 
+from nuitka import Options
 from nuitka.__past__ import iterItems
-from nuitka.Options import isDebug
 
 
 def enableDebug(globals_dict):
@@ -77,5 +77,5 @@ def enableDebug(globals_dict):
 
 
 def checkDebug(globals_dict):
-    if isDebug():
+    if Options.is_debug:
         enableDebug(globals_dict)

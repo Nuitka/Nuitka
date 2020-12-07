@@ -42,6 +42,7 @@ from .ExceptionNodes import (
     ExpressionBuiltinMakeExceptionImportError,
 )
 from .ExpressionBases import CompileTimeConstantExpressionBase
+from .shapes.BuiltinTypeShapes import tshape_exception_class
 
 
 class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
@@ -63,20 +64,23 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
     def getBuiltinName(self):
         return self.builtin_name
 
-    def isKnownToBeHashable(self):
+    @staticmethod
+    def isKnownToBeHashable():
         return True
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         return False
 
     def getStrValue(self):
         return makeConstantRefNode(
             constant=str(self.getCompileTimeConstant()),
             user_provided=True,
-            source_ref=self.getSourceReference(),
+            source_ref=self.source_ref,
         )
 
 
@@ -154,10 +158,8 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
 
         return new_node, tags, message
 
-    def getStringValue(self):
-        return repr(self.getCompileTimeConstant())
-
-    def isKnownToBeIterable(self, count):
+    @staticmethod
+    def isKnownToBeIterable(count):
         # TODO: Why yes, some may be, could be told here.
         return None
 
@@ -201,9 +203,6 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
-    def getStringValue(self):
-        return repr(self.getCompileTimeConstant())
-
 
 class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_EXCEPTION_REF"
@@ -222,11 +221,16 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
 
     getExceptionName = ExpressionBuiltinRefBase.getBuiltinName
 
+    @staticmethod
+    def getTypeShape():
+        return tshape_exception_class
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
     def getCompileTimeConstant(self):
         return builtin_exception_values[self.builtin_name]
-
-    def mayRaiseException(self, exception_type):
-        return False
 
     def computeExpressionRaw(self, trace_collection):
         # Not much that can be done here.

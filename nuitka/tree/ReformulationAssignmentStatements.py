@@ -44,7 +44,11 @@ from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantEllipsisRef,
+    makeConstantRefNode,
+)
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
@@ -56,10 +60,10 @@ from nuitka.nodes.OperatorNodes import (
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SliceNodes import (
-    ExpressionBuiltinSlice,
     ExpressionSliceLookup,
     StatementAssignmentSlice,
     StatementDelSlice,
+    makeExpressionBuiltinSlice,
 )
 from nuitka.nodes.SubscriptNodes import (
     ExpressionSubscriptLookup,
@@ -80,8 +84,6 @@ from .TreeHelpers import (
     buildAnnotationNode,
     buildNode,
     getKind,
-    makeConstantRefNode,
-    makeSequenceCreationOrConstant,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
@@ -101,13 +103,11 @@ def buildExtSliceNode(provider, node, source_ref):
             upper = buildNode(provider, dim.upper, source_ref, True)
             step = buildNode(provider, dim.step, source_ref, True)
 
-            element = ExpressionBuiltinSlice(
+            element = makeExpressionBuiltinSlice(
                 start=lower, stop=upper, step=step, source_ref=source_ref
             )
         elif dim_kind == "Ellipsis":
-            element = ExpressionConstantEllipsisRef(
-                source_ref=source_ref, user_provided=True
-            )
+            element = ExpressionConstantEllipsisRef(source_ref=source_ref)
         elif dim_kind == "Index":
             element = buildNode(
                 provider=provider, node=dim.value, source_ref=source_ref
@@ -117,8 +117,8 @@ def buildExtSliceNode(provider, node, source_ref):
 
         elements.append(element)
 
-    return makeSequenceCreationOrConstant(
-        sequence_kind="tuple", elements=elements, source_ref=source_ref
+    return makeExpressionMakeTupleOrConstant(
+        elements=elements, user_provided=True, source_ref=source_ref
     )
 
 
@@ -139,7 +139,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
 
         return StatementAssignmentAttribute(
             expression=lookup_source,
-            attribute_name=attribute_name,
+            attribute_name=mangleName(attribute_name, provider),
             source=source,
             source_ref=source_ref,
         )
@@ -164,7 +164,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
             return StatementAssignmentSubscript(
                 expression=lookup_source,
                 source=source,
-                subscript=ExpressionBuiltinSlice(
+                subscript=makeExpressionBuiltinSlice(
                     start=lower, stop=upper, step=None, source_ref=source_ref
                 ),
                 source_ref=source_ref,
@@ -201,7 +201,9 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
             if element[0] == "Starred":
                 if starred_index is not None:
                     raiseSyntaxError(
-                        "two starred expressions in assignment",
+                        "two starred expressions in assignment"
+                        if python_version < 390
+                        else "multiple starred expressions in assignment",
                         source_ref.atColumnNumber(0),
                     )
 
@@ -446,7 +448,7 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
                     "Subscript",
                     (
                         buildNode(provider, node.value, source_ref),
-                        ExpressionBuiltinSlice(
+                        makeExpressionBuiltinSlice(
                             start=lower, stop=upper, step=step, source_ref=source_ref
                         ),
                     ),
@@ -656,7 +658,7 @@ def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
 
         return StatementDelAttribute(
             expression=lookup_source,
-            attribute_name=attribute_name,
+            attribute_name=mangleName(attribute_name, provider),
             source_ref=source_ref,
         )
     elif kind == "Subscript":
@@ -673,7 +675,7 @@ def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
         if use_sliceobj:
             return StatementDelSubscript(
                 expression=lookup_source,
-                subscript=ExpressionBuiltinSlice(
+                subscript=makeExpressionBuiltinSlice(
                     start=lower, stop=upper, step=None, source_ref=source_ref
                 ),
                 source_ref=source_ref,
@@ -964,7 +966,7 @@ def _buildInplaceAssignSliceNode(
                     expression=ExpressionTempVariableRef(
                         variable=tmp_variable1, source_ref=source_ref
                     ),
-                    subscript=ExpressionBuiltinSlice(
+                    subscript=makeExpressionBuiltinSlice(
                         start=lower_ref2,
                         stop=upper_ref2,
                         step=None,
@@ -990,7 +992,7 @@ def _buildInplaceAssignSliceNode(
                 expression=ExpressionTempVariableRef(
                     variable=tmp_variable1, source_ref=source_ref
                 ),
-                subscript=ExpressionBuiltinSlice(
+                subscript=makeExpressionBuiltinSlice(
                     start=lower_ref1, stop=upper_ref1, step=None, source_ref=source_ref
                 ),
                 source=ExpressionTempVariableRef(
@@ -1084,7 +1086,7 @@ def buildInplaceAssignNode(provider, node, source_ref):
         statements = _buildInplaceAssignAttributeNode(
             provider=provider,
             lookup_source=lookup_source,
-            attribute_name=attribute_name,
+            attribute_name=mangleName(attribute_name, provider),
             operator=operator,
             expression=expression,
             source_ref=source_ref,

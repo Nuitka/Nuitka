@@ -118,7 +118,8 @@ Side effects printed item promoted to statements.""",
                 )
 
         if value.isCompileTimeConstant():
-            if not (value.isExpressionConstantRef() and value.isUnicodeConstant()):
+            # Avoid unicode encoding issues.
+            if not value.isExpressionConstantUnicodeRef():
                 new_value = value.getStrValue()
                 assert new_value is not None, value
 
@@ -127,7 +128,9 @@ Side effects printed item promoted to statements.""",
 
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
+        # Output may always fail due to external reasons.
         return True
 
 
@@ -164,5 +167,7 @@ Exception raise in 'print' statement destination converted to explicit raise."""
 
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
+        # Output may always fail due to external reasons.
         return True

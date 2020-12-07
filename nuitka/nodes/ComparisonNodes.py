@@ -21,6 +21,7 @@
 
 from nuitka import PythonOperators
 from nuitka.Errors import NuitkaAssumptionError
+from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import (
@@ -28,7 +29,7 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_bool
+from .shapes.BuiltinTypeShapes import tshape_bool, tshape_exception_class
 
 
 class ExpressionComparisonBase(ExpressionChildrenHavingBase):
@@ -320,7 +321,8 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
     def getDetails(self):
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bool
 
     def mayRaiseException(self, exception_type):
@@ -428,7 +430,8 @@ class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
     def getDetails(self):
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bool
 
     def getSimulator(self):
@@ -436,6 +439,18 @@ class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
         assert False
 
         return PythonOperators.all_comparison_functions[self.comparator]
+
+    def mayRaiseExceptionComparison(self):
+        if python_version < 300:
+            return False
+
+        # TODO: Add shape for exceptions.
+        type_shape = self.subnode_right.getTypeShape()
+
+        if type_shape is tshape_exception_class:
+            return False
+
+        return True
 
 
 class ExpressionComparisonExceptionMatch(ExpressionComparisonExceptionMatchBase):
@@ -461,7 +476,8 @@ class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
     def getDetails(self):
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bool
 
     def mayRaiseException(self, exception_type):
@@ -477,7 +493,8 @@ class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
 
         return right.mayRaiseExceptionIn(exception_type, left)
 
-    def mayRaiseExceptionBool(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
         return False
 
     def computeExpression(self, trace_collection):

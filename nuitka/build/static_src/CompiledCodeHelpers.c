@@ -29,9 +29,11 @@
 
 #include "HelpersBuiltin.c"
 #include "HelpersClasses.c"
+#include "HelpersDictionaries.c"
 #include "HelpersExceptions.c"
 #include "HelpersHeapStorage.c"
 #include "HelpersImport.c"
+#include "HelpersRaising.c"
 #include "HelpersStrings.c"
 
 void copyStringSafe(char *buffer, char const *source, size_t buffer_size) {
@@ -1059,7 +1061,7 @@ static bool set_bases(PyClassObject *klass, PyObject *value) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__bases__ must be a tuple object");
         return false;
     } else {
-        Py_ssize_t n = PyTuple_Size(value);
+        Py_ssize_t n = PyTuple_GET_SIZE(value);
 
         for (Py_ssize_t i = 0; i < n; i++) {
             PyObject *base = PyTuple_GET_ITEM(value, i);
@@ -1662,6 +1664,24 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
 #include <sys/sysctl.h>
 #endif
 
+PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
+    static PyObject *sep_object = NULL;
+
+    if (sep_object == NULL) {
+        static char const sep[2] = {SEP, 0};
+        sep_object = Nuitka_String_FromString(sep);
+    }
+
+    // Avoid string APIs, so str, unicode doesn't matter for input.
+    PyObject *result = PyNumber_Add(dirname, sep_object);
+    CHECK_OBJECT(result);
+
+    result = PyNumber_InPlaceAdd(result, filename);
+    CHECK_OBJECT(result);
+
+    return result;
+}
+
 #if defined(_NUITKA_EXE)
 
 #ifndef _WIN32
@@ -1722,6 +1742,25 @@ char const *getBinaryDirectoryHostEncoded() {
 }
 #endif
 
+#if defined(_WIN32)
+// Replacement for RemoveFileSpecW, slightly smaller.
+static void stripFilenameW(wchar_t *path) {
+    wchar_t *last_slash = NULL;
+
+    while (*path != 0) {
+        if (*path == L'\\') {
+            last_slash = path;
+        }
+
+        path++;
+    }
+
+    if (last_slash != NULL) {
+        *last_slash = 0;
+    }
+}
+#endif
+
 wchar_t const *getBinaryDirectoryWideChars() {
     static wchar_t binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
@@ -1733,7 +1772,7 @@ wchar_t const *getBinaryDirectoryWideChars() {
         DWORD res = GetModuleFileNameW(NULL, binary_directory, sizeof(binary_directory));
         assert(res != 0);
 
-        PathRemoveFileSpecW(binary_directory);
+        stripFilenameW(binary_directory);
 
         // Query length of result first.
         DWORD length = GetShortPathNameW(binary_directory, NULL, 0);
@@ -1822,12 +1861,8 @@ static PyObject *getBinaryDirectoryObject() {
 #ifdef _NUITKA_STANDALONE
 // Helper function to create path.
 PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
-    PyObject *dir_name = PyObject_Unicode(getBinaryDirectoryObject());
-    char sep[2] = {SEP, 0};
-    PyObject *tmp = PyUnicode_Concat(dir_name, PyUnicode_FromString(sep));
-    Py_DECREF(dir_name);
-    PyObject *sys_executable = PyUnicode_Concat(tmp, PyObject_Unicode(basename));
-    Py_DECREF(tmp);
+    PyObject *dir_name = getBinaryDirectoryObject();
+    PyObject *sys_executable = JOIN_PATH2(dir_name, basename);
 
     return sys_executable;
 }
@@ -1852,6 +1887,25 @@ static HMODULE getDllModuleHandle() {
 }
 #endif
 
+#if defined(_WIN32)
+// Replacement for RemoveFileSpecA, slightly smaller.
+static void stripFilenameA(char *path) {
+    char *last_slash = NULL;
+
+    while (*path != 0) {
+        if (*path == '\\') {
+            last_slash = path;
+        }
+
+        path++;
+    }
+
+    if (last_slash != NULL) {
+        *last_slash = 0;
+    }
+}
+#endif
+
 static char const *getDllDirectory() {
 #if defined(_WIN32)
     static char path[MAXPATHLEN + 1];
@@ -1870,7 +1924,8 @@ static char const *getDllDirectory() {
     int res = GetModuleFileNameA(getDllModuleHandle(), path, MAXPATHLEN + 1);
     assert(res != 0);
 #endif
-    PathRemoveFileSpec(path);
+
+    stripFilenameA(path);
 
     return path;
 
@@ -1949,16 +2004,7 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
 #endif
     }
 
-    char sep[2] = {SEP, 0};
-
-    PyObject *result = PyNumber_Add(our_path_object, Nuitka_String_FromString(sep));
-    CHECK_OBJECT(result);
-
-    result = PyNumber_InPlaceAdd(result, relative);
-
-    CHECK_OBJECT(result);
-
-    return result;
+    return JOIN_PATH2(our_path_object, relative);
 }
 
 #ifdef _NUITKA_EXE
@@ -2026,6 +2072,7 @@ void _initSlotIternext() {
 #include "HelpersDeepcopy.c"
 
 #include "HelpersAttributes.c"
+#include "HelpersLists.c"
 
 #include "HelpersOperationBinaryAdd.c"
 #include "HelpersOperationBinaryBitand.c"

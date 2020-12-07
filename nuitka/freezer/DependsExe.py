@@ -21,18 +21,9 @@ We use depends.exe to investigate needed DLLs of Python DLLs.
 
 """
 
-import os
-import sys
-
-from nuitka import Tracing
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    raw_input,
-    urlretrieve,
-)
 from nuitka.Options import assumeYesForDownloads
-from nuitka.utils import Utils
-from nuitka.utils.AppDirs import getAppDir
-from nuitka.utils.FileOperations import deleteFile, makePath
+from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.Utils import getArchitecture
 
 
 def getDependsExePath():
@@ -41,68 +32,20 @@ def getDependsExePath():
     Will prompt the user to download if not already cached in AppData
     directory for Nuitka.
     """
-    if Utils.getArchitecture() == "x86":
+    if getArchitecture() == "x86":
         depends_url = "http://dependencywalker.com/depends22_x86.zip"
     else:
         depends_url = "http://dependencywalker.com/depends22_x64.zip"
 
-    nuitka_app_dir = getAppDir()
-
-    nuitka_depends_dir = os.path.join(nuitka_app_dir, Utils.getArchitecture())
-    nuitka_depends_zip = os.path.join(nuitka_depends_dir, os.path.basename(depends_url))
-    depends_exe = os.path.join(nuitka_depends_dir, "depends.exe")
-    makePath(nuitka_depends_dir)
-
-    if not os.path.isfile(nuitka_depends_zip) and not os.path.isfile(depends_exe):
-        if assumeYesForDownloads():
-            reply = "y"
-        else:
-            Tracing.printLine(
-                """\
+    return getCachedDownload(
+        url=depends_url,
+        is_arch_specific=True,
+        binary="depends.exe",
+        flatten=True,
+        specifity="",  # Note: If there ever was an update, put version here.
+        message="""\
 Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
-to analyze the dependencies of Python extension modules. Is it OK to download
-and put it in "%s".
-No installer needed, cached, one time question.
-
-Proceed and download? [Yes]/No """
-                % (nuitka_app_dir)
-            )
-            Tracing.flushStandardOutputs()
-
-            reply = raw_input()
-
-        if reply.lower() in ("no", "n"):
-            sys.exit("Nuitka does not work in --standalone on Windows without.")
-
-        Tracing.general.info("Downloading '%s'" % depends_url)
-
-        try:
-            urlretrieve(depends_url, nuitka_depends_zip)
-        except Exception:  # Any kind of error, pylint: disable=broad-except
-            sys.exit(
-                """Failed to download '%s'.\
-Contents should manually be extracted to '%s'."""
-                % (depends_url, nuitka_depends_dir)
-            )
-
-    if not os.path.isfile(depends_exe):
-        Tracing.general.info("Extracting to '%s'" % depends_exe)
-
-        import zipfile
-
-        try:
-            depends_zip = zipfile.ZipFile(nuitka_depends_zip)
-            depends_zip.extractall(nuitka_depends_dir)
-        except Exception:  # Catching anything zip throws, pylint: disable=broad-except
-            Tracing.general.info("Problem with the downloaded zip file, deleting it.")
-
-            deleteFile(depends_exe, must_exist=False)
-            deleteFile(nuitka_depends_zip, must_exist=True)
-
-            sys.exit(
-                "Error, need '%s' as extracted from '%s'." % (depends_exe, depends_url)
-            )
-
-    assert os.path.isfile(depends_exe)
-
-    return depends_exe
+to analyze the dependencies of Python extension modules.""",
+        reject="Nuitka does not work in --standalone on Windows without.",
+        assume_yes_for_downloads=assumeYesForDownloads(),
+    )

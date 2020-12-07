@@ -19,11 +19,65 @@
 
 """
 
+from __future__ import print_function
+
 import os
+import shutil
 import signal
+import subprocess
 import sys
 
+from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.Tracing import scons_logger
+
+
+def initScons():
+    # Avoid localized outputs.
+    os.environ["LANG"] = "C"
+
+
+scons_arguments = {}
+
+
+def setArguments(arguments):
+    """ Decode command line arguments. """
+
+    arg_encoding = arguments.get("argument_encoding")
+
+    for key, value in arguments.items():
+        if arg_encoding is not None:
+            value = decodeData(value)
+        scons_arguments[key] = value
+
+
+def getArgumentRequired(name):
+    """ Helper for string options without default value. """
+    return scons_arguments[name]
+
+
+def getArgumentDefaulted(name, default):
+    """ Helper for string options with default value. """
+    return scons_arguments.get(name, default)
+
+
+def getArgumentBool(option_name, default=None):
+    """ Small helper for boolean mode flags."""
+    if default is None:
+        value = scons_arguments[option_name]
+    else:
+        value = scons_arguments.get(option_name, "True" if default else "False")
+
+    return value.lower() in ("yes", "true", "1")
+
+
+def getArgumentList(option_name, default=None):
+    """ Small helper for list mode options, default should be command separated str."""
+    if default is None:
+        value = scons_arguments[option_name]
+    else:
+        value = scons_arguments.get(option_name, default)
+
+    return value.split(",")
 
 
 def decodeData(data):
@@ -97,6 +151,10 @@ def setEnvironmentVariable(env, key, value):
 
 
 def addToPATH(env, dirname, prefix):
+    # Otherwise subprocess will complain in Python2
+    if str is bytes and type(dirname) is unicode:
+        dirname = dirname.encode("utf8")
+
     path_value = os.environ["PATH"].split(os.pathsep)
 
     if prefix:
@@ -107,14 +165,31 @@ def addToPATH(env, dirname, prefix):
     setEnvironmentVariable(env, "PATH", os.pathsep.join(path_value))
 
 
-scons_report = None
+def writeSconsReport(source_dir, env, gcc_mode, clang_mode, msvc_mode):
+    with open(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
+        # We are friends to get at this debug info, pylint: disable=protected-access
+        for key, value in sorted(env._dict.items()):
+            if type(value) is not str:
+                continue
+
+            if key.startswith(("_", "CONFIGURE")):
+                continue
+
+            if key in ("MSVSSCONS", "BUILD_DIR"):
+                continue
+
+            print(key + "=" + value, file=report_file)
+
+        print("gcc_mode=%s" % gcc_mode, file=report_file)
+        print("clang_mode=%s" % clang_mode, file=report_file)
+        print("msvc_mode=%s" % msvc_mode, file=report_file)
+
+
+scons_reports = {}
 
 
 def readSconsReport(source_dir):
-    # singleton, pylint: disable=global-statement
-    global scons_report
-
-    if scons_report is None:
+    if source_dir not in scons_reports:
         scons_report = {}
 
         for line in open(os.path.join(source_dir, "scons-report.txt")):
@@ -125,7 +200,9 @@ def readSconsReport(source_dir):
 
             scons_report[key] = value
 
-    return scons_report
+        scons_reports[source_dir] = scons_report
+
+    return scons_reports[source_dir]
 
 
 def getSconsReportValue(source_dir, key):
@@ -154,3 +231,186 @@ def addClangClPathFromMSVC(env, target_arch, show_scons_mode):
     else:
         if show_scons_mode:
             scons_logger.info("No Clang component for MSVC found." % clang_dir)
+
+
+def isGccName(cc_name):
+    return "gcc" in cc_name or "g++" in cc_name or "gnu-cc" in cc_name
+
+
+def cheapCopyFile(src, dst):
+    dirname = os.path.dirname(dst)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+    if win_target:
+        # Windows has symlinks these days, but they do not integrate well
+        # with Python2 at least. So make a copy in any case.
+        if os.path.exists(dst):
+            os.unlink(dst)
+        shutil.copy(src, dst)
+    else:
+        # Relative paths work badly for links. Creating them relative is
+        # not worth the effort.
+        src = os.path.abspath(src)
+
+        try:
+            link_target = os.readlink(dst)
+
+            # If it's already a proper link, do nothing then.
+            if link_target == src:
+                return
+
+            os.unlink(dst)
+        except OSError as _e:
+            # Broken links work like that, remove them, so we can replace
+            # them.
+            try:
+                os.unlink(dst)
+            except OSError:
+                pass
+
+        try:
+            os.symlink(src, dst)
+        except OSError:
+            shutil.copy(src, dst)
+
+
+def makeCLiteral(value):
+    value = value.replace("\\", r"\\")
+    value = value.replace('"', r"\"")
+
+    return '"' + value + '"'
+
+
+def createDefinitionsFile(source_dir, filename, definitions):
+    build_definitions_filename = os.path.join(source_dir, filename)
+
+    with open(build_definitions_filename, "w") as f:
+        for key, value in sorted(definitions.items()):
+            if type(value) is int:
+                f.write("#define %s %s\n" % (key, value))
+            else:
+                f.write("#define %s %s\n" % (key, makeCLiteral(value)))
+
+
+def getMsvcVersionString(env):
+    import SCons.Tool.MSCommon.vc  # pylint: disable=I0021,import-error
+
+    return SCons.Tool.MSCommon.vc.get_default_version(env)
+
+
+def getMsvcVersion(env):
+    value = getMsvcVersionString(env)
+
+    value = value.replace("exp", "")
+    return float(value)
+
+
+def _getBinaryArch(binary, mingw_mode):
+    if "linux" in sys.platform or mingw_mode:
+        assert os.path.exists(binary), binary
+
+        command = ["objdump", "-f", binary]
+
+        try:
+            proc = subprocess.Popen(
+                command,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                shell=False,
+            )
+        except OSError:
+            return None
+
+        data, _err = proc.communicate()
+        rv = proc.wait()
+
+        if rv != 0:
+            return None
+
+        if str is not bytes:
+            data = decodeData(data)
+
+        for line in data.splitlines():
+            if " file format " in line:
+                return line.split(" file format ")[-1]
+    else:
+        # TODO: Missing for macOS, FreeBSD, other Linux
+        return None
+
+
+_linker_arch_determined = False
+_linker_arch = None
+
+
+def getLinkerArch(target_arch, mingw_mode):
+    # Singleton, pylint: disable=global-statement
+    global _linker_arch_determined, _linker_arch
+
+    if not _linker_arch_determined:
+        if win_target:
+            if target_arch == "x86_64":
+                _linker_arch = "pei-x86-64"
+            else:
+                _linker_arch = "pei-i386"
+        else:
+            _linker_arch = _getBinaryArch(
+                binary=os.environ["NUITKA_PYTHON_EXE_PATH"], mingw_mode=mingw_mode
+            )
+
+        _linker_arch_determined = True
+
+    return _linker_arch
+
+
+_compiler_arch = {}
+
+
+def getCompilerArch(mingw_mode, msvc_mode, the_cc_name, compiler_path):
+    if mingw_mode:
+        if compiler_path not in _compiler_arch:
+            _compiler_arch[compiler_path] = _getBinaryArch(
+                binary=compiler_path, mingw_mode=mingw_mode
+            )
+    elif msvc_mode:
+        cmdline = [compiler_path]
+
+        if "-cl" in the_cc_name:
+            cmdline.append("--version")
+
+        proc = subprocess.Popen(
+            cmdline,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+        )
+
+        # The cl.exe without further args will give error output indicating
+        # arch, while clang outputs in stdout.
+        stdout, stderr = proc.communicate()
+        _rv = proc.wait()
+
+        if b"x86" in stderr or b"i686" in stdout:
+            _compiler_arch[compiler_path] = "pei-i386"
+        elif b"x64" in stderr or b"x86_64" in stdout:
+            _compiler_arch[compiler_path] = "pei-x86-64"
+        else:
+            assert False, (stdout, stderr)
+    else:
+        assert False, compiler_path
+
+    return _compiler_arch[compiler_path]
+
+
+def decideArchMismatch(target_arch, mingw_mode, msvc_mode, the_cc_name, compiler_path):
+    linker_arch = getLinkerArch(target_arch=target_arch, mingw_mode=mingw_mode)
+    compiler_arch = getCompilerArch(
+        mingw_mode=mingw_mode,
+        msvc_mode=msvc_mode,
+        the_cc_name=the_cc_name,
+        compiler_path=compiler_path,
+    )
+
+    return linker_arch != compiler_arch, linker_arch, compiler_arch

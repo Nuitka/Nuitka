@@ -75,7 +75,8 @@ class StatementAssignmentVariableName(StatementChildHavingBase):
         # tree building.
         assert False
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "variable assignment statement"
 
 
@@ -410,7 +411,8 @@ Removed assignment of %s from itself which is known to be defined."""
         else:
             return None
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "variable assignment statement"
 
     def getTypeShape(self):

@@ -265,9 +265,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             parent.replaceChild(node, new_node)
 
     def onEnterNode(self, node):
-        # Mighty complex code with lots of branches and statements, but it
-        # couldn't be less without making it more difficult.
-        # pylint: disable=too-many-branches,too-many-statements
+        # Mighty complex code with lots of branches, but we aim to get rid of it.
+        # pylint: disable=too-many-branches
 
         if node.isExpressionVariableNameRef():
             provider = node.provider
@@ -335,36 +334,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             # after they were declared, so we need to fix this up.
             if python_version >= 340:
                 self._handleQualnameSetup(node)
-        # Attribute access of names of class functions should be mangled, if
-        # they start with "__", but do not end in "__" as well.
-        elif (
-            node.isExpressionAttributeLookup()
-            or node.isStatementAssignmentAttribute()
-            or node.isStatementDelAttribute()
-        ):
-            attribute_name = node.getAttributeName()
-
-            if attribute_name.startswith("__") and not attribute_name.endswith("__"):
-                seen_function = False
-
-                current = node
-
-                while True:
-                    current = current.getParentVariableProvider()
-
-                    if current.isCompiledPythonModule():
-                        break
-
-                    if current.isExpressionClassBody():
-                        if seen_function:
-                            node.setAttributeName(
-                                "_%s%s"
-                                % (current.getName().lstrip("_"), attribute_name)
-                            )
-
-                        break
-
-                    seen_function = True
         # Check if continue and break are properly in loops. If not, raise a
         # syntax error.
         elif node.isStatementLoopBreak() or node.isStatementLoopContinue():

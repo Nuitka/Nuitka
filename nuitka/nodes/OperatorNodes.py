@@ -45,7 +45,16 @@ from .shapes.StandardShapes import (
 )
 
 
-class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
+class ExpressionPropertiesFromTypeShapeMixin(object):
+    """Given a self.type_shape, this can derive default properties from there."""
+
+    def isKnownToBeHashable(self):
+        return self.type_shape.hasShapeSlotHash()
+
+
+class ExpressionOperationBinaryBase(
+    ExpressionPropertiesFromTypeShapeMixin, ExpressionChildrenHavingBase
+):
     """Base class for all binary operation expression."""
 
     named_children = ("left", "right")
@@ -93,7 +102,7 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
         )
 
     def mayRaiseException(self, exception_type):
-        # TODO: Match more precisely
+        # TODO: Match getExceptionExit() more precisely against exception type given
         return (
             self.escape_desc is None
             or self.escape_desc.getExceptionExit() is not None
@@ -643,7 +652,8 @@ class ExpressionOperationNot(ExpressionOperationUnaryBase):
             self, operator="Not", operand=operand, source_ref=source_ref
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bool
 
     def getDetails(self):
@@ -796,7 +806,7 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
                 self.operator[1:], left, right, self.source_ref
             )
 
-            return (
+            return trace_collection.computedExpressionResult(
                 result,
                 "new_expression",
                 "Lowered inplace-operator '%s' to binary operation." % self.operator,
@@ -925,9 +935,18 @@ class ExpressionOperationInplaceBitOr(ExpressionOperationBinaryInplaceBase):
     operator = "IBitOr"
     simulator = PythonOperators.binary_operator_functions[operator]
 
-    @staticmethod
-    def _getOperationShape(left_shape, right_shape):
-        return left_shape.getOperationBinaryBitOrShape(right_shape)
+    # No inplace bitor special handling before 3.9
+    if python_version < 390:
+
+        @staticmethod
+        def _getOperationShape(left_shape, right_shape):
+            return left_shape.getOperationBinaryBitOrShape(right_shape)
+
+    else:
+
+        @staticmethod
+        def _getOperationShape(left_shape, right_shape):
+            return left_shape.getOperationInplaceBitOrShape(right_shape)
 
 
 class ExpressionOperationInplaceBitAnd(ExpressionOperationBinaryInplaceBase):

@@ -28,8 +28,13 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import hasActivePlugin
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.utils import Execution
-from nuitka.utils.FileOperations import getFileList, listDir, makePath
-from nuitka.utils.Utils import isWin32Windows
+from nuitka.utils.FileOperations import (
+    getFileList,
+    listDir,
+    makePath,
+    putTextFileContents,
+)
+from nuitka.utils.Utils import getOS, isWin32Windows
 
 
 def getNumpyCoreBinaries(module):
@@ -48,7 +53,7 @@ def getNumpyCoreBinaries(module):
     binaries = []
 
     # first look in numpy/.libs for binaries
-    libdir = os.path.join(numpy_dir, ".libs")
+    libdir = os.path.join(numpy_dir, ".libs" if getOS() == "Darwin" else ".dylibs")
     suffix_start = len(libdir) + 1
     if os.path.isdir(libdir):
         dlls_pkg = os.listdir(libdir)
@@ -90,7 +95,7 @@ def getNumpyCoreBinaries(module):
     return binaries
 
 
-def getMatplotlibRc():
+def _getMatplotlibInfo():
     """Determine the filename of matplotlibrc and the default backend.
 
     Notes:
@@ -99,58 +104,73 @@ def getMatplotlibRc():
     """
     cmd = """\
 from __future__ import print_function
-from matplotlib import matplotlib_fname, get_backend
+from matplotlib import matplotlib_fname, get_backend, _get_data_path, __version__
 print(matplotlib_fname())
 print(get_backend())
+print(_get_data_path())
+print(__version__)
 """
 
     feedback = Execution.check_output([sys.executable, "-c", cmd])
 
     if str is not bytes:  # ensure str in Py3 and up
-        feedback = feedback.decode()
+        feedback = feedback.decode("utf8")
+
     feedback = feedback.replace("\r", "")
-    matplotlibrc, backend = feedback.splitlines()
-    return matplotlibrc, backend
+    (
+        matplotlibrc_filename,
+        backend,
+        data_path,
+        matplotlib_version,
+    ) = feedback.splitlines()
+    return matplotlibrc_filename, backend, data_path, matplotlib_version
 
 
-def copyMplDataFiles(module, dist_dir):
+def copyMplDataFiles(data_dir, dist_dir):
     """ Write matplotlib data files ('mpl-data')."""
 
-    data_dir = os.path.join(module.getCompileTimeDirectory(), "mpl-data")  # must exist
+    matplotlibrc, backend, data_dir, matplotlib_version = _getMatplotlibInfo()
     if not os.path.isdir(data_dir):
         sys.exit("mpl-data missing: matplotlib installation is broken")
 
-    matplotlibrc, backend = getMatplotlibRc()  # get matplotlibrc, backend
+    for fullname in getFileList(data_dir):  # copy data files to dist folder
+        filename = os.path.relpath(fullname, data_dir)
 
-    prefix = os.path.join("matplotlib", "mpl-data")
-    for item in getFileList(data_dir):  # copy data files to dist folder
-        if item.endswith("matplotlibrc"):  # handle config separately
+        if filename.endswith("matplotlibrc"):  # handle config separately
             continue
-        idx = item.find(prefix)  # need string starting with 'matplotlib/mpl-data'
-        tar_file = os.path.join(dist_dir, item[idx:])
-        makePath(os.path.dirname(tar_file))  # create intermediate folders
-        shutil.copyfile(item, tar_file)
+
+        target_filename = os.path.join(dist_dir, "mpl-data", filename)
+
+        makePath(os.path.dirname(target_filename))  # create intermediate folders
+        shutil.copyfile(fullname, target_filename)
 
     old_lines = open(matplotlibrc).read().splitlines()  # old config file lines
-    new_lines = ["# modified by Nuitka plugin 'numpy'"]  # new config file lines
+    new_lines = []  # new config file lines
+
     found = False  # checks whether backend definition encountered
     for line in old_lines:
-        line = line.strip()  # omit meaningless lines
-        if line.startswith("#") or line == "":
-            continue
-        new_lines.append(line)
-        if line.startswith(("backend ", "backend:")):
-            found = True  # old config file has a backend definition
-            new_lines.append("# backend definition copied from installation")
+        line = line.strip()
 
-    if not found:
-        # get the string from interpreted mode and insert it in matplotlibrc
+        if line == "":
+            continue
+
+        # omit meaningless lines
+        if line.startswith("#") and matplotlib_version < "3":
+            continue
+
+        new_lines.append(line)
+
+        if line.startswith(("backend ", "backend:")):
+            # old config file has a backend definition
+            found = True
+
+    if not found and matplotlib_version < "3":
+        # Set the backend, so even if it was run time determined, we now enforce it.
         new_lines.append("backend: %s" % backend)
 
-    matplotlibrc = os.path.join(dist_dir, prefix, "matplotlibrc")
-    outfile = open(matplotlibrc, "w")
-    outfile.write("\n".join(new_lines))
-    outfile.close()
+    matplotlibrc_filename = os.path.join(dist_dir, "mpl-data", "matplotlibrc")
+
+    putTextFileContents(filename=matplotlibrc_filename, contents=new_lines)
 
 
 class NumpyPlugin(NuitkaPluginBase):
@@ -359,6 +379,32 @@ Should matplotlib not be be included with numpy, Default is %default.""",
 
             if module_name == "matplotlib.backends.backend_agg":
                 return True, "Needed as standard backend"
+
+    def createPreModuleLoadCode(self, module):
+        """Method called when a module is being imported.
+
+        Notes:
+            If full name equals "matplotlib" we insert code to set the
+            environment variable that Debian versions of matplotlib
+            use.
+
+        Args:
+            module: the module object
+        Returns:
+            Code to insert and descriptive text (tuple), or (None, None).
+        """
+
+        if not self.matplotlib or module.getFullName() != "matplotlib":
+            return None, None  # not for us
+
+        code = """\
+import os
+os.environ["MATPLOTLIBDATA"] = os.path.join(__nuitka_binary_dir, "mpl-data")
+"""
+        return (
+            code,
+            "Setting 'MATPLOTLIBDATA' environment variable for matplotlib to find package data.",
+        )
 
 
 class NumpyPluginDetector(NuitkaPluginBase):

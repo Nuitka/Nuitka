@@ -550,7 +550,7 @@ branches.""",
             trace_collection.signalChange(
                 tags="new_statements",
                 source_ref=yes_branch.source_ref,
-                message="Removed conditional branch not taken due to false condition value.",
+                message="Removed conditional branch that cannot be taken due to false condition value.",
             )
 
             yes_branch.finalize()
@@ -561,7 +561,7 @@ branches.""",
             trace_collection.signalChange(
                 tags="new_statements",
                 source_ref=no_branch.source_ref,
-                message="Removed 'else' branch not taken due to true condition value.",
+                message="Removed 'else' branch that cannot be taken due to true condition value.",
             )
 
             no_branch.finalize()
@@ -692,7 +692,7 @@ Condition for branch statement was predicted to be always %s."""
                 ),
                 yes_branch=no_branch,
                 no_branch=None,
-                source_ref=self.getSourceReference(),
+                source_ref=self.source_ref,
             )
 
             del self.parent
@@ -745,7 +745,8 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
 
         return False
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "branch statement"
 
 

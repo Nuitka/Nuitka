@@ -508,7 +508,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL(PyObject *exception_
     /* Note: Exact matching tuples seems to needed, despite using GET_ITEM later
        on, this probably cannot be overloaded that deep. */
     if (PyTuple_Check(exception_checked)) {
-        Py_ssize_t length = PyTuple_Size(exception_checked);
+        Py_ssize_t length = PyTuple_GET_SIZE(exception_checked);
 
         for (Py_ssize_t i = 0; i < length; i += 1) {
             PyObject *element = PyTuple_GET_ITEM(exception_checked, i);
@@ -556,12 +556,24 @@ NUITKA_MAY_BE_UNUSED static inline void ADD_EXCEPTION_CONTEXT(PyObject **excepti
 
 */
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(void) {
-    PyObject *error = GET_ERROR_OCCURRED();
+    PyThreadState *tstate = PyThreadState_GET();
 
-    if (error == NULL) {
+    if (tstate->curexc_type == NULL) {
         return true;
-    } else if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_StopIteration)) {
-        CLEAR_ERROR_OCCURRED();
+    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate->curexc_type, PyExc_StopIteration)) {
+        // Clear the exception first, we know it doesn't have side effects.
+        Py_DECREF(tstate->curexc_type);
+        tstate->curexc_type = NULL;
+
+        PyObject *old_value = tstate->curexc_value;
+        PyObject *old_tb = tstate->curexc_traceback;
+
+        tstate->curexc_value = NULL;
+        tstate->curexc_traceback = NULL;
+
+        Py_XDECREF(old_value);
+        Py_XDECREF(old_tb);
+
         return true;
     } else {
         return false;
@@ -575,34 +587,28 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(void) {
 
 */
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(void) {
-    PyObject *error = GET_ERROR_OCCURRED();
+    PyThreadState *tstate = PyThreadState_GET();
 
-    if (error == NULL) {
+    if (tstate->curexc_type == NULL) {
         return true;
-    } else if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_KeyError)) {
-        CLEAR_ERROR_OCCURRED();
+    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate->curexc_type, PyExc_KeyError)) {
+        // Clear the exception first, we know it doesn't have side effects.
+        Py_DECREF(tstate->curexc_type);
+        tstate->curexc_type = NULL;
+
+        PyObject *old_value = tstate->curexc_value;
+        PyObject *old_tb = tstate->curexc_traceback;
+
+        tstate->curexc_value = NULL;
+        tstate->curexc_traceback = NULL;
+
+        Py_XDECREF(old_value);
+        Py_XDECREF(old_tb);
+
         return true;
     } else {
         return false;
     }
-}
-
-NUITKA_MAY_BE_UNUSED static inline void FORMAT_TYPE_ERROR1(PyObject **exception_type, PyObject **exception_value,
-                                                           char const *format, char const *arg) {
-    *exception_type = PyExc_TypeError;
-    Py_INCREF(*exception_type);
-
-    *exception_value = Nuitka_String_FromFormat(format, arg);
-    CHECK_OBJECT(*exception_value);
-}
-
-NUITKA_MAY_BE_UNUSED static inline void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exception_value,
-                                                           char const *format, char const *arg1, char const *arg2) {
-    *exception_type = PyExc_TypeError;
-    Py_INCREF(*exception_type);
-
-    *exception_value = Nuitka_String_FromFormat(format, arg1, arg2);
-    CHECK_OBJECT(*exception_value);
 }
 
 // Format a NameError exception for a variable name.

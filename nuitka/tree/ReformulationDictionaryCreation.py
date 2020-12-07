@@ -36,11 +36,13 @@ from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
     ExpressionKeyValuePair,
-    ExpressionMakeDict,
     StatementDictOperationUpdate,
+    makeExpressionMakeDict,
+    makeExpressionMakeDictOrConstant,
+    makeExpressionPairs,
 )
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
@@ -72,7 +74,6 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildNode,
     buildNodeList,
-    makeDictCreationOrConstant,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
 )
@@ -86,9 +87,12 @@ def buildDictionaryNode(provider, node, source_ref):
                     provider=provider, node=node, source_ref=source_ref
                 )
 
-    return makeDictCreationOrConstant(
-        keys=buildNodeList(provider, node.keys, source_ref),
-        values=buildNodeList(provider, node.values, source_ref),
+    return makeExpressionMakeDictOrConstant(
+        pairs=makeExpressionPairs(
+            keys=buildNodeList(provider, node.keys, source_ref),
+            values=buildNodeList(provider, node.values, source_ref),
+        ),
+        user_provided=True,
         source_ref=source_ref,
     )
 
@@ -155,7 +159,7 @@ def getDictUnpackingHelper():
                                 source_ref=internal_source_ref,
                                 user_provided=True,
                             ),
-                            right=ExpressionMakeTuple(
+                            right=makeExpressionMakeTuple(
                                 elements=(
                                     ExpressionAttributeLookup(
                                         expression=ExpressionBuiltinType1(
@@ -248,7 +252,7 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
             result.append(buildNode(provider, value, source_ref))
         elif type(key) is str:
             result.append(
-                ExpressionMakeDict(
+                makeExpressionMakeDict(
                     pairs=(
                         ExpressionKeyValuePair(
                             key=makeConstantRefNode(
@@ -263,7 +267,7 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
             )
         else:
             result.append(
-                ExpressionMakeDict(
+                makeExpressionMakeDict(
                     pairs=(
                         ExpressionKeyValuePair(
                             key=buildNode(provider, key, source_ref),
@@ -293,7 +297,7 @@ def buildDictionaryUnpacking(provider, node, source_ref):
             annotations=None,
             source_ref=source_ref,
         ),
-        values=(ExpressionMakeTuple(helper_args, source_ref),),
+        values=(makeExpressionMakeTuple(helper_args, source_ref),),
         source_ref=source_ref,
     )
 

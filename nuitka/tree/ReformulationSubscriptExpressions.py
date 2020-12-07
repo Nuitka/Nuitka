@@ -28,8 +28,8 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
 from nuitka.nodes.SliceNodes import (
-    ExpressionBuiltinSlice,
     ExpressionSliceLookup,
+    makeExpressionBuiltinSlice,
 )
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.PythonVersions import python_version
@@ -87,7 +87,7 @@ def buildSubscriptNode(provider, node, source_ref):
         if use_sliceobj:
             return ExpressionSubscriptLookup(
                 expression=buildNode(provider, node.value, source_ref),
-                subscript=ExpressionBuiltinSlice(
+                subscript=makeExpressionBuiltinSlice(
                     start=lower, stop=upper, step=step, source_ref=source_ref
                 ),
                 source_ref=source_ref,

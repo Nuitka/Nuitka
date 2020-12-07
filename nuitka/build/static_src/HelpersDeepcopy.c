@@ -113,7 +113,7 @@ PyObject *DEEP_COPY(PyObject *value) {
         }
 #endif
     } else if (PyTuple_Check(value)) {
-        Py_ssize_t n = PyTuple_Size(value);
+        Py_ssize_t n = PyTuple_GET_SIZE(value);
         PyObject *result = PyTuple_New(n);
 
         for (Py_ssize_t i = 0; i < n; i++) {
@@ -210,7 +210,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
     } else if (PyTuple_Check(value)) {
         Py_hash_t result = DEEP_HASH_INIT(value);
 
-        Py_ssize_t n = PyTuple_Size(value);
+        Py_ssize_t n = PyTuple_GET_SIZE(value);
 
         for (Py_ssize_t i = 0; i < n; i++) {
             result ^= DEEP_HASH(PyTuple_GET_ITEM(value, i));
@@ -382,6 +382,12 @@ void CHECK_OBJECT_DEEP(PyObject *value) {
     if (PyTuple_Check(value)) {
         for (Py_ssize_t i = 0, size = PyTuple_GET_SIZE(value); i < size; i++) {
             PyObject *element = PyTuple_GET_ITEM(value, i);
+
+            CHECK_OBJECT_DEEP(element);
+        }
+    } else if (PyList_Check(value)) {
+        for (Py_ssize_t i = 0, size = PyList_GET_SIZE(value); i < size; i++) {
+            PyObject *element = PyList_GET_ITEM(value, i);
 
             CHECK_OBJECT_DEEP(element);
         }

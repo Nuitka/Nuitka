@@ -23,9 +23,10 @@ from nuitka.specs.BuiltinParameterSpecs import builtin_dict_spec
 
 from .BuiltinIteratorNodes import ExpressionBuiltinIter1
 from .ConstantRefNodes import makeConstantRefNode
-from .DictionaryNodes import ExpressionKeyValuePair, ExpressionMakeDict
+from .DictionaryNodes import ExpressionKeyValuePair, makeExpressionMakeDict
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+from .shapes.BuiltinTypeShapes import tshape_dict
 
 
 class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
@@ -55,6 +56,14 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             source_ref=source_ref,
         )
 
+    @staticmethod
+    def getTypeShape():
+        return tshape_dict
+
+    @staticmethod
+    def hasShapeDictionaryExact():
+        return True
+
     def hasOnlyConstantArguments(self):
         pos_arg = self.getPositionalArgument()
 
@@ -74,7 +83,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
         pairs = self.getNamedArgumentPairs()
 
         if pos_arg is None:
-            new_node = ExpressionMakeDict(
+            new_node = makeExpressionMakeDict(
                 pairs=self.getNamedArgumentPairs(), source_ref=self.source_ref
             )
 
@@ -90,7 +99,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
         pos_iteration_length = pos_arg.getIterationLength()
 
         if pos_iteration_length == 0:
-            new_node = ExpressionMakeDict(
+            new_node = makeExpressionMakeDict(
                 pairs=self.getNamedArgumentPairs(), source_ref=self.source_ref
             )
 
@@ -146,6 +155,3 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                 return True
 
         return False
-
-    def hasShapeDictionaryExact(self):
-        return True

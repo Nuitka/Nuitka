@@ -198,7 +198,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             context=context,
         )
     elif comparator in ("exception_match", "exception_mismatch"):
-        needs_check = expression.mayRaiseExceptionBool(BaseException)
+        needs_check = expression.mayRaiseExceptionComparison()
 
         res_name = context.getIntResName()
 

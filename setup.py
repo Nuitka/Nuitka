@@ -275,7 +275,8 @@ setup(
         # Include extra files
         "": ["*.txt", "*.rst", "*.c", "*.h", "*.ui"],
         "nuitka.build": [
-            "SingleExe.scons",
+            "Backend.scons",
+            "WindowsOnefile.scons",
             "static_src/*.c",
             "static_src/*/*.c",
             "static_src/*/*.h",
