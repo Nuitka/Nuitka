@@ -1,6 +1,6 @@
-###############################
- Nuitka Release 0.6.10 (Draft)
-###############################
+#######################
+ Nuitka Release 0.6.10 
+#######################
 
 This release comes with many new features, e.g. onefile support, as well as
 many new optimization and bug fixes.
