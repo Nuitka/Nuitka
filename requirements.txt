@@ -1,6 +1,6 @@
 
 # Folders to use for cache files.
-appdirs == 1.4.3
+appdirs == 1.4.4
 
 # Scons is the backend building tool to turn C files to binaries.
 scons == 3.1.2
