@@ -142,6 +142,9 @@ def createNodeTree(filename):
             plugin_filename=module_filename, module_package=module_package
         )
 
+    # Allow plugins to add more modules based on the initial set being complete.
+    Plugins.onModuleInitialSet()
+
     # Then optimize the tree and potentially recursed modules.
     Optimization.optimize(main_module.getOutputFilename())
 

@@ -429,6 +429,17 @@ class NuitkaPluginBase(object):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def onModuleInitialSet(self):
+        """Provide extra modules to the initial root module set.
+
+        Args:
+            None
+        Returns:
+            Iterable of modules, may yield.
+        """
+        # Virtual method, pylint: disable=no-self-use
+        return ()
+
     @staticmethod
     def locateModule(importing, module_name):
         """Provide a filename / -path for a to-be-imported module.

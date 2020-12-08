@@ -335,6 +335,14 @@ class Plugins(object):
         return result
 
     @staticmethod
+    def onModuleInitialSet():
+        from nuitka.ModuleRegistry import addRootModule
+
+        for plugin in getActivePlugins():
+            for module in plugin.onModuleInitialSet():
+                addRootModule(module)
+
+    @staticmethod
     def considerFailedImportReferrals(module_name):
         for plugin in getActivePlugins():
             new_module_name = plugin.considerFailedImportReferrals(module_name)

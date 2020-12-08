@@ -444,7 +444,7 @@ class CompiledPythonModule(
         return self.used_modules
 
     def addUsedFunction(self, function_body):
-        assert function_body in self.getFunctions()
+        assert function_body in self.getFunctions(), function_body
 
         assert (
             function_body.isExpressionFunctionBody()
