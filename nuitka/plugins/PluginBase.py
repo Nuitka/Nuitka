@@ -162,7 +162,16 @@ class NuitkaPluginBase(object):
 
             full_name = ModuleName(full_name)
 
-            module_filename = self.locateModule(importing=module, module_name=full_name)
+            try:
+                module_filename = self.locateModule(
+                    importing=module, module_name=full_name
+                )
+            except Exception:
+                self.warning(
+                    "Problem locating '%s' implicit imports '%s'."
+                    % (module.getFullName(), full_name)
+                )
+                raise
 
             if module_filename is None:
                 if Options.isShowInclusion():
