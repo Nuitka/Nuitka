@@ -497,7 +497,12 @@ def getWindowsShortPathName(filename):
             )
 
         if output_buf_size >= needed:
-            return output_buf.value
+            # Short paths should be ASCII. Don't return unicode without a need,
+            # as e.g. Scons hates that in environment variables.
+            if str is bytes:
+                return output_buf.value.encode("utf8")
+            else:
+                return output_buf.value
         else:
             output_buf_size = needed
 
@@ -510,7 +515,7 @@ def getExternalUsePath(filename, only_dirname=False):
     Returns:
         Path that is a absolute and (on Windows) short filename pointing at the same file.
     Notes:
-        Except on Windows, this is merely os.path.abspath, there is coverts
+        This is only os.path.abspath except on Windows, where is coverts
         to a short path too.
     """
 
