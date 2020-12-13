@@ -153,7 +153,8 @@ def _getRealPathWindows(path):
     import subprocess
 
     result = subprocess.check_output(
-        """powershell "Get-Item '%s' | Select-Object -ExpandProperty Target" """ % path
+        """powershell -NoProfile "Get-Item '%s' | Select-Object -ExpandProperty Target" """
+        % path
     )
 
     return os.path.join(os.path.dirname(path), result.rstrip("\r\n"))
