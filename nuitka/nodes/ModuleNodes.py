@@ -444,7 +444,7 @@ class CompiledPythonModule(
         return self.used_modules
 
     def addUsedFunction(self, function_body):
-        assert function_body in self.getFunctions()
+        assert function_body in self.getFunctions(), function_body
 
         assert (
             function_body.isExpressionFunctionBody()
@@ -815,7 +815,7 @@ class PythonShlibModule(PythonModuleBase):
     def _readPyPIFile(self):
         """ Read the .pyi file if present and scan for dependencies. """
 
-        # Complex stuff, pylint: disable=too-many-branches
+        # Complex stuff, pylint: disable=too-many-branches,too-many-statements
 
         if self.used_modules is None:
             pyi_filename = self.getPyIFilename()
@@ -840,10 +840,18 @@ class PythonShlibModule(PythonModuleBase):
                             assert parts[0] == "from"
                             assert parts[2] == "import"
 
-                            if parts[1] == "typing":
+                            origin_name = parts[1]
+
+                            if origin_name == "typing":
                                 continue
 
-                            pyi_deps.add(parts[1])
+                            if origin_name == ".":
+                                origin_name = self.getFullName()
+
+                            # TODO: Might want to add full relative import handling.
+
+                            if origin_name != self.getFullName():
+                                pyi_deps.add(origin_name)
 
                             imported = parts[3]
                             if imported.startswith("("):
@@ -851,7 +859,7 @@ class PythonShlibModule(PythonModuleBase):
                                 if not imported.endswith(")"):
                                     in_import = True
                                     imported = imported[1:]
-                                    in_import_part = parts[1]
+                                    in_import_part = origin_name
                                     assert in_import_part, (
                                         "Multiline part in file %s cannot be empty"
                                         % pyi_filename
@@ -867,7 +875,7 @@ class PythonShlibModule(PythonModuleBase):
                             for name in imported.split(","):
                                 if name:
                                     name = name.strip()
-                                    pyi_deps.add(parts[1] + "." + name)
+                                    pyi_deps.add(origin_name + "." + name)
 
                     else:  # In import
                         imported = line
@@ -889,6 +897,8 @@ class PythonShlibModule(PythonModuleBase):
 
     def getUsedModules(self):
         self._readPyPIFile()
+
+        assert "." not in self.used_modules, self
 
         return self.used_modules
 

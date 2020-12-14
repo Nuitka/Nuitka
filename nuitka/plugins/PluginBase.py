@@ -162,7 +162,16 @@ class NuitkaPluginBase(object):
 
             full_name = ModuleName(full_name)
 
-            module_filename = self.locateModule(importing=module, module_name=full_name)
+            try:
+                module_filename = self.locateModule(
+                    importing=module, module_name=full_name
+                )
+            except Exception:
+                self.warning(
+                    "Problem locating '%s' implicit imports '%s'."
+                    % (module.getFullName(), full_name)
+                )
+                raise
 
             if module_filename is None:
                 if Options.isShowInclusion():
@@ -428,6 +437,17 @@ class NuitkaPluginBase(object):
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
+
+    def onModuleInitialSet(self):
+        """Provide extra modules to the initial root module set.
+
+        Args:
+            None
+        Returns:
+            Iterable of modules, may yield.
+        """
+        # Virtual method, pylint: disable=no-self-use
+        return ()
 
     @staticmethod
     def locateModule(importing, module_name):

@@ -27,6 +27,7 @@ import contextlib
 
 from nuitka import Tracing, Variables
 from nuitka.__past__ import iterItems  # Python3 compatibility.
+from nuitka.containers.oset import OrderedSet
 from nuitka.importing.ImportCache import getImportedModuleByNameAndPath
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
@@ -601,7 +602,7 @@ class TraceCollectionBase(object):
         for collection in collections:
             for variable, version in iterItems(collection.variable_actives):
                 if variable not in variable_versions:
-                    variable_versions[variable] = set([version])
+                    variable_versions[variable] = OrderedSet((version,))
                 else:
                     variable_versions[variable].add(version)
 

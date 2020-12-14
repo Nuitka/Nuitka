@@ -34,6 +34,7 @@ static void FORMAT_TYPE_ERROR1(PyObject **exception_type, PyObject **exception_v
     CHECK_OBJECT(*exception_value);
 }
 
+#if PYTHON_VERSION >= 270
 static void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exception_value, char const *format,
                                char const *arg1, char const *arg2) {
     *exception_type = PyExc_TypeError;
@@ -42,6 +43,7 @@ static void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exception_v
     *exception_value = Nuitka_String_FromFormat(format, arg1, arg2);
     CHECK_OBJECT(*exception_value);
 }
+#endif
 
 #if PYTHON_VERSION < 266
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must be classes or instances, not %s"

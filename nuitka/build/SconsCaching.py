@@ -25,9 +25,15 @@ import sys
 from collections import defaultdict
 
 from nuitka.Tracing import scons_logger
+from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import getPythonInstallPathWindows
-from nuitka.utils.FileOperations import getLinkTarget, withFileLock
+from nuitka.utils.FileOperations import (
+    getExternalUsePath,
+    getLinkTarget,
+    makePath,
+    withFileLock,
+)
 from nuitka.utils.Utils import getOS, isWin32Windows
 
 from .SconsUtils import (
@@ -171,6 +177,14 @@ def enableCcache(
 
     setEnvironmentVariable(env, "CCACHE_LOGFILE", ccache_logfile)
     env["CCACHE_LOGFILE"] = ccache_logfile
+
+    # Unless asked to do otherwise, store ccache files in our own directory.
+    if "CCACHE_DIR" not in os.environ:
+        ccache_dir = os.path.join(getCacheDir(), "ccache")
+        makePath(ccache_dir)
+        ccache_dir = getExternalUsePath(ccache_dir)
+        setEnvironmentVariable(env, "CCACHE_DIR", ccache_dir)
+        env["CCACHE_DIR"] = ccache_dir
 
     # First check if it's not already supposed to be a ccache, then do nothing.
     cc_path = getExecutablePath(the_compiler, env=env)
