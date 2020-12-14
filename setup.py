@@ -227,7 +227,10 @@ else:
     easy_install.get_script_args = get_script_args
 
 
-binary_suffix = "" if sys.version_info[0] == 2 else sys.version_info[0]
+if sys.version_info[0] == 2:
+    binary_suffix = ""
+else:
+    binary_suffix = "%d" % sys.version_info[0]
 
 setup(
     name=project_name,

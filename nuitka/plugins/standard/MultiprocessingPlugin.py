@@ -44,10 +44,7 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     """
 
     plugin_name = "multiprocessing"
-    plugin_desc = "Required by Python's multiprocessing module"
-
-    def __init__(self):
-        self.multiprocessing_added = False
+    plugin_desc = "Required by Python's multiprocessing module on Windows"
 
     @classmethod
     def isRelevant(cls):
@@ -112,9 +109,9 @@ Monkey patching "multiprocessing" for compiled methods.""",
 
         return None, None
 
-    @staticmethod
-    def _addSlaveMainModule(root_module):
-        from nuitka.ModuleRegistry import addRootModule
+    def onModuleInitialSet(self):
+        from nuitka.importing.ImportCache import addImportedModule
+        from nuitka.ModuleRegistry import getRootTopModule
         from nuitka.plugins.Plugins import Plugins
         from nuitka.tree.Building import (
             CompiledPythonModule,
@@ -124,6 +121,8 @@ Monkey patching "multiprocessing" for compiled methods.""",
 
         # First, build the module node and then read again from the
         # source code.
+        root_module = getRootTopModule()
+
         module_name = ModuleName("__parents_main__")
         source_ref = root_module.getSourceReference()
 
@@ -159,22 +158,13 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
             is_main=False,
         )
 
-        # This is an alternative entry point of course.
-        addRootModule(slave_main_module)
+        addImportedModule(imported_module=slave_main_module)
+
+        yield slave_main_module
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
-        if module_name == "multiprocessing" and not self.multiprocessing_added:
-            self.multiprocessing_added = True
-
-            from nuitka.ModuleRegistry import getRootModules
-
-            for root_module in getRootModules():
-                if root_module.isMainModule():
-                    self._addSlaveMainModule(root_module)
-                    break
-            else:
-                assert False
-
+        # Enforce recursion in to multiprocessing for accelerated mode, which
+        # would normally avoid this.
         if module_name.hasNamespace("multiprocessing"):
             return True, "Multiprocessing plugin needs this to monkey patch it."
 
