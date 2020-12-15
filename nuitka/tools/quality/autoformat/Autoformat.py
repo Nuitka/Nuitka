@@ -411,6 +411,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None):
         "changelog",
         "compat",
         "control",
+        "copyright",
         "lintian-overrides",
     )
 
