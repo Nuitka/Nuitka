@@ -975,6 +975,8 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
 
 
 def createSearchMode():
+    # Dealing with many options, pylint: disable=too-many-branches
+
     parser = OptionParser()
 
     select_group = OptionGroup(parser, "Select Tests")
@@ -1010,9 +1012,24 @@ Executing all self checks possible to find errors in Nuitka, good for test cover
 Defaults to off.""",
     )
 
+    debug_group.add_option(
+        "--commands",
+        action="store_true",
+        dest="show_commands",
+        default=False,
+        help="""Output commands being done in output comparison.
+Defaults to off.""",
+    )
+
     parser.add_option_group(debug_group)
 
     options, positional_args = parser.parse_args()
+
+    if options.debug:
+        addExtendedExtraOptions("--debug")
+
+    if options.show_commands:
+        os.environ["NUITKA_TRACE_COMMANDS"] = "1"
 
     # Default to searching.
     mode = positional_args[0] if positional_args else "search"
@@ -1145,9 +1162,7 @@ def withPythonPathChange(python_path):
             os.environ["PYTHONPATH"] = old_path
 
 
-@contextmanager
-def withExtendedExtraOptions(*args):
-    assert args
+def addExtendedExtraOptions(*args):
     old_value = os.environ.get("NUITKA_EXTRA_OPTIONS", None)
 
     value = old_value
@@ -1159,6 +1174,15 @@ def withExtendedExtraOptions(*args):
             value += " " + arg
 
     os.environ["NUITKA_EXTRA_OPTIONS"] = value
+
+    return old_value
+
+
+@contextmanager
+def withExtendedExtraOptions(*args):
+    assert args
+
+    old_value = addExtendedExtraOptions(*args)
 
     yield
 
