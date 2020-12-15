@@ -1435,11 +1435,13 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         if full_name == "uuid" and getOS() == "Linux":
             uuid_dll_path = locateDLL("uuid")
-            dist_dll_path = os.path.join(dist_dir, os.path.basename(uuid_dll_path))
 
-            shutil.copy(uuid_dll_path, dist_dll_path)
+            if uuid_dll_path is not None:
+                dist_dll_path = os.path.join(dist_dir, os.path.basename(uuid_dll_path))
 
-            return ((uuid_dll_path, dist_dll_path, None),)
+                shutil.copy(uuid_dll_path, dist_dll_path)
+
+                return ((uuid_dll_path, dist_dll_path, None),)
         elif full_name == "iptc" and getOS() == "Linux":
             import iptc.util  # pylint: disable=I0021,import-error
 
@@ -1453,10 +1455,12 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             return ((xtwrapper_dll_path, dist_dll_path, None),)
         elif full_name == "gi._gi":
             gtk_dll_path = locateDLL("gtk-3")
-            dist_dll_path = os.path.join(dist_dir, os.path.basename(gtk_dll_path))
-            shutil.copy(gtk_dll_path, dist_dll_path)
 
-            return ((gtk_dll_path, dist_dll_path, None),)
+            if gtk_dll_path is not None:
+                dist_dll_path = os.path.join(dist_dir, os.path.basename(gtk_dll_path))
+                shutil.copy(gtk_dll_path, dist_dll_path)
+
+                return ((gtk_dll_path, dist_dll_path, None),)
         elif full_name in ("win32api", "pythoncom") and isWin32Windows():
             # Do this only once, pylint: disable=global-statement
             global _added_pywin32
