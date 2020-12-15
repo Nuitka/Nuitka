@@ -71,6 +71,25 @@ class MaybeLocalVariableUsage(Exception):
 class ExpressionFunctionBodyBase(
     ClosureTakerMixin, ClosureGiverNodeMixin, ExpressionChildHavingBase
 ):
+    # TODO: The code_prefix should be a class attribute instead.
+    __slots__ = (
+        "provider",
+        "taken",
+        "name",
+        "code_prefix",
+        "code_name",
+        "uids",
+        "temp_variables",
+        "temp_scopes",
+        "preserver_id",
+        "flags",
+    )
+
+    if python_version >= 0x340:
+        __slots__ += ("qualname_provider",)
+
+    if python_version >= 0x300:
+        __slots__ += ("non_local_declarations",)
 
     named_child = "body"
     getBody = ExpressionChildHavingBase.childGetter("body")
@@ -728,8 +747,9 @@ def _convertNoneConstantOrEmptyDictToNone(node):
 class ExpressionFunctionCreation(
     SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase
 ):
-
     kind = "EXPRESSION_FUNCTION_CREATION"
+
+    __slots__ = ("variable_closure_traces",)
 
     # Note: The order of evaluation for these is a bit unexpected, but
     # true. Keyword defaults go first, then normal defaults, and annotations of
@@ -974,6 +994,8 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
     """
 
     kind = "EXPRESSION_FUNCTION_CALL"
+
+    __slots__ = ("variable_closure_traces",)
 
     named_children = ("function", "values")
     getFunction = ExpressionChildrenHavingBase.childGetter("function")

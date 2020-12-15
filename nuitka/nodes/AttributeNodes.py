@@ -53,6 +53,8 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
     and what value it will be.
     """
 
+    __slots__ = ("attribute_name",)
+
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
 
     named_children = ("source", "expression")

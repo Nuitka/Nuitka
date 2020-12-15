@@ -450,6 +450,9 @@ class NodeBase(NodeMetaClassBase):
 
 
 class CodeNodeMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def __init__(self, name, code_prefix):
         assert name is not None
 
@@ -482,7 +485,7 @@ class CodeNodeMixin(object):
             if str is not bytes:
                 name = name.encode("ascii", "c_identifier").decode()
 
-            self.code_name = "%s$$$%s%s" % (parent_name, self.code_prefix, name)
+            self.code_name = "%s$$$%s_%s" % (parent_name, self.code_prefix, name)
 
         return self.code_name
 
@@ -496,6 +499,9 @@ class CodeNodeMixin(object):
 
 
 class ChildrenHavingMixin(object):
+    # Mixins are not allow to specify slots.
+    __slots__ = ()
+
     named_children = ()
 
     checkers = {}
@@ -678,7 +684,10 @@ class ChildrenHavingMixin(object):
 
 
 class ClosureGiverNodeMixin(CodeNodeMixin):
-    """ Blass class for nodes that provide variables for closure takers. """
+    """Base class for nodes that provide variables for closure takers. """
+
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
     def __init__(self, name, code_prefix):
         CodeNodeMixin.__init__(self, name=name, code_prefix=code_prefix)
@@ -768,6 +777,9 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
 class ClosureTakerMixin(object):
     """ Mixin for nodes that accept variables from closure givers. """
+
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
     def __init__(self, provider):
         self.provider = provider
@@ -1048,6 +1060,9 @@ class StatementChildHavingBase(StatementBase):
 
 
 class SideEffectsFromChildrenMixin(object):
+    # Mixins are not allow to specify slots.
+    __slots__ = ()
+
     def mayHaveSideEffects(self):
         for child in self.getVisitableNodes():
             if child.mayHaveSideEffects():

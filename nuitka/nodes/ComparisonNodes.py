@@ -109,6 +109,8 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
 
 
 class ExpressionComparisonRichBase(ExpressionComparisonBase):
+    __slots__ = "type_shape", "escape_desc"
+
     def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self, left=left, right=right, source_ref=source_ref
@@ -308,6 +310,8 @@ class ExpressionComparisonNeq(ExpressionComparisonRichBase):
 
 
 class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
+    __slots__ = ("match_value",)
+
     def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self, left=left, right=right, source_ref=source_ref

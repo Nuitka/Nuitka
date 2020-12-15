@@ -351,12 +351,12 @@ branches."""
 class ExpressionConditionalOr(ExpressionConditionalBoolBase):
     kind = "EXPRESSION_CONDITIONAL_OR"
 
+    conditional_kind = "or"
+
     def __init__(self, left, right, source_ref):
         ExpressionConditionalBoolBase.__init__(
             self, left=left, right=right, source_ref=source_ref
         )
-
-        self.conditional_kind = "or"
 
     def computeExpressionDrop(self, statement, trace_collection):
         result = makeStatementConditional(
@@ -381,12 +381,12 @@ Convert conditional 'or' expression with unused result into conditional statemen
 class ExpressionConditionalAnd(ExpressionConditionalBoolBase):
     kind = "EXPRESSION_CONDITIONAL_AND"
 
+    conditional_kind = "and"
+
     def __init__(self, left, right, source_ref):
         ExpressionConditionalBoolBase.__init__(
             self, left=left, right=right, source_ref=source_ref
         )
-
-        self.conditional_kind = "and"
 
     def computeExpressionDrop(self, statement, trace_collection):
         result = makeStatementConditional(

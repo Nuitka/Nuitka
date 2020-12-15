@@ -28,6 +28,8 @@ from .ExpressionBases import (
 
 
 class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
+    __slots__ = ("may_not_raise",)
+
     kind = "EXPRESSION_BUILTIN_NEXT1"
 
     def __init__(self, value, source_ref):
@@ -55,6 +57,8 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
 
 
 class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
+    __slots__ = ("count", "expected", "starred")
+
     kind = "EXPRESSION_SPECIAL_UNPACK"
 
     def __init__(self, value, count, expected, starred, source_ref):
@@ -62,7 +66,7 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
 
         self.count = int(count)
 
-        # TODO: Unused before 3.5 or higher, maybe specialize for it.
+        # TODO: Unused before 3.5 or higher, and even then starred is rare, maybe specialize for it.
         self.expected = int(expected)
         self.starred = starred
 

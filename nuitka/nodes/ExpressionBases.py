@@ -1282,6 +1282,9 @@ class ExpressionChildHavingBase(ExpressionBase):
 
 
 class ExpressionSpecBasedComputationMixin(object):
+    # Mixins are not allow to specify slots.
+    __slots__ = ()
+
     builtin_spec = None
 
     def computeBuiltinSpec(self, trace_collection, given_values):
@@ -1301,6 +1304,9 @@ class ExpressionSpecBasedComputationMixin(object):
 
 
 class ExpressionSpecBasedComputationNoRaiseMixin(object):
+    # Mixins are not allow to specify slots.
+    __slots__ = ()
+
     builtin_spec = None
 
     def computeBuiltinSpec(self, trace_collection, given_values):

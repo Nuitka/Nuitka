@@ -139,6 +139,16 @@ class ExpressionImportModuleNameHard(ExpressionBase):
 
 
 class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
+    __slots__ = (
+        "recurse_attempted",
+        "imported_module_desc",
+        "import_list_modules_desc",
+        "package_modules_desc",
+        "finding",
+        "type_shape",
+        "builtin_module",
+    )
+
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
     named_children = ("name", "globals", "locals", "fromlist", "level")

@@ -44,6 +44,8 @@ from .shapes.BuiltinTypeShapes import tshape_list, tshape_set, tshape_tuple
 class ExpressionMakeSequenceBase(
     SideEffectsFromChildrenMixin, ExpressionChildHavingBase
 ):
+    __slots__ = ("sequence_kind",)
+
     named_child = "elements"
 
     def __init__(self, sequence_kind, elements, source_ref):

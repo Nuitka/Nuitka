@@ -184,6 +184,8 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
     Once this has no frame, it can be changed to a mere outline expression.
     """
 
+    __slots__ = ("temp_scope", "locals_scope")
+
     def __init__(self, provider, name, body, code_prefix, source_ref):
         ExpressionFunctionBodyBase.__init__(
             self,
@@ -318,12 +320,14 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
 class ExpressionOutlineFunction(ExpressionOutlineFunctionBase):
     kind = "EXPRESSION_OUTLINE_FUNCTION"
 
+    __slots__ = ("locals_scope",)
+
     def __init__(self, provider, name, source_ref, body=None):
         ExpressionOutlineFunctionBase.__init__(
             self,
             provider=provider,
             name=name,
-            code_prefix="outline_",
+            code_prefix="outline",
             body=body,
             source_ref=source_ref,
         )

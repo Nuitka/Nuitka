@@ -59,6 +59,7 @@ class CollectionStartpointMixin(object):
     These are modules, functions, etc. typically entry points.
     """
 
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     # Many things are traced
