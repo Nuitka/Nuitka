@@ -48,10 +48,15 @@ else:
     unicode = str
 
 
-def iterItems(d):
-    try:
+if str is bytes:
+
+    def iterItems(d):
         return d.iteritems()
-    except AttributeError:
+
+
+else:
+
+    def iterItems(d):
         return d.items()
 
 
