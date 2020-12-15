@@ -54,6 +54,13 @@ signalChange = None
 
 
 class CollectionStartpointMixin(object):
+    """Mixin to use in start points of collections.
+
+    These are modules, functions, etc. typically entry points.
+    """
+
+    __slots__ = ()
+
     # Many things are traced
 
     def __init__(self):
@@ -273,6 +280,8 @@ class TraceCollectionBase(object):
 
     They are kept for "variable" and versions.
     """
+
+    __slots__ = ("owner", "parent", "name", "value_states", "variable_actives")
 
     __del__ = counted_del()
 
@@ -574,19 +583,63 @@ class TraceCollectionBase(object):
         alternative branches to both change this collection.
         """
 
-        # Refuse to do stupid work
-        if collection_yes is None and collection_no is None:
-            return None
-        elif collection_yes is None or collection_no is None:
+        # Many branches due to inlining the actual merge and preparing it
+        # pylint: disable=too-many-branches
+
+        if collection_yes is None:
+            if collection_no is not None:
+                # Handle one branch case, we need to merge versions backwards as
+                # they may make themselves obsolete.
+                collection1 = self
+                collection2 = collection_no
+            else:
+                # Refuse to do stupid work
+                return
+        elif collection_no is None:
             # Handle one branch case, we need to merge versions backwards as
             # they may make themselves obsolete.
-            return self.mergeMultipleBranches(
-                collections=(self, collection_yes or collection_no)
-            )
+            collection1 = self
+            collection2 = collection_yes
         else:
-            return self.mergeMultipleBranches(
-                collections=(collection_yes, collection_no)
-            )
+            # Handle two branch case, they may or may not do the same things.
+            collection1 = collection_yes
+            collection2 = collection_no
+
+        variable_versions = {}
+
+        for variable, version in iterItems(collection1.variable_actives):
+            variable_versions[variable] = version
+
+        for variable, version in iterItems(collection2.variable_actives):
+            if variable not in variable_versions:
+                variable_versions[variable] = 0, version
+            else:
+                other = variable_versions[variable]
+
+                if other != version:
+                    variable_versions[variable] = other, version
+                else:
+                    variable_versions[variable] = other
+
+        for variable in variable_versions:
+            if variable not in collection2.variable_actives:
+                variable_versions[variable] = variable_versions[variable], 0
+
+        self.variable_actives = {}
+
+        for variable, versions in iterItems(variable_versions):
+            if type(versions) is tuple:
+                version = self.addVariableMergeMultipleTrace(
+                    variable=variable,
+                    traces=(
+                        self.getVariableTrace(variable, versions[0]),
+                        self.getVariableTrace(variable, versions[1]),
+                    ),
+                )
+            else:
+                version = versions
+
+            self.markCurrentVariableTrace(variable, version)
 
     def mergeMultipleBranches(self, collections):
         assert collections
@@ -613,8 +666,6 @@ class TraceCollectionBase(object):
 
         self.variable_actives = {}
 
-        #         merge_traces = None
-
         for variable, versions in iterItems(variable_versions):
             if len(versions) == 1:
                 (version,) = versions
@@ -626,16 +677,7 @@ class TraceCollectionBase(object):
                     ),
                 )
 
-            #                 if merge_traces is None:
-            #                     merge_traces = [trace_merge]
-            #                 else:
-            #                     merge_traces.append(trace_merge)
-
             self.markCurrentVariableTrace(variable, version)
-
-        # Return "None", or turn the list into a tuple for memory savings.
-
-    #         return merge_traces and tuple(merge_traces)
 
     def replaceBranch(self, collection_replace):
         self.variable_actives.update(collection_replace.variable_actives)
@@ -720,9 +762,12 @@ class TraceCollectionBase(object):
 
 
 class TraceCollectionBranch(TraceCollectionBase):
+    __slots__ = ()
+
     def __init__(self, name, parent):
         TraceCollectionBase.__init__(self, owner=parent.owner, name=name, parent=parent)
 
+        # Detach from others
         self.variable_actives = dict(parent.variable_actives)
 
     def computeBranch(self, branch):
@@ -759,6 +804,16 @@ class TraceCollectionBranch(TraceCollectionBase):
 
 
 class TraceCollectionFunction(CollectionStartpointMixin, TraceCollectionBase):
+    __slots__ = (
+        "variable_versions",
+        "variable_traces",
+        "break_collections",
+        "continue_collections",
+        "return_collections",
+        "exception_collections",
+        "outline_functions",
+    )
+
     def __init__(self, parent, function_body):
         assert (
             function_body.isExpressionFunctionBody()
@@ -797,6 +852,16 @@ class TraceCollectionFunction(CollectionStartpointMixin, TraceCollectionBase):
 
 
 class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):
+    __slots__ = (
+        "variable_versions",
+        "variable_traces",
+        "break_collections",
+        "continue_collections",
+        "return_collections",
+        "exception_collections",
+        "outline_functions",
+    )
+
     def __init__(self, module):
         assert module.isCompiledPythonModule(), module
 
