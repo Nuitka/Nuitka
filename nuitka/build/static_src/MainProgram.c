@@ -104,12 +104,12 @@ static void prepareStandaloneEnvironment() {
 
 #if PYTHON_VERSION < 300
     char *binary_directory = (char *)getBinaryDirectoryHostEncoded();
-    NUITKA_PRINTF_TRACE("Binary dir is %s\n", binary_directory);
+    NUITKA_PRINTF_TRACE("main(): Binary dir is %s\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
 #else
     wchar_t *binary_directory = (wchar_t *)getBinaryDirectoryWideChars();
-    NUITKA_PRINTF_TRACE("Binary dir is %S\n", binary_directory);
+    NUITKA_PRINTF_TRACE("main(): Binary dir is %S\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
 
@@ -627,6 +627,7 @@ int main(int argc, char **argv) {
         PyDict_DelItem(PyImport_GetModuleDict(), const_str_plain___main__);
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+        NUITKA_PRINT_TRACE("main(): Calling plugin SvcLaunchService() entry point.");
         SvcLaunchService();
 #else
     /* Execute the "__main__" module. */
