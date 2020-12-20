@@ -388,7 +388,7 @@ def optimizeUnusedUserVariables(function_body):
 
             changed = True
 
-    outlines = function_body.getTraceCollection().getOutlineFunctions()
+    outlines = function_body.trace_collection.getOutlineFunctions()
 
     if outlines is not None:
         for outline in outlines:
@@ -543,14 +543,14 @@ def makeOptimizationPass():
     # collections of functions no longer used.
     for current_module in ModuleRegistry.getDoneModules():
         if current_module.isCompiledPythonModule():
-            for function in current_module.getUnusedFunctions():
+            for unused_function in current_module.getUnusedFunctions():
                 Variables.updateVariablesFromCollection(
-                    old_collection=function.trace_collection,
+                    old_collection=unused_function.trace_collection,
                     new_collection=None,
-                    source_ref=function.getSourceReference(),
+                    source_ref=unused_function.getSourceReference(),
                 )
 
-                function.trace_collection = None
+                unused_function.trace_collection = None
 
     for current_module in ModuleRegistry.getDoneModules():
         if current_module.isCompiledPythonModule():
