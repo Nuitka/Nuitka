@@ -227,14 +227,18 @@ static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
             }
 
 #ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+            if (i == 1) {
 #if PYTHON_VERSION < 300
-            if ((strcmp(argv[i], "install")) == 0 && (i + 1 < argc))
+                if (strcmp(argv[i], "install") == 0)
 #else
-            if ((wcscmp(argv[i], L"install")) == 0 && (i + 1 < argc))
+                if (wcscmp(argv[i], L"install") == 0)
 #endif
-            {
-                SvcInstall();
-                NUITKA_CANNOT_GET_HERE("SvcInstall must not return");
+                {
+                    NUITKA_PRINT_TRACE("main(): Calling plugin SvcInstall().");
+
+                    SvcInstall();
+                    NUITKA_CANNOT_GET_HERE("SvcInstall must not return");
+                }
             }
 #endif
         }
