@@ -126,7 +126,7 @@ static void restoreStandaloneEnvironment() {
     /* Make sure to use the optimal value for standalone mode only. */
 #if PYTHON_VERSION < 300
     PySys_SetPath((char *)getBinaryDirectoryHostEncoded());
-    NUITKA_PRINTF_TRACE("Final PySys_GetPath is 's'.\n", PySys_GetPath());
+    // NUITKA_PRINTF_TRACE("Final PySys_GetPath is 's'.\n", PySys_GetPath());
 #else
     PySys_SetPath(getBinaryDirectoryWideChars());
     Py_SetPath(getBinaryDirectoryWideChars());
