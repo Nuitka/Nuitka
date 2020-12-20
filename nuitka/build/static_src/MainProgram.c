@@ -289,6 +289,15 @@ static void PRINT_REFCOUNTS() {
 }
 #endif
 
+// Small helper to open files with few arguments.
+static PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode) {
+#if PYTHON_VERSION < 300
+    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), NULL);
+#else
+    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), NULL, NULL, NULL, NULL, NULL, NULL);
+#endif
+}
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
 #if defined(__MINGW32__) && !defined(_W64)
@@ -522,30 +531,35 @@ int main(int argc, char **argv) {
         assert(_Py_Ticker >= 20);
     }
 
-    /* On Windows, we support disabling the console via linker flag, but now
+    /* At least on Windows, we support disabling the console via linker flag, but now
        need to provide the NUL standard file handles manually in this case. */
-
-#if defined(_NUITKA_WINMAIN_ENTRY_POINT) && PYTHON_VERSION >= 300
     {
-        PyObject *filename = Nuitka_String_FromString("NUL:");
+        PyObject *nul_filename = Nuitka_String_FromString("NUL:");
 
-        PyObject *stdin_file =
-            BUILTIN_OPEN(filename, Nuitka_String_FromString("r"), NULL, NULL, NULL, NULL, NULL, NULL);
+        if (PySys_GetObject("stdin") == NULL) {
+            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r");
 
-        CHECK_OBJECT(stdin_file);
-        PySys_SetObject("stdin", stdin_file);
+            CHECK_OBJECT(stdin_file);
+            PySys_SetObject("stdin", stdin_file);
+        }
 
-        PyObject *stdout_file =
-            BUILTIN_OPEN(filename, Nuitka_String_FromString("w"), NULL, NULL, NULL, NULL, NULL, NULL);
+        if (PySys_GetObject("stdout") == NULL) {
+            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w");
 
-        CHECK_OBJECT(stdout_file);
-        PySys_SetObject("stdout", stdout_file);
-        PySys_SetObject("stderr", stdout_file);
+            CHECK_OBJECT(stdout_file);
+            PySys_SetObject("stdout", stdout_file);
+        }
 
-        Py_DECREF(filename);
+        if (PySys_GetObject("stderr") == NULL) {
+            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w");
+
+            CHECK_OBJECT(stderr_file);
+
+            PySys_SetObject("stderr", stderr_file);
+        }
+
+        Py_DECREF(nul_filename);
     }
-
-#endif
 
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Calling setEarlyFrozenModulesFileAttribute().");
