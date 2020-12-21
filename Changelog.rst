@@ -127,7 +127,7 @@ many new optimization and bug fixes.
    code and enhanced scalability of C compilation.
 
 -  Use error exit during dictionary creation to release the dictionary,
-   list, tuple, and set in case of an error occuring while they are
+   list, tuple, and set in case of an error occurring while they are
    still under construction. That avoids releases of it in error exists,
    reducing the generated code size by a lot. This improves scalability
    of C compilation for generating these.
@@ -163,7 +163,7 @@ many new optimization and bug fixes.
 
 -  Provide truth value for variable references, enhancing loop
    optimization and merge value tracing, to also decide this correctly
-   for values only read, and then changed trough attribute, e.g.
+   for values only read, and then changed through attribute, e.g.
    ``append`` on lists. This allows many more static optimization.
 
 -  Use ``staticmethod`` for methods in Nuitka nodes to achieve faster
@@ -219,7 +219,7 @@ many new optimization and bug fixes.
    involves locking, but this needs to be applied way more often.
 
 -  Make sure checks to debug mode and full compatibility mode are done
-   with the variables introduced, to avoid loosing performance due to
+   with the variables introduced, to avoid losing performance due to
    calls for Nuitka compile time enhancements. This was so far only done
    partially.
 
@@ -341,7 +341,7 @@ many new optimization and bug fixes.
 
 -  Do not recommend Anaconda on Windows anymore, it seems barely
    possible to get anything installed on it with a fresh download, due
-   to the resolver litterally working for days without finishing, and
+   to the resolver literally working for days without finishing, and
    then reporting conflicts, it would only we usable when starting with
    Miniconda, but that seems less interesting to users, also gcc 5.2 is
    way too old these days.

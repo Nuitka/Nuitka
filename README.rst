@@ -535,7 +535,7 @@ With earlier Windows platforms (and wine/ReactOS), you should consider
 installing Visual C Runtime libraries before executing a Nuitka standalone
 compiled program.
 
-Depdending on the used C compiler, you'll need the following redist versions:
+Depending on the used C compiler, you'll need the following redist versions:
 
 +------------------+-------------+-------------------------+
 | Visual C version | Redist Year | CPython                 |
