@@ -36,6 +36,7 @@ jobs:
 
       - name: Install Nuitka dependencies
         run: |
+          sudo apt-get update
           sudo apt-get install chrpath gdb ccache
           pip install -r requirements-devel.txt
 
