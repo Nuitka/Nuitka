@@ -31,6 +31,6 @@ import sys
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
 # isort:start
-import nuitka.__main__
+import nuitka.__main__  # false alarm, pylint: disable=I0021,no-name-in-module
 
 nuitka.__main__.main()

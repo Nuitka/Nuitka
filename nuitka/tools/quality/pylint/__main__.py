@@ -93,7 +93,7 @@ Insist on PyLint to be installed. Default is %default.""",
         sys.exit(0)
 
     if not positional_args:
-        positional_args = ["bin", "nuitka", "tests/*/run_all.py"]
+        positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
 
     positional_args = sum(
         (
