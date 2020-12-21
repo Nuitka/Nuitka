@@ -406,16 +406,6 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #include "nuitka/compiled_asyncgen.h"
 #endif
 
-/* Safe to use function to copy a string, will abort program for overflow. */
-extern void copyStringSafe(char *buffer, char const *source, size_t buffer_size);
-extern void copyStringSafeN(char *buffer, char const *source, size_t n, size_t buffer_size);
-/* Safe to use function to append a string, will abort program for overflow. */
-extern void appendCharSafe(char *buffer, char c, size_t buffer_size);
-extern void appendStringSafe(char *buffer, char const *source, size_t buffer_size);
-
-/* Safe to use functions to append a wide char string, will abort program for overflow. */
-extern void appendCharSafeW(wchar_t *target, char c, size_t buffer_size);
-extern void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size);
-extern void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_size);
+#include "nuitka/safe_string_ops.h"
 
 #endif

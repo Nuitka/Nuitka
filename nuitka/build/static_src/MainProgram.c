@@ -104,12 +104,12 @@ static void prepareStandaloneEnvironment() {
 
 #if PYTHON_VERSION < 0x300
     char *binary_directory = (char *)getBinaryDirectoryHostEncoded();
-    NUITKA_PRINTF_TRACE("Binary dir is %s\n", binary_directory);
+    NUITKA_PRINTF_TRACE("main(): Binary dir is %s\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
 #else
     wchar_t *binary_directory = (wchar_t *)getBinaryDirectoryWideChars();
-    NUITKA_PRINTF_TRACE("Binary dir is %S\n", binary_directory);
+    NUITKA_PRINTF_TRACE("main(): Binary dir is %S\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
 
@@ -126,7 +126,7 @@ static void restoreStandaloneEnvironment() {
     /* Make sure to use the optimal value for standalone mode only. */
 #if PYTHON_VERSION < 0x300
     PySys_SetPath((char *)getBinaryDirectoryHostEncoded());
-    NUITKA_PRINTF_TRACE("Final PySys_GetPath is 's'.\n", PySys_GetPath());
+    // NUITKA_PRINTF_TRACE("Final PySys_GetPath is 's'.\n", PySys_GetPath());
 #else
     PySys_SetPath(getBinaryDirectoryWideChars());
     Py_SetPath(getBinaryDirectoryWideChars());
@@ -227,14 +227,18 @@ static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
             }
 
 #ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+            if (i == 1) {
 #if PYTHON_VERSION < 0x300
-            if ((strcmp(argv[i], "install")) == 0 && (i + 1 < argc))
+                if (strcmp(argv[i], "install") == 0)
 #else
-            if ((wcscmp(argv[i], L"install")) == 0 && (i + 1 < argc))
+                if (wcscmp(argv[i], L"install") == 0)
 #endif
-            {
-                SvcInstall();
-                NUITKA_CANNOT_GET_HERE("SvcInstall must not return");
+                {
+                    NUITKA_PRINT_TRACE("main(): Calling plugin SvcInstall().");
+
+                    SvcInstall();
+                    NUITKA_CANNOT_GET_HERE("SvcInstall must not return");
+                }
             }
 #endif
         }
@@ -288,6 +292,15 @@ static void PRINT_REFCOUNTS() {
                  count_hit_frame_cache_instances);
 }
 #endif
+
+// Small helper to open files with few arguments.
+static PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode) {
+#if PYTHON_VERSION < 0x300
+    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), NULL);
+#else
+    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), NULL, NULL, NULL, NULL, NULL, NULL);
+#endif
+}
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
@@ -522,30 +535,35 @@ int main(int argc, char **argv) {
         assert(_Py_Ticker >= 20);
     }
 
-    /* On Windows, we support disabling the console via linker flag, but now
+    /* At least on Windows, we support disabling the console via linker flag, but now
        need to provide the NUL standard file handles manually in this case. */
-
-#if defined(_NUITKA_WINMAIN_ENTRY_POINT) && PYTHON_VERSION >= 0x300
     {
-        PyObject *filename = Nuitka_String_FromString("NUL:");
+        PyObject *nul_filename = Nuitka_String_FromString("NUL:");
 
-        PyObject *stdin_file =
-            BUILTIN_OPEN(filename, Nuitka_String_FromString("r"), NULL, NULL, NULL, NULL, NULL, NULL);
+        if (PySys_GetObject("stdin") == NULL) {
+            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r");
 
-        CHECK_OBJECT(stdin_file);
-        PySys_SetObject("stdin", stdin_file);
+            CHECK_OBJECT(stdin_file);
+            PySys_SetObject("stdin", stdin_file);
+        }
 
-        PyObject *stdout_file =
-            BUILTIN_OPEN(filename, Nuitka_String_FromString("w"), NULL, NULL, NULL, NULL, NULL, NULL);
+        if (PySys_GetObject("stdout") == NULL) {
+            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w");
 
-        CHECK_OBJECT(stdout_file);
-        PySys_SetObject("stdout", stdout_file);
-        PySys_SetObject("stderr", stdout_file);
+            CHECK_OBJECT(stdout_file);
+            PySys_SetObject("stdout", stdout_file);
+        }
 
-        Py_DECREF(filename);
+        if (PySys_GetObject("stderr") == NULL) {
+            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w");
+
+            CHECK_OBJECT(stderr_file);
+
+            PySys_SetObject("stderr", stderr_file);
+        }
+
+        Py_DECREF(nul_filename);
     }
-
-#endif
 
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Calling setEarlyFrozenModulesFileAttribute().");
@@ -609,6 +627,7 @@ int main(int argc, char **argv) {
         PyDict_DelItem(PyImport_GetModuleDict(), const_str_plain___main__);
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+        NUITKA_PRINT_TRACE("main(): Calling plugin SvcLaunchService() entry point.");
         SvcLaunchService();
 #else
     /* Execute the "__main__" module. */
