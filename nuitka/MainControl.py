@@ -70,7 +70,7 @@ from .optimizations import Optimization
 from .tree import Building
 
 
-def createNodeTree(filename):
+def _createNodeTree(filename):
     """Create a node tree.
 
     Turn that source code into a node tree structure. If recursion into
@@ -690,7 +690,7 @@ def main():
 
     # Turn that source code into a node tree structure.
     try:
-        main_module = createNodeTree(filename=filename)
+        main_module = _createNodeTree(filename=filename)
     except (SyntaxError, IndentationError) as e:
         handleSyntaxError(e)
 

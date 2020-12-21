@@ -242,7 +242,6 @@ recurse_group = OptionGroup(parser, "Control the recursion into imported modules
 
 recurse_group.add_option(
     "--follow-stdlib",
-    "--recurse-stdlib",
     action="store_true",
     dest="recurse_stdlib",
     default=False,
@@ -253,7 +252,6 @@ the compilation time by a lot. Defaults to off.""",
 
 recurse_group.add_option(
     "--nofollow-imports",
-    "--recurse-none",
     action="store_true",
     dest="recurse_none",
     default=False,
@@ -264,38 +262,35 @@ overrides all other recursion options. Defaults to off.""",
 
 recurse_group.add_option(
     "--follow-imports",
-    "--recurse-all",
     action="store_true",
     dest="recurse_all",
     default=False,
     help="""\
-When --recurse-all is used, attempt to descend into all imported modules.
+When --follow-imports is used, attempt to descend into all imported modules.
 Defaults to off.""",
 )
 
 recurse_group.add_option(
     "--follow-import-to",
-    "--recurse-to",
     action="append",
     dest="recurse_modules",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
-Recurse to that module, or if a package, to the whole package. Can be given
+Follow to that module if used, or if a package, to the whole package. Can be given
 multiple times. Default empty.""",
 )
 
 recurse_group.add_option(
     "--nofollow-import-to",
-    "--recurse-not-to",
     action="append",
     dest="recurse_not_modules",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
-Do not recurse to that module name, or if a package name, to the whole package
-in any case, overrides all other options. Can be given multiple times. Default
-empty.""",
+Do not follow to that module name even if used, or if a package name, to the
+whole package in any case, overrides all other options. Can be given multiple
+times. Default empty.""",
 )
 
 

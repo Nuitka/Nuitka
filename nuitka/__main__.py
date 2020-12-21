@@ -74,8 +74,8 @@ def main():
     # Inform the user about potential issues with the running version. e.g. unsupported.
     from nuitka.PythonVersions import (
         getSupportedPythonVersions,
-        python_version_str,
         python_version,
+        python_version_str,
     )
 
     if sys.flags.no_site == 0:
@@ -155,6 +155,8 @@ def main():
             sys.exit(
                 "Error, the Python from Windows store is not supported, check user manual."
             )
+
+    Options.commentArgs()
 
     # Load plugins after we know, we don't execute again.
     from nuitka.plugins.Plugins import activatePlugins

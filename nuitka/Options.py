@@ -80,8 +80,6 @@ def parseArgs():
 Error, conflicting options, cannot make standalone module, only executable."""
             )
 
-        options.recurse_all = True
-
         if Utils.getOS() == "NetBSD":
             logging.warning(
                 "Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported."
@@ -176,9 +174,69 @@ sane default used inside the dist folder."""
             "Error, onefile on Windows requires company name and file or product version to be given."
         )
 
+    if options.recurse_none and options.recurse_all:
+        sys.exit(
+            "Conflicting options '--follow-imports' and '--nofollow-imports' given."
+        )
+
     is_debug = _isDebug()
     is_nondebug = not is_debug
     is_fullcompat = _isFullCompat()
+
+
+def commentArgs():
+    default_reference_mode = (
+        "runtime" if shallMakeModule() or isStandaloneMode() else "original"
+    )
+
+    if getFileReferenceMode() is None:
+        options.file_reference_mode = default_reference_mode
+    else:
+        if options.file_reference_mode != default_reference_mode:
+            Tracing.options_logger.warning(
+                "Using non-default file reference mode %r rather than %r may cause runtime issues."
+                % (getFileReferenceMode(), default_reference_mode)
+            )
+        else:
+            Tracing.options_logger.info(
+                "Using default file reference mode %r need not be specified."
+                % default_reference_mode
+            )
+
+    if Utils.getOS() != "Windows":
+        if (
+            getWindowsIconExecutablePath()
+            or shallAskForWindowsAdminRights()
+            or shallAskForWindowsUIAccessRights()
+            or getWindowsCompanyName()
+            or getWindowsProductName()
+            or getWindowsProductVersion()
+            or getWindowsFileVersion()
+        ):
+            Tracing.options_logger.warning(
+                "Using Windows specific options has no effect."
+            )
+
+    if isOnefileMode():
+        standalone_mode = "onefile"
+    elif isStandaloneMode():
+        standalone_mode = "standalone"
+    else:
+        standalone_mode = None
+
+    if options.recurse_all and standalone_mode:
+        if standalone_mode:
+            Tracing.options_logger.info(
+                "Recursing all is the default for %s mode and need not be specified."
+                % standalone_mode
+            )
+
+    if options.recurse_none and standalone_mode:
+        if standalone_mode:
+            Tracing.options_logger.warning(
+                "Recursing none is unlikely to work for %s mode and should not be specified."
+                % standalone_mode
+            )
 
 
 def isVerbose():
@@ -223,12 +281,8 @@ def getFileReferenceMode():
         Defaults to runtime for modules and packages, as well as standalone binaries,
         otherwise original is kept.
     """
-    if options.file_reference_mode is None:
-        value = "runtime" if shallMakeModule() or isStandaloneMode() else "original"
-    else:
-        value = options.file_reference_mode
 
-    return value
+    return options.file_reference_mode
 
 
 def shallMakeModule():
@@ -247,18 +301,18 @@ def isAllowedToReexecute():
 
 
 def shallFollowStandardLibrary():
-    """*bool* = "--follow-stdlib" / "--recurse-stdlib" """
+    """*bool* = "--follow-stdlib" """
     return options.recurse_stdlib
 
 
 def shallFollowNoImports():
-    """*bool* = "--nofollow-imports" / "--recurse-none" """
+    """*bool* = "--nofollow-imports" """
     return options.recurse_none
 
 
 def shallFollowAllImports():
-    """*bool* = "--follow-imports" / "--recurse-all" """
-    return options.recurse_all
+    """*bool* = "--follow-imports" """
+    return options.is_standalone or options.recurse_all
 
 
 def _splitShellPattern(value):
@@ -266,12 +320,12 @@ def _splitShellPattern(value):
 
 
 def getShallFollowInNoCase():
-    """*list*, items of "--nofollow-import-to=" / "--recurse-not-to=" """
+    """*list*, items of "--nofollow-import-to=" """
     return sum([_splitShellPattern(x) for x in options.recurse_not_modules], [])
 
 
 def getShallFollowModules():
-    """*list*, items of "--follow-import-to=" / "--recurse-to=" """
+    """*list*, items of "--follow-import-to=" """
     return sum(
         [
             _splitShellPattern(x)
@@ -606,7 +660,6 @@ def _parseWindowsVersionNumber(value):
         assert min(r) >= 0
         assert max(r) < 2 ** 16
         return r
-
     else:
         return None
 
