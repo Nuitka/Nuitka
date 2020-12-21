@@ -85,7 +85,14 @@ def main():
     options, positional_args = parser.parse_args()
 
     if not positional_args:
-        positional_args = ["bin", "nuitka", "rpm", "misc", "tests/*/run_all.py"]
+        positional_args = [
+            "bin",
+            "nuitka",
+            "rpm",
+            "misc",
+            "tests/*/run_all.py",
+            "*.rst",
+        ]
 
     my_print("Working on:", positional_args)
 
