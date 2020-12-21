@@ -132,8 +132,7 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
     ) as value_name:
-
-        emit("""%s = PyImport_ImportModule("%s");""" % (value_name, module_name))
+        emit("""%s = IMPORT_HARD_%s();""" % (value_name, module_name.upper()))
 
         getErrorExitCode(
             check_name=value_name, needs_check=needs_check, emit=emit, context=context

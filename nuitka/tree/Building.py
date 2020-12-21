@@ -93,6 +93,7 @@ from nuitka.nodes.ExceptionNodes import (
     StatementReraiseException,
 )
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
+from nuitka.nodes.ImportNodes import makeExpressionAbsoluteImportNode
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleAttributeNodes import (
     ExpressionModuleAttributeFileRef,
@@ -121,6 +122,7 @@ from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import unusual_logger
 from nuitka.utils import MemoryUsage
 from nuitka.utils.FileOperations import splitPath
 from nuitka.utils.ModuleNames import ModuleName
@@ -191,7 +193,6 @@ from .TreeHelpers import (
     extractDocFromBody,
     getBuildContext,
     getKind,
-    makeAbsoluteImportNode,
     makeModuleFrame,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
@@ -356,9 +357,9 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
     # On the module level, there is nothing to do.
     if provider.isCompiledPythonModule():
         if shallWarnUnusualCode():
-            warning(
-                "%s: Using 'global' statement on module level has no effect.",
-                source_ref.getAsString(),
+            unusual_logger.warning(
+                "%s: Using 'global' statement on module level has no effect."
+                % source_ref.getAsString(),
             )
 
         return None
@@ -768,7 +769,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             for path_imported_name in getPthImportedPackages():
                 statements.append(
                     StatementExpressionOnly(
-                        expression=makeAbsoluteImportNode(
+                        expression=makeExpressionAbsoluteImportNode(
                             module_name=path_imported_name, source_ref=source_ref
                         ),
                         source_ref=source_ref,
@@ -777,7 +778,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
             statements.append(
                 StatementExpressionOnly(
-                    expression=makeAbsoluteImportNode(
+                    expression=makeExpressionAbsoluteImportNode(
                         module_name="site", source_ref=source_ref
                     ),
                     source_ref=source_ref,

@@ -330,6 +330,9 @@ extern PyObject *BUILTIN_LONG2(PyObject *value, PyObject *base);
 
 #include "nuitka/importing.h"
 
+// Hard imports have their own helpers.
+#include "nuitka/helper/import_hard.h"
+
 // For the constant loading:
 
 // Call this to initialize all common constants pre-main.

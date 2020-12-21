@@ -32,7 +32,9 @@ import nuitka.codegen.ComparisonCodes
 import nuitka.codegen.HelperDefinitions
 import nuitka.codegen.Namify
 from nuitka.__past__ import getMetaClassBase
+from nuitka.nodes.ImportNodes import hard_modules
 from nuitka.tools.quality.autoformat.Autoformat import autoformat
+from nuitka.Tracing import my_print
 
 
 class TypeDescBase(getMetaClassBase("Type")):
@@ -1831,15 +1833,17 @@ def emitIDE(emit):
 
 @contextlib.contextmanager
 def withFileOpenedAndAutoformatted(filename):
+    my_print("Creating %r ..." % filename)
+
     tmp_filename = filename + ".tmp"
     with open(tmp_filename, "w") as output:
         yield output
 
-    autoformat(tmp_filename, None, True, effective_filename=filename)
+    autoformat(tmp_filename, None, True, effective_filename=filename, trace=False)
 
     # No idea why, but this helps.
     if os.name == "nt":
-        autoformat(tmp_filename, None, True, effective_filename=filename)
+        autoformat(tmp_filename, None, True, effective_filename=filename, trace=False)
 
     shutil.copy(tmp_filename, filename)
     os.unlink(tmp_filename)
@@ -1987,6 +1991,66 @@ def makeHelpersInplaceOperation(operand, op_code):
             )
 
 
+def makeHelpersImportHard():
+    filename_c = "nuitka/build/static_src/HelpersImportHard.c"
+    filename_h = "nuitka/build/include/nuitka/helper/import_hard.h"
+
+    template = env.get_template("HelperImportHard.c.j2")
+
+    with withFileOpenedAndAutoformatted(filename_c) as output_c:
+        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+
+            def emit_h(*args):
+                writeline(output_h, *args)
+
+            def emit_c(*args):
+                writeline(output_c, *args)
+
+            def emit(*args):
+                emit_h(*args)
+                emit_c(*args)
+
+            emitGenerationWarning(emit_h, template.name)
+            emitGenerationWarning(emit_c, template.name)
+
+            emitIDE(emit_c)
+            emitIDE(emit_h)
+
+            for module_name in sorted(hard_modules):
+                makeHelperImportModuleHard(
+                    template,
+                    module_name,
+                    emit_h,
+                    emit_c,
+                    emit,
+                )
+
+
+def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
+    emit('/* C helper for hard import of module "%s" import. */' % module_name)
+    emit()
+
+    if module_name == "_frozen_importlib":
+        python_requirement = "PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x350"
+    elif module_name == "_frozen_importlib_external":
+        python_requirement = "PYTHON_VERSION >= 0x350"
+    else:
+        python_requirement = None
+
+    if python_requirement:
+        emit("#if %s" % python_requirement)
+
+    code = template.render(
+        module_name=module_name, name=template.name, target=object_desc
+    )
+
+    emit_c(code)
+    emit_h("extern " + code.splitlines()[0].replace(" {", ";"))
+
+    if python_requirement:
+        emit("#endif")
+
+
 def writeline(output, *args):
     if not args:
         output.write("\n")
@@ -1997,6 +2061,8 @@ def writeline(output, *args):
 
 
 def main():
+    makeHelpersImportHard()
+
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MULT")

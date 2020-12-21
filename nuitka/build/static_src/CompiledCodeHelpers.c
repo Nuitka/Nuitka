@@ -33,6 +33,7 @@
 #include "HelpersExceptions.c"
 #include "HelpersHeapStorage.c"
 #include "HelpersImport.c"
+#include "HelpersImportHard.c"
 #include "HelpersRaising.c"
 #include "HelpersStrings.c"
 

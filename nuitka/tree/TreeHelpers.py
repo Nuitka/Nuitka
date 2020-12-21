@@ -41,7 +41,6 @@ from nuitka.nodes.FrameNodes import (
     StatementsFrameGenerator,
     StatementsFrameModule,
 )
-from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
@@ -606,17 +605,6 @@ def makeReraiseExceptionStatement(source_ref):
 
     return StatementsSequence(
         statements=(StatementReraiseException(source_ref=source_ref),),
-        source_ref=source_ref,
-    )
-
-
-def makeAbsoluteImportNode(module_name, source_ref):
-    return ExpressionBuiltinImport(
-        name=makeConstantRefNode(module_name, source_ref, True),
-        globals_arg=None,
-        locals_arg=None,
-        fromlist=None,
-        level=makeConstantRefNode(0, source_ref, True),
         source_ref=source_ref,
     )
 

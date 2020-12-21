@@ -26,7 +26,6 @@ deeper that what it normally could. The import expression node can recurse.
 """
 
 import os
-from logging import warning
 
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     long,
@@ -38,11 +37,15 @@ from nuitka.importing.Importing import (
     getModuleNameAndKindFromFilename,
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
+from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.importing.Whitelisting import getModuleWhiteList
 from nuitka.ModuleRegistry import getUncompiledModule
+from nuitka.Options import shallWarnUnusualCode
+from nuitka.Tracing import inclusion_logger, unusual_logger
 from nuitka.utils.FileOperations import relpath
 from nuitka.utils.ModuleNames import ModuleName
 
+from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
     ExpressionBase,
     ExpressionChildHavingBase,
@@ -51,6 +54,31 @@ from .ExpressionBases import (
 from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
 from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
+
+# These module are supported in code generation to be imported the hard way.
+hard_modules = frozenset(
+    (
+        "os",
+        "sys",
+        "types",
+        "__future__",
+        "site",
+        "importlib",
+        "_frozen_importlib",
+        "_frozen_importlib_external",
+    )
+)
+
+
+def makeExpressionAbsoluteImportNode(module_name, source_ref):
+    return ExpressionBuiltinImport(
+        name=makeConstantRefNode(module_name, source_ref, True),
+        globals_arg=None,
+        locals_arg=None,
+        fromlist=None,
+        level=makeConstantRefNode(0, source_ref, True),
+        source_ref=source_ref,
+    )
 
 
 class ExpressionImportModuleHard(ExpressionBase):
@@ -79,10 +107,13 @@ class ExpressionImportModuleHard(ExpressionBase):
         return self.module_name
 
     def computeExpressionRaw(self, trace_collection):
+        if self.mayRaiseException(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
     def mayHaveSideEffects(self):
-        if self.module_name == "sys":
+        if self.module_name in hard_modules:
             return False
         elif self.module_name == "__future__":
             return False
@@ -90,6 +121,9 @@ class ExpressionImportModuleHard(ExpressionBase):
             return True
 
     def mayRaiseException(self, exception_type):
+        if self.module_name in hard_modules:
+            return False
+
         return self.mayHaveSideEffects()
 
 
@@ -139,6 +173,8 @@ class ExpressionImportModuleNameHard(ExpressionBase):
 
 
 class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
+    # Very detail rich node, pylint: disable=too-many-instance-attributes
+
     __slots__ = (
         "recurse_attempted",
         "imported_module_desc",
@@ -147,6 +183,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         "finding",
         "type_shape",
         "builtin_module",
+        "module_filename",
     )
 
     kind = "EXPRESSION_BUILTIN_IMPORT"
@@ -192,6 +229,9 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         self.type_shape = tshape_module
 
         self.builtin_module = None
+
+        # If found, filename of the imported module.
+        self.module_filename = None
 
     def _consider(self, trace_collection, module_filename, module_package):
         assert module_package is None or (
@@ -246,7 +286,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 ):
                     self._warned_about.add(module_filename)
 
-                    warning(
+                    inclusion_logger.warning(
                         """\
 Not recursing to '%(full_path)s' (%(filename)s), please specify \
 --nofollow-imports (do not warn), \
@@ -278,7 +318,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         if type(level) not in (int, long):
             return
 
-        module_package, module_filename, self.finding = findModule(
+        module_package, self.module_filename, self.finding = findModule(
             importing=self,
             module_name=ModuleName(module_name),
             parent_package=parent_package,
@@ -286,10 +326,10 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             warn=True,
         )
 
-        if module_filename is not None:
+        if self.module_filename is not None:
             imported_module = self._consider(
                 trace_collection=trace_collection,
-                module_filename=module_filename,
+                module_filename=self.module_filename,
                 module_package=module_package,
             )
 
@@ -420,6 +460,28 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                 )
 
                 self.recurse_attempted = True
+
+                if self.finding == "absolute" and imported_module_name in hard_modules:
+                    if isStandardLibraryPath(self.module_filename):
+                        result = ExpressionImportModuleHard(
+                            module_name=imported_module_name, source_ref=self.source_ref
+                        )
+
+                        return (
+                            result,
+                            "new_expression",
+                            "Lowered import of standard library module %r to hard import."
+                            % imported_module_name,
+                        )
+                    elif shallWarnUnusualCode():
+                        unusual_logger.warning(
+                            "%s Standard library module %r used from outside path %r."
+                            % (
+                                self.source_ref.getAsString(),
+                                imported_module_name,
+                                self.module_filename,
+                            )
+                        )
 
                 if self.finding == "built-in":
                     self.type_shape = tshape_module_builtin
