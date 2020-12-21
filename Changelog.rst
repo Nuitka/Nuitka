@@ -4,13 +4,50 @@
 
 This release is not done yet.
 
+***********
+ Bug Fixes
+***********
+
+-  Pipenv: Workaround parsing issue with our ``setup.py`` to allow
+   installation from Github. Fixed in 0.6.10.1 already.
+
+**************
+ New Features
+**************
+
+-  Onefile: Added linux specific options ``--linux-onefile-icon`` to
+   allow provision of an icon to use in onefile mode on Linux, so far
+   this was only available as the hard coded path to a Python icon,
+   which also didn't exist on all platforms.
+
+**************
+ Optimization
+**************
+
+-  Use less memory at compile time due using ``__slots__`` for all node
+   types, finally figured out, how to achieve this with multiple
+   inheritance.
+
+****************
+ Organisational
+****************
+
+-  Removed compatibility older aliases of follow option, ``--recurse-*``
+   and require ``--follow-*`` optionms to be used instead.
+-  Make sure to use the codespell tool with Python3.
+
+*********
+ Summary
+*********
+
+This release is not done yet.
 
 #######################
  Nuitka Release 0.6.10
 #######################
 
-This release comes with many new features, e.g. onefile support, as well as
-many new optimization and bug fixes.
+This release comes with many new features, e.g. onefile support, as well
+as many new optimization and bug fixes.
 
 ***********
  Bug Fixes
@@ -41,10 +78,11 @@ many new optimization and bug fixes.
    and Scons were having issues, added a workaround to resolve it even
    on Python2.
 
--  Compatibility: Added support for ``co_freevars`` in code objects, e.g.
-   newer matplotlib needs this.
+-  Compatibility: Added support for ``co_freevars`` in code objects,
+   e.g. newer matplotlib needs this.
 
--  Standalone: Add needed data files for gooey. Fixed in 0.6.9.4 already.
+-  Standalone: Add needed data files for gooey. Fixed in 0.6.9.4
+   already.
 
 -  Scons: Fix, was not respecting ``--quiet`` option when running Scons.
    Fixed in 0.6.9.3 already.
@@ -55,15 +93,15 @@ many new optimization and bug fixes.
 -  Scons: Fix, the clcache output parsing wasn't robust enough. Fixed in
    0.6.9.1 already.
 
--  Python3.8: Ignore all non-strings provided in doc-string fashion, they
-   are not to be considered.
+-  Python3.8: Ignore all non-strings provided in doc-string fashion,
+   they are not to be considered.
 
 -  Fix, ``getattr``, ``setattr`` and ``hasattr`` could not be used in
    finally clauses anymore. Fixed in 0.6.9.1 already.
 
--  Windows: For Python3 enhanced compatibility for Windows no console mode,
-   they need a ``sys.stdin`` or else e.g. ``input`` will not be compatible
-   and raise ``RuntimeError``.
+-  Windows: For Python3 enhanced compatibility for Windows no console
+   mode, they need a ``sys.stdin`` or else e.g. ``input`` will not be
+   compatible and raise ``RuntimeError``.
 
 **************
  New Features
@@ -107,14 +145,14 @@ many new optimization and bug fixes.
    ``--windows-file-description`` have been added. Some of these have
    defaults.
 
-- Enhanced support for using the Win32 compiler of MinGW64, but it's
-  not perfect yet and not recommended.
+-  Enhanced support for using the Win32 compiler of MinGW64, but it's
+   not perfect yet and not recommended.
 
-- Windows: Added support for LTO mode for MSVC as well, this seems
-  to allow more optimization.
+-  Windows: Added support for LTO mode for MSVC as well, this seems to
+   allow more optimization.
 
-- Plugins: The numpy plugin now handles matplotlib3 config files correctly.
-
+-  Plugins: The numpy plugin now handles matplotlib3 config files
+   correctly.
 
 **************
  Optimization
@@ -146,9 +184,9 @@ many new optimization and bug fixes.
    rather than doing cases locally, adding a C type for ``bool``.
 
 -  Use common code for C code handling const ``None`` return only, to
-   cases where there is any immutable constant value returned, avoid code
-   generation for this common case. Currently mutable constants are not
-   handled, this may be added in the future.
+   cases where there is any immutable constant value returned, avoid
+   code generation for this common case. Currently mutable constants are
+   not handled, this may be added in the future.
 
 -  Annotate no exception for exception type checks in handlers for
    Python2 and no exception if the value has exception type shape for
@@ -244,15 +282,15 @@ many new optimization and bug fixes.
 
 -  Added detection if a iterator next can raise, using existing iterator
    checking which allows to remove needless checks and exception traces.
-   Adding a code variant for calls to next that cannot fail, while tuning
-   the code used for ``next`` and unpacking next, to use faster exception
-   checking in the C code. This will speed up unpacking performance for
-   some forms of unpacking from known sizes.
+   Adding a code variant for calls to next that cannot fail, while
+   tuning the code used for ``next`` and unpacking next, to use faster
+   exception checking in the C code. This will speed up unpacking
+   performance for some forms of unpacking from known sizes.
 
--  Make sure to use the fastest tuple API possible in all of Nuitka, many
-   place e.g. used ``PyTuple_Size``, and one was in a performance critical
-   part, e.g. in code that used when compiled functions as called as a
-   method.
+-  Make sure to use the fastest tuple API possible in all of Nuitka,
+   many place e.g. used ``PyTuple_Size``, and one was in a performance
+   critical part, e.g. in code that used when compiled functions as
+   called as a method.
 
 -  Added optimized variant for ``_PyList_Extend`` for slightly faster
    unpacking code.
@@ -260,9 +298,9 @@ many new optimization and bug fixes.
 -  Added optimized variant for ``PyList_Append`` for faster list
    contractions code.
 
--  Avoid using ``RemoveFileSpec`` and instead provide our own code for that
-   task, slightly reducing file size and avoiding to use the ``Shlapi``
-   link library.
+-  Avoid using ``RemoveFileSpec`` and instead provide our own code for
+   that task, slightly reducing file size and avoiding to use the
+   ``Shlapi`` link library.
 
 *******
  Tests
@@ -320,8 +358,8 @@ many new optimization and bug fixes.
    using the ``rc`` binary and handle all resources ourselves, allowing
    to remove that code from the Scons side of things.
 
--  Moved file comparison code of standalone mode into file utils function
-   for use in plugins as well.
+-  Moved file comparison code of standalone mode into file utils
+   function for use in plugins as well.
 
 -  Unified how path concatenation is done in Nuitka helper code, there
    were more or less complete variants, this is making sure, the most
@@ -331,9 +369,9 @@ many new optimization and bug fixes.
    scons uses, hacks we apply to speed up scons, and more to separate
    modules with dedicated interfaces.
 
--  When using ``enumerate`` we now provide start value of 1 where it
-   is appropriate, e.g. when counting source code lines, rather than
-   adding ``count+1`` on every usage, making code more readable.
+-  When using ``enumerate`` we now provide start value of 1 where it is
+   appropriate, e.g. when counting source code lines, rather than adding
+   ``count+1`` on every usage, making code more readable.
 
 ****************
  Organisational
@@ -367,20 +405,32 @@ many new optimization and bug fixes.
  Summary
 *********
 
-This is the big release in terms of scalability. The optimization in this
-release mostly focused on getting things that cause increased compile times
-sorted out. A very important fix avoids loop optimization to leak into global
-passes of all modules unnecessarily, but just as important, generated code now
-is much better for the C compiler to consume in observed problematic cases.
+This is the big release in terms of scalability. The optimization in
+this release mostly focused on getting things that cause increased
+compile times sorted out. A very important fix avoids loop optimization
+to leak into global passes of all modules unnecessarily, but just as
+important, generated code now is much better for the C compiler to
+consume in observed problematic cases.
 
-Other optimization came from supporting Python 3.9 and things come across
-during the implementation of that feature, e.g. to be able to make differences
-with unpacking error messages, we provide more code to handle it ourselves, and
-to manually optimize how to interact with e.g. ``list`` objects.
+More optimization changes are geared towards reducing Nuitka frontend
+compile time, which could also be a lot in some cases, ending up
+specializing more constant nodes and how they expose themselves to
+optimization.
 
-All in all, this release should be taken as a major cleanup, resolving many
-technical debts of Nuitka and preparing more optimization to come.
+Other optimization came from supporting Python 3.9 and things come
+across during the implementation of that feature, e.g. to be able to
+make differences with unpacking error messages, we provide more code to
+handle it ourselves, and to manually optimize how to interact with e.g.
+``list`` objects.
 
+For Windows, the automatic download of ``ccache`` and a matching MinGW64
+if none was found, is a new step, that should lower the barrier of entry
+for people who have no clue what a C compiler is. More changes are bound
+to come in this field with future releases, e.g. making a minimum
+version requirement for gcc on Windows that excludes unfit C compilers.
+
+All in all, this release should be taken as a major cleanup, resolving
+many technical debts of Nuitka and preparing more optimization to come.
 
 ######################
  Nuitka Release 0.6.9
@@ -394,16 +444,6 @@ many changes to be necessary.
 There are also many general improvements and performance work for
 tracing and loops, but the full potential of this will not be unlocked
 with this release yet.
-
-More optimization changes are geared towards reducing Nuitka frontend compile
-time, which could also be a lot in some cases, ending up specializing more
-constant nodes and how they expose themselves to optimization.
-
-For Windows, the automatic download of ``ccache`` and a matching MinGW64 if
-none was found, is a new step, that should lower the barrier of entry for
-people who have no clue what a C compiler is. More changes are bound to come in
-this field with future releases, e.g. making a minimum version requirement for
-gcc on Windows that excludes unfit C compilers.
 
 ***********
  Bug Fixes
