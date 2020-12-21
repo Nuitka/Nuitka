@@ -41,7 +41,7 @@ from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.Tracing import printLine
+from nuitka.Tracing import plugins_logger, printLine
 from nuitka.utils.FileOperations import makePath
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName
@@ -134,7 +134,16 @@ def _loadPluginClassesFromPath(scan_path):
             # it was compiled with Nuitka.
             pass
 
-        plugin_module = module_loader.load_module(name)
+        try:
+            plugin_module = module_loader.load_module(name)
+        except Exception:  # need to catch everything, pylint: disable=broad-except
+            if Options.is_nondebug:
+                plugins_logger.warning(
+                    "Problem loading plugin %r (%s), ignored. Use --debug to make it visible."
+                    % (name, module_loader.get_filename())
+                )
+            else:
+                raise
 
         plugin_classes = set(
             obj
