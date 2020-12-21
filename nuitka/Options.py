@@ -138,6 +138,10 @@ mode where filenames are mandatory, and not for standalone where there is a
 sane default used inside the dist folder."""
         )
 
+    if Utils.getOS() == "Linux":
+        if len(getIconPaths()) > 1:
+            sys.exit("Error, can only use one icon on Linux.")
+
     for icon_path in getIconPaths():
         if not os.path.exists(icon_path):
             sys.exit("Error, icon path %r does not exist." % icon_path)
@@ -538,8 +542,21 @@ def isOnefileMode():
 
 
 def getIconPaths():
-    """*list of str*, values of "--windows-icon-from-ico" """
-    return options.icon_path
+    """*list of str*, values of "--windows-icon-from-ico" and "--linux-onefile-icon """
+
+    result = options.icon_path
+
+    # Check if Linux icon requirement is met.
+    if Utils.getOS() == "Linux" and not result and isOnefileMode():
+        default_icon = "/usr/share/pixmaps/python.xpm"
+        if os.path.exists(default_icon):
+            result.append(default_icon)
+        else:
+            sys.exit(
+                "Error, on the default icon '%s' does not exist, making --linux-onefile-icon required."
+            )
+
+    return result
 
 
 def getWindowsIconExecutablePath():

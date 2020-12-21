@@ -741,7 +741,7 @@ windows_group.add_option(
     dest="icon_path",
     metavar="ICON_PATH",
     default=[],
-    help="Add executable icon (Windows only at this time). Can be given multiple times.",
+    help="Add executable icon. Can be given multiple times for different resolutions.",
 )
 
 windows_group.add_option(
@@ -837,8 +837,20 @@ One of file or product version is required, when a version resource needs to be
 added, e.g. to specify product name, or company name. Defaults to nonsense.""",
 )
 
-
 parser.add_option_group(windows_group)
+
+linux_group = OptionGroup(parser, "Linux specific controls")
+
+linux_group.add_option(
+    "--linux-onefile-icon",
+    action="append",
+    dest="icon_path",
+    metavar="ICON_PATH",
+    default=[],
+    help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to ",
+)
+
+parser.add_option_group(linux_group)
 
 plugin_group = OptionGroup(parser, "Plugin control")
 

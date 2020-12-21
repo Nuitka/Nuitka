@@ -111,15 +111,10 @@ exec $APPDIR/%s $@"""
         if os.path.exists("/usr/share/pixmaps/python.xpm"):
             icon_paths.append("/usr/share/pixmaps/python.xpm")
 
-    if icon_paths:
-        extension = os.path.splitext(icon_paths[0])[1].lower()
+    assert icon_paths
+    extension = os.path.splitext(icon_paths[0])[1].lower()
 
-        shutil.copyfile(icon_paths[0], getResultBasepath() + extension)
-    else:
-        general.warning(
-            "Cannot apply onefile unless icon file is specified. Yes, crazy."
-        )
-        return
+    shutil.copyfile(icon_paths[0], getResultBasepath() + extension)
 
     with open(getResultBasepath() + ".desktop", "w") as output_file:
         output_file.write(
