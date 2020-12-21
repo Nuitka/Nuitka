@@ -37,11 +37,11 @@ def resolveShellPatternToFilenames(pattern):
     return glob.glob(pattern)
 
 
-def codespell(filenames, verbose, write):
+def runCodespell(filenames, verbose, write):
     if verbose:
         my_print("Consider", " ".join(filenames))
 
-    command = ["codespell", "-I", "misc/codespell-ignore.txt"]
+    command = ["codespell", "-f", "-I", "misc/codespell-ignore.txt"]
     if write:
         command.append("-w")
     command += filenames
@@ -76,6 +76,7 @@ def main():
 
     parser.add_option(
         "--write",
+        "-w",
         action="store_true",
         dest="write",
         default=False,
@@ -114,7 +115,16 @@ def main():
     if not filenames:
         sys.exit("No files found.")
 
-    codespell(filenames=filenames, verbose=options.verbose, write=options.write)
+    result = runCodespell(
+        filenames=filenames, verbose=options.verbose, write=options.write
+    )
+
+    if result:
+        my_print("OK.")
+    else:
+        sys.exit(
+            "\nError, please correct the spelling problems found or extend 'misc/codespell-ignore.txt' if applicable."
+        )
 
 
 if __name__ == "__main__":
