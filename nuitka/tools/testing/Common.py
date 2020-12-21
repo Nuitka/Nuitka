@@ -778,7 +778,7 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
 def hasModule(module_name):
     with open(os.devnull, "w") as devnull:
         result = subprocess.call(
-            (os.environ["PYTHON"], "-c" "import %s" % module_name),
+            (os.environ["PYTHON"], "-c", "import %s" % module_name),
             stdout=devnull,
             stderr=subprocess.STDOUT,
         )
