@@ -116,12 +116,6 @@ static void prepareStandaloneEnvironment() {
 #endif
 }
 
-#if PYTHON_VERSION < 0x300
-#define PY_FORMAT_GETPATH_RESULT "%s"
-#else
-#define PY_FORMAT_GETPATH_RESULT "%ls"
-#endif
-
 static void restoreStandaloneEnvironment() {
     /* Make sure to use the optimal value for standalone mode only. */
 #if PYTHON_VERSION < 0x300
