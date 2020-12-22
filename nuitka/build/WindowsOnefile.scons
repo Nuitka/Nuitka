@@ -61,7 +61,6 @@ from .SconsUtils import (
     addClangClPathFromMSVC,
     addToPATH,
     changeKeyboardInteruptToErrorExit,
-    cheapCopyFile,
     createDefinitionsFile,
     getArgumentBool,
     getArgumentDefaulted,
@@ -72,6 +71,7 @@ from .SconsUtils import (
     getMsvcVersionString,
     initScons,
     isGccName,
+    provideStaticSourceFile,
     setArguments,
     writeSconsReport,
 )
@@ -159,32 +159,6 @@ python_prefix = ARGUMENTS["python_prefix"]
 # Forced MSVC version (windows-only)
 msvc_version = ARGUMENTS.get("msvc_version", None)
 
-no_python_warnings = getArgumentBool("no_python_warnings", False)
-
-# sys.flags values to pass along
-# python_sysflag_py3k_warning
-python_sysflag_py3k_warning = getArgumentBool("python_sysflag_py3k_warning", False)
-# python_sysflag_division_warning
-python_sysflag_division_warning = getArgumentBool(
-    "python_sysflag_division_warning", False
-)
-# python_sysflag_division_warning
-python_sysflag_bytes_warning = getArgumentBool("python_sysflag_bytes_warning", False)
-# python_sysflag_no_site
-python_sysflag_no_site = getArgumentBool("python_sysflag_no_site", False)
-# python_sysflag_verbose
-python_sysflag_verbose = getArgumentBool("python_sysflag_verbose", False)
-# python_sysflag_unicode
-python_sysflag_unicode = getArgumentBool("python_sysflag_unicode", False)
-# python_sysflag_utf8
-python_sysflag_utf8 = getArgumentBool("python_sysflag_utf8", False)
-# python_sysflag_optimize
-python_sysflag_optimize = getArgumentBool("python_sysflag_optimize", False)
-# python_sysflag_no_randomization
-python_sysflag_no_randomization = getArgumentBool(
-    "python_sysflag_no_randomization", False
-)
-
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
 link_libraries = getArgumentList("link_libraries", "")
@@ -271,9 +245,6 @@ def createEnvironment(tools):
         ENV=os.environ,
         # Extra tools configuration for scons.
         tools=tools,
-        # The shared libraries should not be named "lib...", because CPython
-        # requires the filename "module_name.so" to load it.
-        SHLIBPREFIX="",
         # Under windows, specify the target architecture is needed for Scons
         # to pick up MSVC.
         TARGET_ARCH=target_arch,
@@ -303,25 +274,6 @@ def getCompilerTools():
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(tools=getCompilerTools())
-
-# On Windows, in case MSVC was not found and not previously forced, retry with
-# it and use that instead then as a fallback. Using both tools in one call
-# seems to not work in terms of fallback when both exist.
-if win_target and getExecutablePath(env["CC"], env=env) is None:
-
-    # This will succeed to find "gcc.exe" when conda install m2w64-gcc has
-    # been done.
-    anaconda_mingw_dir = os.path.join(python_prefix, r"Library\mingw-w64\bin")
-
-    if os.path.isdir(anaconda_mingw_dir):
-        os.environ["PATH"] = os.pathsep.join(
-            [anaconda_mingw_dir] + os.environ["PATH"].split(os.pathsep)
-        )
-
-        env = createEnvironment(tools=["mingw"])
-
-        if show_scons_mode:
-            my_print("Standard CC not found, attempting installed CondaCC")
 
 if show_scons_mode:
     my_print("Scons: Initial CC:", env.get("CC", None))
@@ -755,18 +707,6 @@ def discoverSourceFiles():
     # If we use C11 capable compiler, all good. Otherwise use C++, which Scons
     # needs to derive from filenames, so make copies (or links) with a different
     # name.
-
-    def provideStatic(sub_path):
-        source_file = os.path.join(nuitka_src, "static_src", sub_path)
-        target_file = os.path.join(source_dir, "static_src", os.path.basename(sub_path))
-
-        if target_file.endswith(".c") and not c11_mode:
-            target_file += "pp"
-
-        cheapCopyFile(source_file, target_file)
-
-        return target_file
-
     def _scanSourcekDir(dirname):
         if not os.path.exists(dirname):
             return
@@ -798,7 +738,14 @@ def discoverSourceFiles():
     _scanSourcekDir(os.path.join(source_dir, "plugins"))
 
     # Main onefile bootstrap program
-    result.append(provideStatic("WindowsOnefile.c"))
+    result.append(
+        provideStaticSourceFile(
+            sub_path="WindowsOnefile.c",
+            nuitka_src=nuitka_src,
+            source_dir=source_dir,
+            c11_mode=c11_mode,
+        )
+    )
 
     return result
 

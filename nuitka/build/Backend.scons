@@ -70,7 +70,6 @@ from .SconsUtils import (
     addClangClPathFromMSVC,
     addToPATH,
     changeKeyboardInteruptToErrorExit,
-    cheapCopyFile,
     createDefinitionsFile,
     decideArchMismatch,
     getArgumentBool,
@@ -83,6 +82,7 @@ from .SconsUtils import (
     getMsvcVersionString,
     initScons,
     isGccName,
+    provideStaticSourceFile,
     setArguments,
     writeSconsReport,
 )
@@ -1236,17 +1236,6 @@ def discoverSourceFiles():
     # needs to derive from filenames, so make copies (or links) with a different
     # name.
 
-    def provideStatic(sub_path):
-        source_file = os.path.join(nuitka_src, "static_src", sub_path)
-        target_file = os.path.join(source_dir, "static_src", os.path.basename(sub_path))
-
-        if target_file.endswith(".c") and not c11_mode:
-            target_file += "pp"
-
-        cheapCopyFile(source_file, target_file)
-
-        return target_file
-
     def _scanSourcekDir(dirname):
         if not os.path.exists(dirname):
             return
@@ -1277,19 +1266,31 @@ def discoverSourceFiles():
     _scanSourcekDir(source_dir)
     _scanSourcekDir(os.path.join(source_dir, "plugins"))
 
+    static_src_filenames = []
+
     # Main program, unless of course it's a Python module/package we build.
     if not module_mode:
-        result.append(provideStatic("MainProgram.c"))
+        static_src_filenames.append("MainProgram.c")
 
     # Compiled types.
-    result.append(provideStatic("CompiledCellType.c"))
-    result.append(provideStatic("CompiledFunctionType.c"))
-    result.append(provideStatic("CompiledGeneratorType.c"))
+    static_src_filenames.append("CompiledCellType.c")
+    static_src_filenames.append("CompiledFunctionType.c")
+    static_src_filenames.append("CompiledGeneratorType.c")
 
     # Helper codes.
-    result.append(provideStatic("CompiledCodeHelpers.c"))
-    result.append(provideStatic("InspectPatcher.c"))
-    result.append(provideStatic("MetaPathBasedLoader.c"))
+    static_src_filenames.append("CompiledCodeHelpers.c")
+    static_src_filenames.append("InspectPatcher.c")
+    static_src_filenames.append("MetaPathBasedLoader.c")
+
+    result += [
+        provideStaticSourceFile(
+            sub_path=filename,
+            nuitka_src=nuitka_src,
+            source_dir=source_dir,
+            c11_mode=c11_mode,
+        )
+        for filename in static_src_filenames
+    ]
 
     return result
 
