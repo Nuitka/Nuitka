@@ -107,10 +107,6 @@ exec $APPDIR/%s $@"""
 
     icon_paths = getIconPaths()
 
-    if not icon_paths:
-        if os.path.exists("/usr/share/pixmaps/python.xpm"):
-            icon_paths.append("/usr/share/pixmaps/python.xpm")
-
     assert icon_paths
     extension = os.path.splitext(icon_paths[0])[1].lower()
 
