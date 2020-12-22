@@ -1232,10 +1232,10 @@ static PyObject *_path_unfreezer_find_spec(PyObject *self, PyObject *args, PyObj
 
     if (isVerbose()) {
         PySys_WriteStderr("import %s # claimed responsibility (%s)\n", Nuitka_String_AsString(module_name),
-                          entry->flags & NUITKA_BYTECODE_FLAG ? "bytecode" : "compiled");
+                          (entry->flags & NUITKA_BYTECODE_FLAG) != 0 ? "bytecode" : "compiled");
     }
 
-    return createModuleSpec(module_name, entry->flags & NUITKA_PACKAGE_FLAG);
+    return createModuleSpec(module_name, (entry->flags & NUITKA_PACKAGE_FLAG) != 0);
 }
 
 #if PYTHON_VERSION >= 350

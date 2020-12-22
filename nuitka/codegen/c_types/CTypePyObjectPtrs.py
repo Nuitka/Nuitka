@@ -91,10 +91,12 @@ class CPythonPyObjectPtrBase(CTypeBase):
 
     @classmethod
     def getTruthCheckCode(cls, value_name):
-        return "CHECK_IF_TRUE(%s)" % value_name
+        return "CHECK_IF_TRUE(%s) == 1" % value_name
 
     @classmethod
     def emitTruthCheckCode(cls, to_name, value_name, emit):
+        assert to_name.c_type == "int", to_name
+
         emit("%s = CHECK_IF_TRUE(%s);" % (to_name, value_name))
 
     @classmethod
@@ -129,7 +131,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
         )
 
         emit(
-            "%s = %s == 1 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;"
+            "%s = %s == 0 ? NUITKA_BOOL_FALSE : NUITKA_BOOL_TRUE;"
             % (to_name, truth_name)
         )
 
