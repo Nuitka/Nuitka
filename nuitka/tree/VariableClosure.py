@@ -117,7 +117,9 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         qualname_node = qualname_assign.subnode_source
 
                         new_node = makeConstantReplacementNode(
-                            constant=class_variable.getName(), node=qualname_node
+                            constant=class_variable.getName(),
+                            node=qualname_node,
+                            user_provided=True,
                         )
 
                         parent = qualname_node.parent

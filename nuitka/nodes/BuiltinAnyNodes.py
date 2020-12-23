@@ -71,7 +71,9 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
 
                 if truth_value is True:
                     result = wrapExpressionWithNodeSideEffects(
-                        new_node=makeConstantReplacementNode(constant=True, node=self),
+                        new_node=makeConstantReplacementNode(
+                            constant=True, node=self, user_provided=False
+                        ),
                         old_node=value,
                     )
 
@@ -87,7 +89,9 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
 
             if all_false is True:
                 result = wrapExpressionWithNodeSideEffects(
-                    new_node=makeConstantReplacementNode(constant=False, node=self),
+                    new_node=makeConstantReplacementNode(
+                        constant=False, node=self, user_provided=False
+                    ),
                     old_node=value,
                 )
 

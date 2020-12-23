@@ -242,7 +242,9 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildHavingBase
             values=[pair.subnode_value.getCompileTimeConstant() for pair in pairs],
         )
 
-        new_node = makeConstantReplacementNode(constant=constant_value, node=self)
+        new_node = makeConstantReplacementNode(
+            constant=constant_value, node=self, user_provided=True
+        )
 
         return (
             new_node,

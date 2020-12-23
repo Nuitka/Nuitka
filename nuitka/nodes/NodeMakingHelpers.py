@@ -26,18 +26,19 @@ the local imports instead, as these local imports look ugly everywhere else,
 making it more difficult to use.
 """
 
-from logging import warning
-
 from nuitka import Options
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import unusual_logger
 
 
-def makeConstantReplacementNode(constant, node):
+def makeConstantReplacementNode(constant, node, user_provided):
     from .ConstantRefNodes import makeConstantRefNode
 
-    return makeConstantRefNode(constant=constant, source_ref=node.source_ref)
+    return makeConstantRefNode(
+        constant=constant, source_ref=node.source_ref, user_provided=user_provided
+    )
 
 
 def makeRaiseExceptionReplacementExpression(
@@ -51,11 +52,13 @@ def makeRaiseExceptionReplacementExpression(
     assert type(exception_type) is str
 
     if Options.shallWarnImplicitRaises():
-        warning(
-            '%s: Will always raise exception: "%s(%s)"',
-            source_ref.getAsString(),
-            exception_type,
-            exception_value,
+        unusual_logger.warning(
+            '%s: Will always raise exception: "%s(%s)"'
+            % (
+                source_ref.getAsString(),
+                exception_type,
+                exception_value,
+            )
         )
 
     result = ExpressionRaiseException(
@@ -63,7 +66,7 @@ def makeRaiseExceptionReplacementExpression(
             exception_name=exception_type, source_ref=source_ref
         ),
         exception_value=makeConstantReplacementNode(
-            constant=exception_value, node=expression
+            constant=exception_value, node=expression, user_provided=False
         ),
         source_ref=source_ref,
     )
@@ -80,11 +83,13 @@ def makeRaiseExceptionReplacementStatement(statement, exception_type, exception_
     assert type(exception_type) is str
 
     if Options.shallWarnImplicitRaises():
-        warning(
-            '%s: Will always raise exception: "%s(%s)"',
-            source_ref.getAsString(),
-            exception_type,
-            exception_value,
+        unusual_logger.warning(
+            '%s: Will always raise exception: "%s(%s)"'
+            % (
+                source_ref.getAsString(),
+                exception_type,
+                exception_value,
+            )
         )
 
     result = StatementRaiseExceptionImplicit(
@@ -92,7 +97,7 @@ def makeRaiseExceptionReplacementStatement(statement, exception_type, exception_
             exception_name=exception_type, source_ref=source_ref
         ),
         exception_value=makeConstantReplacementNode(
-            constant=exception_value, node=statement
+            constant=exception_value, node=statement, user_provided=False
         ),
         exception_cause=None,
         exception_trace=None,
@@ -193,10 +198,12 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
     )
 
 
-def makeCompileTimeConstantReplacementNode(value, node):
+def makeCompileTimeConstantReplacementNode(value, node, user_provided):
     # This needs to match code in isCompileTimeConstantValue
     if isConstant(value):
-        return makeConstantReplacementNode(constant=value, node=node)
+        return makeConstantReplacementNode(
+            constant=value, node=node, user_provided=user_provided
+        )
     elif type(value) is type:
         if value.__name__ in builtin_names:
             from .BuiltinRefNodes import makeExpressionBuiltinRef
@@ -214,7 +221,7 @@ def makeCompileTimeConstantReplacementNode(value, node):
         return node
 
 
-def getComputationResult(node, computation, description):
+def getComputationResult(node, computation, description, user_provided):
     """With a computation function, execute it and return constant result or
     exception node.
 
@@ -231,7 +238,9 @@ def getComputationResult(node, computation, description):
         change_tags = "new_raise"
         change_desc = description + " Predicted to raise an exception."
     else:
-        new_node = makeCompileTimeConstantReplacementNode(value=result, node=node)
+        new_node = makeCompileTimeConstantReplacementNode(
+            value=result, node=node, user_provided=user_provided
+        )
 
         if Options.is_debug:
             assert new_node is not node, (node, result)

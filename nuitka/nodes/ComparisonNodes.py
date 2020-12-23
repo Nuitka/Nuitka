@@ -341,7 +341,9 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
         left, right = self.getOperands()
 
         if trace_collection.mustAlias(left, right):
-            result = makeConstantReplacementNode(constant=self.match_value, node=self)
+            result = makeConstantReplacementNode(
+                constant=self.match_value, node=self, user_provided=False
+            )
 
             if left.mayHaveSideEffects() or right.mayHaveSideEffects():
                 result = wrapExpressionWithSideEffects(
@@ -360,7 +362,7 @@ Determined values to alias and therefore result of %s comparison."""
 
         if trace_collection.mustNotAlias(left, right):
             result = makeConstantReplacementNode(
-                constant=not self.match_value, node=self
+                constant=not self.match_value, node=self, user_provided=False
             )
 
             if left.mayHaveSideEffects() or right.mayHaveSideEffects():

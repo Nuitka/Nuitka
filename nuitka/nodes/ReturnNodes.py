@@ -121,7 +121,10 @@ class StatementReturnConstantBase(StatementBase):
         """The returned constant value."""
 
     def getExpression(self):
-        return makeConstantReplacementNode(node=self, constant=self.getConstant())
+        # TODO: May still not be user provided, this information is lost currently.
+        return makeConstantReplacementNode(
+            node=self, constant=self.getConstant(), user_provided=True
+        )
 
     @staticmethod
     def getStatementNiceName():

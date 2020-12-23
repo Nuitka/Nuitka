@@ -159,7 +159,9 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
 
         if truth_value is not None:
             result = wrapExpressionWithNodeSideEffects(
-                new_node=makeConstantReplacementNode(constant=truth_value, node=self),
+                new_node=makeConstantReplacementNode(
+                    constant=truth_value, node=self, user_provided=False
+                ),
                 old_node=value,
             )
 

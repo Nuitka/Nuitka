@@ -92,6 +92,7 @@ class ExpressionMakeSequenceBase(
                 element.getCompileTimeConstant() for element in elements
             ),
             description="%s with constant arguments." % simulator.__name__.title(),
+            user_provided=True,
         )
 
     @staticmethod

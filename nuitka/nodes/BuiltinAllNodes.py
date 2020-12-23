@@ -64,7 +64,9 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
         if shape in (tshape_str, tshape_bytes, tshape_unicode):
             return (
                 wrapExpressionWithNodeSideEffects(
-                    new_node=makeConstantReplacementNode(constant=True, node=self),
+                    new_node=makeConstantReplacementNode(
+                        constant=True, node=self, user_provided=False
+                    ),
                     old_node=value,
                 ),
                 "new_constant",
@@ -78,7 +80,9 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
 
             if all_true is not None:
                 result = wrapExpressionWithNodeSideEffects(
-                    new_node=makeConstantReplacementNode(constant=all_true, node=self),
+                    new_node=makeConstantReplacementNode(
+                        constant=all_true, node=self, user_provided=False
+                    ),
                     old_node=value,
                 )
 

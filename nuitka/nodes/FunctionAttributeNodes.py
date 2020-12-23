@@ -59,7 +59,9 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
 
     def computeExpressionRaw(self, trace_collection):
         result = makeConstantReplacementNode(
-            node=self, constant=self.function_body.getFunctionQualname()
+            node=self,
+            constant=self.function_body.getFunctionQualname(),
+            user_provided=True,
         )
 
         return (

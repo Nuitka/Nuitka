@@ -19,8 +19,6 @@
 
 """
 
-from logging import warning
-
 from nuitka import Options
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     iterItems,
@@ -39,6 +37,7 @@ from nuitka.Constants import (
     isHashable,
     isMutable,
 )
+from nuitka.Tracing import optimization_logger
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
 from .IterationHandles import (
@@ -270,11 +269,13 @@ class ExpressionConstantRefBase(ExpressionConstantUntrackedRefBase):
                     max_size = 256
 
                 if max_size is not None and len(constant) > max_size:
-                    warning(
-                        "Too large constant (%s %d) encountered at %s.",
-                        type(constant),
-                        len(constant),
-                        source_ref.getAsString(),
+                    optimization_logger.warning(
+                        "Too large constant (%s %d) encountered at %s."
+                        % (
+                            type(constant),
+                            len(constant),
+                            source_ref.getAsString(),
+                        )
                     )
             except TypeError:
                 pass

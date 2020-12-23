@@ -117,7 +117,10 @@ class ExpressionBase(NodeBase):
         string_value = self.getStringValue()
 
         if string_value is not None:
-            return makeConstantReplacementNode(node=self, constant=string_value)
+            # Those that are user provided, need to overload this.
+            return makeConstantReplacementNode(
+                node=self, constant=string_value, user_provided=False
+            )
 
         return None
 
@@ -975,6 +978,7 @@ Compile time constant bytes value pre-computed.""",
                             lower.getCompileTimeConstant() : upper.getCompileTimeConstant()
                         ],
                         description="Slicing of constant with constant indexes.",
+                        user_provided=False,
                     )
             else:
                 if lower.isCompileTimeConstant():
@@ -984,6 +988,7 @@ Compile time constant bytes value pre-computed.""",
                             lower.getCompileTimeConstant() :
                         ],
                         description="Slicing of constant with constant lower index only.",
+                        user_provided=False,
                     )
         else:
             if upper is not None:
@@ -994,12 +999,14 @@ Compile time constant bytes value pre-computed.""",
                             : upper.getCompileTimeConstant()
                         ],
                         description="Slicing of constant with constant upper index only.",
+                        user_provided=False,
                     )
             else:
                 return getComputationResult(
                     node=lookup_node,
                     computation=lambda: self.getCompileTimeConstant()[:],
                     description="Slicing of constant with no indexes.",
+                    user_provided=False,
                 )
 
         # Any exception might be raised.
@@ -1018,6 +1025,7 @@ Compile time constant bytes value pre-computed.""",
                 description="""\
 Predicted '%s' on compiled time constant values."""
                 % in_node.comparator,
+                user_provided=False,
             )
 
         # Look-up of __contains__ on compile time constants does mostly nothing.
@@ -1031,7 +1039,7 @@ Predicted '%s' on compiled time constant values."""
         assert type(constant) is not bool
 
         self.parent.replaceChild(
-            self, makeConstantReplacementNode(bool(constant), self)
+            self, makeConstantReplacementNode(bool(constant), self, user_provided=False)
         )
 
         trace_collection.signalChange(

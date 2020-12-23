@@ -735,7 +735,10 @@ class TraceCollectionBase(object):
 
     def getCompileTimeComputationResult(self, node, computation, description):
         new_node, change_tags, message = getComputationResult(
-            node=node, computation=computation, description=description
+            node=node,
+            computation=computation,
+            description=description,
+            user_provided=False,
         )
 
         if change_tags == "new_raise":

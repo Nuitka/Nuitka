@@ -570,7 +570,9 @@ def float_extractor(node):
     def makeFloat0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(constant=float(), node=node)
+        return makeConstantReplacementNode(
+            constant=float(), node=node, user_provided=False
+        )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
@@ -584,7 +586,9 @@ def complex_extractor(node):
     def makeComplex0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(constant=complex(), node=node)
+        return makeConstantReplacementNode(
+            constant=complex(), node=node, user_provided=False
+        )
 
     def selectComplexBuiltin(real, imag, source_ref):
         if imag is None:
@@ -632,7 +636,9 @@ else:
         def makeBytes0(source_ref):
             # pylint: disable=unused-argument
 
-            return makeConstantReplacementNode(constant=bytes(), node=node)
+            return makeConstantReplacementNode(
+                constant=bytes(), node=node, user_provided=False
+            )
 
         def selectBytesBuiltin(string, encoding, errors, source_ref):
             if encoding is None and errors is None:
@@ -657,7 +663,9 @@ def bool_extractor(node):
     def makeBool0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(constant=bool(), node=node)
+        return makeConstantReplacementNode(
+            constant=bool(), node=node, user_provided=False
+        )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
@@ -671,7 +679,9 @@ def int_extractor(node):
     def makeInt0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(constant=int(), node=node)
+        return makeConstantReplacementNode(
+            constant=int(), node=node, user_provided=False
+        )
 
     def selectIntBuiltin(value, base, source_ref):
         if base is None:
@@ -697,7 +707,9 @@ if python_version < 0x300:
         def makeLong0(source_ref):
             # pylint: disable=unused-argument
 
-            return makeConstantReplacementNode(constant=int(), node=node)
+            return makeConstantReplacementNode(
+                constant=int(), node=node, user_provided=False
+            )
 
         def selectIntBuiltin(value, base, source_ref):
             if base is None:

@@ -195,7 +195,9 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeMixin, ExpressionChildHaving
 
         # TODO: Make sure to cast element_index to what CPython will give, for
         # now a downcast will do.
-        return makeConstantReplacementNode(constant=int(element_index), node=self)
+        return makeConstantReplacementNode(
+            constant=int(element_index), node=self, user_provided=False
+        )
 
     def isKnownToBeIterable(self, count):
         return count is None or count == self.getIterationLength()
@@ -273,7 +275,9 @@ class ExpressionBuiltinRange2(
         if result >= high:
             return None
         else:
-            return makeConstantReplacementNode(constant=result, node=self)
+            return makeConstantReplacementNode(
+                constant=result, node=self, user_provided=False
+            )
 
     def isKnownToBeIterable(self, count):
         return count is None or count == self.getIterationLength()
@@ -388,7 +392,9 @@ class ExpressionBuiltinRange3(
         if result >= high:
             return None
         else:
-            return makeConstantReplacementNode(constant=result, node=self)
+            return makeConstantReplacementNode(
+                constant=result, node=self, user_provided=False
+            )
 
     def isKnownToBeIterable(self, count):
         return count is None or count == self.getIterationLength()
@@ -513,7 +519,9 @@ class ExpressionBuiltinXrange1(ExpressionBuiltinXrangeMixin, ExpressionChildHavi
 
         # TODO: Make sure to cast element_index to what CPython will give, for
         # now a downcast will do.
-        return makeConstantReplacementNode(constant=int(element_index), node=self)
+        return makeConstantReplacementNode(
+            constant=int(element_index), node=self, user_provided=False
+        )
 
 
 class ExpressionBuiltinXrange2(
@@ -573,7 +581,9 @@ class ExpressionBuiltinXrange2(
         if result >= high:
             return None
         else:
-            return makeConstantReplacementNode(constant=result, node=self)
+            return makeConstantReplacementNode(
+                constant=result, node=self, user_provided=False
+            )
 
 
 class ExpressionBuiltinXrange3(
@@ -659,7 +669,9 @@ class ExpressionBuiltinXrange3(
         if result >= high:
             return None
         else:
-            return makeConstantReplacementNode(constant=result, node=self)
+            return makeConstantReplacementNode(
+                constant=result, node=self, user_provided=False
+            )
 
 
 def makeExpressionBuiltinXrange(low, high, step, source_ref):
