@@ -27,7 +27,10 @@ import signal
 import subprocess
 import sys
 
-from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    basestring,
+    unicode,
+)
 from nuitka.Tracing import scons_logger
 
 
@@ -165,17 +168,20 @@ def addToPATH(env, dirname, prefix):
     setEnvironmentVariable(env, "PATH", os.pathsep.join(path_value))
 
 
-def writeSconsReport(source_dir, env, gcc_mode, clang_mode, msvc_mode):
+def writeSconsReport(source_dir, env, gcc_mode, clang_mode, msvc_mode, clangcl_mode):
     with open(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
         # We are friends to get at this debug info, pylint: disable=protected-access
         for key, value in sorted(env._dict.items()):
-            if type(value) is not str:
+            if type(value) is list and all(isinstance(v, basestring) for v in value):
+                value = repr(value)
+
+            if not isinstance(value, basestring):
                 continue
 
             if key.startswith(("_", "CONFIGURE")):
                 continue
 
-            if key in ("MSVSSCONS", "BUILD_DIR"):
+            if key in ("MSVSSCONS", "BUILD_DIR", "IDLSUFFIXES", "DSUFFIXES"):
                 continue
 
             print(key + "=" + value, file=report_file)
@@ -183,6 +189,7 @@ def writeSconsReport(source_dir, env, gcc_mode, clang_mode, msvc_mode):
         print("gcc_mode=%s" % gcc_mode, file=report_file)
         print("clang_mode=%s" % clang_mode, file=report_file)
         print("msvc_mode=%s" % msvc_mode, file=report_file)
+        print("clangcl_mode=%s" % clangcl_mode, file=report_file)
 
 
 scons_reports = {}
