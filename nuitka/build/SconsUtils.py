@@ -80,7 +80,10 @@ def getArgumentList(option_name, default=None):
     else:
         value = scons_arguments.get(option_name, default)
 
-    return value.split(",")
+    if value:
+        return value.split(",")
+    else:
+        return []
 
 
 def decodeData(data):
