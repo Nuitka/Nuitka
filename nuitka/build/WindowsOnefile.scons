@@ -859,8 +859,9 @@ writeSconsReport(
     source_dir=source_dir,
     env=env,
     gcc_mode=gcc_mode,
-    msvc_mode=msvc_mode,
     clang_mode=clang_mode,
+    msvc_mode=msvc_mode,
+    clangcl_mode=clangcl_mode,
 )
 
 Default(target)
