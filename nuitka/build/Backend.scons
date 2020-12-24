@@ -541,7 +541,9 @@ if gcc_mode:
     # Support for gcc and clang, restricting visibility as much as possible.
     if not win_target:
         env.Append(CCFLAGS=["-fvisibility=hidden"])
-        env.Append(CXXFLAGS=["-fvisibility-inlines-hidden"])
+
+        if not c11_mode:
+            env.Append(CXXFLAGS=["-fvisibility-inlines-hidden"])
 
     # Make it clear how to handle integer overflows, namely by wrapping around
     # to negative values.
