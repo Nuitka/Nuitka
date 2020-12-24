@@ -75,7 +75,7 @@ static void createModuleConstants(void) {
 }
 
 /* For multiprocessing, we want to be able to initialize the __main__ constants. */
-#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED && %(is_main_module)s
+#if (_NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED) && %(is_main_module)s
 void createMainModuleConstants(void) {
     createModuleConstants();
 }

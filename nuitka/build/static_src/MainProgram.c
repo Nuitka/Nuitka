@@ -477,7 +477,7 @@ int main(int argc, char **argv) {
     /* Complex call helpers need "__main__" constants, even if we only
      * go into "__parents__main__" module as a start point.
      */
-#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
+#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED
     createMainModuleConstants();
 #endif
 

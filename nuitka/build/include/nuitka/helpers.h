@@ -343,7 +343,7 @@ extern void createGlobalConstants(void);
 extern void checkGlobalConstants(void);
 #endif
 
-#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
+#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED
 // Call this to initialize __main__ constants in slave processes on Windows.
 extern void createMainModuleConstants(void);
 #endif
