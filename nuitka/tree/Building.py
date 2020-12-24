@@ -1125,7 +1125,10 @@ def buildModuleTree(filename, package, is_top, is_main):
             is_main=is_main,
         )
 
-    if not module.isMainModule():
+    # Main modules do not get added to the import cache, but plugins get to see it.
+    if module.isMainModule():
+        Plugins.onModuleDiscovered(module)
+    else:
         addImportedModule(imported_module=module)
 
     return module
