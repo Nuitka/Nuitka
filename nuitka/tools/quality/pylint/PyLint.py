@@ -309,8 +309,18 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
 
         return False
 
+    def isSpecificPythonOnly(filename):
+        if str is bytes and "TracebackEncryptionPlugin" in filename:
+            # This is Python3 only code.
+            return True
+
+        return False
+
     filenames = [
-        filename for filename in filenames if not hasPyLintBugTrigger(filename)
+        filename
+        for filename in filenames
+        if not hasPyLintBugTrigger(filename)
+        if not isSpecificPythonOnly(filename)
     ]
 
     extra_options = os.environ.get("PYLINT_EXTRA_OPTIONS", "").split()
