@@ -1264,7 +1264,9 @@ def tool_list(platform, env):
         "prefer GNU tools on all other platforms"
         linkers = ['gnulink', 'ilink']
         c_compilers = ['gcc', 'intelc', 'icc', 'cc']
-        cxx_compilers = ['g++', 'intelc', 'icc', 'cxx']
+        # Nuitka: Avoid ununused tools
+        # cxx_compilers = ['g++', 'intelc', 'icc', 'cxx']
+        cxx_compilers = []
         assemblers = ['gas', 'nasm', 'masm']
         fortran_compilers = ['gfortran', 'g77', 'ifort', 'ifl', 'f95', 'f90', 'f77']
         ars = ['ar', ]
@@ -1287,13 +1289,15 @@ def tool_list(platform, env):
         ar = None
     else:
         # Don't use g++ if the C compiler has built-in C++ support:
-        if c_compiler in ('msvc', 'intelc', 'icc'):
+        # Nuitka: Avoid GNU C++ tool
+        if c_compiler in ('msvc', 'intelc', 'icc') or not cxx_compilers:
             cxx_compiler = None
         else:
             cxx_compiler = FindTool(cxx_compilers, env) or cxx_compilers[0]
+
         linker = FindTool(linkers, env) or linkers[0]
-        assembler = FindTool(assemblers, env) or assemblers[0]
 # Nuitka: Avoid ununused tools
+#         assembler = FindTool(assemblers, env) or assemblers[0]
 #         fortran_compiler = FindTool(fortran_compilers, env) or fortran_compilers[0]
 #         ar = FindTool(ars, env) or ars[0]
         fortran_compiler = []
@@ -1326,7 +1330,7 @@ def tool_list(platform, env):
 #     ], env)
 
     tools = ([linker, c_compiler, cxx_compiler,
-              fortran_compiler, assembler, ar, d_compiler]
+              fortran_compiler, ar, d_compiler]
              + other_tools)
 
     return [x for x in tools if x]
