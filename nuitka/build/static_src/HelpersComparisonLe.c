@@ -446,7 +446,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -513,7 +513,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -533,7 +533,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -552,7 +552,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -664,7 +664,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -685,7 +685,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -706,7 +706,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -1442,7 +1442,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -1509,7 +1509,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -1529,7 +1529,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -1548,7 +1548,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -1660,7 +1660,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -1681,7 +1681,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -1702,7 +1702,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -2405,7 +2405,7 @@ bool RICH_COMPARE_LE_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -2472,7 +2472,7 @@ bool RICH_COMPARE_LE_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -2492,7 +2492,7 @@ bool RICH_COMPARE_LE_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -2511,7 +2511,7 @@ bool RICH_COMPARE_LE_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -2623,7 +2623,7 @@ bool RICH_COMPARE_LE_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -2644,7 +2644,7 @@ bool RICH_COMPARE_LE_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -2665,7 +2665,7 @@ bool RICH_COMPARE_LE_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -3449,7 +3449,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -3516,7 +3516,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -3536,7 +3536,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -3555,7 +3555,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -3667,7 +3667,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -3688,7 +3688,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -3709,7 +3709,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -4406,7 +4406,7 @@ bool RICH_COMPARE_LE_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -4473,7 +4473,7 @@ bool RICH_COMPARE_LE_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -4493,7 +4493,7 @@ bool RICH_COMPARE_LE_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -4512,7 +4512,7 @@ bool RICH_COMPARE_LE_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -4624,7 +4624,7 @@ bool RICH_COMPARE_LE_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -4645,7 +4645,7 @@ bool RICH_COMPARE_LE_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -4666,7 +4666,7 @@ bool RICH_COMPARE_LE_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -5540,7 +5540,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -5607,7 +5607,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -5627,7 +5627,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -5646,7 +5646,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -5758,7 +5758,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -5779,7 +5779,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -5800,7 +5800,7 @@ bool RICH_COMPARE_LE_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -6497,7 +6497,7 @@ bool RICH_COMPARE_LE_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -6564,7 +6564,7 @@ bool RICH_COMPARE_LE_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -6584,7 +6584,7 @@ bool RICH_COMPARE_LE_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -6603,7 +6603,7 @@ bool RICH_COMPARE_LE_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -6715,7 +6715,7 @@ bool RICH_COMPARE_LE_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }
@@ -6736,7 +6736,7 @@ bool RICH_COMPARE_LE_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
+            bool r = CHECK_IF_TRUE(result) == 1;
             Py_DECREF(result);
             return r;
         }
@@ -6757,7 +6757,7 @@ bool RICH_COMPARE_LE_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
+                bool r = CHECK_IF_TRUE(result) == 1;
                 Py_DECREF(result);
                 return r;
             }

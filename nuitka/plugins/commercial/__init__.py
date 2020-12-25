@@ -15,4 +15,22 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Dummy file to make this directory a package. """
+""" Commercial plugins package.
+
+This may load code from places indicated by a heuristics.
+"""
+
+
+# Auto extend to a Nuitka commercial installation, by adding it to the package
+# path. That aims at making extending Nuitka with these plugins easier.
+import os
+
+if "NUITKA_COMMERCIAL" in os.environ:
+    path = os.environ["NUITKA_COMMERCIAL"]
+
+    for candidate in "nuitka/plugins/commercial", ".":
+        candidate = os.path.join(path, candidate)
+        if os.path.isdir(candidate) and os.path.isfile(
+            os.path.join(candidate, "__init__.py")
+        ):
+            __path__.append(candidate)

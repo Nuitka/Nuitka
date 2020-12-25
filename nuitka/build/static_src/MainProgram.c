@@ -534,26 +534,26 @@ int main(int argc, char **argv) {
     {
         PyObject *nul_filename = Nuitka_String_FromString("NUL:");
 
-        if (PySys_GetObject("stdin") == NULL) {
+        if (PySys_GetObject((char *)"stdin") == NULL) {
             PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r");
 
             CHECK_OBJECT(stdin_file);
-            PySys_SetObject("stdin", stdin_file);
+            PySys_SetObject((char *)"stdin", stdin_file);
         }
 
-        if (PySys_GetObject("stdout") == NULL) {
+        if (PySys_GetObject((char *)"stdout") == NULL) {
             PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w");
 
             CHECK_OBJECT(stdout_file);
-            PySys_SetObject("stdout", stdout_file);
+            PySys_SetObject((char *)"stdout", stdout_file);
         }
 
-        if (PySys_GetObject("stderr") == NULL) {
+        if (PySys_GetObject((char *)"stderr") == NULL) {
             PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w");
 
             CHECK_OBJECT(stderr_file);
 
-            PySys_SetObject("stderr", stderr_file);
+            PySys_SetObject((char *)"stderr", stderr_file);
         }
 
         Py_DECREF(nul_filename);
