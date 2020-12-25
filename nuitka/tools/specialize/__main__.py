@@ -1250,7 +1250,7 @@ class CBoolDesc(TypeDescBase):
 
     @staticmethod
     def getToValueFromObjectExpression(operand):
-        return "CHECK_IF_TRUE(%s)" % operand
+        return "CHECK_IF_TRUE(%s) == 1" % operand
 
     @staticmethod
     def getTakeReferenceStatement(operand):

@@ -60,10 +60,10 @@ def getDownloadedGccPath(target_arch, assume_yes_for_downloads):
     # Large URLs, pylint: disable=line-too-long
 
     if target_arch == "x86_64":
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/10.2.0-11.0.0-9.0.0-r3/winlibs-x86_64-posix-seh-gcc-10.2.0-mingw-w64-8.0.0-r3.zip"
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/10.2.0-11.0.0-8.0.0-r5/winlibs-x86_64-posix-seh-gcc-10.2.0-llvm-11.0.0-mingw-w64-8.0.0-r5.zip"
         binary = r"mingw64\bin\gcc.exe"
     else:
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/10.2.0-11.0.0-9.0.0-r3/winlibs-i686-posix-dwarf-gcc-10.2.0-mingw-w64-8.0.0-r3.zip"
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/10.2.0-11.0.0-8.0.0-r5/winlibs-i686-posix-dwarf-gcc-10.2.0-llvm-11.0.0-mingw-w64-8.0.0-r5.zip"
         binary = r"mingw32\bin\gcc.exe"
 
     gcc_binary = getCachedDownload(

@@ -33,11 +33,6 @@
 #include <Shlobj.h>
 #include <windows.h>
 
-#ifndef MAX_PATH
-// TODO: Imitate definition of this from CPython headers.
-#define MAX_PATH 1024
-#endif
-
 #ifndef CSIDL_LOCAL_APPDATA
 #define CSIDL_LOCAL_APPDATA 28
 #endif
@@ -137,14 +132,14 @@ int main(int argc, char **argv) {
 
     // puts("Hello onefile world!");
 
-    static wchar_t exe_filename[MAX_PATH + 1] = {0};
+    static wchar_t exe_filename[4096] = {0};
 
     DWORD res = GetModuleFileNameW(NULL, exe_filename, sizeof(exe_filename));
     assert(res != 0);
 
     // _putws(exe_filename);
 
-    static wchar_t payload_path[MAX_PATH + 1] = {0};
+    static wchar_t payload_path[4096] = {0};
 
     res = SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, payload_path);
 
@@ -228,7 +223,7 @@ int main(int argc, char **argv) {
         // puts("at:");
         // _putws(filename);
 
-        static wchar_t target_path[MAX_PATH + 1] = {0};
+        static wchar_t target_path[4096] = {0};
         target_path[0] = 0;
 
         wchar_t *w = filename;
@@ -268,7 +263,7 @@ int main(int argc, char **argv) {
         unsigned long long file_size = readSizeValue(exe_file);
 
         while (file_size > 0) {
-            static char chunk[4096];
+            static char chunk[32768];
 
             LONG chunk_size;
 
@@ -307,7 +302,7 @@ int main(int argc, char **argv) {
         orig_args++;
     }
 
-    static wchar_t command_line[MAX_PATH + 1] = {0};
+    static wchar_t command_line[4096] = {0};
 
     appendWStringSafeW(command_line, first_filename, sizeof(command_line));
     // Note: The orig_args is either empty or has the leading space to separate:
