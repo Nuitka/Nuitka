@@ -81,6 +81,7 @@ from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import getArchitecture
 
 from .DependsExe import getDependsExePath
+from .IncludedDataFiles import IncludedDataFile
 
 
 def loadCodeObjectData(precompiled_filename):
@@ -1581,21 +1582,43 @@ def copyDataFiles(dist_dir):
     from nuitka import ModuleRegistry
 
     for module in ModuleRegistry.getDoneModules():
-        for _plugin_name, (source_desc, target_filename) in Plugins.considerDataFiles(
-            module
-        ):
-            target_filename = os.path.join(dist_dir, target_filename)
-            assert isPathBelow(dist_dir, target_filename)
+        for plugin, included_datafile in Plugins.considerDataFiles(module):
+            if isinstance(included_datafile, IncludedDataFile):
+                if included_datafile.kind == "empty_dirs":
+                    plugin.info(
+                        "Included empty directories %s due to %s."
+                        % (
+                            ",".join(included_datafile.dest_path),
+                            included_datafile.reason,
+                        )
+                    )
 
-            makePath(os.path.dirname(target_filename))
-
-            if inspect.isfunction(source_desc):
-                content = source_desc(target_filename)
-
-                if content is not None:  # support creation of empty directories
-                    with open(
-                        target_filename, "wb" if type(content) is bytes else "w"
-                    ) as output:
-                        output.write(content)
+                    for sub_dir in included_datafile.dest_path:
+                        makePath(os.path.join(dist_dir, sub_dir))
+                else:
+                    assert False, included_datafile
             else:
-                shutil.copy2(source_desc, target_filename)
+                # TODO: Goal is have this unused.
+                source_desc, target_filename = included_datafile
+
+                target_filename = os.path.join(dist_dir, target_filename)
+                assert isPathBelow(dist_dir, target_filename)
+
+                makePath(os.path.dirname(target_filename))
+
+                if inspect.isfunction(source_desc):
+                    content = source_desc(target_filename)
+
+                    if content is not None:  # support creation of empty directories
+                        with open(
+                            target_filename, "wb" if type(content) is bytes else "w"
+                        ) as output:
+                            output.write(content)
+                else:
+                    # TODO: Goal is have this unused.
+                    target_filename = os.path.join(dist_dir, target_filename)
+                    assert isPathBelow(dist_dir, target_filename)
+
+                    makePath(os.path.dirname(target_filename))
+
+                    shutil.copy2(source_desc, target_filename)

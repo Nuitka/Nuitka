@@ -221,6 +221,16 @@ class Plugins(object):
 
     @staticmethod
     def considerExtraDlls(dist_dir, module):
+        """Ask plugins to provide extra DLLs.
+
+        Notes:
+            These will be of type nuitka.freezer.IncludedEntryPoints.IncludedEntryPoint
+            and currently there is a backward compatibility for old style plugins that do
+            provide tuples of 3 elements. But plugins are really supposed to provide the
+            stuff created from factory functions for that type.
+
+        """
+
         result = []
 
         for plugin in getActivePlugins():
@@ -288,7 +298,7 @@ class Plugins(object):
         for plugin in getActivePlugins():
             for value in plugin.considerDataFiles(module):
                 if value:
-                    yield plugin.plugin_name, value
+                    yield plugin, value
 
     @staticmethod
     def onModuleDiscovered(module):

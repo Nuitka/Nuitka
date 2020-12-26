@@ -60,3 +60,7 @@ class NuitkaAssumptionError(AssertionError):
 
 class NuitkaPluginError(NuitkaErrorBase):
     pass
+
+
+class NuitkaCodeDeficit(NuitkaErrorBase):
+    pass

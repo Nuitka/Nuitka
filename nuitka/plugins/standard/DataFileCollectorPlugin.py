@@ -24,6 +24,7 @@ import os
 from nuitka import Options
 from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.oset import OrderedSet
+from nuitka.freezer.IncludedDataFiles import makeIncludedEmptyDirectories
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import getFileList, listDir
 
@@ -72,7 +73,7 @@ def get_package_paths(package):
     return pkg_base, pkg_dir
 
 
-def _getPackageFiles(module, packages, folders_only):
+def _getPackageFiles(module, *packages):
     """Yield all (!) filenames in given package(s).
 
     Notes:
@@ -82,17 +83,10 @@ def _getPackageFiles(module, packages, folders_only):
     Args:
         module: module object
         packages: package name(s) - str or tuple
-        folders_only: (bool) indicate, whether just the folder structure should
-            be generated. In that case, an empty file named DUMMY will be
-            placed in each of these folders.
     Yields:
         Tuples of paths (source, dest), if folders_only is False,
         else tuples (_createEmptyDirNone, dest).
     """
-
-    # TODO: Maybe use isinstance(basestring) for this
-    if not hasattr(packages, "__getitem__"):  # so should be a string type
-        packages = (packages,)
 
     file_list = []
     item_set = OrderedSet()
@@ -121,17 +115,14 @@ def _getPackageFiles(module, packages, folders_only):
 
     for filename_start, f in file_list:  # re-read the collected filenames
         target = f[filename_start:]  # make part of name
-        if folders_only is False:  # normal case: indeed copy the files
-            item_set.add((f, target))
-        else:  # just create the empty folder structure
-            item_set.add((_createEmptyDirNone, target))
+        item_set.add((f, target))
 
     for f in item_set:
         yield f
 
 
 def _getSubDirectoryFiles(module, subdirs, folders_only):
-    """Yield filenames in given subdirs of the module.
+    """Get filenames or dirnames in given subdirs of the module.
 
     Notes:
         All filenames in folders below one of the subdirs are recursively
@@ -146,18 +137,16 @@ def _getSubDirectoryFiles(module, subdirs, folders_only):
         Tuples of paths (source, dest) are yielded if folders_only is False,
         else tuples (_createEmptyDirNone, dest) are yielded.
     """
-    module_folder = module.getCompileTimeDirectory()
-    elements = module.getFullName().split(".")
-    filename_start = module_folder.find(elements[0])
+
+    module_dir = module.getCompileTimeDirectory()
     file_list = []
-    item_set = OrderedSet()
 
     if subdirs is None:
-        data_dirs = [module_folder]
+        data_dirs = [module_dir]
     elif isinstance(subdirs, basestring):
-        data_dirs = [os.path.join(module_folder, subdirs)]
+        data_dirs = [os.path.join(module_dir, subdirs)]
     else:
-        data_dirs = [os.path.join(module_folder, subdir) for subdir in subdirs]
+        data_dirs = [os.path.join(module_dir, subdir) for subdir in subdirs]
 
     # Gather the full file list, probably makes no sense to include bytecode files
     file_list = sum(
@@ -178,15 +167,38 @@ def _getSubDirectoryFiles(module, subdirs, folders_only):
         )
         NuitkaPluginDataFileCollector.warning(msg)
 
-    for f in file_list:
-        target = f[filename_start:]
-        if folders_only is False:
-            item_set.add((f, target))
-        else:
-            item_set.add((_createEmptyDirNone, target))
+    is_package = module.isCompiledPythonPackage() or module.isUncompiledPythonPackage()
 
-    for f in item_set:
-        yield f
+    # We need to preserve the package target path in the dist folder.
+    if is_package:
+        package_part = module.getFullName().asPath()
+    else:
+        package = module.getFullName().getPackageName()
+
+        if package is None:
+            package_part = ""
+        else:
+            package_part = package.asPath
+
+    item_set = OrderedSet()
+
+    for f in file_list:
+        target = os.path.join(package_part, os.path.relpath(f, module_dir))
+
+        if folders_only:
+            dir_name = os.path.dirname(target)
+            item_set.add(dir_name)
+        else:
+            item_set.add((f, target))
+
+    if folders_only:
+        return makeIncludedEmptyDirectories(
+            source_path=module_dir,
+            dest_paths=item_set,
+            reason="Subdirectories of module %s" % module.getFullName(),
+        )
+
+    return item_set
 
 
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
@@ -246,7 +258,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         "skimage": (_getSubDirectoryFiles, "data", False),
         "weasyprint": (_getSubDirectoryFiles, "css", False),
         "xarray": (_getSubDirectoryFiles, "static", False),
-        "eventlet": (_getPackageFiles, ("dns",), False),  # copy other package source
+        "eventlet": (_getPackageFiles, "dns"),  # copy other package source
         "gooey": (_getSubDirectoryFiles, ("languages", "images"), False),
     }
 
@@ -268,6 +280,8 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         return True
 
     def considerDataFiles(self, module):
+        # This is considering many options, pylint: disable=too-many-branches
+
         module_name = module.getFullName()
         module_folder = module.getCompileTimeDirectory()
 
@@ -286,8 +300,12 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
 
         if module_name in self.known_data_folders:
             func, subdir, folders_only = self.known_data_folders[module_name]
-            for item in func(module, subdir, folders_only):
-                yield item
+
+            if folders_only:
+                yield func(module, subdir, folders_only)
+            else:
+                for item in func(module, subdir, folders_only):
+                    yield item
 
         if module_name in self.generated_data_files:
             for target_dir, filename, func in self.generated_data_files[module_name]:

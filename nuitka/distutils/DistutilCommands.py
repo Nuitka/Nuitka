@@ -175,7 +175,7 @@ class build(distutils.command.build.build):
             assert finding == "absolute", finding
 
             if package is not None:
-                output_dir = os.path.join(build_lib, package)
+                output_dir = os.path.join(build_lib, package.asPath())
             else:
                 output_dir = build_lib
 
@@ -239,11 +239,10 @@ class build(distutils.command.build.build):
             # 'a.b.mod'), the compiled module will be in 'a.b/mod.so'. Move it
             # to 'a/b/mod.so', to make imports work.
             if package and "." in package:
-                compiled_package_path = os.path.join(build_lib, package)
+                compiled_package_path = os.path.join(build_lib, package.asPath())
                 assert os.path.isdir(compiled_package_path), compiled_package_path
 
-                parts = package.split(".")
-                fixed_package_path = os.path.join(build_lib, *parts)
+                fixed_package_path = os.path.join(build_lib, package.asPath())
                 copyTree(compiled_package_path, fixed_package_path)
                 removeDirectory(compiled_package_path, ignore_errors=False)
 

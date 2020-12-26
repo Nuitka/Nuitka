@@ -364,7 +364,7 @@ def _findModuleInPath2(module_name, search_path):
             continue
         considered.add(os.path.normcase(entry))
 
-        package_directory = os.path.join(entry, module_name.asString())
+        package_directory = os.path.join(entry, module_name.asPath())
 
         # First, check for a package with an init file, that would be the
         # first choice.
@@ -478,11 +478,11 @@ def getPackageSearchPath(package_name):
             _unpackPathElement(path_element) for path_element in sys.path
         ]
     elif "." in package_name:
-        parent_package_name, child_package_name = package_name.rsplit(".", 1)
+        parent_package_name, child_package_name = package_name.splitModuleBasename()
 
         result = []
         for element in getPackageSearchPath(parent_package_name):
-            package_dir = os.path.join(element, child_package_name)
+            package_dir = os.path.join(element, child_package_name.asPath())
 
             if isPackageDir(package_dir):
                 result.append(package_dir)
@@ -500,7 +500,7 @@ def getPackageSearchPath(package_name):
             return preloaded_path
 
         def getPackageDirCandidates(element):
-            yield os.path.join(element, package_name), False
+            yield os.path.join(element, package_name.asPath()), False
 
             # Hack for PyWin32. TODO: Move this "__path__" extensions to be
             # plug-in decisions.

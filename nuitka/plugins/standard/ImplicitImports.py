@@ -23,6 +23,7 @@ to add to this and submit patches to make it more complete.
 """
 
 import os
+import pkgutil
 import shutil
 import sys
 
@@ -30,17 +31,9 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import getPyWin32Dir, locateDLL
 from nuitka.utils.Utils import getOS, isWin32Windows
-
-
-def remove_suffix(mod_dir, mod_name):
-    """Return the path of a module's first level name."""
-    if mod_name not in mod_dir:
-        return mod_dir
-    p = mod_dir.find(mod_name) + len(mod_name)
-    return mod_dir[:p]
-
 
 _added_pywin32 = False
 
@@ -59,7 +52,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         return True
 
     @staticmethod
-    def _getImportsByFullname(full_name, package_dir):
+    def _getImportsByFullname(full_name, module_filename):
         """Provides names of modules to imported implicitly.
 
         Notes:
@@ -69,18 +62,23 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         """
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
 
-        elements = full_name.split(".")
-        if elements[0] in ("PyQt4", "PyQt5"):
+        top_level_package_name = full_name.getTopLevelPackageName()
+
+        if full_name.hasOneOfNamespaces("PyQt4", "PyQt5"):
             if python_version < 0x300:
                 yield "atexit"
 
             # These are alternatives now:
             # TODO: One day it should avoid including both.
             yield "sip"
-            if elements[0] == "PyQt5":
+            if top_level_package_name == "PyQt5":
                 yield "PyQt5.sip"
 
-            child = elements[1] if len(elements) > 1 else None
+            _, child = full_name.splitPackageName()
+
+            def getChildNamed(*child_names):
+                for child_name in child_names:
+                    return top_level_package_name.getChildNamed(child_name)
 
             if child in (
                 "QtGui",
@@ -113,7 +111,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "_QOpenGLFunctions_2_1",
                 "_QOpenGLFunctions_4_1_Core",
             ):
-                yield elements[0] + ".QtCore"
+                yield getChildNamed(".QtCore")
 
             if child in (
                 "QtDeclarative",
@@ -129,17 +127,15 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "QtWebSockets",
                 "QtWebEngineWidgets",
             ):
-                yield elements[0] + ".QtNetwork"
+                yield getChildNamed(".QtNetwork")
 
             if child == "QtWebEngineWidgets":
-                yield elements[0] + ".QtWebEngineCore"
-                yield elements[0] + ".QtWebChannel"
-                yield elements[0] + ".QtPrintSupport"
-
-            if child == "QtScriptTools":
-                yield elements[0] + ".QtScript"
-
-            if child in (
+                yield getChildNamed(".QtWebEngineCore")
+                yield getChildNamed(".QtWebChannel")
+                yield getChildNamed(".QtPrintSupport")
+            elif child == "QtScriptTools":
+                yield getChildNamed(".QtScript")
+            elif child in (
                 "QtWidgets",
                 "QtDeclarative",
                 "QtDesigner",
@@ -160,7 +156,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "_QOpenGLFunctions_2_1",
                 "_QOpenGLFunctions_4_1_Core",
             ):
-                yield elements[0] + ".QtGui"
+                yield getChildNamed(".QtGui")
 
             if full_name in (
                 "PyQt5.QtDesigner",
@@ -276,13 +272,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "gi._gobject"
         elif full_name in ("Tkinter", "tkinter"):
             yield "_tkinter"
-        elif full_name in (
-            "cryptography.hazmat.bindings._openssl",
-            "cryptography.hazmat.bindings._constant_time",
-            "cryptography.hazmat.bindings._padding",
-        ):
-            yield "_cffi_backend"
-        elif full_name.startswith("cryptography._Cryptography_cffi_"):
+        elif full_name == "cryptography":
             yield "_cffi_backend"
         elif full_name == "bcrypt._bcrypt":
             yield "_cffi_backend"
@@ -453,7 +443,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "tensorflow.lite.toco.python._tensorflow_wrap_toco"
 
         # the remaining entries are relevant non-Windows platforms only
-        elif elements[0] == "tensorflow" and getOS() != "Windows":
+        elif full_name.hasNamespace("tensorflow") and getOS() != "Windows":
             if (
                 full_name
                 == "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal"
@@ -728,7 +718,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "matplotlib.backends.backend_tkagg"
             yield "matplotlib.backends.backend_agg"
 
-        elif full_name.startswith("matplotlib.backends.backend_wx"):
+        elif full_name.hasOneOfNamespaces(
+            "matplotlib.backends.backend_wx", "matplotlib.backends.backend_wxagg"
+        ):
             yield "matplotlib.backends.backend_wx"
             yield "matplotlib.backends.backend_wxagg"
             yield "wx"
@@ -737,22 +729,31 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "cairo"
             yield "cairocffi"
 
-        elif full_name.startswith("matplotlib.backends.backend_gtk3"):
+        elif full_name.hasOneOfNamespaces(
+            "matplotlib.backends.backend_gtk3", "matplotlib.backends.backend_gtk3agg"
+        ):
             yield "matplotlib.backends.backend_gtk3"
             yield "matplotlib.backends.backend_gtk3agg"
             yield "gi"
 
-        elif full_name.startswith("matplotlib.backends.backend_web"):
+        elif full_name.hasOneOfNamespaces(
+            "matplotlib.backends.backend_webagg",
+            "matplotlib.backends.backend_webagg_core",
+        ):
             yield "matplotlib.backends.backend_webagg"
             yield "matplotlib.backends.backend_webagg_core"
             yield "tornado"
 
-        elif full_name.startswith("matplotlib.backends.backend_qt4"):
+        elif full_name.hasOneOfNamespaces(
+            "matplotlib.backends.backend_qt4agg", "matplotlib.backends.backend_qt4"
+        ):
             yield "matplotlib.backends.backend_qt4agg"
             yield "matplotlib.backends.backend_qt4"
             yield "PyQt4"
 
-        elif full_name.startswith("matplotlib.backends.backend_qt5"):
+        elif full_name.hasOneOfNamespaces(
+            "matplotlib.backends.backend_qt5agg", "matplotlib.backends.backend_qt5"
+        ):
             yield "matplotlib.backends.backend_qt5agg"
             yield "matplotlib.backends.backend_qt5"
             yield "PyQt5"
@@ -1062,28 +1063,14 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         # pendulum imports -- START -------------------------------------------
         elif full_name == "pendulum.locales":
-            # TODO: This is more something for pkgutil.iter_modules that does this.
-            locales_dir = os.path.join(package_dir, "locales")
-            idioms = os.listdir(locales_dir)
-            for idiom in idioms:
-                if (
-                    not os.path.isdir(os.path.join(locales_dir, idiom))
-                    or idiom == "__pycache__"
-                ):
-                    continue
-                yield "pendulum.locales." + idiom
-
-        elif (
-            full_name.startswith("pendulum.locales.") and elements[2] != "locale"
-        ):  # only need the idiom folders
-            yield "pendulum.locales." + elements[2]
-            yield "pendulum.locales." + elements[2] + ".locale"
+            # May only need the one idiom folders if that's what's used, but right now we cannot tell.
+            # This should become a plugin that allows control.
+            for idiom in pkgutil.iter_modules([module_filename]):
+                yield full_name.getChildNamed(idiom.name).getChildNamed("locale")
         # pendulum imports -- STOP --------------------------------------------
 
         # urllib3 -------------------------------------------------------------
-        elif full_name.startswith(
-            ("urllib3", "requests.packages", "requests_toolbelt._compat")
-        ):
+        elif full_name in ("urllib3", "requests.packages", "requests_toolbelt._compat"):
             yield "urllib3"
             yield "urllib3._collections"
             yield "urllib3.connection"
@@ -1132,8 +1119,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "jinja2.ext.with_"
 
         # Support for both pycryotodome (module name Crypto) and pycyptodomex (module name Cryptodome)
-        elif elements[0] in ("Crypto", "Cryptodome"):
-            crypto_module_name = elements[0]
+        elif full_name.hasOneOfNamespaces("Crypto", "Cryptodome"):
+            crypto_module_name = full_name.getTopLevelPackageName()
 
             if full_name == crypto_module_name + ".Util._raw_api":
                 for module_name in (
@@ -1201,7 +1188,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pyglet.text"
             yield "pyglet.window"
 
-    def getImportsByFullname(self, full_name, package_dir):
+    def getImportsByFullname(self, full_name, module_filename):
         """Recursively create a set of imports for a fullname.
 
         Notes:
@@ -1210,22 +1197,22 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         """
         result = OrderedSet()
 
-        def checkImportsRecursive(module_name, package_dir):
-            for item in self._getImportsByFullname(module_name, package_dir):
+        def checkImportsRecursive(module_name, module_filename):
+            for item in self._getImportsByFullname(module_name, module_filename):
+                item = ModuleName(item)
+
                 if item not in result:
                     result.add(item)
-                    checkImportsRecursive(item, package_dir)
+                    checkImportsRecursive(item, module_filename)
 
-        checkImportsRecursive(full_name, package_dir)
+        checkImportsRecursive(full_name, module_filename)
 
         return result
 
     def getImplicitImports(self, module):
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches
         full_name = module.getFullName()
-        elements = full_name.split(".")
-        module_dir = module.getCompileTimeDirectory()
-        package_dir = remove_suffix(module_dir, elements[0])
+        module_filename = module.getCompileTimeDirectory()
 
         if module.isPythonShlibModule():
             for used_module in module.getUsedModules():
@@ -1279,7 +1266,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         else:
             # create a flattened import set for full_name and yield from it
-            for item in self.getImportsByFullname(full_name, package_dir):
+            for item in self.getImportsByFullname(full_name, module_filename):
                 yield item
 
     # We don't care about line length here, pylint: disable=line-too-long
@@ -1517,8 +1504,5 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     )
 
     def decideCompilation(self, module_name, source_ref):
-        for unworthy_namespace in self.unworthy_namespaces:
-            if module_name == unworthy_namespace or module_name.startswith(
-                unworthy_namespace + "."
-            ):
-                return "bytecode"
+        if module_name.hasOneOfNamespaces(self.unworthy_namespaces):
+            return "bytecode"

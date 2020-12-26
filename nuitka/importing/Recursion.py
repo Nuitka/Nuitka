@@ -55,11 +55,11 @@ def matchesModuleNameToPatterns(module_name, patterns):
     for pattern in patterns:
         if module_name == pattern:
             return True, "is exact match of %r" % pattern
-        elif module_name.startswith(pattern + "."):
+        elif module_name.isBelowNamespace(pattern):
             return True, "is package content of %r" % pattern
-        elif fnmatch.fnmatch(module_name, pattern):
+        elif fnmatch.fnmatch(module_name.asString(), pattern):
             return True, "matches pattern %r" % pattern
-        elif fnmatch.fnmatch(module_name, pattern + ".*"):
+        elif fnmatch.fnmatch(module_name.asString(), pattern + ".*"):
             return True, "is package content of match to pattern %r" % pattern
 
     return False, None

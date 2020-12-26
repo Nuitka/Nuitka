@@ -86,7 +86,7 @@ def setMainEntryPoint(binary_filename):
 
 def addShlibEntryPoint(module):
     target_filename = os.path.join(
-        getStandaloneDirectoryPath(), *module.getFullName().split(".")
+        getStandaloneDirectoryPath(), module.getFullName().asPath()
     )
     target_filename += getSharedLibrarySuffix(preferred=False)
 
