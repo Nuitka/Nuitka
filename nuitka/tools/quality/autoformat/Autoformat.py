@@ -83,8 +83,16 @@ def _cleanupTrailingWhitespace(filename):
             out_file.write("\n".join(clean_lines) + "\n")
 
 
+def _getRequirementsContentsByLine():
+    return getFileContentByLine(
+        os.path.join(
+            os.path.dirname(__file__), "..", "..", "..", "..", "requirements-devel.txt"
+        )
+    )
+
+
 def _getRequiredVersion(tool):
-    for line in getFileContentByLine("requirements-devel.txt"):
+    for line in _getRequirementsContentsByLine():
         if line.startswith(tool + " =="):
             return line.split()[2]
 
@@ -94,7 +102,7 @@ def _getRequiredVersion(tool):
 def _checkRequiredVersion(tool, tool_call):
     required_version = _getRequiredVersion(tool)
 
-    for line in getFileContentByLine("requirements-devel.txt"):
+    for line in _getRequirementsContentsByLine():
         if line.startswith(tool + " =="):
             required_version = line.split()[2]
             break
@@ -476,6 +484,8 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
             ".sh",
             ".in",
             ".md",
+            ".asciidoc",
+            ".nuspec",
             ".yml",
             ".stylesheet",
             ".j2",

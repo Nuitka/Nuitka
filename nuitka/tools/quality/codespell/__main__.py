@@ -41,7 +41,19 @@ def runCodespell(filenames, verbose, write):
     if verbose:
         my_print("Consider", " ".join(filenames))
 
-    command = ["codespell", "-f", "-I", "misc/codespell-ignore.txt"]
+    command = [
+        "codespell",
+        "-f",
+        "-I",
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "..",
+            "misc/codespell-ignore.txt",
+        ),
+    ]
     if write:
         command.append("-w")
     command += filenames
@@ -94,6 +106,7 @@ def main():
             "tests/*/run_all.py",
             "*.rst",
         ]
+        goHome()
 
     my_print("Working on:", positional_args)
 
@@ -104,8 +117,6 @@ def main():
         ),
         [],
     )
-
-    goHome()
 
     filenames = list(
         scanTargets(

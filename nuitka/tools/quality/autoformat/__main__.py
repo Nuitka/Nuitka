@@ -25,7 +25,6 @@ import glob
 import sys
 from optparse import OptionParser
 
-from nuitka.tools.Basics import goHome
 from nuitka.tools.quality.autoformat.Autoformat import autoformat
 from nuitka.tools.quality.Git import getStagedFileChangeDesc
 from nuitka.tools.quality.ScanSources import scanTargets
@@ -82,8 +81,6 @@ def main():
             ),
             [],
         )
-
-        goHome()
 
         filenames = list(
             scanTargets(
