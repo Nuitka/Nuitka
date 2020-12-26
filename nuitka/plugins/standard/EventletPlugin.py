@@ -38,9 +38,7 @@ class EventletPlugin(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
-
-        elements = module_name.split(".")
-        if elements[0] == "dns":  # do not include any of the dns package
+        if module_name.hasNamespace("dns"):  # do not include any of the dns package
             return False, "dns package included as source only"
 
         return None
@@ -75,5 +73,5 @@ class EventletPluginDetector(NuitkaPluginBase):
             None
         """
         full_name = module.getFullName()
-        if full_name.startswith("eventlet"):
+        if full_name.hasNamespace("eventlet"):
             self.warnUnusedPlugin("eventlet support.")

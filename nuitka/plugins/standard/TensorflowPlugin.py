@@ -134,6 +134,5 @@ class TensorflowPluginDetector(NuitkaPluginBase):
         Returns:
             None
         """
-        full_name = module.getFullName().split(".")
-        if "tensorflow" in full_name:
+        if module.getFullName().hasNamespace("tensorflow"):
             self.warnUnusedPlugin("tensorflow support.")

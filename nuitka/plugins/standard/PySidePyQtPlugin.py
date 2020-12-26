@@ -176,11 +176,10 @@ if os.path.exists(guess_path):
     def considerExtraDlls(self, dist_dir, module):
         # pylint: disable=too-many-branches,too-many-locals,too-many-statements
         full_name = module.getFullName()
-        elements = full_name.split(".")
         plugin_dirs = None
 
-        if elements[0] in ("PyQt4", "PyQt5"):
-            qt_version = int(elements[0][-1])
+        if full_name.getTopLevelPackageName() in ("PyQt4", "PyQt5"):
+            qt_version = int(full_name.getTopLevelPackageName()[-1])
             plugin_dirs = self.getPyQtPluginDirs(qt_version)
 
         if full_name in ("PyQt4", "PyQt5"):
@@ -352,7 +351,15 @@ if os.path.exists(guess_path):
                     shutil.copy(dll_path, dist_dll_path)
 
         elif (
-            full_name.startswith(("PyQt4.QtWebEngine", "PyQt5.QtWebEngine"))
+            full_name
+            in (
+                "PyQt4.QtWebEngine",
+                "PyQt5.QtWebEngine",
+                "PyQt4.QtWebEngineCore",
+                "PyQt5.QtWebEngineCore",
+                "PyQt4.QtWebEngineWidgets",
+                "PyQt5.QtWebEngineWidgets",
+            )
             and not self.webengine_done
         ):
             self.webengine_done = True  # prevent multiple copies
@@ -377,7 +384,7 @@ if os.path.exists(guess_path):
             translations_dir = os.path.join(plugin_parent, "translations")
             pos = len(translations_dir) + 1
             target_translations_dir = os.path.join(
-                dist_dir, elements[0], "Qt", "translations"
+                dist_dir, full_name.getTopLevelPackageName(), "Qt", "translations"
             )
             for f in getFileList(translations_dir):
                 tar_f = os.path.join(target_translations_dir, f[pos:])
@@ -426,12 +433,10 @@ if os.path.exists(guess_path):
         full_name = module.getFullName()
 
         if full_name in ("PyQt4.QtCore", "PyQt5.QtCore"):
-            qt_version = int(full_name.split(".")[0][-1])
-
             code = """\
 from __future__ import absolute_import
 
-from PyQt%(qt_version)d.QtCore import QCoreApplication
+from %(package_name)s import QCoreApplication
 import os
 
 QCoreApplication.setLibraryPaths(
@@ -443,7 +448,7 @@ QCoreApplication.setLibraryPaths(
     ]
 )
 """ % {
-                "qt_version": qt_version
+                "package_name": full_name
             }
 
             return (

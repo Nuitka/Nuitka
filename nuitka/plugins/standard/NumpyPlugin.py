@@ -243,7 +243,6 @@ Should matplotlib not be be included with numpy, Default is %default.""",
             empty tuple
         """
         full_name = module.getFullName()
-        elements = full_name.split(".")
 
         if not self.numpy_copied and full_name == "numpy":
             self.numpy_copied = True
@@ -285,7 +284,7 @@ Should matplotlib not be be included with numpy, Default is %default.""",
                 )
                 self.info(msg)
 
-        if not self.mpl_data_copied and "matplotlib" in elements:
+        if not self.mpl_data_copied and full_name == "matplotlib":
             self.mpl_data_copied = True
             copyMplDataFiles(module, dist_dir)
             self.info("Copied 'matplotlib/mpl-data'.")
@@ -371,14 +370,19 @@ Should matplotlib not be be included with numpy, Default is %default.""",
                     "matplotlib.backends.backend_tkagg",
                     "matplotlib.backend.tkagg",
                 ):
-                    return True, "Needed for tkinter backend"
+                    return True, "Needed for tkinter matplotplib backend"
 
             if hasActivePlugin("qt-plugins"):
-                if module_name.startswith("matplotlib.backends.backend_qt"):
-                    return True, "Needed for Qt backend"
+                if module_name in (
+                    "matplotlib.backends.backend_qt5",
+                    "matplotlib.backends.backend_qt5.py",
+                    "matplotlib.backends.backend_qt5cairo.py",
+                    "matplotlib.backend.backend_qt5.py",
+                ):
+                    return True, "Needed for Qt5 matplotplib backend"
 
             if module_name == "matplotlib.backends.backend_agg":
-                return True, "Needed as standard backend"
+                return True, "Needed as standard matplotplib backend"
 
     def createPreModuleLoadCode(self, module):
         """Method called when a module is being imported.

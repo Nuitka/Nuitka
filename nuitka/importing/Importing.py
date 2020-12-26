@@ -232,7 +232,10 @@ def findModule(importing, module_name, parent_package, level, warn):
         # TODO: Should give a warning and return not found if the levels
         # exceed the package name.
         if parent_package is not None:
-            parent_package = ".".join(parent_package.split(".")[: -level + 1])
+            # TODO: This should be done with the API instead.
+            parent_package = ModuleName(
+                ".".join(parent_package.asString().split(".")[: -level + 1])
+            )
 
             if parent_package == "":
                 parent_package = None
@@ -361,7 +364,7 @@ def _findModuleInPath2(module_name, search_path):
             continue
         considered.add(os.path.normcase(entry))
 
-        package_directory = os.path.join(entry, module_name)
+        package_directory = os.path.join(entry, module_name.asString())
 
         # First, check for a package with an init file, that would be the
         # first choice.
@@ -563,7 +566,7 @@ def _findModule(module_name):
     if _debug_module_finding:
         print("_findModule: Enter to search '%s'." % (module_name,))
 
-    assert not module_name.endswith("."), module_name
+    assert module_name.getBasename(), module_name
 
     key = module_name
 
