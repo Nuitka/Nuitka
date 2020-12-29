@@ -51,7 +51,7 @@ from SCons.Script import (  # pylint: disable=import-error
     GetOption,
 )
 
-from nuitka.Tracing import my_print, scons_logger
+from nuitka.Tracing import my_print, scons_details_logger, scons_logger
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import enableC11Settings
@@ -151,6 +151,7 @@ mingw_mode = getArgumentBool("mingw_mode", False)
 
 # Show scons mode, output information about Scons operation
 show_scons_mode = getArgumentBool("show_scons", False)
+scons_details_logger.is_quiet = not show_scons_mode
 
 # Home of Python to be compiled against, used to find tools like clcache and
 # ccache.
@@ -222,7 +223,7 @@ if "CXX" in os.environ:
 
 gcc_version = None
 
-Environment.Detect = getEnhancedToolDetect(show_scons_mode)
+Environment.Detect = getEnhancedToolDetect()
 
 
 def createEnvironment(tools):
@@ -275,11 +276,10 @@ def getCompilerTools():
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(tools=getCompilerTools())
 
-if show_scons_mode:
-    my_print("Scons: Initial CC:", env.get("CC", None))
-    my_print("Scons: Initial CCVERSION:", env.get("CCVERSION", None))
-    my_print("Scons: Initial CXX:", env.get("CXX", None))
-    my_print("Scons: Initial CXXVERSION:", env.get("CXXVERSION", None))
+scons_details_logger.info("Initial CC: %r" % env.get("CC", None))
+scons_details_logger.info(
+    "Initial CCVERSION: %r" % (env.get("CCVERSION", None),),
+)
 
 if "CC" in os.environ:
     # If the environment variable CC is set, use that.
@@ -287,9 +287,7 @@ if "CC" in os.environ:
     env["CCVERSION"] = None
 elif clangcl_mode:
     # If possible, add Clang directory from MSVC if available.
-    addClangClPathFromMSVC(
-        env=env, target_arch=target_arch, show_scons_mode=show_scons_mode
-    )
+    addClangClPathFromMSVC(env=env, target_arch=target_arch)
 
     env["CC"] = "clang-cl"
     env["LINK"] = "lld-link"
@@ -399,8 +397,7 @@ c11_mode = enableC11Settings(
     gcc_version=gcc_version,
 )
 
-if show_scons_mode:
-    my_print("Scons: Using C11 mode:", c11_mode)
+scons_details_logger.info("Using C11 mode: %s" % c11_mode)
 
 if show_scons_mode:
     my_print("Scons: Compiler used", end=" ")
@@ -820,7 +817,6 @@ if gcc_mode:
         env=env,
         source_dir=source_dir,
         python_prefix=python_prefix,
-        show_scons_mode=show_scons_mode,
         assume_yes_for_downloads=assume_yes_for_downloads,
     ):
         cache_mode = False
@@ -831,7 +827,6 @@ if msvc_mode:
         env=env,
         source_dir=source_dir,
         python_prefix=python_prefix,
-        show_scons_mode=show_scons_mode,
     ):
         cache_mode = False
 

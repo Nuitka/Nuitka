@@ -93,7 +93,7 @@ def _getPythonSconsExePathWindows():
 
     # Ordered in the list of preference.
     python_dir = Execution.getPythonInstallPathWindows(
-        supported=("2.7", "3.5", "3.6", "3.7", "3.8", "3.9", "2.6")
+        supported=("3.5", "3.6", "3.7", "3.8", "3.9", "2.7")
     )
 
     if python_dir is not None:
@@ -112,9 +112,15 @@ def _getPythonForSconsExePath():
     if python_exe is not None:
         return python_exe
 
-    if python_version < 0x300 or python_version >= 0x350:
+    if 0x270 <= python_version < 0x300 or (
+        python_version < 0x270 and not Utils.isWin32Windows()
+    ):
+        # Python 2.7 is fine on all platforms, Python 2.6 on non-Windows.s
         return sys.executable
-    elif Utils.getOS() == "Windows":
+    elif python_version >= 0x350:
+        # Python 3.5 or higher work on all platforms.
+        return sys.executable
+    elif Utils.isWin32Windows():
         python_exe = _getPythonSconsExePathWindows()
 
         if python_exe is not None:
@@ -122,10 +128,10 @@ def _getPythonForSconsExePath():
         else:
             sys.exit(
                 """\
-Error, while Nuitka works with Python 3.3 and 3.4, scons does not, and Nuitka
-needs to find a Python executable 2.6/2.7 or 3.5 or higher. Simply under the
-C:\\PythonXY, e.g. C:\\Python27 to execute the scons utility which is used
-to build the C files to binary.
+Error, while Nuitka works with Python 2.6, 3.3 and 3.4, Scons does not, and
+Nuitka therefore needs to find a Python executable 2.7 or 3.5 or higher. Simply
+put under the "C:\\PythonXY", e.g. "C:\\Python27" to execute the scons utility
+which is used to build the C files to binary.
 
 You may provide it using option "--python-for-scons=path_to_python.exe"
 in case it is not visible in registry, e.g. due to using uninstalled

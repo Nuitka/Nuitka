@@ -56,7 +56,7 @@ from SCons.Script import (  # pylint: disable=import-error
     GetOption,
 )
 
-from nuitka.Tracing import my_print, scons_logger
+from nuitka.Tracing import my_print, scons_details_logger, scons_logger
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import enableC11Settings, getDownloadedGccPath
@@ -209,6 +209,8 @@ standalone_mode = getArgumentBool("standalone_mode", False)
 
 # Show scons mode, output information about Scons operation
 show_scons_mode = getArgumentBool("show_scons", False)
+scons_details_logger.is_quiet = not show_scons_mode
+
 
 # Home of Python to be compiled against, used to find include files and
 # libraries to link against.
@@ -275,8 +277,9 @@ if "CC" in os.environ:
             addToPATH(None, cc_dirname, prefix=True)
 
     if win_target and isGccName(os.path.basename(os.environ["CC"])):
-        if show_scons_mode:
-            my_print("Scons: Environment CC seems to be a gcc, enable mingw_mode.")
+        scons_details_logger.info(
+            "Environment CC seems to be a gcc, enabling mingw_mode."
+        )
         mingw_mode = True
 
     printCompilerVersionOutput("CC=%r" % os.environ["CC"])
@@ -285,7 +288,7 @@ if "CC" in os.environ:
 
 gcc_version = None
 
-Environment.Detect = getEnhancedToolDetect(show_scons_mode)
+Environment.Detect = getEnhancedToolDetect()
 
 
 def createEnvironment(tools):
@@ -383,9 +386,10 @@ if win_target:
         )
         addToPATH(env, os.path.dirname(env["CC"]), prefix=True)
 
-if show_scons_mode:
-    my_print("Scons: Initial CC:", env.get("CC", None))
-    my_print("Scons: Initial CCVERSION:", env.get("CCVERSION", None))
+scons_details_logger.info("Initial CC: %r" % env.get("CC", None))
+scons_details_logger.info(
+    "Initial CCVERSION: %r" % (env.get("CCVERSION", None),),
+)
 
 if "CC" in os.environ:
     # If the environment variable CC is set, use that.
@@ -393,9 +397,7 @@ if "CC" in os.environ:
     env["CCVERSION"] = None
 elif clangcl_mode:
     # If possible, add Clang directory from MSVC if available.
-    addClangClPathFromMSVC(
-        env=env, target_arch=target_arch, show_scons_mode=show_scons_mode
-    )
+    addClangClPathFromMSVC(env=env, target_arch=target_arch)
 
     env["CC"] = "clang-cl"
     env["LINK"] = "lld-link"
@@ -451,6 +453,8 @@ Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
         )
 
     if gcc_version is not None and gcc_version < (5,):
+        scons_logger.info("The provided gcc is too old, switching to g++ instead.")
+
         # Switch to g++ from gcc then if possible, when C11 mode is false.
         the_gpp_compiler = os.path.join(
             os.path.dirname(the_compiler),
@@ -507,8 +511,7 @@ c11_mode = enableC11Settings(
     gcc_version=gcc_version,
 )
 
-if show_scons_mode:
-    my_print("Scons: Using C11 mode:", c11_mode)
+scons_details_logger.info("Using C11 mode: %s" % c11_mode)
 
 no_import_lib = False
 
@@ -1148,8 +1151,7 @@ elif (
 else:
     resource_mode = "code"
 
-if show_scons_mode:
-    my_print("Scons: Using resource mode:", resource_mode)
+scons_details_logger.info("Using resource mode: %r." % resource_mode)
 
 if resource_mode == "win_resource":
     # On Windows constants are accesses as a resource by Nuitka afterwards.
@@ -1323,22 +1325,22 @@ if gcc_mode:
 
 # Outside compiler settings are respected.
 if "CPPFLAGS" in os.environ:
-    if show_scons_mode:
-        my_print("Scons: Inherited CPPFLAGS='%s' variable." % os.environ["CPPFLAGS"])
+    scons_logger.info(
+        "Scons: Inherited CPPFLAGS='%s' variable." % os.environ["CPPFLAGS"]
+    )
     env.Append(CPPFLAGS=os.environ["CPPFLAGS"].split())
 if "CCFLAGS" in os.environ:
-    if show_scons_mode:
-        my_print("Scons: Inherited CCFLAGS='%s' variable." % os.environ["CCFLAGS"])
+    scons_logger.info("Inherited CCFLAGS='%s' variable." % os.environ["CCFLAGS"])
     env.Append(CCFLAGS=os.environ["CCFLAGS"].split())
 if "CXXFLAGS" in os.environ:
-    if show_scons_mode:
-        my_print("Scons: Inherited CXXFLAGS='%s' variable." % os.environ["CXXFLAGS"])
+    scons_logger.info(
+        "Scons: Inherited CXXFLAGS='%s' variable." % os.environ["CXXFLAGS"]
+    )
     env.Append(CXXFLAGS=os.environ["CXXFLAGS"].split())
 
 # Outside linker flags are respected.
 if "LDFLAGS" in os.environ:
-    if show_scons_mode:
-        my_print("Scons: Inherited LDFLAGS='%s' variable." % os.environ["LDFLAGS"])
+    scons_logger.info("Scons: Inherited LDFLAGS='%s' variable." % os.environ["LDFLAGS"])
     env.Append(LINKFLAGS=os.environ["LDFLAGS"].split())
 
 # Remove the target file to avoid cases where it falsely doesn't get rebuild
@@ -1433,7 +1435,6 @@ if gcc_mode:
         env=env,
         source_dir=source_dir,
         python_prefix=python_prefix,
-        show_scons_mode=show_scons_mode,
         assume_yes_for_downloads=assume_yes_for_downloads,
     ):
         cache_mode = False
@@ -1444,7 +1445,6 @@ if msvc_mode:
         env=env,
         source_dir=source_dir,
         python_prefix=python_prefix,
-        show_scons_mode=show_scons_mode,
     ):
         cache_mode = False
 

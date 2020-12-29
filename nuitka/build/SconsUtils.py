@@ -31,7 +31,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     basestring,
     unicode,
 )
-from nuitka.Tracing import scons_logger
+from nuitka.Tracing import scons_details_logger, scons_logger
 
 
 def initScons():
@@ -219,7 +219,7 @@ def getSconsReportValue(source_dir, key):
     return readSconsReport(source_dir).get(key)
 
 
-def addClangClPathFromMSVC(env, target_arch, show_scons_mode):
+def addClangClPathFromMSVC(env, target_arch):
     cl_exe = getExecutablePath("cl", env=env)
 
     if cl_exe is None:
@@ -234,13 +234,13 @@ def addClangClPathFromMSVC(env, target_arch, show_scons_mode):
         clang_dir = os.path.join(clang_dir, "bin")
 
     if os.path.exists(clang_dir):
-        if show_scons_mode:
-            scons_logger.info("Adding MSVC directory %r for Clang to PATH." % clang_dir)
+        scons_details_logger.info(
+            "Adding MSVC directory %r for Clang to PATH." % clang_dir
+        )
 
         addToPATH(env, clang_dir, prefix=True)
     else:
-        if show_scons_mode:
-            scons_logger.info("No Clang component for MSVC found." % clang_dir)
+        scons_details_logger.info("No Clang component for MSVC found." % clang_dir)
 
 
 def isGccName(cc_name):

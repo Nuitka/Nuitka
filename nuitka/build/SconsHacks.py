@@ -34,7 +34,7 @@ import subprocess
 import SCons.Tool.gcc  # pylint: disable=I0021,import-error
 from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
-from nuitka.Tracing import my_print
+from nuitka.Tracing import scons_details_logger
 
 from .SconsUtils import decodeData, isGccName
 
@@ -136,8 +136,9 @@ def myDetectVersion(env, cc):
 
     version = tuple(int(part) for part in version.split("."))
 
-    if show_scons_mode:
-        my_print("Scons: CC %r version check gives %r from %r" % (cc, version, line))
+    scons_details_logger.info(
+        "CC %r version check gives %r from %r" % (cc, version, line)
+    )
 
     v_cache[clvar] = version
     return version
@@ -156,12 +157,8 @@ def myDetect(self, progs):
 # The original value will be used in our form.
 orig_detect = Environment.Detect
 
-show_scons_mode = None
 
-
-def getEnhancedToolDetect(show_scons_mode):  # pylint: disable=redefined-outer-name
-    globals()["show_scons_mode"] = show_scons_mode
-
+def getEnhancedToolDetect():
     SCons.Tool.gcc.detect_version = myDetectVersion
 
     return myDetect

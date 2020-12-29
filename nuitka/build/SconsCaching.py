@@ -24,12 +24,13 @@ import re
 import sys
 from collections import defaultdict
 
-from nuitka.Tracing import scons_logger
+from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import getPythonInstallPathWindows
 from nuitka.utils.FileOperations import (
     getExternalUsePath,
+    getFileContents,
     getLinkTarget,
     makePath,
     withFileLock,
@@ -82,9 +83,7 @@ def _getClcacheGuessedPaths(python_prefix):
         yield os.path.join(python_dir, "bin", "clcache.exe")
 
 
-def _injectCcache(
-    the_compiler, cc_path, env, python_prefix, show_scons_mode, assume_yes_for_downloads
-):
+def _injectCcache(the_compiler, cc_path, env, python_prefix, assume_yes_for_downloads):
     ccache_binary = os.environ.get("NUITKA_CCACHE_BINARY")
 
     # If not provided, search it in PATH and guessed directories.
@@ -93,18 +92,16 @@ def _injectCcache(
 
         if ccache_binary is None:
             for candidate in _getCcacheGuessedPaths(python_prefix):
-                if show_scons_mode:
-                    scons_logger.info(
-                        "Checking if ccache is at '%s' guessed path." % candidate
-                    )
+                scons_details_logger.info(
+                    "Checking if ccache is at '%s' guessed path." % candidate
+                )
 
                 if os.path.exists(candidate):
                     ccache_binary = candidate
 
-                    if show_scons_mode:
-                        scons_logger.info(
-                            "Using ccache '%s' from guessed path." % ccache_binary
-                        )
+                    scons_details_logger.info(
+                        "Using ccache '%s' from guessed path." % ccache_binary
+                    )
 
                     break
 
@@ -122,11 +119,10 @@ def _injectCcache(
             )
 
     else:
-        if show_scons_mode:
-            scons_logger.info(
-                "Using ccache '%s' from NUITKA_CCACHE_BINARY environment variable."
-                % ccache_binary
-            )
+        scons_details_logger.info(
+            "Using ccache '%s' from NUITKA_CCACHE_BINARY environment variable."
+            % ccache_binary
+        )
 
     if ccache_binary is not None and os.path.exists(ccache_binary):
         # Make sure the
@@ -141,15 +137,14 @@ def _injectCcache(
         # prefixed with "ccache" on old gcc versions in terms of detecting need for C++ linkage.
         env["LINK"] = cc_path
 
-        # Do not consider scons cache anymore.
-        if show_scons_mode:
-            scons_logger.info(
-                "Found ccache '%s' to cache C compilation result." % ccache_binary
-            )
-            scons_logger.info(
-                "Providing real CC path '%s' via PATH extension." % cc_path
-            )
+        scons_details_logger.info(
+            "Found ccache '%s' to cache C compilation result." % ccache_binary
+        )
+        scons_details_logger.info(
+            "Providing real CC path '%s' via PATH extension." % cc_path
+        )
 
+        # Do not consider scons cache anymore.
         result = True
     else:
         if isWin32Windows():
@@ -167,7 +162,6 @@ def enableCcache(
     env,
     source_dir,
     python_prefix,
-    show_scons_mode,
     assume_yes_for_downloads,
 ):
     # The ccache needs absolute path, otherwise it will not work.
@@ -191,11 +185,10 @@ def enableCcache(
 
     cc_is_link, cc_link_path = getLinkTarget(cc_path)
     if cc_is_link and os.path.basename(cc_link_path) == "ccache":
-        if show_scons_mode:
-            scons_logger.info(
-                "Chosen compiler %s is pointing to ccache %s already."
-                % (cc_path, cc_link_path)
-            )
+        scons_details_logger.info(
+            "Chosen compiler %s is pointing to ccache %s already."
+            % (cc_path, cc_link_path)
+        )
 
         return True
 
@@ -204,24 +197,50 @@ def enableCcache(
         cc_path=cc_path,
         env=env,
         python_prefix=python_prefix,
-        show_scons_mode=show_scons_mode,
         assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
 
-def enableClcache(the_compiler, env, source_dir, python_prefix, show_scons_mode):
-    # Many branches to deal with, pylint: disable=too-many-branches
+def _activateInlineClcache():
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "inline_copy/clcache"))
+    sys.path.insert(
+        0, os.path.join(os.path.dirname(__file__), "inline_copy/atomicwrites")
+    )
 
-    # The ccache needs absolute path, otherwise it will not work.
+    try:
+        import clcache.caching as _  # used later, just checking if it will work.
+    except ImportError:
+        sys.exit("Error, excepted inline copy of clcache is not there.")
+    except Exception:  # Do not disturb operation for any problem pylint: disable=broad-except
+        clcache_binary = None
+        scons_logger.warning("Failed to import inline copy of clcache.")
+    else:
+        clcache_binary = "<clcache>"
+    finally:
+        del sys.path[:2]
+
+    return clcache_binary
+
+
+def enableClcache(the_compiler, env, source_dir, python_prefix):
+    # This needs to be an absolute path, otherwise it will not work.
     clcache_logfile = os.path.abspath(
         os.path.join(source_dir, "clcache-%d.txt" % os.getpid())
     )
 
-    # Our spawn function will pick it up from the output.
-    setEnvironmentVariable(env, "CLCACHE_LOG", clcache_logfile)
-    env["CLCACHE_LOG"] = clcache_logfile
+    # Note: Empty values are demoted to None too.
+    clcache_binary = os.environ.get("NUITKA_CLCACHE_BINARY") or None
 
-    clcache_binary = os.environ.get("NUITKA_CLCACHE_BINARY")
+    if clcache_binary is not None:
+        scons_details_logger.info(
+            "Using clcache '%s' from NUITKA_CLCACHE_BINARY environment variable."
+            % clcache_binary
+        )
+
+    # The oldest Python3 supported with Scons is Python 3.5 currently. When
+    # running with 3.3 or 3.4, we will attempt to find 3.5 or higher.
+    if clcache_binary is None:  # and sys.version_info >= (3, 5):
+        clcache_binary = _activateInlineClcache()
 
     # If not provided, search it in PATH and guessed directories.
     if clcache_binary is None:
@@ -229,31 +248,28 @@ def enableClcache(the_compiler, env, source_dir, python_prefix, show_scons_mode)
 
         if clcache_binary is None:
             for candidate in _getClcacheGuessedPaths(python_prefix):
-                if show_scons_mode:
-                    scons_logger.info(
-                        "Checking if clcache is at '%s' guessed path." % candidate
-                    )
+                scons_details_logger.info(
+                    "Checking if clcache is at '%s' guessed path." % candidate
+                )
 
                 if os.path.exists(candidate):
                     clcache_binary = candidate
 
-                    if show_scons_mode:
-                        scons_logger.info(
-                            "Using clcache '%s' from guessed path." % clcache_binary
-                        )
+                    scons_details_logger.info(
+                        "Using clcache '%s' from guessed path." % clcache_binary
+                    )
 
                     break
 
-        if clcache_binary is None and os.name == "nt":
+        if clcache_binary is None:
 
             def checkClcache(install_dir):
                 candidate = os.path.join(install_dir, "scripts", "clcache.exe")
 
-                if show_scons_mode:
-                    scons_logger.info(
-                        "Checking if clcache is at '%s' python installation path."
-                        % candidate
-                    )
+                scons_details_logger.info(
+                    "Checking if clcache is at '%s' python installation path."
+                    % candidate
+                )
 
                 if os.path.exists(candidate):
                     return True
@@ -265,33 +281,60 @@ def enableClcache(the_compiler, env, source_dir, python_prefix, show_scons_mode)
             if candidate is not None:
                 clcache_binary = os.path.join(candidate, "scripts", "clcache.exe")
 
-                if show_scons_mode:
-                    scons_logger.info(
-                        "Using clcache '%s' from registry path." % clcache_binary
-                    )
+                scons_logger.info(
+                    "Using clcache '%s' from registry detected Python." % clcache_binary
+                )
 
-    else:
-        if show_scons_mode:
-            scons_logger.info(
-                "Using clcache '%s' from NUITKA_CLCACHE_BINARY environment variable."
-                % clcache_binary
-            )
-
-    if clcache_binary is not None and os.path.exists(clcache_binary):
+    if clcache_binary is not None and clcache_binary == "<clcache>":
         cl_binary = getExecutablePath(the_compiler, env)
 
         # The compiler is passed via environment.
         setEnvironmentVariable(env, "CLCACHE_CL", cl_binary)
         env["CXX"] = env["CC"] = clcache_binary
 
-        if show_scons_mode:
-            scons_logger.info(
-                "Found clcache '%s' to cache C compilation result." % clcache_binary
-            )
-            scons_logger.info(
-                "Providing real cl.exe path '%s' via environment." % cl_binary
-            )
+        setEnvironmentVariable(env, "CLCACHE_HIDE_OUTPUTS", "1")
 
+        # The clcache stats filename needs absolute path, otherwise it will not work.
+        clcache_stats_filename = os.path.abspath(
+            os.path.join(source_dir, "clcache-stats.%d.txt" % os.getpid())
+        )
+
+        setEnvironmentVariable(env, "CLCACHE_STATS", clcache_stats_filename)
+        env["CLCACHE_STATS"] = clcache_stats_filename
+
+        # Unless asked to do otherwise, store ccache files in our own directory.
+        if "CLCACHE_DIR" not in os.environ:
+            clcache_dir = os.path.join(getCacheDir(), "clcache")
+            makePath(clcache_dir)
+            clcache_dir = getExternalUsePath(clcache_dir)
+            setEnvironmentVariable(env, "CLCACHE_DIR", clcache_dir)
+            env["CLCACHE_DIR"] = clcache_dir
+
+        scons_details_logger.info(
+            "Using inline copy of clcache with %r cl binary." % cl_binary
+        )
+
+        # Do not consider scons cache anymore.
+        result = True
+    elif clcache_binary is not None and os.path.exists(clcache_binary):
+        cl_binary = getExecutablePath(the_compiler, env)
+
+        # The compiler is passed via environment.
+        setEnvironmentVariable(env, "CLCACHE_CL", cl_binary)
+        env["CXX"] = env["CC"] = clcache_binary
+
+        # Our spawn function will pick it up from the standard output.
+        setEnvironmentVariable(env, "CLCACHE_LOG", clcache_logfile)
+        env["CLCACHE_LOG"] = clcache_logfile
+
+        scons_details_logger.info(
+            "Found clcache '%s' to cache C compilation result." % clcache_binary
+        )
+        scons_details_logger.info(
+            "Providing real cl.exe path '%s' via environment." % cl_binary
+        )
+
+        # Do not consider scons cache anymore.
         result = True
     else:
         scons_logger.warning(
@@ -397,24 +440,47 @@ def checkCachingSuccess(source_dir):
                     % (result, count)
                 )
 
-    clcache_logfile = getSconsReportValue(source_dir, "CLCACHE_LOG")
+    if os.name == "nt":
+        clcache_logfile = getSconsReportValue(source_dir, "CLCACHE_LOG")
 
-    if clcache_logfile is not None:
-        stats = _getClcacheStatistics(clcache_logfile)
+        if clcache_logfile is not None:
+            # TODO: This branch is for regular clcache only and should be removed when we stop
+            # supporting external clcache binaries.
+            stats = _getClcacheStatistics(clcache_logfile)
 
-        if not stats:
-            scons_logger.warning("You are not using clcache.")
+            if not stats:
+                scons_logger.warning("You are not using clcache.")
+            else:
+                counts = defaultdict(int)
+
+                for _command, result in stats.items():
+                    counts[result] += 1
+
+                scons_logger.info("Compiled %d C files using clcache." % len(stats))
+                for result, count in counts.items():
+                    scons_logger.info(
+                        "Cached C files (using clcache) with result '%s': %d"
+                        % (result, count)
+                    )
         else:
-            counts = defaultdict(int)
+            clcache_stats_filename = getSconsReportValue(source_dir, "CLCACHE_STATS")
 
-            for _command, result in stats.items():
-                counts[result] += 1
+            if clcache_stats_filename is not None and os.path.exists(clcache_stats_filename):
+                stats = eval(getFileContents(clcache_stats_filename))
 
-            scons_logger.info("Compiled %d C files using clcache." % len(stats))
-            for result, count in counts.items():
+                clcache_hit = stats["CacheHits"]
+                clcache_miss = stats["CacheMisses"]
+
                 scons_logger.info(
-                    "Cached C files (using clcache) with result '%s': %d"
-                    % (result, count)
+                    "Compiled %d C files using clcache." % (clcache_hit + clcache_miss)
+                )
+                scons_logger.info(
+                    "Cached C files (using clcache) with result 'cache hit': %d"
+                    % clcache_hit
+                )
+                scons_logger.info(
+                    "Cached C files (using clcache) with result 'cache miss': %d"
+                    % clcache_miss
                 )
 
 
@@ -473,3 +539,16 @@ def extractClcacheLogFromOutput(data):
         scons_logger.warning(b"\n".join(clcache_output))
 
     return data
+
+
+def runClCache(args, env):
+    # pylint: disable=I0021,import-error,redefined-outer-name
+    from clcache.caching import runClCache
+
+    if str is bytes:
+        os.replace = os.rename
+
+    # The first argument is "<clcache>" and should not be used.
+    return runClCache(
+        os.environ["CLCACHE_CL"], [arg.strip('"') for arg in args[1:]], env
+    )
