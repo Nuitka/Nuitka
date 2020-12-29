@@ -90,6 +90,8 @@ fi
 
 # This is Windows only
 rm -rf nuitka/build/inline_copy/pefile
+rm -rf nuitka/build/inline_copy/clcache
+rm -rf nuitka/build/inline_copy/atomicwrites
 
 if [ "$python2" != "" ]
 then
