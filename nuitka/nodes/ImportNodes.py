@@ -428,6 +428,8 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                 )
 
     def computeExpression(self, trace_collection):
+        # Many cases to deal with, pylint: disable=too-many-branches
+
         # TODO: In fact, if the module is not a package, we don't have to insist
         # on the "fromlist" that much, but normally it's not used for anything
         # but packages, so it will be rare.
@@ -484,6 +486,18 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                         )
 
                 if self.finding == "built-in":
+                    if imported_module_name in hard_modules:
+                        result = ExpressionImportModuleHard(
+                            module_name=imported_module_name, source_ref=self.source_ref
+                        )
+
+                        return (
+                            result,
+                            "new_expression",
+                            "Lowered import of built-in module %r to hard import."
+                            % imported_module_name,
+                        )
+
                     self.type_shape = tshape_module_builtin
                     self.builtin_module = __import__(imported_module_name)
 
