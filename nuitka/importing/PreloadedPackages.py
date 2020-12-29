@@ -95,6 +95,9 @@ def detectPthImportedPackages():
     if not hasattr(sys.modules["site"], "getsitepackages"):
         return ()
 
+    # TODO: Move hard import config to elsewhere.
+    from nuitka.nodes.ImportNodes import isHardModuleWithoutSideEffect
+
     pth_imports = set()
 
     for prefix in sys.modules["site"].getsitepackages():
@@ -110,7 +113,10 @@ def detectPthImportedPackages():
                                 line = line[: line.find(";")]
 
                             for part in line[7:].split(","):
-                                pth_imports.add(part.strip())
+                                pth_import = part.strip()
+
+                                if not isHardModuleWithoutSideEffect(pth_import):
+                                    pth_imports.add(pth_import)
                 except OSError:
                     warning("Python installation problem, cannot read file '%s'.")
 
