@@ -25,7 +25,7 @@ from nuitka.utils.Execution import check_output
 from nuitka.Version import getNuitkaVersion
 
 
-def checkAtHome():
+def checkAtHome(expected="Nuitka Staging"):
     assert os.path.isfile("setup.py")
 
     if os.path.isdir(".git"):
@@ -42,7 +42,7 @@ def checkAtHome():
 
     with open(git_description_filename) as f:
         description = f.read().strip()
-        assert description == "Nuitka Staging", description
+        assert description == expected, (expected, description)
 
 
 def getBranchName():
