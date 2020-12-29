@@ -226,7 +226,8 @@ def getPEFileInformation(filename):
         import pefile  # pylint: disable=I0021,import-error
     except ImportError:
         # Temporarily add the inline copy of appdir to the import path.
-        sys.path.append(
+        sys.path.insert(
+            0,
             os.path.join(
                 os.path.dirname(__file__), "..", "build", "inline_copy", "pefile"
             )
@@ -236,7 +237,7 @@ def getPEFileInformation(filename):
         import pefile  # pylint: disable=I0021,import-error
 
         # Do not forget to remove it again.
-        del sys.path[-1]
+        del sys.path[0]
 
     pe = pefile.PE(filename)
 
