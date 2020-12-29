@@ -336,7 +336,8 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             return self._applyReplacement(trace_collection, replacement)
 
         if not self.variable_trace.mustHaveValue():
-            # TODO: This could be way more specific surely.
+            # TODO: This could be way more specific surely, either NameError or UnboundLocalError
+            # could be decided from context.
             trace_collection.onExceptionRaiseExit(BaseException)
 
         if variable.isModuleVariable() and variable.hasDefiniteWrites() is False:

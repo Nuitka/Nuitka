@@ -349,8 +349,10 @@ Removed assignment of %s from itself which is known to be defined."""
 
             if last_trace is not None and not last_trace.getMergeOrNameUsageCount():
                 if source.isCompileTimeConstant():
-                    # TODO: We do not trust these yet
-                    if not variable.isModuleVariable():
+                    if variable.isModuleVariable():
+                        # TODO: We do not trust these yet a lot, but more might be
+                        pass
+                    else:
                         # Unused constants can be eliminated in any case.
                         if not last_trace.getUsageCount():
                             if not last_trace.getPrevious().isUnassignedTrace():
