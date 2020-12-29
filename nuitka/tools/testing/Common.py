@@ -158,6 +158,10 @@ def getPythonVendor():
     return _python_vendor
 
 
+def getPythonVersionString():
+    return _python_version_str
+
+
 tmp_dir = None
 
 
