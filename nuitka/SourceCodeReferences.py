@@ -49,6 +49,9 @@ class SourceCodeReference(object):
     def __repr__(self):
         return "<%s to %s:%s>" % (self.__class__.__name__, self.filename, self.line)
 
+    def __hash__(self):
+        return hash((self.filename, self.line, self.column))
+
     def __lt__(self, other):
         # Many cases decide early, pylint: disable=too-many-return-statements
         if other is None:

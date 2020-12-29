@@ -29,6 +29,8 @@ _missing_helpers = OrderedDict()
 
 _missing_operations = OrderedSet()
 
+_missing_trust = OrderedDict()
+
 _error_for_missing = False
 # _error_for_missing = True
 
@@ -46,14 +48,22 @@ def doMissingOptimizationReport():
             codegen_logger.info(message)
 
     for desc in _missing_operations:
+        message = "Missing optimization, used fallback: %s" % (desc,)
         if _error_for_missing:
-            optimization_logger.warning(
-                "Missing optimization, used fallback: %s" % (desc,)
-            )
+            optimization_logger.warning(message)
         else:
-            optimization_logger.info(
-                "Missing optimization, used fallback: %s" % (desc,)
-            )
+            optimization_logger.info(message)
+
+    for desc, source_refs in _missing_trust.items():
+        message = desc[0] % desc[1:]
+        message += " at %s" % ",".join(
+            source_ref.getAsString() for source_ref in source_refs
+        )
+
+        if _error_for_missing:
+            optimization_logger.warning(message)
+        else:
+            optimization_logger.info(message)
 
 
 def onMissingHelper(helper_name, source_ref):
@@ -68,3 +78,12 @@ def onMissingOperation(operation, left, right):
     # Avoid the circular dependency on tshape_uninit from StandardShapes.
     if right.__class__.__name__ != "ShapeTypeUninit":
         _missing_operations.add((operation, left, right))
+
+
+def onMissingTrust(operation, source_ref, *args):
+    key = (operation,) + args
+
+    if key not in _missing_trust:
+        _missing_trust[key] = OrderedSet()
+
+    _missing_trust[key].add(source_ref)

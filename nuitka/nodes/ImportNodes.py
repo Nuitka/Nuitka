@@ -26,12 +26,14 @@ deeper that what it normally could. The import expression node can recurse.
 """
 
 import os
+import sys
 
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     long,
     unicode,
 )
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
+from nuitka.codegen.Reports import onMissingTrust
 from nuitka.importing.Importing import (
     findModule,
     getModuleNameAndKindFromFilename,
@@ -69,6 +71,24 @@ hard_modules = frozenset(
     )
 )
 
+trust_constant = 1
+trust_exist = 2
+
+hard_modules_trust = {
+    "os": {},
+    "sys": {"version": trust_constant, "stdout": trust_exist, "stderr": trust_exist},
+    "types": {},
+    "__future__": {},
+    "site": {},
+    "importlib": {},
+    "_frozen_importlib": {},
+    "_frozen_importlib_external": {},
+}
+
+
+def isHardModuleWithoutSideEffect(module_name):
+    return module_name in hard_modules and module_name != "site"
+
 
 def makeExpressionAbsoluteImportNode(module_name, source_ref):
     return ExpressionBuiltinImport(
@@ -90,12 +110,17 @@ class ExpressionImportModuleHard(ExpressionBase):
 
     kind = "EXPRESSION_IMPORT_MODULE_HARD"
 
-    __slots__ = ("module_name",)
+    __slots__ = ("module_name", "module")
 
     def __init__(self, module_name, source_ref):
         ExpressionBase.__init__(self, source_ref=source_ref)
 
         self.module_name = module_name
+
+        if isHardModuleWithoutSideEffect(self.module_name):
+            self.module = __import__(module_name)
+        else:
+            self.module = None
 
     def finalize(self):
         del self.parent
@@ -106,25 +131,85 @@ class ExpressionImportModuleHard(ExpressionBase):
     def getModuleName(self):
         return self.module_name
 
+    def mayHaveSideEffects(self):
+        return self.module is None
+
+    def mayRaiseException(self, exception_type):
+        return self.mayHaveSideEffects()
+
+    def getTypeShape(self):
+        if self.module_name in sys.builtin_module_names:
+            return tshape_module_builtin
+        else:
+            return tshape_module
+
     def computeExpressionRaw(self, trace_collection):
         if self.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
-    def mayHaveSideEffects(self):
-        if self.module_name in hard_modules:
-            return False
-        elif self.module_name == "__future__":
-            return False
+    def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
+        # By default, an attribute lookup may change everything about the lookup
+        # source.
+
+        if self.module is not None:
+            if not hasattr(self.module, attribute_name):
+                # We want exceptions from actual lookup, pylint: disable=eval-used
+                return trace_collection.getCompileTimeComputationResult(
+                    node=lookup_node,
+                    computation=lambda: eval(
+                        "__import__('%s').%s" % (self.module_name, attribute_name)
+                    ),
+                    description="Hard module %r attribute missing %r pre-computed."
+                    % (self.module_name, attribute_name),
+                )
+            else:
+                trust = hard_modules_trust[self.module_name].get(attribute_name)
+
+                if trust is None:
+                    onMissingTrust(
+                        "Hard module %r attribute %r missing trust config",
+                        lookup_node.getSourceReference(),
+                        self.module_name,
+                        attribute_name,
+                    )
+
+                    trace_collection.onExceptionRaiseExit(AttributeError)
+                elif trust is trust_constant:
+                    # Make sure it's actually there, and not becoming the getattr default by accident.
+                    assert hasattr(self.module, self.import_name), self
+
+                    return (
+                        makeConstantRefNode(
+                            constant=getattr(self.module, self.import_name),
+                            source_ref=lookup_node.getSourceReference(),
+                            user_provided=True,
+                        ),
+                        "new_constant",
+                        "Hard module %r imported %r pre-computed to constant value."
+                        % (self.module_name, self.import_name),
+                    )
+                else:
+                    result = ExpressionImportModuleNameHard(
+                        module_name=self.module_name,
+                        import_name=attribute_name,
+                        source_ref=lookup_node.getSourceReference(),
+                    )
+
+                    return (
+                        result,
+                        "new_expression",
+                        "Attribute lookup %r of hard module %r becomes hard module name import."
+                        % (self.module_name, attribute_name),
+                    )
+
         else:
-            return True
+            # Nothing can be known, but lets not do control flow escape, that is just
+            # too unlikely.
+            trace_collection.onExceptionRaiseExit(BaseException)
 
-    def mayRaiseException(self, exception_type):
-        if self.module_name in hard_modules:
-            return False
-
-        return self.mayHaveSideEffects()
+        return lookup_node, None, None
 
 
 class ExpressionImportModuleNameHard(ExpressionBase):
@@ -135,13 +220,15 @@ class ExpressionImportModuleNameHard(ExpressionBase):
 
     kind = "EXPRESSION_IMPORT_MODULE_NAME_HARD"
 
-    __slots__ = "module_name", "import_name"
+    __slots__ = "module_name", "import_name", "trust"
 
     def __init__(self, module_name, import_name, source_ref):
         ExpressionBase.__init__(self, source_ref=source_ref)
 
         self.module_name = module_name
         self.import_name = import_name
+
+        self.trust = hard_modules_trust[self.module_name].get(self.import_name)
 
     def finalize(self):
         del self.parent
@@ -156,20 +243,18 @@ class ExpressionImportModuleNameHard(ExpressionBase):
         return self.import_name
 
     def computeExpressionRaw(self, trace_collection):
-        # TODO: May return a module reference of some sort in the future with
-        # embedded modules.
+        # As good as it gets, will exist, otherwise we do not get created.
+
+        if self.mayHaveSideEffects():
+            trace_collection.onExceptionRaiseExit(AttributeError)
+
         return self, None, None
 
     def mayHaveSideEffects(self):
-        if self.module_name == "sys" and self.import_name == "stdout":
-            return False
-        elif self.module_name == "__future__":
-            return False
-        else:
-            return True
+        return self.trust is None
 
     def mayRaiseException(self, exception_type):
-        return self.mayHaveSideEffects()
+        return self.trust is None
 
 
 class ExpressionBuiltinImport(ExpressionChildrenHavingBase):

@@ -1519,6 +1519,7 @@ tshape_module_builtin = ShapeTypeBuiltinModule()
 
 
 class ShapeTypeFile(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    # TODO: That need not really be a file, find something better.
     typical_value = __import__("sys").stdout
 
     @staticmethod
