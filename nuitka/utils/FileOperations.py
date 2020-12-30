@@ -157,6 +157,9 @@ def _getRealPathWindows(path):
         % path
     )
 
+    if str is not bytes:
+        result = result.decode("utf8")
+
     return os.path.join(os.path.dirname(path), result.rstrip("\r\n"))
 
 
