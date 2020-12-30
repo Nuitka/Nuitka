@@ -24,12 +24,11 @@
 from __future__ import print_function
 
 import glob
-import os
 import sys
 from optparse import OptionParser
 
 from nuitka.PythonVersions import python_version
-from nuitka.tools.Basics import addPYTHONPATH, goHome, setupPATH
+from nuitka.tools.Basics import addPYTHONPATH, getHomePath, goHome, setupPATH
 from nuitka.tools.quality.pylint import PyLint
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.tools.testing.Common import hasModule, setup
@@ -40,11 +39,10 @@ def resolveShellPatternToFilenames(pattern):
 
 
 def main():
-    setup()
-    goHome()
+    setup(go_main=False)
 
     # So PyLint finds nuitka package.
-    addPYTHONPATH(os.getcwd())
+    addPYTHONPATH(getHomePath())
     setupPATH()
 
     parser = OptionParser()
@@ -93,6 +91,7 @@ Insist on PyLint to be installed. Default is %default.""",
         sys.exit(0)
 
     if not positional_args:
+        goHome()
         positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
 
     positional_args = sum(
@@ -102,6 +101,9 @@ Insist on PyLint to be installed. Default is %default.""",
         ),
         [],
     )
+
+    if not positional_args:
+        sys.exit("No files found.")
 
     print("Working on:", positional_args)
 
