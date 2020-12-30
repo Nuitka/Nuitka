@@ -53,7 +53,7 @@ def getNumpyCoreBinaries(module):
     binaries = []
 
     # first look in numpy/.libs for binaries
-    libdir = os.path.join(numpy_dir, ".libs" if getOS() == "Darwin" else ".dylibs")
+    libdir = os.path.join(numpy_dir, ".libs" if getOS() != "Darwin" else ".dylibs")
     suffix_start = len(libdir) + 1
     if os.path.isdir(libdir):
         dlls_pkg = os.listdir(libdir)

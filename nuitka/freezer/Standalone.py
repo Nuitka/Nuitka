@@ -56,6 +56,7 @@ from nuitka.utils.Execution import withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     deleteFile,
+    getDirectoryRealPath,
     getExternalUsePath,
     getFileContentByLine,
     getFileContents,
@@ -946,6 +947,8 @@ def getScanDirectories(package_name, original_dir):
         # These are useless, but plenty.
         if os.path.basename(scan_dir) == "__pycache__":
             continue
+
+        scan_dir = getDirectoryRealPath(scan_dir)
 
         # No DLLs, no use.
         if not any(entry[1].lower().endswith(".dll") for entry in listDir(scan_dir)):

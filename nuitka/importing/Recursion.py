@@ -342,8 +342,16 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
                         assert sub_path != plugin_filename
 
-                        if Importing.isPackageDir(sub_path) or sub_path.endswith(".py"):
-                            checkPluginSinglePath(sub_path, module.getFullName())
+                        if Importing.isPackageDir(sub_path) and not os.path.exists(
+                            sub_path + ".py"
+                        ):
+                            checkPluginSinglePath(
+                                sub_path, module_package=module.getFullName()
+                            )
+                        elif sub_path.endswith(".py"):
+                            checkPluginSinglePath(
+                                sub_path, module_package=module.getFullName()
+                            )
 
                 elif module.isCompiledPythonModule():
                     ModuleRegistry.addRootModule(module)
@@ -365,13 +373,13 @@ def checkPluginPath(plugin_filename, module_package):
     if plugin_info is not None:
         # File or package makes a difference, handle that
         if os.path.isfile(plugin_info[0]) or Importing.isPackageDir(plugin_info[0]):
-            checkPluginSinglePath(plugin_filename, module_package)
+            checkPluginSinglePath(plugin_filename, module_package=module_package)
         elif os.path.isdir(plugin_info[0]):
             for sub_path, sub_filename in listDir(plugin_info[0]):
                 assert sub_filename != "__init__.py"
 
                 if Importing.isPackageDir(sub_path) or sub_path.endswith(".py"):
-                    checkPluginSinglePath(sub_path, None)
+                    checkPluginSinglePath(sub_path, module_package=None)
         else:
             warning("Failed to include module from '%s'.", plugin_info[0])
     else:
@@ -395,7 +403,7 @@ def checkPluginFilenamePattern(pattern):
             continue
 
         found = True
-        checkPluginSinglePath(filename, None)
+        checkPluginSinglePath(filename, module_package=None)
 
     if not found:
         warning("Didn't match any files against pattern '%s'." % pattern)
