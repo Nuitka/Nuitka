@@ -34,8 +34,10 @@ from contextlib import contextmanager
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     basestring,
 )
+from nuitka.PythonVersions import python_version
 from nuitka.Tracing import my_print
 
+from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
 from .Utils import getOS
 
@@ -556,3 +558,20 @@ def getLinkTarget(filename):
         is_link = True
 
     return is_link, filename
+
+
+def replaceFileAtomic(source_path, dest_path):
+    """
+    Move ``src`` to ``dst``. If ``dst`` exists, it will be silently
+    overwritten.
+
+    Both paths must reside on the same filesystem for the operation to be
+    atomic.
+    """
+
+    if python_version >= 0x300:
+        os.replace(source_path, dest_path)
+    else:
+        importFromInlineCopy("atomicwrites", must_exist=True).replace_atomic(
+            source_path, dest_path
+        )

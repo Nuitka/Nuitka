@@ -826,7 +826,6 @@ if msvc_mode:
         the_compiler=the_compiler,
         env=env,
         source_dir=source_dir,
-        python_prefix=python_prefix,
     ):
         cache_mode = False
 

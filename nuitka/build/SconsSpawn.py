@@ -28,7 +28,7 @@ import threading
 from nuitka.Tracing import my_print, scons_logger
 from nuitka.utils.Timing import TimerReport
 
-from .SconsCaching import extractClcacheLogFromOutput, runClCache
+from .SconsCaching import runClCache
 from .SconsUtils import decodeData
 
 
@@ -145,9 +145,6 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
             or cmd == "<clcache>"
             or os.path.basename(cmd).lower() == "clcache.exe"
         ):
-            # Remove clcache debug output if present:
-            data = extractClcacheLogFromOutput(data)
-
             # Skip forced output from cl.exe
             data = data[data.find(b"\r\n") + 2 :]
 
