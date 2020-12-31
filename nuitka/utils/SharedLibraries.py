@@ -29,6 +29,7 @@ from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 
 from .FileOperations import withMadeWritableFileMode
+from .Importing import importFromInlineCopy
 from .Utils import getArchitecture, getOS, isAlpineLinux, isWin32Windows
 from .WindowsResources import (
     RT_MANIFEST,
@@ -222,22 +223,7 @@ def getPEFileInformation(filename):
         too.
     """
 
-    try:
-        import pefile  # pylint: disable=I0021,import-error
-    except ImportError:
-        # Temporarily add the inline copy of appdir to the import path.
-        sys.path.insert(
-            0,
-            os.path.join(
-                os.path.dirname(__file__), "..", "build", "inline_copy", "pefile"
-            )
-        )
-
-        # Handle case without inline copy too.
-        import pefile  # pylint: disable=I0021,import-error
-
-        # Do not forget to remove it again.
-        del sys.path[0]
+    pefile = importFromInlineCopy("pefile", must_exist=True)
 
     pe = pefile.PE(filename)
 

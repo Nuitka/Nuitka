@@ -21,6 +21,7 @@ Used for Nuitka plugins and for test code.
 """
 
 import os
+import sys
 
 from nuitka.PythonVersions import python_version
 
@@ -113,3 +114,31 @@ def getSharedLibrarySuffix(preferred):
             result = suffix
 
     return result
+
+
+def importFromInlineCopy(module_name, must_exist):
+    """Import a module from the inline copy stage."""
+
+    # May already be loaded
+    if module_name in sys.modules:
+        return sys.modules[module_name]
+
+    # Temporarily add the inline path of the module to the import path.
+    sys.path.insert(
+        0,
+        os.path.join(
+            os.path.dirname(__file__), "..", "build", "inline_copy", module_name
+        ),
+    )
+
+    # Handle case without inline copy too.
+    try:
+        return __import__(module_name)
+    except ImportError:
+        if not must_exist:
+            return None
+
+        sys.exit("Error, excepted inline copy of %r is not there." % module_name)
+    finally:
+        # Do not forget to remove it from sys.path again.
+        del sys.path[0]

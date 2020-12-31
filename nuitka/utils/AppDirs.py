@@ -24,27 +24,16 @@ is not installed, we use our own code for best effort.
 from __future__ import absolute_import
 
 import os
-import sys
 import tempfile
 
 from .FileOperations import makePath
+from .Importing import importFromInlineCopy
 
 try:
     import appdirs  # pylint: disable=I0021,import-error
 except ImportError:
-    # Temporarily add the inline copy of appdir to the import path.
-    sys.path.append(
-        os.path.join(os.path.dirname(__file__), "..", "build", "inline_copy", "appdirs")
-    )
-
-    # Handle case without inline copy too.
-    try:
-        import appdirs  # pylint: disable=I0021,import-error
-    except ImportError:
-        appdirs = None
-
-    # Do not forget to remove it again.
-    del sys.path[-1]
+    # We handle the case without inline copy too.
+    appdirs = importFromInlineCopy("appdirs", must_exist=False)
 
 _cache_dir = None
 

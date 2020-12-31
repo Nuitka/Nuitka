@@ -35,6 +35,7 @@ from nuitka.utils.FileOperations import (
     makePath,
     withFileLock,
 )
+from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.Utils import getOS, isWin32Windows
 
 from .SconsUtils import (
@@ -202,23 +203,10 @@ def enableCcache(
 
 
 def _activateInlineClcache():
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "inline_copy/clcache"))
-    sys.path.insert(
-        0, os.path.join(os.path.dirname(__file__), "inline_copy/atomicwrites")
-    )
+    importFromInlineCopy("atomicwrites", must_exist=True)
+    importFromInlineCopy("clcache", must_exist=True)
 
-    try:
-        import clcache.caching as _  # used later, just checking if it will work.
-    except ImportError:
-        sys.exit("Error, excepted inline copy of clcache is not there.")
-    except Exception:  # Do not disturb operation for any problem pylint: disable=broad-except
-        clcache_binary = None
-        scons_logger.warning("Failed to import inline copy of clcache.")
-    else:
-        clcache_binary = "<clcache>"
-    finally:
-        del sys.path[:2]
-
+    clcache_binary = "<clcache>"
     return clcache_binary
 
 
