@@ -180,6 +180,20 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
     return spawnWindowsCommand
 
 
+def _unescape(arg):
+    # Undo the damage that scons did to pass it to "sh"
+    arg = arg.strip('"')
+
+    slash = "\\"
+    special = '"$()'
+
+    arg = arg.replace(slash + slash, slash)
+    for c in special:
+        arg = arg.replace(slash + c, c)
+
+    return arg
+
+
 class SpawnThread(threading.Thread):
     def __init__(self, spawn, *args):
         threading.Thread.__init__(self)
@@ -189,7 +203,7 @@ class SpawnThread(threading.Thread):
 
         self.timer_report = TimerReport(
             message="Running %s took %%.2f seconds"
-            % (repr(self.args).replace("%", "%%"),),
+            % (" ".join(_unescape(arg) for arg in self.args[3]).replace("%", "%%"),),
             min_report_time=60,
             logger=scons_logger,
         )
