@@ -41,7 +41,7 @@ def generateBuiltinHashCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_HASH",
         arg_desc=(("hash_arg", expression.getValue()),),
-        may_raise=expression.mayRaiseException(BaseException),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
