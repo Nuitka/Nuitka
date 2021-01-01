@@ -1266,7 +1266,7 @@ def tool_list(platform, env):
         c_compilers = ['gcc', 'intelc', 'icc', 'cc']
         # Nuitka: Avoid ununused tools
         # cxx_compilers = ['g++', 'intelc', 'icc', 'cxx']
-        cxx_compilers = []
+        cxx_compilers = ['g++']
         assemblers = ['gas', 'nasm', 'masm']
         fortran_compilers = ['gfortran', 'g77', 'ifort', 'ifl', 'f95', 'f90', 'f77']
         ars = ['ar', ]
