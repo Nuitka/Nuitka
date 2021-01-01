@@ -352,6 +352,10 @@ def checkCachingSuccess(source_dir):
             counts = defaultdict(int)
 
             for _command, result in stats.items():
+                # These are not important to our users, time based decisions differentiate these.
+                if result in ("cache hit (direct)", "cache hit (preprocessed)"):
+                    result = "cache hit"
+
                 counts[result] += 1
 
             scons_logger.info("Compiled %d C files using ccache." % len(stats))
