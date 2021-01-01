@@ -357,6 +357,11 @@ def getMustIncludePackages():
     return sum([_splitShellPattern(x) for x in options.include_packages], [])
 
 
+def getShallIncludePackageData():
+    """*list*, items of "--include-package-data=" """
+    return sum([_splitShellPattern(x) for x in options.package_data], [])
+
+
 def shallWarnImplicitRaises():
     """*bool* = "--warn-implicit-exceptions" """
     return options.warn_implicit_exceptions

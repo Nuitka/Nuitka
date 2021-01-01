@@ -34,11 +34,6 @@ def _createEmptyDirText(filename):
     return ""
 
 
-def _createEmptyDirNone(filename):
-    # Returning None means no file creation should happen, pylint: disable=unused-argument
-    return None
-
-
 def remove_suffix(string, suffix):
     """Remove 'suffix' from 'string'."""
     # Special case: if suffix is empty, string[:0] returns ''. So, test
@@ -84,8 +79,7 @@ def _getPackageFiles(module, *packages):
         module: module object
         packages: package name(s) - str or tuple
     Yields:
-        Tuples of paths (source, dest), if folders_only is False,
-        else tuples (_createEmptyDirNone, dest).
+        Tuples of paths (source, dest)
     """
 
     file_list = []
@@ -135,7 +129,7 @@ def _getSubDirectoryFiles(module, subdirs, folders_only):
             placed in each of these folders.
     Yields:
         Tuples of paths (source, dest) are yielded if folders_only is False,
-        else tuples (_createEmptyDirNone, dest) are yielded.
+        else IncludedDataFile instances for empty dirs.
     """
 
     module_dir = module.getCompileTimeDirectory()

@@ -60,6 +60,7 @@ from nuitka.utils.FileOperations import (
     getExternalUsePath,
     getFileContentByLine,
     getFileContents,
+    getFileList,
     getSubDirectories,
     haveSameFileContents,
     isPathBelow,
@@ -68,6 +69,7 @@ from nuitka.utils.FileOperations import (
     putTextFileContents,
     withFileLock,
 )
+from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
@@ -1567,6 +1569,62 @@ different from
                 removeSxsFromDLL(os.path.join(dist_dir, dll_filename))
 
 
+def _handleDataFile(dist_dir, tracer, included_datafile):
+    """Handle a data file."""
+    if isinstance(included_datafile, IncludedDataFile):
+        if included_datafile.kind == "empty_dirs":
+            tracer.info(
+                "Included empty directories %s due to %s."
+                % (
+                    ",".join(included_datafile.dest_path),
+                    included_datafile.reason,
+                )
+            )
+
+            for sub_dir in included_datafile.dest_path:
+                makePath(os.path.join(dist_dir, sub_dir))
+        elif included_datafile.kind == "datafile":
+            dest_path = os.path.join(dist_dir, included_datafile.dest_path)
+
+            tracer.info(
+                "Included data file %r due to %s."
+                % (
+                    included_datafile.dest_path,
+                    included_datafile.reason,
+                )
+            )
+
+            makePath(os.path.dirname(dest_path))
+            shutil.copyfile(included_datafile.source_path, dest_path)
+        else:
+            assert False, included_datafile
+    else:
+        # TODO: Goal is have this unused.
+        source_desc, target_filename = included_datafile
+
+        target_filename = os.path.join(dist_dir, target_filename)
+        assert isPathBelow(dist_dir, target_filename)
+
+        makePath(os.path.dirname(target_filename))
+
+        if inspect.isfunction(source_desc):
+            content = source_desc(target_filename)
+
+            if content is not None:  # support creation of empty directories
+                with open(
+                    target_filename, "wb" if type(content) is bytes else "w"
+                ) as output:
+                    output.write(content)
+        else:
+            # TODO: Goal is have this unused.
+            target_filename = os.path.join(dist_dir, target_filename)
+            assert isPathBelow(dist_dir, target_filename)
+
+            makePath(os.path.dirname(target_filename))
+
+            shutil.copy2(source_desc, target_filename)
+
+
 def copyDataFiles(dist_dir):
     """Copy the data files needed for standalone distribution.
 
@@ -1583,42 +1641,44 @@ def copyDataFiles(dist_dir):
 
     for module in ModuleRegistry.getDoneModules():
         for plugin, included_datafile in Plugins.considerDataFiles(module):
-            if isinstance(included_datafile, IncludedDataFile):
-                if included_datafile.kind == "empty_dirs":
-                    plugin.info(
-                        "Included empty directories %s due to %s."
-                        % (
-                            ",".join(included_datafile.dest_path),
-                            included_datafile.reason,
+            _handleDataFile(
+                dist_dir=dist_dir, tracer=plugin, included_datafile=included_datafile
+            )
+
+    for module in ModuleRegistry.getDoneModules():
+        if module.isCompiledPythonPackage() or module.isUncompiledPythonPackage():
+            package_name = module.getFullName()
+
+            match, reason = package_name.matchesToShellPatterns(
+                patterns=Options.getShallIncludePackageData()
+            )
+
+            if match:
+                package_directory = module.getCompileTimeDirectory()
+
+                pkg_filenames = getFileList(
+                    package_directory,
+                    ignore_dirs=("__pycache__",),
+                    ignore_suffixes=(".py", ".pyw", ".pyc", ".pyo", ".dll")
+                    + getSharedLibrarySuffixes(),
+                )
+
+                if pkg_filenames:
+                    file_reason = "package '%s' %s" % (package_name, reason)
+
+                    for pkg_filename in pkg_filenames:
+                        rel_path = os.path.join(
+                            package_name.asPath(),
+                            os.path.relpath(pkg_filename, package_directory),
                         )
-                    )
 
-                    for sub_dir in included_datafile.dest_path:
-                        makePath(os.path.join(dist_dir, sub_dir))
-                else:
-                    assert False, included_datafile
-            else:
-                # TODO: Goal is have this unused.
-                source_desc, target_filename = included_datafile
+                        _handleDataFile(
+                            dist_dir,
+                            inclusion_logger,
+                            makeIncludedDataFile(pkg_filename, rel_path, file_reason),
+                        )
 
-                target_filename = os.path.join(dist_dir, target_filename)
-                assert isPathBelow(dist_dir, target_filename)
+                # assert False, (module.getCompileTimeDirectory(), pkg_files)
 
-                makePath(os.path.dirname(target_filename))
 
-                if inspect.isfunction(source_desc):
-                    content = source_desc(target_filename)
-
-                    if content is not None:  # support creation of empty directories
-                        with open(
-                            target_filename, "wb" if type(content) is bytes else "w"
-                        ) as output:
-                            output.write(content)
-                else:
-                    # TODO: Goal is have this unused.
-                    target_filename = os.path.join(dist_dir, target_filename)
-                    assert isPathBelow(dist_dir, target_filename)
-
-                    makePath(os.path.dirname(target_filename))
-
-                    shutil.copy2(source_desc, target_filename)
+from .IncludedDataFiles import makeIncludedDataFile

@@ -164,7 +164,9 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows.""
 )
 
 
-include_group = OptionGroup(parser, "Control the inclusion of modules and packages")
+include_group = OptionGroup(
+    parser, "Control the inclusion of modules and packages in result."
+)
 
 include_group.add_option(
     "--include-package",
@@ -210,7 +212,7 @@ include_group.add_option(
     metavar="PATTERN",
     default=[],
     help="""\
-Include into files matching the PATTERN. Overrides all recursion other options.
+Include into files matching the PATTERN. Overrides all other follow options.
 Can be given multiple times. Default empty.""",
 )
 
@@ -237,10 +239,10 @@ include_group.add_option(
 
 parser.add_option_group(include_group)
 
-recurse_group = OptionGroup(parser, "Control the recursion into imported modules")
+follow_group = OptionGroup(parser, "Control the following into imported modules")
 
 
-recurse_group.add_option(
+follow_group.add_option(
     "--follow-stdlib",
     action="store_true",
     dest="recurse_stdlib",
@@ -250,7 +252,7 @@ Also descend into imported modules from standard library. This will increase
 the compilation time by a lot. Defaults to off.""",
 )
 
-recurse_group.add_option(
+follow_group.add_option(
     "--nofollow-imports",
     action="store_true",
     dest="recurse_none",
@@ -260,7 +262,7 @@ When --recurse-none is used, do not descend into any imported modules at all,
 overrides all other recursion options. Defaults to off.""",
 )
 
-recurse_group.add_option(
+follow_group.add_option(
     "--follow-imports",
     action="store_true",
     dest="recurse_all",
@@ -270,7 +272,7 @@ When --follow-imports is used, attempt to descend into all imported modules.
 Defaults to off.""",
 )
 
-recurse_group.add_option(
+follow_group.add_option(
     "--follow-import-to",
     action="append",
     dest="recurse_modules",
@@ -281,7 +283,7 @@ Follow to that module if used, or if a package, to the whole package. Can be giv
 multiple times. Default empty.""",
 )
 
-recurse_group.add_option(
+follow_group.add_option(
     "--nofollow-import-to",
     action="append",
     dest="recurse_not_modules",
@@ -293,8 +295,26 @@ whole package in any case, overrides all other options. Can be given multiple
 times. Default empty.""",
 )
 
+parser.add_option_group(follow_group)
 
-parser.add_option_group(recurse_group)
+
+data_group = OptionGroup(parser, "Data files for standalone/onefile mode")
+
+data_group.add_option(
+    "--include-package-data",
+    action="append",
+    dest="package_data",
+    metavar="PACKAGE",
+    default=[],
+    help="""\
+Include data files of the given package name. Can use patterns. By default
+Nuitka does not unless hard coded and vital for operation of a package. This
+will include all non-DLL, non-extension modules in the distribution. Default
+empty.""",
+)
+
+parser.add_option_group(data_group)
+
 
 execute_group = OptionGroup(parser, "Immediate execution after compilation")
 

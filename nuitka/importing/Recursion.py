@@ -19,7 +19,6 @@
 
 """
 
-import fnmatch
 import glob
 import marshal
 import os
@@ -34,35 +33,6 @@ from nuitka.Tracing import recursion_logger
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.FileOperations import listDir, relpath
 from nuitka.utils.ModuleNames import ModuleName
-
-
-def matchesModuleNameToPatterns(module_name, patterns):
-    """Match a module name to a list of patterns
-
-    Args:
-        module_name:
-            The module name to match. Full path with dot separators.
-        patters:
-            List of patterns that comply with fnmatch.fnmatch description
-            or also is below the package. So "*.tests" will matches to also
-            "something.tests.MyTest", thereby allowing to match whole
-            packages with one pattern only.
-    Returns:
-        Tuple of two values, where the first value is the result, second value
-        explains which pattern matched and how.
-    """
-
-    for pattern in patterns:
-        if module_name == pattern:
-            return True, "is exact match of %r" % pattern
-        elif module_name.isBelowNamespace(pattern):
-            return True, "is package content of %r" % pattern
-        elif fnmatch.fnmatch(module_name.asString(), pattern):
-            return True, "matches pattern %r" % pattern
-        elif fnmatch.fnmatch(module_name.asString(), pattern + ".*"):
-            return True, "is package content of match to pattern %r" % pattern
-
-    return False, None
 
 
 def _recurseTo(module_package, module_filename, module_relpath, module_kind, reason):
@@ -182,15 +152,15 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
         else:
             return False, "Shared library cannot be inspected."
 
-    no_case, reason = matchesModuleNameToPatterns(
-        module_name=module_name, patterns=Options.getShallFollowInNoCase()
+    no_case, reason = module_name.matchesToShellPatterns(
+        patterns=Options.getShallFollowInNoCase()
     )
 
     if no_case:
         return (False, "Module %s instructed by user to not recurse to." % reason)
 
-    any_case, reason = matchesModuleNameToPatterns(
-        module_name=module_name, patterns=Options.getShallFollowModules()
+    any_case, reason = module_name.matchesToShellPatterns(
+        patterns=Options.getShallFollowModules()
     )
 
     if any_case:

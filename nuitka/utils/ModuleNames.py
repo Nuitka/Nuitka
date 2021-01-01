@@ -22,6 +22,7 @@ allow to easily make checks on them.
 
 """
 
+import fnmatch
 import os
 
 
@@ -151,6 +152,32 @@ class ModuleName(str):
 
     def getChildNamed(self, *args):
         return ModuleName(".".join([self] + list(args)))
+
+    def matchesToShellPatterns(self, patterns):
+        """Match a module name to a list of patterns
+
+        Args:
+            patters:
+                List of patterns that comply with fnmatch.fnmatch description
+                or also is below the package. So "*.tests" will matches to also
+                "something.tests.MyTest", thereby allowing to match whole
+                packages with one pattern only.
+        Returns:
+            Tuple of two values, where the first value is the result, second value
+            explains which pattern matched and how.
+        """
+
+        for pattern in patterns:
+            if self == pattern:
+                return True, "is exact match of %r" % pattern
+            elif self.isBelowNamespace(pattern):
+                return True, "is package content of %r" % pattern
+            elif fnmatch.fnmatch(self.asString(), pattern):
+                return True, "matches pattern %r" % pattern
+            elif fnmatch.fnmatch(self.asString(), pattern + ".*"):
+                return True, "is package content of match to pattern %r" % pattern
+
+        return False, None
 
     # Reject APIs being used. TODO: Maybe make this a decorator for reuse.
     # TODO: Add rsplit and subscript operations too.

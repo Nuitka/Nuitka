@@ -236,12 +236,14 @@ def getFileList(path, ignore_dirs=(), ignore_suffixes=()):
         dirnames.sort()
         filenames.sort()
 
+        # Normalize dirnames for better matching.
+        dirnames[:] = [os.path.normcase(dirname) for dirname in dirnames]
         for dirname in ignore_dirs:
             if dirname in dirnames:
                 dirnames.remove(dirname)
 
         for filename in filenames:
-            if filename.endswith(ignore_suffixes):
+            if os.path.normcase(filename).endswith(ignore_suffixes):
                 continue
 
             result.append(os.path.normpath(os.path.join(root, filename)))
