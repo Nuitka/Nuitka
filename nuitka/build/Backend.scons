@@ -178,6 +178,9 @@ unstripped_mode = getArgumentBool("unstripped_mode", False)
 # data.
 target_arch = ARGUMENTS["target_arch"]
 
+# MinGW compiler mode, optional and interesting to Windows only.
+mingw_mode = getArgumentBool("mingw_mode", False)
+
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getArgumentBool("clang_mode", False)
 if (
@@ -189,12 +192,9 @@ if (
 
 # Clang on Windows is always clang-cl for now.
 clangcl_mode = False
-if win_target and clang_mode:
+if win_target and not mingw_mode and clang_mode:
     clang_mode = False
     clangcl_mode = True
-
-# MinGW compiler mode, optional and interesting to Windows only.
-mingw_mode = getArgumentBool("mingw_mode", False)
 
 # Shared library and compiled modules count, determines the need for the
 # compiled module loader.
@@ -563,6 +563,13 @@ if "clang" in the_cc_name:
     if debug_mode:
         env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
+if lto_mode and mingw_mode:
+    scons_logger.warning(
+        """The gcc and (also clang based on) it compiler on Windows, doesn't currently support lto mode. Disabled."""
+    )
+
+    lto_mode = False
+
 # Support details for real g++, not clang++.
 if gcc_mode and not clang_mode:
     # Enforce the minimum version, selecting a potentially existing g++-4.5
@@ -574,15 +581,6 @@ if gcc_mode and not clang_mode:
             """\
 The gcc compiler %s (version %s) doesn't have the sufficient \
 version (>= 4.4)."""
-            % (the_compiler, gcc_version)
-        )
-
-    # CondaCC or newer.
-    if mingw_mode and gcc_version < (5, 3):
-        sys.exit(
-            """\
-The MinGW64 compiler %s (version %s) doesn't have the sufficient \
-version (>= 5.3)."""
             % (the_compiler, gcc_version)
         )
 
@@ -602,12 +600,14 @@ version for lto mode (>= 4.6). Disabled."""
 
         lto_mode = False
 
-    if lto_mode and mingw_mode:
-        scons_logger.warning(
-            """The gcc compiler on Windows, doesn't currently support lto mode. Disabled."""
+    # CondaCC or newer.
+    if mingw_mode and gcc_version < (5, 3):
+        sys.exit(
+            """\
+The MinGW64 compiler %s (version %s) doesn't have the sufficient \
+version (>= 5.3)."""
+            % (the_compiler, gcc_version)
         )
-
-        lto_mode = False
 
     # For gcc 4.6 there are some new interesting functions.
     if gcc_version >= (4, 6):
@@ -619,21 +619,7 @@ version for lto mode (>= 4.6). Disabled."""
     # Use link time optimizations so that gcc can help with optimization across
     # files, but unfortunately at this time it seriously slows down the compiled
     # code. This may be because it needs -O3 option to be effective.
-
-    if lto_mode and gcc_version >= (4, 6):
-        env.Append(CCFLAGS=["-flto"])
-        env.Append(LINKFLAGS=["-flto=%d" % job_count])
-
-        # env.append(LINKFLAGS = ["-Wsuggest-attribute=noreturn"])
-        # env.append(LINKFLAGS = ["-Wsuggest-attribute=pure"])
-        # env.append(LINKFLAGS = ["-Wsuggest-attribute=const"])
-        # env.append(CCFLAGS = ["-Wnoexcept"])
-
-        if debug_mode:
-            env.Append(LINKFLAGS=["-O2"])
-
-        env.Append(LINKFLAGS=["-O3", "-fpartial-inlining", "-freorder-functions"])
-    elif static_libpython and not lto_mode:
+    if static_libpython and not lto_mode:
         env.Append(CCFLAGS=["-fno-lto"])
         env.Append(LINKFLAGS=["-fno-lto"])
 
@@ -644,13 +630,26 @@ version for lto mode (>= 4.6). Disabled."""
     # We don't care about that.
     env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
 
-    # Give a warning if LTO mode was specified, but won't be used.
-    if lto_mode and gcc_version < (4, 6):
-        my_print("Warning, LTO mode specified, but not available.", file=sys.stderr)
-
     # The var-tracking does not scale, disable it. Should we really need it, we
     # can enable it. TODO: Does this cause a performance loss?
     env.Append(CCFLAGS=["-fno-var-tracking"])
+
+if gcc_mode and lto_mode:
+    env.Append(CCFLAGS=["-flto"])
+
+    if clang_mode:
+        env.Append(LINKFLAGS=["-flto"])
+    else:
+        env.Append(LINKFLAGS=["-flto=%d" % job_count])
+
+    if debug_mode:
+        env.Append(LINKFLAGS=["-O2"])
+    else:
+        env.Append(LINKFLAGS=["-O3"])
+
+    if not clang_mode:
+        env.Append(LINKFLAGS=["-fpartial-inlining", "-freorder-functions"])
+
 
 # Avoid them as appearing to be different files. TODO: Find out which
 # clang version has this, clang-8 does not.
@@ -709,7 +708,7 @@ if mingw_mode:
     env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])
 
 # At least older MinGW64 has issues with this, so disable it.
-if mingw_mode and gcc_version < (6,) and not clang_mode:
+if mingw_mode and not clang_mode and gcc_version < (6,):
     env.Append(LINKFLAGS=["-Wl,--no-gc-sections"])
 
 if debug_mode:
@@ -1222,9 +1221,7 @@ else:
 # Tell compiler to use link time optimization for MSVC
 if msvc_mode and lto_mode:
     env.Append(CCFLAGS=["/GL"])
-
-    if not clangcl_mode:
-        env.Append(LINKFLAGS=["/LTCG"])
+    env.Append(LINKFLAGS=["/LTCG"])
 
 if module_mode:
     env.Append(CPPDEFINES=["_NUITKA_MODULE"])

@@ -31,7 +31,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     basestring,
     unicode,
 )
-from nuitka.Tracing import scons_details_logger, scons_logger
+from nuitka.Tracing import scons_details_logger
 
 
 def initScons():
@@ -223,7 +223,7 @@ def addClangClPathFromMSVC(env, target_arch):
     cl_exe = getExecutablePath("cl", env=env)
 
     if cl_exe is None:
-        scons_logger.warning("Visual Studio required for for Clang on Windows.")
+        sys.exit("Error, Visual Studio required for using ClangCL on Windows.")
         return
 
     clang_dir = cl_exe = os.path.join(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm")
