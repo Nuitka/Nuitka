@@ -30,7 +30,6 @@ class ExpressionBuiltinHash(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_HASH"
 
     named_child = "value"
-    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)

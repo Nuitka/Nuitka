@@ -182,12 +182,15 @@ def generateBuiltinFormatCode(to_name, expression, emit, context):
     value_name = context.allocateTempName("format_value")
 
     generateExpressionCode(
-        to_name=value_name, expression=expression.getValue(), emit=emit, context=context
+        to_name=value_name,
+        expression=expression.subnode_value,
+        emit=emit,
+        context=context,
     )
 
     format_spec_name = context.allocateTempName("format_spec")
 
-    format_spec = expression.getFormatSpec()
+    format_spec = expression.subnode_format_spec
 
     if format_spec is None:
         emit("%s = %s;" % (format_spec_name, context.getConstantCode("")))
