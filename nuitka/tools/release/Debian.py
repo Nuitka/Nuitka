@@ -36,12 +36,29 @@ def _callDebchange(*args):
         check_call(args, stdin=devnull)
 
 
+def _discardDebianChangelogLastEntry():
+    with open("debian/changelog") as f:
+        changelog_lines = f.readlines()
+    with open("debian/changelog", "w") as output:
+        first = True
+        for line in changelog_lines[1:]:
+            if line.startswith("nuitka") and first:
+                first = False
+
+            if not first:
+                output.write(line)
+
+
 def updateDebianChangelog(old_version, new_version, distribution):
     debian_version = new_version.replace("rc", "~rc") + "+ds-1"
 
     os.environ["DEBEMAIL"] = "Kay Hayen <kay.hayen@gmail.com>"
 
     if "rc" in new_version:
+        if "rc" in old_version:
+            # Initial final release after pre-releases.
+            _discardDebianChangelogLastEntry()
+
         message = "New upstream pre-release."
 
         with open("Changelog.rst") as f:
@@ -59,19 +76,12 @@ def updateDebianChangelog(old_version, new_version, distribution):
     else:
         if "rc" in old_version:
             # Initial final release after pre-releases.
-            with open("debian/changelog") as f:
-                changelog_lines = f.readlines()
-            with open("debian/changelog", "w") as output:
-                first = True
-                for line in changelog_lines[1:]:
-                    if line.startswith("nuitka") and first:
-                        first = False
-
-                    if not first:
-                        output.write(line)
+            _discardDebianChangelogLastEntry()
 
             message = "New upstream release."
         else:
+            # Initial final release after pre-releases.
+
             # Hotfix release after previous final or hotfix release.
             message = "New upstream hotfix release."
 
