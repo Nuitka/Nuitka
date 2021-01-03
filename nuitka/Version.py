@@ -25,8 +25,14 @@ Copyright (C) 2020 Kay Hayen."""
 
 
 def getNuitkaVersion():
+    """Return Nuitka version as a string.
+
+    This should not be used for >= comparisons directly.
+    """
     return version_string.split()[1][1:]
 
 
 def getNuitkaVersionYear():
+    """ The year of Nuitka copyright for use in generations. """
+
     return int(version_string.split()[4])
