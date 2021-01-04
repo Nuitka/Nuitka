@@ -109,7 +109,10 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
     value_name = context.allocateTempName("unpack")
 
     generateExpressionCode(
-        to_name=value_name, expression=expression.getValue(), emit=emit, context=context
+        to_name=value_name,
+        expression=expression.subnode_value,
+        emit=emit,
+        context=context,
     )
 
     with withObjectCodeTemporaryAssignment(
@@ -156,7 +159,7 @@ def generateUnpackCheckCode(statement, emit, context):
 
     generateExpressionCode(
         to_name=iterator_name,
-        expression=statement.getIterator(),
+        expression=statement.subnode_iterator,
         emit=emit,
         context=context,
     )
@@ -211,8 +214,8 @@ def generateBuiltinNext2Code(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_NEXT2",
         arg_desc=(
-            ("next_arg", expression.getIterator()),
-            ("next_default", expression.getDefault()),
+            ("next_arg", expression.subnode_iterator),
+            ("next_default", expression.subnode_default),
         ),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -228,7 +231,7 @@ def generateBuiltinIter1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="MAKE_ITERATOR" if may_raise else "MAKE_ITERATOR_INFALLIBLE",
-        arg_desc=(("iter_arg", expression.getValue()),),
+        arg_desc=(("iter_arg", expression.subnode_value),),
         may_raise=may_raise,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -243,7 +246,7 @@ def generateBuiltinIterForUnpackCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="MAKE_UNPACK_ITERATOR" if may_raise else "MAKE_ITERATOR_INFALLIBLE",
-        arg_desc=(("iter_arg", expression.getValue()),),
+        arg_desc=(("iter_arg", expression.subnode_value),),
         may_raise=may_raise,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -257,8 +260,8 @@ def generateBuiltinIter2Code(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_ITER2",
         arg_desc=(
-            ("iter_callable", expression.getCallable()),
-            ("iter_sentinel", expression.getSentinel()),
+            ("iter_callable", expression.subnode_callable),
+            ("iter_sentinel", expression.subnode_sentinel),
         ),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -272,7 +275,7 @@ def generateBuiltinLenCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_LEN",
-        arg_desc=(("len_arg", expression.getValue()),),
+        arg_desc=(("len_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -285,7 +288,7 @@ def generateBuiltinAnyCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_ANY",
-        arg_desc=(("any_arg", expression.getValue()),),
+        arg_desc=(("any_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -298,7 +301,7 @@ def generateBuiltinAllCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_ALL",
-        arg_desc=(("all_arg", expression.getValue()),),
+        arg_desc=(("all_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),

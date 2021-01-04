@@ -165,7 +165,7 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
 
     exception_arg_names = []
 
-    for exception_arg in expression.getArgs():
+    for exception_arg in expression.subnode_args:
         exception_arg_name = context.allocateTempName("make_exception_arg")
 
         generateExpressionCode(
@@ -205,7 +205,7 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
         if expression.getExceptionName() == "ImportError" and python_version >= 0x300:
             from .PythonAPICodes import getReferenceExportCode
 
-            import_error_name_expression = expression.getImportErrorName()
+            import_error_name_expression = expression.subnode_name
 
             if import_error_name_expression is not None:
                 exception_importerror_name = context.allocateTempName(
@@ -229,7 +229,7 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
                     % (to_name, exception_importerror_name)
                 )
 
-            import_error_path_expression = expression.getImportErrorPath()
+            import_error_path_expression = expression.subnode_path
 
             if import_error_path_expression is not None:
                 exception_importerror_path = context.allocateTempName(

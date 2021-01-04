@@ -564,11 +564,11 @@ def makeOptimizationPass():
 
             used_functions = tuple(
                 function
-                for function in current_module.getFunctions()
+                for function in current_module.subnode_functions
                 if function in used_functions
             )
 
-            current_module.setFunctions(used_functions)
+            current_module.setChild("functions", used_functions)
 
     if Variables.complete:
         if optimizeLocalsDictsHandles():

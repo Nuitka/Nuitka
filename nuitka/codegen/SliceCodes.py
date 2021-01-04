@@ -98,8 +98,8 @@ def _decideSlicing(lower, upper):
 def generateSliceLookupCode(to_name, expression, emit, context):
     assert python_version < 0x300
 
-    lower = expression.getLower()
-    upper = expression.getUpper()
+    lower = expression.subnode_lower
+    upper = expression.subnode_upper
 
     if _decideSlicing(lower, upper):
         lower_name, upper_name = _generateSliceRangeIdentifier(
@@ -132,8 +132,8 @@ def generateSliceLookupCode(to_name, expression, emit, context):
             names=("slice_source", "slice_lower", "slice_upper"),
             expressions=(
                 expression.subnode_expression,
-                expression.getLower(),
-                expression.getUpper(),
+                expression.subnode_lower,
+                expression.subnode_upper,
             ),
             emit=emit,
             context=context,
@@ -156,8 +156,8 @@ def generateAssignmentSliceCode(statement, emit, context):
     assert python_version < 0x300
 
     lookup_source = statement.subnode_expression
-    lower = statement.getLower()
-    upper = statement.getUpper()
+    lower = statement.subnode_lower
+    upper = statement.subnode_upper
     value = statement.subnode_source
 
     value_name = context.allocateTempName("sliceass_value")
@@ -223,8 +223,8 @@ def generateDelSliceCode(statement, emit, context):
     assert python_version < 0x300
 
     target = statement.subnode_expression
-    lower = statement.getLower()
-    upper = statement.getUpper()
+    lower = statement.subnode_lower
+    upper = statement.subnode_upper
 
     target_name = context.allocateTempName("slicedel_target")
 

@@ -170,7 +170,7 @@ class StatementsFrameBase(StatementsSequence):
         # the frame scope, takes it toll to complexity, pylint: disable=too-many-branches
         new_statements = []
 
-        statements = self.getStatements()
+        statements = self.subnode_statements
 
         for count, statement in enumerate(statements):
             # May be frames embedded.
@@ -186,7 +186,7 @@ class StatementsFrameBase(StatementsSequence):
                     new_statement.isStatementsSequence()
                     and not new_statement.isStatementsFrame()
                 ):
-                    new_statements.extend(new_statement.getStatements())
+                    new_statements.extend(new_statement.subnode_statements)
                 else:
                     new_statements.append(new_statement)
 
@@ -216,7 +216,7 @@ class StatementsFrameBase(StatementsSequence):
         # so do this in two steps. Next time we can reduce the frame scope just
         # as well.
         if statements != tuple(new_statements):
-            self.setStatements(new_statements)
+            self.setChild("statements", new_statements)
             return self
 
         # Determine statements inside the frame, that need not be in a frame,
@@ -237,7 +237,7 @@ class StatementsFrameBase(StatementsSequence):
             )
 
             if new_statements:
-                self.setStatements(new_statements)
+                self.setChild("statements", new_statements)
 
                 return makeStatementsSequenceReplacementNode(
                     statements=outside_pre + [self] + outside_post, node=self
@@ -255,7 +255,7 @@ class StatementsFrameBase(StatementsSequence):
                 )
         else:
             if statements != new_statements:
-                self.setStatements(new_statements)
+                self.setChild("statements", new_statements)
 
             return self
 

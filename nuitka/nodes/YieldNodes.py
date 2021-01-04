@@ -57,7 +57,7 @@ class ExpressionYieldBase(ExpressionChildHavingBase):
             return False
 
     def computeExpression(self, trace_collection):
-        trace_collection.removeKnowledge(self.getExpression())
+        trace_collection.removeKnowledge(self.subnode_expression)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -82,7 +82,6 @@ class ExpressionYield(ExpressionYieldBase):
     kind = "EXPRESSION_YIELD"
 
     named_child = "expression"
-    getExpression = ExpressionChildHavingBase.childGetter("expression")
 
     def __init__(self, expression, source_ref):
         ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)
@@ -104,7 +103,6 @@ class ExpressionYieldFrom(ExpressionYieldBase):
     kind = "EXPRESSION_YIELD_FROM"
 
     named_child = "expression"
-    getExpression = ExpressionChildHavingBase.childGetter("expression")
 
     def __init__(self, expression, source_ref):
         ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)
@@ -125,7 +123,6 @@ class ExpressionYieldFromWaitable(ExpressionYieldBase):
     kind = "EXPRESSION_YIELD_FROM_WAITABLE"
 
     named_child = "expression"
-    getExpression = ExpressionChildHavingBase.childGetter("expression")
 
     def __init__(self, expression, source_ref):
         ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)

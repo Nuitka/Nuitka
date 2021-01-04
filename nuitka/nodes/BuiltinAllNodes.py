@@ -51,7 +51,7 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
     builtin_spec = BuiltinParameterSpecs.builtin_all_spec
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
         shape = value.getTypeShape()
         if shape.hasShapeSlotIter() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -109,7 +109,7 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
 
     def mayRaiseException(self, exception_type):
         """returns boolean True if try/except/finally is needed else False"""
-        value = self.getValue()
+        value = self.subnode_value
 
         if value.mayRaiseException(exception_type):
             return True

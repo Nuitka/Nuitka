@@ -348,7 +348,8 @@ def buildTryExceptionNode(provider, node, source_ref):
             )
     else:
         if python_version < 0x300:
-            exception_handling.setStatements(
+            exception_handling.setChild(
+                "statements",
                 (
                     StatementPreserveFrameException(
                         preserver_id=0,  # unused with Python2
@@ -356,7 +357,7 @@ def buildTryExceptionNode(provider, node, source_ref):
                     ),
                     StatementPublishException(source_ref=source_ref.atInternal()),
                 )
-                + exception_handling.getStatements()
+                + exception_handling.subnode_statements,
             )
         else:
             preserver_id = provider.allocatePreserverId()

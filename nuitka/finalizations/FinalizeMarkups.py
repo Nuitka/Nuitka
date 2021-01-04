@@ -82,7 +82,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
                     search.markAsNeedsGeneratorReturnHandling(1)
 
         if node.isExpressionBuiltinImport() and node.recurse_attempted:
-            module_name = node.getImportName()
+            module_name = node.subnode_name
 
             if module_name.isCompileTimeConstant():
                 imported_module_name = module_name.getCompileTimeConstant()
@@ -94,12 +94,12 @@ class FinalizeMarkups(FinalizationVisitorBase):
         if node.isExpressionFunctionCreation():
             if (
                 not node.getParent().isExpressionFunctionCall()
-                or node.getParent().getFunction() is not node
+                or node.getParent().subnode_function is not node
             ):
-                node.getFunctionRef().getFunctionBody().markAsNeedsCreation()
+                node.subnode_function_ref.getFunctionBody().markAsNeedsCreation()
 
         if node.isExpressionFunctionCall():
-            node.getFunction().getFunctionRef().getFunctionBody().markAsDirectlyCalled()
+            node.subnode_function.subnode_function_ref.getFunctionBody().markAsDirectlyCalled()
 
         if node.isExpressionFunctionRef():
             function_body = node.getFunctionBody()
@@ -116,13 +116,13 @@ class FinalizeMarkups(FinalizationVisitorBase):
             assign_source = node.subnode_source
 
             if assign_source.isExpressionOperationBinary():
-                left_arg = assign_source.getLeft()
+                left_arg = assign_source.subnode_left
 
                 if (
                     left_arg.isExpressionVariableRef()
                     or left_arg.isExpressionTempVariableRef()
                 ):
-                    if assign_source.getLeft().getVariable() is target_var:
+                    if assign_source.subnode_left.getVariable() is target_var:
                         if assign_source.isInplaceSuspect():
                             node.markAsInplaceSuspect()
                 elif left_arg.isExpressionLocalsVariableRefOrFallback():
@@ -150,7 +150,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
                     if (
                         search.isStatementTry()
-                        and last_search == search.getBlockExceptHandler()
+                        and last_search == search.subnode_except_handler
                     ):
                         node.markAsExceptionPreserving()
                         break

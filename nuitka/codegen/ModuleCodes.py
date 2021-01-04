@@ -70,7 +70,7 @@ def getModuleCode(module, function_decl_codes, function_body_codes, context):
     module_codes = Emission.SourceCodeCollector()
 
     module = context.getOwner()
-    module_body = module.getBody()
+    module_body = module.subnode_body
 
     generateStatementSequenceCode(
         statement_sequence=module_body,

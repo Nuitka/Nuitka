@@ -34,19 +34,14 @@ from .shapes.BuiltinTypeShapes import tshape_bool, tshape_exception_class
 
 class ExpressionComparisonBase(ExpressionChildrenHavingBase):
     named_children = ("left", "right")
-    getLeft = ExpressionChildrenHavingBase.childGetter("left")
-    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     def __init__(self, left, right, source_ref):
-        assert left.isExpression()
-        assert right.isExpression()
-
         ExpressionChildrenHavingBase.__init__(
             self, values={"left": left, "right": right}, source_ref=source_ref
         )
 
     def getOperands(self):
-        return (self.getLeft(), self.getRight())
+        return (self.subnode_left, self.subnode_right)
 
     def getComparator(self):
         return self.comparator
@@ -330,9 +325,9 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
         return tshape_bool
 
     def mayRaiseException(self, exception_type):
-        return self.getLeft().mayRaiseException(
+        return self.subnode_left.mayRaiseException(
             exception_type
-        ) or self.getRight().mayRaiseException(exception_type)
+        ) or self.subnode_right.mayRaiseException(exception_type)
 
     def mayRaiseExceptionBool(self, exception_type):
         return False
@@ -487,12 +482,12 @@ class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
         return tshape_bool
 
     def mayRaiseException(self, exception_type):
-        left = self.getLeft()
+        left = self.subnode_left
 
         if left.mayRaiseException(exception_type):
             return True
 
-        right = self.getRight()
+        right = self.subnode_right
 
         if right.mayRaiseException(exception_type):
             return True
@@ -504,8 +499,10 @@ class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
         return False
 
     def computeExpression(self, trace_collection):
-        return self.getRight().computeExpressionComparisonIn(
-            in_node=self, value_node=self.getLeft(), trace_collection=trace_collection
+        return self.subnode_right.computeExpressionComparisonIn(
+            in_node=self,
+            value_node=self.subnode_left,
+            trace_collection=trace_collection,
         )
 
 

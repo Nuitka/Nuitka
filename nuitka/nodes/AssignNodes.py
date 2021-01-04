@@ -131,9 +131,6 @@ class StatementAssignmentVariable(StatementChildHavingBase):
     it can be determined.
     """
 
-    # Using slots, they don't need that
-    # pylint: disable=access-member-before-definition,attribute-defined-outside-init
-
     kind = "STATEMENT_ASSIGNMENT_VARIABLE"
 
     named_child = "source"
@@ -250,7 +247,7 @@ class StatementAssignmentVariable(StatementChildHavingBase):
             # sequence and compute that instead.
             statements = [
                 makeStatementExpressionOnlyReplacementNode(side_effect, self)
-                for side_effect in source.getSideEffects()
+                for side_effect in source.subnode_side_effects
             ]
 
             statements.append(self)
@@ -260,7 +257,7 @@ class StatementAssignmentVariable(StatementChildHavingBase):
 
             # Need to update ourselves to no longer reference the side effects,
             # but go to the wrapped thing.
-            self.subnode_source = source.getExpression()
+            self.setChild("source", source.subnode_expression)
 
             result = makeStatementsSequenceReplacementNode(
                 statements=statements, node=self

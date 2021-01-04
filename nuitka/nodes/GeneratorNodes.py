@@ -34,7 +34,6 @@ class ExpressionMakeGeneratorObject(ExpressionChildHavingBase):
     kind = "EXPRESSION_MAKE_GENERATOR_OBJECT"
 
     named_child = "generator_ref"
-    getGeneratorRef = ExpressionChildHavingBase.childGetter("generator_ref")
 
     __slots__ = ("variable_closure_traces",)
 
@@ -55,9 +54,9 @@ class ExpressionMakeGeneratorObject(ExpressionChildHavingBase):
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
-        for closure_variable in (
-            self.getGeneratorRef().getFunctionBody().getClosureVariables()
-        ):
+        for (
+            closure_variable
+        ) in self.subnode_generator_ref.getFunctionBody().getClosureVariables():
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
             trace.addNameUsage()
 
@@ -132,7 +131,7 @@ class StatementGeneratorReturn(StatementReturn):
         return True
 
     def computeStatement(self, trace_collection):
-        expression = trace_collection.onExpression(self.getExpression())
+        expression = trace_collection.onExpression(self.subnode_expression)
 
         if expression.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)

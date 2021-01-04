@@ -94,7 +94,8 @@ def buildLambdaNode(provider, node, source_ref):
         code_body.qualname_provider = provider
 
     if function_kind == "Generator":
-        function_body.setBody(
+        function_body.setChild(
+            "body",
             makeStatementsSequenceFromStatement(
                 statement=StatementReturn(
                     expression=ExpressionMakeGeneratorObject(
@@ -105,7 +106,7 @@ def buildLambdaNode(provider, node, source_ref):
                     ),
                     source_ref=source_ref,
                 )
-            )
+            ),
         )
 
     defaults = buildNodeList(provider, node.args.defaults, source_ref)
@@ -172,7 +173,7 @@ def buildLambdaNode(provider, node, source_ref):
 
     body = makeStatementsSequenceFromStatement(statement=body)
 
-    code_body.setBody(body)
+    code_body.setChild("body", body)
 
     annotations = buildParameterAnnotations(provider, node, source_ref)
 

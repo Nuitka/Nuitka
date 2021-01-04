@@ -41,7 +41,7 @@ def generateBranchCode(statement, emit, context):
     # which can be huge.
     with withSubCollector(emit, context) as condition_emit:
         generateConditionCode(
-            condition=statement.getCondition(), emit=condition_emit, context=context
+            condition=statement.subnode_condition, emit=condition_emit, context=context
         )
 
     context.setTrueBranchTarget(old_true_target)
@@ -50,15 +50,15 @@ def generateBranchCode(statement, emit, context):
     getLabelCode(true_target, emit)
 
     generateStatementSequenceCode(
-        statement_sequence=statement.getBranchYes(), emit=emit, context=context
+        statement_sequence=statement.subnode_yes_branch, emit=emit, context=context
     )
 
-    if statement.getBranchNo() is not None:
+    if statement.subnode_no_branch is not None:
         getGotoCode(end_target, emit)
         getLabelCode(false_target, emit)
 
         generateStatementSequenceCode(
-            statement_sequence=statement.getBranchNo(), emit=emit, context=context
+            statement_sequence=statement.subnode_no_branch, emit=emit, context=context
         )
 
         getLabelCode(end_target, emit)

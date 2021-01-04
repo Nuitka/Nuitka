@@ -29,7 +29,6 @@ class ExpressionBuiltinVars(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_VARS"
 
     named_child = "source"
-    getSource = ExpressionChildHavingBase.childGetter("source")
 
     def __init__(self, source, source_ref):
         ExpressionChildHavingBase.__init__(self, value=source, source_ref=source_ref)

@@ -67,7 +67,7 @@ def generateOperationNotCode(to_name, expression, emit, context):
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,
         release_name=arg_name,
-        needs_check=expression.getOperand().mayRaiseExceptionBool(BaseException),
+        needs_check=expression.subnode_operand.mayRaiseExceptionBool(BaseException),
         emit=emit,
         context=context,
     )
@@ -96,7 +96,7 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
 def _getBinaryOperationCode(
     to_name, expression, operator, arg_names, in_place, emit, context
 ):
-    left = expression.getLeft()
+    left = expression.subnode_left
 
     ref_count = 1
     needs_check = expression.mayRaiseExceptionOperation()
@@ -107,7 +107,7 @@ def _getBinaryOperationCode(
         suffix="INPLACE" if operator[0] == "I" else "",
         target_type=None if operator[0] == "I" else to_name.getCType(),
         left_shape=left.getTypeShape(),
-        right_shape=expression.getRight().getTypeShape(),
+        right_shape=expression.subnode_right.getTypeShape(),
         helpers=HelperDefinitions.getSpecializedOperations(operator),
         nonhelpers=HelperDefinitions.getNonSpecializedOperations(operator),
         source_ref=expression.source_ref,

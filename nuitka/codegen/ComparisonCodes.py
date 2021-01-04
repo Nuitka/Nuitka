@@ -104,8 +104,8 @@ specialized_cmp_helpers_set = OrderedSet(
 
 
 def generateComparisonExpressionCode(to_name, expression, emit, context):
-    left = expression.getLeft()
-    right = expression.getRight()
+    left = expression.subnode_left
+    right = expression.subnode_right
 
     comparator = expression.getComparator()
 
@@ -125,7 +125,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
     )
 
     if comparator in OperatorCodes.containing_comparison_codes:
-        needs_check = right.mayRaiseExceptionIn(BaseException, expression.getLeft())
+        needs_check = right.mayRaiseExceptionIn(BaseException, expression.subnode_left)
 
         res_name = context.getIntResName()
 
@@ -177,7 +177,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             suffix="",
             target_type=to_name.getCType(),
             left_shape=left.getTypeShape(),
-            right_shape=expression.getRight().getTypeShape(),
+            right_shape=expression.subnode_right.getTypeShape(),
             helpers=specialized_cmp_helpers_set,
             nonhelpers=(),
             # TODO: Only temporary, we need to be more complete with these.
@@ -228,12 +228,15 @@ def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
 
     generateExpressionCode(
         to_name=inst_name,
-        expression=expression.getInstance(),
+        expression=expression.subnode_instance,
         emit=emit,
         context=context,
     )
     generateExpressionCode(
-        to_name=cls_name, expression=expression.getCls(), emit=emit, context=context
+        to_name=cls_name,
+        expression=expression.subnode_classes,
+        emit=emit,
+        context=context,
     )
 
     res_name = context.getIntResName()

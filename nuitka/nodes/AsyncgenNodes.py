@@ -30,7 +30,6 @@ class ExpressionMakeAsyncgenObject(ExpressionChildHavingBase):
     kind = "EXPRESSION_MAKE_ASYNCGEN_OBJECT"
 
     named_child = "asyncgen_ref"
-    getAsyncgenRef = ExpressionChildHavingBase.childGetter("asyncgen_ref")
 
     __slots__ = ("variable_closure_traces",)
 
@@ -44,14 +43,14 @@ class ExpressionMakeAsyncgenObject(ExpressionChildHavingBase):
         self.variable_closure_traces = []
 
     def getDetailsForDisplay(self):
-        return {"asyncgen": self.getAsyncgenRef().getFunctionBody().getCodeName()}
+        return {"asyncgen": self.subnode_asyncgen_ref.getFunctionBody().getCodeName()}
 
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
-        for closure_variable in (
-            self.getAsyncgenRef().getFunctionBody().getClosureVariables()
-        ):
+        for (
+            closure_variable
+        ) in self.subnode_asyncgen_ref.getFunctionBody().getClosureVariables():
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
             trace.addNameUsage()
 

@@ -65,7 +65,7 @@ def generateLoopCode(statement, emit, context):
     old_loop_continue = context.setLoopContinueTarget(loop_start_label)
 
     generateStatementSequenceCode(
-        statement_sequence=statement.getLoopBody(),
+        statement_sequence=statement.subnode_loop_body,
         allow_none=True,
         emit=emit,
         context=context,

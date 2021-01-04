@@ -184,7 +184,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
         ),
         makeTryFinallyStatement(
             provider=provider,
-            tried=StatementLoop(body=loop_body, source_ref=source_ref),
+            tried=StatementLoop(loop_body=loop_body, source_ref=source_ref),
             final=StatementsSequence(
                 statements=cleanup_statements, source_ref=source_ref
             ),

@@ -275,7 +275,7 @@ def mergeStatements(statements, allow_none=False):
         elif statement.isStatement() or statement.isStatementsFrame():
             merged_statements.append(statement)
         elif statement.isStatementsSequence():
-            merged_statements.extend(mergeStatements(statement.getStatements()))
+            merged_statements.extend(mergeStatements(statement.subnode_statements))
         else:
             assert False, statement
 

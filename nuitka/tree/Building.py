@@ -109,11 +109,7 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationUnary,
     makeBinaryOperationNode,
 )
-from nuitka.nodes.ReturnNodes import (
-    StatementReturn,
-    StatementReturnNone,
-    makeStatementReturnConstant,
-)
+from nuitka.nodes.ReturnNodes import makeStatementReturn
 from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
@@ -539,14 +535,7 @@ def buildReturnNode(provider, node, source_ref):
 
         return StatementGeneratorReturn(expression=expression, source_ref=source_ref)
     else:
-        if expression is None:
-            return StatementReturnNone(source_ref=source_ref)
-        elif expression.isExpressionConstantRef():
-            return makeStatementReturnConstant(
-                constant=expression.getCompileTimeConstant(), source_ref=source_ref
-            )
-        else:
-            return StatementReturn(expression=expression, source_ref=source_ref)
+        return makeStatementReturn(expression=expression, source_ref=source_ref)
 
 
 def buildExprOnlyNode(provider, node, source_ref):
@@ -555,7 +544,7 @@ def buildExprOnlyNode(provider, node, source_ref):
     )
 
     result.setCompatibleSourceReference(
-        result.getExpression().getCompatibleSourceReference()
+        result.subnode_expression.getCompatibleSourceReference()
     )
 
     return result
@@ -899,7 +888,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
     # Now the module body if there is any at all.
     if result is not None:
-        statements.extend(result.getStatements())
+        statements.extend(result.subnode_statements)
 
     if needs__initializing__:
         # Set "__initializing__" at the end to False
@@ -1075,7 +1064,7 @@ def createModuleTree(module, source_ref, source_code, is_main):
     if module_body.isStatementsFrame():
         module_body = makeStatementsSequenceFromStatement(statement=module_body)
 
-    module.setBody(module_body)
+    module.setChild("body", module_body)
 
     completeVariableClosures(module)
 

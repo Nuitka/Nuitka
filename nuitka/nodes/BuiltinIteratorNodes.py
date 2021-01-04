@@ -168,7 +168,6 @@ class StatementSpecialUnpackCheck(StatementChildHavingBase):
     kind = "STATEMENT_SPECIAL_UNPACK_CHECK"
 
     named_child = "iterator"
-    getIterator = StatementChildHavingBase.childGetter("iterator")
 
     __slots__ = ("count",)
 
@@ -184,7 +183,7 @@ class StatementSpecialUnpackCheck(StatementChildHavingBase):
         return self.count
 
     def computeStatement(self, trace_collection):
-        iterator = trace_collection.onExpression(self.getIterator())
+        iterator = trace_collection.onExpression(self.subnode_iterator)
 
         if iterator.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -260,8 +259,6 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ITER2"
 
     named_children = ("callable", "sentinel")
-    getCallable = ExpressionChildrenHavingBase.childGetter("callable")
-    getSentinel = ExpressionChildrenHavingBase.childGetter("sentinel")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, callable_arg, sentinel, source_ref):

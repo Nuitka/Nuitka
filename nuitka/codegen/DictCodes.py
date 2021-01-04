@@ -32,12 +32,12 @@ from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 
 
 def generateBuiltinDictCode(to_name, expression, emit, context):
-    if expression.getPositionalArgument():
+    if expression.subnode_pos_arg:
         seq_name = context.allocateTempName("dict_seq")
 
         generateExpressionCode(
             to_name=seq_name,
-            expression=expression.getPositionalArgument(),
+            expression=expression.subnode_pos_arg,
             emit=emit,
             context=context,
             allow_none=True,
@@ -49,14 +49,14 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
         to_name, "dict_value", expression, emit, context
     ) as value_name:
 
-        if expression.getNamedArgumentPairs():
+        if expression.subnode_pairs:
             # If there is no sequence to mix in, then directly generate
             # into to_name.
 
             if seq_name is None:
                 _getDictionaryCreationCode(
                     to_name=value_name,
-                    pairs=expression.getNamedArgumentPairs(),
+                    pairs=expression.subnode_pairs,
                     emit=emit,
                     context=context,
                 )
@@ -67,7 +67,7 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
 
                 _getDictionaryCreationCode(
                     to_name=dict_name,
-                    pairs=expression.getNamedArgumentPairs(),
+                    pairs=expression.subnode_pairs,
                     emit=emit,
                     context=context,
                 )
@@ -206,7 +206,7 @@ def generateDictOperationUpdateCode(statement, emit, context):
     value_arg_name = context.allocateTempName("dictupdate_value", unique=True)
     generateExpressionCode(
         to_name=value_arg_name,
-        expression=statement.getValue(),
+        expression=statement.subnode_value,
         emit=emit,
         context=context,
     )
@@ -214,7 +214,7 @@ def generateDictOperationUpdateCode(statement, emit, context):
     dict_arg_name = context.allocateTempName("dictupdate_dict", unique=True)
     generateExpressionCode(
         to_name=dict_arg_name,
-        expression=statement.getDict(),
+        expression=statement.subnode_dict,
         emit=emit,
         context=context,
     )
@@ -292,7 +292,7 @@ def generateDictOperationSetCode(statement, emit, context):
     value_arg_name = context.allocateTempName("dictset_value", unique=True)
     generateExpressionCode(
         to_name=value_arg_name,
-        expression=statement.getValue(),
+        expression=statement.subnode_value,
         emit=emit,
         context=context,
     )
@@ -300,14 +300,17 @@ def generateDictOperationSetCode(statement, emit, context):
     dict_arg_name = context.allocateTempName("dictset_dict", unique=True)
     generateExpressionCode(
         to_name=dict_arg_name,
-        expression=statement.getDict(),
+        expression=statement.subnode_dict,
         emit=emit,
         context=context,
     )
 
     key_arg_name = context.allocateTempName("dictset_key", unique=True)
     generateExpressionCode(
-        to_name=key_arg_name, expression=statement.getKey(), emit=emit, context=context
+        to_name=key_arg_name,
+        expression=statement.subnode_key,
+        emit=emit,
+        context=context,
     )
     context.setCurrentSourceCodeReference(statement.getSourceReference())
 
@@ -322,7 +325,7 @@ def generateDictOperationSetCode(statement, emit, context):
         condition="%s != 0" % res_name,
         release_names=(value_arg_name, dict_arg_name, key_arg_name),
         emit=emit,
-        needs_check=not statement.getKey().isKnownToBeHashable(),
+        needs_check=not statement.subnode_key.isKnownToBeHashable(),
         context=context,
     )
 
@@ -330,13 +333,16 @@ def generateDictOperationSetCode(statement, emit, context):
 def generateDictOperationSetCodeKeyValue(statement, emit, context):
     key_arg_name = context.allocateTempName("dictset38_key")
     generateExpressionCode(
-        to_name=key_arg_name, expression=statement.getKey(), emit=emit, context=context
+        to_name=key_arg_name,
+        expression=statement.subnode_key,
+        emit=emit,
+        context=context,
     )
 
     value_arg_name = context.allocateTempName("dictset38_value")
     generateExpressionCode(
         to_name=value_arg_name,
-        expression=statement.getValue(),
+        expression=statement.subnode_value,
         emit=emit,
         context=context,
     )
@@ -344,7 +350,7 @@ def generateDictOperationSetCodeKeyValue(statement, emit, context):
     dict_arg_name = context.allocateTempName("dictset38_dict")
     generateExpressionCode(
         to_name=dict_arg_name,
-        expression=statement.getDict(),
+        expression=statement.subnode_dict,
         emit=emit,
         context=context,
     )
@@ -362,7 +368,7 @@ def generateDictOperationSetCodeKeyValue(statement, emit, context):
         condition="%s != 0" % res_name,
         release_names=(value_arg_name, dict_arg_name, key_arg_name),
         emit=emit,
-        needs_check=not statement.getKey().isKnownToBeHashable(),
+        needs_check=not statement.subnode_key.isKnownToBeHashable(),
         context=context,
     )
 
@@ -371,18 +377,21 @@ def generateDictOperationRemoveCode(statement, emit, context):
     dict_arg_name = context.allocateTempName("dictdel_dict", unique=True)
     generateExpressionCode(
         to_name=dict_arg_name,
-        expression=statement.getDict(),
+        expression=statement.subnode_dict,
         emit=emit,
         context=context,
     )
 
     key_arg_name = context.allocateTempName("dictdel_key", unique=True)
     generateExpressionCode(
-        to_name=key_arg_name, expression=statement.getKey(), emit=emit, context=context
+        to_name=key_arg_name,
+        expression=statement.subnode_key,
+        emit=emit,
+        context=context,
     )
 
     old_source_ref = context.setCurrentSourceCodeReference(
-        statement.getKey().getSourceReference()
+        statement.subnode_key.getSourceReference()
         if Options.is_fullcompat
         else statement.getSourceReference()
     )

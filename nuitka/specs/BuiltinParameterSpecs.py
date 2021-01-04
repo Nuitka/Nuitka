@@ -106,8 +106,10 @@ class BuiltinParameterSpec(ParameterSpec):
 
             if given_dict_star_args:
                 for given_dict_star_arg in reversed(given_dict_star_args):
-                    arg_name = given_dict_star_arg.getKey().getCompileTimeConstant()
-                    arg_value = given_dict_star_arg.getValue().getCompileTimeConstant()
+                    arg_name = given_dict_star_arg.subnode_key.getCompileTimeConstant()
+                    arg_value = (
+                        given_dict_star_arg.subnode_value.getCompileTimeConstant()
+                    )
 
                     arg_dict[arg_name] = arg_value
 
@@ -590,7 +592,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
     # Many cases to deal with, pylint: disable=too-many-branches
 
     try:
-        kw = node.getCallKw()
+        kw = node.subnode_kwargs
 
         # TODO: Could check for too many / too few, even if they are unknown, we
         # might raise that error, but that need not be optimized immediately.
@@ -605,7 +607,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
         else:
             pairs = ()
 
-        args = node.getCallArgs()
+        args = node.subnode_args
 
         if args:
             if not args.canPredictIterationValues():

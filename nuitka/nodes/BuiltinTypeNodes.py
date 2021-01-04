@@ -59,13 +59,12 @@ class ExpressionBuiltinContainerBase(
     builtin_spec = None
 
     named_child = "value"
-    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
 
         if value is None:
             return self.computeBuiltinSpec(
@@ -128,7 +127,6 @@ class ExpressionBuiltinFloat(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_FLOAT"
 
     named_child = "value"
-    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
@@ -183,9 +181,6 @@ class ExpressionBuiltinUnicodeBase(
     ExpressionSpecBasedComputationMixin, ExpressionChildrenHavingBase
 ):
     named_children = ("value", "encoding", "errors")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
-    getEncoding = ExpressionChildrenHavingBase.childGetter("encoding")
-    getErrors = ExpressionChildrenHavingBase.childGetter("errors")
 
     def __init__(self, value, encoding, errors, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -195,7 +190,7 @@ class ExpressionBuiltinUnicodeBase(
         )
 
     def computeExpression(self, trace_collection):
-        args = [self.getValue(), self.getEncoding(), self.getErrors()]
+        args = [self.subnode_value, self.subnode_encoding, self.subnode_errors]
 
         while args and args[-1] is None:
             del args[-1]
@@ -227,11 +222,11 @@ class ExpressionBuiltinStrP2(ExpressionBuiltinTypeBase):
         ) = ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
 
         if new_node is self:
-            str_value = self.getValue().getStrValue()
+            str_value = self.subnode_value.getStrValue()
 
             if str_value is not None:
                 new_node = wrapExpressionWithNodeSideEffects(
-                    new_node=str_value, old_node=self.getValue()
+                    new_node=str_value, old_node=self.subnode_value
                 )
 
                 change_tags = "new_expression"
@@ -282,7 +277,6 @@ class ExpressionBuiltinBytes1(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_BYTES1"
 
     named_child = "value"
-    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
@@ -318,9 +312,6 @@ class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_BYTEARRAY3"
 
     named_children = ("string", "encoding", "errors")
-    getStringArg = ExpressionChildrenHavingBase.childGetter("string")
-    getEncoding = ExpressionChildrenHavingBase.childGetter("encoding")
-    getErrors = ExpressionChildrenHavingBase.childGetter("errors")
 
     builtin_spec = BuiltinParameterSpecs.builtin_bytearray_spec
 

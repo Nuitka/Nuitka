@@ -354,7 +354,7 @@ def buildClassNode3(provider, node, source_ref):
 
     # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained.
-    class_creation_function.setBody(body)
+    class_creation_function.setChild("body", body)
 
     # The class body is basically a function that implicitly, at the end
     # returns its created class and cannot have other return statements
@@ -801,7 +801,7 @@ def getClassBasesMroConversionHelper():
             source=makeConstantRefNode(constant=[], source_ref=internal_source_ref),
             source_ref=internal_source_ref,
         ),
-        StatementLoop(body=loop_body, source_ref=internal_source_ref),
+        StatementLoop(loop_body=loop_body, source_ref=internal_source_ref),
         StatementReturn(
             expression=ExpressionBuiltinTuple(
                 value=ExpressionTempVariableRef(
@@ -813,7 +813,8 @@ def getClassBasesMroConversionHelper():
         ),
     )
 
-    result.setBody(
+    result.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
                 provider=result,
@@ -821,7 +822,7 @@ def getClassBasesMroConversionHelper():
                 final=final,
                 source_ref=internal_source_ref,
             )
-        )
+        ),
     )
 
     return result

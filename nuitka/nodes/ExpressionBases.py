@@ -1157,9 +1157,9 @@ class ExpressionChildHavingBase(ExpressionBase):
     def setChild(self, name, value):
         """Set a child value.
 
-        Do not overload, provider self.checkers instead.
+        Do not overload, provide self.checkers instead.
         """
-        # Only accept legal child names
+        # Only accept legal child name
         assert name == self.named_child, name
 
         # Lists as inputs are OK, but turn them into tuples.
@@ -1177,33 +1177,34 @@ class ExpressionChildHavingBase(ExpressionBase):
 
         attr_name = "subnode_" + name
 
+        # TODO: This is not being done for any variant of this, this only checks if it's a real change,
+        # but that should only be done in debug mode maybe.
+
         # Determine old value, and inform it about losing its parent.
         old_value = getattr(self, attr_name)
-
         assert old_value is not value, value
 
         setattr(self, attr_name, value)
+
+    def clearChild(self, name):
+        # Only accept legal child name
+        assert name == self.named_child, name
+
+        if self.checker is not None:
+            self.checker(None)  # False alarm, pylint: disable=not-callable
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+        assert old_value is not None
+
+        setattr(self, attr_name, None)
 
     def getChild(self, name):
         # Only accept legal child names
         attr_name = "subnode_" + name
         return getattr(self, attr_name)
-
-    @staticmethod
-    def childGetter(name):
-        attr_name = "subnode_" + name
-
-        def getter(self):
-            return getattr(self, attr_name)
-
-        return getter
-
-    @staticmethod
-    def childSetter(name):
-        def setter(self, value):
-            self.setChild(name, value)
-
-        return setter
 
     def getVisitableNodes(self):
         # TODO: Consider if a generator would be faster.
@@ -1335,7 +1336,6 @@ class ExpressionBuiltinSingleArgBase(
     ExpressionSpecBasedComputationMixin, ExpressionChildHavingBase
 ):
     named_child = "value"
-    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)

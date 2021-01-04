@@ -219,10 +219,10 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
     # This is about creating functions, which is detail ridden stuff,
     # pylint: disable=too-many-locals
 
-    function_body = expression.getFunctionRef().getFunctionBody()
-    defaults = expression.getDefaults()
-    kw_defaults = expression.getKwDefaults()
-    annotations = expression.getAnnotations()
+    function_body = expression.subnode_function_ref.getFunctionBody()
+    defaults = expression.subnode_defaults
+    kw_defaults = expression.subnode_kw_defaults
+    annotations = expression.subnode_annotations
     defaults_first = not expression.kw_defaults_before_defaults
 
     assert function_body.needsCreation(), function_body
@@ -641,7 +641,7 @@ def _getFunctionCode(
     function_codes = SourceCodeCollector()
 
     generateStatementSequenceCode(
-        statement_sequence=context.getOwner().getBody(),
+        statement_sequence=context.getOwner().subnode_body,
         allow_none=True,
         emit=function_codes,
         context=context,
@@ -733,12 +733,12 @@ def getExportScopeCode(cross_module):
 
 
 def generateFunctionCallCode(to_name, expression, emit, context):
-    assert expression.getFunction().isExpressionFunctionCreation()
+    assert expression.subnode_function.isExpressionFunctionCreation()
 
-    function_body = expression.getFunction().getFunctionRef().getFunctionBody()
+    function_body = expression.subnode_function.subnode_function_ref.getFunctionBody()
     function_identifier = function_body.getCodeName()
 
-    argument_values = expression.getArgumentValues()
+    argument_values = expression.subnode_values
 
     arg_names = []
     for count, arg_value in enumerate(argument_values, 1):
@@ -761,10 +761,9 @@ def generateFunctionCallCode(to_name, expression, emit, context):
             function_identifier=function_identifier,
             arg_names=arg_names,
             closure_variables=expression.getClosureVariableVersions(),
-            needs_check=expression.getFunction()
-            .getFunctionRef()
-            .getFunctionBody()
-            .mayRaiseException(BaseException),
+            needs_check=expression.subnode_function.subnode_function_ref.getFunctionBody().mayRaiseException(
+                BaseException
+            ),
             emit=emit,
             context=context,
         )
@@ -789,7 +788,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 
     if (
         expression.isExpressionOutlineFunctionBase()
-        and expression.getBody().mayRaiseException(BaseException)
+        and expression.subnode_body.mayRaiseException(BaseException)
     ):
         exception_target = context.allocateLabel("outline_exception")
         old_exception_target = context.setExceptionEscape(exception_target)
@@ -802,7 +801,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         old_return_value_name = context.setReturnValueName(return_value_name)
 
         generateStatementSequenceCode(
-            statement_sequence=expression.getBody(),
+            statement_sequence=expression.subnode_body,
             emit=emit,
             context=context,
             allow_none=False,

@@ -300,7 +300,7 @@ class ModuleVariable(Variable):
     def __repr__(self):
         return "<ModuleVariable '%s' of '%s'>" % (
             self.variable_name,
-            self.getModule().getFullName(),
+            self.module.getFullName(),
         )
 
     def getDescription(self):

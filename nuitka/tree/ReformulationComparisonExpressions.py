@@ -168,7 +168,8 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
                 StatementReleaseVariable(variable=tmp_variable, source_ref=source_ref)
             )
 
-    outline_body.setBody(
+    outline_body.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             statement=makeTryFinallyStatement(
                 provider=outline_body,
@@ -176,7 +177,7 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
                 final=final,
                 source_ref=source_ref,
             )
-        )
+        ),
     )
 
     return outline_body

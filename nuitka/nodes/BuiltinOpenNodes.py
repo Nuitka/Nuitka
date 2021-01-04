@@ -28,10 +28,6 @@ from .shapes.BuiltinTypeShapes import tshape_file
 
 
 class ExpressionBuiltinOpenMixin(object):
-    getFilename = ExpressionChildrenHavingBase.childGetter("filename")
-    getMode = ExpressionChildrenHavingBase.childGetter("mode")
-    getBuffering = ExpressionChildrenHavingBase.childGetter("buffering")
-
     @staticmethod
     def getTypeShape():
         return tshape_file
@@ -78,11 +74,6 @@ else:
             "closefd",
             "opener",
         )
-        getEncoding = ExpressionChildrenHavingBase.childGetter("encoding")
-        getErrors = ExpressionChildrenHavingBase.childGetter("errors")
-        getNewline = ExpressionChildrenHavingBase.childGetter("newline")
-        getCloseFd = ExpressionChildrenHavingBase.childGetter("closefd")
-        getOpener = ExpressionChildrenHavingBase.childGetter("opener")
 
         def __init__(
             self,

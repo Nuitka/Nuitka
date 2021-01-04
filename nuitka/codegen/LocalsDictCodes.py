@@ -48,7 +48,7 @@ def generateSetLocalsDictCode(statement, emit, context):
 
     generateExpressionCode(
         to_name=new_locals_name,
-        expression=statement.getNewLocals(),
+        expression=statement.subnode_new_locals,
         emit=emit,
         context=context,
     )

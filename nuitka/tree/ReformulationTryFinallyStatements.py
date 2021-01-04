@@ -24,10 +24,7 @@ source code comments with developer manual sections.
 
 from nuitka import Options
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
-from nuitka.nodes.ReturnNodes import (
-    ExpressionReturnedValueRef,
-    StatementReturn,
-)
+from nuitka.nodes.ReturnNodes import StatementReturnReturnedValue
 from nuitka.nodes.StatementNodes import (
     StatementPreserveFrameException,
     StatementPublishException,
@@ -171,8 +168,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False
     if tried.mayReturn():
         return_handler = getStatementsAppended(
             statement_sequence=getFinal(),
-            statements=StatementReturn(
-                expression=ExpressionReturnedValueRef(source_ref=source_ref),
+            statements=StatementReturnReturnedValue(
                 source_ref=source_ref,
             ),
         )

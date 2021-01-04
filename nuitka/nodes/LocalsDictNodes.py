@@ -151,17 +151,18 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
 
             # Create a cloned node with the locals variable.
             call_node_clone = call_node.makeClone()
-            call_node_clone.setCalled(
+            call_node_clone.setChild(
+                "called",
                 ExpressionLocalsVariableRef(
                     locals_scope=self.locals_scope,
                     variable_name=variable_name,
                     source_ref=self.source_ref,
-                )
+                ),
             )
 
             # Make the original one for the fallback
             call_node = call_node.makeCloneShallow()
-            call_node.setCalled(self.subnode_fallback)
+            call_node.setChild("called", self.subnode_fallback)
 
             result = ExpressionConditional(
                 condition=ExpressionLocalsVariableCheck(
@@ -527,7 +528,6 @@ class StatementSetLocals(StatementChildHavingBase):
     kind = "STATEMENT_SET_LOCALS"
 
     named_child = "new_locals"
-    getNewLocals = StatementChildHavingBase.childGetter("new_locals")
 
     __slots__ = ("locals_scope",)
 
@@ -551,10 +551,10 @@ class StatementSetLocals(StatementChildHavingBase):
         return self.locals_scope
 
     def mayRaiseException(self, exception_type):
-        return self.getNewLocals().mayRaiseException(exception_type)
+        return self.subnode_new_locals.mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        new_locals = trace_collection.onExpression(self.getNewLocals())
+        new_locals = trace_collection.onExpression(self.subnode_new_locals)
 
         if new_locals.willRaiseException(BaseException):
             from .NodeMakingHelpers import (

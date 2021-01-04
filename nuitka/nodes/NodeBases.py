@@ -28,10 +28,7 @@ expression only stuff.
 from abc import abstractmethod
 
 from nuitka import Options, Tracing, TreeXML, Variables
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    intern,
-    iterItems,
-)
+from nuitka.__past__ import iterItems
 from nuitka.Errors import NuitkaNodeError
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
@@ -507,7 +504,9 @@ class ChildrenHavingMixin(object):
     checkers = {}
 
     def __init__(self, values):
-        assert type(self.named_children) is tuple and self.named_children
+        assert (
+            type(self.named_children) is tuple and self.named_children
+        ), self.named_children
 
         # TODO: Make this true.
         # assert len(self.named_children) > 1, self.kind
@@ -564,25 +563,25 @@ class ChildrenHavingMixin(object):
 
         setattr(self, attr_name, value)
 
+    def clearChild(self, name):
+        # Only accept legal child names
+        assert name in self.named_children, name
+
+        if name in self.checkers:
+            self.checkers[name](None)
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+
+        assert old_value is not None
+
+        setattr(self, attr_name, None)
+
     def getChild(self, name):
         attr_name = "subnode_" + name
         return getattr(self, attr_name)
-
-    @staticmethod
-    def childGetter(name):
-        attr_name = intern("subnode_" + name)
-
-        def getter(self):
-            return getattr(self, attr_name)
-
-        return getter
-
-    @staticmethod
-    def childSetter(name):
-        def setter(self, value):
-            self.setChild(name, value)
-
-        return setter
 
     def getVisitableNodes(self):
         # TODO: Consider if a generator would be faster.
@@ -949,22 +948,6 @@ class StatementChildHavingBase(StatementBase):
         # Only accept legal child names
         attr_name = "subnode_" + name
         return getattr(self, attr_name)
-
-    @staticmethod
-    def childGetter(name):
-        attr_name = "subnode_" + name
-
-        def getter(self):
-            return getattr(self, attr_name)
-
-        return getter
-
-    @staticmethod
-    def childSetter(name):
-        def setter(self, value):
-            self.setChild(name, value)
-
-        return setter
 
     def getVisitableNodes(self):
         # TODO: Consider if a generator would be faster.

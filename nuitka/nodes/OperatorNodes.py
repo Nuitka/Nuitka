@@ -59,8 +59,6 @@ class ExpressionOperationBinaryBase(
 
     named_children = ("left", "right")
     nice_children = tuple(child_name + " operand" for child_name in named_children)
-    getLeft = ExpressionChildrenHavingBase.childGetter("left")
-    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     shape = vshape_unknown
 
@@ -365,18 +363,18 @@ class ExpressionOperationBinaryMult(
         return left_shape.getOperationBinaryMultShape(right_shape)
 
     def getIterationLength(self):
-        left_length = self.getLeft().getIterationLength()
+        left_length = self.subnode_left.getIterationLength()
 
         if left_length is not None:
-            right_value = self.getRight().getIntegerValue()
+            right_value = self.subnode_right.getIntegerValue()
 
             if right_value is not None:
                 return left_length * right_value
 
-        right_length = self.getRight().getIterationLength()
+        right_length = self.subnode_right.getIterationLength()
 
         if right_length is not None:
-            left_value = self.getLeft().getIntegerValue()
+            left_value = self.subnode_left.getIntegerValue()
 
             if left_value is not None:
                 return right_length * left_value
@@ -384,26 +382,26 @@ class ExpressionOperationBinaryMult(
         return ExpressionOperationBinaryBase.getIterationLength(self)
 
     def extractSideEffects(self):
-        left_length = self.getLeft().getIterationLength()
+        left_length = self.subnode_left.getIterationLength()
 
         if left_length is not None:
-            right_value = self.getRight().getIntegerValue()
+            right_value = self.subnode_right.getIntegerValue()
 
             if right_value is not None:
                 return (
-                    self.getLeft().extractSideEffects()
-                    + self.getRight().extractSideEffects()
+                    self.subnode_left.extractSideEffects()
+                    + self.subnode_right.extractSideEffects()
                 )
 
-        right_length = self.getRight().getIterationLength()
+        right_length = self.subnode_right.getIterationLength()
 
         if right_length is not None:
-            left_value = self.getLeft().getIntegerValue()
+            left_value = self.subnode_left.getIntegerValue()
 
             if left_value is not None:
                 return (
-                    self.getLeft().extractSideEffects()
-                    + self.getRight().extractSideEffects()
+                    self.subnode_left.extractSideEffects()
+                    + self.subnode_right.extractSideEffects()
                 )
 
         return ExpressionOperationBinaryBase.extractSideEffects(self)
@@ -583,7 +581,6 @@ def makeBinaryOperationNode(operator, left, right, source_ref):
 
 class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
     named_child = "operand"
-    getOperand = ExpressionChildHavingBase.childGetter("operand")
 
     __slots__ = ("operator", "simulator")
 
@@ -626,7 +623,7 @@ class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
             return self, None, None
 
     def getOperands(self):
-        return (self.getOperand(),)
+        return (self.subnode_operand,)
 
     @staticmethod
     def isExpressionOperationUnary():
@@ -660,26 +657,26 @@ class ExpressionOperationNot(ExpressionOperationUnaryBase):
         return {}
 
     def computeExpression(self, trace_collection):
-        return self.getOperand().computeExpressionOperationNot(
+        return self.subnode_operand.computeExpressionOperationNot(
             not_node=self, trace_collection=trace_collection
         )
 
     def mayRaiseException(self, exception_type):
-        return self.getOperand().mayRaiseException(
+        return self.subnode_operand.mayRaiseException(
             exception_type
-        ) or self.getOperand().mayRaiseExceptionBool(exception_type)
+        ) or self.subnode_operand.mayRaiseExceptionBool(exception_type)
 
     def mayRaiseExceptionBool(self, exception_type):
-        return self.getOperand().mayRaiseExceptionBool(exception_type)
+        return self.subnode_operand.mayRaiseExceptionBool(exception_type)
 
     def getTruthValue(self):
-        result = self.getOperand().getTruthValue()
+        result = self.subnode_operand.getTruthValue()
 
         # Need to invert the truth value of operand of course here.
         return None if result is None else not result
 
     def mayHaveSideEffects(self):
-        operand = self.getOperand()
+        operand = self.subnode_operand
 
         if operand.mayHaveSideEffects():
             return True
@@ -687,10 +684,10 @@ class ExpressionOperationNot(ExpressionOperationUnaryBase):
         return operand.mayHaveSideEffectsBool()
 
     def mayHaveSideEffectsBool(self):
-        return self.getOperand().mayHaveSideEffectsBool()
+        return self.subnode_operand.mayHaveSideEffectsBool()
 
     def extractSideEffects(self):
-        operand = self.getOperand()
+        operand = self.subnode_operand
 
         # TODO: Find the common ground of these, and make it an expression
         # method.
@@ -712,12 +709,12 @@ class ExpressionOperationAbs(ExpressionOperationUnaryBase):
         )
 
     def computeExpression(self, trace_collection):
-        return self.getOperand().computeExpressionAbs(
+        return self.subnode_operand.computeExpressionAbs(
             abs_node=self, trace_collection=trace_collection
         )
 
     def mayRaiseException(self, exception_type):
-        operand = self.getOperand()
+        operand = self.subnode_operand
 
         if operand.mayRaiseException(exception_type):
             return True
@@ -725,7 +722,7 @@ class ExpressionOperationAbs(ExpressionOperationUnaryBase):
         return operand.mayRaiseExceptionAbs(exception_type)
 
     def mayHaveSideEffects(self):
-        operand = self.getOperand()
+        operand = self.subnode_operand
 
         if operand.mayHaveSideEffects():
             return True

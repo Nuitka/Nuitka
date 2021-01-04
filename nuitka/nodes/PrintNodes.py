@@ -37,9 +37,6 @@ class StatementPrintValue(StatementChildrenHavingBase):
     kind = "STATEMENT_PRINT_VALUE"
 
     named_children = ("dest", "value")
-    getDestination = StatementChildrenHavingBase.childGetter("dest")
-    getValue = StatementChildrenHavingBase.childGetter("value")
-    setValue = StatementChildrenHavingBase.childSetter("value")
 
     def __init__(self, dest, value, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -50,7 +47,7 @@ class StatementPrintValue(StatementChildrenHavingBase):
 
     def computeStatement(self, trace_collection):
         dest = trace_collection.onExpression(
-            expression=self.getDestination(), allow_none=True
+            expression=self.subnode_dest, allow_none=True
         )
 
         if dest is not None and dest.mayRaiseException(BaseException):
@@ -68,7 +65,7 @@ class StatementPrintValue(StatementChildrenHavingBase):
 Exception raise in 'print' statement destination converted to explicit raise.""",
             )
 
-        value = trace_collection.onExpression(expression=self.getValue())
+        value = trace_collection.onExpression(expression=self.subnode_value)
 
         if value.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -97,11 +94,11 @@ Exception raise in 'print' statement arguments converted to explicit raise.""",
 
         if dest is None:
             if value.isExpressionSideEffects():
-                self.setValue(value.getExpression())
+                self.setChild("value", value.subnode_expression)
 
                 statements = [
                     makeStatementExpressionOnlyReplacementNode(side_effect, self)
-                    for side_effect in value.getSideEffects()
+                    for side_effect in value.subnode_side_effects
                 ]
 
                 statements.append(self)
@@ -124,7 +121,7 @@ Side effects printed item promoted to statements.""",
                 assert new_value is not None, value
 
                 if value is not new_value:
-                    self.setValue(new_value)
+                    self.setChild("value", new_value)
 
         return self, None, None
 
@@ -138,14 +135,13 @@ class StatementPrintNewline(StatementChildHavingBase):
     kind = "STATEMENT_PRINT_NEWLINE"
 
     named_child = "dest"
-    getDestination = StatementChildHavingBase.childGetter("dest")
 
     def __init__(self, dest, source_ref):
         StatementChildHavingBase.__init__(self, value=dest, source_ref=source_ref)
 
     def computeStatement(self, trace_collection):
         dest = trace_collection.onExpression(
-            expression=self.getDestination(), allow_none=True
+            expression=self.subnode_dest, allow_none=True
         )
 
         if dest is not None and dest.mayRaiseException(BaseException):

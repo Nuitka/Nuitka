@@ -279,8 +279,8 @@ def generateBuiltinGetattrCode(to_name, expression, emit, context):
         capi="BUILTIN_GETATTR",
         arg_desc=(
             ("getattr_target", expression.subnode_expression),
-            ("getattr_attr", expression.getAttribute()),
-            ("getattr_default", expression.getDefault()),
+            ("getattr_attr", expression.subnode_name),
+            ("getattr_default", expression.subnode_default),
         ),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -297,8 +297,8 @@ def generateBuiltinSetattrCode(to_name, expression, emit, context):
         capi="BUILTIN_SETATTR",
         arg_desc=(
             ("setattr_target", expression.subnode_expression),
-            ("setattr_attr", expression.getAttribute()),
-            ("setattr_value", expression.getValue()),
+            ("setattr_attr", expression.subnode_attribute),
+            ("setattr_value", expression.subnode_value),
         ),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

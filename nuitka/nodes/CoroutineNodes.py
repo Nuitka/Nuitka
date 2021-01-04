@@ -30,7 +30,6 @@ class ExpressionMakeCoroutineObject(ExpressionChildHavingBase):
     kind = "EXPRESSION_MAKE_COROUTINE_OBJECT"
 
     named_child = "coroutine_ref"
-    getCoroutineRef = ExpressionChildHavingBase.childGetter("coroutine_ref")
 
     __slots__ = ("variable_closure_traces",)
 
@@ -44,14 +43,14 @@ class ExpressionMakeCoroutineObject(ExpressionChildHavingBase):
         self.variable_closure_traces = None
 
     def getDetailsForDisplay(self):
-        return {"coroutine": self.getCoroutineRef().getFunctionBody().getCodeName()}
+        return {"coroutine": self.subnode_coroutine_ref.getFunctionBody().getCodeName()}
 
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
-        for closure_variable in (
-            self.getCoroutineRef().getFunctionBody().getClosureVariables()
-        ):
+        for (
+            closure_variable
+        ) in self.subnode_coroutine_ref.getFunctionBody().getClosureVariables():
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
             trace.addNameUsage()
 
@@ -116,7 +115,6 @@ class ExpressionAsyncWait(ExpressionChildHavingBase):
     kind = "EXPRESSION_ASYNC_WAIT"
 
     named_child = "expression"
-    getValue = ExpressionChildHavingBase.childGetter("expression")
 
     __slots__ = ("exception_preserving",)
 

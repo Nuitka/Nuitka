@@ -86,8 +86,9 @@ def _insertFinalReturnStatement(function_statements_body, return_statement):
             statement=return_statement
         )
     elif not function_statements_body.isStatementAborting():
-        function_statements_body.setStatements(
-            function_statements_body.getStatements() + (return_statement,)
+        function_statements_body.setChild(
+            "statements",
+            function_statements_body.subnode_statements + (return_statement,),
         )
 
     return function_statements_body
@@ -103,8 +104,9 @@ def _insertInitialSetLocalsDictStatement(function_body, function_statements_body
             statement=locals_statement
         )
     else:
-        function_statements_body.setStatements(
-            (locals_statement,) + function_statements_body.getStatements()
+        function_statements_body.setChild(
+            "statements",
+            (locals_statement,) + function_statements_body.subnode_statements,
         )
 
     return function_statements_body
@@ -174,7 +176,8 @@ def buildFunctionNode(provider, node, source_ref):
         for variable in function_body.getProvidedVariables():
             code_body.getVariableForReference(variable.getName())
 
-        function_body.setBody(
+        function_body.setChild(
+            "body",
             makeStatementsSequenceFromStatement(
                 statement=StatementReturn(
                     expression=maker_class(
@@ -185,7 +188,7 @@ def buildFunctionNode(provider, node, source_ref):
                     ),
                     source_ref=source_ref,
                 )
-            )
+            ),
         )
 
     decorators = buildNodeList(
@@ -224,7 +227,7 @@ def buildFunctionNode(provider, node, source_ref):
             statement=function_statements_body
         )
 
-    code_body.setBody(function_statements_body)
+    code_body.setChild("body", function_statements_body)
 
     annotations = buildParameterAnnotations(provider, node, source_ref)
 
@@ -355,7 +358,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             statement=function_statements_body
         )
 
-    function_body.setBody(function_statements_body)
+    function_body.setChild("body", function_statements_body)
 
     annotations = buildParameterAnnotations(provider, node, source_ref)
 
@@ -381,10 +384,11 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             source_ref=source_ref,
         )
 
-    creator_function_body.setBody(
+    creator_function_body.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             statement=StatementReturn(expression=creation_node, source_ref=source_ref)
-        )
+        ),
     )
 
     function_creation = ExpressionFunctionCreation(
@@ -626,7 +630,8 @@ def _wrapFunctionWithSpecialNestedArgs(
 
     statements.append(StatementReturn(expression=code_body, source_ref=source_ref))
 
-    outer_body.setBody(
+    outer_body.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             statement=makeTryFinallyStatement(
                 provider=outer_body,
@@ -641,7 +646,7 @@ def _wrapFunctionWithSpecialNestedArgs(
                 source_ref=source_ref,
                 public_exc=False,
             )
-        )
+        ),
     )
 
     return code_body
@@ -770,7 +775,7 @@ def addFunctionVariableReleases(function):
         )
 
     if releases:
-        body = function.getBody()
+        body = function.subnode_body
 
         if body.isStatementsFrame():
             body = makeStatementsSequenceFromStatement(statement=body)
@@ -779,4 +784,4 @@ def addFunctionVariableReleases(function):
             provider=function, tried=body, final=releases, source_ref=source_ref
         )
 
-        function.setBody(makeStatementsSequenceFromStatement(statement=body))
+        function.setChild("body", makeStatementsSequenceFromStatement(statement=body))

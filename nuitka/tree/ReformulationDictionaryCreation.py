@@ -219,7 +219,7 @@ def getDictUnpackingHelper():
             source=makeConstantRefNode(constant={}, source_ref=internal_source_ref),
             source_ref=internal_source_ref,
         ),
-        StatementLoop(body=loop_body, source_ref=internal_source_ref),
+        StatementLoop(loop_body=loop_body, source_ref=internal_source_ref),
         StatementReturn(
             expression=ExpressionTempVariableRef(
                 variable=tmp_result_variable, source_ref=internal_source_ref
@@ -228,7 +228,8 @@ def getDictUnpackingHelper():
         ),
     )
 
-    result.setBody(
+    result.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
                 provider=result,
@@ -236,7 +237,7 @@ def getDictUnpackingHelper():
                 final=final,
                 source_ref=internal_source_ref,
             )
-        )
+        ),
     )
 
     return result

@@ -116,7 +116,7 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBa
         return False
 
     def mayRaiseException(self, exception_type):
-        return self.getBody().mayRaiseException(exception_type)
+        return self.subnode_body.mayRaiseException(exception_type)
 
     def isUnoptimized(self):
         # Classes all are that.
@@ -127,8 +127,6 @@ class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SELECT_METACLASS"
 
     named_children = ("metaclass", "bases")
-    getMetaclass = ExpressionChildrenHavingBase.childGetter("metaclass")
-    getBases = ExpressionChildrenHavingBase.childGetter("bases")
 
     def __init__(self, metaclass, bases, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -144,9 +142,6 @@ class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_TYPE3"
 
     named_children = ("type_name", "bases", "dict")
-    getTypeName = ExpressionChildrenHavingBase.childGetter("type_name")
-    getBases = ExpressionChildrenHavingBase.childGetter("bases")
-    getDict = ExpressionChildrenHavingBase.childGetter("dict")
 
     def __init__(self, type_name, bases, type_dict, source_ref):
         ExpressionChildrenHavingBase.__init__(

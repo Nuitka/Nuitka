@@ -30,6 +30,7 @@ classes.
 """
 
 from nuitka import Variables
+from nuitka.Constants import isMutable
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import (
     ParameterSpec,
@@ -92,8 +93,6 @@ class ExpressionFunctionBodyBase(
         __slots__ += ("non_local_declarations",)
 
     named_child = "body"
-    getBody = ExpressionChildHavingBase.childGetter("body")
-    setBody = ExpressionChildHavingBase.childSetter("body")
 
     checker = checkStatementsSequenceOrNone
 
@@ -380,12 +379,12 @@ class ExpressionFunctionBodyBase(
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        body = self.getBody()
+        body = self.subnode_body
 
         if body is None:
             return False
         else:
-            return self.getBody().mayRaiseException(exception_type)
+            return self.subnode_body.mayRaiseException(exception_type)
 
     def getFunctionInlineCost(self, values):
         """Cost of inlining this function with given arguments
@@ -454,12 +453,12 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         trace_collection.updateVariablesFromCollection(old_collection, self.source_ref)
 
     def computeFunction(self, trace_collection):
-        statements_sequence = self.getBody()
+        statements_sequence = self.subnode_body
 
         # TODO: Lift this restriction to only functions here and it code generation.
         if statements_sequence is not None and self.isExpressionFunctionBody():
-            if statements_sequence.getStatements()[0].isStatementReturnNone():
-                self.setBody(None)
+            if statements_sequence.subnode_statements[0].isStatementReturnNone():
+                self.clearChild("body")
                 statements_sequence.finalize()
                 statements_sequence = None
 
@@ -469,7 +468,7 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             )
 
             if result is not statements_sequence:
-                self.setBody(result)
+                self.setChild("body", result)
 
     def removeVariableReleases(self, variable):
         assert variable in self.locals_scope.providing.values(), (self, variable)
@@ -689,7 +688,7 @@ class ExpressionFunctionBody(
         return False
 
     def mayRaiseException(self, exception_type):
-        body = self.getBody()
+        body = self.subnode_body
 
         return body is not None and body.mayRaiseException(exception_type)
 
@@ -701,21 +700,19 @@ class ExpressionFunctionBody(
 
     def getConstantReturnValue(self):
         """Special function that checks if code generation allows to use common C code."""
-        body = self.getBody()
+        body = self.subnode_body
 
         if body is None:
             return True, None
 
-        first_statement = body.getStatements()[0]
+        first_statement = body.subnode_statements[0]
 
-        if first_statement.isStatementReturn():
-            return_value = first_statement.getExpression()
+        if first_statement.isStatementReturnConstant():
+            constant_value = first_statement.getConstant()
 
             # TODO: For mutable constants, we could also have something, but it would require an indicator
             # flag to make a deep copy.
-            if return_value.isCompileTimeConstant() and not return_value.isMutable():
-                constant_value = return_value.getCompileTimeConstant()
-
+            if not isMutable(constant_value):
                 return True, constant_value
             else:
                 return False, False
@@ -762,10 +759,6 @@ class ExpressionFunctionCreation(
         named_children = ("kw_defaults", "defaults", "annotations", "function_ref")
     else:
         named_children = ("defaults", "kw_defaults", "annotations", "function_ref")
-    getFunctionRef = ExpressionChildrenHavingBase.childGetter("function_ref")
-    getDefaults = ExpressionChildrenHavingBase.childGetter("defaults")
-    getKwDefaults = ExpressionChildrenHavingBase.childGetter("kw_defaults")
-    getAnnotations = ExpressionChildrenHavingBase.childGetter("annotations")
 
     checkers = {"kw_defaults": _convertNoneConstantOrEmptyDictToNone}
 
@@ -788,7 +781,7 @@ class ExpressionFunctionCreation(
         self.variable_closure_traces = None
 
     def getName(self):
-        return self.getFunctionRef().getName()
+        return self.subnode_function_ref.getName()
 
     @staticmethod
     def getTypeShape():
@@ -797,9 +790,9 @@ class ExpressionFunctionCreation(
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
-        for closure_variable in (
-            self.getFunctionRef().getFunctionBody().getClosureVariables()
-        ):
+        for (
+            closure_variable
+        ) in self.subnode_function_ref.getFunctionBody().getClosureVariables():
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
             trace.addNameUsage()
 
@@ -809,16 +802,16 @@ class ExpressionFunctionCreation(
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        for default in self.getDefaults():
+        for default in self.subnode_defaults:
             if default.mayRaiseException(exception_type):
                 return True
 
-        kw_defaults = self.getKwDefaults()
+        kw_defaults = self.subnode_kw_defaults
 
         if kw_defaults is not None and kw_defaults.mayRaiseException(exception_type):
             return True
 
-        annotations = self.getAnnotations()
+        annotations = self.subnode_annotations
 
         if annotations is not None and annotations.mayRaiseException(exception_type):
             return True
@@ -845,7 +838,7 @@ class ExpressionFunctionCreation(
 
             args_tuple = call_args.getIterationValues()
 
-        function_body = self.getFunctionRef().getFunctionBody()
+        function_body = self.subnode_function_ref.getFunctionBody()
 
         # TODO: Actually the above disables it entirely, as it is at least
         # the empty dictionary node in any case. We will need some enhanced
@@ -998,8 +991,6 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
     __slots__ = ("variable_closure_traces",)
 
     named_children = ("function", "values")
-    getFunction = ExpressionChildrenHavingBase.childGetter("function")
-    getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
 
     def __init__(self, function, values, source_ref):
         assert function.isExpressionFunctionCreation()
@@ -1014,7 +1005,7 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
 
     def computeExpression(self, trace_collection):
         function = self.subnode_function
-        function_body = function.getFunctionRef().getFunctionBody()
+        function_body = function.subnode_function_ref.getFunctionBody()
 
         if function_body.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -1053,16 +1044,14 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        function = self.getFunction()
+        function = self.subnode_function
 
-        if (
-            function.getFunctionRef()
-            .getFunctionBody()
-            .mayRaiseException(exception_type)
+        if function.subnode_function_ref.getFunctionBody().mayRaiseException(
+            exception_type
         ):
             return True
 
-        values = self.getArgumentValues()
+        values = self.subnode_values
 
         for value in values:
             if value.mayRaiseException(exception_type):

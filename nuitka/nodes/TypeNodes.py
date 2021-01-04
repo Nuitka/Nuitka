@@ -43,7 +43,7 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_TYPE1"
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
 
         type_shape = value.getTypeShape()
 
@@ -102,7 +102,7 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
         )
 
         result = makeStatementExpressionOnlyReplacementNode(
-            expression=self.getValue(), node=statement
+            expression=self.subnode_value, node=statement
         )
 
         return (
@@ -113,18 +113,16 @@ Removed type taking for unused result.""",
         )
 
     def mayRaiseException(self, exception_type):
-        return self.getValue().mayRaiseException(exception_type)
+        return self.subnode_value.mayRaiseException(exception_type)
 
     def mayHaveSideEffects(self):
-        return self.getValue().mayHaveSideEffects()
+        return self.subnode_value.mayHaveSideEffects()
 
 
 class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_SUPER"
 
     named_children = ("type", "object")
-    getType = ExpressionChildrenHavingBase.childGetter("type")
-    getObject = ExpressionChildrenHavingBase.childGetter("object")
 
     def __init__(self, super_type, super_object, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -144,8 +142,6 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ISINSTANCE"
 
     named_children = ("instance", "classes")
-    getInstance = ExpressionChildrenHavingBase.childGetter("instance")
-    getCls = ExpressionChildrenHavingBase.childGetter("classes")
 
     def __init__(self, instance, classes, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -157,7 +153,7 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
     def computeExpression(self, trace_collection):
         # TODO: Quite some cases should be possible to predict.
 
-        instance = self.getInstance()
+        instance = self.subnode_instance
 
         # TODO: Should be possible to query run time type instead, but we don't
         # have that method yet. Later this will be essential.
@@ -166,7 +162,7 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
 
             return self, None, None
 
-        cls = self.getCls()
+        cls = self.subnode_classes
 
         if not cls.isCompileTimeConstant():
             trace_collection.onExceptionRaiseExit(BaseException)

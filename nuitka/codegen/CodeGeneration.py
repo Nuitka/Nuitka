@@ -220,7 +220,7 @@ from .ReturnCodes import (
     generateGeneratorReturnValueCode,
     generateReturnCode,
     generateReturnConstantCode,
-    generateReturnedValueRefCode,
+    generateReturnedValueCode,
 )
 from .SetCodes import (
     generateBuiltinFrozensetCode,
@@ -671,7 +671,6 @@ setExpressionDispatchDict(
         "EXPRESSION_OUTLINE_FUNCTION": generateFunctionOutlineCode,
         # TODO: Rename to make more clear it is an outline
         "EXPRESSION_CLASS_BODY": generateFunctionOutlineCode,
-        "EXPRESSION_RETURNED_VALUE_REF": generateReturnedValueRefCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
         "EXPRESSION_SLICE_LOOKUP": generateSliceLookupCode,
         "EXPRESSION_SET_OPERATION_UPDATE": generateSetOperationUpdateCode,
@@ -719,6 +718,7 @@ setStatementDispatchDict(
         "STATEMENT_RETURN_FALSE": generateReturnConstantCode,
         "STATEMENT_RETURN_NONE": generateReturnConstantCode,
         "STATEMENT_RETURN_CONSTANT": generateReturnConstantCode,
+        "STATEMENT_RETURN_RETURNED_VALUE": generateReturnedValueCode,
         "STATEMENT_GENERATOR_RETURN": generateGeneratorReturnValueCode,
         "STATEMENT_GENERATOR_RETURN_NONE": generateGeneratorReturnNoneCode,
         "STATEMENT_CONDITIONAL": generateBranchCode,

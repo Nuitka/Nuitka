@@ -213,8 +213,6 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_GETATTR"
 
     named_children = ("expression", "name", "default")
-    getAttribute = ExpressionChildrenHavingBase.childGetter("name")
-    getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def __init__(self, expression, name, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -226,7 +224,7 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        default = self.getDefault()
+        default = self.subnode_default
 
         if default is None or not default.mayHaveSideEffects():
             attribute = self.subnode_name
@@ -273,8 +271,6 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_SETATTR"
 
     named_children = ("expression", "attribute", "value")
-    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def __init__(self, expression, name, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -294,7 +290,6 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_HASATTR"
 
     named_children = ("expression", "attribute")
-    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
 
     def __init__(self, expression, name, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -309,7 +304,7 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
         source = self.subnode_expression
 
         if source.isCompileTimeConstant():
-            attribute = self.getAttribute()
+            attribute = self.subnode_attribute
 
             attribute_name = attribute.getStringValue()
 

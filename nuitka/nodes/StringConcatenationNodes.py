@@ -31,7 +31,6 @@ class ExpressionStringConcatenation(ExpressionChildHavingBase):
     kind = "EXPRESSION_STRING_CONCATENATION"
 
     named_child = "values"
-    getValues = ExpressionChildHavingBase.childGetter("values")
 
     def __init__(self, values, source_ref):
         assert values

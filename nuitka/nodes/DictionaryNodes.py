@@ -73,16 +73,13 @@ class ExpressionKeyValuePair(
     else:
         named_children = ("key", "value")
 
-    getKey = ExpressionChildrenHavingBase.childGetter("key")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
-
     def __init__(self, key, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self, values={"key": key, "value": value}, source_ref=source_ref
         )
 
     def computeExpression(self, trace_collection):
-        key = self.getKey()
+        key = self.subnode_key
 
         hashable = key.isKnownToBeHashable()
 
@@ -99,12 +96,12 @@ class ExpressionKeyValuePair(
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        key = self.getKey()
+        key = self.subnode_key
 
         return (
             key.mayRaiseException(exception_type)
             or key.isKnownToBeHashable() is not True
-            or self.getValue().mayRaiseException(exception_type)
+            or self.subnode_value.mayRaiseException(exception_type)
         )
 
     def extractSideEffects(self):
@@ -192,7 +189,7 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildHavingBase
         is_constant = True
 
         for pair in pairs:
-            key = pair.getKey()
+            key = pair.subnode_key
 
             if key.isKnownToBeHashable() is False:
                 side_effects = []
@@ -229,7 +226,7 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildHavingBase
                 if not key.isExpressionConstantRef():
                     is_constant = False
                 else:
-                    value = pair.getValue()
+                    value = pair.subnode_value
 
                     if not value.isExpressionConstantRef():
                         is_constant = False
@@ -288,7 +285,7 @@ Created dictionary found to be constant.""",
         return True
 
     def getIterationValue(self, count):
-        return self.subnode_pairs[count].getKey()
+        return self.subnode_pairs[count].subnode_key
 
     @staticmethod
     def getTruthValue():
@@ -338,9 +335,6 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_SET"
 
     named_children = ("value", "dict", "key")
-    getDict = StatementChildrenHavingBase.childGetter("dict")
-    getKey = StatementChildrenHavingBase.childGetter("key")
-    getValue = StatementChildrenHavingBase.childGetter("value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, key, value, source_ref):
@@ -362,7 +356,7 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
         if result is not self:
             return result, change_tags, change_desc
 
-        key = self.getKey()
+        key = self.subnode_key
 
         if not key.isKnownToBeHashable():
             # Any exception may be raised.
@@ -371,7 +365,7 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        key = self.getKey()
+        key = self.subnode_key
 
         if not key.isKnownToBeHashable():
             return True
@@ -379,7 +373,7 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
         if key.mayRaiseException(exception_type):
             return True
 
-        value = self.getValue()
+        value = self.subnode_value
 
         if value.mayRaiseException(exception_type):
             return True
@@ -397,8 +391,6 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_REMOVE"
 
     named_children = ("dict", "key")
-    getDict = StatementChildrenHavingBase.childGetter("dict")
-    getKey = StatementChildrenHavingBase.childGetter("key")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, key, source_ref):
@@ -422,7 +414,7 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        key = self.getKey()
+        key = self.subnode_key
 
         if not key.isKnownToBeHashable():
             return True
@@ -438,8 +430,6 @@ class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_DICT_OPERATION_GET"
 
     named_children = ("dict", "key")
-    getDict = ExpressionChildrenHavingBase.childGetter("dict")
-    getKey = ExpressionChildrenHavingBase.childGetter("key")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, key, source_ref):
@@ -467,8 +457,6 @@ class StatementDictOperationUpdate(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_UPDATE"
 
     named_children = ("dict", "value")
-    getDict = StatementChildrenHavingBase.childGetter("dict")
-    getValue = StatementChildrenHavingBase.childGetter("value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, value, source_ref):
@@ -498,9 +486,6 @@ class ExpressionDictOperationInNotInUncertainBase(ExpressionChildrenHavingBase):
     named_children = ("key", "dict")
 
     __slots__ = ("known_hashable_key",)
-
-    getDict = ExpressionChildrenHavingBase.childGetter("dict")
-    getKey = ExpressionChildrenHavingBase.childGetter("key")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, key, dict_arg, source_ref):

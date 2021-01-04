@@ -30,8 +30,8 @@ def checkSideEffects(value):
 
     for child in value:
         if child.isExpressionSideEffects():
-            real_value.extend(child.getSideEffects())
-            real_value.append(child.getExpression())
+            real_value.extend(child.subnode_side_effects)
+            real_value.append(child.subnode_expression)
         else:
             assert child.isExpression()
 
@@ -44,9 +44,6 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SIDE_EFFECTS"
 
     named_children = ("side_effects", "expression")
-    getSideEffects = ExpressionChildrenHavingBase.childGetter("side_effects")
-    setSideEffects = ExpressionChildrenHavingBase.childSetter("side_effects")
-    getExpression = ExpressionChildrenHavingBase.childGetter("expression")
 
     checkers = {"side_effects": checkSideEffects}
 
@@ -70,7 +67,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
     def computeExpressionRaw(self, trace_collection):
         new_side_effects = []
 
-        side_effects = self.getSideEffects()
+        side_effects = self.subnode_side_effects
 
         for count, side_effect in enumerate(side_effects):
             side_effect = trace_collection.onExpression(side_effect)
@@ -80,7 +77,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
                     c.finalize()
 
                 if new_side_effects:
-                    expression = self.getExpression()
+                    expression = self.subnode_expression
                     expression.finalize()
 
                     self.setChild("expression", side_effect)
@@ -101,7 +98,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
                     )
 
             if side_effect.isExpressionSideEffects():
-                new_side_effects.extend(side_effect.getSideEffects())
+                new_side_effects.extend(side_effect.subnode_side_effects)
 
                 del side_effect.parent
                 del side_effect.subnode_side_effects
@@ -128,12 +125,12 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
         return False
 
     def getTruthValue(self):
-        return self.getExpression().getTruthValue()
+        return self.subnode_expression.getTruthValue()
 
     def computeExpressionDrop(self, statement, trace_collection):
         # Side effects can  become statements.
 
-        expressions = self.getSideEffects() + (self.getExpression(),)
+        expressions = self.subnode_side_effects + (self.subnode_expression,)
 
         result = makeStatementOnlyNodesFromExpressions(expressions=expressions)
 

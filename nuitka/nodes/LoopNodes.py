@@ -43,9 +43,7 @@ def minimizeShapes(shapes):
 class StatementLoop(StatementChildHavingBase):
     kind = "STATEMENT_LOOP"
 
-    named_child = "body"
-    getLoopBody = StatementChildHavingBase.childGetter("body")
-    setLoopBody = StatementChildHavingBase.childSetter("body")
+    named_child = "loop_body"
 
     checker = checkStatementsSequenceOrNone
 
@@ -57,8 +55,8 @@ class StatementLoop(StatementChildHavingBase):
         "incomplete_count",
     )
 
-    def __init__(self, body, source_ref):
-        StatementChildHavingBase.__init__(self, value=body, source_ref=source_ref)
+    def __init__(self, loop_body, source_ref):
+        StatementChildHavingBase.__init__(self, value=loop_body, source_ref=source_ref)
 
         self.loop_variables = None
 
@@ -78,7 +76,7 @@ class StatementLoop(StatementChildHavingBase):
         self.incomplete_count = 0
 
     def mayReturn(self):
-        loop_body = self.getLoopBody()
+        loop_body = self.subnode_loop_body
 
         if loop_body is not None and loop_body.mayReturn():
             return True
@@ -96,7 +94,7 @@ class StatementLoop(StatementChildHavingBase):
         return False
 
     def isStatementAborting(self):
-        loop_body = self.getLoopBody()
+        loop_body = self.subnode_loop_body
 
         if loop_body is None:
             return True
@@ -108,15 +106,15 @@ class StatementLoop(StatementChildHavingBase):
         # Loops can only raise, if their body does, but they also issue the
         # async exceptions, so we must make them do it all the time.
         return True
-        # loop_body = self.getLoopBody()
+        # loop_body = self.subnode_loop_body
         #  return loop_body is not None and \
-        #         self.getLoopBody().mayRaiseException(exception_type)
+        #         self.subnode_loop_body.mayRaiseException(exception_type)
 
     def _computeLoopBody(self, trace_collection):
         # Rather complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
         # print("Enter loop body", self.source_ref)
 
-        loop_body = self.getLoopBody()
+        loop_body = self.subnode_loop_body
         if loop_body is None:
             return None, None, None
 
@@ -218,7 +216,7 @@ class StatementLoop(StatementChildHavingBase):
 
             # Might be changed.
             if result is not loop_body:
-                self.setLoopBody(result)
+                self.setChild("loop_body", result)
                 loop_body = result
 
             if loop_body is not None:
@@ -322,7 +320,7 @@ class StatementLoop(StatementChildHavingBase):
         if loop_body is not None:
             assert loop_body.isStatementsSequence()
 
-            statements = loop_body.getStatements()
+            statements = loop_body.subnode_statements
             assert statements  # Cannot be empty
 
             # If the last statement is a "continue" statement, it can simply
@@ -332,7 +330,7 @@ class StatementLoop(StatementChildHavingBase):
                 if len(statements) == 1:
                     self.subnode_body.finalize()
 
-                    self.setLoopBody(None)
+                    self.clearChild("loop_body")
                     loop_body = None
                 else:
                     last_statement.parent.replaceChild(last_statement, None)
@@ -362,7 +360,7 @@ Removed useless terminal 'continue' as last statement of loop.""",
         if loop_body is not None:
             assert loop_body.isStatementsSequence()
 
-            statements = loop_body.getStatements()
+            statements = loop_body.subnode_statements
             assert statements  # Cannot be empty
 
             if len(statements) == 1 and statements[-1].isStatementLoopBreak():

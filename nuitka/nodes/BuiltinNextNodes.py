@@ -91,8 +91,6 @@ class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_NEXT2"
 
     named_children = ("iterator", "default")
-    getIterator = ExpressionChildrenHavingBase.childGetter("iterator")
-    getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def __init__(self, iterator, default, source_ref):
         ExpressionChildrenHavingBase.__init__(

@@ -194,7 +194,7 @@ def _generateStatementSequenceCode(statement_sequence, emit, context):
     if statement_sequence is None:
         return
 
-    for statement in statement_sequence.getStatements():
+    for statement in statement_sequence.subnode_statements:
         if shallTraceExecution():
             source_ref = statement.getSourceReference()
 

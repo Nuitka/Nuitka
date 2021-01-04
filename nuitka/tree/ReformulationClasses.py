@@ -164,7 +164,7 @@ def buildClassNode2(provider, node, source_ref):
     # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained.
 
-    function_body.setBody(body)
+    function_body.setChild("body", body)
 
     temp_scope = provider.allocateTempScope("class_creation")
 
@@ -261,10 +261,11 @@ def buildClassNode2(provider, node, source_ref):
             ),
         )
 
-    select_metaclass.setBody(
+    select_metaclass.setChild(
+        "body",
         makeStatementsSequence(
             statements=statements, allow_none=False, source_ref=source_ref
-        )
+        ),
     )
 
     statements = [

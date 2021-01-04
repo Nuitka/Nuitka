@@ -84,7 +84,7 @@ def getAsyncgenObjectCode(
     asyncgen_object_body = context.getOwner()
 
     generateStatementSequenceCode(
-        statement_sequence=asyncgen_object_body.getBody(),
+        statement_sequence=asyncgen_object_body.subnode_body,
         allow_none=True,
         emit=function_codes,
         context=context,
@@ -159,7 +159,7 @@ struct %(function_identifier)s_locals *asyncgen_heap = \
 
 
 def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
-    asyncgen_object_body = expression.getAsyncgenRef().getFunctionBody()
+    asyncgen_object_body = expression.subnode_asyncgen_ref.getFunctionBody()
 
     closure_variables = expression.getClosureVariableVersions()
 

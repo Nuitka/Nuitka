@@ -184,7 +184,7 @@ def createNamespacePackage(module_name, is_top, module_relpath):
     else:
         statement = createPathAssignment(package, source_ref)
 
-    package.setBody(makeStatementsSequenceFromStatement(statement=statement))
+    package.setChild("body", makeStatementsSequenceFromStatement(statement=statement))
 
     completeVariableClosures(package)
 

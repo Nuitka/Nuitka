@@ -136,7 +136,7 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationUnary,
 )
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
-from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.ReturnNodes import makeStatementReturn
 from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
@@ -217,7 +217,7 @@ def import_extractor(node):
 
 
 def type_extractor(node):
-    args = node.getCallArgs()
+    args = node.subnode_args
 
     if args is None:
         iter_length = 0
@@ -776,7 +776,7 @@ if python_version < 0x300:
             tried = makeStatementsSequence(
                 statements=(
                     tried,
-                    StatementReturn(
+                    makeStatementReturn(
                         expression=ExpressionBuiltinExecfile(
                             source_code=makeCallNode(
                                 ExpressionAttributeLookup(
@@ -804,7 +804,8 @@ if python_version < 0x300:
                 source_ref=source_ref,
             )
 
-            outline_body.setBody(
+            outline_body.setChild(
+                "body",
                 makeStatementsSequenceFromStatement(
                     statement=makeTryFinallyStatement(
                         provider=outline_body,
@@ -812,7 +813,7 @@ if python_version < 0x300:
                         final=final,
                         source_ref=source_ref,
                     )
-                )
+                ),
             )
 
             return outline_body
@@ -857,13 +858,14 @@ def eval_extractor(node):
             temp_scope=None, name="source"
         )
 
-        final.setStatements(
-            final.getStatements()
+        final.setChild(
+            "statements",
+            final.subnode_statements
             + (
                 StatementDelVariable(
                     variable=source_variable, tolerant=True, source_ref=source_ref
                 ),
-            )
+            ),
         )
 
         strip_choice = makeConstantRefNode(constant=(" \t",), source_ref=source_ref)
@@ -942,7 +944,7 @@ def eval_extractor(node):
                 no_branch=None,
                 source_ref=source_ref,
             ),
-            StatementReturn(
+            makeStatementReturn(
                 expression=ExpressionBuiltinEval(
                     source_code=ExpressionTempVariableRef(
                         variable=source_variable, source_ref=source_ref
@@ -959,7 +961,8 @@ def eval_extractor(node):
             statements=(tried,) + statements, allow_none=False, source_ref=source_ref
         )
 
-        outline_body.setBody(
+        outline_body.setChild(
+            "body",
             makeStatementsSequenceFromStatement(
                 statement=makeTryFinallyStatement(
                     provider=outline_body,
@@ -967,7 +970,7 @@ def eval_extractor(node):
                     final=final,
                     source_ref=source_ref,
                 )
-            )
+            ),
         )
 
         return outline_body
@@ -1004,7 +1007,7 @@ if python_version >= 0x300:
             tried = makeStatementsSequence(
                 statements=(
                     tried,
-                    StatementReturn(
+                    makeStatementReturn(
                         expression=ExpressionBuiltinExec(
                             source_code=source,
                             globals_arg=globals_ref,
@@ -1021,7 +1024,8 @@ if python_version >= 0x300:
             # Hack: Allow some APIs to work already
             tried.parent = outline_body
 
-            outline_body.setBody(
+            outline_body.setChild(
+                "body",
                 makeStatementsSequenceFromStatement(
                     statement=makeTryFinallyStatement(
                         provider=provider,
@@ -1029,7 +1033,7 @@ if python_version >= 0x300:
                         final=final,
                         source_ref=source_ref,
                     )
-                )
+                ),
             )
 
             return outline_body
@@ -1431,8 +1435,9 @@ _builtin_white_list = (
 def _describeNewNode(builtin_name, inspect_node):
     """Describe the change for better understanding."""
 
+    # Don't mention side effects, that's not what we care about.
     if inspect_node.isExpressionSideEffects():
-        inspect_node = inspect_node.getExpression()
+        inspect_node = inspect_node.subnode_expression
 
     if inspect_node.isExpressionBuiltinImport():
         tags = "new_import"

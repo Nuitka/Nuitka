@@ -44,8 +44,6 @@ class StatementsSequence(StatementChildHavingBase):
     kind = "STATEMENTS_SEQUENCE"
 
     named_child = "statements"
-    getStatements = StatementChildHavingBase.childGetter("statements")
-    setStatements = StatementChildHavingBase.childSetter("statements")
 
     checker = checkStatements
 
@@ -57,7 +55,7 @@ class StatementsSequence(StatementChildHavingBase):
     def finalize(self):
         del self.parent
 
-        for s in self.getStatements():
+        for s in self.subnode_statements:
             s.finalize()
 
     # Overloading name based automatic check, so that derived ones know it too.
@@ -69,7 +67,7 @@ class StatementsSequence(StatementChildHavingBase):
     def trimStatements(self, statement):
         assert statement.parent is self
 
-        old_statements = list(self.getStatements())
+        old_statements = list(self.subnode_statements)
         assert statement in old_statements, (statement, self)
 
         new_statements = old_statements[: old_statements.index(statement) + 1]
@@ -79,7 +77,7 @@ class StatementsSequence(StatementChildHavingBase):
     def removeStatement(self, statement):
         assert statement.parent is self
 
-        statements = list(self.getStatements())
+        statements = list(self.subnode_statements)
         statements.remove(statement)
         self.setChild("statements", statements)
 
@@ -89,7 +87,7 @@ class StatementsSequence(StatementChildHavingBase):
             return None
 
     def replaceStatement(self, statement, statements):
-        old_statements = list(self.getStatements())
+        old_statements = list(self.subnode_statements)
 
         merge_index = old_statements.index(statement)
 
@@ -103,37 +101,37 @@ class StatementsSequence(StatementChildHavingBase):
 
     def mayHaveSideEffects(self):
         # Statement sequences have a side effect if one of the statements does.
-        for statement in self.getStatements():
+        for statement in self.subnode_statements:
             if statement.mayHaveSideEffects():
                 return True
         return False
 
     def mayRaiseException(self, exception_type):
-        for statement in self.getStatements():
+        for statement in self.subnode_statements:
             if statement.mayRaiseException(exception_type):
                 return True
         return False
 
     def needsFrame(self):
-        for statement in self.getStatements():
+        for statement in self.subnode_statements:
             if statement.needsFrame():
                 return True
         return False
 
     def mayReturn(self):
-        for statement in self.getStatements():
+        for statement in self.subnode_statements:
             if statement.mayReturn():
                 return True
         return False
 
     def mayBreak(self):
-        for statement in self.getStatements():
+        for statement in self.subnode_statements:
             if statement.mayBreak():
                 return True
         return False
 
     def mayContinue(self):
-        for statement in self.getStatements():
+        for statement in self.subnode_statements:
             if statement.mayContinue():
                 return True
         return False
@@ -147,7 +145,7 @@ class StatementsSequence(StatementChildHavingBase):
         )
 
     def isStatementAborting(self):
-        return self.getStatements()[-1].isStatementAborting()
+        return self.subnode_statements[-1].isStatementAborting()
 
     def computeStatement(self, trace_collection):
         # Don't want to be called like this.
@@ -156,7 +154,7 @@ class StatementsSequence(StatementChildHavingBase):
     def computeStatementsSequence(self, trace_collection):
         new_statements = []
 
-        statements = self.getStatements()
+        statements = self.subnode_statements
         assert statements, self
 
         for count, statement in enumerate(statements):
@@ -171,7 +169,7 @@ class StatementsSequence(StatementChildHavingBase):
                     new_statement.isStatementsSequence()
                     and not new_statement.isStatementsFrame()
                 ):
-                    new_statements.extend(new_statement.getStatements())
+                    new_statements.extend(new_statement.subnode_statements)
                 else:
                     new_statements.append(new_statement)
 
@@ -192,7 +190,7 @@ class StatementsSequence(StatementChildHavingBase):
 
         if statements != new_statements:
             if new_statements:
-                self.setStatements(new_statements)
+                self.setChild("statements", new_statements)
 
                 return self
             else:
@@ -209,7 +207,6 @@ class StatementExpressionOnly(StatementChildHavingBase):
     kind = "STATEMENT_EXPRESSION_ONLY"
 
     named_child = "expression"
-    getExpression = StatementChildHavingBase.childGetter("expression")
 
     def __init__(self, expression, source_ref):
         assert expression.isExpression()

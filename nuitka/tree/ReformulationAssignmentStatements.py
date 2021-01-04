@@ -147,7 +147,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
         subscribed, subscript = detail
 
         return StatementAssignmentSubscript(
-            expression=subscribed,
+            subscribed=subscribed,
             subscript=subscript,
             source=source,
             source_ref=source_ref,
@@ -162,7 +162,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
 
         if use_sliceobj:
             return StatementAssignmentSubscript(
-                expression=lookup_source,
+                subscribed=lookup_source,
                 source=source,
                 subscript=makeExpressionBuiltinSlice(
                     start=lower, stop=upper, step=None, source_ref=source_ref
@@ -620,7 +620,7 @@ def buildAnnAssignNode(provider, node, source_ref):
 
             statements.append(
                 StatementAssignmentSubscript(
-                    expression=ref_class(
+                    subscribed=ref_class(
                         provider=provider,
                         variable_name="__annotations__",
                         source_ref=source_ref,
@@ -665,7 +665,7 @@ def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
         subscribed, subscript = detail
 
         return StatementDelSubscript(
-            expression=subscribed, subscript=subscript, source_ref=source_ref
+            subscribed=subscribed, subscript=subscript, source_ref=source_ref
         )
     elif kind == "Slice":
         lookup_source, lower, upper = detail
@@ -674,7 +674,7 @@ def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
 
         if use_sliceobj:
             return StatementDelSubscript(
-                expression=lookup_source,
+                subscribed=lookup_source,
                 subscript=makeExpressionBuiltinSlice(
                     start=lower, stop=upper, step=None, source_ref=source_ref
                 ),
@@ -857,7 +857,7 @@ def _buildInplaceAssignSubscriptNode(
             source_ref=source_ref,
         ),
         StatementAssignmentSubscript(
-            expression=ExpressionTempVariableRef(
+            subscribed=ExpressionTempVariableRef(
                 variable=tmp_variable1, source_ref=source_ref
             ),
             subscript=ExpressionTempVariableRef(
@@ -989,7 +989,7 @@ def _buildInplaceAssignSliceNode(
                 source_ref=source_ref,
             ),
             StatementAssignmentSubscript(
-                expression=ExpressionTempVariableRef(
+                subscribed=ExpressionTempVariableRef(
                     variable=tmp_variable1, source_ref=source_ref
                 ),
                 subscript=makeExpressionBuiltinSlice(
@@ -1205,7 +1205,8 @@ def buildNamedExprNode(provider, node, source_ref):
         ),
     )
 
-    outline_body.setBody(
+    outline_body.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             statement=makeTryFinallyStatement(
                 provider=provider,
@@ -1215,7 +1216,7 @@ def buildNamedExprNode(provider, node, source_ref):
                 ),
                 source_ref=source_ref,
             )
-        )
+        ),
     )
 
     return outline_body

@@ -1444,7 +1444,7 @@ computes to its argument.
 .. code-block:: python
 
     def computeExpression(self, trace_collection):
-        return self.getValue().computeExpressionLen(
+        return self.subnode_value.computeExpressionLen(
             len_node=self, trace_collection=trace_collection
         )
 

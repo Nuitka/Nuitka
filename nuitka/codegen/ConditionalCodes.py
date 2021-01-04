@@ -70,7 +70,7 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     left_name = context.allocateTempName(prefix + "left_value", to_name.c_type)
     right_name = context.allocateTempName(prefix + "right_value", to_name.c_type)
 
-    left_value = expression.getLeft()
+    left_value = expression.subnode_left
 
     generateExpressionCode(
         to_name=left_name, expression=left_value, emit=emit, context=context
@@ -111,7 +111,7 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     # is not needed, but we remember if it should be added above.
     getReleaseCode(release_name=left_name, emit=emit, context=context)
 
-    right_value = expression.getRight()
+    right_value = expression.subnode_right
 
     # Evaluate the "right" value then.
     generateExpressionCode(
@@ -171,13 +171,13 @@ def generateConditionalCode(to_name, expression, emit, context):
     context.setFalseBranchTarget(false_target)
 
     generateConditionCode(
-        condition=expression.getCondition(), emit=emit, context=context
+        condition=expression.subnode_condition, emit=emit, context=context
     )
 
     getLabelCode(true_target, emit)
     generateExpressionCode(
         to_name=to_name,
-        expression=expression.getExpressionYes(),
+        expression=expression.subnode_expression_yes,
         emit=emit,
         context=context,
     )
@@ -192,7 +192,7 @@ def generateConditionalCode(to_name, expression, emit, context):
 
     generateExpressionCode(
         to_name=to_name,
-        expression=expression.getExpressionNo(),
+        expression=expression.subnode_expression_no,
         emit=emit,
         context=context,
     )

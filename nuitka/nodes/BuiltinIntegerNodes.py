@@ -46,7 +46,6 @@ class ExpressionBuiltinInt1(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_INT1"
 
     named_child = "value"
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
@@ -69,8 +68,6 @@ class ExpressionBuiltinIntLong2Base(
     ExpressionSpecBasedComputationMixin, ExpressionChildrenHavingBase
 ):
     named_children = ("value", "base")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
-    getBase = ExpressionChildrenHavingBase.childGetter("base")
 
     # Note: Version specific, may be allowed or not.
     try:
@@ -134,7 +131,6 @@ if python_version < 0x300:
         kind = "EXPRESSION_BUILTIN_LONG1"
 
         named_child = "value"
-        getValue = ExpressionChildHavingBase.childGetter("value")
 
         def __init__(self, value, source_ref):
             ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)

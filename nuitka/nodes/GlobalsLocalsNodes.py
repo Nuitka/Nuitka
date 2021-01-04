@@ -189,7 +189,7 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
                 sorted(
                     pairs,
                     key=lambda pair: names.index(
-                        pair.getKey().getCompileTimeConstant()
+                        pair.subnode_key.getCompileTimeConstant()
                     ),
                 )
             )

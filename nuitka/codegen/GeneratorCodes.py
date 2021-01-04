@@ -85,7 +85,7 @@ def getGeneratorObjectCode(
     function_codes = SourceCodeCollector()
 
     generateStatementSequenceCode(
-        statement_sequence=context.getOwner().getBody(),
+        statement_sequence=context.getOwner().subnode_body,
         allow_none=True,
         emit=function_codes,
         context=context,
@@ -168,7 +168,7 @@ struct %(function_identifier)s_locals *generator_heap = \
 
 
 def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
-    generator_object_body = expression.getGeneratorRef().getFunctionBody()
+    generator_object_body = expression.subnode_generator_ref.getFunctionBody()
 
     closure_variables = expression.getClosureVariableVersions()
 
@@ -181,7 +181,7 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
         args.append(closure_name)
 
     # Special case empty generators.
-    if generator_object_body.getBody() is None:
+    if generator_object_body.subnode_body is None:
         emit(
             template_make_empty_generator
             % {

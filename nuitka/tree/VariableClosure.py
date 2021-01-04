@@ -169,7 +169,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         statements=(
                             StatementAssignmentVariable(
                                 variable=tmp_variable,
-                                source=node.subnode_source.getLeft(),
+                                source=node.subnode_source.subnode_left,
                                 source_ref=node.source_ref,
                             ),
                             makeTryFinallyStatement(
@@ -182,7 +182,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                                                 variable=tmp_variable,
                                                 source_ref=node.source_ref,
                                             ),
-                                            right=node.subnode_source.getRight(),
+                                            right=node.subnode_source.subnode_right,
                                             operator=node.subnode_source.getOperator(),
                                             source_ref=node.source_ref,
                                         ),

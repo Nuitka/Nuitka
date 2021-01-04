@@ -140,7 +140,8 @@ def buildCallNode(provider, node, source_ref):
                 source_ref=source_ref,
             )
 
-            outline_body.setBody(
+            outline_body.setChild(
+                "body",
                 makeStatementsSequenceFromStatements(
                     StatementAssignmentVariable(
                         variable=tmp_called, source=called, source_ref=source_ref
@@ -159,7 +160,7 @@ def buildCallNode(provider, node, source_ref):
                         ),
                         source_ref=source_ref,
                     ),
-                )
+                ),
             )
 
             return outline_body

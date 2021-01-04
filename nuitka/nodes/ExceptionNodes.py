@@ -49,10 +49,6 @@ class StatementRaiseException(
         "exception_trace",
         "exception_cause",
     )
-    getExceptionType = StatementChildrenHavingBase.childGetter("exception_type")
-    getExceptionValue = StatementChildrenHavingBase.childGetter("exception_value")
-    getExceptionTrace = StatementChildrenHavingBase.childGetter("exception_trace")
-    getExceptionCause = StatementChildrenHavingBase.childGetter("exception_cause")
 
     def __init__(
         self,
@@ -85,7 +81,7 @@ class StatementRaiseException(
 
     def computeStatement(self, trace_collection):
         exception_type = trace_collection.onExpression(
-            expression=self.getExceptionType(), allow_none=True
+            expression=self.subnode_exception_type, allow_none=True
         )
 
         # TODO: Limit by type.
@@ -110,7 +106,7 @@ Explicit raise already raises implicitly building exception type.""",
             )
 
         exception_value = trace_collection.onExpression(
-            expression=self.getExceptionValue(), allow_none=True
+            expression=self.subnode_exception_value, allow_none=True
         )
 
         if exception_value is not None and exception_value.willRaiseException(
@@ -128,7 +124,7 @@ Explicit raise already raises implicitly building exception value.""",
             )
 
         exception_trace = trace_collection.onExpression(
-            expression=self.getExceptionTrace(), allow_none=True
+            expression=self.subnode_exception_trace, allow_none=True
         )
 
         if exception_trace is not None and exception_trace.willRaiseException(
@@ -146,7 +142,7 @@ Explicit raise already raises implicitly building exception traceback.""",
             )
 
         exception_cause = trace_collection.onExpression(
-            expression=self.getExceptionCause(), allow_none=True
+            expression=self.subnode_exception_cause, allow_none=True
         )
 
         if exception_cause is not None and exception_cause.willRaiseException(
@@ -215,8 +211,6 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_RAISE_EXCEPTION"
 
     named_children = ("exception_type", "exception_value")
-    getExceptionType = ExpressionChildrenHavingBase.childGetter("exception_type")
-    getExceptionValue = ExpressionChildrenHavingBase.childGetter("exception_value")
 
     def __init__(self, exception_type, exception_value, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -250,8 +244,8 @@ Propagated implicit raise expression to raise statement.""",
 
     def asStatement(self):
         return StatementRaiseExceptionImplicit(
-            exception_type=self.getExceptionType(),
-            exception_value=self.getExceptionValue(),
+            exception_type=self.subnode_exception_type,
+            exception_value=self.subnode_exception_value,
             exception_trace=None,
             exception_cause=None,
             source_ref=self.source_ref,
@@ -262,7 +256,6 @@ class ExpressionBuiltinMakeException(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
 
     named_child = "args"
-    getArgs = ExpressionChildHavingBase.childGetter("args")
 
     __slots__ = ("exception_name",)
 
@@ -283,7 +276,7 @@ class ExpressionBuiltinMakeException(ExpressionChildHavingBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        for arg in self.getArgs():
+        for arg in self.subnode_args:
             if arg.mayRaiseException(exception_type):
                 return True
 
@@ -296,9 +289,6 @@ class ExpressionBuiltinMakeExceptionImportError(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR"
 
     named_children = ("args", "name", "path")
-    getArgs = ExpressionChildrenHavingBase.childGetter("args")
-    getImportErrorName = ExpressionChildrenHavingBase.childGetter("name")
-    getImportErrorPath = ExpressionChildrenHavingBase.childGetter("path")
 
     __slots__ = ("exception_name",)
 
@@ -321,7 +311,7 @@ class ExpressionBuiltinMakeExceptionImportError(ExpressionChildrenHavingBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        for arg in self.getArgs():
+        for arg in self.subnode_args:
             if arg.mayRaiseException(exception_type):
                 return True
 

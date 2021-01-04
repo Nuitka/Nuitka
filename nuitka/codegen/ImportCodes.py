@@ -183,7 +183,7 @@ def generateImportStarCode(statement, emit, context):
 
     generateExpressionCode(
         to_name=module_name,
-        expression=statement.getSourceModule(),
+        expression=statement.subnode_module,
         emit=emit,
         context=context,
     )
@@ -230,7 +230,7 @@ def generateImportNameCode(to_name, expression, emit, context):
 
     generateExpressionCode(
         to_name=from_arg_name,
-        expression=expression.getModule(),
+        expression=expression.subnode_module,
         emit=emit,
         context=context,
     )

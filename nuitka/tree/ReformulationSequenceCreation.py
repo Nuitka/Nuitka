@@ -228,7 +228,7 @@ def getListUnpackingHelper():
             source=makeConstantRefNode(constant=[], source_ref=internal_source_ref),
             source_ref=internal_source_ref,
         ),
-        StatementLoop(body=loop_body, source_ref=internal_source_ref),
+        StatementLoop(loop_body=loop_body, source_ref=internal_source_ref),
         StatementReturn(
             expression=ExpressionTempVariableRef(
                 variable=tmp_result_variable, source_ref=internal_source_ref
@@ -237,7 +237,8 @@ def getListUnpackingHelper():
         ),
     )
 
-    result.setBody(
+    result.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
                 provider=result,
@@ -245,7 +246,7 @@ def getListUnpackingHelper():
                 final=final,
                 source_ref=internal_source_ref,
             )
-        )
+        ),
     )
 
     return result
@@ -334,7 +335,7 @@ def getSetUnpackingHelper():
             source=makeConstantRefNode(constant=set(), source_ref=internal_source_ref),
             source_ref=internal_source_ref,
         ),
-        StatementLoop(body=loop_body, source_ref=internal_source_ref),
+        StatementLoop(loop_body=loop_body, source_ref=internal_source_ref),
         StatementReturn(
             expression=ExpressionTempVariableRef(
                 variable=tmp_result_variable, source_ref=internal_source_ref
@@ -343,7 +344,8 @@ def getSetUnpackingHelper():
         ),
     )
 
-    result.setBody(
+    result.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
                 provider=result,
@@ -351,7 +353,7 @@ def getSetUnpackingHelper():
                 final=final,
                 source_ref=internal_source_ref,
             )
-        )
+        ),
     )
 
     return result

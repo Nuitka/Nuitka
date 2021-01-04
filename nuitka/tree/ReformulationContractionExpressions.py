@@ -175,7 +175,9 @@ def _buildPython2ListContraction(provider, node, source_ref):
         source_ref=source_ref.atInternal(),
     )
 
-    function_body.setBody(makeStatementsSequenceFromStatement(statement=statement))
+    function_body.setChild(
+        "body", makeStatementsSequenceFromStatement(statement=statement)
+    )
 
     return function_body
 
@@ -285,7 +287,8 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
         maker_class = ExpressionMakeGeneratorObject
 
-    function_body.setBody(
+    function_body.setChild(
+        "body",
         makeStatementsSequenceFromStatements(
             StatementAssignmentVariable(
                 variable=iter_tmp,
@@ -313,7 +316,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
                 ),
                 source_ref=source_ref,
             ),
-        )
+        ),
     )
 
     statements, release_statements = _buildContractionBodyNode(
@@ -342,14 +345,15 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         ),
     )
 
-    code_body.setBody(
+    code_body.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             statement=StatementsFrameGenerator(
                 statements=mergeStatements(statements, False),
                 code_object=code_object,
                 source_ref=source_ref,
             )
-        )
+        ),
     )
 
     return function_body
@@ -556,7 +560,7 @@ def _buildContractionBodyNode(
 
         nested_statements.append(
             StatementLoop(
-                body=StatementsSequence(
+                loop_body=StatementsSequence(
                     statements=mergeStatements(loop_statements), source_ref=source_ref
                 ),
                 source_ref=source_ref,
@@ -672,6 +676,6 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
             ),
         )
 
-    function_body.setBody(body)
+    function_body.setChild("body", body)
 
     return function_body
