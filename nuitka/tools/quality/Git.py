@@ -73,6 +73,24 @@ def getStagedFileChangeDesc():
         yield _parseIndexDiffLine(line)
 
 
+def getModifiedPaths():
+    output = check_output(["git", "diff", "--name-only"])
+
+    for line in output.splitlines():
+        if str is not bytes:
+            line = line.decode("utf8")
+
+        yield line
+
+    output = check_output(["git", "diff", "--cached", "--name-only"])
+
+    for line in output.splitlines():
+        if str is not bytes:
+            line = line.decode("utf8")
+
+        yield line
+
+
 def getFileHashContent(object_hash):
     return check_output(["git", "cat-file", "-p", object_hash])
 
