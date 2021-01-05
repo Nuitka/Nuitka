@@ -29,7 +29,7 @@ from abc import abstractmethod
 
 from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
-from nuitka.Errors import NuitkaNodeError
+from nuitka.Errors import NuitkaNodeDesignError, NuitkaNodeError
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils.InstanceCounters import counted_del, counted_init
@@ -513,7 +513,12 @@ class ChildrenHavingMixin(object):
 
         # Check for completeness of given values, everything should be there
         # but of course, might be put to None.
-        assert set(values.keys()) == set(self.named_children)
+        if set(values.keys()) != set(self.named_children):
+            raise NuitkaNodeDesignError(
+                "Must pass named children in value dictionary",
+                set(values.keys()),
+                set(self.named_children),
+            )
 
         for name, value in values.items():
             if name in self.checkers:

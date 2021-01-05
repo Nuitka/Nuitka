@@ -64,3 +64,7 @@ class NuitkaPluginError(NuitkaErrorBase):
 
 class NuitkaCodeDeficit(NuitkaErrorBase):
     pass
+
+
+class NuitkaNodeDesignError(Exception):
+    pass

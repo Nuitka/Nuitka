@@ -25,10 +25,7 @@ of checks, and add methods automatically.
 from abc import ABCMeta
 
 from nuitka.__past__ import intern  # pylint: disable=I0021,redefined-builtin
-
-
-class NuitkaNodeDesignError(Exception):
-    pass
+from nuitka.Errors import NuitkaNodeDesignError
 
 
 def _checkBases(name, bases):
