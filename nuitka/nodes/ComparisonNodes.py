@@ -40,6 +40,10 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
             self, values={"left": left, "right": right}, source_ref=source_ref
         )
 
+    @staticmethod
+    def copyTraceStateFrom(source):
+        pass
+
     def getOperands(self):
         return (self.subnode_left, self.subnode_right)
 
@@ -93,6 +97,8 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
                 source_ref=self.source_ref,
             )
 
+            result.copyTraceStateFrom(self)
+
             return (
                 result,
                 "new_expression",
@@ -119,6 +125,10 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
 
     def getDetails(self):
         return {}
+
+    def copyTraceStateFrom(self, source):
+        self.type_shape = source.type_shape
+        self.escape_desc = source.escape_desc
 
     def canCreateUnsupportedException(self):
         return hasattr(self.subnode_left.getTypeShape(), "typical_value") and hasattr(
