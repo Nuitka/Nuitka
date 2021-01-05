@@ -53,6 +53,8 @@ from .SearchModes import (
     SearchModeResume,
 )
 
+test_logger = OurLogger("", base_style="blue")
+
 
 def check_result(*popenargs, **kwargs):
     if "stdout" in kwargs:
@@ -1521,6 +1523,29 @@ def setupCacheHashSalt(test_code_path):
     os.environ["NUITKA_HASH_SALT"] = salt_value.hexdigest()
 
 
+def displayFolderContents(name, path):
+    test_logger.info("Listing of %s %r:" % (name, path))
+
+    if os.path.exists(path):
+        if os.name == "nt":
+            command = "dir /b /s /a:-D %s" % path
+        else:
+            command = "ls -Rla %s" % path
+
+        os.system(command)
+    else:
+        test_logger.info("Does not exist.")
+
+
+def displayFileContents(name, path):
+    test_logger.info("Contents of %s %r:" % (name, path))
+
+    if os.path.exists(path):
+        os.system("cat %r" % path)
+    else:
+        test_logger.info("Does not exist.")
+
+
 def someGenerator():
     yield 1
     yield 2
@@ -1530,6 +1555,3 @@ def someGenerator():
 def someGeneratorRaising():
     yield 1
     raise TypeError(2)
-
-
-test_logger = OurLogger("", base_style="blue")

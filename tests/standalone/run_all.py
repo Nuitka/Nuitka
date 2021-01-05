@@ -49,6 +49,8 @@ from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
     decideFilenameVersionSkip,
+    displayFileContents,
+    displayFolderContents,
     getPythonVendor,
     getRuntimeTraceOfLoadedFiles,
     hasModule,
@@ -101,16 +103,11 @@ def checkRequirements(filename):
 def displayError(dirname, filename):
     assert dirname is None
 
-    filename = filename[:-3] + ".dist"
+    dist_path = filename[:-3] + ".dist"
+    displayFolderContents("dist folder", dist_path)
 
-    test_logger.info("Listing of dist folder '%s':" % filename)
-
-    if os.name == "nt":
-        command = "dir /b /s /a:-D %s" % filename
-    else:
-        command = "ls -Rla %s" % filename
-
-    os.system(command)
+    inclusion_log_path = filename[:-3] + ".py.inclusion.log"
+    displayFileContents("inclusion log", inclusion_log_path)
 
 
 def main():
@@ -622,11 +619,7 @@ def main():
 
         if illegal_access:
             if os.name != "nt":
-                test_logger.info("Listing of dist folder:")
-                os.system("ls -Rla %s" % filename[:-3] + ".dist")
-
-                test_logger.info("Inclusion log:")
-                os.system("cat %s" % filename[:-3] + ".py.inclusion.log")
+                displayError(displayError, filename)
 
                 # Run with traces to help debugging, specifically in CI environment.
                 if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
