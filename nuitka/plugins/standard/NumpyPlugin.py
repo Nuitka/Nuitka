@@ -200,9 +200,7 @@ class NumpyPlugin(NuitkaPluginBase):
         if self.scipy:
             self.scipy_copied = False
 
-        self.mpl_data_copied = True  # indicator: matplotlib data copied
-        if self.matplotlib:
-            self.mpl_data_copied = False
+        self.mpl_data_copied = False  # indicator: matplotlib data copied
 
     @classmethod
     def isRelevant(cls):
@@ -284,8 +282,9 @@ Should matplotlib not be be included with numpy, Default is %default.""",
                 )
                 self.info(msg)
 
-        if not self.mpl_data_copied and full_name == "matplotlib":
+        if self.matplotlib and full_name == "matplotlib" and not self.mpl_data_copied:
             self.mpl_data_copied = True
+
             copyMplDataFiles(module, dist_dir)
             self.info("Copied 'matplotlib/mpl-data'.")
 
