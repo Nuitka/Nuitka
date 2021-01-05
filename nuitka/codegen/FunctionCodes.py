@@ -567,8 +567,9 @@ def setupFunctionLocalVariables(
 def finalizeFunctionLocalVariables(context):
     function_cleanup = []
 
-    # TODO: Many times this will not be necessary.
-    for locals_declaration in context.getLocalsDictNames():
+    # TODO: Many times it will not be necessary to release locals dict, because
+    # they already were, but our tracing doesn't yet allow us to know.
+    for locals_declaration in sorted(context.getLocalsDictNames(), key=str):
         function_cleanup.append(
             "Py_XDECREF(%(locals_dict)s);\n" % {"locals_dict": locals_declaration}
         )
