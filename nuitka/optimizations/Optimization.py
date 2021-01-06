@@ -24,6 +24,7 @@ make others possible.
 
 
 import inspect
+import os
 
 from nuitka import ModuleRegistry, Options, Variables
 from nuitka.importing import ImportCache
@@ -33,11 +34,15 @@ from nuitka.Tracing import (
     general,
     memory_logger,
     optimization_logger,
-    printLine,
     progress_logger,
     recursion_logger,
 )
-from nuitka.utils import MemoryUsage
+from nuitka.utils.AppDirs import getCacheDir
+from nuitka.utils.FileOperations import makePath
+from nuitka.utils.MemoryUsage import (
+    MemoryWatch,
+    getHumanReadableProcessMemoryUsage,
+)
 
 from . import Graphs, TraceCollections
 from .BytecodeDemotion import demoteCompiledModuleToBytecode
@@ -96,7 +101,7 @@ def optimizeCompiledPythonModule(module):
     touched = False
 
     if _progress and Options.isShowMemory():
-        memory_watch = MemoryUsage.MemoryWatch()
+        memory_watch = MemoryWatch()
 
     while True:
         tag_set.clear()
@@ -495,7 +500,7 @@ after that.""".format(
 
     if Options.isShowMemory():
         output = "Memory usage {memory}:".format(
-            memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
+            memory=getHumanReadableProcessMemoryUsage()
         )
 
         memory_logger.info(output)
@@ -577,42 +582,21 @@ def makeOptimizationPass():
     return finished
 
 
+def _getCacheFilename(module):
+    module_cache_dir = os.path.join(getCacheDir(), "module-cache")
+    makePath(module_cache_dir)
+
+    return os.path.join(module_cache_dir, module.getFullName().asString() + ".xml")
+
+
 def _checkXMLPersistence():
-    new_roots = ModuleRegistry.root_modules.__class__()
-
-    for module in tuple(ModuleRegistry.getDoneModules()):
-        ModuleRegistry.root_modules.remove(module)
-
-        if module.isPythonShlibModule():
+    for module in ModuleRegistry.getDoneModules():
+        if not module.isCompiledPythonModule():
             continue
 
         text = module.asXmlText()
-        with open("out.xml", "w") as f:
+        with open(_getCacheFilename(module), "w") as f:
             f.write(text)
-        restored = restoreFromXML(text)
-        retext = restored.asXmlText()
-        with open("out2.xml", "w") as f:
-            f.write(retext)
-
-        assert module.getOutputFilename() == restored.getOutputFilename(), (
-            module.getOutputFilename(),
-            restored.getOutputFilename(),
-        )
-
-        # The variable versions give diffs.
-        if True:  # To manually enable, pylint: disable=W0125
-            import difflib
-
-            diff = difflib.unified_diff(
-                text.splitlines(), retext.splitlines(), "xml orig", "xml reloaded"
-            )
-            for line in diff:
-                printLine(line)
-
-        new_roots.add(restored)
-
-    ModuleRegistry.root_modules = new_roots
-    ModuleRegistry.startTraversal()
 
 
 def optimize(output_filename):

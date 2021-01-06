@@ -239,12 +239,10 @@ def pickSourceFilenames(source_dir, modules):
 standalone_entry_points = []
 
 
-def makeSourceDirectory(main_module):
+def makeSourceDirectory():
     """Get the full list of modules imported, create code for all of them."""
     # We deal with a lot of details here, but rather one by one, and split makes
     # no sense, pylint: disable=too-many-branches
-
-    assert main_module.isCompiledPythonModule()
 
     # assert main_module in ModuleRegistry.getDoneModules()
 
@@ -573,13 +571,13 @@ def executeModule(tree, clean_path):
     callExecPython(clean_path=clean_path, add_path=True, args=args)
 
 
-def compileTree(main_module):
+def compileTree():
     source_dir = OutputDirectories.getSourceDirectoryPath()
 
     general.info("Completed Python level compilation and optimization.")
 
     if not Options.shallOnlyExecCCompilerCall():
-        general.info("Generating C source code for backend compiler.")
+        general.info("Generating source code for C backend compiler.")
 
         if Options.isShowProgress() or Options.isShowMemory():
             general.info(
@@ -588,7 +586,7 @@ def compileTree(main_module):
                 )
             )
         # Now build the target language code for the whole tree.
-        makeSourceDirectory(main_module=main_module)
+        makeSourceDirectory()
 
         bytecode_accessor = ConstantAccessor(
             data_filename="__bytecode.const", top_level_name="bytecode_data"
@@ -700,7 +698,7 @@ def main():
             dumpTreeXML(module)
     else:
         # Make the actual compilation.
-        result, options = compileTree(main_module=main_module)
+        result, options = compileTree()
 
         # Exit if compilation failed.
         if not result:

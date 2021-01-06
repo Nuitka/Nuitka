@@ -4037,10 +4037,10 @@ those the case, that they are not really required to be installed by the
 user, consider this snippet:
 
    # Folders to use for cache files.
-   appdirs == 1.4.3
+   appdirs == 1.4.4
 
    # Scons is the backend building tool to turn C files to binaries.
-   scons == 3.0.4
+   scons == 3.1.2
 
 For both these dependencies, there is either an inline copy (Scons) that we
 handle to use in case, Scons is not available (in fact we have a version that

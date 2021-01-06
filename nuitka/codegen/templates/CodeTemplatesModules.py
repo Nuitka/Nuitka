@@ -455,7 +455,10 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
     // Other modules get a "ModuleSpec" from the standard mechanism.
     {
         PyObject *bootstrap_module = getImportLibBootstrapModule();
+        CHECK_OBJECT(bootstrap_module);
+
         PyObject *_spec_from_module = PyObject_GetAttrString(bootstrap_module, "_spec_from_module");
+        CHECK_OBJECT(_spec_from_module);
 
         PyObject *spec_value = CALL_FUNCTION_WITH_SINGLE_ARG(_spec_from_module, module_%(module_identifier)s);
         Py_DECREF(_spec_from_module);
