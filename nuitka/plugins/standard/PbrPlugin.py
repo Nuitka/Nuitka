@@ -47,7 +47,7 @@ class NuitkaPluginPbrWorkarounds(NuitkaPluginBase):
 import os
 version = os.environ.get(
         "PBR_VERSION",
-        os.environ.get("OSLO_PACKAGE_VERSION", None))
+        os.environ.get("OSLO_PACKAGE_VERSION"))
 if not version:
     os.environ["OSLO_PACKAGE_VERSION"] = "1.0"
 """

@@ -95,7 +95,7 @@ class TkinterPlugin(NuitkaPluginBase):
         # The following code will be executed before importing the module.
         # If required we set the respective environment values.
         code = """import os
-if not os.environ.get("TCL_LIBRARY", None):
+if not os.environ.get("TCL_LIBRARY"):
     os.environ["TCL_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tcl")
     os.environ["TK_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tk")"""
         return code, "Need to make sure we set environment variables for TCL."

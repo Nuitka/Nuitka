@@ -447,7 +447,7 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
 
 def publishCoverageData():
     def copyToGlobalCoverageData(source, target):
-        coverage_dir = os.environ.get("COVERAGE_DIR", None)
+        coverage_dir = os.environ.get("COVERAGE_DIR")
 
         if coverage_dir is None:
             return

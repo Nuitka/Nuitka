@@ -1169,7 +1169,7 @@ def withPythonPathChange(python_path):
 
 
 def addExtendedExtraOptions(*args):
-    old_value = os.environ.get("NUITKA_EXTRA_OPTIONS", None)
+    old_value = os.environ.get("NUITKA_EXTRA_OPTIONS")
 
     value = old_value
 

@@ -528,7 +528,7 @@ def writeBinaryData(filename, binary_data):
 
 
 def callExecPython(args, clean_path, add_path):
-    old_python_path = os.environ.get("PYTHONPATH", None)
+    old_python_path = os.environ.get("PYTHONPATH")
 
     if clean_path and old_python_path is not None:
         os.environ["PYTHONPATH"] = ""

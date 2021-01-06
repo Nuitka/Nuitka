@@ -241,7 +241,7 @@ class NuitkaPluginBase(object):
         Returns:
             dict
         """
-        return self.module_aliases.get(module_name, None)
+        return self.module_aliases.get(module_name)
 
     def onModuleSourceCode(self, module_name, source_code):
         """Inspect or modify source code.
