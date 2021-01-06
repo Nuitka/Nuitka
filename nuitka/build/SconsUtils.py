@@ -86,6 +86,39 @@ def getArgumentList(option_name, default=None):
         return []
 
 
+def createEnvironment(tools, mingw_mode, msvc_version, target_arch):
+    from SCons.Script import Environment  # pylint: disable=I0021,import-error
+
+    args = {}
+
+    # If we are on Windows, and MinGW is not enforced, lets see if we can
+    # find "cl.exe", and if we do, disable automatic scan.
+    if (
+        os.name == "nt"
+        and not mingw_mode
+        and (
+            getExecutablePath("cl", env=None) is not None
+            or getExecutablePath("gcc", env=None) is not None
+        )
+    ):
+        args["MSVC_USE_SCRIPT"] = False
+
+    return Environment(
+        # We want the outside environment to be passed through.
+        ENV=os.environ,
+        # Extra tools configuration for scons.
+        tools=tools,
+        # The shared libraries should not be named "lib...", because CPython
+        # requires the filename "module_name.so" to load it.
+        SHLIBPREFIX="",
+        # Under windows, specify the target architecture is needed for Scons
+        # to pick up MSVC.
+        TARGET_ARCH=target_arch,
+        MSVC_VERSION=msvc_version,
+        **args
+    )
+
+
 def decodeData(data):
     """Our own decode tries to workaround MSVC misbehavior."""
     try:

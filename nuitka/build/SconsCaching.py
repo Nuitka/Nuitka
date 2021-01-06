@@ -120,7 +120,7 @@ def _injectCcache(the_compiler, cc_path, env, python_prefix, assume_yes_for_down
         assert getExecutablePath(os.path.basename(the_compiler), env=env) == cc_path
 
         # We use absolute paths for CC, pass it like this, as ccache does not like absolute.
-        env["CXX"] = env["CC"] = "%s %s" % (ccache_binary, os.path.basename(cc_path))
+        env["CXX"] = env["CC"] = "%s %s" % (ccache_binary, cc_path)
 
         # Spare ccache the detection of the compiler, seems it will also misbehave when it's
         # prefixed with "ccache" on old gcc versions in terms of detecting need for C++ linkage.

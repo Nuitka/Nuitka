@@ -54,7 +54,7 @@ from SCons.Script import (  # pylint: disable=import-error
 from nuitka.Tracing import my_print, scons_details_logger, scons_logger
 
 from .SconsCaching import enableCcache, enableClcache
-from .SconsCompilerSettings import enableC11Settings
+from .SconsCompilerSettings import checkWindowsCompilerFound, enableC11Settings
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
 from .SconsUtils import (
@@ -62,6 +62,7 @@ from .SconsUtils import (
     addToPATH,
     changeKeyboardInteruptToErrorExit,
     createDefinitionsFile,
+    createEnvironment,
     getArgumentBool,
     getArgumentDefaulted,
     getArgumentList,
@@ -158,7 +159,7 @@ scons_details_logger.is_quiet = not show_scons_mode
 python_prefix = ARGUMENTS["python_prefix"]
 
 # Forced MSVC version (windows-only)
-msvc_version = ARGUMENTS.get("msvc_version", None)
+msvc_version = ARGUMENTS.get("msvc_version")
 
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
@@ -226,34 +227,6 @@ gcc_version = None
 Environment.Detect = getEnhancedToolDetect()
 
 
-def createEnvironment(tools):
-    args = {}
-
-    # If we are on Windows, and MinGW is not enforced, lets see if we can
-    # find "cl.exe", and if we do, disable automatic scan.
-    if (
-        win_target
-        and not mingw_mode
-        and (
-            getExecutablePath("cl", env=None) is not None
-            or getExecutablePath("gcc", env=None) is not None
-        )
-    ):
-        args["MSVC_USE_SCRIPT"] = False
-
-    return Environment(
-        # We want the outside environment to be passed through.
-        ENV=os.environ,
-        # Extra tools configuration for scons.
-        tools=tools,
-        # Under windows, specify the target architecture is needed for Scons
-        # to pick up MSVC.
-        TARGET_ARCH=target_arch,
-        MSVC_VERSION=msvc_version,
-        **args
-    )
-
-
 def getCompilerTools():
     if mingw_mode:
         # Force usage of MinGW, disable MSVC tools.
@@ -274,11 +247,16 @@ def getCompilerTools():
 
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
-env = createEnvironment(tools=getCompilerTools())
+env = createEnvironment(
+    tools=getCompilerTools(),
+    mingw_mode=mingw_mode,
+    msvc_version=msvc_version,
+    target_arch=target_arch,
+)
 
-scons_details_logger.info("Initial CC: %r" % env.get("CC", None))
+scons_details_logger.info("Initial CC: %r" % env.get("CC"))
 scons_details_logger.info(
-    "Initial CCVERSION: %r" % (env.get("CCVERSION", None),),
+    "Initial CCVERSION: %r" % (env.get("CCVERSION"),),
 )
 
 if "CC" in os.environ:
@@ -300,6 +278,11 @@ elif clang_mode:
     env["CC"] = "clang"
     env["CCVERSION"] = None
 
+# On Windows, in case MSVC was not found and not previously forced, use the
+# winlibs MinGW64 as a download, and use it as a fallback.
+env = checkWindowsCompilerFound(
+    env=env, target_arch=target_arch, assume_yes_for_downloads=assume_yes_for_downloads
+)
 
 the_compiler = env["CC"] or env["CXX"]
 the_cc_name = os.path.normcase(os.path.basename(the_compiler))

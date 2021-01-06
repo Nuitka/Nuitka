@@ -19,7 +19,19 @@
 
 """
 
+import os
+
+from nuitka.Tracing import scons_logger
 from nuitka.utils.Download import getCachedDownload
+
+from .SconsHacks import myDetectVersion
+from .SconsUtils import (
+    addToPATH,
+    createEnvironment,
+    decideArchMismatch,
+    getExecutablePath,
+    isGccName,
+)
 
 
 def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_mode, gcc_version):
@@ -40,6 +52,9 @@ def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_mode, gcc_ve
         c11_mode = True
     elif msvc_mode:
         c11_mode = False
+
+        # TODO: Once it includes updated Windows SDK, we could use C11 mode with it.
+        # float(env.get("MSVS_VERSION", "0")) >= 14.2
     elif clang_mode:
         c11_mode = True
     elif gcc_mode and gcc_version >= (5,):
@@ -78,3 +93,74 @@ def getDownloadedGccPath(target_arch, assume_yes_for_downloads):
     )
 
     return gcc_binary
+
+
+def checkWindowsCompilerFound(env, target_arch, assume_yes_for_downloads):
+    """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
+
+    if os.name == "nt":
+        # On Windows, in case MSVC was not found and not previously forced, use the
+        # winlibs MinGW64 as a download, and use it as a fallback.
+        compiler_path = getExecutablePath(env["CC"], env=env)
+
+        # Drop wrong arch compiler, most often found by scans. There might be wrong gcc or cl on the PATH.
+        if compiler_path is not None:
+            the_cc_name = os.path.basename(compiler_path)
+
+            decision, linker_arch, compiler_arch = decideArchMismatch(
+                target_arch=target_arch,
+                mingw_mode=isGccName(the_cc_name),
+                msvc_mode=not isGccName(the_cc_name),
+                the_cc_name=the_cc_name,
+                compiler_path=compiler_path,
+            )
+
+            if decision:
+                # This will trigger using it to use our own gcc in branch below.
+                compiler_path = None
+
+                scons_logger.info(
+                    "Mismatch between Python binary (%r -> %r) and C compiler (%r -> %r) arches, ignored!"
+                    % (
+                        os.environ["NUITKA_PYTHON_EXE_PATH"],
+                        linker_arch,
+                        compiler_path,
+                        compiler_arch,
+                    )
+                )
+
+        if compiler_path is not None:
+            the_cc_name = os.path.basename(compiler_path)
+
+            if isGccName(the_cc_name):
+                gcc_version = myDetectVersion(env, compiler_path)
+
+                min_version = (8,)
+                if gcc_version is not None and gcc_version < min_version:
+                    # This also will trigger using it to use our own gcc in branch below.
+                    compiler_path = None
+
+                    scons_logger.info(
+                        "Too old gcc %r (%r < %r) ignored!"
+                        % (compiler_path, gcc_version, min_version)
+                    )
+
+        if compiler_path is None:
+            # This will succeed to find "gcc.exe" when conda install m2w64-gcc has
+            # been done.
+            compiler_path = getDownloadedGccPath(
+                target_arch=target_arch,
+                assume_yes_for_downloads=assume_yes_for_downloads,
+            )
+            addToPATH(env, os.path.dirname(compiler_path), prefix=True)
+
+            env = createEnvironment(
+                tools=["mingw"],
+                mingw_mode=True,
+                msvc_version=None,
+                target_arch=target_arch,
+            )
+
+            env["CC"] = compiler_path
+
+    return env
