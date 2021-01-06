@@ -24,7 +24,6 @@ types, and then specialize for the ones, where it makes sense.
 from logging import warning
 
 from nuitka.__past__ import xrange  # pylint: disable=I0021,redefined-builtin
-from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
@@ -243,7 +242,6 @@ def type_extractor(node):
 
 
 def iter_extractor(node):
-    @calledWithBuiltinArgumentNamesDecorator
     def wrapIterCreation(callable_arg, sentinel, source_ref):
         if sentinel is None:
             return ExpressionBuiltinIter1(value=callable_arg, source_ref=source_ref)
@@ -755,7 +753,6 @@ if python_version < 0x300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExecfile
 
     def execfile_extractor(node):
-        @calledWithBuiltinArgumentNamesDecorator
         def wrapExpressionBuiltinExecfileCreation(
             filename, globals_arg, locals_arg, source_ref
         ):
@@ -826,7 +823,6 @@ if python_version < 0x300:
 
 
 def eval_extractor(node):
-    @calledWithBuiltinArgumentNamesDecorator
     def wrapEvalBuiltin(source, globals_arg, locals_arg, source_ref):
         provider = node.getParentVariableProvider()
 
@@ -986,7 +982,6 @@ if python_version >= 0x300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 
     def exec_extractor(node):
-        @calledWithBuiltinArgumentNamesDecorator
         def wrapExpressionBuiltinExecCreation(
             source, globals_arg, locals_arg, source_ref
         ):
@@ -1087,7 +1082,6 @@ def open_extractor(node):
 
 
 def super_extractor(node):
-    @calledWithBuiltinArgumentNamesDecorator
     def wrapSuperBuiltin(type_arg, object_arg, source_ref):
         if type_arg is None and python_version >= 0x300:
             if provider.isCompiledPythonModule():

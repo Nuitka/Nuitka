@@ -123,7 +123,8 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
     def getTypeShape(self):
         return self.type_shape
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
 
     def copyTraceStateFrom(self, source):
@@ -327,7 +328,8 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
         # TODO: Forward propagate this one.
         self.match_value = self.comparator == "Is"
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
 
     @staticmethod
@@ -438,7 +440,8 @@ class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
             self, left=left, right=right, source_ref=source_ref
         )
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
 
     @staticmethod
@@ -484,7 +487,8 @@ class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
 
         assert self.comparator in ("In", "NotIn")
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
 
     @staticmethod

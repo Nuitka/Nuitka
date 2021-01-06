@@ -260,7 +260,7 @@ def generateBuiltinIter2Code(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_ITER2",
         arg_desc=(
-            ("iter_callable", expression.subnode_callable),
+            ("iter_callable", expression.subnode_callable_arg),
             ("iter_sentinel", expression.subnode_sentinel),
         ),
         may_raise=expression.mayRaiseException(BaseException),

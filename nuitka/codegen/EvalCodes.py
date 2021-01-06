@@ -240,8 +240,8 @@ def getBuiltinEvalCode(
 
 def generateExecCode(statement, emit, context):
     source_arg = statement.subnode_source
-    globals_arg = statement.subnode_globals
-    locals_arg = statement.subnode_locals
+    globals_arg = statement.subnode_globals_arg
+    locals_arg = statement.subnode_locals_arg
 
     source_name = context.allocateTempName("exec_source")
     globals_name = context.allocateTempName("exec_globals")
@@ -347,13 +347,16 @@ def _generateEvalCode(to_name, node, emit, context):
 
     generateExpressionCode(
         to_name=globals_name,
-        expression=node.subnode_globals,
+        expression=node.subnode_globals_arg,
         emit=emit,
         context=context,
     )
 
     generateExpressionCode(
-        to_name=locals_name, expression=node.subnode_locals, emit=emit, context=context
+        to_name=locals_name,
+        expression=node.subnode_locals_arg,
+        emit=emit,
+        context=context,
     )
 
     if node.isExpressionBuiltinEval() or (
@@ -398,7 +401,7 @@ def generateExecfileCode(to_name, expression, emit, context):
 
 
 def generateLocalsDictSyncCode(statement, emit, context):
-    locals_arg = statement.subnode_locals
+    locals_arg = statement.subnode_locals_arg
     locals_name = context.allocateTempName("sync_locals")
 
     generateExpressionCode(

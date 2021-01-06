@@ -70,7 +70,8 @@ class ExpressionOperationBinaryBase(
         self.type_shape = None
         self.escape_desc = None
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
 
     @staticmethod
@@ -653,7 +654,8 @@ class ExpressionOperationNot(ExpressionOperationUnaryBase):
     def getTypeShape():
         return tshape_bool
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
 
     def computeExpression(self, trace_collection):

@@ -24,7 +24,6 @@ The length of things is an important optimization issue for these to be
 good.
 """
 
-from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import (
@@ -258,13 +257,12 @@ Determined iteration end check to always raise.""",
 class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ITER2"
 
-    named_children = ("callable", "sentinel")
+    named_children = ("callable_arg", "sentinel")
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, callable_arg, sentinel, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values={"callable": callable_arg, "sentinel": sentinel},
+            values={"callable_arg": callable_arg, "sentinel": sentinel},
             source_ref=source_ref,
         )
 

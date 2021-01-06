@@ -22,7 +22,6 @@ to eliminate or limit their impact as much as possible, but it's difficult
 to do.
 """
 
-from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import ExpressionChildrenHavingBase
@@ -36,15 +35,15 @@ from .NodeMakingHelpers import (
 class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_EVAL"
 
-    named_children = ("source", "globals", "locals")
+    named_children = ("source", "globals_arg", "locals_arg")
 
     def __init__(self, source_code, globals_arg, locals_arg, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values={
                 "source": source_code,
-                "globals": globals_arg,
-                "locals": locals_arg,
+                "globals_arg": globals_arg,
+                "locals_arg": locals_arg,
             },
             source_ref=source_ref,
         )
@@ -77,8 +76,8 @@ if python_version >= 0x300:
             if self.getParentVariableProvider().isEarlyClosure():
                 result = StatementExec(
                     source_code=self.subnode_source,
-                    globals_arg=self.subnode_globals,
-                    locals_arg=self.subnode_locals,
+                    globals_arg=self.subnode_globals_arg,
+                    locals_arg=self.subnode_locals_arg,
                     source_ref=self.source_ref,
                 )
 
@@ -100,7 +99,7 @@ if python_version < 0x300:
     class ExpressionBuiltinExecfile(ExpressionBuiltinEval):
         kind = "EXPRESSION_BUILTIN_EXECFILE"
 
-        named_children = ("source", "globals", "locals")
+        named_children = ("source", "globals_arg", "locals_arg")
 
         def __init__(self, source_code, globals_arg, locals_arg, source_ref):
             ExpressionBuiltinEval.__init__(
@@ -119,8 +118,8 @@ if python_version < 0x300:
             if provider.isExpressionClassBody():
                 result = StatementExec(
                     source_code=self.subnode_source,
-                    globals_arg=self.subnode_globals,
-                    locals_arg=self.subnode_locals,
+                    globals_arg=self.subnode_globals_arg,
+                    locals_arg=self.subnode_locals_arg,
                     source_ref=self.source_ref,
                 )
 
@@ -139,21 +138,21 @@ Changed 'execfile' with unused result to 'exec' on class level.""",
 class StatementExec(StatementChildrenHavingBase):
     kind = "STATEMENT_EXEC"
 
-    named_children = ("source", "globals", "locals")
+    named_children = ("source", "globals_arg", "locals_arg")
 
     def __init__(self, source_code, globals_arg, locals_arg, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values={
-                "globals": globals_arg,
-                "locals": locals_arg,
+                "globals_arg": globals_arg,
+                "locals_arg": locals_arg,
                 "source": source_code,
             },
             source_ref=source_ref,
         )
 
     def setChild(self, name, value):
-        if name in ("globals", "locals"):
+        if name in ("globals_arg", "locals_arg"):
             value = convertNoneConstantToNone(value)
 
         return StatementChildrenHavingBase.setChild(self, name, value)
@@ -175,7 +174,7 @@ Exec statement raises implicitly when determining source code argument.""",
             )
 
         globals_arg = trace_collection.onExpression(
-            expression=self.subnode_globals, allow_none=True
+            expression=self.subnode_globals_arg, allow_none=True
         )
 
         if globals_arg is not None and globals_arg.mayRaiseException(BaseException):
@@ -194,7 +193,7 @@ Exec statement raises implicitly when determining globals argument.""",
             )
 
         locals_arg = trace_collection.onExpression(
-            expression=self.subnode_locals, allow_none=True
+            expression=self.subnode_locals_arg, allow_none=True
         )
 
         if locals_arg is not None and locals_arg.mayRaiseException(BaseException):
@@ -231,11 +230,10 @@ Exec statement raises implicitly when determining locals argument.""",
 class StatementLocalsDictSync(StatementChildHavingBase):
     kind = "STATEMENT_LOCALS_DICT_SYNC"
 
-    named_child = "locals"
+    named_child = "locals_arg"
 
     __slots__ = ("locals_scope", "previous_traces", "variable_traces")
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, locals_scope, locals_arg, source_ref):
         StatementChildHavingBase.__init__(self, value=locals_arg, source_ref=source_ref)
 

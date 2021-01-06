@@ -464,7 +464,12 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         Py_DECREF(_spec_from_module);
 
         // We can assume this to never fail, or else we are in trouble anyway.
-        CHECK_OBJECT(spec_value);
+        // CHECK_OBJECT(spec_value);
+
+        if (spec_value == NULL) {
+            PyErr_PrintEx(0);
+            abort();
+        }
 
 // Mark the execution in the "__spec__" value.
         SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_True);

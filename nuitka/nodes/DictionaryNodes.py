@@ -24,7 +24,6 @@ that is the child of the dictionary creation.
 
 
 from nuitka import Constants
-from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.PythonVersions import python_version
 
 from .AttributeNodes import ExpressionAttributeLookup
@@ -334,9 +333,8 @@ Removed sequence creation for unused sequence.""",
 class StatementDictOperationSet(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_SET"
 
-    named_children = ("value", "dict", "key")
+    named_children = ("value", "dict_arg", "key")
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, key, value, source_ref):
         assert dict_arg is not None
         assert key is not None
@@ -344,7 +342,7 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
 
         StatementChildrenHavingBase.__init__(
             self,
-            values={"dict": dict_arg, "key": key, "value": value},
+            values={"dict_arg": dict_arg, "key": key, "value": value},
             source_ref=source_ref,
         )
 
@@ -384,21 +382,20 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
 class StatementDictOperationSetKeyValue(StatementDictOperationSet):
     kind = "STATEMENT_DICT_OPERATION_SET_KEY_VALUE"
 
-    named_children = ("key", "value", "dict")
+    named_children = ("key", "value", "dict_arg")
 
 
 class StatementDictOperationRemove(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_REMOVE"
 
-    named_children = ("dict", "key")
+    named_children = ("dict_arg", "key")
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, key, source_ref):
         assert dict_arg is not None
         assert key is not None
 
         StatementChildrenHavingBase.__init__(
-            self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
+            self, values={"dict_arg": dict_arg, "key": key}, source_ref=source_ref
         )
 
     def computeStatement(self, trace_collection):
@@ -429,15 +426,14 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
 class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_DICT_OPERATION_GET"
 
-    named_children = ("dict", "key")
+    named_children = ("dict_arg", "key")
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, key, source_ref):
         assert dict_arg is not None
         assert key is not None
 
         ExpressionChildrenHavingBase.__init__(
-            self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
+            self, values={"dict_arg": dict_arg, "key": key}, source_ref=source_ref
         )
 
     def computeExpression(self, trace_collection):
@@ -456,15 +452,14 @@ class StatementDictOperationUpdate(StatementChildrenHavingBase):
 
     kind = "STATEMENT_DICT_OPERATION_UPDATE"
 
-    named_children = ("dict", "value")
+    named_children = ("dict_arg", "value")
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, value, source_ref):
         assert dict_arg is not None
         assert value is not None
 
         StatementChildrenHavingBase.__init__(
-            self, values={"dict": dict_arg, "value": value}, source_ref=source_ref
+            self, values={"dict_arg": dict_arg, "value": value}, source_ref=source_ref
         )
 
     def computeStatement(self, trace_collection):
@@ -483,17 +478,16 @@ class StatementDictOperationUpdate(StatementChildrenHavingBase):
 class ExpressionDictOperationInNotInUncertainBase(ExpressionChildrenHavingBase):
     # Follows the reversed nature of "in", with the dictionary on the right
     # side of things.
-    named_children = ("key", "dict")
+    named_children = ("key", "dict_arg")
 
     __slots__ = ("known_hashable_key",)
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, key, dict_arg, source_ref):
         assert dict_arg is not None
         assert key is not None
 
         ExpressionChildrenHavingBase.__init__(
-            self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
+            self, values={"dict_arg": dict_arg, "key": key}, source_ref=source_ref
         )
 
         self.known_hashable_key = None
@@ -514,7 +508,7 @@ class ExpressionDictOperationInNotInUncertainBase(ExpressionChildrenHavingBase):
     def mayRaiseException(self, exception_type):
         return (
             self.subnode_key.mayRaiseException(exception_type)
-            or self.subnode_dict.mayRaiseException(exception_type)
+            or self.subnode_dict_arg.mayRaiseException(exception_type)
             or self.known_hashable_key is not True
         )
 

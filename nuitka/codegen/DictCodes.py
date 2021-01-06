@@ -214,7 +214,7 @@ def generateDictOperationUpdateCode(statement, emit, context):
     dict_arg_name = context.allocateTempName("dictupdate_dict", unique=True)
     generateExpressionCode(
         to_name=dict_arg_name,
-        expression=statement.subnode_dict,
+        expression=statement.subnode_dict_arg,
         emit=emit,
         context=context,
     )
@@ -300,7 +300,7 @@ def generateDictOperationSetCode(statement, emit, context):
     dict_arg_name = context.allocateTempName("dictset_dict", unique=True)
     generateExpressionCode(
         to_name=dict_arg_name,
-        expression=statement.subnode_dict,
+        expression=statement.subnode_dict_arg,
         emit=emit,
         context=context,
     )
@@ -350,7 +350,7 @@ def generateDictOperationSetCodeKeyValue(statement, emit, context):
     dict_arg_name = context.allocateTempName("dictset38_dict")
     generateExpressionCode(
         to_name=dict_arg_name,
-        expression=statement.subnode_dict,
+        expression=statement.subnode_dict_arg,
         emit=emit,
         context=context,
     )
@@ -377,7 +377,7 @@ def generateDictOperationRemoveCode(statement, emit, context):
     dict_arg_name = context.allocateTempName("dictdel_dict", unique=True)
     generateExpressionCode(
         to_name=dict_arg_name,
-        expression=statement.subnode_dict,
+        expression=statement.subnode_dict_arg,
         emit=emit,
         context=context,
     )

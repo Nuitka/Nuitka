@@ -32,7 +32,6 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     long,
     unicode,
 )
-from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.codegen.Reports import onMissingTrust
 from nuitka.importing.Importing import (
     findModule,
@@ -273,18 +272,17 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
-    named_children = ("name", "globals", "locals", "fromlist", "level")
+    named_children = ("name", "globals_arg", "locals_arg", "fromlist", "level")
 
     _warned_about = set()
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, name, globals_arg, locals_arg, fromlist, level, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values={
                 "name": name,
-                "globals": globals_arg,
-                "locals": locals_arg,
+                "globals_arg": globals_arg,
+                "locals_arg": locals_arg,
                 "fromlist": fromlist,
                 "level": level,
             },
