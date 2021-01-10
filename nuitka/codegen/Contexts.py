@@ -591,7 +591,7 @@ class FrameDeclarationsMixin(object):
         # Currently active frame stack inside the context.
         self.frame_stack = [None]
 
-        self.locals_dict_names = set()
+        self.locals_dict_names = None
 
     def getFrameHandle(self):
         return self.frame_stack[-1]
@@ -689,7 +689,7 @@ class FrameDeclarationsMixin(object):
         return result
 
     def getLocalsDictNames(self):
-        return self.locals_dict_names
+        return self.locals_dict_names or ()
 
     def addLocalsDictName(self, locals_dict_name):
         result = self.variable_storage.getVariableDeclarationTop(locals_dict_name)
@@ -698,6 +698,9 @@ class FrameDeclarationsMixin(object):
             result = self.variable_storage.addVariableDeclarationTop(
                 "PyObject *", locals_dict_name, "NULL"
             )
+
+        if self.locals_dict_names is None:
+            self.locals_dict_names = set()
 
         self.locals_dict_names.add(result)
 
