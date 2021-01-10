@@ -53,13 +53,14 @@ Requirements
 
   * The ``clang`` compiler on macOS X or FreeBSD.
 
-  * The MinGW64 C11 compiler on Windows, ideally the one based on gcc
-    8 or higher. It will be automatically downloaded if not found.
+  * The MinGW64 C11 compiler on Windows, must be based on gcc 8 or higher. It
+    will be automatically downloaded if not found, which is the recommended
+    way of installing it.
 
-  * Visual Studio 2019 or higher on Windows [#]_, older versions may work
-    but are not officially supported. Configure to use the English language
-    pack for best results (Nuitka filters away garbage outputs, but only
-    for that language).
+  * Visual Studio 2019 or higher on Windows [#]_, older versions will work
+    but only supported for commercial users. Configure to use the English
+    language pack for best results (Nuitka filters away garbage outputs,
+    but only for that language).
 
   * On Windows the ``clang-cl`` compiler on Windows can be used if provided
     by the Visual Studion installer.
@@ -67,21 +68,27 @@ Requirements
 
 - Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9
 
-  .. admonition:: For 3.3, and 3.4 and *only* those versions, we need other
-     Python versions as a *compile time* dependency
+  .. admonition:: For Python 3.3, and 3.4 and *only* those versions, we need
+     other Python versions as a *compile time* dependency.
 
-     Nuitka itself is fully compatible with all mentioned versions, Scons as
-     an internally used tool is not.
+     Nuitka itself is fully compatible with all listed versions, but Scons as an
+     internally used tool is not.
 
      For these versions, you *need* a Python2 or Python 3.5 or higher installed
      as well, but only during the compile time only. That is for use with Scons
      (which orchestrates the C compilation), which does not support the same
      Python versions as Nuitka.
 
+     In addition, on Windows, Python2 cannot be used because ``clcache`` does
+     not work with it, there a Python 3.5 or higher needs to be installed.
+
+     Nuitka finds these needed Python versions (on Windows via registry) and
+     you shouldn't notice it as long as they are installed.
+
   .. admonition:: Moving binaries to other machines
 
      The created binaries can be made executable independent of the Python
-     installation, with ``--standalone`` option.
+     installation, with ``--standalone`` and ``--onefile`` options.
 
   .. admonition:: Binary filename suffix
 
@@ -223,7 +230,6 @@ Install Nuitka
 ++++++++++++++
 
  - ``python -m pip install nuitka``
- - or if you use Anaconda: ``conda install -c conda-forge nuitka``
  - Verify using command ``python -m nuitka --version``
 
 Write some code and test
