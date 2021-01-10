@@ -178,18 +178,21 @@ def _writeConstantValue(output, constant_value):
         # This is Python2 then. TODO: Special case smaller values.
         output.write(b"i" + struct.pack("l", constant_value))
     elif constant_type is float:
-        if constant_value == 0.0 and math.copysign(1, constant_value) == 1:
-            output.write(b"Z" + to_byte(0))
+        if constant_value == 0.0:
+            if math.copysign(1, constant_value) == 1:
+                output.write(b"Z" + to_byte(0))
+            else:
+                output.write(b"Z" + to_byte(1))
         elif math.isnan(constant_value):
             if math.copysign(1, constant_value) == 1:
-                output.write(b"Z" + to_byte(1))
-            else:
                 output.write(b"Z" + to_byte(2))
+            else:
+                output.write(b"Z" + to_byte(3))
         elif math.isinf(constant_value):
             if math.copysign(1, constant_value) == 1:
-                output.write(b"Z" + to_byte(3))
-            else:
                 output.write(b"Z" + to_byte(4))
+            else:
+                output.write(b"Z" + to_byte(5))
         else:
             output.write(b"f" + struct.pack("d", constant_value))
     elif constant_type is unicode:
@@ -260,8 +263,22 @@ def _writeConstantValue(output, constant_value):
     elif constant_value is False:
         output.write(b"F")
     elif constant_type is complex:
-        output.write(b"j")
-        output.write(struct.pack("dd", constant_value.real, constant_value.imag))
+        # Some float values do not transport well, use float streaming then.
+        if (
+            constant_value.real == 0 or constant_value.imag == 0
+            or math.isnan(constant_value.real)
+            or math.isnan(constant_value.imag)
+            or math.isinf(constant_value.real)
+            or math.isinf(constant_value.imag)
+        ):
+            output.write(b"J")
+
+            _writeConstantValue(output, constant_value.real)
+            _writeConstantValue(output, constant_value.imag)
+        else:
+            output.write(b"j")
+            output.write(struct.pack("dd", constant_value.real, constant_value.imag))
+
     elif constant_type is bytearray:
         output.write(b"B" + struct.pack("i", len(constant_value)))
 
