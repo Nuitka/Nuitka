@@ -21,7 +21,6 @@
 
 """
 
-import glob
 import sys
 from optparse import OptionParser
 
@@ -29,10 +28,7 @@ from nuitka.tools.quality.autoformat.Autoformat import autoformat
 from nuitka.tools.quality.Git import getStagedFileChangeDesc
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print
-
-
-def resolveShellPatternToFilenames(pattern):
-    return glob.glob(pattern)
+from nuitka.utils.FileOperations import resolveShellPatternToFilenames
 
 
 def main():

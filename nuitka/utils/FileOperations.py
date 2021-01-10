@@ -24,6 +24,7 @@ stuff. It will also frequently add sorting for determism.
 
 from __future__ import print_function
 
+import glob
 import os
 import shutil
 import stat
@@ -577,3 +578,7 @@ def replaceFileAtomic(source_path, dest_path):
         importFromInlineCopy("atomicwrites", must_exist=True).replace_atomic(
             source_path, dest_path
         )
+
+
+def resolveShellPatternToFilenames(pattern):
+    return glob.glob(pattern)

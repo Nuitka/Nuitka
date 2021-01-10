@@ -23,7 +23,6 @@
 
 from __future__ import print_function
 
-import glob
 import sys
 from optparse import OptionParser
 
@@ -33,10 +32,7 @@ from nuitka.tools.quality.Git import getModifiedPaths
 from nuitka.tools.quality.pylint import PyLint
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.tools.testing.Common import hasModule, setup
-
-
-def resolveShellPatternToFilenames(pattern):
-    return glob.glob(pattern)
+from nuitka.utils.FileOperations import resolveShellPatternToFilenames
 
 
 def main():

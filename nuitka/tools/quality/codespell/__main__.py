@@ -21,7 +21,6 @@
 
 """
 
-import glob
 import os
 import subprocess
 import sys
@@ -31,10 +30,7 @@ from nuitka.tools.Basics import goHome
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import withEnvironmentPathAdded
-
-
-def resolveShellPatternToFilenames(pattern):
-    return glob.glob(pattern)
+from nuitka.utils.FileOperations import resolveShellPatternToFilenames
 
 
 def runCodespell(filenames, verbose, write):
