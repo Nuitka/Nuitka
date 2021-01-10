@@ -25,7 +25,8 @@ from nuitka import Tracing
 from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import isUninstalledPython
-from nuitka.utils import Utils
+from nuitka.utils.FileOperations import resolveShellPatternToFilenames
+from nuitka.utils.Utils import getOS, isWin32Windows
 
 options = None
 positional_args = None
@@ -80,7 +81,7 @@ def parseArgs():
 Error, conflicting options, cannot make standalone module, only executable."""
             )
 
-        if Utils.getOS() == "NetBSD":
+        if getOS() == "NetBSD":
             logging.warning(
                 "Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported."
             )
@@ -136,7 +137,7 @@ mode where filenames are mandatory, and not for standalone where there is a
 sane default used inside the dist folder."""
         )
 
-    if Utils.getOS() == "Linux":
+    if getOS() == "Linux":
         if len(getIconPaths()) > 1:
             sys.exit("Error, can only use one icon on Linux.")
 
@@ -179,6 +180,31 @@ sane default used inside the dist folder."""
             "Conflicting options '--follow-imports' and '--nofollow-imports' given."
         )
 
+    if getShallIncludePackageData() and not isStandaloneMode():
+        sys.exit(
+            "Error, package data files are only included in standalone or onefile mode."
+        )
+
+    for data_file in options.data_files:
+        if "=" not in data_file:
+            sys.exit(
+                "Error, malformed data file description, must specify relative target path with =."
+            )
+
+        src, dst = data_file.split("=", 1)
+
+        if os.path.isabs(dst):
+            sys.exit(
+                "Error, must specify relative target path for data file, not %r."
+                % data_file
+            )
+
+        if not resolveShellPatternToFilenames(src):
+            sys.exit("Error, %r does not match any files." % src)
+
+    if options.data_files and not isStandaloneMode():
+        sys.exit("Error, data files are only included in standalone or onefile mode.")
+
     is_debug = _isDebug()
     is_nondebug = not is_debug
     is_fullcompat = _isFullCompat()
@@ -203,7 +229,7 @@ def commentArgs():
                 % default_reference_mode
             )
 
-    if Utils.getOS() != "Windows":
+    if getOS() != "Windows":
         if (
             getWindowsIconExecutablePath()
             or shallAskForWindowsAdminRights()
@@ -362,6 +388,15 @@ def getShallIncludePackageData():
     return sum([_splitShellPattern(x) for x in options.package_data], [])
 
 
+def getShallIncludeDataFiles():
+    """*list*, items of "--include-data-file=" """
+    for data_file in options.data_files:
+        src, dest = data_file.split("=", 1)
+
+        for pattern in _splitShellPattern(src):
+            yield pattern, dest, data_file
+
+
 def shallWarnImplicitRaises():
     """*bool* = "--warn-implicit-exceptions" """
     return options.warn_implicit_exceptions
@@ -447,17 +482,15 @@ def shallUseStaticLibPython():
         Currently only Anaconda on non-Windows can do this.
     """
 
-    if Utils.isWin32Windows() and os.path.exists(
-        os.path.join(sys.prefix, "etc/config.site")
-    ):
+    if isWin32Windows() and os.path.exists(os.path.join(sys.prefix, "etc/config.site")):
         return True
 
     # For Anaconda default to trying static lib python library, which
     # normally is just not available or if it is even unusable.
     return (
         os.path.exists(os.path.join(sys.prefix, "conda-meta"))
-        and not Utils.isWin32Windows()
-        and not Utils.getOS() == "Darwin"
+        and not isWin32Windows()
+        and not getOS() == "Darwin"
     )
 
 
@@ -606,7 +639,7 @@ def getIconPaths():
     result = options.icon_path
 
     # Check if Linux icon requirement is met.
-    if Utils.getOS() == "Linux" and not result and isOnefileMode():
+    if getOS() == "Linux" and not result and isOnefileMode():
         default_icon = "/usr/share/pixmaps/python.xpm"
         if os.path.exists(default_icon):
             result.append(default_icon)

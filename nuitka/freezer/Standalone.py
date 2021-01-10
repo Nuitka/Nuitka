@@ -67,6 +67,7 @@ from nuitka.utils.FileOperations import (
     listDir,
     makePath,
     putTextFileContents,
+    resolveShellPatternToFilenames,
     withFileLock,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffixes
@@ -1635,6 +1636,28 @@ def copyDataFiles(dist_dir):
         those must be registered as entry points, and would not go through
         necessary handling if provided like this.
     """
+
+    # Many details to deal with, pylint: disable=too-many-locals
+
+    for pattern, dest, arg in Options.getShallIncludeDataFiles():
+        filenames = resolveShellPatternToFilenames(pattern)
+
+        if not filenames:
+            inclusion_logger.warning("No match data file to be included: %r" % pattern)
+
+        for filename in filenames:
+            file_reason = "specified data file %r on command line" % arg
+
+            rel_path = dest
+
+            if rel_path.endswith(("/", os.path.sep)):
+                rel_path = os.path.join(rel_path, os.path.basename(filename))
+
+            _handleDataFile(
+                dist_dir,
+                inclusion_logger,
+                makeIncludedDataFile(filename, rel_path, file_reason),
+            )
 
     # Cyclic dependency
     from nuitka import ModuleRegistry

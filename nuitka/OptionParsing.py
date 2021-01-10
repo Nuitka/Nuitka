@@ -313,6 +313,21 @@ will include all non-DLL, non-extension modules in the distribution. Default
 empty.""",
 )
 
+data_group.add_option(
+    "--include-data-file",
+    action="append",
+    dest="data_files",
+    metavar="DATA_FILES",
+    default=[],
+    help="""\
+Include data files by filenames in the distribution. Could use patterns for
+use in glob, if specifying a directory with trailing slash. An example would
+be --include-data-file=/etc/somefile.txt=etc/somefile.txt for plain file copy,
+and you can copy multiple like --include-data-file=/etc/*.txt:etc/ with a
+trailing slash required to use the pattern. Default empty.""",
+)
+
+
 parser.add_option_group(data_group)
 
 

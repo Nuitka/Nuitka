@@ -275,8 +275,6 @@ def _pickCompressor():
 
 
 def packDistFolderToOnefileWindows(dist_dir):
-    general.warning("Onefile mode is experimental on '%s'." % getOS())
-
     postprocessing_logger.info(
         "Creating single file from dist folder, this may take a while."
     )
