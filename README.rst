@@ -19,7 +19,7 @@ requirements, credits, etc.
 
 Nuitka is **the** Python compiler. It is written in Python. It is a seamless
 replacement or extension to the Python interpreter and compiles **every**
-construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, and 3.8 have, when
+construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9 have, when
 itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an extremely
@@ -65,7 +65,7 @@ Requirements
     by the Visual Studion installer.
 
 
-- Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8
+- Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9
 
   .. admonition:: For 3.3, and 3.4 and *only* those versions, we need other
      Python versions as a *compile time* dependency
@@ -540,7 +540,7 @@ Depending on the used C compiler, you'll need the following redist versions:
 +------------------+-------------+-------------------------+
 | Visual C version | Redist Year | CPython                 |
 +==================+=============+=========================+
-| 14.2             | 2019        | 3.5, 3.6, 3.7, 3.8      |
+| 14.2             | 2019        | 3.5, 3.6, 3.7, 3.8, 3.9 |
 +------------------+-------------+-------------------------+
 | 14.1             | 2017        | 3.5, 3.6, 3.7, 3.8      |
 +------------------+-------------+-------------------------+
@@ -556,7 +556,7 @@ When using MingGW64, you'll need the following redist versions:
 +------------------+-------------+-------------------------+
 | MingGW64 version | Redist Year | CPython                 |
 +==================+=============+=========================+
-| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8      |
+| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8, 3.9 |
 +------------------+-------------+-------------------------+
 
 
