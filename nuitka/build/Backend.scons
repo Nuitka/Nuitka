@@ -412,25 +412,16 @@ if the_compiler is None or getExecutablePath(the_compiler, env=env) is None:
             """\
 Error, cannot locate suitable C compiler. You have the following options:
 
-a) If a suitable Visual Studio version is installed, it will not be located
-   automatically, unless you install pywin32 for the Python installation
-   below "%s".
+a) If a suitable Visual Studio version is installed, it will be located
+   automatically via registry.
 
-b) To make it find Visual Studio without registry execute from Start Menu
-   the 'Visual Studio Command Prompt' or "vcvarsall.bat". That will add
-   Visual Studio to the "PATH". And it then will be detected.
+b) Using --mingw64 let Nuitka download MinGW64 for you.
 
-c) Install MinGW64 to "C:\\MinGW64" or "\\MinGW64", where then it is
-   automatically detected or manually add it to PATH before executing
-   Nuitka. But be sure to pick the proper variant (32/64 bits, your
-   Python arch is %r), or else cryptic errors will be shown.
+Note: Only MinGW64 will work! MinGW64 does *not* mean 64 bits, just better
+Windows compatibility, it is available for 32 and 64 bits. Cygwin based gcc
+will not work. MSYS2 based gcc will only work if you know what you are doing.
 
-Normal MinGW will not work! MinGW64 does *not* mean 64 bits, just better
-Windows compatibility.
-Cygwin based gcc will not work.
-MSYS2 based gcc will not work.
-
-Note: The clang-cl will only work if MSVC already works for you.
+Note: The clang-cl will only work if Visual Studio already works for you.
 """
             % (sys.exec_prefix, target_arch)
         )
