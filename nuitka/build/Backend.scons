@@ -437,6 +437,13 @@ Note: The clang-cl will only work if MSVC already works for you.
     else:
         sys.exit("Error, cannot locate suitable C compiler.")
 
+# Check if there is a WindowsSDK installed.
+if msvc_mode or clangcl_mode:
+    scons_details_logger.info("Using Windows SDK %r." % env["WindowsSDKVersion"])
+
+    if not env["WindowsSDKVersion"]:
+        sys.exit("Error, the Windows SDK must be installed in Visual Studio.")
+
 # Do we use C11 for source files, or pretend to be C++ as a workaround.
 c11_mode = enableC11Settings(
     env=env,

@@ -245,6 +245,9 @@ def get_output(vcbat, args = None, env = None):
     return output
 
 KEEPLIST = ("INCLUDE", "LIB", "LIBPATH", "PATH", 'VSCMD_ARG_app_plat')
+# Nuitka: Keep the Windows SDK version too
+KEEPLIST += ("WindowsSDKVersion",)
+
 def parse_output(output, keep=KEEPLIST):
     """
     Parse output from running visual c++/studios vcvarsall.bat and running set
