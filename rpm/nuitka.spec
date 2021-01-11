@@ -1,6 +1,8 @@
 %if 0%{?rhel} < 8
 # detect python site-packages path, use get_python_lib(0) as nuitka using
+%if 0%{?fedora} < 31
 %global python_sitearch %(%{__python} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
+%endif
 %global python3_sitearch %(%{__python3} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 %endif
 
