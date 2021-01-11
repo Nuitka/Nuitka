@@ -830,7 +830,6 @@ _detectVirtualEnvPrefix()
 
 def _detectPythonHeaderPath():
     if win_target:
-
         # On Windows, the CPython installation layout is relatively fixed, but on MSYS2
         # compiled for mingw64, it's more standard.
 
@@ -852,12 +851,17 @@ def _detectPythonHeaderPath():
         if os.path.exists(os.path.join(candidate, "Python.h")):
             return candidate
 
-    sys.exit(
-        """\
+    if win_target:
+        sys.exit(
+            """Error, you seem to be using the unsupported embeddable CPython distribution."""
+        )
+    else:
+        sys.exit(
+            """\
 Error, no 'Python.h' %s headers can be found at '%s', dependency \
 not satisfied!"""
-        % ("debug" if python_debug else "development", candidates)
-    )
+            % ("debug" if python_debug else "development", candidates)
+        )
 
 
 env.Append(CPPPATH=[_detectPythonHeaderPath()])
