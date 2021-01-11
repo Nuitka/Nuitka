@@ -13,7 +13,7 @@ Version:        VERSION
 Release:        5%{?dist}
 Summary:        Python compiler with full language support and CPython compatibility
 Group:          Development/Languages/Python
-License:        Apache License 2.0
+License:        Apache-2.0
 URL:            https://nuitka.net/
 Source0:        https://nuitka.net/releases/Nuitka-%{version}.tar.gz
 Source1:        nuitka-rpmlintrc
