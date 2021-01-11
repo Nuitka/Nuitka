@@ -8270,7 +8270,7 @@ platforms, adding Gentoo, and self compiled Python to the mix.
 -  Windows: Detecting MSVC installation from registry, if no compiler is
    already present in PATH.
 
--  Windows: Now options ``--mingw`` to force compilation with MinGW.
+-  Windows: New options ``--mingw64`` to force compilation with MinGW.
 
 ******************
  New Optimization
