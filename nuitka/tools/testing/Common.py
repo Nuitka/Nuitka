@@ -34,6 +34,7 @@ from optparse import OptionGroup, OptionParser
 
 from nuitka.freezer.DependsExe import getDependsExePath
 from nuitka.Tracing import OurLogger, my_print
+from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_output, withEnvironmentVarOverriden
 from nuitka.utils.FileOperations import (
@@ -1555,3 +1556,39 @@ def someGenerator():
 def someGeneratorRaising():
     yield 1
     raise TypeError(2)
+
+
+# checks requirements needed to run each test module, according to the specified special comment
+# special comments are in the following formats:
+#     "# nuitka-skip-unless-expression: expression to be evaluated"
+#       OR
+#     "# nuitka-skip-unless-imports: module1,module2,..."
+def checkRequirements(filename):
+    for line in readSourceCodeFromFilename(None, filename).splitlines():
+        if line.startswith("# nuitka-skip-unless-"):
+            if line[21:33] == "expression: ":
+                expression = line[33:]
+                with open(os.devnull, "w") as devnull:
+                    result = subprocess.call(
+                        (
+                            os.environ["PYTHON"],
+                            "-c",
+                            "import sys, os; sys.exit(not bool(%s))" % expression,
+                        ),
+                        stdout=devnull,
+                        stderr=subprocess.STDOUT,
+                    )
+                if result != 0:
+                    return (False, "Expression '%s' evaluated to false" % expression)
+
+            elif line[21:30] == "imports: ":
+                imports_needed = line[30:].rstrip().split(",")
+                for i in imports_needed:
+                    if not hasModule(i):
+                        return (
+                            False,
+                            i
+                            + " not installed for this Python version, but test needs it",
+                        )
+    # default return value
+    return (True, "")

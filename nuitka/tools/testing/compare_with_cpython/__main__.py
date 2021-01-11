@@ -204,7 +204,8 @@ def main():
         hasArg("trace_command") or os.environ.get("NUITKA_TRACE_COMMANDS", "0") != "0"
     )
     remove_output = hasArg("remove_output")
-    standalone_mode = hasArg("standalone")
+    standalone_mode = hasArg("--standalone")
+    onefile_mode = hasArg("--onefile")
     no_site = hasArg("no_site")
     recurse_none = hasArg("recurse_none")
     recurse_all = hasArg("recurse_all")
@@ -454,6 +455,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if not two_step_execution:
         if module_mode:
             nuitka_cmd = nuitka_call + extra_options + ["--run", "--module", filename]
+        elif onefile_mode:
+            nuitka_cmd = nuitka_call + extra_options + ["--run", "--onefile", filename]
         elif standalone_mode:
             nuitka_cmd = (
                 nuitka_call + extra_options + ["--run", "--standalone", filename]

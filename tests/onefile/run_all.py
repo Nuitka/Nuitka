@@ -19,10 +19,10 @@
 #     limitations under the License.
 #
 
-""" Runner for standalone program tests of Nuitka.
+""" Runner for onefile program tests of Nuitka.
 
-These tests aim at showing that one specific module works in standalone
-mode, trying to find issues with that packaging.
+These tests aim at showing that one specific functions work in onefile
+mode, trying to find issues with that form of packaging.
 
 """
 
@@ -49,8 +49,6 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     decideFilenameVersionSkip,
     displayFileContents,
-    displayFolderContents,
-    getPythonVendor,
     getRuntimeTraceOfLoadedFiles,
     reportSkip,
     setup,
@@ -58,14 +56,10 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.utils.FileOperations import areSamePaths, removeDirectory
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import getOS
 
 
 def displayError(dirname, filename):
     assert dirname is None
-
-    dist_path = filename[:-3] + ".dist"
-    displayFolderContents("dist folder", dist_path)
 
     inclusion_log_path = filename[:-3] + ".py.inclusion.log"
     displayFileContents("inclusion log", inclusion_log_path)
@@ -73,7 +67,7 @@ def displayError(dirname, filename):
 
 def main():
     # Complex stuff, even more should become common code though.
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements
 
     python_version = setup(needs_io_encoding=True)
 
@@ -94,7 +88,7 @@ def main():
 
         extra_flags = [
             "expect_success",
-            "--standalone",
+            "--oneline",
             "remove_output",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
@@ -107,92 +101,6 @@ def main():
         if not requirements_met:
             reportSkip(error_message, ".", filename)
             continue
-
-        # catch error
-        if filename == "Boto3Using.py":
-            reportSkip("boto3 test not fully working yet", ".", filename)
-            continue
-
-        if "Idna" in filename:
-            # For the warnings of Python2.
-            if python_version < (3,):
-                extra_flags.append("ignore_stderr")
-
-        if filename == "CtypesUsing.py":
-            extra_flags.append("plugin_disable:pylint-warnings")
-
-        if filename == "GtkUsing.py":
-            # Don't test on platforms not supported by current Debian testing, and
-            # which should be considered irrelevant by now.
-            if python_version < (2, 7):
-                reportSkip("irrelevant Python version", ".", filename)
-                continue
-
-            # For the warnings.
-            extra_flags.append("ignore_warnings")
-
-        if filename.startswith("Win"):
-            if os.name != "nt":
-                reportSkip("Windows only test", ".", filename)
-                continue
-
-        if filename == "TkInterUsing.py":
-            if getOS() == "Darwin":
-                reportSkip("Not working macOS yet", ".", filename)
-                continue
-
-            # For the plug-in information.
-            extra_flags.append("plugin_enable:tk-inter")
-
-        if filename == "FlaskUsing.py":
-            # For the warnings.
-            extra_flags.append("ignore_warnings")
-
-        if filename == "NumpyUsing.py":
-            extra_flags.append("plugin_enable:numpy")
-
-            # TODO: Disabled for now.
-            reportSkip("numpy.test not fully working yet", ".", filename)
-            continue
-
-        if filename == "PandasUsing.py":
-            extra_flags.append("plugin_enable:numpy")
-            extra_flags.append("plugin_disable:pylint-warnings")
-            extra_flags.append("plugin_disable:qt-plugins")
-
-        if filename == "PmwUsing.py":
-            extra_flags.append("plugin_enable:pmw-freezer")
-
-        if filename == "OpenGLUsing.py":
-            # For the warnings.
-            extra_flags.append("ignore_warnings")
-
-        if filename == "PasslibUsing.py":
-            # For the warnings.
-            extra_flags.append("ignore_warnings")
-
-        if filename == "PySideUsing.py":
-            # TODO: Disabled due to lack of upstream support.
-            reportSkip("PySide not supported yet", ".", filename)
-            continue
-
-        if filename == "Win32ComUsing.py":
-            # For the warnings.
-            extra_flags.append("ignore_warnings")
-
-        if filename.startswith(("PySide", "PyQt")):
-            # Don't test on platforms not supported by current Debian testing, and
-            # which should be considered irrelevant by now.
-            if python_version < (2, 7):
-                reportSkip("irrelevant Python version", ".", filename)
-                continue
-
-            # For the plug-in information.
-            if getPythonVendor() != "Anaconda":
-                extra_flags.append("plugin_enable:qt-plugins")
-            else:
-                # For the plug-in not used information.
-                extra_flags.append("ignore_warnings")
 
         test_logger.info(
             "Consider output of standalone mode compiled program: %s" % filename
@@ -208,52 +116,7 @@ def main():
             on_error=displayError,
         )
 
-        # Second check if glibc libraries haven't been accidentally
-        # shipped with the standalone executable
-        found_glibc_libs = []
-        for dist_filename in os.listdir(os.path.join(filename[:-3] + ".dist")):
-            if os.path.basename(dist_filename).startswith(
-                (
-                    "ld-linux-x86-64.so",
-                    "libc.so.",
-                    "libpthread.so.",
-                    "libm.so.",
-                    "libdl.so.",
-                    "libBrokenLocale.so.",
-                    "libSegFault.so",
-                    "libanl.so.",
-                    "libcidn.so.",
-                    "libcrypt.so.",
-                    "libmemusage.so",
-                    "libmvec.so.",
-                    "libnsl.so.",
-                    "libnss_compat.so.",
-                    "libnss_db.so.",
-                    "libnss_dns.so.",
-                    "libnss_files.so.",
-                    "libnss_hesiod.so.",
-                    "libnss_nis.so.",
-                    "libnss_nisplus.so.",
-                    "libpcprofile.so",
-                    "libresolv.so.",
-                    "librt.so.",
-                    "libthread_db-1.0.so",
-                    "libthread_db.so.",
-                    "libutil.so.",
-                )
-            ):
-                found_glibc_libs.append(dist_filename)
-
-        if found_glibc_libs:
-            test_logger.warning(
-                "Should not ship glibc libraries with the standalone executable (found %s)"
-                % found_glibc_libs
-            )
-            sys.exit(1)
-
-        binary_filename = os.path.join(
-            filename[:-3] + ".dist", filename[:-3] + (".exe" if os.name == "nt" else "")
-        )
+        binary_filename = filename[:-3] + (".exe" if os.name == "nt" else ".bin")
 
         # Then use "strace" on the result.
         with TimerReport(

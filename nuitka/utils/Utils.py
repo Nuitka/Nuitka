@@ -130,3 +130,7 @@ def isExecutableCommand(command):
                 return True
 
     return False
+
+
+def hasOnefileSupportedOS():
+    return getOS() in ("Linux", "Windows")
