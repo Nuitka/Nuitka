@@ -712,12 +712,6 @@ def main():
 
         executePostProcessing()
 
-        # Remove the source directory (now build directory too) if asked to.
-        if Options.isRemoveBuildDir():
-            removeDirectory(
-                path=OutputDirectories.getSourceDirectoryPath(), ignore_errors=False
-            )
-
         if Options.shallMakeModule() and Options.shallCreatePyiFile():
             pyi_filename = OutputDirectories.getResultBasepath() + ".pyi"
 
@@ -772,6 +766,27 @@ __name__ = ...
 
             if Options.isOnefileMode():
                 packDistFolderToOnefile(dist_dir, binary_filename)
+
+                if Options.isRemoveBuildDir():
+                    general.info("Removing dist folder %r." % dist_dir)
+
+                    removeDirectory(path=dist_dir, ignore_errors=False)
+                else:
+                    general.info(
+                        "Keeping dist folder %r for inspection, no need to use it."
+                        % dist_dir
+                    )
+
+        # Remove the source directory (now build directory too) if asked to.
+        source_dir = OutputDirectories.getSourceDirectoryPath()
+
+        if Options.isRemoveBuildDir():
+            general.info("Removing build directory %r." % source_dir)
+
+            removeDirectory(path=source_dir, ignore_errors=False)
+            assert not os.path.exists(source_dir)
+        else:
+            general.info("Keeping build directory %r." % source_dir)
 
         general.info(
             "Successfully created %r."
