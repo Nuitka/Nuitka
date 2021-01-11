@@ -46,12 +46,17 @@ from SCons.Script import (  # pylint: disable=import-error
     ARGUMENTS,
     CacheDir,
     Decider,
-    Default,
     Environment,
     GetOption,
 )
 
 from nuitka.Tracing import my_print, scons_details_logger, scons_logger
+from nuitka.utils.WindowsResources import (
+    RT_GROUP_ICON,
+    RT_ICON,
+    RT_VERSION,
+    copyResourcesFromFileToFile,
+)
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import checkWindowsCompilerFound, enableC11Settings
@@ -95,8 +100,11 @@ static_src = os.path.join(source_dir, "static")
 # The name of executable or extension module that we produce.
 result_basepath = getArgumentRequired("result_name")
 
-# The name of executable that we produce (in executable mode).
+# The name of executable that we produce
 result_exe = getArgumentDefaulted("result_exe", None)
+
+# The name of executable that we that copy resources from
+compiled_exe = getArgumentDefaulted("compiled_exe", None)
 
 # The suffix for an extension module (in module mode).
 module_suffix = getArgumentDefaulted("module_suffix", None)
@@ -812,11 +820,17 @@ if msvc_mode:
     ):
         cache_mode = False
 
-onefile_definitions = {
-    "ONEFILE_COMPANY": os.environ["ONEFILE_COMPANY"],
-    "ONEFILE_PRODUCT": os.environ["ONEFILE_PRODUCT"],
-    "ONEFILE_VERSION": os.environ["ONEFILE_VERSION"],
-}
+onefile_definitions = {}
+
+if "ONEFILE_COMPANY" in os.environ:
+    onefile_definitions["ONEFILE_TEMPFILE"] = 0
+
+    onefile_definitions["ONEFILE_COMPANY"] = os.environ["ONEFILE_COMPANY"]
+    onefile_definitions["ONEFILE_PRODUCT"] = os.environ["ONEFILE_PRODUCT"]
+    onefile_definitions["ONEFILE_VERSION"] = os.environ["ONEFILE_VERSION"]
+else:
+    onefile_definitions["ONEFILE_TEMPFILE"] = 1
+
 
 createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
 
@@ -841,4 +855,19 @@ writeSconsReport(
     clangcl_mode=clangcl_mode,
 )
 
-Default(target)
+
+def copyResources(target, source, env):
+    # Not needing the arguments, but signature is required, pylint: disable= redefined-outer-name,unused-argument
+
+    # Make sure to copy the resources from the created binary to the bootstrap binary, these
+    # are icons and version information.
+    copyResourcesFromFileToFile(
+        source_filename=compiled_exe,
+        target_filename=result_exe,
+        resource_kinds=(RT_ICON, RT_GROUP_ICON, RT_VERSION),
+    )
+
+
+env.AddPostAction(target, copyResources)
+
+env.Default(target)

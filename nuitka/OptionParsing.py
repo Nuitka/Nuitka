@@ -867,6 +867,17 @@ One of file or product version is required, when a version resource needs to be
 added, e.g. to specify product name, or company name. Defaults to nonsense.""",
 )
 
+windows_group.add_option(
+    "--windows-onefile-tempdir",
+    action="store_true",
+    dest="is_windows_onefile_tempdir",
+    metavar="WINDOWS_ONEFILE_TEMPDIR",
+    default=False,
+    help="""\
+Use temporary folder rather than company AppData. Defaults to off.""",
+)
+
+
 parser.add_option_group(windows_group)
 
 linux_group = OptionGroup(parser, "Linux specific controls")

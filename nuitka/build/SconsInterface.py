@@ -238,7 +238,7 @@ def _buildSconsCommand(quiet, options, scons_filename):
 
     if Options.isShowScons():
         scons_command.append("--debug=explain,stacktrace")
-    else:
+    elif Options.is_debug:
         scons_command.append("--debug=stacktrace")
 
     # Python2, encoding unicode values
@@ -277,6 +277,11 @@ def runScons(options, quiet, scons_filename):
                 options["result_exe"] = getExternalUsePath(
                     options["result_exe"], only_dirname=True
                 )
+            if "compiled_exe" in options:
+                options["compiled_exe"] = getExternalUsePath(
+                    options["compiled_exe"], only_dirname=True
+                )
+
         else:
             source_dir = None
 

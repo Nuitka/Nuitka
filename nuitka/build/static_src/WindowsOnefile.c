@@ -141,6 +141,9 @@ int main(int argc, char **argv) {
 
     static wchar_t payload_path[4096] = {0};
 
+    BOOL bool_res;
+
+#if ONEFILE_TEMPFILE == 0
     res = SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, payload_path);
 
     if (res != S_OK) {
@@ -166,11 +169,10 @@ int main(int argc, char **argv) {
     }
 
     // _putws(payload_path);
-
     appendWCharSafeW(payload_path, L'\\', sizeof(payload_path));
     appendWStringSafeW(payload_path, L"" ONEFILE_COMPANY, sizeof(payload_path));
 
-    BOOL bool_res = CreateDirectoryW(payload_path, NULL);
+    bool_res = CreateDirectoryW(payload_path, NULL);
 
     appendWCharSafeW(payload_path, L'\\', sizeof(payload_path));
     appendWStringSafeW(payload_path, L"" ONEFILE_PRODUCT, sizeof(payload_path));
@@ -178,6 +180,25 @@ int main(int argc, char **argv) {
 
     appendWCharSafeW(payload_path, L'\\', sizeof(payload_path));
     appendWStringSafeW(payload_path, L"" ONEFILE_VERSION, sizeof(payload_path));
+
+#else
+    res = GetTempPathW(sizeof(payload_path), payload_path);
+    assert(res != 0);
+
+    // Best effort to make temp path unique by using PID and time.
+    {
+        wchar_t buffer[1024];
+
+        __int64 time = 0;
+        assert(sizeof(time) == sizeof(FILETIME));
+        GetSystemTimeAsFileTime((LPFILETIME)&time);
+
+        swprintf(buffer, sizeof(buffer), L"\\onefile_%d_%lld", GetCurrentProcessId(), time);
+        appendWStringSafeW(payload_path, buffer, sizeof(payload_path));
+    }
+#endif
+    // _putws(payload_path);
+
     bool_res = CreateDirectoryW(payload_path, NULL);
 
     // _putws(payload_path);
@@ -286,35 +307,13 @@ int main(int argc, char **argv) {
         CloseHandle(target_file);
     }
 
-    wchar_t const *orig_args = GetCommandLineW();
-
-    bool inside_quotes = false;
-
-    for (;;) {
-        wchar_t c = *orig_args;
-
-        if (c == L'\"') {
-            inside_quotes = !inside_quotes;
-        } else if (c == 0 || (c == L' ' && !inside_quotes)) {
-            break;
-        }
-
-        orig_args++;
-    }
-
-    static wchar_t command_line[4096] = {0};
-
-    appendWStringSafeW(command_line, first_filename, sizeof(command_line));
-    // Note: The orig_args is either empty or has the leading space to separate:
-    appendWStringSafeW(command_line, orig_args, sizeof(command_line));
-
     STARTUPINFOW si;
     memset(&si, 0, sizeof(si));
     si.cb = sizeof(si);
 
     PROCESS_INFORMATION pi;
 
-    bool_res = CreateProcessW(NULL, command_line, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+    bool_res = CreateProcessW(first_filename, GetCommandLineW(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
     assert(bool_res);
 
     CloseHandle(pi.hThread);
@@ -331,6 +330,17 @@ int main(int argc, char **argv) {
 
         CloseHandle(handle_process);
     }
+
+#if ONEFILE_TEMPFILE == 1
+    // _putws(payload_path);
+
+    SHFILEOPSTRUCTW fileop_struct = {
+        NULL, FO_DELETE, payload_path, L"", FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT, false, 0, L""};
+    int del_result = SHFileOperationW(&fileop_struct);
+
+    assert(del_result == 0);
+
+#endif
 
     return exit_code;
 }

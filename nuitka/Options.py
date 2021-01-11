@@ -26,7 +26,7 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import isUninstalledPython
 from nuitka.utils.FileOperations import resolveShellPatternToFilenames
-from nuitka.utils.Utils import getOS, isWin32Windows
+from nuitka.utils.Utils import getOS, hasOnefileSupportedOS, isWin32Windows
 
 options = None
 positional_args = None
@@ -170,10 +170,14 @@ sane default used inside the dist folder."""
                 "Error, company name and file or product version need to be given when any version information is given."
             )
 
-    if isOnefileMode() and os.name == "nt" and not getWindowsCompanyName():
-        sys.exit(
-            "Error, onefile on Windows requires company name and file or product version to be given."
-        )
+    if isOnefileMode() and not hasOnefileSupportedOS():
+        sys.exit("Error, unsupported OS for onefile %r" % getOS())
+
+    if isOnefileMode() and os.name == "nt":
+        if not getWindowsCompanyName() and not isWindowsOnefileTempDirMode():
+            sys.exit(
+                "Error, onefile on Windows requires company name and file or product version to be given or temp dir mode."
+            )
 
     if options.recurse_none and options.recurse_all:
         sys.exit(
@@ -629,8 +633,13 @@ def isStandaloneMode():
 
 
 def isOnefileMode():
-    """*bool* = "--standalone" """
+    """*bool* = "--onefile" """
     return options.is_onefile
+
+
+def isWindowsOnefileTempDirMode():
+    """*bool* = "--windows-onefile-tempdir" """
+    return options.is_windows_onefile_tempdir
 
 
 def getIconPaths():
