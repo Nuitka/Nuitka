@@ -379,15 +379,8 @@ def checkCachingSuccess(source_dir):
             clcache_miss = stats["CacheMisses"]
 
             scons_logger.info(
-                "Compiled %d C files using clcache." % (clcache_hit + clcache_miss)
-            )
-            scons_logger.info(
-                "Cached C files (using clcache) with result 'cache hit': %d"
-                % clcache_hit
-            )
-            scons_logger.info(
-                "Cached C files (using clcache) with result 'cache miss': %d"
-                % clcache_miss
+                "Compiled %d C files using clcache with %d cache hits and %d cache misses."
+                % (clcache_hit + clcache_miss, clcache_hit, clcache_miss)
             )
 
 
