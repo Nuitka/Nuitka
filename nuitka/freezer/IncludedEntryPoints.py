@@ -106,5 +106,5 @@ def addShlibEntryPoint(module):
     )
 
 
-def getStandardEntryPoints():
+def getStandaloneEntryPoints():
     return standalone_entry_points

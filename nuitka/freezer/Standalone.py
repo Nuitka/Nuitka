@@ -319,6 +319,8 @@ def _detectImports(command, user_provided, technical):
 
                 if filename.endswith(".py"):
                     detections.append((module_name, 2, "sourcefile", filename))
+                elif filename.endswith(".pyc"):
+                    detections.append((module_name, 3, "precompiled", filename))
                 elif not filename.endswith("<frozen>"):
                     # Python3 started lying in "__name__" for the "_decimal"
                     # calls itself "decimal", which then is wrong and also

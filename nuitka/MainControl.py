@@ -33,7 +33,7 @@ from nuitka.finalizations.FinalizeMarkups import getImportedNames
 from nuitka.freezer.IncludedEntryPoints import (
     addIncludedEntryPoints,
     addShlibEntryPoint,
-    getStandardEntryPoints,
+    getStandaloneEntryPoints,
     setMainEntryPoint,
 )
 from nuitka.freezer.Standalone import copyDataFiles
@@ -757,7 +757,7 @@ __name__ = ...
             copyUsedDLLs(
                 source_dir=OutputDirectories.getSourceDirectoryPath(),
                 dist_dir=dist_dir,
-                standalone_entry_points=getStandardEntryPoints(),
+                standalone_entry_points=getStandaloneEntryPoints(),
             )
 
             copyDataFiles(dist_dir=dist_dir)
