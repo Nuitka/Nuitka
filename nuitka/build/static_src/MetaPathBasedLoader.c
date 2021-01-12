@@ -782,7 +782,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
     return module;
 }
 
-static bool loadTriggeredModule(char const *name, char const *trigger_name) {
+static void loadTriggeredModule(char const *name, char const *trigger_name) {
     char trigger_module_name[2048];
 
     copyStringSafe(trigger_module_name, name, sizeof(trigger_module_name));
@@ -798,11 +798,11 @@ static bool loadTriggeredModule(char const *name, char const *trigger_name) {
         IMPORT_EMBEDDED_MODULE(trigger_module_name);
 
         if (unlikely(ERROR_OCCURRED())) {
-            return false;
+            PyObject *trigger_module_name_str = Nuitka_String_FromString(trigger_module_name);
+            PyErr_WriteUnraisable(trigger_module_name_str);
+            Py_DECREF(trigger_module_name_str);
         }
     }
-
-    return true;
 }
 
 #if PYTHON_VERSION >= 0x340
@@ -903,9 +903,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyObject *module, PyObject *module_nam
         // is from plug-ins typically, that want to modify things for the the
         // module before loading, to e.g. set a plug-in path, or do some monkey
         // patching in order to make things compatible.
-        if (loadTriggeredModule(name, "-preLoad") == false) {
-            return NULL;
-        }
+        loadTriggeredModule(name, "-preLoad");
     }
 
     PyObject *result = NULL;
@@ -935,9 +933,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyObject *module, PyObject *module_nam
         // is from plug-ins typically, that want to modify the module immediately
         // after loading, to e.g. set a plug-in path, or do some monkey patching
         // in order to make things compatible.
-        if (loadTriggeredModule(name, "-postLoad") == false) {
-            return NULL;
-        }
+        loadTriggeredModule(name, "-postLoad");
 
         return result;
     }
