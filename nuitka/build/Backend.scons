@@ -68,6 +68,7 @@ from .SconsHacks import (
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
 from .SconsUtils import (
     addClangClPathFromMSVC,
+    raiseNoCompilerFoundErrorExit,
     addToPATH,
     changeKeyboardInteruptToErrorExit,
     createDefinitionsFile,
@@ -85,6 +86,7 @@ from .SconsUtils import (
     provideStaticSourceFile,
     setArguments,
     writeSconsReport,
+    switchFromGccToGpp,
 )
 
 # Set the arguments.
@@ -389,44 +391,16 @@ Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
             % the_cc_name
         )
 
-    if gcc_version is not None and gcc_version < (5,):
-        scons_logger.info("The provided gcc is too old, switching to g++ instead.")
-
-        # Switch to g++ from gcc then if possible, when C11 mode is false.
-        the_gpp_compiler = os.path.join(
-            os.path.dirname(the_compiler),
-            os.path.basename(the_compiler).replace("gcc", "g++"),
-        )
-
-        if getExecutablePath(the_gpp_compiler, env=env):
-            the_compiler = the_gpp_compiler
-            the_cc_name = the_cc_name.replace("gcc", "g++")
-        else:
-            sys.exit(
-                "Error, you gcc is too old for C11 support, and no related g++ to workaround that is found."
-            )
+    # Consider switching too ikd gcc to its g++ compiler as a workaround that makes us work without C11.
+    the_compiler, the_gcc_name = switchFromGccToGpp(
+        gcc_version=gcc_version,
+        the_compiler=the_compiler,
+        the_cc_name=the_cc_name,
+        env=env,
+    )
 
 if the_compiler is None or getExecutablePath(the_compiler, env=env) is None:
-    if win_target:
-        sys.exit(
-            """\
-Error, cannot locate suitable C compiler. You have the following options:
-
-a) If a suitable Visual Studio version is installed, it will be located
-   automatically via registry.
-
-b) Using --mingw64 let Nuitka download MinGW64 for you.
-
-Note: Only MinGW64 will work! MinGW64 does *not* mean 64 bits, just better
-Windows compatibility, it is available for 32 and 64 bits. Cygwin based gcc
-will not work. MSYS2 based gcc will only work if you know what you are doing.
-
-Note: The clang-cl will only work if Visual Studio already works for you.
-"""
-            % (sys.exec_prefix, target_arch)
-        )
-    else:
-        sys.exit("Error, cannot locate suitable C compiler.")
+    raiseNoCompilerFoundErrorExit()
 
 # Check if there is a WindowsSDK installed.
 if msvc_mode or clangcl_mode:
