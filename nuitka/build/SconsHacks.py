@@ -43,7 +43,9 @@ v_cache = {}
 
 # Prevent these programs from being found, avoiding the burden of tool init.
 blacklisted_tools = (
-    "g++",
+# TODO: Where the fallback is needed, g++ needs to scanned or else it
+# cannot be used.
+#    "g++",
     "c++",
     "f95",
     "f90",
