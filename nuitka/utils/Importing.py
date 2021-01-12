@@ -116,20 +116,14 @@ def getSharedLibrarySuffix(preferred):
     return result
 
 
-def importFromInlineCopy(module_name, must_exist):
-    """Import a module from the inline copy stage."""
-
+def importFromFolder(module_name, path, must_exist):
+    """Import a module from a folder by adding it temporarily to sys.path"""
     # May already be loaded
     if module_name in sys.modules:
         return sys.modules[module_name]
 
     # Temporarily add the inline path of the module to the import path.
-    sys.path.insert(
-        0,
-        os.path.join(
-            os.path.dirname(__file__), "..", "build", "inline_copy", module_name
-        ),
-    )
+    sys.path.insert(0, path)
 
     # Handle case without inline copy too.
     try:
@@ -138,7 +132,21 @@ def importFromInlineCopy(module_name, must_exist):
         if not must_exist:
             return None
 
-        sys.exit("Error, excepted inline copy of %r is not there." % module_name)
+        sys.exit(
+            "Error, excepted inline copy of %r is in %r there." % (module_name, path)
+        )
     finally:
         # Do not forget to remove it from sys.path again.
         del sys.path[0]
+
+
+def importFromInlineCopy(module_name, must_exist):
+    """Import a module from the inline copy stage."""
+
+    return importFromFolder(
+        module_name=module_name,
+        path=os.path.join(
+            os.path.dirname(__file__), "..", "build", "inline_copy", module_name
+        ),
+        must_exist=must_exist,
+    )
