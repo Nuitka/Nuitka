@@ -21,10 +21,9 @@ These are not the graphs you might be thinking of. This is for rending the
 progress of optimization into images.
 """
 
-from logging import warning
-
 from nuitka import Options
 from nuitka.ModuleRegistry import getDoneModules
+from nuitka.Tracing import general
 
 graph = None
 computation_counters = {}
@@ -58,7 +57,7 @@ def startGraph():
             graph = AGraph(name="Optimization", directed=True)
             graph.layout()
         except ImportError:
-            warning("Cannot import pygraphviz module, no graphing capability.")
+            general.sysexit("Cannot import pygraphviz module, no graphing capability.")
 
 
 def endGraph(output_filename):

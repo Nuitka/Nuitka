@@ -25,10 +25,10 @@ binaries (needed for exec) and run them capturing outputs.
 import os
 import shutil
 import subprocess
-import sys
 from contextlib import contextmanager
 
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import general
 
 from .Utils import getArchitecture, getOS, isWin32Windows
 
@@ -171,7 +171,9 @@ def check_call(*popenargs, **kwargs):
     try:
         subprocess.check_call(*popenargs, **kwargs)
     except OSError:
-        sys.exit("Error, failed to execute '%s'. Is it installed?" % popenargs[0])
+        general.sysexit(
+            "Error, failed to execute '%s'. Is it installed?" % popenargs[0]
+        )
 
 
 @contextmanager
@@ -267,7 +269,7 @@ def wrapCommandForDebuggerForExec(*args):
     lldb_path = getExecutablePath("lldb")
 
     if gdb_path is None and lldb_path is None:
-        sys.exit("Error, no 'gdb' or 'lldb' binary found in path.")
+        general.sysexit("Error, no 'gdb' or 'lldb' binary found in path.")
 
     if gdb_path is not None:
         args = (gdb_path, "gdb", "-ex=run", "-ex=where", "-ex=quit", "--args") + args

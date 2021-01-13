@@ -78,9 +78,9 @@ from .SconsUtils import (
     initScons,
     isGccName,
     provideStaticSourceFile,
+    raiseNoCompilerFoundErrorExit,
     setArguments,
     writeSconsReport,
-    raiseNoCompilerFoundErrorExit
 )
 
 # Set the arguments.

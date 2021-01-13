@@ -265,7 +265,8 @@ def _writeConstantValue(output, constant_value):
     elif constant_type is complex:
         # Some float values do not transport well, use float streaming then.
         if (
-            constant_value.real == 0 or constant_value.imag == 0
+            constant_value.real == 0
+            or constant_value.imag == 0
             or math.isnan(constant_value.real)
             or math.isnan(constant_value.imag)
             or math.isinf(constant_value.real)

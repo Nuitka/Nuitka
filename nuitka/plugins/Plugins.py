@@ -30,7 +30,6 @@ The base class in PluginBase will serve as documentation of available.
 import os
 import pkgutil
 import shutil
-import sys
 from optparse import OptionGroup
 
 import nuitka.plugins.commercial
@@ -113,7 +112,7 @@ def getPluginClass(plugin_name):
     loadPlugins()
 
     if plugin_name not in plugin_name2plugin_classes:
-        sys.exit("Error, unknown plug-in '%s' referenced." % plugin_name)
+        plugins_logger.sysexit("Error, unknown plug-in '%s' referenced." % plugin_name)
 
     return plugin_name2plugin_classes[plugin_name][0]
 
@@ -244,13 +243,13 @@ class Plugins(object):
                     )
 
                     if not os.path.isfile(extra_dll.dest_path):
-                        sys.exit(
+                        plugin.sysexit(
                             "Error, copied filename %r for module %r that is not a file."
                             % (extra_dll.dest_path, module.getFullName())
                         )
                 else:
                     if not os.path.isfile(extra_dll.source_path):
-                        sys.exit(
+                        plugin.sysexit(
                             "Error, attempting to copy plugin determined filename %r for module %r that is not a file."
                             % (extra_dll.source_path, module.getFullName())
                         )
@@ -507,8 +506,6 @@ def listPlugins():
     for line in plist:
         printLine(" " + line[0].ljust(name_len), line[1])
 
-    sys.exit(0)
-
 
 def isObjectAUserPluginBaseClass(obj):
     """Verify that a user plugin inherits from UserPluginBase."""
@@ -529,7 +526,7 @@ def loadUserPlugin(plugin_filename):
         None
     """
     if not os.path.exists(plugin_filename):
-        sys.exit("Error, cannot find '%s'." % plugin_filename)
+        plugins_logger.sysexit("Error, cannot find '%s'." % plugin_filename)
 
     user_plugin_module = importFileAsModule(plugin_filename)
 
@@ -548,7 +545,7 @@ def loadUserPlugin(plugin_filename):
             break  # do not look for more in that module
 
     if not valid_file:  # this is not a plugin file ...
-        sys.exit("Error, '%s' is not a plugin file." % plugin_filename)
+        plugins_logger.sysexit("Error, '%s' is not a plugin file." % plugin_filename)
 
     return plugin_class
 
@@ -602,13 +599,17 @@ def activatePlugins():
     # ensure plugin is known and not both, enabled and disabled
     for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
         if plugin_name not in plugin_name2plugin_classes:
-            sys.exit("Error, unknown plug-in '%s' referenced." % plugin_name)
+            plugins_logger.sysexit(
+                "Error, unknown plug-in '%s' referenced." % plugin_name
+            )
 
         if (
             plugin_name in Options.getPluginsEnabled()
             and plugin_name in Options.getPluginsDisabled()
         ):
-            sys.exit("Error, conflicting enable/disable of plug-in '%s'." % plugin_name)
+            plugins_logger.sysexit(
+                "Error, conflicting enable/disable of plug-in '%s'." % plugin_name
+            )
 
     for (plugin_name, (plugin_class, plugin_detector)) in sorted(
         plugin_name2plugin_classes.items()
@@ -716,7 +717,10 @@ def getPluginOptions(plugin_name):
 
         if "[REQUIRED]" in option.help:
             if not arg_value:
-                sys.exit("Error, required plugin argument %r not given." % option_name)
+                plugins_logger.sysexit(
+                    "Error, required plugin argument %r of Nuitka plugin %s not given."
+                    % (option_name, plugin_name)
+                )
 
         result[option.dest] = arg_value
 

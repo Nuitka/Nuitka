@@ -166,8 +166,8 @@ def executePostProcessing():
     result_filename = OutputDirectories.getResultFullpath()
 
     if not os.path.exists(result_filename):
-        sys.exit(
-            "Error, scons failed to create the expected file '%s'. " % result_filename
+        postprocessing_logger.sysexit(
+            "Error, scons failed to create the expected file %r. " % result_filename
         )
 
     if isWin32Windows():

@@ -28,9 +28,9 @@ to "print for_debug" without much hassle (braces).
 
 from __future__ import print_function
 
-import logging
 import os
 import sys
+import traceback
 from contextlib import contextmanager
 
 from nuitka.utils.ThreadedExecutor import RLock
@@ -156,10 +156,6 @@ def my_print(*args, **kwargs):
         kwargs.get("file", sys.stdout).flush()
 
 
-# TODO: Stop using logging at all, and only OurLogger.
-logging.basicConfig(format="Nuitka:%(levelname)s:%(message)s")
-
-
 class OurLogger(object):
     def __init__(self, name, base_style=None):
         self.name = name
@@ -175,6 +171,17 @@ class OurLogger(object):
 
         style = style or self.base_style
         self.my_print(message, style=style, file=sys.stderr)
+
+    def sysexit(self, message, exit_code=1):
+        self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
+
+        sys.exit(exit_code)
+
+    def sysexit_exception(self, message, exception, exit_code=1):
+        self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
+
+        traceback.print_exc()
+        self.sysexit("FATAL:" + repr(exception), exit_code=exit_code)
 
     def isQuiet(self):
         return is_quiet or self.is_quiet

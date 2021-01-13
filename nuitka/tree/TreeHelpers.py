@@ -22,9 +22,8 @@
 import __future__
 
 import ast
-from logging import warning
 
-from nuitka import Constants, Options, Tracing
+from nuitka import Constants, Options
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -45,10 +44,11 @@ from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import optimization_logger, printLine
 
 
 def dump(node):
-    Tracing.printLine(ast.dump(node))
+    printLine(ast.dump(node))
 
 
 def getKind(node):
@@ -328,7 +328,9 @@ def buildNode(provider, node, source_ref, allow_none=False):
         # code exception, don't warn about it with a code dump then.
         raise
     except:
-        warning("Problem at '%s' with %s." % (source_ref, ast.dump(node)))
+        optimization_logger.warning(
+            "Problem at '%s' with %s." % (source_ref, ast.dump(node))
+        )
         raise
 
 

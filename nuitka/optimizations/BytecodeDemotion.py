@@ -20,7 +20,6 @@
 """
 
 import marshal
-from logging import info
 
 from nuitka import Options
 from nuitka.importing.ImportCache import (
@@ -30,6 +29,7 @@ from nuitka.importing.ImportCache import (
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 from nuitka.plugins.Plugins import Plugins
+from nuitka.Tracing import inclusion_logger
 
 
 def demoteCompiledModuleToBytecode(module):
@@ -39,7 +39,9 @@ def demoteCompiledModuleToBytecode(module):
     filename = module.getCompileTimeFilename()
 
     if Options.isShowProgress():
-        info("Demoting module '%s' to bytecode from '%s'." % (full_name, filename))
+        inclusion_logger.info(
+            "Demoting module '%s' to bytecode from '%s'." % (full_name, filename)
+        )
 
     source_code = module.getSourceCode()
 

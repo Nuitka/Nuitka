@@ -447,7 +447,7 @@ def runClCache(args, env):
 
     # No Python2 compatibility
     if str is bytes:
-        sys.exit("Error, cannot use Python2 for scons when using MSVC.")
+        scons_logger.sysexit("Error, cannot use Python2 for scons when using MSVC.")
 
     # The first argument is "<clcache>" and should not be used.
     return runClCache(

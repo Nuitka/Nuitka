@@ -21,8 +21,6 @@ For built-in name references, we check if it's one of the supported built-in
 types, and then specialize for the ones, where it makes sense.
 """
 
-from logging import warning
-
 from nuitka.__past__ import xrange  # pylint: disable=I0021,redefined-builtin
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.nodes.AssignNodes import (
@@ -148,6 +146,7 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
+from nuitka.Tracing import optimization_logger
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from nuitka.tree.ReformulationTryFinallyStatements import (
     makeTryFinallyStatement,
@@ -1505,6 +1504,8 @@ def computeBuiltinCall(builtin_name, call_node):
         return new_node, tags, message
     else:
         if False and builtin_name not in _builtin_white_list:
-            warning("Not handling built-in '%s', consider support." % builtin_name)
+            optimization_logger.warning(
+                "Not handling built-in '%s', consider support." % builtin_name
+            )
 
         return call_node, None, None

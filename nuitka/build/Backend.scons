@@ -68,7 +68,6 @@ from .SconsHacks import (
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
 from .SconsUtils import (
     addClangClPathFromMSVC,
-    raiseNoCompilerFoundErrorExit,
     addToPATH,
     changeKeyboardInteruptToErrorExit,
     createDefinitionsFile,
@@ -84,9 +83,10 @@ from .SconsUtils import (
     initScons,
     isGccName,
     provideStaticSourceFile,
+    raiseNoCompilerFoundErrorExit,
     setArguments,
-    writeSconsReport,
     switchFromGccToGpp,
+    writeSconsReport,
 )
 
 # Set the arguments.
@@ -271,7 +271,9 @@ if "CC" in os.environ:
     os.environ["CC"] = os.path.normpath(os.environ["CC"])
 
     if os.path.isdir(os.environ["CC"]):
-        sys.exit("Error, the CC variable must point to file, not directory.")
+        scons_logger.sysexit(
+            "Error, the CC variable must point to file, not directory."
+        )
 
     if os.path.sep in os.environ["CC"]:
         cc_dirname = os.path.dirname(os.environ["CC"])
@@ -373,7 +375,7 @@ if gcc_mode and not clang_mode:
     gcc_version = myDetectVersion(env, the_compiler)
 
     if gcc_version is None and "++" in the_cc_name:
-        sys.exit(
+        scons_logger.sysexit(
             """\
 Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
 """
@@ -396,7 +398,9 @@ if msvc_mode or clangcl_mode:
     scons_details_logger.info("Using Windows SDK %r." % env["WindowsSDKVersion"])
 
     if not env["WindowsSDKVersion"]:
-        sys.exit("Error, the Windows SDK must be installed in Visual Studio.")
+        scons_logger.sysexit(
+            "Error, the Windows SDK must be installed in Visual Studio."
+        )
 
 # Do we use C11 for source files, or pretend to be C++ as a workaround.
 c11_mode = enableC11Settings(
@@ -475,7 +479,7 @@ if gcc_mode and not clang_mode:
     # allows all compiler to exist next to each other and where g++ might not be
     # good enough, but g++-4.5 would be.
     if gcc_version < (4, 4):
-        sys.exit(
+        scons_logger.sysexit(
             """\
 The gcc compiler %s (version %s) doesn't have the sufficient \
 version (>= 4.4)."""
@@ -500,7 +504,7 @@ version for lto mode (>= 4.6). Disabled."""
 
     # CondaCC or newer.
     if mingw_mode and gcc_version < (5, 3):
-        sys.exit(
+        scons_logger.sysexit(
             """\
 The MinGW64 compiler %s (version %s) doesn't have the sufficient \
 version (>= 5.3)."""
@@ -815,11 +819,11 @@ def _detectPythonHeaderPath():
             return candidate
 
     if win_target:
-        sys.exit(
+        scons_logger.sysexit(
             """Error, you seem to be using the unsupported embeddable CPython distribution."""
         )
     else:
-        sys.exit(
+        scons_logger.sysexit(
             """\
 Error, no 'Python.h' %s headers can be found at '%s', dependency \
 not satisfied!"""
@@ -885,7 +889,7 @@ if win_target:
                 if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
                     break
             else:
-                sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
+                scons_logger.sysexit("Error, cannot find '%s.lib' file." % win_lib_name)
 
             env.Append(LIBPATH=[win_lib_path])
             env.Append(LIBS=[win_lib_name])
@@ -934,8 +938,8 @@ elif macosx_target and module_mode:
 nuitka_include = os.path.join(nuitka_src, "include")
 
 if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
-    sys.exit(
-        "Error, cannot locate Nuitka includes at '%s', broken installation."
+    scons_logger.sysexit(
+        "Error, cannot locate Nuitka includes at '%s', this is a broken Nuitka installation."
         % nuitka_include
     )
 

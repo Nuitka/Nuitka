@@ -951,7 +951,8 @@ plugin_group.add_option(
 )
 
 
-def _considerPluginOptions():
+def _considerPluginOptions(logger):
+    # Recursive dependency on plugins during parsing of command line.
     from nuitka.plugins.Plugins import (
         addPluginCommandLineOptions,
         addUserPluginCommandLineOptions,
@@ -961,7 +962,7 @@ def _considerPluginOptions():
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
             plugin_names = arg[16:]
             if "=" in plugin_names:
-                sys.exit(
+                logger.sysexit(
                     "Error, plugin options format changed. Use '--plugin-enable=%s --help' to know new options."
                     % plugin_names.split("=", 1)[0]
                 )
@@ -973,7 +974,7 @@ def _considerPluginOptions():
         if arg.startswith("--user-plugin="):
             plugin_name = arg[14:]
             if "=" in plugin_name:
-                sys.exit(
+                logger.sysexit(
                     "Error, plugin options format changed. Use '--user-plugin=%s --help' to know new options."
                     % plugin_name
                 )
@@ -981,7 +982,7 @@ def _considerPluginOptions():
             addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
 
 
-def parseOptions():
+def parseOptions(logger):
     # First, isolate the first non-option arguments.
     extra_args = []
 
@@ -1005,7 +1006,7 @@ def parseOptions():
             sys.argv = sys.argv[0 : count + 1]
 
     # Next, lets activate plugins early, so they can inject more options to the parser.
-    _considerPluginOptions()
+    _considerPluginOptions(logger)
 
     options, positional_args = parser.parse_args()
 
@@ -1018,7 +1019,7 @@ def parseOptions():
     if not positional_args:
         parser.print_help()
 
-        sys.exit(
+        logger.sysexit(
             """
 Error, need positional argument with python module or main program."""
         )
@@ -1026,9 +1027,9 @@ Error, need positional argument with python module or main program."""
     if not options.immediate_execution and len(positional_args) > 1:
         parser.print_help()
 
-        sys.exit(
+        logger.sysexit(
             """
-Error, need only one positional argument unless "--run" is specified to
+Error, specify only one positional argument unless "--run" is specified to
 pass them to the compiled program execution."""
         )
 

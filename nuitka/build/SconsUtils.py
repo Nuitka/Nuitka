@@ -31,7 +31,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     basestring,
     unicode,
 )
-from nuitka.Tracing import scons_details_logger
+from nuitka.Tracing import scons_details_logger, scons_logger
 
 
 def initScons():
@@ -256,8 +256,9 @@ def addClangClPathFromMSVC(env, target_arch):
     cl_exe = getExecutablePath("cl", env=env)
 
     if cl_exe is None:
-        sys.exit("Error, Visual Studio required for using ClangCL on Windows.")
-        return
+        scons_logger.sysexit(
+            "Error, Visual Studio required for using ClangCL on Windows."
+        )
 
     clang_dir = cl_exe = os.path.join(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm")
 
@@ -274,6 +275,27 @@ def addClangClPathFromMSVC(env, target_arch):
         addToPATH(env, clang_dir, prefix=True)
     else:
         scons_details_logger.info("No Clang component for MSVC found." % clang_dir)
+
+
+def switchFromGccToGpp(gcc_version, the_compiler, the_cc_name, env):
+    if gcc_version is not None and gcc_version < (5,):
+        scons_logger.info("The provided gcc is too old, switching to g++ instead.")
+
+        # Switch to g++ from gcc then if possible, when C11 mode is false.
+        the_gpp_compiler = os.path.join(
+            os.path.dirname(the_compiler),
+            os.path.basename(the_compiler).replace("gcc", "g++"),
+        )
+
+        if getExecutablePath(the_gpp_compiler, env=env):
+            the_compiler = the_gpp_compiler
+            the_cc_name = the_cc_name.replace("gcc", "g++")
+        else:
+            scons_logger.sysexit(
+                "Error, your gcc is too old for C11 support, and no related g++ to workaround that is found."
+            )
+
+    return the_compiler, the_cc_name
 
 
 def isGccName(cc_name):
@@ -469,3 +491,25 @@ def decideArchMismatch(target_arch, mingw_mode, msvc_mode, the_cc_name, compiler
     )
 
     return linker_arch != compiler_arch, linker_arch, compiler_arch
+
+
+def raiseNoCompilerFoundErrorExit():
+    if os.name == "nt":
+        scons_logger.sysexit(
+            """\
+Error, cannot locate suitable C compiler. You have the following options:
+
+a) If a suitable Visual Studio version is installed, it will be located
+   automatically via registry.
+
+b) Using --mingw64 let Nuitka download MinGW64 for you.
+
+Note: Only MinGW64 will work! MinGW64 does *not* mean 64 bits, just better
+Windows compatibility, it is available for 32 and 64 bits. Cygwin based gcc
+will not work. MSYS2 based gcc will only work if you know what you are doing.
+
+Note: The clang-cl will only work if Visual Studio already works for you.
+"""
+        )
+    else:
+        scons_logger.sysexit("Error, cannot locate suitable C compiler.")

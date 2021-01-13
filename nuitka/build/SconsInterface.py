@@ -78,8 +78,8 @@ def _getSconsBinaryCall():
         if scons_path is not None:
             return [scons_path]
         else:
-            sys.exit(
-                "Error, the inline copy of scons is not present, nor scons in the system path."
+            Tracing.scons_logger.sysexit(
+                "Error, the inline copy of scons is not present, nor a scons binary in the PATH."
             )
 
 

@@ -31,7 +31,7 @@ from nuitka.Options import assumeYesForDownloads, getIconPaths, getJobLimit
 from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import version_resources
-from nuitka.Tracing import general, postprocessing_logger
+from nuitka.Tracing import general, postprocessing_logger, scons_logger
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import getNullOutput, withEnvironmentVarsOverriden
 from nuitka.utils.FileOperations import (
@@ -50,7 +50,9 @@ def packDistFolderToOnefile(dist_dir, binary_filename):
     elif getOS() == "Windows":
         packDistFolderToOnefileWindows(dist_dir)
     else:
-        sys.exit("Onefile mode is not yet available on '%s'." % getOS())
+        postprocessing_logger.sysexit(
+            "Onefile mode is not yet available on %r." % getOS()
+        )
 
 
 def getAppImageToolPath():
@@ -147,12 +149,12 @@ Categories=Utility;"""
     result = appimagetool_process.wait()
 
     if not os.path.exists(onefile_output_filename):
-        sys.exit(
+        postprocessing_logger.sysexit(
             "Error, expected output file %s not created by AppImage."
             % onefile_output_filename
         )
 
-    postprocessing_logger.info("Completed onefile execution.")
+    postprocessing_logger.info("Completed onefile creation.")
 
     assert result == 0, result
 
@@ -254,7 +256,7 @@ def _runOnefileScons(quiet):
 
     # Exit if compilation failed.
     if not result:
-        sys.exit("Error, one file bootstrap build for Windows failed.")
+        scons_logger.sysexit("Error, one file bootstrap build for Windows failed.")
 
     if Options.isRemoveBuildDir():
         general.info("Removing onefile build directory %r." % source_dir)

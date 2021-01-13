@@ -25,7 +25,6 @@ import os
 import re
 import subprocess
 import sys
-from logging import warning
 
 from nuitka.tools.quality.Git import (
     getFileHashContent,
@@ -33,7 +32,7 @@ from nuitka.tools.quality.Git import (
     updateFileIndex,
     updateWorkingFile,
 )
-from nuitka.Tracing import my_print
+from nuitka.Tracing import general, my_print
 from nuitka.utils.Execution import (
     check_call,
     check_output,
@@ -388,7 +387,7 @@ def _cleanupClangFormat(filename):
         )
     else:
         if not warned_clang_format:
-            warning("Need to install LLVM for C files format.")
+            general.warning("Need to install LLVM for C files format.")
             warned_clang_format = True
 
 

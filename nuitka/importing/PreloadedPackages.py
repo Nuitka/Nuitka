@@ -24,8 +24,8 @@ package. Nuitka will pretend for those that there be one, but without content.
 
 import os
 import sys
-from logging import warning
 
+from nuitka.Tracing import recursion_logger
 from nuitka.utils.FileOperations import getFileContentByLine, listDir
 
 
@@ -120,7 +120,9 @@ def detectPthImportedPackages():
                                 if not isHardModuleWithoutSideEffect(pth_import):
                                     pth_imports.add(pth_import)
                 except OSError:
-                    warning("Python installation problem, cannot read file '%s'.")
+                    recursion_logger.warning(
+                        "Python installation problem, cannot read file '%s'."
+                    )
 
     return tuple(sorted(pth_imports))
 

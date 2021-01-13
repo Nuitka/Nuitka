@@ -126,53 +126,6 @@ print(__version__)
     return matplotlibrc_filename, backend, data_path, matplotlib_version
 
 
-def copyMplDataFiles(data_dir, dist_dir):
-    """ Write matplotlib data files ('mpl-data')."""
-
-    matplotlibrc, backend, data_dir, matplotlib_version = _getMatplotlibInfo()
-    if not os.path.isdir(data_dir):
-        sys.exit("mpl-data missing: matplotlib installation is broken")
-
-    for fullname in getFileList(data_dir):  # copy data files to dist folder
-        filename = os.path.relpath(fullname, data_dir)
-
-        if filename.endswith("matplotlibrc"):  # handle config separately
-            continue
-
-        target_filename = os.path.join(dist_dir, "mpl-data", filename)
-
-        makePath(os.path.dirname(target_filename))  # create intermediate folders
-        shutil.copyfile(fullname, target_filename)
-
-    old_lines = open(matplotlibrc).read().splitlines()  # old config file lines
-    new_lines = []  # new config file lines
-
-    found = False  # checks whether backend definition encountered
-    for line in old_lines:
-        line = line.strip()
-
-        if line == "":
-            continue
-
-        # omit meaningless lines
-        if line.startswith("#") and matplotlib_version < "3":
-            continue
-
-        new_lines.append(line)
-
-        if line.startswith(("backend ", "backend:")):
-            # old config file has a backend definition
-            found = True
-
-    if not found and matplotlib_version < "3":
-        # Set the backend, so even if it was run time determined, we now enforce it.
-        new_lines.append("backend: %s" % backend)
-
-    matplotlibrc_filename = os.path.join(dist_dir, "mpl-data", "matplotlibrc")
-
-    putTextFileContents(filename=matplotlibrc_filename, contents=new_lines)
-
-
 class NumpyPlugin(NuitkaPluginBase):
     """This class represents the main logic of the plugin.
 
@@ -285,8 +238,57 @@ Should matplotlib not be be included with numpy, Default is %default.""",
         if self.matplotlib and full_name == "matplotlib" and not self.mpl_data_copied:
             self.mpl_data_copied = True
 
-            copyMplDataFiles(module, dist_dir)
-            self.info("Copied 'matplotlib/mpl-data'.")
+            self.copyMplDataFiles(module, dist_dir)
+
+    def copyMplDataFiles(self, data_dir, dist_dir):
+        """ Write matplotlib data files ('mpl-data')."""
+
+        matplotlibrc, backend, data_dir, matplotlib_version = _getMatplotlibInfo()
+        if not os.path.isdir(data_dir):
+            self.sysexit(
+                "mpl-data missing, matplotlib installation appears to be broken"
+            )
+
+        for fullname in getFileList(data_dir):  # copy data files to dist folder
+            filename = os.path.relpath(fullname, data_dir)
+
+            if filename.endswith("matplotlibrc"):  # handle config separately
+                continue
+
+            target_filename = os.path.join(dist_dir, "mpl-data", filename)
+
+            makePath(os.path.dirname(target_filename))  # create intermediate folders
+            shutil.copyfile(fullname, target_filename)
+
+        old_lines = open(matplotlibrc).read().splitlines()  # old config file lines
+        new_lines = []  # new config file lines
+
+        found = False  # checks whether backend definition encountered
+        for line in old_lines:
+            line = line.strip()
+
+            if line == "":
+                continue
+
+            # omit meaningless lines
+            if line.startswith("#") and matplotlib_version < "3":
+                continue
+
+            new_lines.append(line)
+
+            if line.startswith(("backend ", "backend:")):
+                # old config file has a backend definition
+                found = True
+
+        if not found and matplotlib_version < "3":
+            # Set the backend, so even if it was run time determined, we now enforce it.
+            new_lines.append("backend: %s" % backend)
+
+        matplotlibrc_filename = os.path.join(dist_dir, "mpl-data", "matplotlibrc")
+
+        putTextFileContents(filename=matplotlibrc_filename, contents=new_lines)
+
+        self.info("Copied 'matplotlib/mpl-data'.")
 
     @staticmethod
     def _getScipyCoreBinaries(scipy_dir):

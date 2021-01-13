@@ -23,6 +23,7 @@ This wraps strings with a class derived from "str" that does more checks.
 
 from nuitka import Options
 from nuitka.__past__ import iterItems
+from nuitka.Tracing import optimization_logger
 
 
 def enableDebug(globals_dict):
@@ -52,10 +53,8 @@ def enableDebug(globals_dict):
 
             for key in other.keys():
                 if "%%(%s)" % key not in self.value:
-                    from logging import warning
-
-                    warning(
-                        "Extra value '%s' provided to template '%s'.", key, self.name
+                    optimization_logger.warning(
+                        "Extra value %r provided to template %r." % (key, self.name)
                     )
 
             try:

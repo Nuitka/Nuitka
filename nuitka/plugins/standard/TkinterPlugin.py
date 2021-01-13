@@ -175,7 +175,7 @@ The Tcl library dir. See comments for Tk library dir.""",
                     break
 
         if tcl is None or not os.path.exists(tcl):
-            sys.exit("Could not find Tcl. Aborting standalone generation.")
+            self.sysexit("Could not find Tcl. Aborting standalone generation.")
 
         tk = self.tk_library_dir
         if tk is None:
@@ -184,7 +184,7 @@ The Tcl library dir. See comments for Tk library dir.""",
                     break
 
         if tk is None or not os.path.exists(tcl):
-            sys.exit("Could not find Tk. Aborting standalone generation.")
+            self.sysexit("Could not find Tk. Aborting standalone generation.")
 
         # survived the above, now do the copying to following locations
         target_tk = os.path.join(dist_dir, "tk")

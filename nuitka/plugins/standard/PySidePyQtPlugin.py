@@ -184,7 +184,9 @@ if os.path.exists(guess_path):
 
         if full_name in ("PyQt4", "PyQt5"):
             if not plugin_dirs:
-                sys.exit("Error, failed to detect %s plugin directories." % full_name)
+                self.sysexit(
+                    "Error, failed to detect %s plugin directories." % full_name
+                )
 
             target_plugin_dir = os.path.join(dist_dir, full_name, "qt-plugins")
 
@@ -235,7 +237,7 @@ if os.path.exists(guess_path):
                     if not os.path.isdir(
                         os.path.join(target_plugin_dir, plugin_candidate)
                     ):
-                        sys.exit(
+                        self.sysexit(
                             "Error, no such Qt plugin family: %s" % plugin_candidate
                         )
 
@@ -284,7 +286,7 @@ if os.path.exists(guess_path):
                     if os.path.exists(qml_plugin_dir):
                         break
                 else:
-                    sys.exit("Error, no such Qt plugin family: qml")
+                    self.sysexit("Error, no such Qt plugin family: qml")
 
                 qml_target_dir = os.path.normpath(
                     os.path.join(target_plugin_dir, "..", "Qt", "qml")

@@ -21,7 +21,6 @@ Mostly used on Windows, for dependency walker and ccache binaries.
 """
 
 import os
-import sys
 
 from nuitka import Tracing
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
@@ -84,14 +83,14 @@ Proceed and download? [Yes]/No """
 
         if reply.lower() in ("no", "n"):
             if reject is not None:
-                sys.exit(reject)
+                Tracing.general.sysexit(reject)
         else:
             Tracing.general.info("Downloading '%s'." % url)
 
             try:
                 urlretrieve(url, download_path)
             except Exception:  # Any kind of error, pylint: disable=broad-except
-                sys.exit(
+                Tracing.general.sysexit(
                     "Failed to download '%s'. Contents should manually be extracted to '%s'."
                     % (url, download_path)
                 )
@@ -119,14 +118,16 @@ Proceed and download? [Yes]/No """
             deleteFile(binary, must_exist=False)
             deleteFile(download_path, must_exist=True)
 
-            sys.exit("Error, need '%s' as extracted from '%s'." % (binary, url))
+            Tracing.general.sysexit(
+                "Error, need %r as extracted from %r." % (binary, url)
+            )
 
     # Check success here, and make sure it's executable.
     if os.path.isfile(exe_path):
         addFileExecutablePermission(exe_path)
     else:
         if reject:
-            sys.exit(reject)
+            Tracing.general.sysexit(reject)
 
         exe_path = None
 

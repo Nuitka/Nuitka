@@ -22,8 +22,6 @@
 import glob
 import marshal
 import os
-import sys
-from logging import warning
 
 from nuitka import ModuleRegistry, Options
 from nuitka.importing import ImportCache, Importing, StandardLibrary
@@ -69,12 +67,10 @@ def _recurseTo(module_package, module_filename, module_relpath, module_kind, rea
             if module_filename not in Importing.warned_about:
                 Importing.warned_about.add(module_filename)
 
-                warning(
+                recursion_logger.warning(
                     """\
-Cannot recurse to import module '%s' (%s) because of '%s'""",
-                    module_relpath,
-                    module_filename,
-                    e.__class__.__name__,
+Cannot follow import to module %r (%r) because of %r"""
+                    % (module_relpath, module_filename, e.__class__.__name__)
                 )
 
             return None, False
@@ -82,11 +78,13 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
             if module_filename not in Importing.warned_about:
                 Importing.warned_about.add(module_filename)
 
-                warning(
+                recursion_logger.warning(
                     """\
-Cannot recurse to import module '%s' (%s) because code is too complex.""",
-                    module_relpath,
-                    module_filename,
+Cannot recurse to import module %r (%r) because code is too complex."""
+                    % (
+                        module_relpath,
+                        module_filename,
+                    )
                 )
 
                 if Options.isStandaloneMode():
@@ -258,18 +256,22 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
             if module:
                 if not is_added:
-                    warning(
-                        "Recursed to %s '%s' at '%s' twice.",
-                        "package" if module.isCompiledPythonPackage() else "module",
-                        module.getName(),
-                        plugin_filename,
+                    recursion_logger.warning(
+                        "Recursed to %s '%s' at '%s' twice."
+                        % (
+                            "package" if module.isCompiledPythonPackage() else "module",
+                            module.getName(),
+                            plugin_filename,
+                        )
                     )
 
                     if not isSameModulePath(module.getFilename(), plugin_filename):
-                        warning(
-                            "Duplicate '%s' of '%s' ignored .",
-                            plugin_filename,
-                            module.getFilename(),
+                        recursion_logger.warning(
+                            "Duplicate '%s' of '%s' ignored ."
+                            % (
+                                plugin_filename,
+                                module.getFilename(),
+                            )
                         )
 
                         return
@@ -327,7 +329,9 @@ def checkPluginSinglePath(plugin_filename, module_package):
                     ModuleRegistry.addRootModule(module)
 
             else:
-                warning("Failed to include module from '%s'.", plugin_filename)
+                recursion_logger.warning(
+                    "Failed to include module from '%s'." % plugin_filename
+                )
 
 
 def checkPluginPath(plugin_filename, module_package):
@@ -351,17 +355,18 @@ def checkPluginPath(plugin_filename, module_package):
                 if Importing.isPackageDir(sub_path) or sub_path.endswith(".py"):
                     checkPluginSinglePath(sub_path, module_package=None)
         else:
-            warning("Failed to include module from '%s'.", plugin_info[0])
+            recursion_logger.warning(
+                "Failed to include module from %r." % plugin_info[0]
+            )
     else:
-        warning("Failed to recurse to directory '%s'.", plugin_filename)
+        recursion_logger.warning("Failed to recurse to directory %r." % plugin_filename)
 
 
 def checkPluginFilenamePattern(pattern):
     if Options.isShowInclusion():
         recursion_logger.info("Checking plug-in pattern '%s':" % pattern)
 
-    if os.path.isdir(pattern):
-        sys.exit("Error, pattern cannot be a directory name.")
+    assert not os.path.isdir(pattern), pattern
 
     found = False
 
@@ -376,4 +381,4 @@ def checkPluginFilenamePattern(pattern):
         checkPluginSinglePath(filename, module_package=None)
 
     if not found:
-        warning("Didn't match any files against pattern '%s'." % pattern)
+        recursion_logger.warning("Didn't match any files against pattern %r." % pattern)

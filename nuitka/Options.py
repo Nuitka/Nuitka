@@ -17,7 +17,6 @@
 #
 """ Options module """
 
-import logging
 import os
 import sys
 
@@ -41,13 +40,9 @@ def parseArgs():
     # singleton with many cases, pylint: disable=global-statement,too-many-branches,too-many-statements
     global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat
 
-    is_nuitka_run, options, positional_args, extra_args = parseOptions()
-
-    # TODO: The logging impact should go away.
-    if options.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-    else:
-        logging.getLogger().setLevel(logging.INFO)
+    is_nuitka_run, options, positional_args, extra_args = parseOptions(
+        logger=Tracing.general
+    )
 
     Tracing.is_quiet = options.quiet or int(os.environ.get("NUITKA_QUIET", "0"))
 
@@ -76,13 +71,13 @@ def parseArgs():
     # standard library.
     if options.is_standalone:
         if not options.executable:
-            sys.exit(
+            Tracing.general.sysexit(
                 """\
 Error, conflicting options, cannot make standalone module, only executable."""
             )
 
         if getOS() == "NetBSD":
-            logging.warning(
+            Tracing.general.warning(
                 "Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported."
             )
 
@@ -98,7 +93,7 @@ Error, conflicting options, cannot make standalone module, only executable."""
                 bad = False
 
         if bad:
-            sys.exit(
+            Tracing.general.sysexit(
                 """\
 Error, '--follow-import-to' takes only module names, not directory path '%s'."""
                 % any_case_module
@@ -116,7 +111,7 @@ Error, '--follow-import-to' takes only module names, not directory path '%s'."""
                 bad = False
 
         if bad:
-            sys.exit(
+            Tracing.general.sysexit(
                 """\
 Error, '--nofollow-import-to' takes only module names, not directory path '%s'."""
                 % no_case_module
@@ -125,12 +120,14 @@ Error, '--nofollow-import-to' takes only module names, not directory path '%s'."
     scons_python = getPythonPathForScons()
 
     if scons_python is not None and not os.path.isfile(scons_python):
-        sys.exit("Error, no such Python binary '%s'." % scons_python)
+        Tracing.scons_logger.sysexit(
+            "Error, no such Python binary %r, should be full path." % scons_python
+        )
 
     if options.output_filename is not None and (
         isStandaloneMode() or shallMakeModule()
     ):
-        sys.exit(
+        Tracing.general.sysexit(
             """\
 Error, can only specify output filename for acceleration mode, not for module
 mode where filenames are mandatory, and not for standalone where there is a
@@ -139,75 +136,88 @@ sane default used inside the dist folder."""
 
     if getOS() == "Linux":
         if len(getIconPaths()) > 1:
-            sys.exit("Error, can only use one icon on Linux.")
+            Tracing.general.sysexit("Error, can only use one icon on Linux.")
 
     for icon_path in getIconPaths():
         if not os.path.exists(icon_path):
-            sys.exit("Error, icon path %r does not exist." % icon_path)
+            Tracing.general.sysexit("Error, icon path %r does not exist." % icon_path)
 
         if getWindowsIconExecutablePath():
-            sys.exit(
+            Tracing.general.sysexit(
                 "Error, can only use icons from template executable or from icon files, but not both."
             )
 
     icon_exe_path = getWindowsIconExecutablePath()
     if icon_exe_path is not None and not os.path.exists(icon_exe_path):
-        sys.exit("Error, icon path %r does not exist." % icon_exe_path)
+        Tracing.general.sysexit("Error, icon path %r does not exist." % icon_exe_path)
 
     try:
         file_version = getWindowsFileVersion()
     except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
-        sys.exit("Error, file version must be a tuple of up to 4 integer values.")
+        Tracing.general.sysexit(
+            "Error, file version must be a tuple of up to 4 integer values."
+        )
 
     try:
         product_version = getWindowsProductVersion()
     except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
-        sys.exit("Error, product version must be a tuple of up to 4 integer values.")
+        Tracing.general.sysexit(
+            "Error, product version must be a tuple of up to 4 integer values."
+        )
 
     if file_version or product_version or getWindowsVersionInfoStrings():
         if not (file_version or product_version) and getWindowsCompanyName():
-            sys.exit(
+            Tracing.general.sysexit(
                 "Error, company name and file or product version need to be given when any version information is given."
             )
 
     if isOnefileMode() and not hasOnefileSupportedOS():
-        sys.exit("Error, unsupported OS for onefile %r" % getOS())
+        Tracing.general.sysexit("Error, unsupported OS for onefile %r" % getOS())
 
     if isOnefileMode() and os.name == "nt":
         if not getWindowsCompanyName() and not isWindowsOnefileTempDirMode():
-            sys.exit(
+            Tracing.general.sysexit(
                 "Error, onefile on Windows requires company name and file or product version to be given or temp dir mode."
             )
 
     if options.recurse_none and options.recurse_all:
-        sys.exit(
+        Tracing.general.sysexit(
             "Conflicting options '--follow-imports' and '--nofollow-imports' given."
         )
 
     if getShallIncludePackageData() and not isStandaloneMode():
-        sys.exit(
+        Tracing.general.sysexit(
             "Error, package data files are only included in standalone or onefile mode."
         )
 
     for data_file in options.data_files:
         if "=" not in data_file:
-            sys.exit(
+            Tracing.general.sysexit(
                 "Error, malformed data file description, must specify relative target path with =."
             )
 
         src, dst = data_file.split("=", 1)
 
         if os.path.isabs(dst):
-            sys.exit(
+            Tracing.general.sysexit(
                 "Error, must specify relative target path for data file, not %r."
                 % data_file
             )
 
         if not resolveShellPatternToFilenames(src):
-            sys.exit("Error, %r does not match any files." % src)
+            Tracing.general.sysexit("Error, %r does not match any files." % src)
 
     if options.data_files and not isStandaloneMode():
-        sys.exit("Error, data files are only included in standalone or onefile mode.")
+        Tracing.general.sysexit(
+            "Error, data files are only included in standalone or onefile mode."
+        )
+
+    for pattern in getShallFollowExtraFilePatterns():
+        if os.path.isdir(pattern):
+            sys.exit(
+                "Error, pattern %r given to --include-plugin-files cannot be a directory name."
+                % pattern
+            )
 
     is_debug = _isDebug()
     is_nondebug = not is_debug
@@ -653,7 +663,7 @@ def getIconPaths():
         if os.path.exists(default_icon):
             result.append(default_icon)
         else:
-            sys.exit(
+            Tracing.general.sysexit(
                 "Error, on the default icon '%s' does not exist, making --linux-onefile-icon required."
             )
 
@@ -760,9 +770,7 @@ def getPythonFlags():
                     _python_flags.add("no_docstrings")
                     _python_flags.add("no_asserts")
                 else:
-                    # Do not warn before executing in final context.
-                    if "PYTHONHASHSEED" in os.environ:
-                        logging.warning("Unsupported flag '%s'.", part)
+                    Tracing.general.sysexit("Unsupported python flag %r.", part)
 
     return _python_flags
 

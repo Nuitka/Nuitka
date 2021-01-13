@@ -51,7 +51,6 @@ catching and passing in exceptions raised.
 
 import os
 import sys
-from logging import info, warning
 
 from nuitka import (
     ModuleRegistry,
@@ -118,7 +117,7 @@ from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import unusual_logger
+from nuitka.Tracing import memory_logger, plugins_logger, unusual_logger
 from nuitka.utils import MemoryUsage
 from nuitka.utils.FileOperations import splitPath
 from nuitka.utils.ModuleNames import ModuleName
@@ -919,7 +918,7 @@ def decideCompilationMode(is_top, module_name, source_ref):
     result = Plugins.decideCompilation(module_name, source_ref)
 
     if result == "bytecode" and is_top:
-        warning(
+        plugins_logger.warning(
             """\
 Ignoring plugin decision to compile top level package '%s'
 as bytecode, the extension module entry point is technically
@@ -1071,7 +1070,7 @@ def createModuleTree(module, source_ref, source_code, is_main):
     if Options.isShowMemory():
         memory_watch.finish()
 
-        info(
+        memory_logger.info(
             "Memory usage changed loading module '%s': %s"
             % (module.getFullName(), memory_watch.asStr())
         )

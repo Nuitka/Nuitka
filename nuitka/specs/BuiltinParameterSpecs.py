@@ -21,10 +21,10 @@
 from __future__ import print_function
 
 import math
-import sys
 
 from nuitka.__past__ import builtins
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import optimization_logger
 
 from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
@@ -123,7 +123,7 @@ class BuiltinParameterSpec(ParameterSpec):
                 del arg_dict[arg_name]
 
         except Exception as e:
-            sys.exit("Fatal problem: %r" % e)
+            optimization_logger.sysexit_exception("Fatal optimization problem", e)
 
         if given_list_star_args:
             return self.builtin(
@@ -177,11 +177,7 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
                     value.getCompileTimeConstant() for value in given_list_star_arg
                 ]
         except Exception as e:
-            print("Fatal error: ", end=" ", file=sys.stderr)
-            import traceback
-
-            traceback.print_exc()
-            sys.exit(repr(e))
+            optimization_logger.sysexit_exception("matching call", e)
 
         return self.builtin(*arg_list)
 

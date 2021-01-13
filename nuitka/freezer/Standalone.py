@@ -276,7 +276,7 @@ def _detectImports(command, user_provided, technical):
         general.warning("There is a problem with detecting imports, CPython said:")
         for line in stderr.split(b"\n"):
             printError(line)
-        sys.exit("Error, please report the issue with above output.")
+        general.sysexit("Error, please report the issue with above output.")
 
     result = []
 
@@ -1050,7 +1050,7 @@ SxS
     depends_exe_process.wait()
 
     if not os.path.exists(output_filename):
-        sys.exit("Error, depends.exe failed to product output.")
+        inclusion_logger.sysexit("Error, depends.exe failed to product output.")
 
     # Opening the result under lock, so it is not getting locked by new processes.
 
@@ -1355,7 +1355,7 @@ def getSharedLibraryRPATH(filename):
     retcode = process.poll()
 
     if retcode != 0:
-        sys.exit(
+        inclusion_logger.sysexit(
             "Error reading shared library path for %s, tool said %r"
             % (filename, stderr)
         )
@@ -1382,7 +1382,7 @@ def removeSharedLibraryRPATH(filename):
             )
 
         if not Utils.isExecutableCommand("chrpath"):
-            sys.exit(
+            inclusion_logger.sysexit(
                 """\
 Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
 libraries that need to be removed."""

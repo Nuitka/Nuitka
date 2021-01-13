@@ -17,8 +17,6 @@
 #
 """ Details see below in class definition.
 """
-import sys
-
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
@@ -78,8 +76,7 @@ class TensorflowPlugin(NuitkaPluginBase):
         if found_insert is True:
             self.info("Patched 'running-from-pip' path magic.")
         else:
-            # TODO: Add method for exit to logger too.
-            sys.exit("'%s' plugin did not find path magic." % self.plugin_name)
+            self.sysexit("Did not find path magic code." % self.plugin_name)
 
         return "\n".join(source_lines)
 

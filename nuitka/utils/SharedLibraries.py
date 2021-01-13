@@ -22,11 +22,11 @@
 import os
 import subprocess
 import sys
-from logging import warning
 
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import postprocessing_logger
 
 from .FileOperations import withMadeWritableFileMode
 from .Importing import importFromInlineCopy
@@ -249,7 +249,7 @@ def getPEFileInformation(filename):
 
     python_is_64bit = getArchitecture() == "x86_64"
     if extracted["AMD64"] is not python_is_64bit:
-        warning(
+        postprocessing_logger.warning(
             "Python %s bits with %s bits dependencies in '%s'"
             % (
                 ("32" if python_is_64bit else "64"),
@@ -283,7 +283,7 @@ def callInstallNameTool(filename, mapping):
         result = subprocess.call(command, stdout=subprocess.PIPE)
 
     if result != 0:
-        sys.exit(
+        postprocessing_logger.sysexit(
             "Error, call to 'install_name_tool' to fix shared library path failed."
         )
 
@@ -309,7 +309,9 @@ def callInstallNameToolAddRPath(filename, rpath):
         result = subprocess.call(command, stdout=subprocess.PIPE)
 
     if result != 0:
-        sys.exit("Error, call to 'install_name_tool' to add rpath failed.")
+        postprocessing_logger.sysexit(
+            "Error, call to 'install_name_tool' to add rpath failed."
+        )
 
 
 def getPyWin32Dir():

@@ -137,7 +137,7 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         if logging_info_re.match(line):
             continue
 
-        if line.startswith("Nuitka:WARNING:Cannot recurse to import"):
+        if line.startswith("Nuitka-Recursion:WARNING: Cannot follow import to module"):
             continue
 
         line = instance_re.sub(r"at 0xxxxxxxxx\1", line)

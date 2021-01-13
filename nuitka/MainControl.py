@@ -120,7 +120,10 @@ def _createNodeTree(filename):
         )
 
         if kind != "absolute":
-            sys.exit("Error, failed to locate package %r." % package_name)
+            inclusion_logger.sysexit(
+                "Error, failed to locate package %r you asked to include."
+                % package_name
+            )
 
         Recursion.checkPluginPath(
             plugin_filename=package_directory, module_package=package_package
@@ -136,7 +139,9 @@ def _createNodeTree(filename):
         )
 
         if kind != "absolute":
-            sys.exit("Error, failed to locate module %r." % module_name)
+            inclusion_logger.sysexit(
+                "Error, failed to locate module %r you asked to include." % module_name
+            )
 
         Recursion.checkPluginSinglePath(
             plugin_filename=module_filename, module_package=module_package
@@ -604,7 +609,7 @@ def compileTree():
         source_dir = OutputDirectories.getSourceDirectoryPath()
 
         if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
-            sys.exit("Error, no previous build directory exists.")
+            general.sysexit("Error, no previous build directory exists.")
 
     if Options.isShowProgress() or Options.isShowMemory():
         general.info(
