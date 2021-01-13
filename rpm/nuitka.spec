@@ -45,6 +45,7 @@ BuildRequires:  gcc-c++
 BuildRequires:  strace
 BuildRequires:  chrpath
 BuildRequires:  ccache
+BuildRequires:  gdb
 %if 0%{?fedora} < 28 && 0%{?rhel} < 8
 Requires:       python-devel
 %endif
