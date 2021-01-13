@@ -15,7 +15,6 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-
 /** Providing access to the constants binary blob.
  *
  * There are multiple ways, the constants binary is accessed, and its
@@ -31,25 +30,40 @@
 #include "nuitka/prelude.h"
 #endif
 
-// Loading of constants binary at run time from Windows resource is preferred method
-// for that OS.
-#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-unsigned char const *constant_bin = NULL;
+#include <stdint.h>
 
-void loadConstantsResource() {
-#ifdef _NUITKA_EXE
-    // Using NULL as this indicates running program.
-    HMODULE handle = NULL;
+#if defined(_NUITKA_CONSTANTS_FROM_LINKER)
+// Symbol as provided by the linker, different for C++ and C11 mode.
+#ifdef __cplusplus
+extern "C" const unsigned char constant_bin[];
 #else
-    HMODULE handle = getDllModuleHandle();
+extern const unsigned char constant_bin[0];
+#endif
+#else
+// Symbol to be assigned locally.
+unsigned char const *constant_bin = NULL;
 #endif
 
-    constant_bin =
-        (const unsigned char *)LockResource(LoadResource(handle, FindResource(handle, MAKEINTRESOURCE(3), RT_RCDATA)));
+#if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
+extern unsigned const char *getConstantsBlobData();
+#endif
 
-    assert(constant_bin);
+// No Python runtime yet, need to do this manually.
+static uint32_t calcCRC32(unsigned char const *message, uint32_t size) {
+    uint32_t crc = 0xFFFFFFFF;
+
+    for (uint32_t i = 0; i < size; i++) {
+        unsigned int c = message[i];
+        crc = crc ^ c;
+
+        for (int j = 7; j >= 0; j--) {
+            uint32_t mask = ((crc & 1) != 0) ? 0xFFFFFFFF : 0;
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
+        }
+    }
+
+    return ~crc;
 }
-#endif
 
 #if PYTHON_VERSION < 0x300
 static PyObject *int_cache = NULL;
@@ -1024,7 +1038,39 @@ static void unpackBlobConstants(PyObject **output, unsigned char const *data, in
 }
 
 void loadConstantsBlob(PyObject **output, char const *name, int count) {
-    // Python 3.9 or higher cannot create dictionary before calling init.
+
+    static bool init_done = false;
+
+    if (init_done == false) {
+#if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
+        constant_bin = getConstantsBlobData();
+#elif defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
+#ifdef _NUITKA_EXE
+        // Using NULL as this indicates running program.
+        HMODULE handle = NULL;
+#else
+        HMODULE handle = getDllModuleHandle();
+#endif
+
+        constant_bin = (const unsigned char *)LockResource(
+            LoadResource(handle, FindResource(handle, MAKEINTRESOURCE(3), RT_RCDATA)));
+
+        assert(constant_bin);
+#endif
+        uint32_t hash = *(uint32_t *)constant_bin;
+        constant_bin += 4;
+        uint32_t size = *(uint32_t *)constant_bin;
+        constant_bin += 4;
+
+        if (calcCRC32(constant_bin, size) != hash) {
+            puts("Error, corrupted constants object");
+            abort();
+        }
+
+        init_done = true;
+    }
+
+    // Python 3.9 or higher cannot create dictionary before calling init so avoid it.
     if (strcmp(name, ".bytecode") != 0) {
         initCaches();
     }

@@ -405,6 +405,8 @@ def _shouldNotFormatCode(filename):
             "compile_python_modules.py",
             "compile_extension_modules.py",
         )
+    elif parts[-1] in ("incbin.h", "hedley.h"):
+        return True
     else:
         return False
 
@@ -533,8 +535,9 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
 
         elif is_c:
             cleanupWindowsNewlines(tmp_filename)
-            _cleanupClangFormat(tmp_filename)
-            cleanupWindowsNewlines(tmp_filename)
+            if not _shouldNotFormatCode(effective_filename):
+                _cleanupClangFormat(tmp_filename)
+                cleanupWindowsNewlines(tmp_filename)
         elif is_txt:
             cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)

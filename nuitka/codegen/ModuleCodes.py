@@ -47,7 +47,9 @@ def getModuleAccessCode(context):
     return "module_%s" % context.getModuleCodeName()
 
 
-def getModuleCode(module, function_decl_codes, function_body_codes, context):
+def getModuleCode(
+    module, function_decl_codes, function_body_codes, module_const_blob_name, context
+):
 
     # For the module code, lots of arguments and attributes come together.
     # pylint: disable=too-many-locals
@@ -139,6 +141,7 @@ def getModuleCode(module, function_decl_codes, function_body_codes, context):
         "module_code_objects_decl": indented(module_code_objects_decl, 0),
         "module_code_objects_init": indented(module_code_objects_init, 1),
         "constants_count": context.getConstantsCount(),
+        "module_const_blob_name": module_const_blob_name,
     }
 
 

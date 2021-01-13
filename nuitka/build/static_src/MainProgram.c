@@ -329,16 +329,6 @@ int main(int argc, char **argv) {
     fpsetmask(m & ~FP_X_OFL);
 #endif
 
-    /* On Windows we support loading the constants blob from an embedded
-     * resource. On Linux, where possible this is done automatically by
-     * the linker already.
-     */
-#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-    NUITKA_PRINT_TRACE("main(): Loading constants blob from Windows resource.");
-
-    loadConstantsResource();
-#endif
-
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Prepare standalone environment.");
     prepareStandaloneEnvironment();

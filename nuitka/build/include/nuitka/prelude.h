@@ -376,6 +376,8 @@ extern PyObject **global_constants;
 // '__loader__'
 #define const_str_plain___loader__ global_constants[67]
 
+#define _NUITKA_CONSTANTS_SIZE 27
+#define _NUITKA_CONSTANTS_HASH 0x27272727
 #else
 #include "__constants.h"
 #endif

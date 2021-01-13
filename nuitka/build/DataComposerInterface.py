@@ -41,3 +41,19 @@ def runDataComposer(source_dir):
 
 def getConstantBlobFilename(source_dir):
     return os.path.join(source_dir, "__constants.bin")
+
+
+def deriveModuleConstantsBlobName(filename):
+    assert filename.endswith(".const")
+
+    basename = filename[:-6]
+
+    if basename == "__constants":
+        return ""
+    elif basename == "__bytecode":
+        return ".bytecode"
+    else:
+        # Stripe "module." prefix"
+        basename = basename[7:]
+
+        return basename

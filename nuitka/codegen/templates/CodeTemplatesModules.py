@@ -69,7 +69,7 @@ static bool constants_created = false;
 
 /* Function to create module private constants. */
 static void createModuleConstants(void) {
-    loadConstantsBlob(&mod_consts[0], "%(module_name)s", %(constants_count)d);
+    loadConstantsBlob(&mod_consts[0], "%(module_const_blob_name)s", %(constants_count)d);
 
     constants_created = true;
 }
@@ -295,11 +295,6 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
     // In case of a stand alone extension module, need to call initialization
     // the init here because that's the first and only time we are going to get
     // called here.
-
-    // May have to activate constants blob.
-#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-    loadConstantsResource();
-#endif
 
     // Initialize the constant values used.
     _initBuiltinModule();

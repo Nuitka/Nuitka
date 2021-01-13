@@ -26,6 +26,8 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
+from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
+
 from . import Contexts
 from .AsyncgenCodes import (
     generateMakeAsyncgenObjectCode,
@@ -417,7 +419,6 @@ def generateModuleCode(module, data_filename):
 
     context = Contexts.PythonModuleContext(
         module=module,
-        # TODO: Have output filename already before generating code.
         data_filename=data_filename,
     )
 
@@ -462,7 +463,13 @@ def generateModuleCode(module, data_filename):
 
         function_decl_codes.append(function_decl)
 
-    return getModuleCode(module, function_decl_codes, function_body_codes, context)
+    return getModuleCode(
+        module=module,
+        function_decl_codes=function_decl_codes,
+        function_body_codes=function_body_codes,
+        module_const_blob_name=deriveModuleConstantsBlobName(data_filename),
+        context=context,
+    )
 
 
 def generateHelpersCode():

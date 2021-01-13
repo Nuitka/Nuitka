@@ -32,6 +32,7 @@ sys.path.insert(
 
 # isort:start
 
+import binascii
 import ctypes
 import math
 import re
@@ -44,6 +45,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     unicode,
     xrange,
 )
+from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.Builtins import builtin_exception_values_list, builtin_named_values
 from nuitka.constants.Serialization import (
     BlobData,
@@ -52,6 +54,7 @@ from nuitka.constants.Serialization import (
     ConstantStreamReader,
 )
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import datacomposer_logger
 from nuitka.utils.FileOperations import listDir
 
 
@@ -65,29 +68,6 @@ def scanConstFiles(build_dir):
         result.append((fullpath, filename))
 
     return result
-
-
-def _deriveConstantsBlobName(filename):
-    assert filename.endswith(".const")
-
-    basename = filename[:-6]
-
-    if basename == "__constants":
-        return b""
-    elif basename == "__bytecode":
-        return b".bytecode"
-    else:
-        # Stripe "module." prefix"
-        basename = basename[7:]
-
-        # Filenames that hit case sensitive problems, get those, but we encode that not in the binary.
-        if "@" in basename:
-            basename = basename.split("@")[0]
-
-        if str is not bytes:
-            basename = basename.encode("utf8")
-
-        return basename
 
 
 sizeof_clong = ctypes.sizeof(ctypes.c_long)
@@ -328,7 +308,16 @@ def _writeConstantStream(constants_reader):
     return count, result.getvalue()
 
 
+crc32 = 0
+
+
 def main():
+    global crc32  # singleton, pylint: disable=global-statement
+
+    datacomposer_logger.is_quiet = (
+        os.environ.get("NUITKA_DATACOMPOSER_VERBOSE", "0") != "1"
+    )
+
     # Internal tool, most simple command line handling. This is the build directory
     # where main Nuitka put the .const files.
     build_dir = sys.argv[1]
@@ -341,24 +330,47 @@ def main():
     desc = []
 
     for fullpath, filename in const_files:
-        # print("Working on", filename)
+        datacomposer_logger.info("Working on constant file %r." % filename)
 
         constants_reader = ConstantStreamReader(fullpath)
-        name = _deriveConstantsBlobName(filename)
-
-        # print("W", filename, name)
-
         count, part = _writeConstantStream(constants_reader)
         total += count
+
+        name = deriveModuleConstantsBlobName(filename)
+
+        datacomposer_logger.info("Storing %s chunk with size %r." % (name, len(part)))
+
+        if str is not bytes:
+            # Encoding needs to match generated source code output.
+            name = name.encode("latin1")
 
         desc.append((name, part))
 
     with open(output_filename, "wb") as output:
+        output.write(b"\0" * 8)
+
+        def write(data):
+            global crc32  # singleton, pylint: disable=global-statement
+
+            output.write(data)
+            crc32 = binascii.crc32(data, crc32)
+
         for name, part in desc:
-            output.write(name)
-            output.write(b"\0")
-            output.write(struct.pack("i", len(part)))
-            output.write(part)
+            write(name)
+            write(b"\0")
+            write(struct.pack("I", len(part)))
+            write(part)
+
+        data_size = output.tell() - 8
+
+        if str is bytes:
+            # Python2 is doing signed CRC32, but we want unsigned.
+            crc32 %= 1 << 32
+
+        output.seek(0)
+        output.write(struct.pack("II", crc32, data_size))
+
+        assert output.tell() == 8
 
     sys.exit(0)
 

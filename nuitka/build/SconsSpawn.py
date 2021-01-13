@@ -235,6 +235,12 @@ def runSpawnMonitored(spawn, sh, escape, cmd, args, env):
 
 def getWrappedSpawnFunction(spawn):
     def spawnCommand(sh, escape, cmd, args, env):
+        # Avoid using ccache on binary constants blob, not useful and not working
+        # with old ccache.
+        if '"__constants_data.o"' in args or '"__constants_data.os"' in args:
+            env = dict(env)
+            env["CCACHE_DISABLE"] = "1"
+
         return runSpawnMonitored(spawn, sh, escape, cmd, args, env)
 
     return spawnCommand

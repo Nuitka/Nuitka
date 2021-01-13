@@ -104,6 +104,10 @@ def haveSameFileContents(path1, path2):
     return filecmp.cmp(path1, path2)
 
 
+def getFileSize(path):
+    return os.path.getsize(path)
+
+
 def relpath(path, start="."):
     """Make it a relative path, if possible.
 

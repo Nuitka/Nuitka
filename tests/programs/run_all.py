@@ -188,6 +188,9 @@ def main():
                 if entry.startswith("path")
             ]
 
+            if extra_python_path:
+                my_print("Applying extra PYTHONPATH %r." % extra_python_path)
+
             with withPythonPathChange(extra_python_path):
                 compareWithCPython(
                     dirname=filename,

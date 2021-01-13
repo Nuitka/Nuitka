@@ -33,11 +33,6 @@ PyObject *_sentinel_value = NULL;
 
 PyObject *Nuitka_dunder_compiled_value = NULL;
 
-// We need to make sure this is local to the package, or else it will
-// be taken from any external linkage.
-#if defined(_NUITKA_MODULE) && !defined(_NUITKA_CONSTANTS_FROM_RESOURCE) && !defined(__cplusplus)
-const unsigned char constant_bin[0];
-#endif
 
 #ifdef _NUITKA_STANDALONE
 extern PyObject *getStandaloneSysExecutablePath(PyObject *basename);

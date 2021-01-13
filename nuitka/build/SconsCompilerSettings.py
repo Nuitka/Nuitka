@@ -20,16 +20,19 @@
 """
 
 import os
+import re
 
-from nuitka.Tracing import scons_logger
+from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Download import getCachedDownload
 
+from .DataComposerInterface import getConstantBlobFilename
 from .SconsHacks import myDetectVersion
 from .SconsUtils import (
     addToPATH,
     createEnvironment,
     decideArchMismatch,
     getExecutablePath,
+    getLinkerArch,
     isGccName,
 )
 
@@ -164,3 +167,101 @@ def checkWindowsCompilerFound(env, target_arch, assume_yes_for_downloads):
             env["CC"] = compiler_path
 
     return env
+
+
+def decideConstantsBlobResourceMode():
+    if "NUITKA_RESOURCE_MODE" in os.environ:
+        resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
+    elif os.name == "nt":
+        resource_mode = "win_resource"
+    else:
+        # All is done already, this is for most platforms.
+        resource_mode = "incbin"
+
+    return resource_mode
+
+
+def addConstantBlobFile(
+    env, resource_mode, source_dir, c11_mode, mingw_mode, target_arch
+):
+
+    constants_bin_filename = getConstantBlobFilename(source_dir)
+
+    scons_details_logger.info("Using resource mode: %r." % resource_mode)
+
+    if resource_mode == "win_resource":
+        # On Windows constants can be accessed as a resource by Nuitka runtime afterwards.
+        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
+    elif resource_mode == "incbin":
+        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_INCBIN"])
+
+        constants_generated_filename = os.path.join(source_dir, "__constants_data.c")
+
+        with open(constants_generated_filename, "w") as output:
+            output.write(
+                """
+#define INCBIN_PREFIX
+#define INCBIN_STYLE INCBIN_STYLE_SNAKE
+#define INCBIN_LOCAL
+
+#include "nuitka/incbin.h"
+
+INCBIN(constant_bin, "__constants.bin");
+
+unsigned char const *getConstantsBlobData() {
+    return constant_bin_data;
+}
+"""
+            )
+
+    elif resource_mode == "linker":
+        # On Windows constants are accesses as a resource by Nuitka afterwards.
+        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_LINKER"])
+
+        env.Append(
+            LINKFLAGS=[
+                "-Wl,-b",
+                "-Wl,binary",
+                "-Wl,%s" % constants_bin_filename,
+                "-Wl,-b",
+                "-Wl,%s"
+                % getLinkerArch(target_arch=target_arch, mingw_mode=mingw_mode),
+                "-Wl,-defsym",
+                "-Wl,%sconstant_bin=_binary_%s___constants_bin_start"
+                % (
+                    "_" if mingw_mode else "",
+                    "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in source_dir),
+                ),
+            ]
+        )
+    elif resource_mode == "code":
+        constants_generated_filename = os.path.join(source_dir, "__constants_data.c")
+
+        def writeConstantsDataSource():
+            with open(constants_generated_filename, "w") as output:
+                if not c11_mode:
+                    output.write('extern "C" ')
+
+                output.write("const unsigned char constant_bin[] =\n{\n")
+
+                with open(constants_bin_filename, "rb") as f:
+                    content = f.read()
+                for count, stream_byte in enumerate(content):
+                    if count % 16 == 0:
+                        if count > 0:
+                            output.write("\n")
+
+                        output.write("   ")
+
+                    if str is bytes:
+                        stream_byte = ord(stream_byte)
+
+                    output.write(" 0x%02x," % stream_byte)
+
+                output.write("\n};\n")
+
+        writeConstantsDataSource()
+    else:
+        scons_logger.sysexit(
+            "Error, illegal resource mode %r specified" % resource_mode
+        )

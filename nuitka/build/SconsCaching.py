@@ -332,7 +332,7 @@ def checkCachingSuccess(source_dir):
 
 
 def runClCache(args, env):
-    # pylint: disable=I0021,import-error,redefined-outer-name
+    # pylint: disable=I0021,import-error,no-name-in-module,redefined-outer-name
     from clcache.caching import runClCache
 
     # No Python2 compatibility

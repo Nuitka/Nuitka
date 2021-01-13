@@ -42,7 +42,6 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 # isort:start
 
 import platform
-import re
 import subprocess
 
 import SCons  # pylint: disable=import-error
@@ -59,7 +58,12 @@ from SCons.Script import (  # pylint: disable=import-error
 from nuitka.Tracing import my_print, scons_details_logger, scons_logger
 
 from .SconsCaching import enableCcache, enableClcache
-from .SconsCompilerSettings import checkWindowsCompilerFound, enableC11Settings
+from .SconsCompilerSettings import (
+    addConstantBlobFile,
+    checkWindowsCompilerFound,
+    decideConstantsBlobResourceMode,
+    enableC11Settings,
+)
 from .SconsHacks import (
     getEnhancedToolDetect,
     makeGccUseLinkerFile,
@@ -77,7 +81,6 @@ from .SconsUtils import (
     getArgumentList,
     getArgumentRequired,
     getExecutablePath,
-    getLinkerArch,
     getMsvcVersion,
     getMsvcVersionString,
     initScons,
@@ -1017,70 +1020,14 @@ if gcc_mode and not macosx_target and not win_target and not module_mode:
 if macosx_target and not module_mode:
     env.Append(LINKFLAGS=["-headerpad_max_install_names"])
 
-constants_bin_filename = os.path.join(source_dir, "__constants.bin")
-
-if win_target:
-    resource_mode = "win_resource"
-elif (
-    gcc_mode
-    and getLinkerArch(target_arch=target_arch, mingw_mode=mingw_mode) is not None
-):
-    resource_mode = "linker"
-else:
-    resource_mode = "code"
-
-scons_details_logger.info("Using resource mode: %r." % resource_mode)
-
-if resource_mode == "win_resource":
-    # On Windows constants are accesses as a resource by Nuitka afterwards.
-    constants_generated_filename = None
-
-    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
-elif resource_mode == "linker":
-    env.Append(
-        LINKFLAGS=[
-            "-Wl,-b",
-            "-Wl,binary",
-            "-Wl,%s" % constants_bin_filename,
-            "-Wl,-b",
-            "-Wl,%s" % getLinkerArch(target_arch=target_arch, mingw_mode=mingw_mode),
-            "-Wl,-defsym",
-            "-Wl,%sconstant_bin=_binary_%s___constants_bin_start"
-            % (
-                "_" if mingw_mode else "",
-                "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in source_dir),
-            ),
-        ]
-    )
-
-    constants_generated_filename = None
-else:
-    constants_generated_filename = os.path.join(source_dir, "__constants_data.c")
-
-    def writeConstantsDataSource():
-        with open(constants_generated_filename, "w") as output:
-            if not c11_mode:
-                output.write('extern "C" ')
-
-            output.write("const unsigned char constant_bin[] =\n{\n")
-
-            with open(constants_bin_filename, "rb") as f:
-                content = f.read()
-            for count, stream_byte in enumerate(content):
-                if count % 16 == 0:
-                    if count > 0:
-                        output.write("\n")
-
-                    output.write("   ")
-
-                if str is bytes:
-                    stream_byte = ord(stream_byte)
-
-                output.write(" 0x%02x," % stream_byte)
-
-            output.write("\n};\n")
-
-    writeConstantsDataSource()
+addConstantBlobFile(
+    env=env,
+    resource_mode=decideConstantsBlobResourceMode(),
+    source_dir=source_dir,
+    c11_mode=c11_mode,
+    mingw_mode=mingw_mode,
+    target_arch=target_arch,
+)
 
 env.Append(CPPDEFINES=["_NUITKA_FROZEN=%d" % frozen_modules])
 
