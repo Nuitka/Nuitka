@@ -86,14 +86,12 @@ def _getSconsBinaryCall():
 def _getPythonSconsExePathWindows():
     """Find Python for Scons on Windows.
 
-    First try a few guesses, the look into registry for user or system wide
-    installations of Python2. Both Python 2.6 and 2.7, and 3.5 or higher
-    will do.
+    Only 3.5 or higher will do.
     """
 
     # Ordered in the list of preference.
     python_dir = Execution.getPythonInstallPathWindows(
-        supported=("3.5", "3.6", "3.7", "3.8", "3.9", "2.7")
+        supported=("3.5", "3.6", "3.7", "3.8", "3.9")
     )
 
     if python_dir is not None:
@@ -125,13 +123,11 @@ def _getPythonForSconsExePath():
         if python_exe is not None:
             return python_exe
         else:
-            sys.exit(
+            Tracing.scons_logger.sysexit(
                 """\
-Error, while Nuitka works with Python 2.6, 3.3 and 3.4, Scons does not, and
-therefore  Nuitka needs to find a Python 3.5 or higher executable. It does
-so from the registry, or simply put it under the "C:\\PythonXY", e.g.
-"C:\\Python37" to execute the scons utility which is used to build the C
-files to binary.
+Error, while Nuitka works with older Python, Scons does not, and therefore
+Nuitka needs to find a Python 3.5 or higher executable, so please install
+it.
 
 You may provide it using option "--python-for-scons=path_to_python.exe"
 in case it is not visible in registry, e.g. due to using uninstalled
