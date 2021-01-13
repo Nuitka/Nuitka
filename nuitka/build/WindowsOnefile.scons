@@ -307,16 +307,6 @@ if "clang" in the_cc_name and "-cl" not in the_cc_name:
 # be compatible.
 gcc_mode = isGccName(the_cc_name) or clang_mode
 
-# Make a check, to discover the currently unsupported combination.
-if clangcl_mode and gcc_mode:
-    sys.exit(
-        """\
-Error, you cannot combine a gcc C compiler with clang on Windows with Nuitka
-yet. So far it was found to be only slower than pure MinGW64. If you want
-to use it, you need to install Visual Studio, and use it instead, then the
-clang mode will piggy back it.
-"""
-    )
 
 # Only use MSVC if not already clear, we are using MinGW.
 msvc_mode = win_target and not gcc_mode
@@ -324,14 +314,6 @@ mingw_mode = win_target and gcc_mode
 
 if gcc_mode and not clang_mode:
     gcc_version = myDetectVersion(env, the_compiler)
-
-    if gcc_version is None and "++" in the_cc_name:
-        sys.exit(
-            """\
-Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
-"""
-            % the_cc_name
-        )
 
 if the_compiler is None or getExecutablePath(the_compiler, env=env) is None:
     raiseNoCompilerFoundErrorExit()
