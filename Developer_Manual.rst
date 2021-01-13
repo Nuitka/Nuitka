@@ -184,7 +184,7 @@ In order to set up hooks, you need to execute these commands:
 
    # Where python is the one you use with Nuitka, this then gets all
    # development requirements, can be full PATH.
-   python -m pip install requirements-devel.txt
+   python -m pip install -r requirements-devel.txt
    python ./misc/install-git-hooks.py
 
 
