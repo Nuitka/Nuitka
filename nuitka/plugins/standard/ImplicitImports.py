@@ -771,7 +771,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "scipy._lib":
             yield "scipy._lib.messagestream"
 
-        # scipy imports -------------------------------------------------------
+        # statsmodels imports -------------------------------------------------------
         elif full_name == "statsmodels.nonparametric":
             yield "statsmodels.nonparametric.linbin"
             yield "statsmodels.nonparametric._smoothers_lowess"
