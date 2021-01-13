@@ -770,6 +770,10 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "scipy.sparse.csgraph._validation"
         elif full_name == "scipy._lib":
             yield "scipy._lib.messagestream"
+        elif full_name == "scipy.spatial":
+            yield "scipy.spatial.transform"
+        elif full_name == "scipy.spatial.transform":
+            yield "scipy.spatial.transform._rotation_groups"
 
         # statsmodels imports -------------------------------------------------------
         elif full_name == "statsmodels.nonparametric":
