@@ -32,6 +32,7 @@ multiple resources proved to be not possible.
 import ctypes
 import os
 import struct
+import time
 
 from nuitka import TreeXML
 
@@ -154,12 +155,12 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
 
 
 def _openFileWindowsResources(filename):
-    if type(filename) is str and str is not bytes:
-        BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceW
-        BeginUpdateResource.argtypes = [ctypes.wintypes.LPCWSTR, ctypes.wintypes.BOOL]
-    else:
+    if type(filename) is str and str is bytes:
         BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceA
         BeginUpdateResource.argtypes = [ctypes.wintypes.LPCSTR, ctypes.wintypes.BOOL]
+    else:
+        BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceW
+        BeginUpdateResource.argtypes = [ctypes.wintypes.LPCWSTR, ctypes.wintypes.BOOL]
 
     BeginUpdateResource.restype = ctypes.wintypes.HANDLE
 
@@ -255,25 +256,49 @@ def copyResourcesFromFileToFile(source_filename, target_filename, resource_kinds
     return len(res_data)
 
 
-def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name):
-    update_handle = _openFileWindowsResources(target_filename)
+def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name, logger):
+    max_attempts = 5
 
-    _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, data)
+    for attempt in range(1, max_attempts + 1):
+        update_handle = _openFileWindowsResources(target_filename)
 
-    _closeFileWindowsResources(update_handle)
+        _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, data)
+
+        try:
+            _closeFileWindowsResources(update_handle)
+        except OSError as e:
+            if e.errno == 110:
+                logger.warning(
+                    """
+Failed to add resources to file %r in attempt %d.
+Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying in a second delay."""
+                    % (target_filename, attempt)
+                )
+
+                time.sleep(1)
+                continue
+        else:
+            if attempt != 1:
+                logger.warning(
+                    "Succeeded with resource update in attempt %d." % attempt
+                )
+            break
+    else:
+        logger.sysexit("Failed to update resources, the result is unusable.")
 
 
 class WindowsExecutableManifest(object):
     def __init__(self, template):
         self.tree = TreeXML.fromString(template)
 
-    def addResourceToFile(self, filename):
+    def addResourceToFile(self, filename, logger):
         addResourceToFile(
             target_filename=filename,
             data=TreeXML.toBytes(self.tree),
             resource_kind=RT_MANIFEST,
             res_name=1,
             lang_id=0,
+            logger=logger,
         )
 
     def addUacAdmin(self):
@@ -561,6 +586,7 @@ def addVersionInfoResource(
     file_date,
     is_exe,
     result_filename,
+    logger,
 ):
     if product_version is None:
         product_version = file_version
@@ -608,6 +634,7 @@ def addVersionInfoResource(
         resource_kind=RT_VERSION,
         res_name=1,
         lang_id=0,
+        logger=logger,
     )
 
     return string_values

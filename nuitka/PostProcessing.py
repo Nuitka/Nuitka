@@ -145,6 +145,7 @@ def addWindowsIconFromIcons():
             resource_kind=RT_GROUP_ICON,
             lang_id=0,
             res_name=icon_group,
+            logger=postprocessing_logger,
         )
 
     for count, image in enumerate(images, 1):
@@ -154,6 +155,7 @@ def addWindowsIconFromIcons():
             resource_kind=RT_ICON,
             lang_id=0,
             res_name=count,
+            logger=postprocessing_logger,
         )
 
 
@@ -200,7 +202,9 @@ def executePostProcessing():
                     manifest.addUacUiAccess()
 
             if needs_manifest:
-                manifest.addResourceToFile(result_filename)
+                manifest.addResourceToFile(
+                    result_filename, logger=postprocessing_logger
+                )
 
         if (
             Options.getWindowsVersionInfoStrings()
@@ -215,6 +219,7 @@ def executePostProcessing():
                     file_date=(0, 0),
                     is_exe=not Options.shallMakeModule(),
                     result_filename=result_filename,
+                    logger=postprocessing_logger,
                 )
             )
 
@@ -227,6 +232,7 @@ def executePostProcessing():
             resource_kind=RT_RCDATA,
             res_name=3,
             lang_id=0,
+            logger=postprocessing_logger,
         )
 
         # Attach icons from template file if given.
