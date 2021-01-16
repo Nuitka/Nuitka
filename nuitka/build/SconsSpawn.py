@@ -140,11 +140,7 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
                 if len(data.split(b"\r\n")) == 2:
                     data = b""
 
-        elif (
-            cmd == "cl"
-            or cmd == "<clcache>"
-            or os.path.basename(cmd).lower() == "clcache.exe"
-        ):
+        elif cmd in ("cl", "<clcache>"):
             # Skip forced output from cl.exe
             data = data[data.find(b"\r\n") + 2 :]
 

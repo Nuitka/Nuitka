@@ -32,7 +32,6 @@ from nuitka.utils.FileOperations import (
     getFileContents,
     getLinkTarget,
     makePath,
-    withFileLock,
 )
 from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.Utils import getOS, isWin32Windows
@@ -190,81 +189,40 @@ def enableCcache(
     )
 
 
-def _activateInlineClcache():
+def enableClcache(the_compiler, env, source_dir):
     importFromInlineCopy("atomicwrites", must_exist=True)
     importFromInlineCopy("clcache", must_exist=True)
 
-    clcache_binary = "<clcache>"
-    return clcache_binary
+    cl_binary = getExecutablePath(the_compiler, env)
 
+    # The compiler is passed via environment.
+    setEnvironmentVariable(env, "CLCACHE_CL", cl_binary)
+    env["CXX"] = env["CC"] = "<clcache>"
 
-def enableClcache(the_compiler, env, source_dir):
-    # This needs to be an absolute path, otherwise it will not work.
-    clcache_logfile = os.path.abspath(
-        os.path.join(source_dir, "clcache-%d.txt" % os.getpid())
+    setEnvironmentVariable(env, "CLCACHE_HIDE_OUTPUTS", "1")
+
+    # The clcache stats filename needs absolute path, otherwise it will not work.
+    clcache_stats_filename = os.path.abspath(
+        os.path.join(source_dir, "clcache-stats.%d.txt" % os.getpid())
     )
 
-    clcache_binary = _activateInlineClcache()
+    setEnvironmentVariable(env, "CLCACHE_STATS", clcache_stats_filename)
+    env["CLCACHE_STATS"] = clcache_stats_filename
 
-    if clcache_binary is not None and clcache_binary == "<clcache>":
-        cl_binary = getExecutablePath(the_compiler, env)
+    # Unless asked to do otherwise, store ccache files in our own directory.
+    if "CLCACHE_DIR" not in os.environ:
+        clcache_dir = os.path.join(getCacheDir(), "clcache")
+        makePath(clcache_dir)
+        clcache_dir = getExternalUsePath(clcache_dir)
+        setEnvironmentVariable(env, "CLCACHE_DIR", clcache_dir)
+        env["CLCACHE_DIR"] = clcache_dir
 
-        # The compiler is passed via environment.
-        setEnvironmentVariable(env, "CLCACHE_CL", cl_binary)
-        env["CXX"] = env["CC"] = clcache_binary
+    scons_details_logger.info(
+        "Using inline copy of clcache with %r cl binary." % cl_binary
+    )
 
-        setEnvironmentVariable(env, "CLCACHE_HIDE_OUTPUTS", "1")
-
-        # The clcache stats filename needs absolute path, otherwise it will not work.
-        clcache_stats_filename = os.path.abspath(
-            os.path.join(source_dir, "clcache-stats.%d.txt" % os.getpid())
-        )
-
-        setEnvironmentVariable(env, "CLCACHE_STATS", clcache_stats_filename)
-        env["CLCACHE_STATS"] = clcache_stats_filename
-
-        # Unless asked to do otherwise, store ccache files in our own directory.
-        if "CLCACHE_DIR" not in os.environ:
-            clcache_dir = os.path.join(getCacheDir(), "clcache")
-            makePath(clcache_dir)
-            clcache_dir = getExternalUsePath(clcache_dir)
-            setEnvironmentVariable(env, "CLCACHE_DIR", clcache_dir)
-            env["CLCACHE_DIR"] = clcache_dir
-
-        scons_details_logger.info(
-            "Using inline copy of clcache with %r cl binary." % cl_binary
-        )
-
-        # Do not consider scons cache anymore.
-        result = True
-    elif clcache_binary is not None and os.path.exists(clcache_binary):
-        cl_binary = getExecutablePath(the_compiler, env)
-
-        # The compiler is passed via environment.
-        setEnvironmentVariable(env, "CLCACHE_CL", cl_binary)
-        env["CXX"] = env["CC"] = clcache_binary
-
-        # Our spawn function will pick it up from the standard output.
-        setEnvironmentVariable(env, "CLCACHE_LOG", clcache_logfile)
-        env["CLCACHE_LOG"] = clcache_logfile
-
-        scons_details_logger.info(
-            "Found clcache '%s' to cache C compilation result." % clcache_binary
-        )
-        scons_details_logger.info(
-            "Providing real cl.exe path '%s' via environment." % cl_binary
-        )
-
-        # Do not consider scons cache anymore.
-        result = True
-    else:
-        scons_logger.warning(
-            "Didn't find clcache for C level caching, follow Nuitka user manual description."
-        )
-
-        result = False
-
-    return result
+    # Do not consider scons cache anymore.
+    return True
 
 
 def _getCcacheStatistics(ccache_logfile):
@@ -329,17 +287,6 @@ def _getCcacheStatistics(ccache_logfile):
     return data
 
 
-def _getClcacheStatistics(clcache_logfile):
-    data = {}
-
-    if os.path.exists(clcache_logfile):
-        for line in open(clcache_logfile):
-            filename, cache_result = line.rstrip().rsplit("=", 1)
-            data[filename] = cache_result
-
-    return data
-
-
 def checkCachingSuccess(source_dir):
     ccache_logfile = getSconsReportValue(source_dir, "CCACHE_LOGFILE")
 
@@ -382,63 +329,6 @@ def checkCachingSuccess(source_dir):
                 "Compiled %d C files using clcache with %d cache hits and %d cache misses."
                 % (clcache_hit + clcache_miss, clcache_hit, clcache_miss)
             )
-
-
-clcache_data = {}
-
-
-def _writeClcacheLog(filename, cache_result):
-    with withFileLock():
-        with open(os.environ["CLCACHE_LOG"], "a") as clcache_log:
-            clcache_log.write("%s=%s\n" % (filename, cache_result))
-
-
-def extractClcacheLogFromOutput(data):
-    clcache_output = []
-    normal_output = []
-
-    for line in data.split(b"\n"):
-        # Remove the "\r", clcache and compiler may or may not output it.
-        line = line.strip()
-
-        if b"clcache.py" in line:
-            clcache_output.append(line)
-        else:
-            normal_output.append(line)
-
-    # Make sure we have Windows new lines for the compiler output though.
-    data = b"\r\n".join(normal_output)
-    if data:
-        data += b"\r\n"
-
-    for clcache_line in clcache_output:
-        match = re.search(b"Reusing cached object.*?for object file (.*)", clcache_line)
-
-        if match:
-            _writeClcacheLog(match.group(1), "cache hit")
-            return data
-
-        match = re.search(b"Adding file (.*?) to cache", clcache_line)
-        if match:
-            _writeClcacheLog(match.group(1), "cache miss")
-            return data
-
-        match = re.search(b"Real compiler returned code (\\d+)", clcache_line)
-        if match and match.group(1) != b"0":
-            _writeClcacheLog(match.group(1), "compile error")
-            return data
-
-        match = re.search(b"Compiler source files: \\['(.*?)'\\]", clcache_line)
-        if match:
-            _writeClcacheLog(match.group(1), "cache miss")
-            return data
-
-    if clcache_output:
-        # Sometimes no message at all might be recognized.
-        scons_logger.warning("Caching with clcache could not be decoded, got this:")
-        scons_logger.warning(b"\n".join(clcache_output))
-
-    return data
 
 
 def runClCache(args, env):
