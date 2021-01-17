@@ -1365,7 +1365,11 @@ static PyObject *Nuitka_AsyncgenAsend_send(struct Nuitka_AsyncgenAsendObject *as
 #endif
 
     if (asyncgen_asend->m_state == AWAITABLE_STATE_CLOSED) {
+#if PYTHON_VERSION < 0x390
         SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+#else
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cannot reuse already awaited __anext__()/asend()");
+#endif
 
 #if _DEBUG_ASYNCGEN
         PRINT_ASYNCGENASEND_STATUS("Leave", asyncgen_asend);
@@ -1708,8 +1712,19 @@ static PyObject *Nuitka_AsyncgenAthrow_send(struct Nuitka_AsyncgenAthrowObject *
 
     struct Nuitka_AsyncgenObject *asyncgen = asyncgen_athrow->m_gen;
 
+    // Closing twice is not allowed with 3.9 or higher.
+    if (asyncgen_athrow->m_state == AWAITABLE_STATE_CLOSED) {
+#if PYTHON_VERSION < 0x390
+        SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+#else
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cannot reuse already awaited aclose()/athrow()");
+#endif
+
+        return NULL;
+    }
+
     // If finished, just report StopIteration.
-    if (asyncgen->m_status == status_Finished || asyncgen_athrow->m_state == AWAITABLE_STATE_CLOSED) {
+    if (asyncgen->m_status == status_Finished) {
         SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
         return NULL;
     }
@@ -1874,7 +1889,12 @@ static PyObject *Nuitka_AsyncgenAthrow_throw(struct Nuitka_AsyncgenAthrowObject 
 #endif
 
     if (asyncgen_athrow->m_state == AWAITABLE_STATE_CLOSED) {
+#if PYTHON_VERSION < 0x390
         SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+#else
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cannot reuse already awaited aclose()/athrow()");
+#endif
+
         return NULL;
     }
 
