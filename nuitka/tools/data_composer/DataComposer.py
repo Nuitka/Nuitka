@@ -286,7 +286,21 @@ def _writeConstantStream(constants_reader):
         except EOFError:
             break
 
+        old_size = result.tell()
         _writeConstantValue(result, constant_value)
+
+        if not datacomposer_logger.is_quiet:
+            new_size = result.tell()
+
+            result.seek(old_size)
+            type_char = result.read(1)
+            result.seek(new_size)
+
+            datacomposer_logger.info(
+                "Size of constant %r is %d with type %r"
+                % (constant_value, new_size - old_size, type_char)
+            )
+
         count += 1
 
     # Dirty end of things marker.
@@ -331,7 +345,9 @@ def main():
         assert name not in names, name
         names.add(name)
 
-        datacomposer_logger.info("Storing %s chunk with size %r." % (name, len(part)))
+        datacomposer_logger.info(
+            "Storing %r chunk with %s values size %r." % (name, count, len(part))
+        )
 
         if str is not bytes:
             # Encoding needs to match generated source code output.
@@ -339,7 +355,9 @@ def main():
 
         desc.append((name, part))
 
-    with open(output_filename, "wb") as output:
+    datacomposer_logger.info("Total amount of constants is %d." % total)
+
+    with open(output_filename, "w+b") as output:
         output.write(b"\0" * 8)
 
         def write(data):
@@ -349,8 +367,7 @@ def main():
             crc32 = binascii.crc32(data, crc32)
 
         for name, part in desc:
-            write(name)
-            write(b"\0")
+            write(name + b"\0")
             write(struct.pack("I", len(part)))
             write(part)
 
@@ -364,5 +381,10 @@ def main():
         output.write(struct.pack("II", crc32, data_size))
 
         assert output.tell() == 8
+
+        datacomposer_logger.info(
+            "Total constants blob size without header %d." % data_size
+        )
+        datacomposer_logger.info("Total constants blob CRC32 is %d." % crc32)
 
     sys.exit(0)

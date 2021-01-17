@@ -352,6 +352,18 @@ static void insertToDictCacheForcedHash(PyObject *dict, PyObject **value, hashfu
     Py_TYPE(*value)->tp_richcompare = old_richcmp;
 }
 
+static uint32_t unpackValueUint32(unsigned char const **data) {
+    uint32_t size;
+
+    memcpy(&size, *data, sizeof(size));
+
+    assert(sizeof(size) == 4);
+
+    *data += sizeof(size);
+
+    return size;
+}
+
 static int unpackValueInt(unsigned char const **data) {
     int size;
 
@@ -456,9 +468,10 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         bool is_object;
 
         char c = *((char const *)data++);
-        // unsigned char const *data_old = data;
-        // PRINT_FORMAT("Type %c for %d of %d:\n", c, _i, count);
-
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+        unsigned char const *data_old = data;
+        PRINT_FORMAT("Type %c for %d of %d:\n", c, _i, count);
+#endif
         switch (c) {
         case 'T': {
             // TODO: Use fixed sizes
@@ -677,9 +690,11 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         case 'c': {
             // Python2 str, potentially attributes, or Python3 bytes, zero terminated.
 
+            size_t size = strlen((const char *)data);
+
             // TODO: Make this zero copy for non-interned with fake objects?
-            PyObject *b = PyBytes_FromString((const char *)data);
-            data += PyBytes_GET_SIZE(b) + 1;
+            PyObject *b = PyBytes_FromStringAndSize((const char *)data, size);
+            data += size + 1;
 
 #if PYTHON_VERSION < 0x300
             if (c == 'a') {
@@ -1007,6 +1022,10 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             break;
         }
+        case '.': {
+            PRINT_FORMAT("Missing values %d\n", count - _i);
+            NUITKA_CANNOT_GET_HERE("Corrupt constants blob");
+        }
         default:
             PRINT_FORMAT("Missing decoding for %d\n", (int)c);
             NUITKA_CANNOT_GET_HERE("Corrupt constants blob");
@@ -1014,7 +1033,9 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
         CHECK_OBJECT(*output);
 
-        // printf("Size for %c was %d\n", c, data - data_old);
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+        printf("Size for %c was %d\n", c, data - data_old);
+#endif
 
         // Discourage in-place operations from modifying these. These
         // might be put into containers, therefore take 2 refs to be
@@ -1042,6 +1063,10 @@ void loadConstantsBlob(PyObject **output, char const *name, int count) {
     static bool init_done = false;
 
     if (init_done == false) {
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+        PRINT_STRING("loadConstantsBlob one time init\n");
+#endif
+
 #if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
         constant_bin = getConstantsBlobData();
 #elif defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
@@ -1057,19 +1082,24 @@ void loadConstantsBlob(PyObject **output, char const *name, int count) {
 
         assert(constant_bin);
 #endif
-        uint32_t hash = *(uint32_t *)constant_bin;
-        constant_bin += 4;
-        uint32_t size = *(uint32_t *)constant_bin;
-        constant_bin += 4;
+        uint32_t hash = unpackValueUint32(&constant_bin);
+        uint32_t size = unpackValueUint32(&constant_bin);
 
         if (calcCRC32(constant_bin, size) != hash) {
             puts("Error, corrupted constants object");
             abort();
         }
 
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+        PRINT_FORMAT("Checked CRC32 to match hash %u size %u\n", hash, size);
+#endif
+
         init_done = true;
     }
 
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+    PRINT_FORMAT("Loading blob named '%s' with %d values\n", name, count);
+#endif
     // Python 3.9 or higher cannot create dictionary before calling init so avoid it.
     if (strcmp(name, ".bytecode") != 0) {
         initCaches();
@@ -1080,10 +1110,17 @@ void loadConstantsBlob(PyObject **output, char const *name, int count) {
     for (;;) {
         int match = strcmp(name, (char const *)w);
         w += strlen((char const *)w) + 1;
-        int size = *((int *)w);
-        w += sizeof(size);
+
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+        PRINT_FORMAT("offset of blob size %d\n", w - constant_bin);
+#endif
+
+        uint32_t size = unpackValueUint32(&w);
 
         if (match == 0) {
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+            PRINT_FORMAT("Loading blob named '%s' with %d values and size %d\n", name, count, size);
+#endif
             break;
         }
 

@@ -22,6 +22,7 @@ import os
 import subprocess
 import sys
 
+from nuitka.Options import isExperimental
 from nuitka.utils.Execution import withEnvironmentVarsOverriden
 
 
@@ -35,6 +36,9 @@ def runDataComposer(source_dir):
             os.path.abspath(sys.modules["nuitka"].__path__[0])
         )
     }
+
+    if isExperimental("debug-constants"):
+        mapping["NUITKA_DATACOMPOSER_VERBOSE"] = "1"
 
     with withEnvironmentVarsOverriden(mapping):
         subprocess.check_call(
