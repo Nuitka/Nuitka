@@ -585,4 +585,6 @@ def replaceFileAtomic(source_path, dest_path):
 
 
 def resolveShellPatternToFilenames(pattern):
-    return glob.glob(pattern)
+    result = glob.glob(pattern)
+    result.sort()
+    return result

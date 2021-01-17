@@ -32,6 +32,7 @@ from nuitka.tools.quality.Git import (
     updateFileIndex,
     updateWorkingFile,
 )
+from nuitka.tools.quality.ScanSources import isPythonFile
 from nuitka.Tracing import general, my_print
 from nuitka.utils.Execution import (
     check_call,
@@ -45,7 +46,6 @@ from nuitka.utils.FileOperations import (
     renameFile,
     withPreserveFileMode,
 )
-from nuitka.utils.Shebang import getShebangFromFile
 from nuitka.utils.Utils import getOS
 
 
@@ -411,23 +411,6 @@ def _shouldNotFormatCode(filename):
         return False
 
 
-def _isPythonFile(filename, effective_filename):
-    if effective_filename.endswith((".py", ".pyw", ".scons")):
-        return True
-    else:
-        shebang = getShebangFromFile(filename)
-
-        if shebang is not None:
-            shebang = shebang[2:].lstrip()
-            if shebang.startswith("/usr/bin/env"):
-                shebang = shebang[12:].lstrip()
-
-            if shebang.startswith("python"):
-                return True
-
-    return False
-
-
 def _transferBOM(source_filename, target_filename):
     with open(source_filename, "rb") as f:
         source_code = f.read()
@@ -473,7 +456,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
     if trace:
         my_print("Consider", filename, end=": ")
 
-    is_python = _isPythonFile(filename, effective_filename)
+    is_python = isPythonFile(filename, effective_filename)
 
     is_c = effective_filename.endswith((".c", ".h"))
 

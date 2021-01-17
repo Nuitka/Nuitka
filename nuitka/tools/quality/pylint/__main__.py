@@ -30,7 +30,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.tools.Basics import addPYTHONPATH, getHomePath, goHome, setupPATH
 from nuitka.tools.quality.Git import getModifiedPaths
 from nuitka.tools.quality.pylint import PyLint
-from nuitka.tools.quality.ScanSources import scanTargets
+from nuitka.tools.quality.ScanSources import isPythonFile, scanTargets
 from nuitka.tools.testing.Common import hasModule, setup
 from nuitka.utils.FileOperations import resolveShellPatternToFilenames
 
@@ -103,7 +103,9 @@ Insist on PyLint to be installed. Default is %default.""",
         goHome()
 
         if options.diff:
-            positional_args = getModifiedPaths()
+            positional_args = [
+                filename for filename in getModifiedPaths() if isPythonFile(filename)
+            ]
         else:
             positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
 
