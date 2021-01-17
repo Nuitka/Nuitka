@@ -106,6 +106,9 @@ def main():
         args += ["-S", our_filename]
 
         os.environ["NUITKA_BINARY_NAME"] = sys.modules["__main__"].__file__
+        os.environ["NUITKA_PACKAGE_HOME"] = os.path.dirname(
+            os.path.abspath(sys.modules["nuitka"].__path__[0])
+        )
 
         if Options.is_nuitka_run:
             args.append("--run")
@@ -196,4 +199,11 @@ def main():
 
 
 if __name__ == "__main__":
+    if "NUITKA_PACKAGE_HOME" in os.environ:
+        sys.path.insert(0, os.environ["NUITKA_PACKAGE_HOME"])
+
+        import nuitka  # just to have it loaded from there, pylint: disable=unused-import
+
+        del sys.path[0]
+
     main()

@@ -22,21 +22,30 @@ import os
 import subprocess
 import sys
 
+from nuitka.utils.Execution import withEnvironmentVarsOverriden
+
 
 def runDataComposer(source_dir):
     data_composer_path = os.path.normpath(
         os.path.join(os.path.dirname(__file__), "..", "tools", "data_composer")
     )
 
-    subprocess.check_call(
-        [
-            sys.executable,
-            data_composer_path,
-            source_dir,
-            getConstantBlobFilename(source_dir),
-        ],
-        shell=False,
-    )
+    mapping = {
+        "NUITKA_PACKAGE_HOME": os.path.dirname(
+            os.path.abspath(sys.modules["nuitka"].__path__[0])
+        )
+    }
+
+    with withEnvironmentVarsOverriden(mapping):
+        subprocess.check_call(
+            [
+                sys.executable,
+                data_composer_path,
+                source_dir,
+                getConstantBlobFilename(source_dir),
+            ],
+            shell=False,
+        )
 
 
 def getConstantBlobFilename(source_dir):

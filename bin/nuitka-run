@@ -31,6 +31,19 @@ import sys
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
 # isort:start
-import nuitka.__main__
+import nuitka.__main__  # false alarm, pylint: disable=I0021,no-name-in-module
 
+# Remove the nuitka package directory again, it might contain other stuff that we
+# do not want added automatically.
+del sys.path[0]
+
+# The bin folder of the runner can't be that helpful, but got added automatically,
+# so attempt to remove it.
+sys.path = [
+    path_element
+    for path_element in sys.path
+    if os.path.dirname(os.path.abspath(__file__)) != path_element
+]
+
+# Now execute Nuitka in a clean environment.
 nuitka.__main__.main()
