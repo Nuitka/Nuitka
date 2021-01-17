@@ -36,6 +36,7 @@
 #define SYSFLAG_NO_SITE 0
 #define SYSFLAG_VERBOSE 0
 #define SYSFLAG_BYTES_WARNING 0
+#define SYSFLAG_UTF8 0
 #endif
 
 #include <osdefs.h>
