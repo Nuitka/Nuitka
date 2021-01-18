@@ -119,6 +119,15 @@ class ExpressionGeneratorObjectBody(
     def needsCreation():
         return False
 
+    def getConstantReturnValue(self):
+        """Special function that checks if code generation allows to use common C code."""
+        body = self.subnode_body
+
+        if body is None:
+            return True, None
+
+        return False, False
+
 
 class StatementGeneratorReturn(StatementReturn):
     kind = "STATEMENT_GENERATOR_RETURN"
