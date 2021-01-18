@@ -163,8 +163,12 @@ def nextModule():
         return None
 
 
-def remainingCount():
+def getRemainingModulesCount():
     return len(active_modules)
+
+
+def getDoneModulesCount():
+    return len(done_modules)
 
 
 def getDoneModules():

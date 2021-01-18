@@ -38,6 +38,9 @@ from nuitka.utils.ThreadedExecutor import RLock
 # Written by Options module.
 is_quiet = False
 
+# Written by Options module
+use_progressbar = False
+
 
 def printIndented(level, *what):
     print("    " * level, *what)
@@ -122,6 +125,11 @@ def my_print(*args, **kwargs):
 
     Use kwarg style=[option] to print in a style listed below
     """
+
+    global progress  # singleton, pylint: disable=global-statement
+    if progress is not None:
+        progress.clear()
+
     with withTraceLock():
         if "style" in kwargs:
             style = kwargs["style"]
@@ -241,3 +249,24 @@ postprocessing_logger = OurLogger("Nuitka-Postprocessing")
 options_logger = OurLogger("Nuitka-Options")
 unusual_logger = OurLogger("Nuitka-Unusual")
 datacomposer_logger = OurLogger("Nuitka-Datacomposer")
+
+progress = None
+
+
+def reportProgressBar(stage, unit, item, total):
+    global progress  # singleton, pylint: disable=global-statement
+
+    if progress is None and use_progressbar:
+        try:
+            from tqdm import tqdm
+
+            progress = tqdm(initial=1, total=total, unit=unit)
+        except ImportError:
+            return
+
+    if progress is not None:
+        progress.set_description(stage)
+        progress.set_postfix(item=item)
+        progress.unit = unit
+        progress.total = total
+        progress.update(1)

@@ -36,6 +36,7 @@ from nuitka.Tracing import (
     optimization_logger,
     progress_logger,
     recursion_logger,
+    reportProgressBar,
 )
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import makePath
@@ -490,15 +491,24 @@ def optimizeVariables(module):
 
 
 def _traceProgress(current_module):
-    output = """\
+    if _progress:
+        output = """\
 Optimizing module '{module_name}', {remaining:d} more modules to go \
 after that.""".format(
-        module_name=current_module.getFullName(),
-        remaining=ModuleRegistry.remainingCount(),
-    )
-    progress_logger.info(output)
+            module_name=current_module.getFullName(),
+            remaining=ModuleRegistry.getRemainingModulesCount(),
+        )
+        progress_logger.info(output)
 
-    if Options.isShowMemory():
+    reportProgressBar(
+        stage="Optimization",
+        unit=" modules",
+        item=current_module.getFullName(),
+        total=ModuleRegistry.getRemainingModulesCount()
+        + ModuleRegistry.getDoneModulesCount(),
+    )
+
+    if _progress and Options.isShowMemory():
         output = "Memory usage {memory}:".format(
             memory=getHumanReadableProcessMemoryUsage()
         )
@@ -519,7 +529,8 @@ def restoreFromXML(text):
 
 def makeOptimizationPass():
     """Make a single pass for optimization, indication potential completion."""
-    # Controls complex optimization, pylint: disable=too-many-branches
+
+    # Controls complex optimization
 
     finished = True
 
@@ -531,8 +542,7 @@ def makeOptimizationPass():
         if current_module is None:
             break
 
-        if _progress:
-            _traceProgress(current_module)
+        _traceProgress(current_module)
 
         # The tag set is global, so it can react to changes without context.
         # pylint: disable=global-statement

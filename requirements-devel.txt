@@ -22,6 +22,9 @@ doxypypy == 0.8.8.6 ; python_version >= '2.7'
 # Code and test generation tools
 Jinja2 == 2.11.2 ; python_version >= '2.7'
 
+# For the progress bar to look nicely.
+tqdm == 4.56.0 ; python_version >= '2.7'
+
 # Codespell can be used as well, no need to fix version
 codespell ; python_version >= '2.7'
 

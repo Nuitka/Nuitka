@@ -45,6 +45,7 @@ def parseArgs():
     )
 
     Tracing.is_quiet = options.quiet or int(os.environ.get("NUITKA_QUIET", "0"))
+    Tracing.use_progressbar = isExperimental("progress")
 
     if options.verbose_output:
         Tracing.optimization_logger.setFileHandle(
