@@ -4,7 +4,7 @@ Upstream-Contact: Kay Hayen <kay.hayen@gmail.com>
 Source: https://nuitka.net/
 
 Files: *
-Copyright: 2020 Kay Hayen
+Copyright: 2021 Kay Hayen
            2020 Batakrishna Sahu
            2020 Jan Teske
            2020 Jorj McKie
@@ -138,7 +138,7 @@ License: public-domain
  SPDX-License-Identifier: CC0-1.0
 
 Files: debian/*
-Copyright: 2020 Kay Hayen <kay.hayen@gmail.com>
+Copyright: 2021 Kay Hayen <kay.hayen@gmail.com>
 License: Apache
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
