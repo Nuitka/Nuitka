@@ -56,8 +56,9 @@ def shlib_generator(target, source, env, for_signature):
 
     cmd.extend(['$SOURCES', '$_LIBDIRFLAGS', '$_LIBFLAGS'])
 
-    implib = env.FindIxes(target, 'LIBPREFIX', 'LIBSUFFIX')
-    if implib: cmd.append('-Wl,--out-implib,' + implib.get_string(for_signature))
+    # Nuitka: Disable implib here, we do it manually.
+    # implib = env.FindIxes(target, 'LIBPREFIX', 'LIBSUFFIX')
+    # if implib: cmd.append('-Wl,--out-implib,' + implib.get_string(for_signature))
 
     def_target = env.FindIxes(target, 'WINDOWSDEFPREFIX', 'WINDOWSDEFSUFFIX')
     insert_def = env.subst("$WINDOWS_INSERT_DEF")

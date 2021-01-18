@@ -490,8 +490,17 @@ template_module_external_entry_point = r"""
 #if defined(__GNUC__)
 
 #if PYTHON_VERSION < 0x300
-#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility("default")))
 
+#if defined(_WIN32)
+#define NUITKA_MODULE_INIT_FUNCTION __declspec(dllexport) PyMODINIT_FUNC
+#else
+#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility("default")))
+#endif
+
+#else
+
+#if defined(_WIN32)
+#define NUITKA_MODULE_INIT_FUNCTION __declspec(dllexport) PyObject *
 #else
 
 #ifdef __cplusplus
@@ -500,6 +509,7 @@ template_module_external_entry_point = r"""
 #define NUITKA_MODULE_INIT_FUNCTION __attribute__((visibility("default"))) PyObject *
 #endif
 
+#endif
 #endif
 
 #else

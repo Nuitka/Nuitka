@@ -446,11 +446,20 @@ env.SConsignFile(sconsign_dir)
 
 if gcc_mode:
     # Support for gcc and clang, restricting visibility as much as possible.
-    if not win_target:
-        env.Append(CCFLAGS=["-fvisibility=hidden"])
+    env.Append(CCFLAGS=["-fvisibility=hidden"])
 
-        if not c11_mode:
-            env.Append(CXXFLAGS=["-fvisibility-inlines-hidden"])
+    if not c11_mode:
+        env.Append(CXXFLAGS=["-fvisibility-inlines-hidden"])
+
+    if os.name == "nt":
+        # On Windows, exporting to DLL need to be controlled.
+        env.Append(LINKFLAGS=["-Wl,--exclude-all-symbols"])
+
+        # Make sure we handle import library on our own and put it into the
+        # build directory.
+        env.Append(
+            LINKFLAGS=["-Wl,--out-implib,%s" % os.path.join(source_dir, "import.lib")]
+        )
 
     # Make it clear how to handle integer overflows, namely by wrapping around
     # to negative values.

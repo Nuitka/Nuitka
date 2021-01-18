@@ -11,6 +11,80 @@ This release is not done yet.
 -  Pipenv: Workaround parsing issue with our ``setup.py`` to allow
    installation from Github. Fixed in 0.6.10.1 already.
 
+-  Merging of branches in optimization could give indetermistic results
+   leading to more iterations than necessary. Fixed in 0.6.10.1 already.
+
+-  Windows: Avoid profile powershell when attempting to resolve
+   symlinks. Fixed in 0.6.10.1 already.
+
+-  Windows: Fix, always check for stdin, stdout, and stderr presence.
+   This was so far restricted to gui mode applications, but it seems to
+   be necessary in other situations too. Fixed in 0.6.10.1 already.
+
+-  Python2: Fix, ``--trace-execution`` was not working for standalone
+   mode but can be useful for debugging. Fixed in 0.6.10.1 already.
+
+-  Windows: Onefile could run into path length limits. Fixed in 0.6.10.3
+   already.
+
+-  Windows: The winlib gcc download link became broken and was updated.
+   Fixed in 0.6.10.3 already.
+
+-  Plugins: The "__main__" module was not triggering all plugin hooks,
+   but it needs to for completeness.
+
+-  Standalone: Fix, symlinked Python installations on Windows were not
+   working, with dependency walker being unable to look into these.
+   Fixed in 0.6.10.4 already.
+
+-  Standalone: Fix support for numpy on Windows and macOS, the plugin
+   failed to copy important DLLs. Fixed in 0.6.10.4 already.
+
+-  Python3: For versions before 3.7, the symlink resolution also needs
+   to be done, but wasn't handling the bytes output yet. Fixed in
+   0.6.10.4 already.
+
+-  Fix, folder based inclusion would both pick up namespace folders and
+   modules of the same name, crashing the compilation due to conflicts.
+   Fixed in 0.6.10.4 already.
+
+-  Fix, the ``--lto`` wasn't used for clang on non-Windows yet.
+
+-  Fix, the order of locals dict releases wasn't enforced, which could
+   lead to differences that break caching of C files potentially. Fixed
+   in 0.6.10.5 already.
+
+-  Fix, ``hash`` nodes didn't consider if their argument was raising,
+   even if the type of the argument was ``str`` and therefore the
+   operation should not. Fixed in 0.6.10.5 already.
+
+-  Fix, need to copy type shape and escape description for the
+   replacement inverted comparisons when used with ``not``, otherwise
+   the compilation can crash as these are expected to be present at all
+   times. Fixed in 0.6.10.5 already.
+
+-  Fix, some complex constant values could be confused, e.g. ``-0j`` and
+   ``0j``. These corner cases were not properly considered in the
+   constant loading code, only for ``float`` so far.
+
+-  Standalone: Fix, bytecode only standard library modules were not
+   working. This is at least used with Fedora 33.
+
+-  Linux: Fix, extension modules compiled with ``--lto`` were not
+   working.
+
+-  Windows: Retry if updating resources fails due to Virus checkers
+   keeping files locked.
+
+-  Plugins: Pre- and postload code of modules should not be allowed to
+   cause ``ImportError``, as these will be invisible to the other parts
+   of optimization, instead make them unraisable error traces.
+
+-  Standalone: Adding missing import for SciPy 1.6 support.
+
+-  Windows: Fix, only export required symbols when using MinGW64 in
+   module mode.
+
 **************
  New Features
 **************
