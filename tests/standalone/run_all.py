@@ -547,6 +547,10 @@ def main():
             if loaded_filename in ("/sys/fs/selinux", "/selinux"):
                 continue
 
+            # Looking at device is OK.
+            if loaded_filename.startswith("/sys/devices/"):
+                continue
+
             # Allow reading time zone info of local system.
             if loaded_filename.startswith("/usr/share/zoneinfo/"):
                 continue
@@ -580,7 +584,7 @@ def main():
 
         if illegal_access:
             if os.name != "nt":
-                displayError(displayError, filename)
+                displayError(None, filename)
 
                 # Run with traces to help debugging, specifically in CI environment.
                 if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
