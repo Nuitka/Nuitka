@@ -1916,6 +1916,12 @@ static PyObject *Nuitka_AsyncgenAthrow_throw(struct Nuitka_AsyncgenAthrowObject 
             }
         }
 
+#if PYTHON_VERSION >= 0x390
+        if (PyErr_ExceptionMatches(PyExc_StopAsyncIteration) || PyErr_ExceptionMatches(PyExc_GeneratorExit)) {
+            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+        }
+#endif
+
         return retval;
     }
 }
