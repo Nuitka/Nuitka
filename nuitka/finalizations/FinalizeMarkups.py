@@ -140,6 +140,10 @@ class FinalizeMarkups(FinalizationVisitorBase):
             ):
                 search = node.getParent()
 
+                # TODO: This is best achieved by having different yield nodes
+                # depending on containing function kind to begin with and should
+                # be discovered during the build.
+
                 while (
                     not search.isExpressionGeneratorObjectBody()
                     and not search.isExpressionCoroutineObjectBody()

@@ -679,9 +679,9 @@ def main():
     """
 
     # Main has to fulfill many options, leading to many branches and statements
-    # to deal with them.  pylint: disable=too-many-branches
-
-    general.info("Starting Python compilation.")
+    # to deal with them.  pylint: disable=too-many-branches,too-many-statements
+    if not Options.shallDumpBuiltTreeXML():
+        general.info("Starting Python compilation.")
 
     filename = Options.getPositionalArgs()[0]
 

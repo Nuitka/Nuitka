@@ -847,24 +847,23 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 
     FETCH_ERROR_OCCURRED_UNTRACED(&exception_type, &exception_value, &exception_tb);
 
-    PyObject *result;
+    PyObject *print_kw = PyDict_New();
+    PyDict_SetItem(print_kw, const_str_plain_end, const_str_empty);
 
-    if (likely(file == NULL)) {
-        result = CALL_FUNCTION_WITH_SINGLE_ARG(NUITKA_ACCESS_BUILTIN(print), object);
-    } else {
-        PyObject *print_kw = PyDict_New();
-        PyDict_SetItem(print_kw, const_str_plain_end, const_str_empty);
+    if (file == NULL) {
         PyDict_SetItem(print_kw, const_str_plain_file, GET_STDOUT());
-
-        PyObject *print_args = PyTuple_New(1);
-        PyTuple_SET_ITEM(print_args, 0, object);
-        Py_INCREF(object);
-
-        result = CALL_FUNCTION(NUITKA_ACCESS_BUILTIN(print), print_args, print_kw);
-
-        Py_DECREF(print_args);
-        Py_DECREF(print_kw);
+    } else {
+        PyDict_SetItem(print_kw, const_str_plain_file, file);
     }
+
+    PyObject *print_args = PyTuple_New(1);
+    PyTuple_SET_ITEM(print_args, 0, object);
+    Py_INCREF(object);
+
+    PyObject *result = CALL_FUNCTION(NUITKA_ACCESS_BUILTIN(print), print_args, print_kw);
+
+    Py_DECREF(print_args);
+    Py_DECREF(print_kw);
 
     Py_XDECREF(result);
 

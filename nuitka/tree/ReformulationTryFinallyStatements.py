@@ -203,7 +203,11 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         popBuildContext()
 
         return makeTryFinallyStatement(
-            provider=provider, tried=build_tried(), final=final, source_ref=source_ref
+            provider=provider,
+            tried=build_tried(),
+            final=final,
+            source_ref=source_ref,
+            public_exc=False,
         )
     else:
         tried = build_tried()

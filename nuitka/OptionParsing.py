@@ -304,7 +304,7 @@ data_group.add_option(
     "--include-package-data",
     action="append",
     dest="package_data",
-    metavar="PACKAGE",
+    metavar="PACKAGE_DATA",
     default=[],
     help="""\
 Include data files of the given package name. Can use patterns. By default

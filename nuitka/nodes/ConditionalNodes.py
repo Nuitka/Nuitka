@@ -754,10 +754,14 @@ def makeStatementConditional(condition, yes_branch, no_branch, source_ref):
         yes_branch, no_branch = no_branch, yes_branch
 
     if yes_branch is not None and not yes_branch.isStatementsSequence():
-        yes_branch = StatementsSequence(statements=(yes_branch,), source_ref=source_ref)
+        yes_branch = StatementsSequence(
+            statements=(yes_branch,), source_ref=yes_branch.source_ref
+        )
 
     if no_branch is not None and not no_branch.isStatementsSequence():
-        no_branch = StatementsSequence(statements=(no_branch,), source_ref=source_ref)
+        no_branch = StatementsSequence(
+            statements=(no_branch,), source_ref=no_branch.source_ref
+        )
 
     return StatementConditional(
         condition=condition,

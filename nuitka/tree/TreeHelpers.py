@@ -602,13 +602,7 @@ def getStatementsPrepended(statement_sequence, statements):
 
 
 def makeReraiseExceptionStatement(source_ref):
-    # TODO: Remove the statement sequence packaging and have users do it themselves
-    # in factory functions instead.
-
-    return StatementsSequence(
-        statements=(StatementReraiseException(source_ref=source_ref),),
-        source_ref=source_ref,
-    )
+    return StatementReraiseException(source_ref=source_ref)
 
 
 def mangleName(name, owner):
