@@ -1113,6 +1113,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "pandas._libs":
             yield "pandas._libs.tslibs.np_datetime"
             yield "pandas._libs.tslibs.nattype"
+            yield "pandas._libs.tslibs.base"
         elif full_name == "pandas.core.window":
             yield "pandas._libs.skiplist"
         elif full_name == "zmq.backend":
