@@ -181,6 +181,19 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK(PyTracebackObject *
 
 #endif
 
+// Helper that gets the current thread exception, for use in exception handlers
+NUITKA_MAY_BE_UNUSED inline static void GET_CURRENT_EXCEPTION(PyObject **exception_type, PyObject **exception_value,
+                                                              PyTracebackObject **exception_tb) {
+    PyThreadState *thread_state = PyThreadState_GET();
+
+    *exception_type = EXC_TYPE(thread_state);
+    Py_XINCREF(*exception_type);
+    *exception_value = EXC_VALUE(thread_state);
+    Py_XINCREF(*exception_value);
+    *exception_tb = (PyTracebackObject *)EXC_TRACEBACK(thread_state);
+    Py_XINCREF(*exception_tb);
+};
+
 // Helper that sets the current thread exception, releasing the current one, for
 // use in this file only.
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyObject *exception_type, PyObject *exception_value,
