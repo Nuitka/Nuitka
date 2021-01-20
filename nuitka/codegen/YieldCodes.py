@@ -92,6 +92,12 @@ def _getYieldPreserveCode(
 
     emit("%(yield_return_label)s:" % {"yield_return_label": yield_return_label})
 
+    if preserve_exception:
+        emit(
+            "RESTORE_%s_EXCEPTION(%s);"
+            % (context.getContextObjectName().upper(), context.getContextObjectName())
+        )
+
     if locals_preserved:
         emit(
             "Nuitka_RestoreHeap(%s, %s, NULL);"
@@ -115,12 +121,6 @@ def _getYieldPreserveCode(
 
     # Called with object
     emit("%s = %s;" % (to_name, yield_return_name))
-
-    if preserve_exception:
-        emit(
-            "RESTORE_%s_EXCEPTION(%s);"
-            % (context.getContextObjectName().upper(), context.getContextObjectName())
-        )
 
 
 def generateYieldCode(to_name, expression, emit, context):
