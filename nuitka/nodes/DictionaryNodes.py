@@ -118,6 +118,10 @@ class ExpressionKeyValuePair(
         else:
             return key_part + self.subnode_value.extractSideEffects()
 
+    def onContentEscapes(self, trace_collection):
+        self.subnode_key.onContentEscapes(trace_collection)
+        self.subnode_value.onContentEscapes(trace_collection)
+
 
 def makeExpressionMakeDict(pairs, source_ref):
     if pairs:
@@ -329,6 +333,10 @@ Removed sequence creation for unused sequence.""",
     def computeExpressionIter1(self, iter_node, trace_collection):
         return iter_node, None, None
 
+    def onContentEscapes(self, trace_collection):
+        for pair in self.subnode_pairs:
+            pair.onContentEscapes(trace_collection)
+
 
 class StatementDictOperationSet(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_SET"
@@ -354,11 +362,17 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
         if result is not self:
             return result, change_tags, change_desc
 
+        return self.computeStatementOperation(trace_collection)
+
+    def computeStatementOperation(self, trace_collection):
         key = self.subnode_key
 
         if not key.isKnownToBeHashable():
             # Any exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Until we have proper dictionary tracing, do this.
+        trace_collection.removeKnowledge(self.subnode_dict_arg)
 
         return self, None, None
 
@@ -377,6 +391,9 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
             return True
 
         return False
+
+    def mayRaiseExceptionOperation(self):
+        return not self.subnode_key.isKnownToBeHashable()
 
 
 class StatementDictOperationSetKeyValue(StatementDictOperationSet):
@@ -406,7 +423,14 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
         if result is not self:
             return result, change_tags, change_desc
 
+        return self.computeStatementOperation(trace_collection)
+
+    def computeStatementOperation(self, trace_collection):
+        # Any exception may be raised, we don't know if the key is present.
         trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Until we have proper dictionary tracing, do this.
+        trace_collection.removeKnowledge(self.subnode_dict_arg)
 
         return self, None, None
 

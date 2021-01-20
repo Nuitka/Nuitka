@@ -78,8 +78,8 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
             return self._computeCompileTimeConstantComparision(trace_collection)
 
         # The value of these nodes escaped and could change its contents.
-        trace_collection.removeKnowledge(left)
-        trace_collection.removeKnowledge(right)
+        # TODO: Comparisons don't do much, but add this.
+        # trace_collection.onValueEscapeRichComparison(left, right, self.comparator)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -196,10 +196,11 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
                     ),
                 )
 
-        if self.escape_desc.isValueEscaping():
             # The value of these nodes escaped and could change its contents.
-            trace_collection.removeKnowledge(left)
-            trace_collection.removeKnowledge(right)
+
+            # TODO: Comparisons don't do much, but add this.
+            # if self.escape_desc.isValueEscaping():
+            #    trace_collection.onValueEscapeRichComparison(left, right, self.comparator)
 
         if self.escape_desc.isControlFlowEscape():
             # Any code could be run, note that.

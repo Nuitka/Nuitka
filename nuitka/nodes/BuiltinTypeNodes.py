@@ -195,9 +195,9 @@ class ExpressionBuiltinUnicodeBase(
         while args and args[-1] is None:
             del args[-1]
 
-        for arg in args:
-            # The value of that node escapes and could change its contents.
-            trace_collection.removeKnowledge(arg)
+        # The value of that node escapes and could change its contents.
+        if self.subnode_value is not None:
+            trace_collection.onValueEscapeStr(self.subnode_value)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)

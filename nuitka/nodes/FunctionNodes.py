@@ -798,6 +798,13 @@ class ExpressionFunctionCreation(
 
             self.variable_closure_traces.append((closure_variable, trace))
 
+        kw_defaults = self.subnode_kw_defaults
+        if kw_defaults is not None:
+            kw_defaults.onContentEscapes(trace_collection)
+
+        for default in self.subnode_defaults:
+            default.onContentEscapes(trace_collection)
+
         # TODO: Function body may know something too.
         return self, None, None
 

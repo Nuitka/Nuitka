@@ -616,7 +616,9 @@ class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
             # The value of that node escapes and could change its contents.
-            trace_collection.removeKnowledge(operand)
+            # TODO: The unary operations don't do much to an operator, add
+            # methods, that don't do stuff on common types though.
+            # trace_collection.onValueEscapeSomeUnaryOperator(operand)
 
             # Any code could be run, note that.
             trace_collection.onControlFlowEscape(self)

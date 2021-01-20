@@ -400,9 +400,6 @@ class TraceCollectionBase(object):
 
         return False
 
-    def removeKnowledge(self, node):
-        pass
-
     def onControlFlowEscape(self, node):
         # TODO: One day, we should trace which nodes exactly cause a variable
         # to be considered escaped, pylint: disable=unused-argument
@@ -416,6 +413,14 @@ class TraceCollectionBase(object):
             elif variable.isLocalVariable():
                 if variable.hasAccessesOutsideOf(self.owner) is not False:
                     self.markActiveVariableAsEscaped(variable)
+
+    def removeKnowledge(self, node):
+        if node.isExpressionVariableRef():
+            self.markActiveVariableAsEscaped(node.variable)
+
+    def onValueEscapeStr(self, node):
+        # TODO: We can ignore these for now.
+        pass
 
     def removeAllKnowledge(self):
         self.markActiveVariablesAsUnknown()
@@ -480,9 +485,7 @@ class TraceCollectionBase(object):
         return result
 
     def onVariableContentEscapes(self, variable):
-        # TODO: Make use of this information, when we trace lists, dicts, etc.
-        # self.getVariableCurrentTrace(variable).onValueEscape()
-        pass
+        self.markActiveVariableAsEscaped(variable)
 
     def onExpression(self, expression, allow_none=False):
         if expression is None and allow_none:

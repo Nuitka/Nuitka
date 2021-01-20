@@ -146,6 +146,10 @@ class ExpressionMakeSequenceBase(
 Removed sequence creation for unused sequence.""",
         )
 
+    def onContentEscapes(self, trace_collection):
+        for element in self.subnode_elements:
+            element.onContentEscapes(trace_collection)
+
 
 def makeExpressionMakeTuple(elements, source_ref):
     if elements:

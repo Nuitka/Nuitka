@@ -1430,6 +1430,7 @@ class ShapeTypeXrange(ShapeContainerImmutableMixin, ShapeNotNumberMixin, ShapeBa
                 return operation_result_bool_elementbased
 
             if right_shape is tshape_xrange:
+                # TODO: This is value escaping, but that doesn't really apply
                 return operation_result_bool_elementbased
         else:
             # TODO: Actually unorderable, but this requires making a

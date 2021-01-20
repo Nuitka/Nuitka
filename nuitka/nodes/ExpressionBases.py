@@ -178,7 +178,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # By default, an attribute lookup may change everything about the lookup
         # source.
-        trace_collection.removeKnowledge(self)
+        # trace_collection.onValueEscapeAttributeLookup(self, attribute_name)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -193,7 +193,7 @@ class ExpressionBase(NodeBase):
     ):
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
-        trace_collection.removeKnowledge(lookup_node)
+        # trace_collection.onValueEscapeAttributeLookup(self, attribute_name)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -217,8 +217,8 @@ class ExpressionBase(NodeBase):
 
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
-        trace_collection.removeKnowledge(self)
-        trace_collection.removeKnowledge(value_node)
+        # trace_collection.removeKnowledge(self)
+        # trace_collection.removeKnowledge(value_node)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -232,7 +232,7 @@ class ExpressionBase(NodeBase):
 
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
-        trace_collection.removeKnowledge(self)
+        # trace_collection.removeKnowledge(self)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -278,10 +278,14 @@ class ExpressionBase(NodeBase):
         return del_node, None, None
 
     def computeExpressionSlice(self, lookup_node, lower, upper, trace_collection):
+        # pylint: disable=unused-argument
+
         # By default, a slicing may change everything about the lookup source.
-        trace_collection.removeKnowledge(self)
-        trace_collection.removeKnowledge(lower)
-        trace_collection.removeKnowledge(upper)
+        # trace_collection.removeKnowledge(self)
+        # trace_collection.onValueEscapeSliceOperation(self, lower, upper)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -291,11 +295,15 @@ class ExpressionBase(NodeBase):
     def computeExpressionSetSlice(
         self, set_node, lower, upper, value_node, trace_collection
     ):
+        # pylint: disable=unused-argument
+
         # By default, an subscript may change everything about the lookup
         # source.
         trace_collection.removeKnowledge(self)
-        trace_collection.removeKnowledge(lower)
-        trace_collection.removeKnowledge(upper)
+
+        # trace_collection.onValueEscapeSliceArguments(self, lower, upper)
+
+        # trace_collection.onValueEscapeSliceSetSource(self, lower, upper)
         trace_collection.removeKnowledge(value_node)
 
         # Any code could be run, note that.
@@ -307,11 +315,13 @@ class ExpressionBase(NodeBase):
         return set_node, None, None
 
     def computeExpressionDelSlice(self, set_node, lower, upper, trace_collection):
+        # pylint: disable=unused-argument
+
         # By default, an subscript may change everything about the lookup
         # source.
         trace_collection.removeKnowledge(self)
-        trace_collection.removeKnowledge(lower)
-        trace_collection.removeKnowledge(upper)
+
+        # trace_collection.onValueEscapeSliceArguments(self, lower, upper)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -566,7 +576,7 @@ class ExpressionBase(NodeBase):
         # Virtual method, pylint: disable=no-self-use
 
         # The value of that node escapes and could change its contents.
-        trace_collection.removeKnowledge(not_node)
+        # trace_collection.onValueEscapeNot(self)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(not_node)
@@ -615,7 +625,8 @@ class ExpressionBase(NodeBase):
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-    def onContentEscapes(self, trace_collection):
+    @staticmethod
+    def onContentEscapes(trace_collection):
         pass
 
     @staticmethod

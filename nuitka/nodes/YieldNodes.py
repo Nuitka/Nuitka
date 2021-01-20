@@ -57,6 +57,7 @@ class ExpressionYieldBase(ExpressionChildHavingBase):
             return False
 
     def computeExpression(self, trace_collection):
+        # TODO: That's actually only needed if the value is mutable.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         # Any code could be run, note that.
