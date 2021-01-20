@@ -70,7 +70,7 @@ from .TreeHelpers import (
 
 
 def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref):
-    # Many details, pylint: disable=too-many-locals
+    # Many details, pylint: disable=too-many-branches,too-many-locals
     with_source = buildNode(provider, context_expr, source_ref)
 
     if python_version < 0x380 and Options.is_fullcompat:
@@ -168,12 +168,6 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
 
     # For "async with", await the entered value and exit value must be awaited.
     if not sync:
-        enter_value = ExpressionYieldFromWaitable(
-            expression=ExpressionAsyncWaitEnter(
-                expression=enter_value, source_ref=source_ref
-            ),
-            source_ref=source_ref,
-        )
         exit_value_exception = ExpressionYieldFromWaitable(
             expression=ExpressionAsyncWaitExit(
                 expression=exit_value_exception, source_ref=source_ref
@@ -187,36 +181,69 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
             source_ref=source_ref,
         )
 
+    # First assign the with context to a temporary variable.
     statements = [
-        # First assign the with context to a temporary variable.
         StatementAssignmentVariable(
             variable=tmp_source_variable, source=with_source, source_ref=source_ref
         )
     ]
 
-    attribute_assignments = [
-        # Next, assign "__enter__" and "__exit__" attributes to temporary
-        # variables.
-        StatementAssignmentVariable(
-            variable=tmp_exit_variable,
-            source=attribute_lookup_class(
-                expression=ExpressionTempVariableRef(
-                    variable=tmp_source_variable, source_ref=source_ref
+    # Before 3.9, __aenter__ is immediately awaited, after we first do __aexit__ lookup.
+    if not sync and python_version < 0x390:
+        enter_value = ExpressionYieldFromWaitable(
+            expression=ExpressionAsyncWaitEnter(
+                expression=enter_value, source_ref=source_ref
+            ),
+            source_ref=source_ref,
+        )
+
+    attribute_enter_assignment = StatementAssignmentVariable(
+        variable=tmp_enter_variable, source=enter_value, source_ref=source_ref
+    )
+
+    attribute_exit_assignment = StatementAssignmentVariable(
+        variable=tmp_exit_variable,
+        source=attribute_lookup_class(
+            expression=ExpressionTempVariableRef(
+                variable=tmp_source_variable, source_ref=source_ref
+            ),
+            attribute_name="__exit__" if sync else "__aexit__",
+            source_ref=source_ref,
+        ),
+        source_ref=source_ref,
+    )
+
+    # Next, assign "__enter__" and "__exit__" attributes to temporary variables, and
+    # depending on Python versions switch the order of these lookups and the order of
+    # awaiting enter.
+    # Normal "with" statements are enter, exit ordered after 3.6, and "async with"
+    # are since 3.9, and since 3.9 the enter is not awaited, until an exit is present.
+    if python_version >= 0x390 and not sync:
+        enter_await_statement = StatementAssignmentVariable(
+            variable=tmp_enter_variable,
+            source=ExpressionYieldFromWaitable(
+                expression=ExpressionAsyncWaitEnter(
+                    expression=ExpressionTempVariableRef(
+                        variable=tmp_enter_variable, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
                 ),
-                attribute_name="__exit__" if sync else "__aexit__",
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
-        ),
-        StatementAssignmentVariable(
-            variable=tmp_enter_variable, source=enter_value, source_ref=source_ref
-        ),
-    ]
+        )
 
-    if python_version >= 0x360 and sync:
-        attribute_assignments.reverse()
+        attribute_assignments = (
+            attribute_enter_assignment,
+            attribute_exit_assignment,
+            enter_await_statement,
+        )
+    elif python_version >= 0x360 and sync:
+        attribute_assignments = (attribute_enter_assignment, attribute_exit_assignment)
+    else:
+        attribute_assignments = (attribute_exit_assignment, attribute_enter_assignment)
 
-    statements += attribute_assignments
+    statements.extend(attribute_assignments)
 
     statements.append(
         StatementAssignmentVariable(
