@@ -1168,6 +1168,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield crypto_module_name + ".Protocol._scrypt"
             elif full_name == crypto_module_name + ".Cipher._mode_gcm":
                 yield crypto_module_name + ".Hash._ghash_portable"
+            elif full_name == crypto_module_name + ".Cipher.ChaCha20":
+                yield crypto_module_name + ".Cipher._chacha20"
         elif full_name == "pycparser.c_parser":
             yield "pycparser.yacctab"
             yield "pycparser.lextab"
