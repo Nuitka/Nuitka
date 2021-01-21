@@ -1194,6 +1194,13 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pyglet.shapes"
             yield "pyglet.text"
             yield "pyglet.window"
+        elif full_name in ("pynput.keyboard", "pynput.mouse"):
+            if getOS() == "Darwin":
+                yield full_name.getChildNamed("_darwin")
+            elif isWin32Windows():
+                yield full_name.getChildNamed("_win32")
+            else:
+                yield full_name.getChildNamed("xorg")
 
     def getImportsByFullname(self, full_name, module_filename):
         """Recursively create a set of imports for a fullname.
