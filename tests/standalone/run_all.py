@@ -43,6 +43,10 @@ sys.path.insert(
 
 # isort:start
 
+from nuitka.PythonVersions import (
+    getPartiallySupportedPythonVersions,
+    getSupportedPythonVersions,
+)
 from nuitka.tools.testing.Common import (
     checkRequirements,
     compareWithCPython,
@@ -530,8 +534,15 @@ def main():
             ):
                 continue
 
-            # Can look at the interpreter of the system.
-            if loaded_basename == "python3":
+            # Can look at the interpreters of the system.
+            if loaded_basename in "python3":
+                continue
+            if loaded_basename in (
+                "python%s" + supported_version
+                for supported_version in (
+                    getSupportedPythonVersions() + getPartiallySupportedPythonVersions()
+                )
+            ):
                 continue
 
             # Current Python executable can actually be a symlink and
