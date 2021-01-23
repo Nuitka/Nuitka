@@ -17,5 +17,5 @@
 #
 from __future__ import print_function
 
-print("hallo welt", end=",")
+print("hallo welt", end=", ")
 print("this is the end")
