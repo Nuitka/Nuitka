@@ -31,6 +31,7 @@ from nuitka.importing import ImportCache
 from nuitka.nodes.LocalsScopes import LocalsDictHandle, getLocalsDictHandles
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import (
+    closeProgressBar,
     general,
     memory_logger,
     optimization_logger,
@@ -490,6 +491,20 @@ def optimizeVariables(module):
     return changed
 
 
+pass_count = 0
+
+
+def _restartProgress():
+    closeProgressBar()
+
+    global pass_count  # Singleton, pylint: disable=global-statement
+
+    pass_count += 1
+
+    if _progress:
+        progress_logger.info("PASS %d:" % pass_count)
+
+
 def _traceProgress(current_module):
     if _progress:
         output = """\
@@ -500,13 +515,15 @@ after that.""".format(
         )
         progress_logger.info(output)
 
-    reportProgressBar(
-        stage="Optimization",
-        unit=" modules",
-        item=current_module.getFullName(),
-        total=ModuleRegistry.getRemainingModulesCount()
-        + ModuleRegistry.getDoneModulesCount(),
-    )
+    # Progress bar and spammy tracing don't go along.
+    if not _is_verbose:
+        reportProgressBar(
+            stage="PASS %d" % pass_count,
+            unit="module",
+            item=current_module.getFullName(),
+            total=ModuleRegistry.getRemainingModulesCount()
+            + ModuleRegistry.getDoneModulesCount(),
+        )
 
     if _progress and Options.isShowMemory():
         output = "Memory usage {memory}:".format(
@@ -514,6 +531,10 @@ after that.""".format(
         )
 
         memory_logger.info(output)
+
+
+def _endProgress():
+    closeProgressBar()
 
 
 def restoreFromXML(text):
@@ -535,6 +556,8 @@ def makeOptimizationPass():
     finished = True
 
     ModuleRegistry.startTraversal()
+
+    _restartProgress()
 
     while True:
         current_module = ModuleRegistry.nextModule()
@@ -589,6 +612,8 @@ def makeOptimizationPass():
         if optimizeLocalsDictsHandles():
             finished = False
 
+    _endProgress()
+
     return finished
 
 
@@ -636,14 +661,10 @@ def optimize(output_filename):
         ):
             demoteCompiledModuleToBytecode(module)
 
-    pass_count = 2
+    global pass_count  # Singleton, pylint: disable=global-statement
+
     # Second, "endless" pass.
     while not finished:
-        pass_count += 1
-
-        if _progress:
-            progress_logger.info("PASS %d:" % pass_count)
-
         finished = makeOptimizationPass()
 
     Graphs.endGraph(output_filename)

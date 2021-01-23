@@ -47,7 +47,12 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
-from nuitka.Tracing import general, inclusion_logger
+from nuitka.Tracing import (
+    closeProgressBar,
+    general,
+    inclusion_logger,
+    reportProgressBar,
+)
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
 from nuitka.utils.FileOperations import (
@@ -294,24 +299,12 @@ def makeSourceDirectory():
         if module.isCompiledPythonModule():
             Finalization.prepareCodeGeneration(module)
 
-    # Pick filenames.
-    source_dir = OutputDirectories.getSourceDirectoryPath()
+    # Do some reporting and determine compiled module to work on
+    compiled_modules = []
 
-    module_filenames = pickSourceFilenames(
-        source_dir=source_dir, modules=ModuleRegistry.getDoneModules()
-    )
-
-    # Generate code for modules.
     for module in ModuleRegistry.getDoneModules():
         if module.isCompiledPythonModule():
-            c_filename = module_filenames[module]
-
-            source_code = CodeGeneration.generateModuleCode(
-                module=module,
-                data_filename=os.path.basename(c_filename + "onst"),  # Really .const
-            )
-
-            writeSourceCode(filename=c_filename, source_code=source_code)
+            compiled_modules.append(module)
 
             if Options.isShowInclusion():
                 inclusion_logger.info(
@@ -331,6 +324,34 @@ def makeSourceDirectory():
                 )
         else:
             assert False, module
+
+    # Pick filenames.
+    source_dir = OutputDirectories.getSourceDirectoryPath()
+
+    module_filenames = pickSourceFilenames(
+        source_dir=source_dir, modules=compiled_modules
+    )
+
+    # Generate code for compiled modules, this can be slow, so do it separately
+    # with a progress bar.
+    for module in compiled_modules:
+        c_filename = module_filenames[module]
+
+        reportProgressBar(
+            stage="C Source Generation",
+            unit="module",
+            item=module.getFullName(),
+            total=len(compiled_modules),
+        )
+
+        source_code = CodeGeneration.generateModuleCode(
+            module=module,
+            data_filename=os.path.basename(c_filename + "onst"),  # Really .const
+        )
+
+        writeSourceCode(filename=c_filename, source_code=source_code)
+
+    closeProgressBar()
 
     (
         helper_decl_code,

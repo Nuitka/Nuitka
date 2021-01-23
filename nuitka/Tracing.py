@@ -126,9 +126,7 @@ def my_print(*args, **kwargs):
     Use kwarg style=[option] to print in a style listed below
     """
 
-    global progress  # singleton, pylint: disable=global-statement
-    if progress is not None:
-        progress.clear()
+    closeProgressBar()
 
     with withTraceLock():
         if "style" in kwargs:
@@ -252,15 +250,25 @@ datacomposer_logger = OurLogger("Nuitka-Datacomposer")
 
 progress = None
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
+
 
 def reportProgressBar(stage, unit, item, total):
     global progress  # singleton, pylint: disable=global-statement
 
+    # Tolerate the absence for now.
+    if tqdm is None:
+        return
+
     if progress is None and use_progressbar:
         try:
-            from tqdm import tqdm
-
-            progress = tqdm(initial=1, total=total, unit=unit)
+            # Setting disable=None enables tty detection.
+            progress = tqdm(
+                initial=1, total=total, unit=unit, disable=None, leave=False
+            )
         except ImportError:
             return
 
@@ -270,3 +278,11 @@ def reportProgressBar(stage, unit, item, total):
         progress.unit = unit
         progress.total = total
         progress.update(1)
+
+
+def closeProgressBar():
+    global progress  # singleton, pylint: disable=global-statement
+
+    if progress is not None:
+        progress.clear()
+        progress = None
